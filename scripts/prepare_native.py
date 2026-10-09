@@ -17,9 +17,11 @@ WORK = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache
 def replace(path, old, new, count=1):
     file = WORK / path
     source = file.read_text()
-    if old == new or new in source:
+    if old == new:
         return
     actual = source.count(old)
+    if actual == 0 and new and new in source:
+        return
     if actual != count:
         raise RuntimeError(f"Overlay mismatch: {path}: expected {count} matches, found {actual}")
     file.write_text(source.replace(old, new))
@@ -182,7 +184,9 @@ begin "inspecting signed containers"''')
         if file.suffix not in (".c", ".cpp", ".h", ".hpp", ".rml", ".rcss"):
             continue
         source = file.read_text()
-        updated = source.replace("/data/evoplayer", "/data/prosperotube").replace("/download0/evoplayer", "/download0/prosperotube")
+        updated = source.replace("/data/evoplayer", "/data/prosperotube").replace("/download0/evoplayer", "/data/prosperotube")
+        updated = updated.replace("/mnt/usb0/evo_compatibility_report.txt", "/data/prosperotube/compatibility_report.txt")
+        updated = updated.replace("/mnt/usb0/evo_%s_%s.bmp", "/data/prosperotube/evo_%s_%s.bmp")
         updated = updated.replace("/mnt/usb0/evo.log", "/data/prosperotube/console.log").replace("QUIT EVO", "QUIT PROSPEROTUBE")
         updated = updated.replace("/mnt/usb0/evo_cmd", "/data/prosperotube/dev_command")
         updated = updated.replace("/mnt/usb0/evo_status", "/data/prosperotube/dev_status")
@@ -212,6 +216,17 @@ static const char* tube_dev_path(unsigned index) {
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')
+    # Assert integration in generated inputs, rather than trusting patch counts:
+    # a replacement can contain text that also exists elsewhere in the source.
+    makefile = (WORK / player / "Makefile").read_text()
+    if "src/evo_jailbreak.c" in makefile or "src/elevation/tube_jailbreak.cpp" not in makefile:
+        raise RuntimeError("Generated app must link only the bounded Lapy bridge")
+    for name in ("src/evo_data_path.c", "include/evo_data_path.h"):
+        if "/download0/" in (WORK / player / name).read_text():
+            raise RuntimeError("Transient app storage remains in " + name)
+    app = (WORK / player / "core/src/Application.cpp").read_text()
+    if '"/mnt/usb0/evo_shot_' in app or '"/mnt/usb0/evo_%s_%s.bmp"' in app:
+        raise RuntimeError("Screenshot output must use ProsperoTube storage")
     print(WORK)
 
 
