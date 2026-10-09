@@ -194,6 +194,14 @@ queued videos and followed-channel records are protected from ordinary cache
 eviction. Player preferences remain console-wide. PS5 navigation/lifecycle and
 larger-library retention remain acceptance work toward full parity.
 
+Candidate `09c453c6` passed the PS5 build/package and was frozen with 123 files
+(eboot SHA-256 prefix `f41250a4e796f575`). The native provider suite passed with
+address/undefined-behavior sanitizers. Cases cover independent lists and clear
+operations, persistence of the same video under two profiles, completion after
+a profile switch, queue/autoplay isolation, legacy Guest migration, duplicate
+and invalid records, and refusal to overwrite unsupported/malformed state files
+on shutdown. The shipping layout is unchanged; PS5 behavior remains unverified.
+
 ## API and failure contract
 
 All operations require the ordinary companion bearer token.
