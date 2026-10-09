@@ -28,10 +28,24 @@ independently checksum-pinned by this wrapper.
 `prepare_native.py` checks the EVO commit, extracts pinned sources, restores
 every overlaid file before applying checked patches, and copies the original
 provider/UI and complete cJSON. It never edits the submodule checkout.
-`build_ps5.sh` uses EVO's native packaging pipeline, builds software FFmpeg,
+`build_ps5.sh` uses EVO's native packaging pipeline, builds PS5 FFmpeg,
 signs/inspects containers and copies artifacts to `dist/`. MkPFS verifies its
 image. Network access is needed only for uncached dependencies. Scripts never
 deploy or launch on PS5.
+
+The pinned EVO app pipeline also includes its PS5 Videodec2 hardware backend;
+the secondary high-resolution decoder is enabled by its packaging recipe.
+FFmpeg supplies demuxing and the software fallback. Presence in a binary is
+not hardware acceptance: the selected decoder, presentation, sound and timing
+must be checked on the console. The current companion format policy selects
+SDR AVC/VP9 and has not yet enabled the backend's wider HDR/HEVC capabilities.
+See [reference candidates](REFERENCE_CANDIDATES.md) for source evidence.
+
+Set `PROSPEROTUBE_PS5_DIST` to an isolated candidate directory when checking
+new changes, preserving existing release files and their recorded manifests.
+`PROSPEROTUBE_NATIVE_WORK` separately isolates the generated build tree.
+These options do not deploy a candidate or change the console target.
+Optional account library setup is documented in [library service](LIBRARY_SERVICE.md).
 
 ## Checks
 

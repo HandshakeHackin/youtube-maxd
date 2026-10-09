@@ -16,7 +16,8 @@ if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]]; then
     printf '%s\n' '7.1.1-minimal-EVO-9715f6e' > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
 fi
 bash "${work}/scripts/package-app.sh" --zip "$@"
-mkdir -p "${root}/dist"
-cp -a "${work}/output/app/PPSA99142" "${root}/dist/"
-find "${work}/output" -maxdepth 3 -type f \( -name '*.zip' -o -name '*.ffpfsc' \) -exec cp -t "${root}/dist/" {} +
-printf '%s\n' 'ProsperoTube PS5 artifacts are in dist/. No console deployment performed.'
+destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
+mkdir -p "${destination}"
+cp -a "${work}/output/app/PPSA99142" "${destination}/"
+find "${work}/output" -maxdepth 3 -type f \( -name '*.zip' -o -name '*.ffpfsc' \) -exec cp -t "${destination}/" {} +
+printf '%s\n' "ProsperoTube PS5 artifacts are in ${destination}. No console deployment performed."
