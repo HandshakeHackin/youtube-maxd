@@ -57,6 +57,8 @@ files over FTP. The normal build leaves
 development commands disabled. Use the title-aware protocol tooling for
 deployment/launch/close; upstream EVO helper scripts still target EVO's own
 title and shared USB filenames and must not be invoked against ProsperoTube.
+Add EVO's `--virtual-keyboard` option for scripted app text-entry cases; the
+development input commands cannot type into the PS5 system IME.
 
 `package_release.py` packages companion/documentation bytes from the committed
 Git revision and only named generated media fixtures. Local account files,

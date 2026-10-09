@@ -18,6 +18,21 @@ that stopped upload attempt.
 - 2026-10-09 | startup | 800160c | PS5 6.02 | pass: browser, frame checkpoint, graceful GPU park, release | .deps/console/sandbox-start-800160c-retry/ | fixture playback
 - 2026-10-09 | provider | fe4a935 | PS5 6.02 | partial-pass: pairing, search, stream choices, teardown | .deps/console/fixture-avc-windows-fe4a935/ | direct playback
 - 2026-10-09 | AVC | 59d68dd | PS5 6.02 | partial-pass: DASH opened, hardware AVC active, clock advances | .deps/console/direct-avc-59d68dd/ | full-duration playback
+- 2026-10-09 | AVC | 675856b | PS5 6.02 | pass: bounded fixture video, scanout, 7.98/8.00s, teardown | .deps/console/complete-avc-675856b/ | captions, timing, VP9/HLS
+
+Candidate `675856b` passed the bounded AVC/AAC DASH fixture case: native UI
+pairing/search, direct preferred-stream selection, a two-stream DASH open,
+hardware AVC at 640x360, and progression to 7.98 of 8.00 seconds without a
+reported decoder fatal. The inspected 3840x2160 scanout shows the generated
+pattern and player UI. GPU park, exact-title closure, runtime release and
+service health passed; the shared lock was released.
+
+This is not audio/smoothness acceptance. The capture run's five-second timing
+window reported 25.73 video frames/s against a 30 fps source and a 183.51 ms
+maximum gap; a run without screenshot work is needed to isolate pacing. The
+caption track loaded two cues but the OSD showed subtitles off, so activation
+and timing need a separate check. VP9, HLS, seeking and live YouTube playback
+remain unverified on this application.
 
 The `59d68dd` runner printed a pass after observing raw EOF, but review found
 that this is EVO's demux-exhausted flag. The clock had reached only 1.62 seconds
