@@ -24,6 +24,12 @@ An interrupted operation may have changed the account, so the user must check
 it before deliberately repeating the action. No live account mutations were
 performed to validate this implementation.
 
+Candidate `15d0787` passed the PS5 build/package and native provider tests with
+address/undefined-behavior sanitizers. Offline cases cover all seven operations,
+one-time submissions, profile changes, re-pairing and unconfirmed results. The
+shipping menu and confirmation RML were rendered and inspected on the host.
+PS5 controller acceptance and real-account outcomes remain unverified.
+
 ## Installation
 
 Use Node.js 20 or newer on the companion host. Install and build the single-file

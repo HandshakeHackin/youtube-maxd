@@ -233,6 +233,15 @@ int main(void) {
     assert(!last_ok && !pending_count);
     p->list_catalog(account_choices[0], 0, items_cb, NULL);
     snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(pending_count == 1);
+    tube_cancel();
+    reply(0, 1, 200, "{\"job\":\"possibly-executed\",\"state\":\"pending\"}");
+    assert(!last_ok && !pending_count);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(last_ok && !pending_count && strstr(last_items[0].title, "not confirmed"));
+    p->list_catalog(account_choices[0], 0, items_cb, NULL);
+    snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
     assert(p->set_source("http://127.0.0.1:8765#123456") == 0);
     p->list_catalog(account_apply, 0, items_cb, NULL);
     assert(!last_ok && !pending_count); /* re-pairing invalidates an unsubmitted intent */

@@ -21,8 +21,9 @@ adaptive playback, progressive video, HLS, chapters, timed captions, optional
 SponsorBlock, native player controls and diagnostics. The optional
 [library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account
 profiles, subscriptions/history/watch-later and account playlist browsing.
-Its comments/replies and account-editing APIs still need native screens and live
-acceptance. Device sign-in, casting, HDR selection, AV1 and standalone SABR/token
+Native comments/replies and basic ratings, Watch later and subscription controls
+have offline coverage; PS5/live acceptance and native playlist editing remain
+pending. Device sign-in, casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
