@@ -1,7 +1,8 @@
 # ProsperoTube implementation plan
 
 - Date: 2026-10-08 (America/New_York)
-- Status: proposed; source investigation completed, implementation and console validation pending
+- Status: first-version offline implementation added; console/live-service acceptance pending.
+- Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
 ## 1. Objective and current conclusion

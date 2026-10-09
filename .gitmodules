@@ -1,0 +1,3 @@
+[submodule "third_party/evo"]
+	path = third_party/evo
+	url = https://github.com/sainsaji/EVO-PLAYER-PS5.git

@@ -1,0 +1,37 @@
+body { margin: 0; font-family: LatoLatin; font-size: 24dp; color: #f6f7fb; background: #101116; }
+div { display: block; box-sizing: border-box; }
+#tube-root { position: absolute; left: 64dp; top: 38dp; width: 1792dp; height: 1004dp; }
+#tube-header { height: 88dp; display: flex; align-items: center; }
+#tube-brand { font-size: 34dp; font-weight: bold; width: 440dp; }
+#tube-mark { display: inline-block; padding: 7dp 10dp; font-size: 25dp; background: #ef3340; border-radius: 8dp; }
+#tube-location { font-size: 23dp; color: #a9adbb; width: 1100dp; overflow: hidden; white-space: nowrap; }
+#tube-pager { width: 220dp; text-align: right; font-size: 21dp; color: #a9adbb; }
+#tube-status { position: absolute; top: 88dp; left: 0; width: 1792dp; background: #242633; padding: 12dp; font-size: 21dp; z-index: 5; border-radius: 8dp; }
+#tube-status.error { background: #51252c; color: #ffe5e5; }
+#tube-loading { position: absolute; top: 130dp; left: 0; background: #242633; padding: 18dp 26dp; border-radius: 9dp; z-index: 6; }
+#tube-grid { display: flex; flex-wrap: wrap; width: 1792dp; height: 720dp; padding-top: 18dp; }
+.tube-card { display: block; position: relative; width: 432dp; height: 332dp; margin-right: 16dp; margin-bottom: 22dp; padding: 7dp; border: 3dp transparent; border-radius: 13dp; tab-index: auto; nav: auto; overflow: hidden; background: #181a22; }
+.tube-card:focus { border-color: #ffffff; background: #292d3b; transform: scale(1.025); }
+.tube-image { position: relative; width: 412dp; height: 226dp; overflow: hidden; border-radius: 7dp; background: #282b37; }
+.tube-image img { width: 412dp; height: 226dp; }
+.tube-placeholder { padding-top: 70dp; text-align: center; font-size: 64dp; font-weight: bold; color: #cbd0df; }
+.folder .tube-image { background: #202434; }
+.folder .tube-placeholder { color: #ee5360; }
+.tube-card-title { padding-top: 12dp; font-size: 23dp; font-weight: bold; height: 40dp; overflow: hidden; white-space: nowrap; }
+.tube-card-author { font-size: 19dp; color: #a5aabd; overflow: hidden; white-space: nowrap; }
+.tube-badge, .tube-duration { position: absolute; bottom: 10dp; right: 10dp; padding: 4dp 8dp; background: #111111dd; font-size: 18dp; border-radius: 4dp; }
+.tube-badge { left: 10dp; right: auto; background: #df3340; }
+.tube-progress { position: absolute; bottom: 0; left: 6dp; width: 414dp; height: 4dp; background: #343847; }
+.tube-progress div { height: 4dp; background: #ef3340; }
+.tube-watched { position: absolute; right: 16dp; bottom: 14dp; font-size: 15dp; color: #e77d86; }
+#tube-preview { position: absolute; left: 0; top: 810dp; height: 142dp; width: 1780dp; }
+#tube-selected-title { font-size: 27dp; font-weight: bold; height: 38dp; overflow: hidden; white-space: nowrap; }
+#tube-selected-detail { color: #a9adbb; font-size: 20dp; height: 32dp; overflow: hidden; white-space: nowrap; }
+#tube-selected-overview { color: #959bad; font-size: 20dp; height: 55dp; overflow: hidden; }
+#tube-footer { position: absolute; bottom: 0; font-size: 19dp; color: #bfc4d3; height: 40dp; padding-top: 7dp; width: 1792dp; border-top: 1dp #2b2e3a; }
+.tube-key { display: inline; color: #ffffff; font-weight: bold; margin-left: 12dp; }
+#tube-empty { position: absolute; top: 290dp; width: 1792dp; text-align: center; }
+.empty-title { font-size: 42dp; font-weight: bold; margin-bottom: 18dp; }
+.empty-note { color: #a9adbb; margin-bottom: 36dp; }
+.tv-setup-card { display: inline-block; background: #ef3340; color: #ffffff; border: 3dp transparent; padding: 20dp 34dp; border-radius: 10dp; font-size: 23dp; tab-index: auto; nav: auto; }
+.tv-setup-card:focus { border-color: #ffffff; }

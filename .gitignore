@@ -1,0 +1,15 @@
+.deps/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+build/
+dist/
+output/
+fixtures/generated/
+*.conf
+*.sqlite*
+.env*
+cookies.txt
+*.log
+native/generated/
