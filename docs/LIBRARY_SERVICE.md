@@ -102,6 +102,12 @@ reader; comment markup is displayed literally. The selected profile accompanies
 each request, and changing profiles invalidates native pagination state. Comment
 posting and PS5/live-service acceptance of this view remain unfinished.
 
+Candidate `31fb0bd` passed the native provider suite with address/undefined-behavior
+sanitizers and the PS5 build/package checks. Host rendering of the shipping RML
+verified comment-list focus/activation, full-text scrolling, literal markup and
+the empty-discussion state; the rendered reader was inspected. These offline
+checks do not establish PS5 or live YouTube discussion acceptance.
+
 The test runner bundles the actual parser with its fixtures into a temporary
 directory and removes that directory afterward. This avoids slow imports of
 thousands of individual dependency files on Windows-mounted workspaces.
