@@ -47,6 +47,13 @@ new changes, preserving existing release files and their recorded manifests.
 These options do not deploy a candidate or change the console target.
 Optional account library setup is documented in [library service](LIBRARY_SERVICE.md).
 
+`package_release.py` packages companion/documentation bytes from the committed
+Git revision and only named generated media fixtures. Local account files,
+dependency directories and generated library bundles are excluded. Install the
+pinned library dependencies and rebuild its bundle on the companion host.
+Packaging records artifact hashes; test evidence belongs in the validation
+record and is not inferred from running the packager.
+
 ## Checks
 
 ```sh

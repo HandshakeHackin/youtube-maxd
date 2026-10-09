@@ -1,6 +1,7 @@
 """Package matching project/submodule source, companion fixtures and checksums."""
 from pathlib import Path
 import hashlib
+import io
 import json
 import os
 import subprocess
@@ -10,6 +11,27 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
+
+
+def companion_entries(root, revision):
+    """Source bytes come from Git; generated media uses an explicit allowlist."""
+    source = subprocess.check_output(["git", "-C", str(root), "archive", revision,
+        "companion", "docs", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+        "pyproject.toml", "scripts/generate_fixtures.py"])
+    with tarfile.open(fileobj=io.BytesIO(source)) as archive:
+        for member in archive:
+            if member.isfile():
+                yield member.name, archive.extractfile(member).read()
+    fixtures = root / "fixtures/generated"
+    names = ["video.mp4", "audio.m4a", "video.webm", "audio.webm", "muxed.mp4",
+             "fixture.m3u8", "thumb.png", "captions.vtt"]
+    names.extend(f"fixture{index}.ts" for index in range(1000)
+                 if (fixtures / f"fixture{index}.ts").exists())
+    for name in names:
+        path = fixtures / name
+        if path.is_symlink() or not path.resolve().is_relative_to(fixtures.resolve()):
+            raise ValueError("Generated fixture must be a regular local file")
+        yield "fixtures/generated/" + name, path.read_bytes()
 
 def main():
     DIST.mkdir(exist_ok=True)
@@ -25,19 +47,15 @@ def main():
                         member.name = "ProsperoTube/" + prefix + member.name
                         result.addfile(member, source.extractfile(member) if member.isfile() else None)
     with zipfile.ZipFile(DIST / "ProsperoTube-0.1.0-companion-fixtures.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-        for directory in ("companion", "docs", "fixtures/generated"):
-            for path in (ROOT / directory).rglob("*"):
-                if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc" and path.name != "test.mpd":
-                    archive.write(path, "ProsperoTube/" + path.relative_to(ROOT).as_posix())
-        for name in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "pyproject.toml", "scripts/generate_fixtures.py"):
-            archive.write(ROOT / name, "ProsperoTube/" + name)
+        for name, body in companion_entries(ROOT, revision):
+            archive.writestr("ProsperoTube/" + name, body)
     artifacts = {}
     for path in sorted(DIST.iterdir()):
         if path.is_file() and path.suffix in {".zip", ".ffpfsc", ".gz"}:
             artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
     manifest = {"version": "0.1.0", "source_revision": revision, "title_id": "PPSA99142",
-                "validation": {"companion_tests": 30, "native_sanitizers": "pass", "host_fixture_decode_seek": "pass",
-                               "native_ui_preview": "pass", "ps5_hardware": "not tested", "live_youtube": "not tested"},
+                "validation": {"status": "Packaging records checksums; consult the validation record for test evidence.",
+                               "ps5_hardware": "not tested", "live_youtube": "not tested"},
                 "artifacts": artifacts}
     (DIST / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (DIST / "SHA256SUMS").write_text("".join(f"{v['sha256']}  {k}\n" for k, v in artifacts.items()))
