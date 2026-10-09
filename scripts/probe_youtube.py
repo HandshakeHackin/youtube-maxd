@@ -1,6 +1,7 @@
-"""Explicit, credential-free YouTube API/relay probe; no console traffic."""
+"""Explicit public or configured OAuth YouTube API/relay probe; no console traffic."""
 import argparse
 import json
+import re
 from pathlib import Path
 import socket
 import subprocess
@@ -15,6 +16,31 @@ from prosperotube.extractor import Extractor
 from prosperotube.models import ServiceError, video_id
 
 
+def probe_app(args):
+    """Never discover browser credentials or fall back from a selected account."""
+    runtimes = {args.js_runtime: {"path": args.js_runtime_path} if args.js_runtime_path else {}}
+    guest = Extractor(timeout=60, js_runtimes=runtimes)
+    selected = (args.profile, args.library_node, args.account_state)
+    if not any(selected):
+        return create_app(extractor=guest)
+    if not all(selected) or args.profile == "guest" or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", args.profile):
+        raise ValueError("Provide --profile, --library-node and --account-state together for an OAuth account.")
+    # A typo must not create an empty private store and run an anonymous probe.
+    if not (args.account_state / "oauth-profiles.json").is_file():
+        raise ValueError("The explicitly selected companion OAuth store is unavailable.")
+    from prosperotube.device_auth import OAuthProfiles
+    from prosperotube.extractor import ProfileExtractors
+    from prosperotube.library import LibraryService
+    try:
+        store = OAuthProfiles(args.account_state)
+        if not any(p["id"] == args.profile for p in store.profiles):
+            raise ValueError("Select an OAuth profile in the explicitly supplied companion store.")
+        library = LibraryService(args.library_node, oauth_store=store)
+    except (OSError, ValueError, KeyError):
+        raise ValueError("The selected companion OAuth account configuration is unavailable or invalid.") from None
+    return create_app(extractor=ProfileExtractors(guest, lambda: library.profiles, library), library=library)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--video", required=True, help="Public eleven-character YouTube video ID")
@@ -22,21 +48,28 @@ def main():
     parser.add_argument("--height", type=int, choices=(144, 240, 360, 480, 720, 1080), default=720)
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
     parser.add_argument("--js-runtime-path")
+    parser.add_argument("--profile", help="Explicit authorized OAuth profile ID; never falls back to Guest")
+    parser.add_argument("--library-node", help="Node.js executable for account preflight/refresh")
+    parser.add_argument("--account-state", type=Path, help="Explicit companion private OAuth state directory")
     parser.add_argument("--output", type=Path, default=Path("output/validation/public-youtube.json"))
     args = parser.parse_args()
     try:
         identifier = video_id(args.video)
     except ServiceError as error:
         parser.error(error.message)
-    runtimes = {args.js_runtime: {"path": args.js_runtime_path} if args.js_runtime_path else {}}
-    app = create_app(extractor=Extractor(timeout=60, js_runtimes=runtimes))
+    try:
+        app = probe_app(args)
+    except ValueError as error:
+        parser.error(str(error))
     listener = socket.socket()
     listener.bind(("127.0.0.1", 0))
     base = f"http://127.0.0.1:{listener.getsockname()[1]}"
     server = uvicorn.Server(uvicorn.Config(app, log_level="critical", access_log=False))
     thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
     result = {"id": identifier, "codec": args.codec, "height_limit": args.height,
-              "scope": "public YouTube -> authenticated companion -> relay -> host FFmpeg",
+              "scope": ("OAuth TV YouTube" if args.profile else "public YouTube") +
+                       " -> authenticated companion -> relay -> host FFmpeg",
+              "account_profile_selected": bool(args.profile), "console_traffic": False,
               "result": "failed"}
     stage = "startup"
     token = ""
@@ -59,7 +92,8 @@ def main():
         stage = "pairing"
         token = request("/v1/pair", {"code": app.state.pairing_code})["token"]
         stage = "resolve"
-        playback = request("/v1/resolve", {"id": identifier, "codec": args.codec, "max_height": args.height})
+        playback = request("/v1/resolve", {"id": identifier, "codec": args.codec, "max_height": args.height,
+                                            "profile": args.profile or "guest"})
         choice = playback["choices"][0]
         result["transport"] = choice["container"]
         stage = "relay_probe"

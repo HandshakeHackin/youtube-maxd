@@ -126,6 +126,28 @@ Success is host companion/FFmpeg evidence, not console decoder or audio proof.
 The selected runtime and installed `yt-dlp-ejs` are required for full YouTube
 extraction; see upstream [EJS setup](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
+To run the same host decode/seek check through an already authorized OAuth
+profile, explicitly add all three account options:
+
+```sh
+PYTHONPATH=companion .venv/bin/python scripts/probe_youtube.py \
+  --video VIDEO_ID --codec avc --height 720 \
+  --js-runtime node --js-runtime-path /path/to/node \
+  --profile AUTHORIZED_PROFILE_ID --library-node /path/to/node \
+  --account-state /path/to/private/companion-state \
+  --output output/validation/oauth-youtube.json
+```
+
+The profile must exist in the supplied `oauth-profiles.json`; missing, corrupt,
+Guest or incomplete account selections fail before the server starts. The probe
+uses the shipping OAuth preflight, TV resolver and relay, with no anonymous
+substitution. An expiring account token may refresh and persist through the
+normal companion storage guards. It does not initiate device authorization,
+submit history reports or perform account mutations. Account credentials remain
+on the companion host, while the PS5 uses Lapy storage in `/data/prosperotube`.
+Its metadata report omits profile names, store paths, credentials and media URLs.
+Host success still requires separate PS5 playback acceptance.
+
 Expected upstream failures are mapped to `video_unavailable`,
 `authentication_required`, `youtube_challenge`, `youtube_rate_limited`, or
 `resolver_network` when recognized. Unknown errors retain `extraction_failed`.

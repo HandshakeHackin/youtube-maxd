@@ -228,3 +228,15 @@ with eboot SHA-256 prefix `862761034df260c3`. The Lapy helper and notices are
 packaged, and PS5 storage remains `/data/prosperotube`. Evidence:
 `.deps/account-remove-ps5-build.log`, `.deps/account-remove-freeze.log`.
 No console operations occurred in this stage; this candidate remains undeployed.
+
+OAuth host-probe follow-up: 111 Python tests passed. The existing loopback
+API/relay/FFmpeg probe now accepts an explicitly configured OAuth profile and
+private companion store. Shipping API tests verify private credential preflight,
+profile routing, Guest separation, unavailable-profile rejection and response
+privacy. Missing/incomplete/Guest selections fail, corrupt stores remain intact,
+and nonexistent paths do not create empty state. Evidence:
+`.deps/oauth-probe-test.log`, `.deps/oauth-probe-full-python.log`.
+These tests use synthetic account credentials and media metadata; no real
+authorization, upstream account playback, media download or console traffic
+occurred. Native sources are unchanged from the frozen `0e75c5ea` candidate,
+whose complete checksum manifest also passed verification.
