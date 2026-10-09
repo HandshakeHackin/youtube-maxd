@@ -18,7 +18,7 @@ class Extractor:
         self.js_runtimes = js_runtimes
         self.cache = {}
 
-    async def extract(self, target: str, *, flat=False, start=1, end=24):
+    async def extract(self, target: str, *, flat=False, start=1, end=24, _oauth_access_token=None):
         key = (target, flat, start, end)
         cached = self.cache.get(key)
         if cached and cached[0] > time.monotonic():
@@ -31,7 +31,8 @@ class Extractor:
             payload = json.dumps({"target": target, "flat": flat, "start": start, "end": end,
                                   "cookies": self.cookies, "extractor_args": self.extractor_args,
                                   "cookie_header": self.cookie_header,
-                                  "js_runtimes": self.js_runtimes}).encode()
+                                  "js_runtimes": self.js_runtimes,
+                                  **({"oauth_access_token": _oauth_access_token} if _oauth_access_token else {})}).encode()
             try:
                 async with asyncio.timeout(self.timeout):
                     process.stdin.write(payload)
@@ -75,10 +76,11 @@ class Extractor:
 
 class ProfileExtractors:
     """Immutable credential/cache partitions sharing the subprocess limit."""
-    def __init__(self, guest, profiles):
+    def __init__(self, guest, profiles, library=None):
         self.guest = guest
         self.profile_source = profiles if callable(profiles) else lambda: profiles
         self.extractors = {"guest": guest}
+        self.library = library
 
     def for_profile(self, profile):
         if profile == "guest":
@@ -86,8 +88,16 @@ class ProfileExtractors:
         configured = next((p for p in self.profile_source() if p["id"] == profile), None)
         if configured is None:
             raise ServiceError("unknown_profile", "Select an available profile.", 404)
-        if configured.get("oauth"):
-            raise ServiceError("playback_oauth_context", "TV OAuth stream resolution is not connected yet.", 503)
+        if "oauth" in configured:
+            from .device_auth import credentials_valid
+            if not credentials_valid(configured["oauth"]):
+                raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403)
+            if self.library is None:
+                raise ServiceError("playback_oauth_context", "Enable the account library for OAuth playback.", 503)
+            if profile not in self.extractors:
+                from .oauth_extractor import OAuthExtractor
+                self.extractors[profile] = OAuthExtractor(profile, self.library, self.guest)
+            return self.extractors[profile]
         if configured.get("account_index", 0) or configured.get("channel"):
             raise ServiceError("playback_account_context", "Playback for secondary accounts or brand channels is not connected yet.", 503)
         if profile not in self.extractors:

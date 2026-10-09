@@ -309,9 +309,7 @@ TV request headers/context and token refresh. A live public device-code request
 and local cancellation passed without token polling or account authorization.
 Real authorization and private-account feeds remain unverified. Asynchronous
 sign-in jobs use the existing job transport; abandoned starts and canceled polls
-discard late responses before persistence. Sign-out and OAuth stream resolution are
-still unfinished; attempting playback with an OAuth profile returns the explicit
-`playback_oauth_context` error rather than resolving another account's context.
+discard late responses before persistence. Sign-out remains unfinished.
 
 The native Accounts & library screen now includes **Sign in to YouTube**. It
 obtains a code through the job API, shows the verification URL and code, and polls
@@ -324,3 +322,41 @@ captured original companion address/token. Changing the companion source also
 resets the selected account to Guest. Codes/session references remain in memory
 and never enter `youtube.json`. This implementation has native sanitizer and
 host layout coverage; actual PS5 sign-in and live account acceptance are pending.
+
+## OAuth TV resolution
+
+Selected OAuth profiles now use a separate resolver/cache context. Before video
+extraction, a private Node operation prepares the account's TV session and refreshes
+tokens with less than 60 seconds remaining. Refresh updates are persisted through
+the existing private IPC path. Only the access token/expiry cross into the Python
+resolver; the refresh token/client secret remain in the account worker/store.
+No HTTP endpoint exposes this operation. The token reaches the extraction child
+through stdin, never command arguments or PS5 state.
+
+The original local yt-dlp adapter replaces only that child's YouTube video
+extractor. It requests `tv` and `tv_downgraded` and rejects non-TV player fallbacks.
+Bearer headers are added only to client-7 TVHTML5 requests. A separate bounded
+transport validates the actual JSON context and precise HTTPS YouTube API endpoint,
+rejects redirects, limits responses to 8 MiB and uses a 12-second network timeout.
+Video extraction and preflight share the resolver's overall deadline. Cookies and
+OAuth cannot be mixed. Bearer headers are stripped from normalized formats and
+captions; the relay never uses an OAuth header. TV script URLs supplied by TV
+configuration are retained; a missing script reference uses the pinned TV variant.
+
+OAuth search/channel/playlist pages use the TV library session and its opaque,
+profile-scoped continuations. They retain explicit `has_more` even when a page
+contains fewer than 24 videos. Each profile retains at most 32 catalog contexts,
+16 pages per context, for 110 seconds. Errors discard the affected context so a
+reload can recreate it after worker loss. Back navigation beyond retained pages
+refreshes the query. Guest and cookie-profile extraction remain separate.
+
+Offline tests exercise actual pinned TV requests, response parsing, normalized
+AVC/AAC adaptive formats and DASH capability creation, refresh/preflight privacy,
+redirect/origin/context rejection and profile pagination. The public TV probe on
+`jNQXAC9IVRw` returned `LOGIN_REQUIRED` and no formats; no account was authorized.
+This is a connected adapter with offline evidence, not proof of private account
+playback. Real authorization, TV catalog compatibility, account-only streams,
+caption access and signature solving still need live acceptance. The upstream
+[TV player issue](https://github.com/yt-dlp/yt-dlp/issues/17389) documents TV script
+challenge compatibility problems; the current adapter does not establish that
+the pinned evaluator handles every current TV script.

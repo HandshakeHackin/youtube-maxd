@@ -8,6 +8,41 @@ import { DeviceAuthorization, createProfileClient, validCredentials } from './de
 Log.setLevel(Log.Level.NONE);
 const oauthFixture = { access_token: 'fixture-access', refresh_token: 'fixture-refresh',
   expiry_date: '2099-01-01T00:00:00.000Z', client: { client_id: 'fixture-client', client_secret: 'fixture-secret' } };
+test('private playback preflight refreshes actual pinned TV tokens before expiry', async () => {
+  const updates = [], requests = [];
+  const nearExpiry = { ...oauthFixture, expiry_date: new Date(Date.now() + 30000).toISOString() };
+  const library = new Library(profile => createProfileClient(profile, Innertube, async (input, init) => {
+    const request = new Request(input, init); requests.push(request);
+    assert.equal(new URL(request.url).pathname, '/o/oauth2/token');
+    assert.equal(JSON.parse(await request.text()).grant_type, 'refresh_token');
+    return new Response(JSON.stringify({access_token:'fresh-playback-access',expires_in:3600}),
+      { headers: { 'Content-Type': 'application/json' } });
+  }, (id, credentials) => updates.push({id,credentials})), [{id:'one',name:'TV',cookie:'',oauth:nearExpiry}]);
+  const result = await library.playback({ action:'credentials',profile:'one' });
+  assert.equal(result.access_token, 'fresh-playback-access');
+  assert.deepEqual(Object.keys(result).sort(), ['access_token','expiry_date']);
+  assert.equal(updates.length, 1); assert.equal(requests.length, 1);
+  assert.equal(updates[0].credentials.refresh_token, oauthFixture.refresh_token);
+  assert.equal((await library.playback({action:'credentials',profile:'one'})).access_token, result.access_token);
+  assert.equal(requests.length, 1);
+  await assert.rejects(library.playback({action:'credentials',profile:'guest'}), /OAuth account/);
+  await assert.rejects(library.execute({action:'credentials',profile:'one'}), /Unsupported|supported|operation/i);
+});
+test('TV playback catalogs retain profile-scoped opaque continuations', async () => {
+  const video = id => ({id,title:'TV video',author:{name:'Creator'},duration:{seconds:8}});
+  let searches = 0, continuations = 0;
+  const feed = {videos:[video('abcdefghijk')],has_continuation:true,
+    async getContinuation() { continuations++; return {videos:[video('zyxwvutsrqp')],has_continuation:false}; }};
+  const library = new Library(async () => ({async search(query) { searches++; assert.equal(query,'TV'); return feed; }}),
+    [{id:'one',cookie:'',oauth:oauthFixture},{id:'two',cookie:'',oauth:oauthFixture}]);
+  const first = await library.playback({action:'catalog',kind:'search',query:'TV',profile:'one'});
+  assert.equal(first.items[0].id, 'abcdefghijk'); assert.equal(first.has_more, true);
+  const second = await library.playback({action:'catalog',cursor:first.cursor,profile:'one'});
+  assert.equal(second.items[0].id, 'zyxwvutsrqp'); assert.equal(second.has_more, false);
+  await library.playback({action:'catalog',cursor:first.cursor,profile:'one'});
+  assert.equal(searches, 1); assert.equal(continuations, 1);
+  await assert.rejects(library.playback({action:'catalog',cursor:first.cursor,profile:'two'}), /Reload/);
+});
 test('OAuth profiles use actual pinned TV context and keep bearer auth off web clients', async () => {
   const requests = [];
   const client = await createProfileClient({ id: 'one', cookie: '', oauth: oauthFixture }, Innertube,

@@ -173,5 +173,7 @@ browser while a poll is pending. No canceled/late response may select a profile.
 For successful authorization, the user must enter the displayed code on their
 phone/computer, verify the authorized profile becomes selectable and restart the
 companion to check persistence/refresh. Distinguish public initiation from real
-account authorization. OAuth playback currently reports an explicit unsupported
-context; implementing and verifying its TV stream path is still required.
+account authorization. OAuth playback now has a TV-only adapter with offline
+request/format/refresh coverage. Verify real account-only playback, captions,
+TV signature/n challenges, profile isolation and post-refresh resolution before
+claiming it works. A public TV probe returning LOGIN_REQUIRED proves no playback.

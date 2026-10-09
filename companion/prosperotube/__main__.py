@@ -66,7 +66,7 @@ def main():
                                      oauth_store, library.add_oauth_profile,
                                      lambda: len(library.profiles) < 8)
             from .extractor import ProfileExtractors
-            extractor = ProfileExtractors(extractor, lambda: library.profiles)
+            extractor = ProfileExtractors(extractor, lambda: library.profiles, library)
         app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")

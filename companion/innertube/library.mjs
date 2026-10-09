@@ -108,6 +108,34 @@ export class Library {
     if (!this.clients.has(id)) this.clients.set(id, await this.createClient(profile));
     return this.clients.get(id);
   }
+  async playback(input) {
+    const owner = input?.profile;
+    if (!this.profiles.get(owner)?.oauth)
+      throw new LibraryError('playback_account_context', 'Select an OAuth account profile.', 403);
+    const client = await this.client(owner);
+    if (input.action === 'credentials') {
+      const oauth = client.session.oauth;
+      if (Date.parse(oauth.oauth2_tokens?.expiry_date) <= this.clock() + 60000)
+        await oauth.refreshAccessToken();
+      const credentials = oauth.oauth2_tokens;
+      if (!validCredentials(credentials) || Date.parse(credentials.expiry_date) <= this.clock())
+        throw new LibraryError('authentication_required', 'Sign in to the YouTube account again.', 403);
+      return { access_token: credentials.access_token, expiry_date: credentials.expiry_date };
+    }
+    if (input.action !== 'catalog') throw new LibraryError('invalid_request', 'The playback operation is invalid.');
+    if (input.cursor) {
+      if (this.cursors.get(input.cursor)?.kind !== 'catalog')
+        throw new LibraryError('cursor_expired', 'Reload this catalog to continue.', 409);
+      return this.execute({ action: 'continue', profile: owner, cursor: input.cursor });
+    }
+    let feed;
+    if (input.kind === 'search' && typeof input.query === 'string' && input.query.length > 0 && input.query.length <= 200)
+      feed = await client.search(input.query);
+    else if (input.kind === 'channel' && channelId(input.id)) feed = await client.getChannel(input.id);
+    else if (input.kind === 'playlist' && playlistId(input.id)) feed = await client.getPlaylist(input.id);
+    else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
+    return this.page(owner, 'catalog', feed);
+  }
   page(owner, kind, feed, pending = null) {
     const comments = kind === 'comments';
     const items = pending ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :

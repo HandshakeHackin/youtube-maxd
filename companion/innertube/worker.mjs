@@ -64,7 +64,10 @@ for await (const chunk of process.stdin) {
       } else {
         if (!library) throw new LibraryError('not_initialized', 'Initialize the worker first.');
         if (Buffer.byteLength(line) > (input.operation === 'device' ? 16384 : 8192)) throw new LibraryError('request_limit', 'The operation exceeds the request limit.');
-        output = input.operation === 'device' ? await deviceAuth.execute(input.request) : await library.execute(input.request);
+        if (input.operation === 'device') output = await deviceAuth.execute(input.request);
+        else if (input.operation === 'playback') output = await library.playback(input.request);
+        else if (input.operation === 'execute') output = await library.execute(input.request);
+        else throw new LibraryError('invalid_request', 'The worker operation is invalid.');
       }
       const updates = Array.from(credentialUpdates, ([profile, credentials]) => ({ profile, credentials }));
       const serialized = JSON.stringify({ id, result: output, ...(updates.length ? { credential_updates: updates } : {}) });

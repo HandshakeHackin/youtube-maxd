@@ -180,7 +180,7 @@ class LibraryService:
     async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
-        if operation not in ("execute", "device") or not isinstance(request, dict) or len(json.dumps(request).encode("utf-8")) > (16384 if operation == "device" else 8192):
+        if operation not in ("execute", "device", "playback") or not isinstance(request, dict) or len(json.dumps(request).encode("utf-8")) > (16384 if operation == "device" else 8192):
             raise ServiceError("library_request_limit", "The library operation exceeds its request limit.", 400)
         if self.pending >= 16:
             raise ServiceError("library_busy", "The library is busy. Retry shortly.", 429)

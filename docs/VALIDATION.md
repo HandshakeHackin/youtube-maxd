@@ -153,3 +153,20 @@ It stopped before probes, upload, launch, close or input and released its owned
 lock. Evidence: `.deps/console/storage-a07e1733/` and
 `.deps/console/storage-device-auth-run.log`. The candidate remains undeployed;
 Lapy storage/relaunch, playback gates and native sign-in require PS5 acceptance.
+
+OAuth resolution adapter: 95 Python and 24 Node tests passed. New cases exercise
+the actual pinned yt-dlp TV player request/context, authenticated bounded transport,
+redirect/origin rejection, TV script selection, normalized AVC/AAC adaptive formats
+and DASH capability creation; they use synthetic responses and no real account.
+Profile/cache isolation, TV search continuations, near-expiry token refresh and
+private preflight are covered. A real bundled Node worker runs with external fetch
+disabled; its private credential result is verified and HTTP attempts to access
+that operation are rejected. Evidence: `.deps/oauth-playback-verified-python.log`,
+`.deps/oauth-playback-verified-node.log`, `.deps/oauth-playback-worker-build.log`.
+
+The explicit public TV player probe obtained LOGIN_REQUIRED with zero formats
+for `jNQXAC9IVRw`. It made one public API request, with no account authorization,
+token polling, media download or console traffic. Evidence:
+`.deps/tv-player-verified-public-probe.json` and its matching log. This does not
+verify account-only streams or current TV signature challenges. No native sources
+changed in this stage; the frozen native candidate remains `a07e1733` and undeployed.

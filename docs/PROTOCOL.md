@@ -65,3 +65,9 @@ orphaned session. Once GET delivers a start result, the caller owns the session:
 deleting that completed job leaves authorization pending until explicit session
 cancellation or expiry. The native account browser now uses this job flow;
 PS5 and real-account acceptance remain pending.
+
+Selected OAuth profiles now route search/catalog through TV library continuations
+and video resolution through a TV-only extraction adapter. Token preparation is
+an internal worker operation and cannot be requested through HTTP. All public
+resolve/job responses retain the existing capability-only media protocol. Real
+account and TV signature compatibility acceptance remain pending.

@@ -65,11 +65,19 @@ def main():
         # from the single structured result, even when an extractor prints.
         with contextlib.redirect_stdout(sys.stderr):
             with YoutubeDL(opts) as ydl:
+                if request.get("oauth_access_token") is not None:
+                    if request.get("cookies") or request.get("cookie_header") or request["flat"]:
+                        raise ValueError("invalid OAuth extraction context")
+                    from .oauth_video import TVOAuthYoutubeIE
+                    ydl.add_info_extractor(TVOAuthYoutubeIE(request["oauth_access_token"]))
                 if request.get("cookie_header") is not None:
                     install_profile_cookies(ydl, request["cookie_header"])
                 info = ydl.extract_info(request["target"], download=False)
                 attach_media_cookies(ydl, info)
                 result = ydl.sanitize_info(info)
+                if request.get("oauth_access_token") is not None:
+                    from .oauth_video import strip_oauth_headers
+                    strip_oauth_headers(result)
         json.dump(result, sys.stdout, ensure_ascii=False)
     except Exception as error:
         from .resolver_errors import classify_error

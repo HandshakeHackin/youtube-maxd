@@ -75,4 +75,5 @@ async def page_for(extractor, *, query="", parent="", page=0):
         if row and row.id not in seen:
             rows.append(row)
             seen.add(row.id)
-    return Page(items=rows, has_more=len(entries) > PAGE_SIZE, page=page)
+    more = result.get("_has_more") if getattr(extractor, "uses_explicit_catalog_pages", False) else len(entries) > PAGE_SIZE
+    return Page(items=rows, has_more=more is True, page=page)

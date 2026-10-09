@@ -27,7 +27,9 @@ pending. The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;
 Circle cancels pending sign-in. Its provider flow and layout have offline coverage,
-with PS5/real-account acceptance pending. OAuth playback still needs integration.
+with PS5/real-account acceptance pending. OAuth profiles now use a TV-only resolver
+adapter and private token-refresh bridge, with offline format/pagination coverage.
+Live account playback and TV signature challenges remain unverified.
 Casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 

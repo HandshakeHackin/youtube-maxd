@@ -99,6 +99,14 @@ It checks initiation, poll intervals/single-flight, cancellation, late original-
 source cleanup, expiry/denial, malformed responses and exclusion from PS5 state.
 The host UI preview includes the device-code screen and cancel-row activation.
 
+To characterize the public TV player without an account, media download or console
+traffic, run `node companion/innertube/probe_tv_player.mjs PUBLIC_VIDEO_ID OUTPUT.json`
+with the configured Node runtime. The runner bundles the pinned dependency into
+an owned temporary directory, bounds the child to 90 seconds, and cleans up.
+Reports contain only status/counts/booleans, never signed URLs or token material.
+An unauthenticated LOGIN_REQUIRED response is useful diagnostic evidence, not a
+successful playback case. Full account validation requires real authorization.
+
 ## Public YouTube probe
 
 For an explicit public YouTube check on the companion host:
