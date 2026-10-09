@@ -20,6 +20,7 @@ int tube_finish_and_next(double position, double duration);
 int tube_take_next(evo_provider_item_t *item);
 int tube_autoplay_enabled(void);
 int tube_choose_stream_enabled(void);
+const char *tube_comment_text(const char *id);
 void tube_set_error(const char *message);
 #ifdef __cplusplus
 }

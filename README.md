@@ -86,10 +86,16 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | Triangle | Toggle favorite |
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
+| R3 | Open comments on a video |
 | Options | Companion address and pairing code |
 
 Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
 `channel:CHANNEL_ID` and `playlist:PLAYLIST_ID` for direct browsing.
+
+In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
+switches top/newest sorting, and Circle returns. Enable the companion library
+worker for discussion browsing. Comment posting and live/PS5 acceptance remain
+unfinished.
 
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
 Up toggles captions, Down opens the caption picker, R2 opens audio tracks,

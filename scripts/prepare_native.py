@@ -53,6 +53,7 @@ def main():
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
+        "ui_rml/include/evo_rmlui_provider.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -132,6 +133,8 @@ def main():
     replace(about, "ScreenId::Changelog", "ScreenId::EmbyBrowse")
     replace(about, "ScreenId::MainMenu", "ScreenId::EmbyBrowse")
     replace(host, "        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;", "        if (m_providerId == \"youtube\") {\n            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;")
+    from discussion_overlay import apply_discussion_overlay
+    apply_discussion_overlay(replace, player, host)
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
     param.update(titleId=TITLE, conceptId="99142", contentId=f"UP9000-{TITLE}_00-PROSPEROTUBE0000", contentVersion="01.000.000")

@@ -57,6 +57,18 @@ static int g_chapter_count;
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 static char g_library_cursors[LIBRARY_PAGES][65];
+static struct { char id[160], content[16385]; } g_comments[LOCAL_PAGE];
+
+static int valid_cursor(const char *value) {
+    return value && *value && strlen(value) <= 64 &&
+        strspn(value, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(value);
+}
+
+const char *tube_comment_text(const char *id) {
+    if (id) for (int i = 0; i < LOCAL_PAGE; ++i)
+        if (*g_comments[i].id && !strcmp(id, g_comments[i].id)) return g_comments[i].content;
+    return "";
+}
 
 static long long now_ms(void) {
     struct timespec t;
@@ -208,6 +220,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    memset(g_comments, 0, sizeof g_comments);
     FILE *f = fopen(evo_data_path("youtube.json"), "rb");
     if (!f) return 0;
     if (fseek(f, 0, SEEK_END) || ftell(f) < 0 || ftell(f) > 2 * 1024 * 1024) { fclose(f); return -1; }
@@ -457,14 +470,42 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (cb) cb(1, items, n, 0, data);
         free(items); cJSON_Delete(root); return;
     }
-    if (r->kind == 3) {
+    if (r->kind == 5 && (strcmp(str(result, "kind"), "comments") ||
+        !cJSON_IsArray(cJSON_GetObjectItemCaseSensitive(result, "items")))) {
+        free(items); cJSON_Delete(root); tube_set_error("The comment response was invalid."); complete(r, 0); return;
+    }
+    if (r->kind == 3 || r->kind == 5) {
         const char *cursor = str(result, "cursor");
         int more = boolean(result, "has_more");
-        if (more && (!*cursor || strlen(cursor) > 64 || strspn(cursor, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(cursor))) {
+        if (more && !valid_cursor(cursor)) {
             free(items); cJSON_Delete(root); tube_set_error("The library pagination response was invalid."); complete(r, 0); return;
         }
         if (!strcmp(r->parent, g_library_parent) && r->page + 1 < LIBRARY_PAGES)
             copy(g_library_cursors[r->page + 1], sizeof g_library_cursors[0], more ? cursor : "");
+    }
+    if (r->kind == 5) {
+        memset(g_comments, 0, sizeof g_comments);
+        cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
+            if (n >= LOCAL_PAGE || !*str(o, "id")) continue;
+            char id[160], hint[256];
+            const char *reply = str(o, "reply_cursor");
+            if (*reply && !valid_cursor(reply)) continue;
+            if (*reply) snprintf(id, sizeof id, "discussion:replies:%s", reply);
+            else snprintf(id, sizeof id, "discussion:leaf:%u:%d", r->generation, n);
+            snprintf(hint, sizeof hint, "%.80s | %.32s likes | %.32s replies%s%s",
+                str(o, "published"), str(o, "likes"), str(o, "replies"),
+                boolean(o, "pinned") ? " | Pinned" : "", boolean(o, "owner") ? " | Creator" : "");
+            folder(&items[n], id, *str(o, "author") ? str(o, "author") : "Comment", hint);
+            copy(items[n].overview, sizeof items[n].overview, str(o, "content"));
+            copy(g_comments[n].id, sizeof g_comments[n].id, id);
+            copy(g_comments[n].content, sizeof g_comments[n].content, str(o, "content"));
+            ++n;
+        }
+        evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+        int more = boolean(result, "has_more");
+        memset(r, 0, sizeof *r);
+        if (cb) cb(1, items, n, more, data);
+        free(items); cJSON_Delete(root); return;
     }
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
         if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
@@ -551,6 +592,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (!strncmp(parent, "library:profile:", 16)) {
             if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
             copy(g_library_profile, sizeof g_library_profile, parent + 16);
+            memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
         }
         char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
@@ -631,6 +673,27 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     if (!cb || page < 0 || page > 1000) return -1;
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
+    if (parent && !strncmp(parent, "discussion:", 11)) {
+        const char *action = parent + 11, *identity = NULL, *sort = "top";
+        int replies = !strncmp(action, "replies:", 8);
+        if (replies) identity = action + 8;
+        else if (!strncmp(action, "top:", 4)) identity = action + 4;
+        else if (!strncmp(action, "newest:", 7)) { identity = action + 7; sort = "newest"; }
+        if (!identity || (replies ? !valid_cursor(identity) : !valid_id(identity))) {
+            tube_set_error("The selected discussion was invalid."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
+            tube_set_error("Reload the discussion to continue reading."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        Request *r = request_new(5, ud); if (!r) return -1;
+        r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"sort\":\"%s\",\"cursor\":\"%s\",\"id\":\"%s\"}}",
+            page ? "continue" : replies ? "replies" : "comments", g_library_profile, sort,
+            page ? g_library_cursors[page] : replies ? identity : "", replies ? "" : identity);
+        begin(r); return 0;
+    }
     if (parent && !strncmp(parent, "library:", 8)) {
         const char *action = parent + 8;
         int playlist = !strncmp(action, "playlist:", 9) && valid_catalog_id(parent);

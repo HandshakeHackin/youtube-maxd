@@ -7,8 +7,8 @@ The native Discover screen opens home and account/library screens through the
 existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue and history remain console data.
 
-This is not full SmartTube parity. Device-code login, live chat, native comment
-presentation and native account-edit controls are not connected yet. Account
+This is not full SmartTube parity. Device-code login, live chat, comment posting
+and native account-edit controls are not connected yet. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real YouTube/account acceptance remains unverified.
@@ -94,7 +94,13 @@ Comment records with reply threads include an opaque `reply_cursor`. Use action
 ordinary `continue` action for additional pages. References expire after two
 minutes and are limited to 256 retained threads. Repeated reads return the same
 page; expired or evicted references require reopening comments. These are browse
-operations; native comment screens and comment posting remain unfinished.
+operations. In the native browser, R3 on a video opens top comments. R3 toggles
+top/newest sorting on the comment list, Cross opens an available reply thread,
+L2/R2 scroll the selected comment, and L1/R1 page through the list. Circle returns
+to the previous list or video browser. Text and newlines appear in a separate
+reader; comment markup is displayed literally. The selected profile accompanies
+each request, and changing profiles invalidates native pagination state. Comment
+posting and PS5/live-service acceptance of this view remain unfinished.
 
 The test runner bundles the actual parser with its fixtures into a temporary
 directory and removes that directory afterward. This avoids slow imports of

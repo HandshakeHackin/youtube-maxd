@@ -60,6 +60,7 @@ int main(int argc, char** argv) {
     BIND(provider_name); BIND(breadcrumb); BIND(page_info); BIND(status); BIND(has_error);
     BIND(loading); BIND(empty); BIND(rows); BIND(has_selected); BIND(selected_title);
     BIND(selected_subtitle); BIND(selected_resume); BIND(selected_overview);
+    BIND(discussion);
 #undef BIND
     Rml::String activated;
     constructor.BindEventCallback("activate", [&activated](Rml::DataModelHandle, Rml::Event& event, const Rml::VariantList&) {
@@ -122,6 +123,44 @@ int main(int argc, char** argv) {
     handle.DirtyAllVariables(); capture(context, renderer, pixels, output / "loading.ppm");
     model.loading = false; model.has_error = true; model.status = "Playback information expired. Select the video again to refresh it.";
     handle.DirtyAllVariables(); capture(context, renderer, pixels, output / "error.ppm");
+    model.discussion = true; model.empty = false; model.has_error = false; model.status = "";
+    model.breadcrumb = "Search / fixture / Top comments"; model.page_info = "1 / 2";
+    model.has_selected = true; model.selected_title = "A comment author";
+    model.selected_subtitle = "Today | 12 likes | 3 replies | Pinned | Creator";
+    model.selected_resume = "";
+    model.selected_overview = "Literal <img id='comment-injection' src='evil'> & comment text.\n";
+    for (int i = 0; i < 45; ++i)
+        model.selected_overview += "Line " + std::to_string(i + 1) + ": This long comment remains available in the scrollable reader.\n";
+    for (int i = 0; i < 8; ++i) {
+        EvoProviderRow row;
+        row.id = "discussion:replies:fixture-" + std::to_string(i);
+        row.title = "Author " + std::to_string(i + 1); row.subtitle = "Today | 12 likes | 3 replies";
+        row.is_folder = true; model.rows.push_back(row);
+    }
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    auto* reader = doc->GetElementById("tube-discussion-text");
+    assert(reader && reader->IsVisible());
+    assert(reader->GetClientWidth() > 900);
+    assert(!doc->GetElementById("comment-injection"));
+    assert(reader->GetScrollHeight() > reader->GetClientHeight());
+    cards.clear(); visible.clear(); doc->GetElementsByClassName(cards, "tube-card");
+    for (auto* card : cards)
+        if (!card->GetAttribute<Rml::String>("rowid", "").empty() && card->IsVisible()) visible.push_back(card);
+    assert(visible.size() == 8);
+    visible[0]->Focus(); context->Update();
+    context->ProcessKeyDown(Rml::Input::KI_DOWN, 0); context->ProcessKeyUp(Rml::Input::KI_DOWN, 0);
+    context->Update();
+    assert(context->GetFocusElement() == visible[1]);
+    context->GetFocusElement()->DispatchEvent(Rml::EventId::Click, params);
+    assert(activated == "discussion:replies:fixture-1");
+    capture(context, renderer, pixels, output / "discussion.ppm");
+    reader->SetScrollTop(500); context->Update();
+    assert(reader->GetScrollTop() > 0);
+    capture(context, renderer, pixels, output / "discussion-scroll.ppm");
+    model.rows.clear(); model.empty = true; model.has_selected = false;
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    assert(!doc->GetElementById("tv-card-setup-url")->IsVisible());
+    capture(context, renderer, pixels, output / "discussion-empty.ppm");
     doc->Close(); Rml::RemoveContext("tube-preview"); Rml::Shutdown();
-    std::cout << "PASS: RML data binding, eight-card bounds, D-pad focus, stable row activation, empty/loading/error screens\n";
+    std::cout << "PASS: RML data binding, eight-card bounds, D-pad focus, stable row activation, empty/loading/error screens, discussion reader scrolling and literal text\n";
 }

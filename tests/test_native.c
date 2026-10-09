@@ -17,6 +17,7 @@ static int pending_count, item_calls, resolve_calls, last_ok;
 static evo_provider_item_t last_items[24];
 static int last_count;
 static char error_text[256];
+static int last_more;
 
 int evo_net_request_async(const char *method, const char *url, const char *post,
                          const char **headers, int header_count, evo_net_cb cb, void *ud) {
@@ -41,7 +42,7 @@ static void reply(int index, int ok, int status, const char *body) {
 }
 
 static void items_cb(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
-    (void)more; (void)ud; ++item_calls; last_ok = ok; last_count = count;
+    (void)ud; ++item_calls; last_ok = ok; last_count = count; last_more = more;
     assert(count <= 24);
     if (items) memcpy(last_items, items, (size_t)count * sizeof *items);
 }
@@ -137,6 +138,49 @@ int main(void) {
     assert(strstr(pending[0].body, "\"action\":\"playlist\"") && strstr(pending[0].body, "PLabcdefghijk"));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account video\"}],\"has_more\":false}}");
     assert(last_ok && last_count == 1);
+    /* Native discussion records never enter the playable-video library. */
+    p->list_catalog("discussion:top:abcdefghijk", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"comments\"") &&
+        strstr(pending[0].body, "\"profile\":\"fixture\"") && strstr(pending[0].body, "\"sort\":\"top\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"items\":[{\"id\":\"upstream-comment\",\"author\":\"Author\",\"content\":\"Literal <b>comment</b> & text\\nSecond line\",\"published\":\"Today\",\"likes\":\"10\",\"replies\":\"2\",\"pinned\":true,\"owner\":true,\"reply_cursor\":\"opaque_reply\"},{\"id\":\"no-replies\",\"content\":\"Leaf comment\"},{\"id\":\"invalid-thread\",\"reply_cursor\":\"bad/cursor\"}],\"has_more\":true,\"cursor\":\"comments_next\"}}");
+    assert(last_ok && last_count == 2 && last_more && last_items[0].is_folder);
+    assert(!strcmp(last_items[0].id, "discussion:replies:opaque_reply"));
+    assert(strstr(last_items[0].subtitle, "Pinned") && strstr(last_items[0].subtitle, "Creator"));
+    assert(!strcmp(tube_comment_text(last_items[0].id), "Literal <b>comment</b> & text\nSecond line"));
+    assert(!strncmp(last_items[1].id, "discussion:leaf:", 16));
+    assert(!strcmp(tube_comment_text(last_items[1].id), "Leaf comment"));
+    p->list_catalog("discussion:top:abcdefghijk", 1, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"continue\"") && strstr(pending[0].body, "comments_next"));
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"items\":[],\"has_more\":false}}");
+    assert(last_ok && last_count == 0 && !last_more);
+    assert(!*tube_comment_text("discussion:replies:opaque_reply"));
+    p->list_catalog("discussion:replies:opaque_reply", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"replies\"") && strstr(pending[0].body, "opaque_reply"));
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"items\":[{\"id\":\"reply\",\"author\":\"Replier\",\"content\":\"Reply text\"}],\"has_more\":false}}");
+    assert(last_ok && last_count == 1 && !strcmp(tube_comment_text(last_items[0].id), "Reply text"));
+    p->list_catalog("discussion:newest:abcdefghijk", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"sort\":\"newest\""));
+    char long_text[6001]; memset(long_text, 'x', sizeof long_text - 1); long_text[6000] = 0;
+    char comment_response[6400];
+    snprintf(comment_response, sizeof comment_response,
+        "{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"items\":[{\"id\":\"long\",\"content\":\"%s\"}],\"has_more\":false}}", long_text);
+    poll_job(comment_response);
+    assert(last_ok && strlen(tube_comment_text(last_items[0].id)) == 6000);
+    char previous_comment[160]; snprintf(previous_comment, sizeof previous_comment, "%s", last_items[0].id);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    assert(!*tube_comment_text(previous_comment));
+    p->list_catalog("discussion:newest:abcdefghijk", 1, items_cb, NULL);
+    assert(!last_ok && !pending_count); /* profile switch invalidates page cursors */
+    p->list_catalog("discussion:replies:bad/cursor", 0, items_cb, NULL);
+    assert(!last_ok && !pending_count);
+    p->list_catalog("discussion:top:bad-video", 0, items_cb, NULL);
+    assert(!last_ok && !pending_count);
+    p->list_catalog("discussion:top:abcdefghijk", 0, items_cb, NULL);
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"items\":[],\"has_more\":true,\"cursor\":\"invalid/cursor\"}}");
+    assert(!last_ok);
+    p->list_catalog("discussion:top:abcdefghijk", 0, items_cb, NULL);
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");
+    assert(!last_ok);
     /* The YouTube playback prompt is opt-in and survives a reload in both states. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     assert(tube_choose_stream_enabled());
