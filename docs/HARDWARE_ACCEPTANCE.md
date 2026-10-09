@@ -25,6 +25,15 @@ that stopped upload attempt.
 - 2026-10-09 | provider | fe4a935 | PS5 6.02 | partial-pass: pairing, search, stream choices, teardown | .deps/console/fixture-avc-windows-fe4a935/ | direct playback
 - 2026-10-09 | AVC | 59d68dd | PS5 6.02 | partial-pass: DASH opened, hardware AVC active, clock advances | .deps/console/direct-avc-59d68dd/ | full-duration playback
 - 2026-10-09 | AVC | 675856b | PS5 6.02 | pass: bounded fixture video, scanout, 7.98/8.00s, teardown | .deps/console/complete-avc-675856b/ | captions, timing, VP9/HLS
+- 2026-10-09 | captions | a42d689 | PS5 6.02 | no-run: initial check found a running title; no further console operations | .deps/console/caption-avc-a42d689/ | verify caption rendering
+
+Candidate `a42d689` explicitly selects a downloaded caption sidecar as the
+enabled primary track and disables inherited subtitle state when none is
+available. Its real-engine host regression and EVO subtitle suite passed 72
+checks with address/undefined-behavior sanitizers; the native provider suite
+and PS5 build/package also passed. The frozen candidate has not been deployed:
+the initial idle check blocked its console case. Caption rendering and timing
+on PS5 remain unverified.
 
 Candidate `675856b` passed the bounded AVC/AAC DASH fixture case: native UI
 pairing/search, direct preferred-stream selection, a two-stream DASH open,
