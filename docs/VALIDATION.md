@@ -259,3 +259,15 @@ Evidence: `.deps/comment-rating-native-verified.log`, `.deps/comment-rating-auth
 `.deps/comment-rating-preview.log`, `output/preview/comment-rating.png`.
 No real account mutation or console traffic occurred; live vote readback and
 PS5 controls remain unverified.
+
+Comment-rating candidate `0b5f0712` compiled 211 PS5 objects and passed linking,
+native container validation and PFS/ZIP packaging. Its clean build ID is
+`prosperotube-0b5f0712_1009-2129`. The immutable 126-file candidate is
+`/home/denis/.cache/prosperotube/candidates/0b5f071-comment-ratings/PPSA99142`,
+with eboot SHA-256 prefix `5487ccd4e7593cd7`; the packaged Lapy helper remains
+included. Evidence: `.deps/comment-rating-ps5-build.log`,
+`.deps/comment-rating-freeze.log`. The bounded console case's first title check
+found a running title and stopped immediately, before probes, upload, launch,
+close or input; its owned lock was released. This candidate is undeployed.
+
+- 2026-10-09 | Lapy | 0b5f0712 | PS5 6.02 | no-run: first title check busy; owned lock released | .deps/console/storage-0b5f071/ | storage/startup acceptance
