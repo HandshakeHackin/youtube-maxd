@@ -8,11 +8,39 @@ existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue, follows and history remain console
 data, stored separately for each selected profile.
 
-This is not full SmartTube parity. Live chat and comment posting are not connected
-yet. Device-code login is implemented with real-account/PS5 acceptance pending. Account
+This is not full SmartTube parity. Live chat has a request-driven service reader;
+native chat display, replay timing and posting are not connected yet. Comment
+posting is also unfinished. Device-code login is implemented with real-account/PS5 acceptance pending. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
-Real YouTube/account acceptance remains unverified.
+Real-account acceptance remains unverified.
+
+### Live-chat service reader
+
+`live_chat` opens a public or configured-profile chat for an eleven-character
+video `id`, with `chat_mode` set to `top` or `live`. `chat_poll` and `chat_close`
+use the returned opaque `cursor` and the same profile. These operations use the
+authenticated companion library/job API. They never post messages, execute
+message menus, or run background pollers. Each poll performs at most one upstream
+request. Opening a nonselected mode can require the initial header and one mode
+continuation request. Honor `poll_after_ms`; early polls do not contact YouTube.
+
+Responses have `kind: live_chat`, the most recent 24 normalized messages,
+`cursor`, `ended`, `is_replay: false`, and `poll_after_ms`. The service retains at
+most 256 messages in each of 16 chats and 256 opaque continuation references.
+Contexts expire after 30 minutes without a completed update. Repeating a consumed
+cursor returns its cached update. Close invalidates all references to that chat;
+foreign, expired and ordinary catalog cursors cannot poll it. Worker loss or
+profile removal requires reopening the chat.
+
+Text, paid messages/stickers and membership/gift announcements are normalized as
+display data. Replacement and moderator item/author deletion actions update the
+retained snapshot; unsupported actions are skipped. Text remains literal, not
+trusted markup. Signed server continuations, author moderation IDs, endpoints and
+account credentials remain private to the worker. This bounded recent snapshot is
+not a complete scrollback implementation. Replay returns `chat_replay_pending`
+until playback-position timing is implemented. Native integration, real account
+contexts and PS5 acceptance remain pending.
 
 ### Ratings for displayed comments
 

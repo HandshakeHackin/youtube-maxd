@@ -2,10 +2,97 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';
-import { YTNodes, YT, Innertube, Log } from 'youtubei.js';
+import { YTNodes, YT, Innertube, Log, Parser } from 'youtubei.js';
 import { DeviceAuthorization, createProfileClient, validCredentials } from './device_auth.mjs';
 
 Log.setLevel(Log.Level.NONE);
+const chatMessage = (id, author = 'author-private-id', message = 'Chat <b>literal</b>') => ({
+  liveChatTextMessageRenderer: { id, authorName: {simpleText:'Viewer'}, authorExternalChannelId: author,
+    authorPhoto: {thumbnails:[{url:'https://yt3.ggpht.com/avatar',width:32,height:32}]},
+    message: {runs:[{text:message}]}, timestampUsec:'123000000', timestampText:{simpleText:'now'} }
+});
+const chatResponse = (actions, token = 'private-chat-next', extra = {}) => ({ continuationContents: {
+  liveChatContinuation: { actions, continuations:[{timedContinuationData:{continuation:token,timeoutMs:2000}}], ...extra }
+}});
+
+test('chat snapshots are bounded and retain paid-message text without private menu endpoints', async () => {
+  let batch = Array.from({length:300}, (_,i) => ({addChatItemAction:{item:chatMessage(String(i))}}));
+  batch.push({addChatItemAction:{item:{liveChatPaidMessageRenderer:{id:'paid',authorName:{simpleText:'Supporter'},
+    authorPhoto:{thumbnails:[]},authorExternalChannelId:'private-author',message:{simpleText:'Thanks <script>literal</script>'},
+    purchaseAmountText:{simpleText:'$5.00'},timestampUsec:'1000000',contextMenuEndpoint:{},
+    contextMenuAccessibility:{accessibilityData:{label:'private-menu'}}}}}});
+  const actions = {async execute() {return Parser.parseResponse(chatResponse(batch));}};
+  const client = {async getInfo(id) {return {basic_info:{id},livechat:{continuation:'initial'},actions};}};
+  const library = new Library(async () => client);
+  const result = await library.execute({action:'live_chat',id:'abcdefghijk'});
+  assert.equal(result.items.length,24);
+  assert.equal(Array.from(library.chats.contexts)[0].messages.size,256);
+  assert.equal(result.items.at(-1).amount,'$5.00');
+  assert.equal(result.items.at(-1).content,'Thanks <script>literal</script>');
+  assert.equal(JSON.stringify(result).includes('private'),false);
+  await library.execute({action:'chat_close',cursor:result.cursor});
+});
+
+test('pinned live chat transport parses text, replacements and author moderation with private cursors', async () => {
+  let now = 0; const requests = [];
+  const responses = [chatResponse([{addChatItemAction:{item:chatMessage('one')}}]),
+    chatResponse([{replaceChatItemAction:{targetItemId:'one',replacementItem:chatMessage('two')}},
+      {addChatItemAction:{item:chatMessage('other','different-author')}}]),
+    chatResponse([{markChatItemsByAuthorAsDeletedAction:{externalChannelId:'author-private-id',deletedStateMessage:{simpleText:'Removed'}}}])];
+  const client = await Innertube.create({retrieve_player:false,retrieve_innertube_config:false,generate_session_locally:true,
+    fetch:async (input, init) => { const request = new Request(input,init); requests.push(request);
+      assert.equal(new URL(request.url).pathname, '/youtubei/v1/live_chat/get_live_chat');
+      const body = await request.clone().json(); assert.ok(body.continuation.startsWith('private-chat-'));
+      return new Response(JSON.stringify(responses.shift()), {headers:{'Content-Type':'application/json'}}); }});
+  client.getInfo = async id => ({basic_info:{id},livechat:{continuation:'private-chat-initial'},actions:client.actions});
+  const library = new Library(async () => client, [{id:'two',cookie:'synthetic'}], () => now);
+  const first = await library.execute({action:'live_chat',id:'abcdefghijk'});
+  assert.equal(first.items[0].content, 'Chat <b>literal</b>'); assert.equal(first.items[0].art_url, 'https://yt3.ggpht.com/avatar');
+  assert.equal(JSON.stringify(first).includes('private'), false);
+  assert.equal(first.items[0].author_id, undefined);
+  const early = await library.execute({action:'chat_poll',cursor:first.cursor});
+  assert.equal(early.cursor, first.cursor); assert.equal(requests.length, 1);
+  await assert.rejects(library.execute({action:'chat_poll',cursor:first.cursor,profile:'two'}), {code:'cursor_expired'});
+  await assert.rejects(library.execute({action:'continue',cursor:first.cursor}), {code:'cursor_expired'});
+  now = 2000;
+  const second = await library.execute({action:'chat_poll',cursor:first.cursor});
+  assert.deepEqual(second.items.map(i => i.id), ['two','other']);
+  assert.deepEqual(await library.execute({action:'chat_poll',cursor:first.cursor}), second);
+  assert.equal(requests.length, 2);
+  now = 4000;
+  const third = await library.execute({action:'chat_poll',cursor:second.cursor});
+  assert.deepEqual(third.items.map(i => i.id), ['other']);
+  await library.execute({action:'chat_close',cursor:first.cursor});
+  await assert.rejects(library.execute({action:'chat_poll',cursor:third.cursor}), {code:'cursor_expired'});
+  assert.equal(library.chats.contexts.size, 0);
+});
+
+test('chat mode selection, failures, capacity and expiry do not spawn background pollers', async () => {
+  let now = 0, calls = 0, replay = false, oversized = false;
+  const client = {async getInfo(id) { return {basic_info:{id},livechat:{continuation:'initial',is_replay:replay},actions:{
+    async execute(path, options) {
+      calls++; assert.equal(path,'live_chat/get_live_chat');
+      if (oversized) return {continuation_contents:{type:'liveChatContinuation',actions:new Array(4097).fill({}),continuation:{token:'next'}}};
+      const extra = options.continuation === 'initial' ? {header:{liveChatHeaderRenderer:{viewSelector:{sortFilterSubMenuRenderer:{
+        subMenuItems:[{title:'Top chat',selected:true,continuation:{reloadContinuationData:{continuation:'top'}}},
+          {title:'Live chat',selected:false,continuation:{reloadContinuationData:{continuation:'live'}}}] }}}}} : {};
+      return Parser.parseResponse(chatResponse([{addChatItemAction:{item:chatMessage(options.continuation)}}], 'next', extra));
+    }}}; }};
+  const library = new Library(async () => client, [], () => now);
+  const first = await library.execute({action:'live_chat',id:'abcdefghijk',chat_mode:'live'});
+  assert.equal(first.items[0].id,'live'); assert.equal(calls,2); assert.equal(first.chat_mode,'live');
+  now = 2000; oversized = true;
+  await assert.rejects(library.execute({action:'chat_poll',cursor:first.cursor}), {code:'chat_response'});
+  assert.equal(library.chats.cursors.get(first.cursor).context.messages.size,1);
+  oversized = false; replay = true;
+  await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk'}), {code:'chat_replay_pending'});
+  replay = false;
+  for (let i=1; i<16; i++) await library.execute({action:'live_chat',id:'abcdefghijk'});
+  await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk'}), {code:'chat_busy'});
+  now = 1802001;
+  await assert.rejects(library.execute({action:'chat_poll',cursor:first.cursor}), {code:'cursor_expired'});
+  assert.equal(library.chats.contexts.size,0);
+});
 const oauthFixture = { access_token: 'fixture-access', refresh_token: 'fixture-refresh',
   expiry_date: '2099-01-01T00:00:00.000Z', client: { client_id: 'fixture-client', client_secret: 'fixture-secret' } };
 

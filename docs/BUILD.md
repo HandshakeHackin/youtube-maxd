@@ -132,6 +132,18 @@ at its live edge. Its result reports `live_edge_decode`; it does not perform or
 claim a VOD seek for live media. DVR seek, long-duration playback, reconnect and
 PS5 decoding/audio remain separate checks.
 
+After building the library worker, an explicit anonymous chat-service probe is:
+
+```sh
+PYTHONPATH=companion .venv/bin/python scripts/probe_live_chat.py \
+  --video LIVE_VIDEO_ID --node /path/to/node --mode top
+```
+
+It opens, polls once at the server interval, closes the chat and terminates its
+owned worker. Diagnostics retain counts and stable error codes, without messages,
+server continuations or account credentials. This does not exercise native chat
+display, replay, posting or console behavior.
+
 To run the same host decode/seek check through an already authorized OAuth
 profile, explicitly add all three account options:
 

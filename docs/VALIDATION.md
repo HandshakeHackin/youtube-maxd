@@ -302,3 +302,42 @@ behavior and PS5 decoding/audio remain separate acceptance gates.
 The final full Python suite passed 121 tests (one known Starlette deprecation
 warning): `.deps/live-split-full-python.log`. Native sources were unchanged, so
 this companion revision did not produce or deploy a new PS5 package.
+
+### Request-driven live-chat service (2026-10-09)
+
+The service reader now opens top/live chat, polls at the server interval, applies
+message replacement and moderator item/author deletions, and closes all references
+to a context. Messages and continuations are bounded and profile-isolated. This
+is a service implementation; native display, replay timing, posting and complete
+scrollback remain unfinished.
+
+All 29 JavaScript tests passed using the installed Windows Node runtime, including
+the actual pinned InnerTube chat HTTP transport and parser. They exercise literal
+text and paid messages, normalization/privacy, bounded snapshots, cached retries,
+early-poll suppression, mode selection, failed updates, capacity, expiry and
+close. Evidence: `.deps/live-chat-node-windows.log`. The earlier WSL test run
+passed 28 tests before the paid-message/snapshot case was added. The rebuilt
+worker passed bundling and `git diff --check` (`.deps/live-chat-build.result`).
+
+The full Python suite passed 122 tests, including authenticated API validation,
+asynchronous chat jobs, polling and closure: `.deps/live-chat-full-python.log`.
+The first API test expected HTTP 202; it was corrected to the shipping job API's
+HTTP 200 contract. A WSL connection timeout prevented the first public probe from
+starting; the VM later responded without a forced restart.
+
+Anonymous public chat probes for `awQzjn72bI0` and site-linked `X4VbdwhkE10`
+returned `chat_unavailable`/404 at open. These are negative service results, not
+chat success or proof that the service works for all current chat layouts.
+Evidence: `.deps/live-chat-public.json`, `.deps/live-chat-lofi.json`. No console
+traffic, account authorization, chat posts or message-menu actions occurred.
+
+Resolving the official channel's `/@LofiGirl/live` URL returned current live
+video `1-LpQekNa9g`. Its anonymous top-chat service probe passed open, one
+server-paced poll and close, with 24 messages in both returned snapshots and
+`ended: false`. Evidence: `.deps/live-chat-current.json` and matching log. Only
+counts, IDs and stable result metadata were persisted; this is public host
+service acceptance, not native display, OAuth chat or PS5 acceptance.
+
+The same verified-current video also passed explicit `--mode live`: open,
+server-paced poll and close each completed, both snapshots contained 24 messages,
+and the chat remained active. Evidence: `.deps/live-chat-live-mode.json` and log.

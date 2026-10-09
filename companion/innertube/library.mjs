@@ -1,6 +1,7 @@
 // Original bounded service adapter. SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
 import { validCredentials } from './device_auth.mjs';
+import { ChatReader } from './live_chat.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -102,6 +103,7 @@ export class Library {
     }
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
     this.commentRatings = new Map();
+    this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
   }
   async client(id) {
     const profile = this.profiles.get(id);
@@ -209,6 +211,13 @@ export class Library {
     const profile = this.profiles.get(owner);
     if (!profile) throw new LibraryError('unknown_profile', 'Select an available profile.', 404);
     const authenticated = !!(profile.cookie || profile.oauth);
+    if (['live_chat', 'chat_poll', 'chat_close'].includes(input.action)) {
+      if (input.action === 'live_chat') {
+        requireId(input.id, videoId);
+        if (!['top', 'live', undefined].includes(input.chat_mode)) throw new LibraryError('invalid_sort', 'Select top or live chat.');
+      }
+      return this.chats.execute(input, owner, input.action === 'live_chat' ? await this.client(owner) : null);
+    }
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate']);

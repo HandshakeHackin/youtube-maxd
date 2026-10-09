@@ -46,13 +46,15 @@ class LibraryRequest(BaseModel):
                     "watch_later", "playlist", "comments", "replies", "continue", "like", "dislike",
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
-                    "watch_later_remove", "watch_progress", "profile_remove", "comment_rate"]
+                    "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
+                    "live_chat", "chat_poll", "chat_close"]
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
     title: str = Field(default="", max_length=150)
     sort: Literal["top", "newest"] = "top"
     rating: Literal["like", "dislike", "none"] = "none"
+    chat_mode: Literal["top", "live"] = "top"
     cursor: str = Field(default="", max_length=64)
     session: str = Field(default="", max_length=64, pattern="^[A-Za-z0-9_-]*$")
     position_sec: float = Field(default=0, ge=0, le=1_000_000, allow_inf_nan=False)
