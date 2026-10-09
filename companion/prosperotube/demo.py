@@ -42,6 +42,10 @@ def fixture_info(identifier):
 class FixtureExtractor:
     fixture_mode = True
     base = ""
+    def for_profile(self, profile):
+        if profile not in {"guest", "fixture_one", "fixture_two"}:
+            raise ServiceError("unknown_profile", "Select an available offline profile.", 404)
+        return self
     def info(self, identifier):
         info = fixture_info(identifier)
         info["thumbnail"] = self.base + "/fixtures/thumb.png"

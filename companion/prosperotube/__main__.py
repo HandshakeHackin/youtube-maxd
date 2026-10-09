@@ -59,6 +59,8 @@ def main():
                 library = LibraryService(args.library_node, profile_config=args.library_profiles)
             except (ValueError, OSError, KeyError):
                 parser.error("The library profile configuration is invalid. Check profile identifiers and cookie files.")
+            from .extractor import ProfileExtractors
+            extractor = ProfileExtractors(extractor, library.profiles)
         app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")

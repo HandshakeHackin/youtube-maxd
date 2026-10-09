@@ -71,6 +71,7 @@ class Page(BaseModel):
 
 class ResolveRequest(BaseModel):
     id: str = Field(min_length=11, max_length=11)
+    profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     max_height: int = Field(default=1080, ge=144, le=2160)
     codec: str = Field(default="auto", pattern="^(auto|avc|vp9)$")
     caption_language: str = Field(default="en", max_length=16, pattern="^[A-Za-z0-9_-]*$")

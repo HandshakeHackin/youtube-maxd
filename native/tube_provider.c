@@ -996,6 +996,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     cJSON *o = cJSON_CreateObject();
     int search = parent && !strncmp(parent, "search:", 7);
     cJSON_AddStringToObject(o, "action", search ? "search" : "catalog");
+    cJSON_AddStringToObject(o, "profile", g_library_profile);
     cJSON_AddStringToObject(o, search ? "query" : "parent", search ? parent + 7 : parent);
     cJSON_AddNumberToObject(o, "page", page);
     char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
@@ -1016,8 +1017,8 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
     snprintf(r->payload, sizeof r->payload,
-        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s}}",
-        id, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false");
+        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s}}",
+        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false");
     begin(r); return 0;
 }
 

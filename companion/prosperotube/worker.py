@@ -4,6 +4,43 @@ import json
 import sys
 
 
+def install_profile_cookies(ydl, header):
+    """Header exports are scoped to YouTube; never use a global Cookie header."""
+    import http.cookiejar
+    from http.cookies import SimpleCookie
+    if not isinstance(header, str) or len(header) > 65536 or "\r" in header or "\n" in header:
+        raise ValueError("invalid profile cookies")
+    parsed = SimpleCookie()
+    parsed.load(header)
+    if not parsed:
+        raise ValueError("empty profile cookies")
+    for name, morsel in parsed.items():
+        ydl.cookiejar.set_cookie(http.cookiejar.Cookie(
+            version=0, name=name, value=morsel.value, port=None, port_specified=False,
+            domain=".youtube.com", domain_specified=True, domain_initial_dot=True,
+            path="/", path_specified=True, secure=True, expires=None, discard=True,
+            comment=None, comment_url=None, rest={}))
+
+
+def attach_media_cookies(ydl, info):
+    """Retain only URL-scoped media cookies on the private worker boundary."""
+    from .models import ServiceError, safe_remote
+    # A top-level webpage URL must not inject its cookies into every format.
+    records = list(info.get("formats") or [])
+    for tracks in (info.get("subtitles") or {}, info.get("automatic_captions") or {}):
+        records.extend(record for values in tracks.values() for record in values)
+    for record in records:
+        if not isinstance(record, dict) or not record.get("url"):
+            continue
+        try:
+            url = safe_remote(record["url"])
+        except ServiceError:
+            continue
+        cookie = ydl.cookiejar.get_cookie_header(url)
+        if cookie:
+            record["http_headers"] = {**(record.get("http_headers") or {}), "Cookie": cookie}
+
+
 class Quiet:
     def debug(self, *_): pass
     def warning(self, *_): pass
@@ -28,7 +65,10 @@ def main():
         # from the single structured result, even when an extractor prints.
         with contextlib.redirect_stdout(sys.stderr):
             with YoutubeDL(opts) as ydl:
+                if request.get("cookie_header") is not None:
+                    install_profile_cookies(ydl, request["cookie_header"])
                 info = ydl.extract_info(request["target"], download=False)
+                attach_media_cookies(ydl, info)
                 result = ydl.sanitize_info(info)
         json.dump(result, sys.stdout, ensure_ascii=False)
     except Exception:

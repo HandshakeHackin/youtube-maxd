@@ -53,6 +53,7 @@ class JobRequest(BaseModel):
     playback: ResolveRequest | None = None
     library: LibraryRequest | None = None
     id: str = Field(default="", max_length=11)
+    profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
@@ -111,6 +112,14 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         # client, never to connect upstream. An explicit LAN base is preferred.
         return app.state.public_base or str(request.base_url).rstrip("/")
 
+    def resolver(profile):
+        extractor = app.state.extractor
+        if hasattr(extractor, "for_profile"):
+            return extractor.for_profile(profile)
+        if profile != "guest":
+            raise ServiceError("unknown_profile", "Select an available playback profile.", 404)
+        return extractor
+
     @app.get("/v1/health")
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
@@ -142,24 +151,26 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         return {"api_version": 1, "token": app.state.token}
 
     @app.get("/v1/search")
-    async def search(q: str = Query(min_length=1, max_length=200), page: int = Query(default=0, ge=0, le=1000)):
-        return await page_for(app.state.extractor, query=q, page=page)
+    async def search(q: str = Query(min_length=1, max_length=200), page: int = Query(default=0, ge=0, le=1000),
+                     profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
+        return await page_for(resolver(profile), query=q, page=page)
 
     @app.get("/v1/catalog")
-    async def catalog(parent: str = Query(min_length=1, max_length=160), page: int = Query(default=0, ge=0, le=1000)):
-        return await page_for(app.state.extractor, parent=parent, page=page)
+    async def catalog(parent: str = Query(min_length=1, max_length=160), page: int = Query(default=0, ge=0, le=1000),
+                      profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
+        return await page_for(resolver(profile), parent=parent, page=page)
 
     @app.get("/v1/video/{identifier}")
-    async def details(identifier: str):
+    async def details(identifier: str, profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
         video_id(identifier)
-        info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={identifier}")
+        info = await resolver(profile).extract(f"https://www.youtube.com/watch?v={identifier}")
         return {"api_version": 1, "item": item(info), "chapters": info.get("chapters") or [],
                 "caption_languages": sorted((info.get("subtitles") or {}).keys())[:32]}
 
     @app.post("/v1/resolve")
     async def resolve(payload: ResolveRequest, request: Request):
         video_id(payload.id)
-        info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={payload.id}")
+        info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}")
         return app.state.sessions.create(info, payload, base(request))
 
     @app.post("/v1/jobs")
@@ -178,18 +189,18 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         async def work():
             try:
                 if payload.action == "search":
-                    result = await page_for(app.state.extractor, query=payload.query, page=payload.page)
+                    result = await page_for(resolver(payload.profile), query=payload.query, page=payload.page)
                 elif payload.action == "catalog":
-                    result = await page_for(app.state.extractor, parent=payload.parent, page=payload.page)
+                    result = await page_for(resolver(payload.profile), parent=payload.parent, page=payload.page)
                 elif payload.action == "resolve":
                     identifier = video_id(payload.playback.id)
-                    info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={identifier}")
+                    info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":
                     result = await app.state.library.execute(payload.library.model_dump())
                 else:
                     identifier = video_id(payload.id)
-                    info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={identifier}")
+                    info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
                     result = {"item": item(info).model_dump(), "chapters": info.get("chapters") or []}
                 return {"state": "done", "result": result.model_dump() if hasattr(result, "model_dump") else result}
             except ServiceError as exc:

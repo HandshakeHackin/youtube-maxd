@@ -95,6 +95,7 @@ int main(void) {
     p->list_catalog("settings:captions", 0, items_cb, NULL); /* avoid a caption request in this fixture */
     assert(p->resolve("invalid", resolve_cb, NULL) < 0);
     assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
+    assert(strstr(pending[0].body, "\"profile\":\"guest\""));
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"label\":\"1080p\",\"container\":\"dash\",\"height\":1080,\"video_codec\":\"h264\",\"audio_codec\":\"aac\"}],\"chapters\":[{\"start\":0},{\"start\":20},{\"start\":60}]}}");
     assert(resolve_calls == 1 && last_ok && pending_count == 1);
     reply(0, 1, 200, "{\"segments\":[{\"start\":10,\"end\":20},{\"start\":15,\"end\":30},{\"start\":29,\"end\":40}]}");
@@ -140,6 +141,14 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account video\"}],\"has_more\":false}}");
     assert(last_ok && last_count == 1);
     /* Native discussion records never enter the playable-video library. */
+    assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
+    assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
+    tube_cancel();
+    reply(0, 1, 200, "{\"job\":\"cancelled-profile-resolve\",\"state\":\"pending\"}");
+    assert(!last_ok && !pending_count);
+    assert(p->search("profile-search", 0, items_cb, NULL) == 0);
+    assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[],\"has_more\":false}}");
     p->list_catalog("discussion:top:abcdefghijk", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"action\":\"comments\"") &&
         strstr(pending[0].body, "\"profile\":\"fixture\"") && strstr(pending[0].body, "\"sort\":\"top\""));
