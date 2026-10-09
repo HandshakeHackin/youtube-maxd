@@ -9,6 +9,11 @@ decoder, FFmpeg and packaging foundation. ProsperoLight, ProsperoTV and the PS5
 video/audio research provide reference implementations and measured contracts.
 Prefer existing PS5 library recipes. Search other public projects when useful.
 
+Store app state, cache and diagnostics under `/data/prosperotube`. Use Lapy's
+verified filesystem elevation and exact-title packaged helper, following the
+existing ProsperoLight/ProsperoTV tooling. Do not use transient download storage
+as a persistence fallback. Finish YouTube functionality before polishing the UI.
+
 The comparison baseline is SmartTube revision
 `2c60453007dfc3775ff525c3837c2d1d4e95aab9`. Its initial inventory is in
 `native/parity/smarttube-baseline.json`; this is not an exhaustive acceptance

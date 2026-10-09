@@ -50,10 +50,12 @@ Optional account library setup is documented in [library service](LIBRARY_SERVIC
 For bounded console acceptance, `build_ps5.sh --usb-remote` enables EVO's
 existing development command/status/UI instrumentation. The overlay scopes its
 files to `dev_command`, `dev_status` and `dev_ui.json`, and the diagnostic log
-to `console.log`, under EVO's resolved ProsperoTube data root. A sandboxed app
-uses `/download0/prosperotube`; an opened sandbox uses `/data/prosperotube`.
-Use the title's actual mounted download directory when collecting sandboxed
-files over FTP. The normal build leaves
+to `console.log`, under `/data/prosperotube`. Startup requests filesystem access
+through Lapy and proves writable app storage before initializing services.
+The packaged one-shot helper targets only `PPSA99142`; a resident Lapy service
+gets the first bounded opportunity. Failed elevation stops startup rather than
+loading or saving transient state. Lapy's handshake markers still use
+`/download0`, as required by its protocol. The normal build leaves
 development commands disabled. Use the title-aware protocol tooling for
 deployment/launch/close; upstream EVO helper scripts still target EVO's own
 title and shared USB filenames and must not be invoked against ProsperoTube.

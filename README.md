@@ -82,7 +82,7 @@ and self promotion.
 
 See [BUILD.md](docs/BUILD.md) for dependencies, packaging, checks and offline
 fixture mode. The application identity is `PPSA99142`; data lives under
-`/data/prosperotube` (fallback `/download0/prosperotube`). Packaging produces a
+`/data/prosperotube`, with verified Lapy access required at startup. Packaging produces a
 folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 
 ## Controls

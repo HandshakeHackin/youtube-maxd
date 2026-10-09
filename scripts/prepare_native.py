@@ -66,6 +66,7 @@ def main():
     for name in ("tube_provider.c", "tube_provider.h", "tube_subtitles.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
+    shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
     for name in ("cJSON.c", "cJSON.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native/vendor/cJSON" / name, WORK / player / target / name)
@@ -83,9 +84,28 @@ def main():
     replace(player + "addons/src/evo_provider_mgr.c", "extern const evo_provider_t evo_provider_iptv;", "extern const evo_provider_t evo_provider_youtube;\nextern const evo_provider_t evo_provider_iptv;")
     replace(player + "addons/src/evo_provider_mgr.c", "    &evo_provider_iptv,\n    &evo_provider_xtream,\n    &evo_provider_emby,\n    &evo_provider_jellyfin,     /* native screens; the web UI as an extra */\n    &evo_provider_stremio,      /* Stremio addons, native (provider_stremio.c) */\n    &evo_provider_nuvio,        /* web UI only - Stremio addons, debrid */", "    &evo_provider_youtube,")
     replace(player + "src/evo_data_path.c", '"/data/evoplayer"', '"/data/prosperotube"', count=2)
-    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/download0/evoplayer"', '#define EVO_DATA_DIR "/download0/prosperotube"')
+    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/download0/evoplayer"', '#define EVO_DATA_DIR "/data/prosperotube"')
     replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/data/evoplayer"', '#define EVO_DATA_DIR "/data/prosperotube"')
+    replace(player + "src/evo_data_path.c", '''    if (!evo_jailbreak_is_open())
+        return EVO_DATA_DIR;              /* "/download0/evoplayer" - transient */
+''', "")
+    replace(player + "Makefile", "    src/evo_webui.c \\\n    src/evo_jailbreak.c", "    src/evo_webui.c")
+    replace(player + "Makefile", "CORE_SRCS := \\\n", "CORE_SRCS := \\\n    src/elevation/elevation.cpp \\\n    src/elevation/tube_jailbreak.cpp \\\n")
     replace(player + "core/src/Application.cpp", '#include "evo/screens/ProviderHostScreen.hpp"', '#include "evo/screens/ProviderHostScreen.hpp"\n#include "tube_provider.h"')
+    replace(player + "core/src/Application.cpp", "    evo_jailbreak_self();", '''    if (!evo_jailbreak_self()) {
+        evo_bt("ProsperoTube requires writable /data/prosperotube; startup stopped");
+        return false;
+    }''')
+    replace(player + "core/src/Application.cpp", 'std::snprintf(path, sizeof(path), "/mnt/usb0/evo_shot_%03d.bmp", slot);',
+            'std::snprintf(path, sizeof(path), "%s/evo_shot_%03d.bmp", evo_data_dir(), slot);')
+    replace(player + "core/src/Application.cpp", '''    if (!fp) {
+        /* USB is the nice place for these (the user can pull them off without
+         * FTP), but it is not always writable. Fall back to the data root
+         * rather than just failing. */
+        std::snprintf(path, sizeof(path), "%s/evo_shot_%03d.bmp", evo_data_dir(), slot);
+        fp = std::fopen(path, "wb");
+    }
+''', "")
     replace(player + "core/src/Application.cpp", "        evo_net_poll();", "        evo_net_poll();\n        tube_poll();")
     replace(player + "core/src/Application.cpp", "    m_screenManager->navigateTo(ScreenId::MainMenu);", '    ProviderHostScreen::setPendingProvider("youtube");\n    m_screenManager->navigateTo(ScreenId::EmbyBrowse);')
     host = player + "core/src/screens/ProviderHostScreen.cpp"
@@ -147,6 +167,11 @@ def main():
     dirty = subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "HEAD"], check=False).returncode
     fingerprint = "prosperotube-" + revision + ("-dirty" if dirty else "")
     replace("scripts/package-app.sh", 'BUILD_SHA="$(git -C "${EVO}" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)"\n    git -C "${EVO}" diff --quiet -- "${EVO}" 2>/dev/null || BUILD_SHA="${BUILD_SHA}-dirty"', f'BUILD_SHA="{fingerprint}"')
+    # Include helpers and notices before PFS and ZIP creation.
+    replace("scripts/package-app.sh", 'begin "inspecting signed containers"', '''cp "${REPO_ROOT}/prosperotube-lapy/lapy.elf" "${APPDIR}/lapy.elf"
+cp "${REPO_ROOT}/prosperotube-lapy/lapy-manifest.json" "${APPDIR}/lapy-manifest.json"
+cp "${REPO_ROOT}/prosperotube-lapy/Lapy-MIT.txt" "${APPDIR}/assets/prosperotube-notices/Lapy-MIT.txt"
+begin "inspecting signed containers"''')
     # Direct diagnostic/data paths must be independent too, including upstream
     # code reached by inherited settings and caption tools.
     for file in (WORK / player).rglob("*"):
