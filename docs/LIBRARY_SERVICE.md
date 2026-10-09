@@ -82,3 +82,9 @@ dependency import without network/account use, IPC concurrency/Unicode,
 timeout/cancellation/reaping/recovery, authenticated APIs and asynchronous jobs.
 The native provider sanitizer test exercises library/profile/playlist navigation,
 opaque pagination and rejection of cursors belonging to another screen.
+
+Modern `LockupView` video and collection cards retain their attributed titles,
+channel links, thumbnails and timestamp badges. Offline tests instantiate the
+pinned YouTube.js parser classes, including invalid duration badges and explicit
+promoted-record rejection. This checks parser compatibility without claiming
+live account responses or complete advertisement filtering have been validated.

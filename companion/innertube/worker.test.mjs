@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';
+import { YTNodes } from 'youtubei.js';
 
 const video = index => ({ video_id: String(index).padStart(11, '0'), title: `Video ${index}`,
   author: { id: `UC${'a'.repeat(22)}`, name: 'Fixture channel' }, duration: { seconds: 8 },
@@ -89,4 +90,43 @@ test('account playlists retain a separate navigation namespace', async () => {
   const page = await library.execute({ action: 'playlists', profile: 'one' });
   assert.equal(page.items[0].id, 'library:playlist:PLabcdefghijk');
   assert.equal(page.items[0].is_folder, true);
+});
+
+function lockup(kind = 'VIDEO', duration = '1:02:03') {
+  const thumbnail = { thumbnailViewModel: { image: { sources: [{ url: 'https://i.ytimg.com/modern.jpg', width: 640, height: 360 }] },
+    overlays: [{ thumbnailOverlayBadgeViewModel: { thumbnailBadges: [{ thumbnailBadgeViewModel: { text: duration, badgeStyle: 'THUMBNAIL_BADGE_STYLE_DEFAULT' } }] } }] } };
+  return new YTNodes.LockupView({ contentId: kind === 'VIDEO' ? '00000000000' : 'PLabcdefghijk',
+    contentType: `LOCKUP_CONTENT_TYPE_${kind}`,
+    contentImage: kind === 'VIDEO' ? thumbnail : { collectionThumbnailViewModel: { primaryThumbnail: thumbnail } },
+    metadata: { lockupMetadataViewModel: { title: { content: 'Modern café card' }, metadata: { contentMetadataViewModel: {
+      metadataRows: [{ metadataParts: [{ text: { content: 'Fixture channel', commandRuns: [{ startIndex: 0, length: 15,
+        onTap: { browseEndpoint: { browseId: `UC${'a'.repeat(22)}` } } }] } }] }], delimiter: ' · '
+    } } } }
+  });
+}
+
+test('actual pinned modern video parser retains title, channel, duration and artwork', () => {
+  const item = normalizeVideo(lockup());
+  assert.equal(item.title, 'Modern café card');
+  assert.equal(item.subtitle, 'Fixture channel');
+  assert.equal(item.channel_id, `UC${'a'.repeat(22)}`);
+  assert.equal(item.duration_sec, 3723);
+  assert.equal(item.art_url, 'https://i.ytimg.com/modern.jpg');
+  assert.equal(normalizeVideo(lockup('PLAYLIST')), null);
+  assert.equal(normalizeVideo(lockup('VIDEO', '1:99')).duration_sec, 0);
+});
+
+test('actual pinned collection parser retains account playlist title and artwork', async () => {
+  const library = new Library(async () => ({ getPlaylists: async () => ({ playlists: [lockup('PLAYLIST')], has_continuation: false }) }),
+    [{ id: 'one', name: 'One', cookie: 'cookie' }]);
+  const page = await library.execute({ action: 'playlists', profile: 'one' });
+  assert.equal(page.items[0].title, 'Modern café card');
+  assert.equal(page.items[0].art_url, 'https://i.ytimg.com/modern.jpg');
+  assert.equal(page.items[0].id, 'library:playlist:PLabcdefghijk');
+});
+
+test('explicit promoted records are excluded without matching localized title text', () => {
+  assert.equal(normalizeVideo({ ...video(1), is_ad: true }), null);
+  assert.equal(normalizeVideo({ ...video(1), is_promoted: true }), null);
+  assert.equal(normalizeVideo({ ...video(1), title: 'Advertising explained' }).title, 'Advertising explained');
 });

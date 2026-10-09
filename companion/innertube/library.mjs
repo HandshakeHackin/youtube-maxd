@@ -21,22 +21,53 @@ export function imageUrl(value) {
   } catch { /* Missing or unsupported artwork becomes an empty image. */ }
   return '';
 }
+function cardImage(node) {
+  return node.content_image?.primary_thumbnail ?? node.content_image;
+}
+function cardAuthor(node) {
+  if (node.author) return node.author;
+  const parts = node.metadata?.metadata?.metadata_rows?.[0]?.metadata_parts ?? [];
+  for (const part of parts) {
+    const value = part.text;
+    const id = value?.endpoint?.payload?.browseId;
+    if (channelId(id)) return { name: value, id };
+  }
+  return { name: parts[0]?.text, id: '' };
+}
+function cardDuration(node) {
+  const direct = Number(node.duration?.seconds ?? node.duration ?? NaN);
+  if (Number.isFinite(direct) && direct >= 0) return Math.floor(direct);
+  for (const overlay of cardImage(node)?.overlays ?? []) {
+    for (const badge of overlay.badges ?? []) {
+      const value = String(badge.text ?? '');
+      if (/^\d{1,3}:\d{2}(?::\d{2})?$/.test(value)) {
+        const parts = value.split(':').map(Number);
+        if (parts.slice(1).every(part => part < 60))
+          return parts.reduce((total, part) => total * 60 + part, 0);
+      }
+    }
+  }
+  return 0;
+}
 export function normalizeVideo(node) {
+  if (!node || node.is_ad || node.is_promoted) return null;
   const id = node.video_id ?? node.id ?? node.content_id;
   if (!videoId(id)) return null;
-  const seconds = Number(node.duration?.seconds ?? node.duration ?? 0);
-  return { id, title: text(node.title), subtitle: text(node.author?.name),
+  if (node.content_type && !['VIDEO', 'MOVIE', 'SHORT', 'STATION'].includes(node.content_type)) return null;
+  const author = cardAuthor(node);
+  return { id, title: text(node.title ?? node.metadata?.title), subtitle: text(author.name),
     overview: text(node.description_snippet, 1024),
-    art_url: imageUrl(node.thumbnails?.[0]?.url),
-    channel_id: channelId(node.author?.id) ? node.author.id : '',
-    duration_sec: Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : 0,
+    art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
+    channel_id: channelId(author.id) ? author.id : '',
+    duration_sec: cardDuration(node),
     is_folder: false, is_live: !!node.is_live, played: !!node.is_watched };
 }
 function normalizePlaylist(node) {
+  if (!node || node.is_ad || node.is_promoted) return null;
   const id = node.id ?? node.playlist_id ?? node.content_id;
   if (!playlistId(id)) return null;
-  return { id: `library:playlist:${id}`, title: text(node.title), subtitle: text(node.author?.name),
-    art_url: imageUrl(node.thumbnails?.[0]?.url), is_folder: true };
+  return { id: `library:playlist:${id}`, title: text(node.title ?? node.metadata?.title), subtitle: text(cardAuthor(node).name),
+    art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url), is_folder: true };
 }
 function normalizeComment(thread) {
   const node = thread.comment ?? thread;
