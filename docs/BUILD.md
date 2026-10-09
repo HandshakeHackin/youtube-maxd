@@ -133,6 +133,26 @@ The worker returns only an allowlisted code, and the parent supplies a fixed
 message. Raw upstream text, cookies and signed URLs never enter API errors.
 YouTube authentication errors use 403 so they do not invalidate LAN pairing.
 
+For a public TV script/evaluator compatibility check in WSL/Linux:
+
+```sh
+PYTHONPATH=companion .venv/bin/python scripts/probe_tv_signature.py \
+  --node /path/to/node --output output/validation/tv-signature.json
+```
+
+This explicitly fetches the public TV configuration and its matching player
+script using the pinned TV user agent. It checks the pinned timestamp parser
+and Node/EJS signature and `n` transforms with synthetic inputs. Requests reject
+redirects, other origins, credentials and responses over 8 MiB; the overall
+worker deadline is 90 seconds, with its process group retired afterward.
+The report contains only hashes, counts and booleans. A pass establishes
+compatibility with that fetched script; real account media URLs and playback
+still require separate acceptance. No account, media or console request occurs.
+
+Shipping WSL/Linux resolver workers also run in isolated process groups.
+Cancellation, timeout and completion retire evaluator descendants before
+returning the shared worker slot.
+
 ## Offline console fixtures
 
 After generating media:

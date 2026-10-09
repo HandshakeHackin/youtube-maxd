@@ -178,3 +178,22 @@ matching script timestamp in its playback context. Missing script timestamps
 remain missing instead of using WEB STS. This is identity/request regression
 coverage, not live cipher verification. Evidence:
 `.deps/oauth-tv-timestamp-test.log` and `.deps/oauth-tv-timestamp-full-python.log`.
+
+TV evaluator follow-up: 100 Python tests passed, including real WSL/Linux
+resolver/evaluator-descendant cleanup on cancellation, timeout and success.
+The shared slot is released, failures stay uncached, and a descendant cannot
+outlive its isolated worker group. Public probe transport tests cover anonymous
+GETs, exact TV origins/paths, response bounds and redirect rejection. Evidence:
+`.deps/tv-evaluator-process-verified-test.log`, `.deps/tv-evaluator-full-python.log`.
+The Node library implementation is unchanged; its 24-test suite remains passing.
+
+`scripts/probe_tv_signature.py` fetched the real public TV configuration using
+the pinned TV user agent, then its matching 2,452,196-byte `tv-player-ias.js`.
+The actual pinned timestamp parser and Node/EJS evaluator passed synthetic
+signature and `n` challenges. Script SHA-256 prefix: `276ad984607a69bb`.
+No account authorization, token poll, Bearer header, media download or console
+traffic occurred in this probe. Evidence: `.deps/tv-signature-public-probe.json`
+and `.deps/tv-signature-public-probe.log`. This is compatibility evidence for
+that script with synthetic inputs, not real signed-media or account playback.
+
+- 2026-10-09 | Lapy | a07e1733 | PS5 6.02 | no-run: first title check busy; no further operations; owned lock released | .deps/console/storage-a07e1733-second/ | storage/startup acceptance

@@ -37,6 +37,8 @@ running title blocks the session, including this app. Continue offline; do not
 close it or proceed with service probes, uploads, launch or input. Recheck idle
 state before launch after an install.
 
+- 2026-10-09 | Lapy | a07e1733 | PS5 6.02 | no-run: first title check busy; no probes/upload/launch/close/input; owned lock released | .deps/console/storage-a07e1733-second/ | storage acceptance
+
 Candidate `800160c` passed the bounded startup and teardown case on PS5 firmware
 6.02. Evidence identifies the matching build, the `youtube` document with eight
 root entries, first-frame presentation checkpoints, `parked=1` after the app's

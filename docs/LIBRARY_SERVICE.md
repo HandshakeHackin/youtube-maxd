@@ -364,3 +364,10 @@ caption access and signature solving still need live acceptance. The upstream
 [TV player issue](https://github.com/yt-dlp/yt-dlp/issues/17389) documents TV script
 challenge compatibility problems; the current adapter does not establish that
 the pinned evaluator handles every current TV script.
+
+The explicit public-script probe subsequently passed for the fetched
+`tv-player-ias.js`: the actual pinned timestamp parser and Node/EJS evaluator
+handled one synthetic signature and one synthetic `n` input. See
+[the probe command](BUILD.md) and [validation evidence](VALIDATION.md).
+This establishes evaluator compatibility with that public script, not account
+authorization, real signed media URLs, all TV variants or PS5 playback.

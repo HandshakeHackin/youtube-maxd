@@ -2,6 +2,7 @@
 import asyncio
 import json
 import os
+import signal
 import sys
 import time
 from .models import ServiceError
@@ -27,7 +28,8 @@ class Extractor:
             process = await asyncio.create_subprocess_exec(
                 sys.executable, "-m", "prosperotube.worker",
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL)
+                stderr=asyncio.subprocess.DEVNULL,
+                start_new_session=os.name == "posix")
             payload = json.dumps({"target": target, "flat": flat, "start": start, "end": end,
                                   "cookies": self.cookies, "extractor_args": self.extractor_args,
                                   "cookie_header": self.cookie_header,
@@ -65,7 +67,16 @@ class Extractor:
             except (ValueError, UnicodeError):
                 raise ServiceError("invalid_response", "The resolver returned an invalid response.") from None
             finally:
-                if process.returncode is None:
+                # yt-dlp starts a Node evaluator for signature/n challenges.
+                # Canceling only Python can leave that child evaluating forever.
+                # Retire our isolated WSL/Linux group even after Python exits.
+                identity = getattr(process, "pid", None)
+                if os.name == "posix" and type(identity) is int and identity > 0:
+                    try:
+                        os.killpg(identity, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                elif process.returncode is None:
                     process.kill()
                 await process.wait()
             if len(self.cache) >= 128:
