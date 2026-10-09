@@ -52,7 +52,7 @@ def main():
         "Makefile", "addons/src/evo_provider_mgr.c", "src/evo_data_path.c", "include/evo_data_path.h",
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
-        "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c",
+        "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -145,7 +145,10 @@ def main():
             continue
         source = file.read_text()
         updated = source.replace("/data/evoplayer", "/data/prosperotube").replace("/download0/evoplayer", "/download0/prosperotube")
-        updated = updated.replace("/mnt/usb0/evo.log", "/mnt/usb0/prosperotube.log").replace("QUIT EVO", "QUIT PROSPEROTUBE")
+        updated = updated.replace("/mnt/usb0/evo.log", "/data/prosperotube/console.log").replace("QUIT EVO", "QUIT PROSPEROTUBE")
+        updated = updated.replace("/mnt/usb0/evo_cmd", "/data/prosperotube/dev_command")
+        updated = updated.replace("/mnt/usb0/evo_status", "/data/prosperotube/dev_status")
+        updated = updated.replace("/mnt/usb0/evo_ui.json", "/data/prosperotube/dev_ui.json")
         if source != updated:
             file.write_text(updated)
     # Own build trees live on Linux; leave the installed SDK untouched.

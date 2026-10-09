@@ -47,6 +47,14 @@ new changes, preserving existing release files and their recorded manifests.
 These options do not deploy a candidate or change the console target.
 Optional account library setup is documented in [library service](LIBRARY_SERVICE.md).
 
+For bounded console acceptance, `build_ps5.sh --usb-remote` enables EVO's
+existing development command/status/UI instrumentation. The overlay scopes its
+files to `/data/prosperotube/dev_command`, `dev_status` and `dev_ui.json`, and
+the diagnostic log to `/data/prosperotube/console.log`. The normal build leaves
+development commands disabled. Use the title-aware protocol tooling for
+deployment/launch/close; upstream EVO helper scripts still target EVO's own
+title and shared USB filenames and must not be invoked against ProsperoTube.
+
 `package_release.py` packages companion/documentation bytes from the committed
 Git revision and only named generated media fixtures. Local account files,
 dependency directories and generated library bundles are excluded. Install the
