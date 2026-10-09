@@ -141,3 +141,15 @@ on the host, with sign-in reader/footer visibility and cancel-row activation
 checked; `output/preview/device-sign-in.png` was inspected. Evidence:
 `.deps/auth-native-final-preview.log`. This proves offline behavior/layout only;
 PS5 and real account authorization remain unverified.
+
+Native sign-in candidate `a07e1733` compiled 211 PS5 objects and passed linking,
+native container validation and PFS/ZIP packaging. Frozen candidate:
+`a07e1733-device-auth`, 126 files, eboot SHA-256 prefix `0b9789b1b61704c4`;
+clean build ID `prosperotube-a07e1733_1009-1957`. The Lapy helper remains packaged.
+Evidence: `.deps/auth-native-ps5-build.log`, `.deps/auth-native-freeze.log`.
+
+The bounded storage/startup case's first console operation found a running title.
+It stopped before probes, upload, launch, close or input and released its owned
+lock. Evidence: `.deps/console/storage-a07e1733/` and
+`.deps/console/storage-device-auth-run.log`. The candidate remains undeployed;
+Lapy storage/relaunch, playback gates and native sign-in require PS5 acceptance.
