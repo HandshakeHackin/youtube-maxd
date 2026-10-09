@@ -26,6 +26,11 @@ and playlist editing have offline coverage; PS5/live acceptance remains
 pending. Device sign-in, casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 
+Selected primary-account profiles now route search and playback through separate
+credential/cache contexts on the companion. Secondary-account and brand-channel
+playback mapping, watch-history submission and live account acceptance remain
+unfinished; see the library service for the explicit failure contract.
+
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. A bounded PS5 run passed native browser startup, pairing/search,
 hardware AVC playback of an eight-second DASH fixture, an inspected scanout,

@@ -85,12 +85,39 @@ an array of at most eight profiles:
 ```
 
 Cookie paths are resolved relative to that configuration. Netscape cookie files
-or a single Cookie-header value are supported for library operations. Use a
+or a single Cookie-header value are supported for library and primary-account extraction. Use a
 private host directory. Cookies remain on that host and never appear in profile
 responses, console files, process command lines, logs or error diagnostics.
-The existing playback extractor has its own `--cookies` option; per-profile
-private-video playback still requires integration and must not be implied by
-successful account browsing.
+The selected native profile now accompanies search, catalog and playback jobs.
+For a profile with `account_index: 0` and no brand `channel`, the resolver installs
+that profile's cookie snapshot in its own YouTube-scoped cookie jar. Each profile
+has a separate extraction cache; all profiles share the subprocess concurrency
+limit. Unknown profiles are rejected. Secondary account indexes and brand-channel
+playback currently fail explicitly with `playback_account_context`, pending a
+verified mapping; they do not fall back to the primary account.
+
+Guest uses the ordinary resolver. The legacy `--cookies` option, when explicitly
+supplied, still applies to that Guest resolver; omit it for anonymous Guest
+browsing. Configured profile credentials do not fall back to that file. Profile
+configuration and cookie snapshots are loaded at startup; restart to refresh them.
+URL-scoped cookies needed by selected media or captions stay on the companion
+relay and do not appear in the public playback response. Primary-account private
+video access and live cookie/session validity remain unverified. Watch-history
+submission and per-profile local history/queue/favorites remain unfinished.
+
+The service accepts an optional bounded `profile` on search/catalog/video queries
+and general extraction jobs, and inside `ResolveRequest`/a resolve job's `playback`.
+The nested playback profile controls resolution even if the outer job has a
+different profile. Omitting it preserves the Guest default.
+
+Candidate `1546374e` passed the PS5 build/package checks and was frozen with
+123 files (eboot SHA-256 prefix `f1f869079b9fd8ff`). The native sanitizer suite
+verifies Guest/selected-profile request payloads and cancellation. The full
+Python suite passed 47 tests; added cases cover actual extractor IPC/cache
+partitioning, API and asynchronous-job routing, rejected account contexts and
+the pinned yt-dlp cookie jar's HTTPS/domain scope. The cookie handoff test also
+checks that a webpage's cookies cannot become inherited headers on all media
+formats. No live account or PS5 deployment was performed for this candidate.
 
 ## API and failure contract
 
