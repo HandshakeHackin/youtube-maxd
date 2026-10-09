@@ -10,13 +10,20 @@ the Android application. No SmartTube or MediaServiceCore source is incorporated
 See [implementation decisions](docs/DECISIONS.md) and the
 [original plan](IMPLEMENTATION_PLAN.md).
 
+The active [goal](GOAL.md) is full SmartTube equivalence on **PS5**. This
+prototype does not yet satisfy it. The player uses the pinned EVO PS5 foundation;
+ProsperoLight and ProsperoTV are integration references.
+
 Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay; quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
 adaptive playback, progressive video, HLS, chapters, timed captions, optional
-SponsorBlock, native player controls and diagnostics. Google sign-in, account
-subscriptions/history, casting, HDR, AV1 and standalone SABR/token execution are
-not implemented in this version.
+SponsorBlock, native player controls and diagnostics. The optional
+[library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account
+profiles, subscriptions/history/watch-later and account playlist browsing.
+Its comments/replies and account-editing APIs still need native screens and live
+acceptance. Device sign-in, casting, HDR selection, AV1 and standalone SABR/token
+execution remain unfinished.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. PS5 launch, GPU presentation, audio synchronization and live YouTube

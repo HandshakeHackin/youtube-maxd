@@ -1,0 +1,1509 @@
+{
+  "baseline_repository": "https://github.com/yuliskov/SmartTube",
+  "baseline_revision": "2c60453007dfc3775ff525c3837c2d1d4e95aab9",
+  "target": "PS5",
+  "meaning": "Feature inventory only; every equivalence claim needs behavior and hardware evidence.",
+  "features": [
+    {
+      "id": "AboutSettingsPresenter.appendAutoUpdateSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 66,
+      "labels": {
+        "check_updates_auto": "Notify about updates",
+        "dialog_notification": "Notify via pop-up dialog",
+        "option_disabled": "Disabled",
+        "sidebar_notification": "Show notification in sidebar"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendUpdateCheckButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 87,
+      "labels": {
+        "check_for_updates": "Check for updates"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendUpdateChangelogButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 95,
+      "labels": {
+        "update_changelog": "Changelog"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendLinks",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 115,
+      "labels": {
+        "releases": "Releases",
+        "releases_url": "releases_url",
+        "sources": "Sources",
+        "sources_url": "sources_url",
+        "web_site": "Web site",
+        "web_site_url": "web_site_url"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendDonation",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 130,
+      "labels": {
+        "donation": "Donation"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendUpdateSource",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 146,
+      "labels": {
+        "preferred_update_source": "Select update source"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendFeedback",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 169,
+      "labels": {
+        "feedback": "Feedback"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSettingsPresenter.appendInstallBridge",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSettingsPresenter.java",
+      "line": 185,
+      "labels": {
+        "enable_voice_search_desc": "The official app will be replaced with a so-called \\\"bridge\\\". A bridge helps to transfer global search requests to our app.",
+        "install_bridge": "Install ATV/Amazon bridge"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSimpleSettingsPresenter.appendAutoUpdateSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSimpleSettingsPresenter.java",
+      "line": 45,
+      "labels": {
+        "check_updates_auto": "Notify about updates"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSimpleSettingsPresenter.appendUpdateCheckButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSimpleSettingsPresenter.java",
+      "line": 51,
+      "labels": {
+        "check_for_updates": "Check for updates"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AboutSimpleSettingsPresenter.appendInstallBridge",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AboutSimpleSettingsPresenter.java",
+      "line": 59,
+      "labels": {
+        "enable_voice_search": "Enable global search (firmware support needed)",
+        "enable_voice_search_desc": "The official app will be replaced with a so-called \\\"bridge\\\". A bridge helps to transfer global search requests to our app."
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendSelectAccountSection",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 82,
+      "labels": {
+        "dialog_account_list": "Select account",
+        "dialog_account_none": "None"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendSignOutSection",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 119,
+      "labels": {
+        "dialog_remove_account": "Sign out",
+        "msg_done": "Done"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendSignInButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 145,
+      "labels": {
+        "dialog_add_account": "Sign in"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendSelectAccountOnBoot",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 150,
+      "labels": {
+        "select_account_on_boot": "Show account selection on boot"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendProtectAccountWithPassword",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 156,
+      "labels": {
+        "protect_account_with_password": "Protect this account with password"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AccountSettingsPresenter.appendSeparateSettings",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AccountSettingsPresenter.java",
+      "line": 166,
+      "labels": {
+        "enter_account_password": "Enter account password",
+        "multi_profiles": "Use separate settings per each account"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AutoFrameRateSettingsPresenter.java",
+      "line": 37,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AutoFrameRateSettingsPresenter.java",
+      "line": 42,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/AutoFrameRateSettingsPresenter.java",
+      "line": 47,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendGDriveBackupCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 78,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendGDriveRestoreSettings",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 90,
+      "labels": {
+        "app_restore": "Restore app data"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendGDriveBackupSettings",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 94,
+      "labels": {
+        "app_backup": "Backup app data"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendLocalAutoBackupOption",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 98,
+      "labels": {
+        "auto_backup_category": "Auto backup",
+        "dialog_account_none": "None",
+        "once_a_day": "Once a day",
+        "once_a_month": "Once a month",
+        "once_a_week": "Once a week"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendGDriveAutoBackupButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 130,
+      "labels": {
+        "auto_backup_category": "Auto backup",
+        "dialog_account_none": "None",
+        "once_a_day": "Once a day",
+        "once_a_month": "Once a month",
+        "once_a_week": "Once a week"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendGDriveMiscButtons",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 160,
+      "labels": {
+        "device_specific_backup": "Backup for this device only",
+        "dialog_add_account": "Sign in"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendLocalBackupCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 171,
+      "labels": {
+        "local_backup": "Local backup"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendLocalBackupRestoreOptions",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 180,
+      "labels": {
+        "app_backup": "Backup app data",
+        "app_backup_desc": "NOTE: The backup will be created in zip format",
+        "app_restore": "Restore app data",
+        "app_restore_desc": "NOTE: The backup zip should be copied to this folder manually or in file manager, use \\'Open with\\'",
+        "msg_done": "Done"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/BackupSettingsPresenter.java",
+      "line": 208,
+      "labels": {
+        "app_restore": "Restore app data",
+        "nothing_found": "Nothing found"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "DeArrowSettingsPresenter.appendThumbQuality",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/DeArrowSettingsPresenter.java",
+      "line": 46,
+      "labels": {
+        "dearrow_not_submitted_thumbs": "Thumbnail source (if there\\'s no DeArrow submission)",
+        "thumb_quality_default": "Default",
+        "thumb_quality_end": "End of the video",
+        "thumb_quality_middle": "Middle of the video",
+        "thumb_quality_start": "Start of the video"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "DeArrowSettingsPresenter.appendSwitches",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/DeArrowSettingsPresenter.java",
+      "line": 63,
+      "labels": {
+        "card_unlocalized_titles": "Unlocalized video titles",
+        "crowdsourced_thumbnails": "Crowdsourced thumbnails",
+        "crowdsoursed_titles": "Crowdsourced titles"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "DeArrowSettingsPresenter.appendLinks",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/DeArrowSettingsPresenter.java",
+      "line": 89,
+      "labels": {
+        "about_dearrow": "About DeArrow",
+        "dearrow_provider_url": "dearrow_provider_url",
+        "dearrow_status": "Check DeArrow server status",
+        "dearrow_status_url": "dearrow_status_url"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "DeArrowSettingsPresenter.appendDeArrowSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/DeArrowSettingsPresenter.java",
+      "line": 100,
+      "labels": {
+        "dearrow_provider": "dearrow_provider",
+        "dearrow_provider_url": "dearrow_provider_url"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendEnabledSections",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 92,
+      "labels": {
+        "side_panel_sections": "Set-up sections"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendHideContent",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 113,
+      "labels": {
+        "hide_mixes": "Hide Mixes",
+        "hide_shorts": "Hide shorts from Subscriptions",
+        "hide_shorts_channel": "Hide shorts from a channel",
+        "hide_shorts_everywhere": "Hide shorts everywhere",
+        "hide_shorts_from_history": "Hide shorts from History",
+        "hide_shorts_from_home": "Hide shorts from Home",
+        "hide_shorts_from_search": "Hide shorts from the search result",
+        "hide_shorts_from_trending": "Hide shorts from Trending",
+        "hide_streams": "Hide streams from Subscriptions",
+        "hide_unwanted_content": "Hide content",
+        "hide_upcoming": "Hide upcoming from Subscriptions",
+        "hide_upcoming_channel": "Hide upcoming from Channel",
+        "hide_upcoming_home": "Hide upcoming from Home",
+        "hide_watched_from_home": "Hide watched videos from Home",
+        "hide_watched_from_notifications": "Hide watched videos from Notifications",
+        "hide_watched_from_subscriptions": "Hide watched videos from Subscriptions",
+        "hide_watched_from_watch_later": "Remove watched videos from Watch later playlist"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendContextMenuItemsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 186,
+      "labels": {
+        "context_menu": "Context menu"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendContextMenuSortingCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 211,
+      "labels": {
+        "context_menu_sorting": "Context menu sorting",
+        "item_postion": "Position of"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendBootToSection",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 272,
+      "labels": {
+        "boot_to_section": "Boot to section"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendAppExitCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 304,
+      "labels": {
+        "app_double_back_exit": "Double back",
+        "app_exit_none": "Don\\'t exit",
+        "app_exit_shortcut": "Exit from the app",
+        "app_single_back_exit": "Single back"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendBackgroundPlaybackCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 319,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendKeyRemappingCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 324,
+      "labels": {
+        "key_remapping": "Key remapping",
+        "player_quick_shorts_skip": "Skip Shorts with left/right buttons",
+        "player_quick_shorts_skip_alt": "Skip Shorts with up/down buttons",
+        "player_quick_skip_videos": "Skip regular videos with left/right buttons",
+        "player_quick_skip_videos_alt": "Skip regular videos with up/down buttons",
+        "player_toggle_speed": "Toggle speed on/off"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendScreenDimmingCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 455,
+      "labels": {
+        "screen_dimming": "Screen dimming"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendScreenDimmingAmountCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 464,
+      "labels": {
+        "screen_dimming_amount": "Screen dimming amount"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendScreenDimmingTimeoutCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 487,
+      "labels": {
+        "option_never": "Never",
+        "screen_dimming_timeout": "Screen dimming timeout",
+        "screen_dimming_timeout_min": "%s min",
+        "ui_hide_timeout_sec": "%s sec"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendTimeFormatCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 516,
+      "labels": {
+        "time_format": "Time format",
+        "time_format_12": "12 hours (AM/PM)",
+        "time_format_24": "24 hours"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendHistoryCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 538,
+      "labels": {
+        "auto_history": "Auto (use account settings)",
+        "disable_history": "Disable history",
+        "enable_history": "Enable history",
+        "header_history": "History"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 554,
+      "labels": {
+        "app_double_back_exit": "Double back",
+        "child_mode": "Child mode",
+        "child_mode_desc": "In this mode, the user can\\'t use search or see any suggested content. The settings page will be password protected.",
+        "disable_ok_long_press": "Disable OK button long press",
+        "disable_ok_long_press_desc": "Intended for buggy controllers where OK button does not function properly",
+        "disable_screensaver": "Disable screensaver",
+        "enable_master_password": "Enable master password",
+        "lost_setting_warning": "The app settings will be changed. Make sure that you created a backup of the settings.",
+        "multi_profiles": "Use separate settings per each account",
+        "player_exit_shortcut": "Exit from the player",
+        "player_other": "Misc",
+        "protect_settings_with_password": "Protect all settings with password",
+        "remember_position_pinned": "Remember last viewed position in the pinned playlists",
+        "remember_position_subscriptions": "Remember last viewed position in Subscriptions",
+        "return_to_launcher": "Return to the launcher from ATV channels/search",
+        "search_exit_shortcut": "Exit from the search",
+        "select_channel_section": "Open corresponding section when the app launched from ATV Channels"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendInternetCensorship",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 636,
+      "labels": {
+        "network_settings": "Network settings"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendProxyManager",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 646,
+      "labels": {
+        "enable_web_proxy": "Use Web Proxy"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "GeneralSettingsPresenter.appendConscrypt",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/GeneralSettingsPresenter.java",
+      "line": 667,
+      "labels": {
+        "action_playback_queue": "Playback queue",
+        "action_video_info": "Video description",
+        "add_remove_from_playback_queue": "Add/Remove from playback queue",
+        "add_remove_from_recent_playlist": "Add/Remove from recent playlist",
+        "add_video_to_new_playlist": "Add to new playlist",
+        "add_video_to_watch_later": "Add to Watch later",
+        "check_for_updates": "Check for updates",
+        "clear_history": "Clear history",
+        "content_block_exclude_channel": "Exclude this channel from SponsorBlock",
+        "create_playlist": "Create playlist",
+        "dialog_account_list": "Select account",
+        "dialog_add_to_playlist": "Add/Remove from playlist",
+        "dialog_block_channel": "Block the channel",
+        "enable_conscrypt": "Enable Conscrypt",
+        "enable_conscrypt_desc": "Improves HTTPS, TLS, and VPN compatibility on some devices, but may occasionally cause playback issues or slower network performance",
+        "enable_master_password": "Enable master password",
+        "mark_as_watched": "Mark as watched",
+        "move_section_down": "Move section down",
+        "move_section_up": "Move section up",
+        "not_interested": "Not interested",
+        "not_recommend_channel": "Don\\'t recommend channel",
+        "open_channel": "Open channel",
+        "open_comments": "Open comments",
+        "open_playlist": "Open playlist",
+        "pause_history": "Pause history",
+        "pin_unpin_from_sidebar": "Add/Remove from the sidebar",
+        "play_from_start": "Play from start",
+        "play_next": "Play next",
+        "play_video": "Play",
+        "play_video_incognito": "Play incognito",
+        "playlist_order": "Sort playlist",
+        "protect_settings_with_password": "Protect all settings with password",
+        "remove_from_history": "Remove from history",
+        "remove_from_subscriptions": "Hide",
+        "rename_playlist": "Rename playlist",
+        "rename_section": "Rename this section",
+        "return_to_background_video": "Return to video running in background",
+        "save_remove_playlist": "Add/Remove playlist from Playlists section",
+        "set_stream_reminder": "Set stream reminder",
+        "share_embed_link": "Share embed link",
+        "share_link": "Share link",
+        "share_qr_link": "Share link (QR code)",
+        "subscribe_unsubscribe_from_channel": "Subscribe/Unsubscribe from the channel"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "LanguageSettingsPresenter.appendLanguageCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/LanguageSettingsPresenter.java",
+      "line": 48,
+      "labels": {
+        "dialog_select_language": "Language"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "LanguageSettingsPresenter.appendCountryCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/LanguageSettingsPresenter.java",
+      "line": 74,
+      "labels": {
+        "default_lang": "Default",
+        "dialog_select_country": "Country"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendTopButtonsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 72,
+      "labels": {
+        "settings_accounts": "Accounts",
+        "settings_language_country": "Language/Country",
+        "settings_search": "Search",
+        "various_buttons": "Buttons at the top of the main window"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendColorScheme",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 91,
+      "labels": {
+        "color_scheme": "Color scheme"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendCardPreviews",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 113,
+      "labels": {
+        "card_preview": "Card preview",
+        "card_preview_full": "Video with sound",
+        "card_preview_muted": "Video without sound",
+        "option_disabled": "Disabled"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendCardStyle",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 128,
+      "labels": {
+        "card_auto_scrolled_title": "Auto-scroll cropped title",
+        "card_multiline_subtitle": "Multiline subtitles",
+        "card_multiline_title": "Multiline titles",
+        "card_unlocalized_titles": "Unlocalized video titles",
+        "cards_style": "Cards style",
+        "rounded_card_corners": "Rounded card corners"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendCardTitleLines",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 165,
+      "labels": {
+        "card_title_lines_num": "Card title lines num"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendThumbSource",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 177,
+      "labels": {
+        "card_content": "Where to grab card thumbnails",
+        "thumb_quality_default": "Default",
+        "thumb_quality_end": "End of the video",
+        "thumb_quality_middle": "Middle of the video",
+        "thumb_quality_start": "Start of the video"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendChannelSortingCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 194,
+      "labels": {
+        "channels_section_sorting": "Channels section sorting",
+        "sorting_alphabetically": "Alphabetically",
+        "sorting_by_new_content": "New content",
+        "sorting_last_viewed": "Last viewed"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendPlaylistsCategoryStyle",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 210,
+      "labels": {
+        "playlists_style": "Playlists section style",
+        "playlists_style_grid": "Grid",
+        "playlists_style_rows": "Rows"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendScaleUI",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 225,
+      "labels": {
+        "scale_ui": "UI scale"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendCardTextScrollSpeed",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 240,
+      "labels": {
+        "card_text_scroll_factor": "Card text scroll speed"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendVideoGridScale",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 252,
+      "labels": {
+        "video_grid_scale": "Video grid scale"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendTimeFormatCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 267,
+      "labels": {
+        "time_format": "Time format",
+        "time_format_12": "12 hours (AM/PM)",
+        "time_format_24": "24 hours"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "MainUISettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/MainUISettingsPresenter.java",
+      "line": 289,
+      "labels": {
+        "app_corner_clock": "Home: top right corner clock",
+        "card_unlocalized_titles": "Unlocalized video titles",
+        "channel_search_bar": "Search bar inside the Channel page",
+        "channels_auto_load": "Auto load Channels section content",
+        "channels_filter": "Show Filter channels field inside Channels section",
+        "channels_old_look": "Old look of Channels section",
+        "fullscreen_mode": "Fullscreen mode (without system bars)",
+        "pinned_channel_rows": "Show pinned channel as rows",
+        "player_corner_clock": "Player: top right corner clock",
+        "player_corner_ending_time": "Player: top right corner ending time",
+        "player_other": "Misc",
+        "playlists_rows": "Show Playlists section as rows",
+        "time_format": "Time format",
+        "time_format_24": "24 hours"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendOKButtonCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 87,
+      "labels": {
+        "player_ok_button_behavior": "OK button behavior",
+        "player_only_pause": "Only pause",
+        "player_only_ui": "Only UI",
+        "player_toggle_speed": "Toggle speed on/off",
+        "player_ui_and_pause": "UI and pause"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendUIAutoHideCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 114,
+      "labels": {
+        "option_never": "Never",
+        "player_ui_hide_behavior": "Auto-hide UI",
+        "ui_hide_timeout_sec": "%s sec"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendVideoBufferCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 133,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendVideoPresetsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 138,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendVideoZoomCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 143,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendAudioLanguageCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 148,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendAudioDelayCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 153,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendMasterVolumeCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 158,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendSeekingPreviewCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 163,
+      "labels": {
+        "player_seek_preview": "Preview while seeking",
+        "player_seek_preview_carousel_fast": "Carousel (fast, not precise preview)",
+        "player_seek_preview_carousel_slow": "Carousel (slow, by keyframes)",
+        "player_seek_preview_none": "Disabled",
+        "player_seek_preview_single": "Single frame"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendRememberSpeedCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 179,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendVideoSpeedCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 185,
+      "labels": {
+        "video_speed": "Video speed"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendScreenOffTimeoutCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 195,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendPlayerButtonsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 201,
+      "labels": {
+        "action_channel": "Open channel",
+        "action_debug_info": "Debug info",
+        "action_dislike": "Dislike",
+        "action_like": "Like",
+        "action_next": "Next video",
+        "action_play_pause": "Play/Pause",
+        "action_playback_queue": "Playback queue",
+        "action_playlist_add": "Add to playlist",
+        "action_previous": "Previous video",
+        "action_repeat_mode": "Playback mode",
+        "action_search": "Search",
+        "action_sound_off": "Mute",
+        "action_subscribe": "Subscribe",
+        "action_subtitles": "Subtitles",
+        "action_video_info": "Video description",
+        "action_video_speed": "Video speed",
+        "action_video_zoom": "Video zoom",
+        "auto_frame_rate": "Auto Frame Rate",
+        "content_block_provider": "content_block_provider",
+        "open_chat": "Chat/Comments",
+        "playback_settings": "Advanced playback settings",
+        "player_buttons": "Setup player buttons",
+        "run_in_background": "Background playback",
+        "screen_dimming": "Screen dimming",
+        "seek_interval": "Seek interval",
+        "share_link": "Share link",
+        "video_flip": "Flip (mirror)",
+        "video_rotate": "Rotate"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendSeekTypeCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 245,
+      "labels": {
+        "player_seek_confirmation_pause": "With confirmation (pause while seeking)",
+        "player_seek_confirmation_play": "With confirmation (play while seeking)",
+        "player_seek_regular": "Regular",
+        "player_seek_type": "Seek behavior"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendEndingTimeCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 272,
+      "labels": {
+        "option_disabled": "Disabled",
+        "player_show_ending_time": "Show ending time in controls bar",
+        "player_show_remaining_time": "Show remaining time in controls bar"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendPixelRatioCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 299,
+      "labels": {
+        "player_pixel_ratio": "Pixel ratio"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendPlaybackModeCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 321,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendNetworkEngineCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 326,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendPlayerExitCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 331,
+      "labels": {
+        "app_double_back_exit": "Double back",
+        "app_single_back_exit": "Single back",
+        "player_exit_shortcut": "Exit from the player"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendSleepTimerCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 345,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 350,
+      "labels": {
+        "app_corner_clock": "Home: top right corner clock",
+        "app_double_back_exit": "Double back",
+        "dont_resize_video_to_fit_dialog": "Don\\'t resize video to fit dialog",
+        "long_press_for_options": "LONG PRESS FOR OPTIONS",
+        "place_chat_left": "Place chat to the left",
+        "place_comments_left": "Place comments to the left",
+        "player_audio_focus": "Audio focus (pause if other players detected)",
+        "player_auto_volume": "Auto volume adjustment",
+        "player_button_long_click": "Long press this button for additional options",
+        "player_chapter_notification2": "Switch to the next chapter by clicking on the notification",
+        "player_corner_clock": "Player: top right corner clock",
+        "player_corner_ending_time": "Player: top right corner ending time",
+        "player_disable_suggestions": "Disable suggestions",
+        "player_exit_shortcut": "Exit from the player",
+        "player_global_focus": "Sync focus between player button rows",
+        "player_global_focus_desc": "This feature affects which player button will receive focus when navigating between player button rows",
+        "player_likes_count": "Show likes/dislikes count",
+        "player_loop_shorts": "Loop Shorts",
+        "player_number_key_seek": "Seek with number keys",
+        "player_other": "Misc",
+        "player_section_playlist": "Use current section contents as a playlist",
+        "player_show_clock": "Show clock in controls bar",
+        "player_show_quality_info": "Show quality info in the controls bar",
+        "player_show_quality_info_bitrate": "Add bitrate into the quality info",
+        "player_show_tooltips": "Show button tooltips",
+        "player_speed_button_old_behavior": "Revert old behavior of the speed button",
+        "player_time_stretching": "Audio time stretching",
+        "player_time_stretching_desc": "Keeps voice natural when changing speed. May significantly reduce performance on some devices.",
+        "player_ui_animations": "Enable player UI animations",
+        "player_ui_on_next": "Show player UI when switching to the next video",
+        "queue_respects_playback_mode": "Queue respects playback mode",
+        "real_channel_icon": "Show icon on the channel button",
+        "remember_position_of_live_videos": "Remember live stream position",
+        "remember_position_of_short_videos": "Remember position of short videos (less than 5 min)",
+        "search_background_playback": "Background play while searching/browsing a channel",
+        "suggestions_horizontally_scrolled": "Horizontally scrolled Suggestions"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "PlayerSettingsPresenter.appendDeveloperCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java",
+      "line": 493,
+      "labels": {
+        "alt_presets_behavior": "Alt presets behavior (limit bandwidth)",
+        "alt_presets_behavior_desc": "The app will try to maintain bandwidth corresponding to selected preset instead of matching between resolution, fps and codec.",
+        "amazon_frame_drop_fix": "Frame drop fix #2",
+        "amazon_frame_drop_fix_desc": "Intended for Amazon Stick devices. May work on other devices too.",
+        "ambilight_ratio_fix": "Ambilight/Aspect ratio/Video scale/Screenshots fix",
+        "ambilight_ratio_fix_desc": "Fixes absent bias lighting. Fixes incorrect aspect ratio or video scale. Fixes blank screenshots. Affects performance!",
+        "amlogic_fix": "Amlogic 1080p\\@60fps fix",
+        "amlogic_fix_desc": "Frame drop fix on Amlogic-based devices.",
+        "audio_sync_fix": "Audio sync fix",
+        "audio_sync_fix_desc": "An alternative way to synchronize audio/video. It\\'s considered obsolete, but in some cases, may help.",
+        "disable_channels_service": "Disable Channels service",
+        "disable_network_error_fixing": "Disable automatic network error fixing",
+        "disable_network_error_fixing_desc": "You probably need to enable this option if you\\'re using a VPN",
+        "disable_stream_buffer": "Disable buffer on streams",
+        "disable_stream_buffer_desc": "Fix for situations when the stream too far behind. Note: the stream may start to lag.",
+        "disable_vsync": "Disable snap to vsync",
+        "disable_vsync_desc": "This option disables aligning frames with the display\\'s vertical sync signal. This could improve performance on low-end devices by releasing CPU resources.",
+        "fix_empty_subs_and_channels": "Fix empty Subscriptions and Channels",
+        "force_legacy_codecs": "Force legacy codecs (360p)",
+        "force_legacy_codecs_desc": "Significantly improves performance on low-end devices. Maximum resolution is 360p.",
+        "force_sw_codec": "Force SW video decoder",
+        "force_sw_codec_desc": "Could play almost any video, but performance is very poor.",
+        "hide_settings_section": "Hide Settings section (dangerous!)",
+        "keep_finished_activities": "Keep finished activities",
+        "live_stream_fix": "Live stream fix (1080p)",
+        "live_stream_fix_4k": "Live stream fix (4K)",
+        "live_stream_fix_4k_desc": "Warn, this tweak disables the rewinding of streams. Significantly improves live stream performance. Maximum resolution is 4K.",
+        "live_stream_fix_desc": "Warn, this tweak disables the rewinding of streams. Significantly improves live stream performance on low-end devices. Maximum resolution is 1080p.",
+        "oculus_quest_fix": "Oculus Quest fix",
+        "playback_notifications_fix": "Disable playback notifications",
+        "playback_notifications_fix_desc": "Hides track change notifications. Could be useful on AOSP-based firmware.",
+        "player_tweaks": "Developer options",
+        "prefer_avc_over_vp9": "Codec selection: prefer avc over vp9",
+        "prefer_avc_over_vp9_desc": "WARN: 1080p maximum",
+        "prefer_google_dns": "Prefer Google DNS",
+        "prefer_ipv4": "Prefer IPv4 DNS",
+        "prefer_ipv4_desc": "Could fix situations when the app isn\\'t working at all.\\nNote. May cause hangs and crashes (especially on Android 8 devices or Dune HD)",
+        "skip_codec_profile_check": "Skip codec profile level check",
+        "skip_codec_profile_check_desc": "Don\\'t check codec support when starting a video. Could be helpful on buggy firmware.",
+        "sony_frame_drop_fix": "Frame drop fix #1",
+        "sony_frame_drop_fix_desc": "Fix lags on Sony TV and some other devices. Note: possible problems with audio synchronization.",
+        "tunneled_video_playback": "Tunneled video playback (Android 5+)",
+        "tunneled_video_playback_desc": "NOTE: pause may not work properly! Tunneled video playback promises benefits such as better audio/video synchronization (AV sync) and smoother playback. Required Android 5+",
+        "unlock_all_formats": "Unlock all video formats",
+        "unlock_all_formats_desc": "On some devices the firmware incorrectly reports some formats as unsupported, even if they are.\\n(e.g. 1080p smart TVs tend to report 4k as not supported).",
+        "unlock_high_bitrate_audio_formats": "Unlock high bitrate mp4a formats",
+        "unlock_high_bitrate_formats": "Unlock high bitrate 1080p vp9 formats"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "RemoteControlSettingsPresenter.appendDeviceLinkSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/RemoteControlSettingsPresenter.java",
+      "line": 67,
+      "labels": {
+        "remote_control_permission": "Background Remote control requires Overlay permission",
+        "settings_remote_control": "Remote control"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "RemoteControlSettingsPresenter.appendAddDeviceButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/RemoteControlSettingsPresenter.java",
+      "line": 84,
+      "labels": {
+        "dialog_add_device": "Add device",
+        "remote_control_permission": "Background Remote control requires Overlay permission"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "RemoteControlSettingsPresenter.appendRemoveAllDevicesButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/RemoteControlSettingsPresenter.java",
+      "line": 110,
+      "labels": {
+        "btn_confirm": "Confirm",
+        "dialog_remove_all_devices": "Remove all devices",
+        "msg_done": "Done"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "RemoteControlSettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/RemoteControlSettingsPresenter.java",
+      "line": 129,
+      "labels": {
+        "disable_remote_history": "Disable history when using remote control",
+        "finish_on_disconnect": "Close the app after disconnecting the phone/tablet",
+        "player_other": "Misc",
+        "show_connect_messages": "Show connect messages"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SearchSettingsPresenter.appendSpeechRecognizerCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SearchSettingsPresenter.java",
+      "line": 43,
+      "labels": {
+        "speech_engine": "Voice search engine",
+        "speech_recognizer_external_1": "External 1 (seriously bugged, in order to work you need to disable access to the microphone)",
+        "speech_recognizer_external_2": "External 2 (seriously bugged)",
+        "speech_recognizer_system": "System (preferred)"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SearchSettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SearchSettingsPresenter.java",
+      "line": 58,
+      "labels": {
+        "app_double_back_exit": "Double back",
+        "disable_popular_searches": "Disable popular search queries",
+        "disable_search_history": "Disable search history",
+        "focus_on_search_results": "Autofocus on search results",
+        "instant_voice_search": "Instant voice search",
+        "keyboard_auto_show": "Show keyboard automatically",
+        "keyboard_fix": "Prevent OK button from opening the keyboard (G20s and others)",
+        "player_other": "Misc",
+        "search_background_playback": "Background play while searching/browsing a channel",
+        "search_exit_shortcut": "Exit from the search",
+        "typing_corrections": "Disable auto-correction while typing text"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendSponsorBlockSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 55,
+      "labels": {
+        "enable": "Enable"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendActionsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 76,
+      "labels": {
+        "content_block_action_dialog": "Show confirmation dialog",
+        "content_block_action_none": "Do nothing",
+        "content_block_action_only_skip": "Only skip",
+        "content_block_action_toast": "Skip with notification",
+        "content_block_action_type": "Choose action"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendColorMarkersCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 111,
+      "labels": {
+        "sponsor_color_markers": "Color markers on progress bar"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendIgnoreShortSegmentsCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 129,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendLinks",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 134,
+      "labels": {
+        "about_sponsorblock": "About SponsorBlock",
+        "content_block_provider_url": "content_block_provider_url",
+        "content_block_status": "Check SponsorBlock server status",
+        "content_block_status_url": "content_block_status_url"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendMiscCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 145,
+      "labels": {
+        "content_block_alt_server": "Use alternative server",
+        "content_block_alt_server_desc": "Enable this option if SponsorBlock refusing to work by different reasons.",
+        "paid_content_notification": "Paid content notification",
+        "player_other": "Misc",
+        "skip_each_segment_once": "Don\\'t skip segments again"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SponsorBlockSettingsPresenter.appendExcludeChannelButton",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SponsorBlockSettingsPresenter.java",
+      "line": 164,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SubtitleSettingsPresenter.appendSubtitleLanguageCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SubtitleSettingsPresenter.java",
+      "line": 39,
+      "labels": {
+        "subtitle_language": "Subtitle language",
+        "subtitles_disabled": "Subtitles disabled"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SubtitleSettingsPresenter.appendSubtitleStyleCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SubtitleSettingsPresenter.java",
+      "line": 67,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SubtitleSettingsPresenter.appendSubtitleSizeCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SubtitleSettingsPresenter.java",
+      "line": 72,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SubtitleSettingsPresenter.appendSubtitlePositionCategory",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SubtitleSettingsPresenter.java",
+      "line": 77,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "SubtitleSettingsPresenter.appendMoreSubtitlesSwitch",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/SubtitleSettingsPresenter.java",
+      "line": 82,
+      "labels": {},
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "UIScaleSettingsPresenter.appendVideoGridScale",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/UIScaleSettingsPresenter.java",
+      "line": 44,
+      "labels": {
+        "video_grid_scale": "Video grid scale"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "UIScaleSettingsPresenter.appendScaleUI",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/UIScaleSettingsPresenter.java",
+      "line": 56,
+      "labels": {
+        "scale_ui": "UI scale"
+      },
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.AddDevicePresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/AddDevicePresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.BrowsePresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/BrowsePresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.ChannelPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/ChannelPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.ChannelUploadsPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/ChannelUploadsPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.DetailsPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/DetailsPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.GoogleSignInPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/GoogleSignInPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.PlaybackPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/PlaybackPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.SearchPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/SearchPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.SignInPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/SignInPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.WebBrowserPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/WebBrowserPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.YTSignInPresenter",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/YTSignInPresenter.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.AutoFrameRateController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/AutoFrameRateController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.ChatController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ChatController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.CommentsController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/CommentsController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.ErrorFixerController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/ErrorFixerController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.HQDialogController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/HQDialogController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.PlayerUIController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/PlayerUIController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.RemoteController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/RemoteController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.SponsorBlockController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SponsorBlockController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.SuggestionsController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/SuggestionsController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.VideoLoaderController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "behavior.VideoStateController",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoStateController.java",
+      "line": 1,
+      "ps5_status": "unverified",
+      "evidence": []
+    }
+  ]
+}

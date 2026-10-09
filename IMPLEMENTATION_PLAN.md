@@ -1,15 +1,16 @@
 # ProsperoTube implementation plan
 
 - Date: 2026-10-08 (America/New_York)
-- Status: first-version offline implementation added; console/live-service acceptance pending.
+- Status: full PS5 SmartTube parity is the active objective; implementation and console/live-service acceptance remain incomplete. See [current goal](GOAL.md).
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
 ## 1. Objective and current conclusion
 
-Build a controller-first YouTube client for PS5 homebrew with the useful parts of
-the SmartTube experience: browsing, search, dependable playback, subtitles, local
-history, and eventually account features and SponsorBlock.
+Build a controller-first YouTube client for PS5 homebrew with 1:1 SmartTube
+feature and behavior equivalence. The priorities below stage implementation;
+they do not exclude account, advanced playback, integration or settings features
+from the final objective. The existing prototype is an intermediate milestone.
 
 A native implementation is technically plausible. Existing PS5 projects supply
 video decoding, audio output, media demuxing, application packaging, and interface
