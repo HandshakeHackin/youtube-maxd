@@ -749,8 +749,18 @@ double tube_chapter_target(double position, int direction) {
     return target;
 }
 
-int tube_finish_and_next(void) {
-    if (g_finished) return 0;
+int tube_playback_at_end(double position, double duration) {
+    if (!isfinite(position) || position < 0 || !isfinite(duration)) return 0;
+    const Record *r = record(g_active_id, 0);
+    if (duration <= 0 && r) duration = (double)r->item.duration_sec;
+    /* EVO's EOF flag means input was exhausted, including while several
+     * seconds remain buffered. Do not mark watched or advance the queue then.
+     * Unknown-duration streams require a separate presentation-drain signal. */
+    return duration > 0 && position >= duration - fmin(0.1, duration * 0.01);
+}
+
+int tube_finish_and_next(double position, double duration) {
+    if (g_finished || !tube_playback_at_end(position, duration)) return 0;
     g_finished = 1;
     Record *r = record(g_active_id, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }

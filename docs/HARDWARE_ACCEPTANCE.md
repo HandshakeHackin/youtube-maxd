@@ -16,6 +16,16 @@ that stopped upload attempt.
 
 - 2026-10-09 | startup | bc3a686 | PS5 6.02 | inconclusive: app checkpoint; title cleanup passed | .deps/console/first-start-bc3a686/ | validate sandbox-aware paths
 - 2026-10-09 | startup | 800160c | PS5 6.02 | pass: browser, frame checkpoint, graceful GPU park, release | .deps/console/sandbox-start-800160c-retry/ | fixture playback
+- 2026-10-09 | provider | fe4a935 | PS5 6.02 | partial-pass: pairing, search, stream choices, teardown | .deps/console/fixture-avc-windows-fe4a935/ | direct playback
+- 2026-10-09 | AVC | 59d68dd | PS5 6.02 | partial-pass: DASH opened, hardware AVC active, clock advances | .deps/console/direct-avc-59d68dd/ | full-duration playback
+
+The `59d68dd` runner printed a pass after observing raw EOF, but review found
+that this is EVO's demux-exhausted flag. The clock had reached only 1.62 seconds
+of an eight-second fixture; no scanout was captured. That output does not prove
+full playback. The native overlay now also requires the clock to reach the
+known duration before marking a video finished or advancing the queue. A
+resolved duration is used if the player has none; unknown-duration completion
+still needs a presentation-drain contract and must not be inferred from EOF.
 
 Record firmware, loader/mounter versions, TV mode, source revision, companion
 runtime/lock versions and artifact SHA-256 before testing.

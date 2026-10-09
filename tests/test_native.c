@@ -4,6 +4,7 @@
 #include "evo_net.h"
 #include "evo_data_path.h"
 #include <assert.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +64,7 @@ int main(void) {
     const evo_provider_t *p = &evo_provider_youtube;
     assert(p->init() == 0);
     assert(!tube_choose_stream_enabled());
+    assert(!tube_playback_at_end(100, 0)); /* no known duration or active item */
     assert(evo_provider_mgr_init() == 1);
     assert(evo_provider_count() == 1 && !strcmp(evo_provider_at(0)->id, "youtube"));
     assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && last_count == 8);
@@ -144,6 +146,28 @@ int main(void) {
     assert(p->init() == 0 && !tube_choose_stream_enabled());
     p->list_catalog("library:home", 1, items_cb, NULL);
     assert(!last_ok && pending_count == 0); /* unrelated cursor cannot cross levels */
+    /* Demux can exhaust a short clip while its audio/video are still playing.
+     * Early EOF must retain the current queue item and its unwatched state. */
+    p->report_progress("abcdefghijk", 0, 8, EVO_PROVIDER_PLAY_START);
+    p->report_progress("12345678901", 0, 30, EVO_PROVIDER_PLAY_START);
+    assert(tube_toggle_queue("12345678901") == 1);
+    evo_stream_choice_t selected = {0};
+    p->stream_chosen("abcdefghijk", &selected);
+    p->list_catalog("settings:autoplay", 0, items_cb, NULL);
+    assert(tube_autoplay_enabled());
+    assert(!tube_playback_at_end(NAN, 8));
+    assert(!tube_playback_at_end(8, INFINITY));
+    assert(!tube_finish_and_next(0.6, 8));
+    assert(!tube_finish_and_next(1.62, 8));
+    p->list_catalog("queue", 0, items_cb, NULL);
+    assert(last_count == 2 && !last_items[0].played);
+    assert(tube_playback_at_end(7.96, 0)); /* use resolved duration when needed */
+    assert(tube_finish_and_next(7.96, 8));
+    evo_provider_item_t next;
+    assert(tube_take_next(&next) && !strcmp(next.id, "12345678901"));
+    assert(!tube_take_next(&next) && !tube_finish_and_next(8, 8));
+    p->list_catalog("favorites", 0, items_cb, NULL);
+    assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
     p->shutdown();
     printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters\n");
     return 0;
