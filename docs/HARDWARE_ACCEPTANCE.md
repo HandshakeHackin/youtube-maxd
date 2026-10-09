@@ -104,6 +104,16 @@ does not repeat automatically. Abrupt app termination may lose a final pending
 report; measure the last confirmed position and lifecycle behavior. Real-account
 history display and cross-device resume need a separate authorized live case.
 
+Verify local profile isolation separately: favorite/follow/queue a fixture and
+stop at a partial position in account one; switch accounts and confirm its local
+lists are absent. Clearing account two's history/queue must preserve account
+one's state. Switch accounts during playback and verify progress/completion
+updates the original local profile without starting another profile's queue.
+Restart the app and verify each profile's persisted lists. A version-1 state
+fixture must migrate to Guest with its original local data preserved; unsupported
+or malformed state files must remain unchanged. Keep copies of the test files
+and distinguish this console-local state from YouTube account history.
+
 Device authorization, comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part

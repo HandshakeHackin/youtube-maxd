@@ -31,6 +31,8 @@ credential/cache contexts on the companion. Secondary-account and brand-channel
 playback mapping and live account acceptance remain unfinished. Playback history
 reports now use the selected account, with a saved sync toggle, throttled position
 updates and no retry after an unconfirmed report; see the library service.
+Local favorites, queue, follows and resume/history state are now stored by profile.
+Existing global state migrates to Guest. Player preferences remain console-wide.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. A bounded PS5 run passed native browser startup, pairing/search,

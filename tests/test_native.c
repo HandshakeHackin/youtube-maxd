@@ -60,6 +60,20 @@ static void poll_job(const char *response) {
     reply(0, 1, 200, response);
 }
 
+static cJSON *read_store(void) {
+    FILE *f = fopen(evo_data_path("youtube.json"), "rb"); assert(f);
+    assert(fseek(f, 0, SEEK_END) == 0); long n = ftell(f); assert(n > 0); rewind(f);
+    char *text = calloc(1, (size_t)n + 1); assert(text);
+    assert(fread(text, 1, (size_t)n, f) == (size_t)n); assert(fclose(f) == 0);
+    cJSON *root = cJSON_Parse(text); free(text); assert(root); return root;
+}
+
+static void write_store(cJSON *root) {
+    char *text = cJSON_PrintUnformatted(root); assert(text);
+    FILE *f = fopen(evo_data_path("youtube.json"), "wb"); assert(f);
+    assert(fwrite(text, 1, strlen(text), f) == strlen(text)); assert(fclose(f) == 0); free(text);
+}
+
 int main(void) {
     char temporary[] = "/tmp/prosperotube-native-XXXXXX";
     assert(mkdtemp(temporary)); assert(setenv("EVO_DATA_DIR_OVERRIDE", temporary, 1) == 0);
@@ -337,6 +351,7 @@ int main(void) {
     assert(!last_ok && pending_count == 0); /* unrelated cursor cannot cross levels */
     /* Demux can exhaust a short clip while its audio/video are still playing.
      * Early EOF must retain the current queue item and its unwatched state. */
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
     p->report_progress("abcdefghijk", 0, 8, EVO_PROVIDER_PLAY_START);
     p->report_progress("12345678901", 0, 30, EVO_PROVIDER_PLAY_START);
     assert(tube_toggle_queue("12345678901") == 1);
@@ -430,7 +445,80 @@ int main(void) {
     reply(0, 1, 200, "{\"success\":true,\"position_sec\":1}");
     p->report_progress("abcdefghijk", 8, 100, EVO_PROVIDER_PLAY_STOP);
     assert(!pending_count); /* disabling sync prevents future reports */
+    /* Local state is keyed by profile as well as the stable video identity. */
+    assert(p->search("local-profiles", 0, items_cb, NULL) == 0);
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Profile video\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"subtitle\":\"Profile channel\",\"duration_sec\":100}],\"has_more\":false}}");
+    assert(tube_toggle_favorite("abcdefghijk") == 1);
+    assert(tube_toggle_queue("abcdefghijk") == 1);
+    assert(tube_toggle_subscription("abcdefghijk") == 1);
+    p->report_progress("abcdefghijk", 19, 100, EVO_PROVIDER_PLAY_STOP);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    p->list_catalog("favorites", 0, items_cb, NULL);
+    assert(last_count == 1 && last_items[0].resume_pos_sec == 0 && last_items[0].played);
+    assert(tube_toggle_subscription("abcdefghijk") == 0); /* only Guest unfollows */
+    p->list_catalog("settings:clear-history", 0, items_cb, NULL);
+    p->list_catalog("settings:clear-queue", 0, items_cb, NULL);
+    p->list_catalog("history", 0, items_cb, NULL); assert(last_count == 0);
+    p->list_catalog("queue", 0, items_cb, NULL); assert(last_count == 0);
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    p->list_catalog("favorites", 0, items_cb, NULL);
+    assert(last_count == 1 && last_items[0].resume_pos_sec == 19 && !last_items[0].played);
+    p->list_catalog("queue", 0, items_cb, NULL); assert(last_count == 1);
+    p->list_catalog("subscriptions", 0, items_cb, NULL); assert(last_count == 1);
+    assert(p->init() == 0);
+    p->list_catalog("favorites", 0, items_cb, NULL); assert(last_count == 1 && last_items[0].resume_pos_sec == 19);
+    p->stream_chosen("abcdefghijk", &selected);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    p->report_progress("abcdefghijk", 11, 100, EVO_PROVIDER_PLAY_STOP);
+    p->list_catalog("history", 0, items_cb, NULL); assert(last_count == 0);
+    assert(!tube_finish_and_next(100, 100)); /* finish old profile, no cross-profile autoplay */
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    p->list_catalog("favorites", 0, items_cb, NULL);
+    assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
+    p->list_catalog("queue", 0, items_cb, NULL); assert(last_count == 0);
+    assert(tube_toggle_queue("12345678901") == 1);
+    p->stream_chosen("abcdefghijk", &selected);
+    assert(tube_finish_and_next(100, 100));
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    assert(!tube_take_next(&next)); /* a staged next item cannot cross profiles */
+    cJSON *stored = read_store();
+    assert(cJSON_GetObjectItem(stored, "version")->valueint == 2);
+    int guest_records = 0, fixture_records = 0; cJSON *entry;
+    cJSON_ArrayForEach(entry, cJSON_GetObjectItem(stored, "records")) {
+        if (strcmp(cJSON_GetObjectItem(entry, "id")->valuestring, "abcdefghijk")) continue;
+        if (!strcmp(cJSON_GetObjectItem(entry, "profile")->valuestring, "guest")) ++guest_records;
+        if (!strcmp(cJSON_GetObjectItem(entry, "profile")->valuestring, "fixture")) ++fixture_records;
+    }
+    assert(guest_records == 1 && fixture_records == 1); cJSON_Delete(stored);
+    /* A v1 global library migrates to Guest, never the selected account. */
+    stored = cJSON_Parse("{\"version\":1,\"library_profile\":\"fixture\",\"records\":[{\"id\":\"abcdefghijk\",\"title\":\"Legacy favorite\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"position\":37,\"duration\":100,\"updated\":123,\"favorite\":true,\"queued\":true,\"subscribed\":true}]}");
+    assert(stored); write_store(stored); cJSON_Delete(stored); assert(p->init() == 0);
+    p->list_catalog("favorites", 0, items_cb, NULL); assert(last_count == 0);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    p->list_catalog("favorites", 0, items_cb, NULL); assert(last_count == 1 && last_items[0].resume_pos_sec == 37);
+    p->list_catalog("queue", 0, items_cb, NULL); assert(last_count == 1);
+    p->list_catalog("subscriptions", 0, items_cb, NULL); assert(last_count == 1);
+    stored = read_store(); assert(cJSON_GetObjectItem(stored, "version")->valueint == 2);
+    cJSON *rows = cJSON_GetObjectItem(stored, "records"); entry = cJSON_GetArrayItem(rows, 0);
+    assert(!strcmp(cJSON_GetObjectItem(entry, "profile")->valuestring, "guest"));
+    cJSON *duplicate = cJSON_Duplicate(entry, 1); cJSON_ReplaceItemInObject(duplicate, "position", cJSON_CreateNumber(99));
+    cJSON_AddItemToArray(rows, duplicate);
+    cJSON *invalid = cJSON_Duplicate(entry, 1); cJSON_ReplaceItemInObject(invalid, "profile", cJSON_CreateString("../bad"));
+    cJSON_AddItemToArray(rows, invalid);
+    cJSON *missing = cJSON_Duplicate(entry, 1); cJSON_DeleteItemFromObject(missing, "profile"); cJSON_AddItemToArray(rows, missing);
+    write_store(stored); cJSON_Delete(stored); assert(p->init() == 0);
+    p->list_catalog("favorites", 0, items_cb, NULL); assert(last_count == 1 && last_items[0].resume_pos_sec == 37);
     p->shutdown();
+    stored = read_store();
+    cJSON *future = cJSON_Duplicate(stored, 1);
+    cJSON_ReplaceItemInObject(future, "version", cJSON_CreateNumber(2.5)); write_store(future); cJSON_Delete(future);
+    assert(p->init() < 0); p->shutdown();
+    future = read_store(); assert(cJSON_GetObjectItem(future, "version")->valuedouble == 2.5); cJSON_Delete(future);
+    future = cJSON_Duplicate(stored, 1);
+    cJSON_ReplaceItemInObject(future, "records", cJSON_CreateString("malformed")); write_store(future); cJSON_Delete(future);
+    assert(p->init() < 0); p->shutdown();
+    future = read_store(); assert(cJSON_IsString(cJSON_GetObjectItem(future, "records"))); cJSON_Delete(future);
+    write_store(stored); cJSON_Delete(stored); assert(p->init() == 0); p->shutdown();
     printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters, discussions, account intents\n");
     return 0;
 }

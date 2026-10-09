@@ -6,6 +6,7 @@
 #include "evo_error.h"
 #include "cJSON.h"
 #include <ctype.h>
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,7 @@
 
 typedef struct {
     evo_provider_item_t item;
+    char profile[33];
     int favorite, queued, subscribed;
     long long updated, queue_order;
 } Record;
@@ -45,10 +47,12 @@ typedef struct Request {
 
 static Record g_records[RECORDS];
 static int g_count;
+static int g_store_writable = 1;
 static Request g_requests[REQUESTS];
 static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
+static char g_active_profile[33], g_next_profile[33];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
@@ -201,11 +205,15 @@ int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, s
     snprintf(parent, capacity, "playlist:review:%u", serial); return 0;
 }
 
-static Record *record(const char *id, int create) {
-    if (!valid_id(id)) return NULL;
+static Record *record_for(const char *id, const char *profile, int create) {
+    if (!valid_id(id) || !valid_profile(profile)) return NULL;
     for (int i = 0; i < g_count; ++i)
-        if (!strcmp(g_records[i].item.id, id)) return &g_records[i];
+        if (!strcmp(g_records[i].item.id, id) && !strcmp(g_records[i].profile, profile)) return &g_records[i];
     if (!create) return NULL;
+    evo_provider_item_t metadata = {0};
+    for (int i = 0; i < g_count; ++i) if (!strcmp(g_records[i].item.id, id)) {
+        metadata = g_records[i].item; metadata.resume_pos_sec = 0; metadata.played = 0; break;
+    }
     int slot = g_count;
     if (slot >= RECORDS) {
         slot = -1;
@@ -215,10 +223,15 @@ static Record *record(const char *id, int create) {
         if (slot < 0) return NULL;
     } else ++g_count;
     memset(&g_records[slot], 0, sizeof(Record));
+    g_records[slot].item = metadata;
+    copy(g_records[slot].profile, sizeof g_records[slot].profile, profile);
     copy(g_records[slot].item.id, sizeof g_records[slot].item.id, id);
     g_records[slot].item.kind = EVO_MEDIA_VIDEO;
     return &g_records[slot];
 }
+
+static Record *record(const char *id, int create) { return record_for(id, g_library_profile, create); }
+static int current_record(const Record *r) { return !strcmp(r->profile, g_library_profile); }
 
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
@@ -229,9 +242,12 @@ void tube_set_error(const char *message) {
 }
 
 static void save(void) {
+    if (!g_store_writable) {
+        tube_set_error("Local data could not be loaded. The existing file has not been overwritten."); return;
+    }
     cJSON *root = cJSON_CreateObject(), *rows = cJSON_CreateArray();
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); return; }
-    cJSON_AddNumberToObject(root, "version", 1);
+    cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
     cJSON_AddNumberToObject(root, "max_height", g_height);
@@ -249,6 +265,7 @@ static void save(void) {
         Record *r = &g_records[i];
         cJSON *o = cJSON_CreateObject();
         cJSON_AddStringToObject(o, "id", r->item.id);
+        cJSON_AddStringToObject(o, "profile", r->profile);
         cJSON_AddStringToObject(o, "title", r->item.title);
         cJSON_AddStringToObject(o, "subtitle", r->item.subtitle);
         cJSON_AddStringToObject(o, "overview", r->item.overview);
@@ -299,12 +316,14 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    g_store_writable = 0;
     watch_reset(1);
+    g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(g_comments, 0, sizeof g_comments);
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     FILE *f = fopen(evo_data_path("youtube.json"), "rb");
-    if (!f) return 0;
+    if (!f) { if (errno == ENOENT) { g_store_writable = 1; return 0; } return -1; }
     if (fseek(f, 0, SEEK_END) || ftell(f) < 0 || ftell(f) > 2 * 1024 * 1024) { fclose(f); return -1; }
     long n = ftell(f); rewind(f);
     char *body = calloc(1, (size_t)n + 1);
@@ -312,7 +331,11 @@ static int init(void) {
     size_t read = fread(body, 1, (size_t)n, f); fclose(f);
     cJSON *root = read == (size_t)n ? cJSON_ParseWithLength(body, (size_t)n + 1) : NULL;
     free(body);
-    if (!root || num(root, "version") != 1) { cJSON_Delete(root); return -1; }
+    double version = num(root, "version");
+    if (!root || (version != 1 && version != 2) || !cJSON_IsArray(cJSON_GetObjectItemCaseSensitive(root, "records"))) {
+        cJSON_Delete(root); return -1;
+    }
+    g_store_writable = 1;
     copy(g_source, sizeof g_source, str(root, "source"));
     copy(g_token, sizeof g_token, str(root, "token"));
     const char *profile = str(root, "library_profile");
@@ -333,10 +356,12 @@ static int init(void) {
         copy(g_language, sizeof g_language, language);
     if (strlen(audio) < sizeof g_audio_language && strspn(audio, valid) == strlen(audio))
         copy(g_audio_language, sizeof g_audio_language, audio);
-    g_count = 0;
+    g_count = 0; g_queue_order = 0;
     cJSON *o;
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
-        Record *r = record(str(o, "id"), 1); if (!r) continue;
+        const char *owner = version == 1 ? "guest" : str(o, "profile");
+        if (record_for(str(o, "id"), owner, 0)) continue;
+        Record *r = record_for(str(o, "id"), owner, 1); if (!r) continue;
         parse_item(&r->item, o);
         r->item.resume_pos_sec = (int64_t)num(o, "position");
         r->item.duration_sec = (int64_t)num(o, "duration");
@@ -347,7 +372,7 @@ static int init(void) {
         r->favorite = boolean(o, "favorite"); r->queued = boolean(o, "queued");
         r->subscribed = boolean(o, "subscribed");
     }
-    cJSON_Delete(root); return 0;
+    cJSON_Delete(root); if (version == 1) save(); return 0;
 }
 
 /* Local library and preferences remain usable before pairing or while offline. */
@@ -843,7 +868,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             Record *target = record(colon + 1, 0);
             if (target && *target->item.title) label = target->item.title;
             if (g_account_actions[found].channel) for (int i = 0; i < g_count; ++i)
-                if (!strcmp(g_records[i].item.parent_id, colon + 1) && *g_records[i].item.subtitle) {
+                if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, colon + 1) && *g_records[i].item.subtitle) {
                     label = g_records[i].item.subtitle; break;
                 }
             snprintf(out[0].overview, sizeof out[0].overview,
@@ -888,6 +913,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
             copy(g_library_profile, sizeof g_library_profile, parent + 16);
             watch_reset(1);
+            g_next_id[0] = 0; g_next_profile[0] = 0;
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
         }
@@ -916,9 +942,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strncmp(parent, "settings:lang:", 14)) { copy(g_language, sizeof g_language, parent + 14); save(); }
         else if (!strncmp(parent, "settings:audio:", 15)) { copy(g_audio_language, sizeof g_audio_language, parent + 15); save(); }
         else if (!strcmp(parent, "settings:clear-history")) {
-            for (int i = 0; i < g_count; ++i) { g_records[i].updated = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0; } save();
+            for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) {
+                g_records[i].updated = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0;
+            } save();
         } else if (!strcmp(parent, "settings:clear-queue")) {
-            for (int i = 0; i < g_count; ++i) g_records[i].queued = 0;
+            for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
         if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
@@ -942,15 +970,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
                 g_watch.status == 1 ? "History report pending" : g_watch.status == 2 ? "Last history report confirmed" :
                 "Report watched videos and positions for the selected account");
-            folder(&out[n++], "settings:clear-history", "Clear local history", "Remove resume positions and watched markers");
-            folder(&out[n++], "settings:clear-queue", "Clear play queue", "Remove queued videos; keep favorites");
+            folder(&out[n++], "settings:clear-history", "Clear local history", "Remove resume positions and watched markers for this profile");
+            folder(&out[n++], "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
         }
     } else if (!strcmp(parent, "history") || !strcmp(parent, "favorites") || !strcmp(parent, "queue") || !strcmp(parent, "subscriptions")) {
         int indexes[RECORDS], total = 0;
         for (int i = 0; i < g_count; ++i) {
             Record *r = &g_records[i];
             int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : !strcmp(parent, "queue") ? r->queued : r->subscribed;
-            if (include) indexes[total++] = i;
+            if (include && current_record(r)) indexes[total++] = i;
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
             Record *a = &g_records[indexes[i]], *b = &g_records[indexes[j]];
@@ -1091,7 +1119,9 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
 }
 
 static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play_state_t state) {
-    Record *r = record(id, 1); if (!r) return;
+    if (*g_active_id && strcmp(id, g_active_id)) return;
+    const char *profile = *g_active_profile ? g_active_profile : g_library_profile;
+    Record *r = record_for(id, profile, 1); if (!r) return;
     if (dur > 0) r->item.duration_sec = dur;
     if (state != EVO_PROVIDER_PLAY_START || pos > 0) r->item.resume_pos_sec = pos > 0 ? pos : 0;
     r->updated = (long long)time(NULL);
@@ -1108,6 +1138,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
+    copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
     if (g_watch.stopped && g_watch.dirty) watch_flush(1);
     watch_reset(0);
     if (valid_id(id) && valid_profile(profile) && strcmp(profile, "guest")) {
@@ -1117,24 +1148,24 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
 }
 
 int tube_toggle_favorite(const char *id) {
-    Record *r = record(id, 0); if (!r) return -1;
+    Record *r = record(id, 1); if (!r) return -1;
     r->favorite = !r->favorite; save(); return r->favorite;
 }
 
 int tube_toggle_queue(const char *id) {
-    Record *r = record(id, 0); if (!r) return -1;
+    Record *r = record(id, 1); if (!r) return -1;
     r->queued = !r->queued; if (r->queued) r->queue_order = ++g_queue_order;
     save(); return r->queued;
 }
 
 int tube_toggle_subscription(const char *id) {
-    Record *r = record(id, 0); if (!r || strncmp(r->item.parent_id, "UC", 2) || strlen(r->item.parent_id) != 24) return -1;
+    Record *r = record(id, 1); if (!r || strncmp(r->item.parent_id, "UC", 2) || strlen(r->item.parent_id) != 24) return -1;
     int subscribed = 0;
     for (int i = 0; i < g_count; ++i)
-        if (!strcmp(g_records[i].item.parent_id, r->item.parent_id) && g_records[i].subscribed) subscribed = 1;
+        if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, r->item.parent_id) && g_records[i].subscribed) subscribed = 1;
     int follow = !subscribed;
     for (int i = 0; i < g_count; ++i)
-        if (!strcmp(g_records[i].item.parent_id, r->item.parent_id)) g_records[i].subscribed = follow;
+        if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, r->item.parent_id)) g_records[i].subscribed = follow;
     save(); return follow;
 }
 
@@ -1173,7 +1204,7 @@ double tube_chapter_target(double position, int direction) {
 
 int tube_playback_at_end(double position, double duration) {
     if (!isfinite(position) || position < 0 || !isfinite(duration)) return 0;
-    const Record *r = record(g_active_id, 0);
+    const Record *r = record_for(g_active_id, g_active_profile, 0);
     if (duration <= 0 && r) duration = (double)r->item.duration_sec;
     /* EVO's EOF flag means input was exhausted, including while several
      * seconds remain buffered. Do not mark watched or advance the queue then.
@@ -1184,19 +1215,20 @@ int tube_playback_at_end(double position, double duration) {
 int tube_finish_and_next(double position, double duration) {
     if (g_finished || !tube_playback_at_end(position, duration)) return 0;
     g_finished = 1;
-    Record *r = record(g_active_id, 0);
+    Record *r = record_for(g_active_id, g_active_profile, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
-    if (!g_autoplay) return 0;
+    if (!g_autoplay || strcmp(g_active_profile, g_library_profile)) return 0;
     Record *next = NULL;
     for (int i = 0; i < g_count; ++i)
-        if (g_records[i].queued && (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
+        if (current_record(&g_records[i]) && g_records[i].queued && (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
     if (!next) return 0;
-    copy(g_next_id, sizeof g_next_id, next->item.id); return 1;
+    copy(g_next_id, sizeof g_next_id, next->item.id);
+    copy(g_next_profile, sizeof g_next_profile, next->profile); return 1;
 }
 
 int tube_take_next(evo_provider_item_t *item) {
-    if (!*g_next_id) return 0;
-    Record *r = record(g_next_id, 0); g_next_id[0] = 0;
+    if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
+    Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
     if (!r || !item) return 0;
     *item = r->item; return 1;
 }

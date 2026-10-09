@@ -5,7 +5,8 @@ It adds home recommendations, account subscriptions/history/watch-later,
 playlist browsing/edit operations, video ratings and comments to the service.
 The native Discover screen opens home and account/library screens through the
 existing asynchronous job API. Profiles and remote playlist folders preserve
-their account context. Local favorites, queue and history remain console data.
+their account context. Local favorites, queue, follows and history remain console
+data, stored separately for each selected profile.
 
 This is not full SmartTube parity. Device-code login, live chat and comment posting
 are not connected yet. Account
@@ -102,8 +103,7 @@ browsing. Configured profile credentials do not fall back to that file. Profile
 configuration and cookie snapshots are loaded at startup; restart to refresh them.
 URL-scoped cookies needed by selected media or captions stay on the companion
 relay and do not appear in the public playback response. Primary-account private
-video access and live cookie/session validity remain unverified. Per-profile
-local history/queue/favorites remain unfinished.
+video access and live cookie/session validity remain unverified.
 
 The service accepts an optional bounded `profile` on search/catalog/video queries
 and general extraction jobs, and inside `ResolveRequest`/a resolve job's `playback`.
@@ -169,6 +169,30 @@ identity checks, closed sessions and storage limits. The full Python suite passe
 50 tests; its subprocess cases prove that timeout and unrelated worker loss block
 queued/repeated reports while a new explicit context can recover. No PS5 or live
 account history acceptance was performed for this candidate.
+
+## Local profile state
+
+Local favorites, queue ordering, channel follows, resume positions and watched
+markers use the selected profile ID plus the stable video ID. Cached title/artwork
+metadata may be reused across profiles; account/local state is never copied with
+it. Clear-history and clear-queue apply only to the current profile. Playback
+progress/completion stays bound to the profile that started the video, even if
+the browser switches profiles. Autoplay stops across that switch, and a pending
+next-queue item is invalidated. Switching back restores the saved lists.
+
+The native `youtube.json` format is version 2, with a profile on each record.
+Version-1 global records migrate to **Guest**, preserving favorites, follows,
+queue order, positions and watched markers. They are not assigned to whichever
+account happened to be selected. Duplicate keys retain their first record;
+invalid/missing version-2 profile IDs are skipped. An unrecognized version,
+malformed record-list schema or unreadable file blocks saving, preserving the
+existing file rather than overwriting it on shutdown. Profile IDs must remain
+stable in the companion configuration; they are user-configured identifiers.
+
+The current native store retains at most 384 records across profiles. Favorites,
+queued videos and followed-channel records are protected from ordinary cache
+eviction. Player preferences remain console-wide. PS5 navigation/lifecycle and
+larger-library retention remain acceptance work toward full parity.
 
 ## API and failure contract
 
