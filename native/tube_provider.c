@@ -1212,8 +1212,8 @@ int tube_playback_at_end(double position, double duration) {
     return duration > 0 && position >= duration - fmin(0.1, duration * 0.01);
 }
 
-int tube_finish_and_next(double position, double duration) {
-    if (g_finished || !tube_playback_at_end(position, duration)) return 0;
+static int finish_and_next(void) {
+    if (g_finished || !*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
@@ -1224,6 +1224,16 @@ int tube_finish_and_next(double position, double duration) {
     if (!next) return 0;
     copy(g_next_id, sizeof g_next_id, next->item.id);
     copy(g_next_profile, sizeof g_next_profile, next->profile); return 1;
+}
+
+int tube_finish_and_next(double position, double duration) {
+    return tube_playback_at_end(position, duration) ? finish_and_next() : 0;
+}
+
+int tube_finish_drained_and_next(double position) {
+    /* Called only with the engine's natural EOF + audio/video retirement proof.
+     * Unknown/inaccurate metadata duration must not prevent a clean completion. */
+    return isfinite(position) && position >= 0 ? finish_and_next() : 0;
 }
 
 int tube_take_next(evo_provider_item_t *item) {

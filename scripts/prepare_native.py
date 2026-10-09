@@ -59,6 +59,8 @@ def main():
         "ui/src/evo_keyboard.c",
         "media/src/evo_audio_out.c", "media/include/evo_audio_out.h", "media/src/evo_demux.c", "media/include/evo_demux.h",
         "media/src/evo_playback.c", "media/include/evo_playback.h",
+        "media/src/evo_vdec_ffmpeg.c", "media/src/evo_vdec_native.c", "media/src/evo_vdec_native.h", "media/include/evo_vdec.h",
+        "pp/src/pp_playback.c", "pp/include/pp_playback.h", "media/src/evo_agc_runtime.c", "media/include/evo_agc_runtime.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -166,6 +168,8 @@ def main():
     apply_discussion_overlay(replace, player, host)
     from audio_drain_overlay import apply_audio_drain_overlay
     apply_audio_drain_overlay(replace, player)
+    from video_drain_overlay import apply_video_drain_overlay
+    apply_video_drain_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

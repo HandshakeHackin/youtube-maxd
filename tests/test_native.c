@@ -372,6 +372,15 @@ int main(void) {
     assert(!tube_take_next(&next) && !tube_finish_and_next(8, 8));
     p->list_catalog("favorites", 0, items_cb, NULL);
     assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
+    /* Clean decoder/output drain can finish media with inaccurate or absent
+     * duration metadata; the UI calls this only after the full engine proof. */
+    p->stream_chosen("12345678901", &selected);
+    assert(!tube_finish_drained_and_next(NAN));
+    assert(!tube_finish_drained_and_next(-1));
+    assert(!tube_playback_at_end(2, 0)); /* stored duration remains 30 seconds */
+    (void)tube_finish_drained_and_next(2);
+    p->list_catalog("queue", 0, items_cb, NULL);
+    assert(last_count == 0); /* drained completion removed the final queued item */
     /* History reports bind to a resolved account and never block browsing. */
     p->list_catalog("settings:history-sync", 0, items_cb, NULL); /* default on -> off */
     assert(p->init() == 0);
