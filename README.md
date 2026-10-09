@@ -33,6 +33,10 @@ visual acceptance and live YouTube behavior still need the
 Format support is not a claim that arbitrary current YouTube videos or every
 resolution will play on a PS5.
 
+Selecting a video plays the preferred quality directly. Enable **Choose stream
+before playback** in YouTube preferences to show the available choices first;
+this preference is saved independently of EVO's live-TV settings.
+
 ## Run the companion
 
 In WSL/Linux, from this repository:

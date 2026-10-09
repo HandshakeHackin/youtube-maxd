@@ -62,6 +62,7 @@ int main(void) {
     assert(mkdtemp(temporary)); assert(setenv("EVO_DATA_DIR_OVERRIDE", temporary, 1) == 0);
     const evo_provider_t *p = &evo_provider_youtube;
     assert(p->init() == 0);
+    assert(!tube_choose_stream_enabled());
     assert(evo_provider_mgr_init() == 1);
     assert(evo_provider_count() == 1 && !strcmp(evo_provider_at(0)->id, "youtube"));
     assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && last_count == 8);
@@ -134,6 +135,13 @@ int main(void) {
     assert(strstr(pending[0].body, "\"action\":\"playlist\"") && strstr(pending[0].body, "PLabcdefghijk"));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account video\"}],\"has_more\":false}}");
     assert(last_ok && last_count == 1);
+    /* The YouTube playback prompt is opt-in and survives a reload in both states. */
+    p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
+    assert(tube_choose_stream_enabled());
+    assert(p->init() == 0 && tube_choose_stream_enabled());
+    p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
+    assert(!tube_choose_stream_enabled());
+    assert(p->init() == 0 && !tube_choose_stream_enabled());
     p->list_catalog("library:home", 1, items_cb, NULL);
     assert(!last_ok && pending_count == 0); /* unrelated cursor cannot cross levels */
     p->shutdown();

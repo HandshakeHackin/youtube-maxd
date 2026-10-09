@@ -18,6 +18,7 @@ double tube_chapter_target(double position, int direction);
 int tube_finish_and_next(void);
 int tube_take_next(evo_provider_item_t *item);
 int tube_autoplay_enabled(void);
+int tube_choose_stream_enabled(void);
 void tube_set_error(const char *message);
 #ifdef __cplusplus
 }

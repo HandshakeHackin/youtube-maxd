@@ -47,7 +47,7 @@ static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
-static int g_sponsor, g_autoplay, g_finished;
+static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static char g_language[16] = "en", g_audio_language[16];
 static double g_segments[SEGMENTS][2];
 static int g_segment_count, g_skip_guard = -1;
@@ -153,6 +153,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
+    cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
     for (int i = 0; i < g_count; ++i) {
         Record *r = &g_records[i];
         cJSON *o = cJSON_CreateObject();
@@ -228,6 +229,7 @@ static int init(void) {
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
     g_autoplay = boolean(root, "autoplay");
+    g_ask_stream = boolean(root, "ask_stream");
     const char *language = str(root, "language"), *audio = str(root, "audio_language");
     const char *valid = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
     if (*language && strlen(language) < sizeof g_language && strspn(language, valid) == strlen(language))
@@ -566,6 +568,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; save(); }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
+        else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
         else if (!strncmp(parent, "settings:lang:", 14)) { copy(g_language, sizeof g_language, parent + 14); save(); }
         else if (!strncmp(parent, "settings:audio:", 15)) { copy(g_audio_language, sizeof g_audio_language, parent + 15); save(); }
         else if (!strcmp(parent, "settings:clear-history")) {
@@ -590,6 +593,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
             folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
+            folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
             folder(&out[n++], "settings:clear-history", "Clear local history", "Remove resume positions and watched markers");
             folder(&out[n++], "settings:clear-queue", "Clear play queue", "Remove queued videos; keep favorites");
         }
@@ -764,6 +768,8 @@ int tube_take_next(evo_provider_item_t *item) {
     if (!r || !item) return 0;
     *item = r->item; return 1;
 }
+
+int tube_choose_stream_enabled(void) { return g_ask_stream; }
 
 static void tube_shutdown(void) { tube_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {
