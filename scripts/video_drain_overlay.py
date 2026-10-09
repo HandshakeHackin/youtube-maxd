@@ -69,7 +69,14 @@ void evo_vdec_native_flush(evo_vdec_native *v)   /* seek */""")
     replace(native, "void evo_vdec_native_flush(evo_vdec_native *v) { (void)v; }", "int evo_vdec_native_is_drained(const evo_vdec_native *v) { (void)v; return 0; }\nvoid evo_vdec_native_flush(evo_vdec_native *v) { (void)v; }")
     replace(player + "media/src/evo_vdec_native.h", "void evo_vdec_native_flush(evo_vdec_native *v);", "int evo_vdec_native_is_drained(const evo_vdec_native *v);\nvoid evo_vdec_native_flush(evo_vdec_native *v);")
     replace(playback, '#include "evo_playback.h"', '#include "evo_playback.h"\n#include <stdatomic.h>')
-    replace(playback, "static int s_vdec_fatal_streak", "static _Atomic int tube_video_decoded;\nstatic int tube_eof_sent;\nvoid evo_pb_reset_video_drain(void) { atomic_store(&tube_video_decoded, 0); tube_eof_sent = 0; }\n\nstatic int s_vdec_fatal_streak")
+    replace(playback, "static int s_vdec_fatal_streak", "static _Atomic int tube_video_decoded, tube_video_failed;\nstatic int tube_eof_sent;\nvoid evo_pb_reset_video_drain(void) { atomic_store(&tube_video_decoded, 0); atomic_store(&tube_video_failed, 0); tube_eof_sent = 0; }\n\nstatic int s_vdec_fatal_streak")
+    replace(playback, "    (void)pp_playback_push_frame(&g_pp_pb, (pp_frame *)pf);", """    int pushed = pp_playback_push_frame(&g_pp_pb, (pp_frame *)pf);
+    if (pushed < 0) atomic_store_explicit(&tube_video_failed, 1, memory_order_release);""")
+    replace(playback, """                else
+                    convert_frame_via_sws(af);""", """                else {
+                    if (g_pp_pb.active) atomic_store_explicit(&tube_video_failed, 1, memory_order_release);
+                    convert_frame_via_sws(af);
+                }""")
     replace(playback, "    g_pb_decode_fatal   = 0;", "    evo_pb_reset_video_drain();\n    g_pb_decode_fatal   = 0;")
     replace(playback, "        if (recv_ret >= 1) {", "        if (recv_ret >= 1) {\n            atomic_store(&tube_video_decoded, 0);")
     replace(playback, """            static int s_eof_drained = 0;
@@ -96,7 +103,8 @@ void evo_vdec_native_flush(evo_vdec_native *v)   /* seek */""")
 int evo_pb_is_complete(void)
 {
     if (player_paused || pb_scrub_hold || evo_demux_is_seeking() ||
-        !evo_pb_input_complete() || !evo_pb_audio_drained() || g_pb_decode_fatal) return 0;
+        !evo_pb_input_complete() || !evo_pb_audio_drained() || g_pb_decode_fatal ||
+        atomic_load_explicit(&tube_video_failed, memory_order_acquire)) return 0;
     if (video_stream_index < 0) return audio_stream_index >= 0;
     if (!atomic_load_explicit(&tube_video_decoded, memory_order_acquire)) return 0;
     int64_t dwell = video_fps >= 0.1 && video_fps <= 240.0
@@ -105,6 +113,7 @@ int evo_pb_is_complete(void)
 }""")
     replace(player + "media/include/evo_playback.h", "int    evo_pb_input_complete(void);", "void evo_pb_reset_video_drain(void);\nint evo_pb_is_complete(void); /* natural input EOF + audio + final rendered video */\nint    evo_pb_input_complete(void);")
     replace(player + "media/src/evo_demux.c", "        evo_audio_drain_reset();", "        evo_audio_drain_reset();\n        evo_pb_reset_video_drain();")
+    replace(player + "media/src/evo_demux.c", '#include "evo_demux.h"', '#include "evo_demux.h"\n#include "evo_playback.h"')
     # Tokens travel in the same locked snapshot as the actual decoder planes.
     replace(player + "pp/include/pp_playback.h", "    void *lock;", "    uint64_t tube_epoch, tube_published, tube_retired, tube_retired_us;\n    void *lock;")
     replace(player + "pp/include/pp_playback.h", "typedef struct pp_video_frame {", "typedef struct pp_video_frame {\n    uint64_t tube_epoch, tube_serial;\n    int64_t pts_us;")

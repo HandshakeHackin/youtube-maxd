@@ -111,6 +111,11 @@ static void run(const char *path) {
     pp_playback_resume(&g_pp_pb);
     seeking = 1; assert(!evo_pb_is_complete()); seeking = 0;
     g_pb_decode_fatal = 1; assert(!evo_pb_is_complete()); g_pb_decode_fatal = 0;
+    pp_frame unpublishable = {.pts_us = last.pts_us, .format = PP_FRAME_YUV420P, .width = 2, .height = 2};
+    present_pp_frame(&unpublishable); // Real pp path rejects missing pixel planes.
+    assert(atomic_load(&tube_video_failed) && !evo_pb_is_complete());
+    evo_pb_reset_video_drain();
+    assert(decode_next_video_frame() == 0 && evo_pb_is_complete()); // Re-send NULL and collect EOF.
     const uint8_t invalid_after_eof[] = {0, 0, 0};
     assert(evo_vdec_send(g_vdec, invalid_after_eof, sizeof(invalid_after_eof), 0) < 0);
     assert(!evo_vdec_is_drained(g_vdec)); // Real AVERROR_EOF on an invalid post-EOF send is a failure.
