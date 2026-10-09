@@ -1,5 +1,6 @@
 // Original bounded service adapter. SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
+import { validCredentials } from './device_auth.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -93,6 +94,7 @@ export class Library {
     for (const profile of profiles) {
       if (!/^[A-Za-z0-9_-]{1,32}$/.test(profile.id ?? '') || this.profiles.has(profile.id) ||
           typeof profile.cookie !== 'string' || profile.cookie.length > 65536 || /[\r\n]/.test(profile.cookie) ||
+          (profile.oauth !== undefined && (!validCredentials(profile.oauth) || profile.cookie || profile.account_index || profile.channel)) ||
           (profile.account_index !== undefined && (!Number.isInteger(profile.account_index) || profile.account_index < 0 || profile.account_index > 7)) ||
           (profile.channel !== undefined && !/^[A-Za-z0-9_-]{1,100}$/.test(profile.channel)))
         throw new LibraryError('invalid_profiles', 'The profile configuration is invalid.');
@@ -136,7 +138,7 @@ export class Library {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>
-      ({ id: p.id, name: p.name, account_configured: !!p.cookie })) };
+      ({ id: p.id, name: p.name, account_configured: !!(p.cookie || p.oauth) })) };
     if (input.action === 'replies') {
       const entry = this.threads.get(input.cursor);
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
@@ -160,7 +162,7 @@ export class Library {
     }
     const profile = this.profiles.get(owner);
     if (!profile) throw new LibraryError('unknown_profile', 'Select an available profile.', 404);
-    const authenticated = !!profile.cookie;
+    const authenticated = !!(profile.cookie || profile.oauth);
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress']);

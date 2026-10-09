@@ -53,15 +53,21 @@ def main():
         print("Account/library actions use synthetic offline profiles; changes reset on restart.")
     else:
         library = None
+        device_auth = None
         if args.library_node:
             from .library import LibraryService
+            from .device_auth import DeviceAuth, OAuthProfiles
             try:
-                library = LibraryService(args.library_node, profile_config=args.library_profiles)
+                oauth_store = OAuthProfiles(args.state_dir)
+                library = LibraryService(args.library_node, profile_config=args.library_profiles, oauth_store=oauth_store)
             except (ValueError, OSError, KeyError):
-                parser.error("The library profile configuration is invalid. Check profile identifiers and cookie files.")
+                parser.error("The account profile configuration is invalid. Check profile and credential files.")
+            device_auth = DeviceAuth(lambda request: library.execute(request, operation="device"),
+                                     oauth_store, library.add_oauth_profile,
+                                     lambda: len(library.profiles) < 8)
             from .extractor import ProfileExtractors
-            extractor = ProfileExtractors(extractor, library.profiles)
-        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library)
+            extractor = ProfileExtractors(extractor, lambda: library.profiles)
+        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")

@@ -2,6 +2,7 @@
 import { Innertube, Log } from 'youtubei.js';
 import { StringDecoder } from 'node:string_decoder';
 import { Library, LibraryError } from './library.mjs';
+import { DeviceAuthorization, createProfileClient } from './device_auth.mjs';
 
 Log.setLevel(Log.Level.NONE);
 const allowed = ['youtube.com', 'google.com', 'googleapis.com', 'gstatic.com'];
@@ -35,10 +36,12 @@ async function scopedFetch(input, init = {}) {
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
 async function createClient(profile) {
-  return Innertube.create({ cookie: profile.cookie || undefined,
-    account_index: profile.account_index ?? 0, on_behalf_of_user: profile.channel || undefined,
-    retrieve_player: false, generate_session_locally: true, fetch: scopedFetch });
+  return createProfileClient(profile, Innertube, scopedFetch,
+    (id, credentials) => credentialUpdates.set(id, credentials));
 }
+const credentialUpdates = new Map();
+const deviceAuth = new DeviceAuthorization(() => Innertube.create({ client_type: 'TVHTML5',
+  retrieve_player: false, retrieve_innertube_config: false, generate_session_locally: true, fetch: scopedFetch }), scopedFetch);
 let library = null;
 let buffer = '';
 const decoder = new StringDecoder('utf8');
@@ -60,20 +63,24 @@ for await (const chunk of process.stdin) {
         output = { ready: true };
       } else {
         if (!library) throw new LibraryError('not_initialized', 'Initialize the worker first.');
-        if (line.length > 8192) throw new LibraryError('request_limit', 'The operation exceeds the request limit.');
-        output = await library.execute(input.request);
+        if (Buffer.byteLength(line) > (input.operation === 'device' ? 16384 : 8192)) throw new LibraryError('request_limit', 'The operation exceeds the request limit.');
+        output = input.operation === 'device' ? await deviceAuth.execute(input.request) : await library.execute(input.request);
       }
-      const serialized = JSON.stringify({ id, result: output });
+      const updates = Array.from(credentialUpdates, ([profile, credentials]) => ({ profile, credentials }));
+      const serialized = JSON.stringify({ id, result: output, ...(updates.length ? { credential_updates: updates } : {}) });
       if (Buffer.byteLength(serialized) > 1048576) throw new LibraryError('response_limit', 'The returned operation exceeds the response limit.', 502);
       process.stdout.write(serialized + '\n');
+      credentialUpdates.clear();
     } catch (error) {
       // Never serialize upstream exceptions, cookies, endpoints, or stack traces.
       const known = error instanceof LibraryError;
-      process.stdout.write(JSON.stringify({ id, error: {
+      const updates = Array.from(credentialUpdates, ([profile, credentials]) => ({ profile, credentials }));
+      process.stdout.write(JSON.stringify({ id, ...(updates.length ? { credential_updates: updates } : {}), error: {
         code: known ? error.code : 'upstream_failure',
         message: known ? error.message : 'YouTube could not complete this operation.',
         status: known ? error.status : 502
       } }) + '\n');
+      credentialUpdates.clear();
     }
   }
 }

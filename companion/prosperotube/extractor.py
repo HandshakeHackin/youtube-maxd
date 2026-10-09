@@ -77,15 +77,17 @@ class ProfileExtractors:
     """Immutable credential/cache partitions sharing the subprocess limit."""
     def __init__(self, guest, profiles):
         self.guest = guest
-        self.profiles = {p["id"]: p for p in profiles}
+        self.profile_source = profiles if callable(profiles) else lambda: profiles
         self.extractors = {"guest": guest}
 
     def for_profile(self, profile):
         if profile == "guest":
             return self.guest
-        configured = self.profiles.get(profile)
+        configured = next((p for p in self.profile_source() if p["id"] == profile), None)
         if configured is None:
             raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        if configured.get("oauth"):
+            raise ServiceError("playback_oauth_context", "TV OAuth stream resolution is not connected yet.", 503)
         if configured.get("account_index", 0) or configured.get("channel"):
             raise ServiceError("playback_account_context", "Playback for secondary accounts or brand channels is not connected yet.", 503)
         if profile not in self.extractors:

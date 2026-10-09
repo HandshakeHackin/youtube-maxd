@@ -30,6 +30,16 @@ class PairRequest(BaseModel):
     code: str = Field(pattern="^[0-9]{6}$")
 
 
+class DeviceStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(default="YouTube account", min_length=1, max_length=150)
+
+
+class DeviceSessionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    session: str = Field(pattern="^[0-9a-f]{32}$")
+
+
 class LibraryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists",
@@ -48,24 +58,34 @@ class LibraryRequest(BaseModel):
     state: Literal["playing", "stopped"] = "playing"
 
 
+class DeviceJobRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["start", "status", "cancel"]
+    name: str = Field(default="YouTube account", min_length=1, max_length=150)
+    session: str = Field(default="", pattern="^(|[0-9a-f]{32})$")
+
+
 class JobRequest(BaseModel):
-    action: str = Field(pattern="^(search|catalog|resolve|details|library)$")
+    action: str = Field(pattern="^(search|catalog|resolve|details|library|auth)$")
     query: str = Field(default="", max_length=200)
     parent: str = Field(default="", max_length=160)
     page: int = Field(default=0, ge=0, le=1000)
     playback: ResolveRequest | None = None
     library: LibraryRequest | None = None
+    auth: DeviceJobRequest | None = None
     id: str = Field(default="", max_length=11)
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
-               http_client=None, sponsorblock=False, library=None):
+               http_client=None, sponsorblock=False, library=None, device_auth=None):
     @asynccontextmanager
     async def lifespan(app):
         try:
             yield
         finally:
+            if device_auth is not None:
+                device_auth.close()
             tasks = [job[1] for job in app.state.jobs.values()]
             for task in tasks:
                 task.cancel()
@@ -86,6 +106,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.sponsor_cache = {}
     app.state.jobs = {}
     app.state.library = library
+    app.state.device_auth = device_auth
 
     @app.exception_handler(ServiceError)
     async def service_error(_request, exc):
@@ -127,7 +148,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
-                "features": ["search", "channels", "playlists", "dash", "relay", "captions"] + (["library"] if library is not None else []),
+                "features": ["search", "channels", "playlists", "dash", "relay", "captions"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []),
                 "sponsorblock": app.state.sponsorblock}
 
     @app.post("/v1/library")
@@ -135,6 +156,23 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if app.state.library is None:
             raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
         return await app.state.library.execute(payload.model_dump())
+
+    def signin():
+        if app.state.device_auth is None:
+            raise ServiceError("auth_unavailable", "Enable the library worker on the companion first.", 503)
+        return app.state.device_auth
+
+    @app.post("/v1/auth/start")
+    async def device_start(payload: DeviceStartRequest):
+        return await signin().start(payload.name)
+
+    @app.post("/v1/auth/status")
+    async def device_status(payload: DeviceSessionRequest):
+        return await signin().status(payload.session)
+
+    @app.post("/v1/auth/cancel")
+    async def device_cancel(payload: DeviceSessionRequest):
+        return signin().cancel(payload.session)
 
     @app.post("/v1/pair")
     async def pair(payload: PairRequest, request: Request):
@@ -181,6 +219,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         now = time.monotonic()
         for key, (deadline, task) in list(app.state.jobs.items()):
             if deadline <= now:
+                cancel_auth_result(task)
                 task.cancel()
                 del app.state.jobs[key]
         if len(app.state.jobs) >= 16:
@@ -189,6 +228,11 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise ServiceError("invalid_job", "A playback request is required.", 400)
         if payload.action == "library" and (payload.library is None or app.state.library is None):
             raise ServiceError("invalid_job", "An enabled library and operation are required.", 400)
+        if payload.action == "auth":
+            if payload.auth is None or app.state.device_auth is None:
+                raise ServiceError("invalid_job", "An enabled sign-in service and operation are required.", 400)
+            if payload.auth.action != "start" and not payload.auth.session:
+                raise ServiceError("invalid_job", "A sign-in session is required.", 400)
         async def work():
             try:
                 if payload.action == "search":
@@ -201,6 +245,13 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":
                     result = await app.state.library.execute(payload.library.model_dump())
+                elif payload.action == "auth":
+                    if payload.auth.action == "start":
+                        result = await signin().start(payload.auth.name)
+                    elif payload.auth.action == "status":
+                        result = await signin().status(payload.auth.session)
+                    else:
+                        result = signin().cancel(payload.auth.session)
                 else:
                     identifier = video_id(payload.id)
                     info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
@@ -210,7 +261,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 return {"state": "failed", "error": {"code": exc.code, "message": exc.message}}
             except Exception:
                 return {"state": "failed", "error": {"code": "service_failure", "message": "The video service could not complete this request. Retry."}}
-        identifier = secrets.token_urlsafe(18)
+          identifier = secrets.token_urlsafe(18)
         app.state.jobs[identifier] = (now + 120, asyncio.create_task(work()))
         return {"api_version": 1, "job": identifier, "state": "pending"}
 

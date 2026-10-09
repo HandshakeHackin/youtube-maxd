@@ -57,16 +57,31 @@ def load_profiles(config):
 
 
 class LibraryService:
-    def __init__(self, node="node", *, profile_config=None, worker=None, timeout=30):
+    def __init__(self, node="node", *, profile_config=None, worker=None, timeout=30, oauth_store=None):
         self.node = node
         self.worker = Path(worker) if worker else Path(__file__).resolve().parents[1] / "innertube" / "worker.bundle.mjs"
         self.profiles = load_profiles(profile_config)
+        self.oauth_store = oauth_store
+        if oauth_store:
+            self.profiles.extend(oauth_store.profiles)
+        if len(self.profiles) > 8 or len({p["id"] for p in self.profiles}) != len(self.profiles):
+            raise ValueError("Configure at most eight distinct account profiles.")
+        self.profile_revision = 0
+        self.worker_revision = -1
         self.timeout = timeout
         self.process = None
         self.lock = asyncio.Lock()
         self.pending = 0
         self.closed = False
         self.watch_states = {}
+
+    def add_oauth_profile(self, profile):
+        from .device_auth import credentials_valid
+        if (len(self.profiles) >= 8 or any(p["id"] == profile["id"] for p in self.profiles)
+                or not credentials_valid(profile.get("oauth")) or profile.get("cookie") != ""):
+            raise ServiceError("auth_profiles_full", "The new account profile could not be registered.", 409)
+        self.profiles.append(profile)
+        self.profile_revision += 1
 
     async def _stop(self):
         # Tracking objects live in Node. Losing them must not silently recreate
@@ -93,6 +108,16 @@ class LibraryService:
         value = json.loads(response)
         if not isinstance(value, dict) or value.get("id") != identity:
             raise ServiceError("library_transport", "The library worker returned an invalid response identity.")
+        updates = value.get("credential_updates", [])
+        if not isinstance(updates, list) or len(updates) > 8 or (updates and self.oauth_store is None):
+            raise ServiceError("library_transport", "The library worker returned invalid credential updates.")
+        for update in updates:
+            if not isinstance(update, dict) or set(update) != {"profile", "credentials"}:
+                raise ServiceError("library_transport", "The library worker returned invalid credential updates.")
+            self.oauth_store.update(update["profile"], update["credentials"])
+            for profile in self.profiles:
+                if profile["id"] == update["profile"]:
+                    profile["oauth"] = update["credentials"]
         if "error" in value:
             error = value["error"]
             # Only the original worker's bounded public errors cross this boundary.
@@ -112,7 +137,7 @@ class LibraryService:
         return result
 
     async def _start(self):
-        if self.process is not None and self.process.returncode is None:
+        if self.process is not None and self.process.returncode is None and self.worker_revision == self.profile_revision:
             return
         if self.process is not None:
             await self._stop()
@@ -123,6 +148,7 @@ class LibraryService:
         result = await self._exchange({"operation": "init", "profiles": self.profiles})
         if result.get("ready") is not True:
             raise ServiceError("library_transport", "The library worker did not initialize.")
+        self.worker_revision = self.profile_revision
 
     def _watch_state(self, request, *, create=False):
         if request.get("action") != "watch_progress":
@@ -151,10 +177,10 @@ class LibraryService:
             self.watch_states[key] = state
         return state
 
-    async def execute(self, request):
+    async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
-        if not isinstance(request, dict) or len(json.dumps(request).encode("utf-8")) > 8192:
+        if operation not in ("execute", "device") or not isinstance(request, dict) or len(json.dumps(request).encode("utf-8")) > (16384 if operation == "device" else 8192):
             raise ServiceError("library_request_limit", "The library operation exceeds its request limit.", 400)
         if self.pending >= 16:
             raise ServiceError("library_busy", "The library is busy. Retry shortly.", 429)
@@ -171,7 +197,7 @@ class LibraryService:
                     watch_state = self._watch_state(request, create=True)
                     if watch_state is not None:
                         watch_state["blocked"] = True
-                    result = await self._exchange({"operation": "execute", "request": request})
+                    result = await self._exchange({"operation": operation, "request": request})
                     if watch_state is not None:
                         if (result.get("success") is not True or type(result.get("position_sec")) not in (int, float)
                                 or result.get("position_sec") != request.get("position_sec")):

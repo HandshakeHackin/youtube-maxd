@@ -38,3 +38,21 @@ removing its token file, restarting and pairing again. Cookies/proof-token
 arguments are explicitly supplied host configuration. Extractor stderr and
 access logs are disabled. SponsorBlock uses a hash prefix but still sees the
 request network origin. Local lists never mutate Google state.
+
+Device sign-in backend (requires `--library-node` and the LAN bearer token):
+
+- POST `/v1/auth/start` with `{"name":"YouTube account"}` starts one session.
+- POST `/v1/auth/status` with `{"session":"32 lowercase hex characters"}`
+  reads state and, when due, performs one bounded upstream token poll.
+- POST `/v1/auth/cancel` with the same session cancels pending authorization.
+
+Pending responses contain `session`, `state:"pending"`, `user_code`,
+`verification_url`, `expires_in` and `poll_after` (seconds). Display the code and
+URL, and wait at least `poll_after` before requesting status again. Authorized
+responses contain `session`, `state:"authorized"` and `profile:{id,name}`.
+Other terminal states are `canceled`, `denied`, `expired` and `failed`; failed
+responses include a fixed public error. Start a fresh session after a failure.
+Cancellation after authorization does not remove or revoke the account.
+Device codes, client secrets, access/refresh tokens never appear in HTTP responses.
+These direct endpoints currently serve host tools; native jobs/sign-in remain
+pending and must account for upstream work exceeding the six-second HTTP limit.

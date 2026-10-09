@@ -279,3 +279,35 @@ checks do not establish PS5 or live YouTube discussion acceptance.
 The test runner bundles the actual parser with its fixtures into a temporary
 directory and removes that directory afterward. This avoids slow imports of
 thousands of individual dependency files on Windows-mounted workspaces.
+
+## Device-code account backend
+
+Enabling `--library-node` also enables the authenticated device authorization
+endpoints documented in PROTOCOL.md. The companion obtains the public TV client
+identity and device code through pinned YouTube.js. Each status request performs
+at most one token poll, only after the upstream interval (minimum five seconds).
+There is one active session, at most 16 retained sessions, and no automatic
+polling timer. Cancellation cancels a queued/in-flight worker request; credentials
+returned after cancellation or expiry are discarded. Uncertain redemption is
+not retried. Sessions expire and are lost when the companion restarts.
+
+Authorized profiles and refreshed credentials persist in `oauth-profiles.json`
+under the companion's configured state directory. On POSIX, directory/file modes
+are 0700/0600. Atomic replacement, an exclusive owned lock and snapshot comparison
+prevent concurrent writers from silently overwriting accounts. Corrupt or
+unsupported files are preserved and reject startup. OAuth and configured cookie
+profiles share the eight-profile limit. New profiles become available without
+restarting the companion; their next library request recreates the Node worker.
+Private IPC carries tokens and refresh updates; HTTP responses expose only
+profile ID/name and the user-facing device code. Credentials are never sent to
+the PS5. PS5 state/cache/diagnostics continue to use Lapy and `/data/prosperotube`.
+
+OAuth sessions use the TVHTML5 client, consistent with the upstream
+[YouTube.js authentication documentation](https://ytjs.dev/guide/authentication).
+Cookie and OAuth contexts cannot be mixed. Offline tests exercise actual pinned
+TV request headers/context and token refresh. A live public device-code request
+and local cancellation passed without token polling or account authorization.
+Real authorization and private-account feeds remain unverified. Native sign-in
+screens, asynchronous job integration, sign-out and OAuth stream resolution are
+still unfinished; attempting playback with an OAuth profile returns the explicit
+`playback_oauth_context` error rather than resolving another account's context.

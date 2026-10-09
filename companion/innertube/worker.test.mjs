@@ -2,7 +2,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';
-import { YTNodes, YT } from 'youtubei.js';
+import { YTNodes, YT, Innertube, Log } from 'youtubei.js';
+import { DeviceAuthorization, createProfileClient, validCredentials } from './device_auth.mjs';
+
+Log.setLevel(Log.Level.NONE);
+const oauthFixture = { access_token: 'fixture-access', refresh_token: 'fixture-refresh',
+  expiry_date: '2099-01-01T00:00:00.000Z', client: { client_id: 'fixture-client', client_secret: 'fixture-secret' } };
+test('OAuth profiles use actual pinned TV context and keep bearer auth off web clients', async () => {
+  const requests = [];
+  const client = await createProfileClient({ id: 'one', cookie: '', oauth: oauthFixture }, Innertube,
+    async (input, init) => { const request = new Request(input, init); requests.push(request);
+      return new Response('{}', { headers: { 'Content-Type': 'application/json' } }); });
+  assert.equal(client.session.logged_in, true);
+  await client.actions.execute('/browse', { browseId: 'FEwhat_to_watch' });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].headers.get('Authorization'), 'Bearer fixture-access');
+  const payload = await requests[0].json();
+  assert.equal(payload.context.client.clientName, 'TVHTML5');
+  assert.equal(oauthFixture.expiry_date, '2099-01-01T00:00:00.000Z');
+  await assert.rejects(createProfileClient({ id: 'one', cookie: 'fixture-cookie', oauth: oauthFixture }, Innertube, null), { code: 'invalid_profiles' });
+});
+test('device authorization polls once, respects upstream states and bounds token response', async () => {
+  let requests = 0, response = { error: 'authorization_pending' }, status = 400;
+  const engine = new DeviceAuthorization(async () => ({ session: { oauth: {
+    getClientID: async () => oauthFixture.client,
+    getDeviceAndUserCode: async () => ({ device_code: 'fixture-device', user_code: 'ABCD-EFGH',
+      verification_url: 'https://www.google.com/device', expires_in: 900, interval: 5 }) } } }),
+    async (url, init) => { requests++; assert.equal(url, 'https://www.youtube.com/o/oauth2/token');
+      const request = JSON.parse(init.body); assert.equal(request.code, 'fixture-device');
+      return new Response(JSON.stringify(response), { status }); }, () => 1000);
+  const started = await engine.execute({ action: 'start' });
+  const poll = { action: 'poll', client: started.client, device_code: started.device_code };
+  assert.equal(requests, 0);
+  assert.deepEqual(await engine.execute(poll), { state: 'pending', slow_down: false });
+  response = { error: 'slow_down' }; assert.deepEqual(await engine.execute(poll), { state: 'pending', slow_down: true });
+  response = { error: 'access_denied' }; assert.deepEqual(await engine.execute(poll), { state: 'denied' });
+  response = { error: 'expired_token' }; assert.deepEqual(await engine.execute(poll), { state: 'expired' });
+  status = 200; response = { access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 3600 };
+  const done = await engine.execute(poll); assert(validCredentials(done.credentials));
+  assert.equal(done.credentials.expiry_date, '1970-01-01T01:00:01.000Z');
+  response = { ...response, expires_in: true };
+  await assert.rejects(engine.execute(poll), { code: 'auth_response' });
+  assert.equal(requests, 6);
+});
+test('OAuth refresh uses actual pinned token endpoint and retains the client privately', async () => {
+  const updates = [], requests = [];
+  const client = await createProfileClient({ id: 'one', cookie: '', oauth: { ...oauthFixture, expiry_date: '2000-01-01T00:00:00.000Z' } }, Innertube,
+    async (input, init) => { const request = new Request(input, init); requests.push(request);
+      return new Response(JSON.stringify({ access_token: 'refreshed-access', expires_in: 3600 }), { headers: { 'Content-Type': 'application/json' } }); },
+    (profile, credentials) => updates.push({ profile, credentials }));
+  assert.equal(requests.length, 1); assert.equal(new URL(requests[0].url).pathname, '/o/oauth2/token');
+  assert.equal((await requests[0].json()).grant_type, 'refresh_token');
+  assert.equal(updates.length, 1); assert.equal(updates[0].credentials.access_token, 'refreshed-access');
+  assert.deepEqual(updates[0].credentials.client, oauthFixture.client);
+  assert.equal(client.session.context.client.clientName, 'TVHTML5');
+});
 
 test('watch history uses actual pinned tracking methods and isolates playback sessions', async () => {
   const calls = [];
