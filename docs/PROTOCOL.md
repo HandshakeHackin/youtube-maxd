@@ -54,5 +54,13 @@ Other terminal states are `canceled`, `denied`, `expired` and `failed`; failed
 responses include a fixed public error. Start a fresh session after a failure.
 Cancellation after authorization does not remove or revoke the account.
 Device codes, client secrets, access/refresh tokens never appear in HTTP responses.
-These direct endpoints currently serve host tools; native jobs/sign-in remain
-pending and must account for upstream work exceeding the six-second HTTP limit.
+The same operations are available through POST `/v1/jobs`, using
+`{"action":"auth","auth":{"action":"start","name":"YouTube account"}}` or
+`{"action":"auth","auth":{"action":"status","session":"32 lowercase hex characters"}}`.
+Use action `cancel` with the session to cancel explicitly. Poll jobs through the
+ordinary GET endpoint; completed results contain the same public response.
+Deleting an in-flight sign-in job invalidates its operation before canceling the
+worker. Deleting or expiring an undelivered completed start also cancels its
+orphaned session. Once GET delivers a start result, the caller owns the session:
+deleting that completed job leaves authorization pending until explicit session
+cancellation or expiry. Native sign-in screens remain pending.

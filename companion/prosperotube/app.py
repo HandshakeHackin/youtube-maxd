@@ -214,6 +214,20 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}")
         return app.state.sessions.create(info, payload, base(request))
 
+    def cancel_auth_result(task):
+        # An abandoned start may already have completed before DELETE arrives.
+        # Once its result was delivered, the caller owns the device session.
+        if app.state.device_auth is not None and not task.done():
+            app.state.device_auth.cancel_task(task)
+        if (getattr(task, "auth_start", False) and not getattr(task, "auth_delivered", False)
+                and task.done() and not task.cancelled()):
+            result = task.result().get("result", {})
+            if result.get("state") == "pending":
+                try:
+                    signin().cancel(result["session"])
+                except ServiceError:
+                    pass
+
     @app.post("/v1/jobs")
     async def create_job(payload: JobRequest, request: Request):
         now = time.monotonic()
@@ -261,25 +275,33 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 return {"state": "failed", "error": {"code": exc.code, "message": exc.message}}
             except Exception:
                 return {"state": "failed", "error": {"code": "service_failure", "message": "The video service could not complete this request. Retry."}}
-          identifier = secrets.token_urlsafe(18)
-        app.state.jobs[identifier] = (now + 120, asyncio.create_task(work()))
+        identifier = secrets.token_urlsafe(18)
+        task = asyncio.create_task(work())
+        task.auth_start = payload.action == "auth" and payload.auth.action == "start"
+        task.auth_delivered = False
+        app.state.jobs[identifier] = (now + 120, task)
         return {"api_version": 1, "job": identifier, "state": "pending"}
 
     @app.get("/v1/jobs/{identifier}")
     async def poll_job(identifier: str):
         job = app.state.jobs.get(identifier)
         if not job or job[0] <= time.monotonic():
+            if job:
+                cancel_auth_result(job[1])
+                job[1].cancel()
             raise ServiceError("expired_job", "This request expired. Retry from the current screen.", 410)
         if not job[1].done():
             return {"api_version": 1, "state": "pending"}
         if job[1].cancelled():
             return {"api_version": 1, "state": "cancelled"}
+        job[1].auth_delivered = True
         return {"api_version": 1, **job[1].result()}
 
     @app.delete("/v1/jobs/{identifier}")
     async def cancel_job(identifier: str):
         job = app.state.jobs.pop(identifier, None)
         if job:
+            cancel_auth_result(job[1])
             job[1].cancel()
         return {"state": "cancelled"}
 

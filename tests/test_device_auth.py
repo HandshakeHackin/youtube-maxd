@@ -6,6 +6,8 @@ from pathlib import Path
 import stat
 import sys
 
+import httpx
+
 from fastapi.testclient import TestClient
 import pytest
 
@@ -20,6 +22,87 @@ TOKENS = {"access_token": "private-access-token", "refresh_token": "private-refr
 PENDING = {"client": TOKENS["client"], "device_code": "private-device-code", "user_code": "ABCD-EFGH",
            "verification_url": "https://www.google.com/device", "expires_in": 900, "interval": 5}
 AUTH = {"Authorization": "Bearer test-device-auth-token"}
+
+
+def test_auth_jobs_nonblocking_delivery_abandonment_and_cancel(tmp_path):
+    async def run():
+        service, store, now, calls, profiles = flow(tmp_path)
+        app = create_app(token="test-device-auth-token", device_auth=service)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                async def submit(operation):
+                    reply = await client.post("/v1/jobs", headers=AUTH, json={"action": "auth", "auth": operation})
+                    assert reply.status_code == 200
+                    return reply.json()["job"]
+                async def ready(job):
+                    await app.state.jobs[job][1]
+                    return (await client.get("/v1/jobs/" + job, headers=AUTH)).json()["result"]
+                assert (await client.post("/v1/jobs", json={"action": "auth", "auth": {"action": "start"}})).status_code == 401
+                assert not calls
+                assert (await client.post("/v1/jobs", headers=AUTH, json={"action": "auth"})).status_code == 400
+                assert (await client.post("/v1/jobs", headers=AUTH, json={"action": "auth", "auth": {"action": "status"}})).status_code == 400
+                assert (await client.post("/v1/jobs", headers=AUTH, json={"action": "auth", "auth": {"action": "start", "credentials": TOKENS}})).status_code == 422
+
+                abandoned = await submit({"action": "start"})
+                await app.state.jobs[abandoned][1]  # Completed, but never delivered to caller.
+                orphan = service.active["id"]
+                await client.delete("/v1/jobs/" + abandoned, headers=AUTH)
+                assert (await service.status(orphan))["state"] == "canceled"
+
+                delivered = await submit({"action": "start", "name": "TV"})
+                started = await ready(delivered)
+                await client.delete("/v1/jobs/" + delivered, headers=AUTH)
+                assert service.active["id"] == started["session"]  # Deleting delivered job does not revoke ownership.
+                status = await ready(await submit({"action": "status", "session": started["session"]}))
+                assert status["state"] == "pending" and len(calls) == 2
+                canceled = await ready(await submit({"action": "cancel", "session": started["session"]}))
+                assert canceled["state"] == "canceled" and not store.path.exists()
+                for secret in ("private-access", "private-refresh", "private-client", "private-device"):
+                    assert secret not in json.dumps([started, status, canceled])
+
+                entered, release = asyncio.Event(), asyncio.Event()
+                async def slow_start(request):
+                    entered.set()
+                    try:
+                        await release.wait()
+                    except asyncio.CancelledError:
+                        pass  # An upstream implementation may still return after cancellation.
+                    return dict(PENDING)
+                service.execute = slow_start
+                slow = await submit({"action": "start"})
+                await entered.wait()
+                assert (await client.get("/v1/jobs/" + slow, headers=AUTH)).json()["state"] == "pending"
+                slow_task = app.state.jobs[slow][1]
+                await client.delete("/v1/jobs/" + slow, headers=AUTH)
+                with pytest.raises(asyncio.CancelledError):
+                    await slow_task
+                assert service.active is None and not profiles
+    asyncio.run(run())
+
+
+def test_cancel_auth_status_job_discards_late_token_result(tmp_path):
+    async def run():
+        service, store, now, calls, profiles = flow(tmp_path)
+        started = await service.start(); now[0] = 5
+        entered = asyncio.Event()
+        async def late_poll(request):
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                return {"state": "authorized", "credentials": TOKENS}
+        service.execute = late_poll
+        app = create_app(token="test-device-auth-token", device_auth=service)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                reply = await client.post("/v1/jobs", headers=AUTH, json={"action": "auth", "auth": {"action": "status", "session": started["session"]}})
+                job = reply.json()["job"]; task = app.state.jobs[job][1]
+                await entered.wait()
+                await client.delete("/v1/jobs/" + job, headers=AUTH)
+                await task
+                assert not profiles and not store.path.exists()
+                assert (await service.status(started["session"]))["state"] == "canceled"
+    asyncio.run(run())
 
 
 def flow(tmp_path, responses=None):

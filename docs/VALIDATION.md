@@ -108,14 +108,19 @@ was released. Evidence: `.deps/console/storage-0a2167ce/`. This candidate remain
 undeployed; Lapy storage/relaunch and the new playback gates remain unverified
 on PS5.
 
-Device authorization backend validation: 87 Python tests and 22 Node tests passed.
+Device authorization backend validation: 89 Python tests and 22 Node tests passed.
 Coverage includes authenticated API privacy, polling intervals/slow-down, expiry,
 single-flight behavior, cancellation while queued or in flight, rejection of
 late credentials, atomic persistence, malformed file preservation, concurrent
 writer rejection, dynamic profile registration and private refresh updates.
 Pinned YouTube.js TVHTML5 session and refresh paths are exercised with mocked
 network responses. Evidence: `.deps/auth-verified-python.log`,
-`.deps/auth-final-node.log`, `.deps/auth-worker-build.log`.
+`.deps/auth-final-node.log`, `.deps/auth-worker-build.log`. Follow-up asynchronous
+job cases passed in `.deps/auth-jobs-full-python.log`, including nonblocking
+requests, delivered/abandoned start ownership and late responses after DELETE.
+The first backend commit inadvertently included unfinished job edits while its
+shell was still committing. The follow-up corrects these edits and passed the
+full suite; the intermediate revision was not deployed.
 
 The explicit public probe obtained a real YouTube device-code response, canceled
 locally, stored no credentials and closed its worker. It never polled the token

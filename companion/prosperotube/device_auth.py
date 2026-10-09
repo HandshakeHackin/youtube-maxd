@@ -177,6 +177,8 @@ class DeviceAuth:
         self.active = session
         try:
             result = await self.execute({"action": "start"})
+            if self.active is not session or session["state"] != "starting":
+                raise asyncio.CancelledError
             client = result.get("client")
             url = urlsplit(result.get("verification_url", ""))
             if (not isinstance(client, dict) or set(client) != {"client_id", "client_secret"}
@@ -269,6 +271,16 @@ class DeviceAuth:
             if task and not task.done():
                 task.cancel()
         return self._public(session)
+
+    def cancel_task(self, task):
+        """Invalidate a canceled job before a late worker response can commit."""
+        if self.active and self.active.get("task") is task:
+            if self.active["state"] == "pending":
+                self.cancel(self.active["id"])
+            else:
+                self.active["state"] = "canceled"
+                self.active = None
+                task.cancel()
 
     def close(self):
         self.closed = True

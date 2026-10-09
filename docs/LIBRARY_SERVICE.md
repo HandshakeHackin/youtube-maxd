@@ -307,7 +307,8 @@ OAuth sessions use the TVHTML5 client, consistent with the upstream
 Cookie and OAuth contexts cannot be mixed. Offline tests exercise actual pinned
 TV request headers/context and token refresh. A live public device-code request
 and local cancellation passed without token polling or account authorization.
-Real authorization and private-account feeds remain unverified. Native sign-in
-screens, asynchronous job integration, sign-out and OAuth stream resolution are
+Real authorization and private-account feeds remain unverified. Asynchronous
+sign-in jobs use the existing job transport; abandoned starts and canceled polls
+discard late responses before persistence. Native sign-in screens, sign-out and OAuth stream resolution are
 still unfinished; attempting playback with an OAuth profile returns the explicit
 `playback_oauth_context` error rather than resolving another account's context.
