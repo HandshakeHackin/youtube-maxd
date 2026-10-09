@@ -90,6 +90,10 @@ def main():
         return EVO_DATA_DIR;              /* "/download0/evoplayer" - transient */
 ''', "")
     replace(player + "Makefile", "    src/evo_webui.c \\\n    src/evo_jailbreak.c", "    src/evo_webui.c")
+    # EVO packaging gathers every .o in the generated tree, including stale
+    # objects no longer in the Makefile. Remove only the replaced implementation.
+    for suffix in (".o", ".d"):
+        (WORK / player / ("src/evo_jailbreak" + suffix)).unlink(missing_ok=True)
     replace(player + "Makefile", "CORE_SRCS := \\\n", "CORE_SRCS := \\\n    src/elevation/elevation.cpp \\\n    src/elevation/tube_jailbreak.cpp \\\n")
     replace(player + "core/src/Application.cpp", '#include "evo/screens/ProviderHostScreen.hpp"', '#include "evo/screens/ProviderHostScreen.hpp"\n#include "tube_provider.h"')
     replace(player + "core/src/Application.cpp", "    evo_jailbreak_self();", '''    if (!evo_jailbreak_self()) {
