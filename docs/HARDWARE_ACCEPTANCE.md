@@ -1,5 +1,11 @@
 # Hardware acceptance — pending
 
+Standing user instruction: the first console operation of each new session is
+a read-only running-title check, after checking the shared lock locally. Any
+running title blocks the session, including this app. Continue offline; do not
+close it or proceed with service probes, uploads, launch or input. Recheck idle
+state before launch after an install.
+
 Candidate `800160c` passed the bounded startup and teardown case on PS5 firmware
 6.02. Evidence identifies the matching build, the `youtube` document with eight
 root entries, first-frame presentation checkpoints, `parked=1` after the app's

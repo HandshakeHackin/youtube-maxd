@@ -28,6 +28,12 @@ Complete offline development and testing, then use the authorized PS5 and
 hashes, use the shared console lock, avoid unrelated running titles, and stop on
 a service/health anomaly. Keep private environment details and raw logs ignored.
 
+Before every future console session, check the shared lock locally and make a
+read-only running-title check the first console operation. If any title is
+running, including ProsperoTube, stop console work and continue offline. Do not
+probe other services, deploy, launch, close a title or send input before the
+idle state is established. Recheck immediately before launching after an install.
+
 Current progress and limitations: [README](README.md),
 [library service](docs/LIBRARY_SERVICE.md), [build](docs/BUILD.md),
 [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md), and
