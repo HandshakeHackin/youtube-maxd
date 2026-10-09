@@ -33,7 +33,7 @@ class PairRequest(BaseModel):
 class LibraryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists",
-                    "watch_later", "playlist", "comments", "continue", "like", "dislike",
+                    "watch_later", "playlist", "comments", "replies", "continue", "like", "dislike",
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove"]

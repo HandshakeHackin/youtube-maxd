@@ -130,3 +130,41 @@ test('explicit promoted records are excluded without matching localized title te
   assert.equal(normalizeVideo({ ...video(1), is_promoted: true }), null);
   assert.equal(normalizeVideo({ ...video(1), title: 'Advertising explained' }).title, 'Advertising explained');
 });
+
+test('reply browsing retains all pages, scopes references and caches retries', async () => {
+  let calls = 0;
+  const reply = index => ({ comment: { comment_id: `reply-${index}`, content: `Reply ${index}` } });
+  const replyFeed = { replies: Array.from({ length: 30 }, (_, i) => reply(i)), has_continuation: true,
+    getContinuation: async () => ({ replies: [reply(30)], has_continuation: false }) };
+  const thread = { comment: { comment_id: 'parent', content: 'Parent', keys: { shared: 'never-export' } },
+    has_replies: true, getReplies: async () => { calls++; return replyFeed; } };
+  const library = new Library(async () => ({ getComments: async () => ({ contents: [thread], has_continuation: false }) }),
+    [{ id: 'other', name: 'Other', cookie: '' }]);
+  const first = await library.execute({ action: 'comments', id: '00000000000' });
+  const cursor = first.items[0].reply_cursor;
+  assert.ok(cursor); assert.equal(JSON.stringify(first).includes('never-export'), false);
+  await assert.rejects(library.execute({ action: 'replies', profile: 'other', cursor }), { code: 'cursor_expired' });
+  const start = await library.execute({ action: 'replies', cursor });
+  assert.deepEqual(await library.execute({ action: 'replies', cursor }), start);
+  const seen = [...start.items.map(item => item.id)];
+  let page = start;
+  while (page.has_more) {
+    page = await library.execute({ action: 'continue', cursor: page.cursor });
+    seen.push(...page.items.map(item => item.id));
+  }
+  assert.equal(calls, 1); assert.deepEqual(seen, Array.from({ length: 31 }, (_, i) => `reply-${i}`));
+});
+
+test('expired or evicted reply references never call the upstream thread', async () => {
+  let time = 0, calls = 0;
+  const make = index => ({ comment: { comment_id: `parent-${index}`, content: 'Parent' }, has_replies: true,
+    getReplies: async () => { calls++; return { replies: [], has_continuation: false }; } });
+  const library = new Library(async () => ({ getComments: async () => ({ contents: Array.from({ length: 24 }, (_, i) => make(i)), has_continuation: false }) }), [], () => time);
+  const first = await library.execute({ action: 'comments', id: '00000000000' });
+  for (let i = 0; i < 11; i++) await library.execute({ action: 'comments', id: '00000000000' });
+  assert.equal(library.threads.size, 256);
+  await assert.rejects(library.execute({ action: 'replies', cursor: first.items[0].reply_cursor }), { code: 'cursor_expired' });
+  const newest = await library.execute({ action: 'comments', id: '00000000000' }); time = 120001;
+  await assert.rejects(library.execute({ action: 'replies', cursor: newest.items[0].reply_cursor }), { code: 'cursor_expired' });
+  assert.equal(calls, 0);
+});

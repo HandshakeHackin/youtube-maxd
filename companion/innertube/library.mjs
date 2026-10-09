@@ -92,7 +92,7 @@ export class Library {
         throw new LibraryError('invalid_profiles', 'The profile configuration is invalid.');
       this.profiles.set(profile.id, { ...profile, name: text(profile.name) });
     }
-    this.clients = new Map(); this.cursors = new Map();
+    this.clients = new Map(); this.cursors = new Map(); this.threads = new Map();
   }
   async client(id) {
     const profile = this.profiles.get(id);
@@ -101,10 +101,21 @@ export class Library {
     return this.clients.get(id);
   }
   page(owner, kind, feed, pending = null) {
-    const items = pending ?? (kind === 'comments' ? Array.from(feed.contents ?? []).map(normalizeComment).filter(Boolean) :
+    const comments = kind === 'comments';
+    const items = pending ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
       [...Array.from(feed.videos ?? []).map(normalizeVideo), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
-    const output = items.slice(0, 24);
+    for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
+    const output = items.slice(0, 24).map(thread => {
+      if (!comments) return thread;
+      const item = normalizeComment(thread);
+      if (thread.has_replies && typeof thread.getReplies === 'function') {
+        if (this.threads.size >= 256) this.threads.delete(this.threads.keys().next().value);
+        item.reply_cursor = randomUUID();
+        this.threads.set(item.reply_cursor, { owner, thread, deadline: this.clock() + 120000 });
+      } else item.reply_cursor = '';
+      return item;
+    });
     const remaining = items.slice(24);
     let cursor = '';
     for (const [key, value] of this.cursors) if (value.deadline <= this.clock()) this.cursors.delete(key);
@@ -120,6 +131,17 @@ export class Library {
     const owner = input.profile ?? 'guest';
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>
       ({ id: p.id, name: p.name, account_configured: !!p.cookie })) };
+    if (input.action === 'replies') {
+      const entry = this.threads.get(input.cursor);
+      if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
+        throw new LibraryError('cursor_expired', 'Reload the comments to view replies.', 409);
+      if (entry.result) return entry.result;
+      const feed = await entry.thread.getReplies();
+      if (!Array.isArray(feed?.replies))
+        throw new LibraryError('upstream_failure', 'YouTube did not return a reply list.', 502);
+      entry.result = this.page(owner, 'comments', feed);
+      return entry.result;
+    }
     if (input.action === 'continue') {
       const entry = this.cursors.get(input.cursor);
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())

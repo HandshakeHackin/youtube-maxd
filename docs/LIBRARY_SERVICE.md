@@ -88,3 +88,14 @@ channel links, thumbnails and timestamp badges. Offline tests instantiate the
 pinned YouTube.js parser classes, including invalid duration badges and explicit
 promoted-record rejection. This checks parser compatibility without claiming
 live account responses or complete advertisement filtering have been validated.
+
+Comment records with reply threads include an opaque `reply_cursor`. Use action
+`replies` with that cursor and the same profile to open the thread, then use the
+ordinary `continue` action for additional pages. References expire after two
+minutes and are limited to 256 retained threads. Repeated reads return the same
+page; expired or evicted references require reopening comments. These are browse
+operations; native comment screens and comment posting remain unfinished.
+
+The test runner bundles the actual parser with its fixtures into a temporary
+directory and removes that directory afterward. This avoids slow imports of
+thousands of individual dependency files on Windows-mounted workspaces.

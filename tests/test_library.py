@@ -119,6 +119,23 @@ def test_disabled_library_has_explicit_service_error():
         assert "library" not in client.get("/v1/health").json()["features"]
 
 
+def test_reply_browse_passes_only_bounded_profile_reference():
+    class Library:
+        calls = []
+        async def execute(self, request):
+            self.calls.append(request)
+            return {"api_version": 1, "kind": "comments", "items": [], "has_more": False}
+        async def close(self):
+            pass
+    library = Library()
+    with TestClient(create_app(token=TOKEN, library=library)) as client:
+        assert client.post("/v1/library", headers=AUTH, json={"action": "replies", "profile": "one", "cursor": "opaque-thread"}).status_code == 200
+        assert library.calls[0]["action"] == "replies" and library.calls[0]["profile"] == "one"
+        assert library.calls[0]["cursor"] == "opaque-thread"
+        assert client.post("/v1/library", headers=AUTH, json={"action": "replies", "cursor": "x" * 65}).status_code == 422
+        assert len(library.calls) == 1
+
+
 def test_native_library_jobs_poll_without_blocking_or_using_extractor():
     class Library:
         async def execute(self, request):

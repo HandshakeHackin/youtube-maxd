@@ -5,7 +5,7 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test worker.test.mjs"
+    "test": "node test.mjs"
   },
   "dependencies": {
     "youtubei.js": "18.1.0"
