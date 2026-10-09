@@ -357,6 +357,79 @@ int main(void) {
     assert(!tube_take_next(&next) && !tube_finish_and_next(8, 8));
     p->list_catalog("favorites", 0, items_cb, NULL);
     assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
+    /* History reports bind to a resolved account and never block browsing. */
+    p->list_catalog("settings:history-sync", 0, items_cb, NULL); /* default on -> off */
+    assert(p->init() == 0);
+    p->list_catalog("settings", 0, items_cb, NULL);
+    int history_row = -1;
+    for (int i = 0; i < last_count; ++i) if (!strcmp(last_items[i].id, "settings:history-sync")) history_row = i;
+    assert(history_row >= 0 && strstr(last_items[history_row].title, "off"));
+    p->list_catalog("settings:history-sync", 0, items_cb, NULL);
+    p->list_catalog("settings:sponsor", 0, items_cb, NULL); /* disable extra sponsor request */
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
+    assert(strstr(pending[0].url, "/v1/pair"));
+    reply(0, 1, 200, "{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"History fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/p0\",\"label\":\"360p\",\"container\":\"mp4\"}]}}");
+    assert(last_ok && !pending_count);
+    p->stream_chosen("abcdefghijk", &selected);
+    p->report_progress("abcdefghijk", 0, 100, EVO_PROVIDER_PLAY_START);
+    p->report_progress("abcdefghijk", 0, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(!pending_count); /* opening/zero progress must not write history */
+    p->report_progress("abcdefghijk", 1, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(pending_count == 1 && strstr(pending[0].url, "/v1/library"));
+    assert(strstr(pending[0].body, "\"profile\":\"fixture\"") && strstr(pending[0].body, "watch_progress"));
+    char watch_session[65];
+    job = cJSON_Parse(pending[0].body);
+    snprintf(watch_session, sizeof watch_session, "%s", cJSON_GetObjectItem(job, "session")->valuestring);
+    cJSON_Delete(job);
+    p->list_catalog("favorites", 0, items_cb, NULL);
+    assert(pending_count == 1); /* no DELETE/cancellation from browsing */
+    p->report_progress("abcdefghijk", 4, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(pending_count == 1); /* coalesce while pending */
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":1}");
+    tube_poll(); assert(!pending_count); /* 30-second wall-clock throttle */
+    usleep(30050000);
+    tube_poll();
+    assert(pending_count == 1 && strstr(pending[0].body, "\"position_sec\":4"));
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":4}");
+    p->report_progress("abcdefghijk", 8, 100, EVO_PROVIDER_PLAY_STOP);
+    assert(pending_count == 1 && strstr(pending[0].body, "\"state\":\"stopped\"") && strstr(pending[0].body, watch_session));
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":8}");
+    p->report_progress("abcdefghijk", 9, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(!pending_count); /* stopped sessions stay closed */
+    p->stream_chosen("abcdefghijk", &selected);
+    p->report_progress("abcdefghijk", 2, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(pending_count == 1 && !strstr(pending[0].body, watch_session));
+    reply(0, 1, 503, "{\"error\":{\"message\":\"Unconfirmed history\"}}");
+    p->report_progress("abcdefghijk", 90, 100, EVO_PROVIDER_PLAY_STOP);
+    tube_poll(); assert(!pending_count); /* uncertain results never retry */
+    p->list_catalog("settings", 0, items_cb, NULL);
+    assert(strstr(last_items[history_row].subtitle, "unconfirmed"));
+    p->stream_chosen("abcdefghijk", &selected);
+    p->report_progress("abcdefghijk", 3, 100, EVO_PROVIDER_PLAY_UPDATE);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    reply(0, 1, 401, "{\"error\":{\"message\":\"Stale account result\"}}");
+    p->report_progress("abcdefghijk", 5, 100, EVO_PROVIDER_PLAY_STOP);
+    assert(!pending_count); /* changed profile cannot submit to a new account */
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
+    assert(strstr(pending[0].url, "/v1/jobs")); /* stale 401 did not clear pairing */
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/p0\"}]}}");
+    p->stream_chosen("abcdefghijk", &selected);
+    p->report_progress("abcdefghijk", 1, 100, EVO_PROVIDER_PLAY_UPDATE);
+    p->report_progress("abcdefghijk", 6, 100, EVO_PROVIDER_PLAY_STOP);
+    assert(pending_count == 1);
+    p->stream_chosen("abcdefghijk", &selected);
+    assert(pending_count == 2 && strstr(pending[1].body, "\"state\":\"stopped\""));
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":1}");
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":6}");
+    p->report_progress("abcdefghijk", 1, 100, EVO_PROVIDER_PLAY_UPDATE);
+    assert(pending_count == 1);
+    p->list_catalog("settings:history-sync", 0, items_cb, NULL);
+    reply(0, 1, 200, "{\"success\":true,\"position_sec\":1}");
+    p->report_progress("abcdefghijk", 8, 100, EVO_PROVIDER_PLAY_STOP);
+    assert(!pending_count); /* disabling sync prevents future reports */
     p->shutdown();
     printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters, discussions, account intents\n");
     return 0;

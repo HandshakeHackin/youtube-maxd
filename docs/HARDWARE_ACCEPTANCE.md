@@ -95,6 +95,15 @@ comments: test top/newest, paging, the long-text reader and its reply thread.
 Restarting the fixture server resets these accounts. Record these as synthetic
 UI results, separately from any real-account acceptance.
 
+With **Sync YouTube history** enabled, play a fixture for a positive duration,
+stop it and reopen YouTube history for the same synthetic account. Verify its
+resume position and isolation from the other account. Test zero-progress failure,
+pause/resume, a run over 30 seconds with longer generated media, rapid video
+changes, disabling sync and companion failure. Confirm an unconfirmed report
+does not repeat automatically. Abrupt app termination may lose a final pending
+report; measure the last confirmed position and lifecycle behavior. Real-account
+history display and cross-device resume need a separate authorized live case.
+
 Device authorization, comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part

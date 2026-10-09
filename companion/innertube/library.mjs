@@ -98,7 +98,7 @@ export class Library {
         throw new LibraryError('invalid_profiles', 'The profile configuration is invalid.');
       this.profiles.set(profile.id, { ...profile, name: text(profile.name) });
     }
-    this.clients = new Map(); this.cursors = new Map(); this.threads = new Map();
+    this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
   }
   async client(id) {
     const profile = this.profiles.get(id);
@@ -163,18 +163,49 @@ export class Library {
     const authenticated = !!profile.cookie;
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
-      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove']);
+      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
     if (!privateActions.has(input.action) && !['home', 'playlist', 'comments'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
-    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove'].includes(input.action))
+    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
     if (input.action === 'playlist') requireId(input.id, playlistId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
+    if (input.action === 'watch_progress') {
+      if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(input.session ?? '') ||
+          !Number.isFinite(input.position_sec) || input.position_sec < 0 || input.position_sec > 1000000 ||
+          !['playing', 'stopped'].includes(input.state))
+        throw new LibraryError('invalid_progress', 'The playback report is invalid.');
+      for (const [key, entry] of this.watches) if (entry.deadline <= this.clock()) this.watches.delete(key);
+      const key = `${owner}:${input.session}`;
+      let entry = this.watches.get(key);
+      if (entry && entry.id !== input.id) throw new LibraryError('invalid_progress', 'The playback session belongs to another video.');
+      if (entry?.failed) throw new LibraryError('history_unconfirmed', 'The history change was not confirmed; this session will not repeat it.', 409);
+      if (entry?.position === input.position_sec && entry?.state === input.state) return entry.result;
+      if (entry?.closed) throw new LibraryError('session_closed', 'This playback session has ended.', 409);
+      if (!entry) {
+        if (this.watches.size >= 64) throw new LibraryError('history_busy', 'Too many playback sessions are retained.', 429);
+        entry = { id: input.id, failed: true, deadline: this.clock() + 1800000 };
+        this.watches.set(key, entry);
+        entry.info = await client.getBasicInfo(input.id);
+        if (entry.info?.basic_info?.id !== input.id)
+          throw new LibraryError('history_unconfirmed', 'The tracking response belongs to another video.', 502);
+        const started = await entry.info.addToWatchHistory();
+        if (started?.ok !== true) throw new LibraryError('history_unconfirmed', 'YouTube did not confirm the history change.', 502);
+      }
+      entry.failed = true;
+      const updated = await entry.info.updateWatchTime(input.position_sec);
+      if (updated?.ok !== true) throw new LibraryError('history_unconfirmed', 'YouTube did not confirm the watch position.', 502);
+      entry.failed = false; entry.position = input.position_sec; entry.state = input.state;
+      entry.closed = input.state === 'stopped'; entry.deadline = this.clock() + 1800000;
+      entry.result = { api_version: 1, success: true, position_sec: input.position_sec };
+      return entry.result;
+    }
     let feed;
     switch (input.action) {
       case 'home': feed = await client.getHomeFeed(); break;

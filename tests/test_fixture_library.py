@@ -116,3 +116,30 @@ def test_fixture_references_expire_and_are_bounded():
             await library.execute({"action": "home"})
         assert error.value.code == "library_closed"
     asyncio.run(run())
+
+
+def test_fixture_watch_progress_contract_and_profile_history(tmp_path):
+    app = create_demo_app(tmp_path, token="fixture-test-token")
+    with TestClient(app) as client:
+        def call(action="watch_progress", **kwargs):
+            return client.post("/v1/library", headers=AUTH, json={"action": action,
+                "profile": "fixture_one", "id": VIDEOS[0], "session": "test-playback",
+                "position_sec": 1, "state": "playing", **kwargs})
+        assert call().json() == {"api_version": 1, "success": True, "position_sec": 1}
+        assert call(position_sec=7.5).json()["success"]
+        history = call("history").json()["items"]
+        assert len(history) == 1 and history[0]["resume_pos_sec"] == 7
+        assert call("history", profile="fixture_two").json()["items"] == []
+        assert call(profile="guest").status_code == 401
+        assert call(id=VIDEOS[1]).status_code == 400
+        assert call(position_sec=8, state="stopped").json()["success"]
+        assert call(position_sec=8, state="stopped").json()["success"]
+        assert call(position_sec=9).status_code == 409
+        assert call(session="").status_code == 400
+        assert call(session="bad/session").status_code == 422
+        assert call(position_sec=-1).status_code == 422
+        assert call(position_sec=1_000_001).status_code == 422
+        assert call(state="paused").status_code == 422
+        for i in range(1, 64):
+            assert call(session=f"fixture-{i}").status_code == 200
+        assert call(session="overflow").status_code == 429

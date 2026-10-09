@@ -102,8 +102,8 @@ browsing. Configured profile credentials do not fall back to that file. Profile
 configuration and cookie snapshots are loaded at startup; restart to refresh them.
 URL-scoped cookies needed by selected media or captions stay on the companion
 relay and do not appear in the public playback response. Primary-account private
-video access and live cookie/session validity remain unverified. Watch-history
-submission and per-profile local history/queue/favorites remain unfinished.
+video access and live cookie/session validity remain unverified. Per-profile
+local history/queue/favorites remain unfinished.
 
 The service accepts an optional bounded `profile` on search/catalog/video queries
 and general extraction jobs, and inside `ResolveRequest`/a resolve job's `playback`.
@@ -118,6 +118,39 @@ partitioning, API and asynchronous-job routing, rejected account contexts and
 the pinned yt-dlp cookie jar's HTTPS/domain scope. The cookie handoff test also
 checks that a webpage's cookies cannot become inherited headers on all media
 formats. No live account or PS5 deployment was performed for this candidate.
+
+## Playback history reports
+
+**Sync YouTube history** is a saved native preference, enabled by default for
+selected account profiles. Guest never submits reports. A playback context is
+bound to the profile and video returned by resolution; selecting a stream alone
+does not write history. After the first positive playback position, the companion
+gets tracking data for that video, adds it to history and updates its watch time.
+The adapter uses the pinned YouTube.js [tracking methods](https://github.com/LuanRT/YouTube.js/blob/main/src/parser/youtube/VideoInfo.ts).
+Position updates are coalesced and limited to one per 30 seconds; stopping sends
+the latest position, including a queued terminal report during a rapid video
+change. Native browsing cancellation leaves these reports running. Profile/source
+changes invalidate the active context and ignore late results; they cannot undo
+a report the server has already processed. Turning sync off prevents future
+reports; an already submitted request may still finish.
+
+`watch_progress` uses the authenticated library API with `profile`, video `id`,
+an opaque playback `session`, finite `position_sec` from 0 to 1,000,000 and
+`state` (`playing`/`stopped`). The worker validates the signed-in session and
+tracking video's identity. It retains at most 64 tracking contexts, scoped to
+profile/session, with a 30-minute inactivity expiry. Duplicate reports use their
+confirmed result while retained, and stopped sessions reject later changes.
+Failure or uncertainty stops further attempts for that context, including when
+adding history succeeded but updating position did not. The native preferences
+show pending, confirmed or unconfirmed report status. A new playback selection
+creates a new context. Server restart/expiry discards retained contexts; this is
+not a durable exactly-once transaction protocol.
+
+Fixture mode records synthetic history and resume positions separately per
+account through this same API. These offline cases and confirmed HTTP responses
+do not prove real YouTube watch-history display, cross-device resume behavior or
+PS5 playback-lifecycle timing. Those remain acceptance gates. The console's local
+history remains separate; clearing it does not clear YouTube account history.
 
 ## API and failure contract
 

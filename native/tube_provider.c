@@ -39,6 +39,8 @@ typedef struct Request {
     int page;
     unsigned intent;
     char parent[160];
+    char profile[33];
+    int64_t watch_position;
 } Request;
 
 static Record g_records[RECORDS];
@@ -49,6 +51,19 @@ static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
+static int g_history_sync = 1;
+static char g_resolved_id[160], g_resolved_profile[33];
+static unsigned g_watch_serial;
+static struct { unsigned serial; char id[160], profile[33], session[64];
+    int dirty, stopped, failed, status, sent;
+    int64_t position; long long last_sent; } g_watch;
+static void watch_flush(int terminal_flush);
+static void watch_reset(int clear_resolution) {
+    memset(&g_watch, 0, sizeof g_watch);
+    if (!++g_watch_serial) ++g_watch_serial;
+    g_watch.serial = g_watch_serial;
+    if (clear_resolution) { g_resolved_id[0] = 0; g_resolved_profile[0] = 0; }
+}
 static char g_language[16] = "en", g_audio_language[16];
 static double g_segments[SEGMENTS][2];
 static int g_segment_count, g_skip_guard = -1;
@@ -229,6 +244,7 @@ static void save(void) {
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
+    cJSON_AddBoolToObject(root, "history_sync", g_history_sync);
     for (int i = 0; i < g_count; ++i) {
         Record *r = &g_records[i];
         cJSON *o = cJSON_CreateObject();
@@ -283,6 +299,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    watch_reset(1);
     memset(g_comments, 0, sizeof g_comments);
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
@@ -308,6 +325,8 @@ static int init(void) {
     g_sponsor = boolean(root, "sponsorblock");
     g_autoplay = boolean(root, "autoplay");
     g_ask_stream = boolean(root, "ask_stream");
+    const cJSON *history_sync = cJSON_GetObjectItemCaseSensitive(root, "history_sync");
+    g_history_sync = !cJSON_IsBool(history_sync) || cJSON_IsTrue(history_sync);
     const char *language = str(root, "language"), *audio = str(root, "audio_language");
     const char *valid = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
     if (*language && strlen(language) < sizeof g_language && strspn(language, valid) == strlen(language))
@@ -352,6 +371,7 @@ static int set_source(const char *value) {
     char normalized[512];
     snprintf(normalized, sizeof normalized, "%s://%s:%d", tls ? "https" : "http", host, port);
     tube_cancel();
+    watch_reset(1);
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
@@ -362,6 +382,9 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 8 && r->intent == g_watch.serial && !ok) {
+        g_watch.failed = 1; g_watch.dirty = 0; g_watch.status = -1;
+    }
     if (r->kind == 6 && r->intent == g_account_intent.serial && g_account_intent.state == 1)
         g_account_intent.state = -1;
     evo_provider_items_cb items_cb = r->items_cb;
@@ -410,6 +433,25 @@ static int begin(Request *r) {
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
 }
 
+static void watch_flush(int terminal_flush) {
+    if (!g_history_sync || !*g_token || !g_watch.dirty || g_watch.failed ||
+        !valid_id(g_watch.id) || !valid_profile(g_watch.profile) || !strcmp(g_watch.profile, "guest")) return;
+    if (g_watch.position <= 0 && !g_watch.sent) { g_watch.dirty = 0; return; }
+    int free_slot = 0;
+    for (int i = 0; i < REQUESTS; ++i) {
+        if (g_requests[i].used && g_requests[i].kind == 8 && g_requests[i].intent == g_watch.serial && !terminal_flush) return;
+        if (!g_requests[i].used) free_slot = 1;
+    }
+    if (!free_slot || (g_watch.sent && !g_watch.stopped && now_ms() - g_watch.last_sent < 30000)) return;
+    Request *r = request_new(8, NULL); if (!r) return;
+    r->intent = g_watch.serial; r->watch_position = g_watch.position; r->stage = 3;
+    snprintf(r->payload, sizeof r->payload,
+        "{\"action\":\"watch_progress\",\"profile\":\"%s\",\"id\":\"%s\",\"session\":\"%s\",\"position_sec\":%lld,\"state\":\"%s\"}",
+        g_watch.profile, g_watch.id, g_watch.session, (long long)g_watch.position, g_watch.stopped ? "stopped" : "playing");
+    g_watch.dirty = 0; g_watch.sent = 1; g_watch.last_sent = now_ms(); g_watch.status = 1;
+    send_request(r, "POST", "/v1/library", r->payload);
+}
+
 static void caption_response(int ok, int status, const char *body, size_t size, void *ud) {
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
@@ -443,6 +485,9 @@ static void sponsor_response(int ok, int status, const char *body, size_t size, 
 }
 
 static void resolved(Request *r, const cJSON *root) {
+    if (strcmp(str(root, "id"), r->parent)) {
+        tube_set_error("The playback response belongs to another video."); complete(r, 0); return;
+    }
     r->choice_count = 0;
     cJSON *c;
     cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "choices")) {
@@ -460,6 +505,8 @@ static void resolved(Request *r, const cJSON *root) {
         out->audio_channels = (int)num(c, "audio_channels");
     }
     if (!r->choice_count) { tube_set_error("The companion returned no supported playback choices."); complete(r, 0); return; }
+    copy(g_resolved_id, sizeof g_resolved_id, r->parent);
+    copy(g_resolved_profile, sizeof g_resolved_profile, r->profile);
     Record *cached = record(str(root, "id"), 1);
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
@@ -494,12 +541,19 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
     if (r->generation != g_generation) { complete(r, 0); return; }
+    if (r->kind == 8 && r->intent != g_watch.serial) { complete(r, 0); return; }
     cJSON *root = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
         tube_set_error(*str(error, "message") ? str(error, "message") : "Could not reach the companion. Check that it is running and the LAN address is correct.");
         if (status == 401) { g_token[0] = 0; save(); }
         cJSON_Delete(root); complete(r, 0); return;
+    }
+    if (r->kind == 8) {
+        int confirmed = boolean(root, "success") && cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(root, "position_sec")) &&
+            num(root, "position_sec") == r->watch_position;
+        if (confirmed && r->intent == g_watch.serial) g_watch.status = 2;
+        cJSON_Delete(root); complete(r, confirmed); return;
     }
     if (r->stage == 0) {
         const char *token = str(root, "token");
@@ -643,6 +697,7 @@ void tube_poll(void) {
             send_request(r, "GET", path, NULL);
         }
     }
+    watch_flush(0);
 }
 
 static void ignored(int ok, int status, const char *body, size_t size, void *ud) {
@@ -654,6 +709,8 @@ void tube_cancel(void) {
     for (int i = 0; i < REQUESTS; ++i) {
         Request *r = &g_requests[i];
         if (!r->used) continue;
+        /* Browsing cancellation must not cancel a playback history report. */
+        if (r->kind == 8) { r->generation = g_generation; continue; }
         if (*r->job && *g_source && *g_token) {
             char url[1024], auth[160];
             snprintf(url, sizeof url, "%s/v1/jobs/%s", g_source, r->job);
@@ -830,6 +887,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             memset(&g_account_intent, 0, sizeof g_account_intent);
             memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
             copy(g_library_profile, sizeof g_library_profile, parent + 16);
+            watch_reset(1);
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
         }
@@ -850,6 +908,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; save(); }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
+        else if (!strcmp(parent, "settings:history-sync")) {
+            g_history_sync = !g_history_sync;
+            if (!g_history_sync) g_watch.dirty = 0;
+            save();
+        }
         else if (!strncmp(parent, "settings:lang:", 14)) { copy(g_language, sizeof g_language, parent + 14); save(); }
         else if (!strncmp(parent, "settings:audio:", 15)) { copy(g_audio_language, sizeof g_audio_language, parent + 15); save(); }
         else if (!strcmp(parent, "settings:clear-history")) {
@@ -875,6 +938,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
             folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
+            folder(&out[n++], "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
+                g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
+                g_watch.status == 1 ? "History report pending" : g_watch.status == 2 ? "Last history report confirmed" :
+                "Report watched videos and positions for the selected account");
             folder(&out[n++], "settings:clear-history", "Clear local history", "Remove resume positions and watched markers");
             folder(&out[n++], "settings:clear-queue", "Clear play queue", "Remove queued videos; keep favorites");
         }
@@ -1016,6 +1083,7 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     tube_cancel();
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
+    copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
     snprintf(r->payload, sizeof r->payload,
         "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s}}",
         id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false");
@@ -1029,11 +1097,23 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     r->updated = (long long)time(NULL);
     if (dur > 0 && pos >= dur * 0.95 && pos >= dur - 10) { r->item.played = 1; r->item.resume_pos_sec = 0; }
     if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; }
+    if (!strcmp(id, g_watch.id) && !g_watch.failed && !g_watch.stopped && pos >= 0 && pos <= 1000000 &&
+        (state == EVO_PROVIDER_PLAY_UPDATE || state == EVO_PROVIDER_PLAY_STOP)) {
+        g_watch.position = pos; g_watch.stopped = state == EVO_PROVIDER_PLAY_STOP;
+        g_watch.dirty = 1; watch_flush(0);
+    }
     if (state == EVO_PROVIDER_PLAY_STOP || now_ms() - g_last_save >= 10000) save();
 }
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
+    char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
+    if (g_watch.stopped && g_watch.dirty) watch_flush(1);
+    watch_reset(0);
+    if (valid_id(id) && valid_profile(profile) && strcmp(profile, "guest")) {
+        copy(g_watch.id, sizeof g_watch.id, id); copy(g_watch.profile, sizeof g_watch.profile, profile);
+        snprintf(g_watch.session, sizeof g_watch.session, "%llx-%lx-%u", (unsigned long long)time(NULL), (unsigned long)getpid(), g_watch.serial);
+    }
 }
 
 int tube_toggle_favorite(const char *id) {

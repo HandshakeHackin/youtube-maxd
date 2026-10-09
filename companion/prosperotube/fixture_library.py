@@ -10,7 +10,7 @@ CHANNEL = "UC" + "f" * 22
 PRIVATE = {"subscriptions", "history", "library", "playlists", "watch_later",
            "like", "dislike", "unrate", "subscribe", "unsubscribe", "playlist_create",
            "playlist_add", "playlist_remove", "playlist_rename", "playlist_delete",
-           "watch_later_add", "watch_later_remove"}
+           "watch_later_add", "watch_later_remove", "watch_progress"}
 
 
 class FixtureLibrary:
@@ -25,7 +25,8 @@ class FixtureLibrary:
             self.accounts[owner] = {
                 "playlists": {f"PLfixture{i:02d}": {"title": f"Offline playlist {i + 1}",
                               "videos": [VIDEOS[i % 3]], "privacy": "PRIVATE"} for i in range(25)},
-                "watch_later": [], "ratings": {}, "subscriptions": set()}
+                "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}}
+        self.watches = {}
 
     def _reference(self, owner, kind, items):
         now = self.clock()
@@ -78,7 +79,7 @@ class FixtureLibrary:
             return copy.deepcopy(ref["result"])
         account = self.accounts[owner]
         identifier, playlist = request.get("id", ""), request.get("playlist", "")
-        if action in {"comments", "like", "dislike", "unrate", "playlist_add", "playlist_remove", "watch_later_add", "watch_later_remove"} or (action == "playlist_create" and identifier):
+        if action in {"comments", "like", "dislike", "unrate", "playlist_add", "playlist_remove", "watch_later_add", "watch_later_remove", "watch_progress"} or (action == "playlist_create" and identifier):
             if identifier not in VIDEOS:
                 raise ServiceError("fixture_only", "Select a generated fixture video.", 404)
         if action in {"subscribe", "unsubscribe"} and identifier != CHANNEL:
@@ -86,6 +87,24 @@ class FixtureLibrary:
         if action in {"playlist_add", "playlist_remove", "playlist_rename", "playlist_delete"}:
             if playlist not in account["playlists"]:
                 raise ServiceError("playlist_missing", "Select an existing offline playlist.", 404)
+        if action == "watch_progress":
+            import math
+            import re
+            session, position, state = request.get("session", ""), request.get("position_sec", 0), request.get("state", "playing")
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session) or not math.isfinite(position) or not 0 <= position <= 1_000_000 or state not in {"playing", "stopped"}:
+                raise ServiceError("invalid_progress", "The playback report is invalid.", 400)
+            self.watches = {k: v for k, v in self.watches.items() if v["deadline"] > self.clock()}
+            key = (owner, session)
+            previous = self.watches.get(key)
+            if previous and previous["id"] != identifier:
+                raise ServiceError("invalid_progress", "The playback session belongs to another video.", 400)
+            if previous and previous["state"] == "stopped" and (previous["position"] != position or state != "stopped"):
+                raise ServiceError("session_closed", "This playback session has ended.", 409)
+            if not previous and len(self.watches) >= 64:
+                raise ServiceError("history_busy", "Too many playback sessions are retained.", 429)
+            self.watches[key] = {"id": identifier, "position": position, "state": state, "deadline": self.clock() + 1800}
+            account["history"][identifier] = position
+            return {"api_version": 1, "success": True, "position_sec": position}
         if action == "comments":
             rows = [{"id": f"fixture-comment-{i}", "author": f"Offline author {i + 1}",
                      "content": f"Generated comment {i + 1}.\n" + ("Full text scroll test. " * 100 if i == 0 else "Literal <b>markup</b> & Unicode: café 日本語."),
@@ -97,8 +116,13 @@ class FixtureLibrary:
                 rows.reverse()
             return self._page(owner, "comments", rows)
         if action in {"home", "history", "subscriptions"}:
-            ids = VIDEOS if action != "subscriptions" or CHANNEL in account["subscriptions"] else ()
-            return self._page(owner, "catalog", [self._video(i) for i in ids])
+            ids = (list(reversed(account["history"])) if action == "history" else
+                   VIDEOS if action != "subscriptions" or CHANNEL in account["subscriptions"] else ())
+            rows = [self._video(i) for i in ids]
+            if action == "history":
+                for row in rows:
+                    row["resume_pos_sec"] = int(account["history"][row["id"]])
+            return self._page(owner, "catalog", rows)
         if action in {"library", "playlists"}:
             rows = [{"id": "library:playlist:" + k, "title": v["title"],
                      "subtitle": "Offline private playlist", "art_url": "", "is_folder": True}
@@ -147,3 +171,4 @@ class FixtureLibrary:
     async def close(self):
         self.closed = True
         self.references.clear()
+        self.watches.clear()

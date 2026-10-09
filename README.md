@@ -28,8 +28,9 @@ execution remain unfinished.
 
 Selected primary-account profiles now route search and playback through separate
 credential/cache contexts on the companion. Secondary-account and brand-channel
-playback mapping, watch-history submission and live account acceptance remain
-unfinished; see the library service for the explicit failure contract.
+playback mapping and live account acceptance remain unfinished. Playback history
+reports now use the selected account, with a saved sync toggle, throttled position
+updates and no retry after an unconfirmed report; see the library service.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. A bounded PS5 run passed native browser startup, pairing/search,

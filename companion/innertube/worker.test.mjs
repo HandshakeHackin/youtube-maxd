@@ -2,7 +2,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';
-import { YTNodes } from 'youtubei.js';
+import { YTNodes, YT } from 'youtubei.js';
+
+test('watch history uses actual pinned tracking methods and isolates playback sessions', async () => {
+  const calls = [];
+  const info = new YT.VideoInfo([{ data: { videoDetails: { videoId: 'abcdefghijk', title: 'Fixture' },
+    playabilityStatus: { status: 'OK' }, playbackTracking: {
+      videostatsPlaybackUrl: { baseUrl: 'https://s.youtube.com/api/stats/playback?fixture=1' },
+      videostatsWatchtimeUrl: { baseUrl: 'https://s.youtube.com/api/stats/watchtime?fixture=1' }
+    } } }], { stats: async (url, client, params) => { calls.push([url, params]); return new Response(null, { status: 204 }); } }, 'fixture-cpn');
+  const library = new Library(async profile => ({ session: { logged_in: true }, getBasicInfo: async id => {
+    calls.push([profile.id, id]); return info;
+  } }), [{ id: 'one', cookie: 'fixture-cookie' }, { id: 'two', cookie: 'other-fixture' }]);
+  const request = { action: 'watch_progress', profile: 'one', id: 'abcdefghijk', session: 'playback-one', position_sec: 1, state: 'playing' };
+  const first = await library.execute(request);
+  assert.equal(first.success, true); assert.equal(calls.length, 3);
+  assert.deepEqual(calls[0], ['one', 'abcdefghijk']);
+  assert.equal(calls[1][0], 'https://www.youtube.com/api/stats/playback?fixture=1');
+  assert.equal(calls[1][1].cpn, 'fixture-cpn'); assert.equal(calls[2][1].cmt, '1.000');
+  assert.deepEqual(await library.execute(request), first); assert.equal(calls.length, 3);
+  await library.execute({ ...request, position_sec: 31 }); assert.equal(calls.length, 4);
+  await library.execute({ ...request, position_sec: 8, state: 'stopped' }); assert.equal(calls.length, 5);
+  await library.execute({ ...request, position_sec: 8, state: 'stopped' }); assert.equal(calls.length, 5);
+  await assert.rejects(library.execute({ ...request, position_sec: 9 }), { code: 'session_closed' });
+  await assert.rejects(library.execute({ ...request, id: '12345678901' }), { code: 'invalid_progress' });
+  await library.execute({ ...request, profile: 'two' }); assert.equal(calls.length, 8);
+  await assert.rejects(library.execute({ ...request, profile: 'guest' }), { code: 'account_required' });
+});
+
+test('unconfirmed history calls stop retries, validate reports and bound retained sessions', async () => {
+  let time = 0, starts = 0, updates = 0, logged_in = true, status = 204;
+  const library = new Library(async () => ({ session: { get logged_in() { return logged_in; } },
+    getBasicInfo: async () => ({ basic_info: { id: 'abcdefghijk' }, addToWatchHistory: async () => { starts++; return new Response(null, { status }); },
+      updateWatchTime: async () => { updates++; return new Response(null, { status: 503 }); } }) }),
+  [{ id: 'one', cookie: 'fixture' }], () => time);
+  const request = { action: 'watch_progress', profile: 'one', id: 'abcdefghijk', session: 'playback-one', position_sec: 1, state: 'playing' };
+  logged_in = false;
+  await assert.rejects(library.execute(request), { code: 'account_required' }); assert.equal(starts, 0);
+  logged_in = true;
+  for (const extra of [{ position_sec: NaN }, { position_sec: -1 }, { position_sec: Infinity }, { position_sec: 1000001 }, { state: 'invalid' }, { session: '' }, { session: 'bad/session' }])
+    await assert.rejects(library.execute({ ...request, ...extra }), { code: 'invalid_progress' });
+  await assert.rejects(library.execute(request), { code: 'history_unconfirmed' });
+  await assert.rejects(library.execute(request), { code: 'history_unconfirmed' });
+  assert.equal(starts, 1); assert.equal(updates, 1);
+  status = 503;
+  for (let i = 1; i < 64; i++) await assert.rejects(library.execute({ ...request, session: `playback-${i}` }), { code: 'history_unconfirmed' });
+  assert.equal(library.watches.size, 64);
+  await assert.rejects(library.execute({ ...request, session: 'overflow' }), { code: 'history_busy' });
+  assert.equal(starts, 64); assert.equal(updates, 1);
+  time = 1800001;
+  await assert.rejects(library.execute({ ...request, session: 'fresh' }), { code: 'history_unconfirmed' });
+  assert.equal(library.watches.size, 1);
+  const wrong = new Library(async () => ({ session: { logged_in: true }, getBasicInfo: async () => ({ basic_info: { id: '12345678901' },
+    addToWatchHistory: async () => { throw new Error('must not be called'); } }) }), [{ id: 'one', cookie: 'fixture' }]);
+  await assert.rejects(wrong.execute(request), { code: 'history_unconfirmed' });
+});
 
 const video = index => ({ video_id: String(index).padStart(11, '0'), title: `Video ${index}`,
   author: { id: `UC${'a'.repeat(22)}`, name: 'Fixture channel' }, duration: { seconds: 8 },
