@@ -113,6 +113,29 @@ int main(void) {
     assert(resolve_calls == 2 && !last_ok);
     tube_set_error("https://private.test/signed?token=secret");
     assert(!strstr(error_text, "secret"));
+    /* Remote library navigation is asynchronous and retains only opaque cursors. */
+    p->list_catalog("discover", 0, items_cb, NULL);
+    assert(last_count == 8 && !strcmp(last_items[0].id, "library:home"));
+    p->list_catalog("library:profiles", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"library\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"},{\"id\":\"fixture\",\"name\":\"Fixture\",\"account_configured\":true},{\"id\":\"../../bad\"}]}}");
+    assert(last_ok && last_count == 2 && !strcmp(last_items[1].id, "library:profile:fixture"));
+    p->list_catalog(last_items[1].id, 0, items_cb, NULL);
+    assert(last_ok && last_count == 6 && strstr(last_items[0].title, "fixture"));
+    p->list_catalog("library:playlists", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"Account playlist\",\"is_folder\":true}],\"has_more\":true,\"cursor\":\"fixture_cursor\"}}");
+    assert(last_ok && last_count == 1 && last_items[0].is_folder);
+    p->list_catalog("library:playlists", 1, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"continue\"") && strstr(pending[0].body, "fixture_cursor"));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[],\"has_more\":false}}");
+    assert(last_ok && last_count == 0);
+    p->list_catalog("library:playlist:PLabcdefghijk", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"playlist\"") && strstr(pending[0].body, "PLabcdefghijk"));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account video\"}],\"has_more\":false}}");
+    assert(last_ok && last_count == 1);
+    p->list_catalog("library:home", 1, items_cb, NULL);
+    assert(!last_ok && pending_count == 0); /* unrelated cursor cannot cross levels */
     p->shutdown();
     printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters\n");
     return 0;

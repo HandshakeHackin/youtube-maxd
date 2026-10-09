@@ -17,6 +17,11 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   `6cb8313dfe0c988ac52617794553f343243d3a56` packages the image.
 * Python uses yt-dlp/EJS, FastAPI, Uvicorn, HTTPX and dependencies. Exact versions:
   `companion/requirements.lock`; licenses remain in upstream package metadata.
+* Optional companion library: YouTube.js 18.1.0 (MIT), inspected source pin
+  `bad89d2657e88f907011655f199fba9fb615c339`; complete package/dependency pins
+  and integrity hashes are in `companion/innertube/package-lock.json`.
+  esbuild 0.25.10 (MIT) builds its host-side worker bundle. Dependency license
+  files remain in the installed packages; keep them with binary distributions.
 
 Matching source consists of this repository, recursive submodules, pinned
 dependencies and build overlay. Keep these notices with binary distributions

@@ -13,3 +13,5 @@ fixtures/generated/
 cookies.txt
 *.log
 native/generated/
+node_modules/
+companion/innertube/worker.bundle.mjs

@@ -1,0 +1,16 @@
+{
+  "name": "prosperotube-library-worker",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test worker.test.mjs"
+  },
+  "dependencies": {
+    "youtubei.js": "18.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

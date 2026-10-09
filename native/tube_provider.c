@@ -18,6 +18,7 @@
 #define CHOICES 8
 #define SEGMENTS 128
 #define LOCAL_PAGE 24
+#define LIBRARY_PAGES 1001
 
 typedef struct {
     evo_provider_item_t item;
@@ -35,6 +36,8 @@ typedef struct Request {
     void *ud;
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
+    int page;
+    char parent[160];
 } Request;
 
 static Record g_records[RECORDS];
@@ -52,6 +55,8 @@ static double g_skip_until;
 static double g_chapters[128];
 static int g_chapter_count;
 static long long g_last_save, g_queue_order;
+static char g_library_profile[33] = "guest", g_library_parent[160];
+static char g_library_cursors[LIBRARY_PAGES][65];
 
 static long long now_ms(void) {
     struct timespec t;
@@ -89,6 +94,21 @@ static int valid_id(const char *id) {
     for (int i = 0; i < 11; ++i)
         if (!isalnum((unsigned char)id[i]) && id[i] != '_' && id[i] != '-') return 0;
     return 1;
+}
+
+static int valid_profile(const char *id) {
+    return id && *id && strlen(id) <= 32 &&
+        strspn(id, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(id);
+}
+
+static int valid_catalog_id(const char *id) {
+    if (valid_id(id)) return 1;
+    const char *value = NULL;
+    if (id && !strncmp(id, "channel:UC", 10) && strlen(id) == 32) value = id + 8;
+    if (id && !strncmp(id, "playlist:", 9) && strlen(id + 9) >= 10 && strlen(id + 9) <= 100) value = id + 9;
+    if (id && !strncmp(id, "library:playlist:", 17) && strlen(id + 17) <= 100 &&
+        (strlen(id + 17) >= 10 || !strcmp(id + 17, "WL") || !strcmp(id + 17, "LL"))) value = id + 17;
+    return value && strspn(value, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(value);
 }
 
 static Record *record(const char *id, int create) {
@@ -130,6 +150,7 @@ static void save(void) {
     cJSON_AddBoolToObject(root, "automatic_captions", g_auto_captions);
     cJSON_AddStringToObject(root, "language", g_language);
     cJSON_AddStringToObject(root, "audio_language", g_audio_language);
+    cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     for (int i = 0; i < g_count; ++i) {
@@ -198,6 +219,8 @@ static int init(void) {
     if (!root || num(root, "version") != 1) { cJSON_Delete(root); return -1; }
     copy(g_source, sizeof g_source, str(root, "source"));
     copy(g_token, sizeof g_token, str(root, "token"));
+    const char *profile = str(root, "library_profile");
+    copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
     int height = (int)num(root, "max_height");
     if (height >= 144 && height <= 2160) g_height = height;
     int codec = (int)num(root, "codec"); if (codec <= 2) g_codec = codec;
@@ -278,6 +301,7 @@ static int companion_url(const char *url) {
 }
 
 static void response(int ok, int status, const char *body, size_t size, void *ud);
+static void folder(evo_provider_item_t *out, const char *id, const char *title, const char *hint);
 
 static int send_request(Request *r, const char *method, const char *path, const char *payload) {
     char url[2048], auth[160]; const char *headers[2] = {"Content-Type: application/json", auth};
@@ -420,8 +444,28 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items);
     if (!items) { cJSON_Delete(root); complete(r, 0); return; }
     int n = 0; cJSON *o;
+    if (r->kind == 4) {
+        cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "profiles")) {
+            if (n >= LOCAL_PAGE || !valid_profile(str(o, "id"))) continue;
+            char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
+            folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? "Account configured on the companion" : "Browse as guest");
+        }
+        evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+        memset(r, 0, sizeof *r);
+        if (cb) cb(1, items, n, 0, data);
+        free(items); cJSON_Delete(root); return;
+    }
+    if (r->kind == 3) {
+        const char *cursor = str(result, "cursor");
+        int more = boolean(result, "has_more");
+        if (more && (!*cursor || strlen(cursor) > 64 || strspn(cursor, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(cursor))) {
+            free(items); cJSON_Delete(root); tube_set_error("The library pagination response was invalid."); complete(r, 0); return;
+        }
+        if (!strcmp(r->parent, g_library_parent) && r->page + 1 < LIBRARY_PAGES)
+            copy(g_library_cursors[r->page + 1], sizeof g_library_cursors[0], more ? cursor : "");
+    }
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
-        if (n >= LOCAL_PAGE || !valid_id(str(o, "id"))) continue;
+        if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         for (int i = 0; i < n; ++i) if (!strcmp(items[i].id, str(o, "id"))) duplicate = 1;
         if (duplicate) continue;
@@ -493,12 +537,27 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "app:settings", "Player settings", "Display, audio and controller preferences");
         folder(&out[n++], "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
     } else if (!strcmp(parent, "discover")) {
+        folder(&out[n++], "library:home", "Home recommendations", "From the companion library service");
+        folder(&out[n++], "library", "Accounts & library", "Profiles, subscriptions, history and playlists");
         folder(&out[n++], "search:science", "Science", "Explore science videos");
         folder(&out[n++], "search:technology", "Technology", "Explore technology videos");
         folder(&out[n++], "search:gaming", "Gaming", "Explore gaming videos");
         folder(&out[n++], "search:music", "Music", "Explore music videos");
         folder(&out[n++], "search:documentary", "Documentaries", "Explore documentaries");
         folder(&out[n++], "search:education", "Learning", "Explore educational videos");
+    } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
+        if (!strncmp(parent, "library:profile:", 16)) {
+            if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
+            copy(g_library_profile, sizeof g_library_profile, parent + 16);
+            g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
+        }
+        char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
+        folder(&out[n++], "library:profiles", label, "Choose an account configured on the companion");
+        folder(&out[n++], "library:home", "Home", "Recommendations for the selected profile");
+        folder(&out[n++], "library:subscriptions", "Subscriptions", "Videos from your YouTube subscriptions");
+        folder(&out[n++], "library:history", "YouTube history", "History from the selected account");
+        folder(&out[n++], "library:watch_later", "Watch later", "Videos saved to your account");
+        folder(&out[n++], "library:playlists", "Your playlists", "Playlists from the selected account");
     } else if (!strncmp(parent, "settings", 8)) {
         if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
@@ -568,6 +627,25 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     if (!cb || page < 0 || page > 1000) return -1;
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
+    if (parent && !strncmp(parent, "library:", 8)) {
+        const char *action = parent + 8;
+        int playlist = !strncmp(action, "playlist:", 9) && valid_catalog_id(parent);
+        if (strcmp(action, "home") && strcmp(action, "subscriptions") && strcmp(action, "history") &&
+            strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist) {
+            tube_set_error("The selected library screen is unavailable."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
+            tube_set_error("Reload this library screen to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        Request *r = request_new(!strcmp(action, "profiles") ? 4 : 3, ud); if (!r) return -1;
+        r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"id\":\"%s\"}}",
+            page ? "continue" : playlist ? "playlist" : action, g_library_profile,
+            page ? g_library_cursors[page] : "", playlist ? action + 9 : "");
+        begin(r); return 0;
+    }
     Request *r = request_new(1, ud); if (!r) return -1;
     r->items_cb = cb;
     cJSON *o = cJSON_CreateObject();

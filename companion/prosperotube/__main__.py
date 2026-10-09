@@ -20,7 +20,13 @@ def main():
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), help="Explicit yt-dlp JavaScript runtime (default: deno)")
     parser.add_argument("--js-runtime-path", help="Optional path to the chosen JavaScript executable")
     parser.add_argument("--fixtures", type=Path, help="Explicit offline mode using media from scripts/generate_fixtures.py")
+    parser.add_argument("--library-node", help="Enable library/comments support with this Node.js executable")
+    parser.add_argument("--library-profiles", type=Path, help="Explicit local account-profile configuration; credentials stay on this host")
     args = parser.parse_args()
+    if args.library_profiles and not args.library_node:
+        parser.error("--library-profiles requires --library-node")
+    if args.fixtures and (args.library_node or args.library_profiles):
+        parser.error("Library/account networking is disabled in offline fixture mode.")
     args.state_dir.mkdir(parents=True, exist_ok=True)
     os.chmod(args.state_dir, 0o700)
     token_file = args.state_dir / "token"
@@ -45,7 +51,14 @@ def main():
         app = create_demo_app(args.fixtures, token=token, public_base=args.public_base)
         print("OFFLINE FIXTURE MODE: generated media only; YouTube is not contacted.")
     else:
-        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock)
+        library = None
+        if args.library_node:
+            from .library import LibraryService
+            try:
+                library = LibraryService(args.library_node, profile_config=args.library_profiles)
+            except (ValueError, OSError, KeyError):
+                parser.error("The library profile configuration is invalid. Check profile identifiers and cookie files.")
+        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")

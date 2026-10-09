@@ -11,11 +11,12 @@ import re
 import secrets
 import time
 from urllib.parse import urljoin, urlsplit
+from typing import Literal
 
 from fastapi import FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
 from .catalog import item, page_for
@@ -29,17 +30,33 @@ class PairRequest(BaseModel):
     code: str = Field(pattern="^[0-9]{6}$")
 
 
+class LibraryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists",
+                    "watch_later", "playlist", "comments", "continue", "like", "dislike",
+                    "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
+                    "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
+                    "watch_later_remove"]
+    profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
+    id: str = Field(default="", max_length=100)
+    playlist: str = Field(default="", max_length=100)
+    title: str = Field(default="", max_length=150)
+    sort: Literal["top", "newest"] = "top"
+    cursor: str = Field(default="", max_length=64)
+
+
 class JobRequest(BaseModel):
-    action: str = Field(pattern="^(search|catalog|resolve|details)$")
+    action: str = Field(pattern="^(search|catalog|resolve|details|library)$")
     query: str = Field(default="", max_length=200)
     parent: str = Field(default="", max_length=160)
     page: int = Field(default=0, ge=0, le=1000)
     playback: ResolveRequest | None = None
+    library: LibraryRequest | None = None
     id: str = Field(default="", max_length=11)
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
-               http_client=None, sponsorblock=False):
+               http_client=None, sponsorblock=False, library=None):
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -49,6 +66,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
+            if library is not None:
+                await library.close()
             await app.state.http.aclose()
     app = FastAPI(title="ProsperoTube Companion", version=__version__, docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.extractor = extractor or Extractor()
@@ -62,6 +81,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.sponsorblock = sponsorblock
     app.state.sponsor_cache = {}
     app.state.jobs = {}
+    app.state.library = library
 
     @app.exception_handler(ServiceError)
     async def service_error(_request, exc):
@@ -95,8 +115,14 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
-                "features": ["search", "channels", "playlists", "dash", "relay", "captions"],
+                "features": ["search", "channels", "playlists", "dash", "relay", "captions"] + (["library"] if library is not None else []),
                 "sponsorblock": app.state.sponsorblock}
+
+    @app.post("/v1/library")
+    async def library_operation(payload: LibraryRequest):
+        if app.state.library is None:
+            raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
+        return await app.state.library.execute(payload.model_dump())
 
     @app.post("/v1/pair")
     async def pair(payload: PairRequest, request: Request):
@@ -147,6 +173,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise ServiceError("job_limit", "The companion is busy. Wait for the current request or cancel it.", 503)
         if payload.action == "resolve" and payload.playback is None:
             raise ServiceError("invalid_job", "A playback request is required.", 400)
+        if payload.action == "library" and (payload.library is None or app.state.library is None):
+            raise ServiceError("invalid_job", "An enabled library and operation are required.", 400)
         async def work():
             try:
                 if payload.action == "search":
@@ -157,6 +185,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     identifier = video_id(payload.playback.id)
                     info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={identifier}")
                     result = app.state.sessions.create(info, payload.playback, base(request))
+                elif payload.action == "library":
+                    result = await app.state.library.execute(payload.library.model_dump())
                 else:
                     identifier = video_id(payload.id)
                     info = await app.state.extractor.extract(f"https://www.youtube.com/watch?v={identifier}")
