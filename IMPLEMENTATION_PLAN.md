@@ -33,8 +33,9 @@ playback. Keep these distinctions in every progress report.
 - Public, non-DRM video playback first. Account access and restricted-content
   behavior require separate validation; DRM integration is outside the initial scope.
 
-Normal retail-console distribution, Android emulation, and full SmartTube feature
-parity are separate undertakings and are not deliverables of the first release.
+Normal retail-console distribution and Android emulation are outside this native
+homebrew implementation. Full SmartTube feature parity remains the active goal;
+the staged prototype does not change that acceptance requirement.
 
 ## 2. Source baseline and evidence
 
