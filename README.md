@@ -26,8 +26,10 @@ acceptance. Device sign-in, casting, HDR selection, AV1 and standalone SABR/toke
 execution remain unfinished.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
-behavior. PS5 launch, GPU presentation, audio synchronization and live YouTube
-extraction need the [hardware checklist](docs/HARDWARE_ACCEPTANCE.md).
+behavior. A bounded PS5 run passed native browser startup, frame-presentation
+checkpoints and graceful GPU shutdown. Video playback, audio synchronization,
+visual acceptance and live YouTube behavior still need the
+[hardware checklist](docs/HARDWARE_ACCEPTANCE.md).
 Format support is not a claim that arbitrary current YouTube videos or every
 resolution will play on a PS5.
 

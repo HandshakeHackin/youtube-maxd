@@ -1,13 +1,21 @@
 # Hardware acceptance — pending
 
-The first PS5 candidate reached the native browser and reported frame
-presentation. Acceptance remains incomplete: its absolute diagnostic paths
-were unavailable inside the closed sandbox, so automated graceful shutdown
-could not be verified. The title-aware controller closed the test instance;
-runtime release and declared service health were confirmed. The next candidate
-uses EVO's resolved data root for diagnostics and development commands.
+Candidate `800160c` passed the bounded startup and teardown case on PS5 firmware
+6.02. Evidence identifies the matching build, the `youtube` document with eight
+root entries, first-frame presentation checkpoints, `parked=1` after the app's
+quit command, exact-title closure, runtime-layer release and healthy development
+services. The shared console lock was released. This establishes those lifecycle
+checkpoints; it does not verify video decoding, audible output, motion quality,
+controller feel or live YouTube behavior.
+
+The earlier candidate's absolute diagnostic paths were unavailable inside the
+closed sandbox. The fix uses EVO's resolved data root and was verified while the
+app remained sandboxed. An upload-only runner error interpreting FTP's successful
+delete response was corrected before the accepted run; no title was launched by
+that stopped upload attempt.
 
 - 2026-10-09 | startup | bc3a686 | PS5 6.02 | inconclusive: app checkpoint; title cleanup passed | .deps/console/first-start-bc3a686/ | validate sandbox-aware paths
+- 2026-10-09 | startup | 800160c | PS5 6.02 | pass: browser, frame checkpoint, graceful GPU park, release | .deps/console/sandbox-start-800160c-retry/ | fixture playback
 
 Record firmware, loader/mounter versions, TV mode, source revision, companion
 runtime/lock versions and artifact SHA-256 before testing.
