@@ -83,6 +83,18 @@ runtime/lock versions and artifact SHA-256 before testing.
 9. Check logs/storage/title isolation and credential redaction. Repeat
    launch/stop/soft-close and confirm renderer/audio resources are released.
 
+For native library UI acceptance, fixture mode provides two synthetic accounts
+without enabling account networking. Select **Offline account one**, browse its
+25 playlists and verify the next page. On a fixture video, open Touchpad account
+actions; verify explicit confirmation and the result for rating, Watch later,
+subscription and playlist changes. Create a private fixture playlist, add/remove
+videos, rename it from its Touchpad menu, then delete it. Switch to **Offline
+account two** and verify the changes are absent. Cancel a name prompt or switch
+profiles before confirming and verify no change is submitted. R3 opens generated
+comments: test top/newest, paging, the long-text reader and its reply thread.
+Restarting the fixture server resets these accounts. Record these as synthetic
+UI results, separately from any real-account acceptance.
+
 Device authorization, comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part

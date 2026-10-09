@@ -42,6 +42,15 @@ source/profile changes invalidate text-entry tickets. Built-in Watch later and
 Liked videos cannot be renamed or deleted from these controls. Created-playlist
 responses offer a link to open the new playlist. PS5/live acceptance remains pending.
 
+Candidate `17ba784c` passed the PS5 build/package checks and was frozen with a
+123-file checksum manifest (eboot SHA-256 prefix `2578b354ccfbaf2d`). Native
+sanitizer cases cover picker paging, profile isolation, Unicode name limits,
+safe JSON serialization, create/rename/add/remove/delete and one-time submission.
+The shipping confirmation reader was rendered and inspected on the host.
+The companion's 17 Node tests include the pinned create-playlist endpoint and
+its explicit private-visibility payload. This establishes offline behavior;
+server visibility and controller behavior still require live/PS5 acceptance.
+
 ## Installation
 
 Use Node.js 20 or newer on the companion host. Install and build the single-file
@@ -101,6 +110,26 @@ screen when its continuation expires.
 An uncertain timed-out change is not reported as success; inspect the account
 before repeating it. The worker rejects an unconfirmed upstream mutation.
 Library networking is disabled in explicit offline fixture mode.
+
+## Offline account fixtures
+
+Starting the companion with `--fixtures fixtures/generated` also enables an
+in-memory library with Guest and two clearly labelled offline account profiles.
+It uses the same authenticated library and asynchronous-job APIs as normal mode.
+The accounts have 25 playlists to exercise paging, generated comments with
+long text and literal markup, top/newest sorting and a three-reply thread.
+Ratings, subscriptions, Watch later and playlist edits affect synthetic state
+only. Profiles have separate state; continuation/reply references are scoped,
+bounded and expire after two minutes. All changes reset when the server restarts.
+No Node worker, credentials or external networking are used. Real library/profile
+flags remain incompatible with fixture mode. These fixtures support repeatable
+UI acceptance; their success cannot prove YouTube account compatibility.
+
+The full Python suite passed 44 tests after this fixture integration. The fixture
+cases exercise the real authenticated API and jobs, guest rejection, all account
+mutations, Unicode playlist names, profile separation, comments/replies, repeat
+reads, reference expiry and bounded storage. Test transport checks reject any
+attempt to construct an external HTTP client in this mode.
 
 ## Offline evidence
 

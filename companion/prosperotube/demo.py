@@ -92,7 +92,10 @@ def create_demo_app(directory, **kwargs):
         return httpx.Response(status, headers=headers, stream=FileChunks(path, start, 0 if request.method == "HEAD" else end - start + 1))
     client = httpx.AsyncClient(transport=httpx.MockTransport(serve))
     extractor = FixtureExtractor()
-    app = create_app(extractor=extractor, http_client=client, **kwargs)
+    from .fixture_library import FixtureLibrary
+    if "library" in kwargs:
+        raise ValueError("Fixture mode uses only its in-memory library.")
+    app = create_app(extractor=extractor, http_client=client, library=FixtureLibrary(extractor), **kwargs)
     @app.middleware("http")
     async def fixture_base(request, call_next):
         extractor.base = kwargs.get("public_base") or str(request.base_url).rstrip("/")

@@ -50,6 +50,7 @@ def main():
         from .demo import create_demo_app
         app = create_demo_app(args.fixtures, token=token, public_base=args.public_base)
         print("OFFLINE FIXTURE MODE: generated media only; YouTube is not contacted.")
+        print("Account/library actions use synthetic offline profiles; changes reset on restart.")
     else:
         library = None
         if args.library_node:
