@@ -219,3 +219,12 @@ rendered on the host and was inspected; evidence:
 These establish offline implementation only; PS5 and real-account acceptance
 remain pending. The Node service source is unchanged, with 24 tests previously
 passing; account removal is serialized in the Python companion.
+
+Account-removal PS5 candidate `0e75c5ea` compiled 211 objects and passed linking,
+native container validation and PFS/ZIP packaging. Its clean build ID is
+`prosperotube-0e75c5ea_1009-2106`. The immutable 126-file candidate is stored at
+`/home/denis/.cache/prosperotube/candidates/0e75c5e-account-remove/PPSA99142`,
+with eboot SHA-256 prefix `862761034df260c3`. The Lapy helper and notices are
+packaged, and PS5 storage remains `/data/prosperotube`. Evidence:
+`.deps/account-remove-ps5-build.log`, `.deps/account-remove-freeze.log`.
+No console operations occurred in this stage; this candidate remains undeployed.
