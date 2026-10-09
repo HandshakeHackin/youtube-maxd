@@ -155,4 +155,10 @@ media, a non-block-aligned audio tail, pause/resume near EOF, and seek after EOF
 Check audible tail output, natural completion, and failure behavior separately.
 Host tests exercise the actual decoder/resampler and clock but mock AudioOut;
 two silence submissions are an output-retirement assumption to verify on PS5.
-Video/presentation drain and unknown-duration completion still need implementation.
+Revision `5b98769b` implements explicit decoder and final-frame retirement gates
+and completion without metadata duration. Verify `eof=1 complete=0` while buffered
+media remains, followed by `complete=1` only after the final audio and video tail.
+Test AVC and VP9, audio ending before video, pause near EOF, failed input and seek
+after EOF. Native flush errors or GPU fence/flip timeouts must not advance the
+queue. Host tests inject render retirement and mock Sony flush; these are not
+hardware proofs of the new gates.

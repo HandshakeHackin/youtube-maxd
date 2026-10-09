@@ -65,3 +65,39 @@ validation and PFS/ZIP packaging. Candidate `0af336d4-audio-drain` is frozen
 with 126 files and eboot SHA-256 prefix `374108a2168bc7cb`; its embedded build ID
 is `prosperotube-0af336d4_1009-1854`. Evidence:
 `.deps/audio-drain-ps5-build.log`. No console deployment or launch was performed.
+
+## Decoder EOF and final-frame retirement — 2026-10-09
+
+Revision `5b98769b` makes decoder EOF distinct from starvation and failure. The
+native flush resumes after reorder-buffer backpressure and requires a successful
+empty flush before reporting drained. Its unchanged generated flush body passed
+sanitizer cases for terminal EOF, backpressure, errors and bounded runaway output
+with Sony calls mocked. The actual EVO decode loop, FFmpeg AVC/VP9 decoders,
+presentation clock and locked frame snapshot passed sanitizer cases for buffered
+tail frames, unknown duration, final-frame retirement and display interval,
+audio/input failure gates, post-EOF decoder error, held-frame timestamps, and
+stale acknowledgments after seek/reopen. Evidence:
+`.deps/video-drain-snapshot-test.log`. Audio and provider regressions also passed
+in `.deps/video-drain-audio-regression.log` and
+`.deps/video-drain-provider-regression.log`.
+
+The renderer now acknowledges the snapshot's epoch/serial only after a successful
+video draw, GPU fence retirement and completed VideoOut flip. Automatic queue
+completion requires natural input EOF, audio drain, decoder drain and retirement
+of the final published frame for its display interval. It no longer relies on
+metadata duration. Development status exposes `complete=` separately from raw
+`eof=`. The host injects acknowledgment at the presentation boundary; actual Sony
+flush, audible AudioOut and GPU/VideoOut retirement still need PS5 acceptance.
+
+Follow-up `0a2167c` declares the seek reset through the playback header and latches
+publication/conversion failure so an unpublishable tail cannot complete playback.
+The strengthened actual-engine sanitizer case passed in
+`.deps/video-drain-publication-test.log`. The initial PS5 compile exposed the
+missing demux declaration; that failed build was not deployed.
+
+The corrected PS5 build passed compilation of 211 objects, linking, native
+container validation and PFS/ZIP packaging. Candidate `0a2167ce-video-drain` is
+frozen with 126 files and eboot SHA-256 prefix `bafde456039f717d`. Embedded build ID:
+`prosperotube-0a2167ce-dirty_1009-1916`; the suffix reflects pending validation
+documentation only, with shipping sources committed at `0a2167ce`. Evidence:
+`.deps/video-drain-ps5-fixed-build.log`.
