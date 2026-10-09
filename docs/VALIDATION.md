@@ -101,3 +101,9 @@ frozen with 126 files and eboot SHA-256 prefix `bafde456039f717d`. Embedded buil
 `prosperotube-0a2167ce-dirty_1009-1916`; the suffix reflects pending validation
 documentation only, with shipping sources committed at `0a2167ce`. Evidence:
 `.deps/video-drain-ps5-fixed-build.log`.
+
+The bounded storage/startup case's first console operation found a running title
+and stopped before service probes, upload, launch, close or input. Its owned lock
+was released. Evidence: `.deps/console/storage-0a2167ce/`. This candidate remains
+undeployed; Lapy storage/relaunch and the new playback gates remain unverified
+on PS5.
