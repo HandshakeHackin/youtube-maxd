@@ -57,6 +57,8 @@ def main():
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h",
         "ui/src/evo_keyboard.c",
+        "media/src/evo_audio_out.c", "media/include/evo_audio_out.h", "media/src/evo_demux.c", "media/include/evo_demux.h",
+        "media/src/evo_playback.c", "media/include/evo_playback.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -65,7 +67,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_subtitles.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_subtitles.h", "tube_audio_drain.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -162,6 +164,8 @@ def main():
     replace(host, "        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;", "        if (m_providerId == \"youtube\") {\n            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;")
     from discussion_overlay import apply_discussion_overlay
     apply_discussion_overlay(replace, player, host)
+    from audio_drain_overlay import apply_audio_drain_overlay
+    apply_audio_drain_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
