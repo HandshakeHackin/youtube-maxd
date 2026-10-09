@@ -91,7 +91,46 @@ int main(void) {
     p->list_catalog("auth:session", 0, list, NULL);
     assert(ok && rows == 2 && !strcmp(items[0].id, "library:profile:oauth_0123456789abcdef"));
     assert(!strcmp(items[0].subtitle, "Living room")); check_store();
-    p->list_catalog(items[0].id, 0, list, NULL); assert(rows == 8 && !count);
+    p->list_catalog(items[0].id, 0, list, NULL); assert(rows == 9 && !count);
+    assert(!strcmp(items[8].id, "account:remove"));
+    unsigned accounts_revision = tube_accounts_revision();
+    p->list_catalog("account:remove", 0, list, NULL);
+    assert(ok && rows == 1 && !count && strstr(items[0].overview, "oauth_0123456789abcdef"));
+    char apply[160]; snprintf(apply, sizeof apply, "%s", items[0].id);
+    assert(strstr(tube_comment_text(apply), "saved sign-in"));
+    p->list_catalog("library:profile:guest", 0, list, NULL);
+    p->list_catalog(apply, 0, list, NULL); assert(!ok && !count);
+    p->list_catalog("library:profile:oauth_0123456789abcdef", 0, list, NULL);
+    p->list_catalog("account:remove", 0, list, NULL);
+    snprintf(apply, sizeof apply, "%s", items[0].id);
+    p->list_catalog(apply, 0, list, NULL);
+    assert(count == 1 && strstr(pending[0].body, "profile_remove") && strstr(pending[0].body, "oauth_0123456789abcdef"));
+    job_done("{\"success\":true,\"profile\":\"wrong_profile\"}");
+    assert(!ok && tube_accounts_revision() == accounts_revision);
+    p->list_catalog(apply, 0, list, NULL); assert(ok && !count); /* one attempt */
+    p->list_catalog("account:remove", 0, list, NULL);
+    snprintf(apply, sizeof apply, "%s", items[0].id);
+    p->list_catalog(apply, 0, list, NULL);
+    job_done("{\"success\":true,\"profile\":\"oauth_0123456789abcdef\"}");
+    assert(ok && rows == 1 && !strcmp(items[0].title, "Account removed"));
+    assert(tube_accounts_revision() == accounts_revision + 1);
+    p->list_catalog("library", 0, list, NULL);
+    assert(rows == 8 && strstr(items[0].title, "guest"));
+    p->list_catalog(apply, 0, list, NULL); assert(!ok && !count);
+    p->list_catalog("account:remove", 0, list, NULL); assert(!ok && !count);
+    check_store();
+    /* Abandoned/externally removed accounts are reconciled by an authoritative list. */
+    p->list_catalog("library:profile:external", 0, list, NULL);
+    accounts_revision = tube_accounts_revision();
+    p->list_catalog("library:profiles", 0, list, NULL);
+    job_done("{}"); assert(!ok && tube_accounts_revision() == accounts_revision);
+    p->list_catalog("library:profiles", 0, list, NULL);
+    job_done("{\"profiles\":[{\"id\":\"external\",\"name\":\"External\"}]}");
+    assert(!ok && tube_accounts_revision() == accounts_revision);
+    p->list_catalog("library:profiles", 0, list, NULL);
+    job_done("{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"}]}");
+    assert(ok && tube_accounts_revision() == accounts_revision + 1);
+    p->list_catalog("library", 0, list, NULL); assert(rows == 8 && strstr(items[0].title, "guest"));
 
     /* Leaving before start POST completes cleans a late job using its original source/token. */
     p->list_catalog("auth:start", 0, list, NULL); assert(count == 1);
@@ -137,6 +176,6 @@ int main(void) {
     assert(!p->list_catalog("auth:unknown", 0, list, NULL) && !ok && !count);
     assert(calls > 10);
     unlink(evo_data_path("youtube.json")); assert(!rmdir(dir));
-    puts("native device sign-in: polling, delivery, cancellation, stale source, expiry and privacy passed");
+    puts("native account sign-in/removal: polling, confirmation, Guest reset, reconciliation, cancellation and privacy passed");
     return 0;
 }

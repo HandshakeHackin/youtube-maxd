@@ -18,24 +18,51 @@ class Extractor:
         self.extractor_args = extractor_args or {}
         self.js_runtimes = js_runtimes
         self.cache = {}
+        self.revoked = False
+        self.processes = set()
+
+    def ensure_active(self):
+        if self.revoked:
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
+
+    @staticmethod
+    def _kill_worker(process):
+        identity = getattr(process, "pid", None)
+        if os.name == "posix" and type(identity) is int and identity > 0:
+            try:
+                os.killpg(identity, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        elif process.returncode is None:
+            process.kill()
+
+    def invalidate(self):
+        self.revoked = True
+        self.cache.clear()
+        for process in tuple(self.processes):
+            self._kill_worker(process)
 
     async def extract(self, target: str, *, flat=False, start=1, end=24, _oauth_access_token=None):
+        self.ensure_active()
         key = (target, flat, start, end)
         cached = self.cache.get(key)
         if cached and cached[0] > time.monotonic():
             return cached[1]
         async with self.semaphore:
+            self.ensure_active()
             process = await asyncio.create_subprocess_exec(
                 sys.executable, "-m", "prosperotube.worker",
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
                 start_new_session=os.name == "posix")
-            payload = json.dumps({"target": target, "flat": flat, "start": start, "end": end,
+            self.processes.add(process)
+            try:
+                self.ensure_active()
+                payload = json.dumps({"target": target, "flat": flat, "start": start, "end": end,
                                   "cookies": self.cookies, "extractor_args": self.extractor_args,
                                   "cookie_header": self.cookie_header,
                                   "js_runtimes": self.js_runtimes,
                                   **({"oauth_access_token": _oauth_access_token} if _oauth_access_token else {})}).encode()
-            try:
                 async with asyncio.timeout(self.timeout):
                     process.stdin.write(payload)
                     await process.stdin.drain()
@@ -48,6 +75,7 @@ class Extractor:
                             raise ServiceError("response_too_large", "The video service response exceeded its size limit.")
                         chunks.append(chunk)
                     await process.wait()
+                self.ensure_active()
                 if process.returncode:
                     code = None
                     try:
@@ -70,15 +98,10 @@ class Extractor:
                 # yt-dlp starts a Node evaluator for signature/n challenges.
                 # Canceling only Python can leave that child evaluating forever.
                 # Retire our isolated WSL/Linux group even after Python exits.
-                identity = getattr(process, "pid", None)
-                if os.name == "posix" and type(identity) is int and identity > 0:
-                    try:
-                        os.killpg(identity, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                elif process.returncode is None:
-                    process.kill()
+                self.processes.discard(process)
+                self._kill_worker(process)
                 await process.wait()
+            self.ensure_active()
             if len(self.cache) >= 128:
                 self.cache.pop(next(iter(self.cache)))
             self.cache[key] = (time.monotonic() + (180 if flat else 30), result)
@@ -92,6 +115,11 @@ class ProfileExtractors:
         self.profile_source = profiles if callable(profiles) else lambda: profiles
         self.extractors = {"guest": guest}
         self.library = library
+
+    def invalidate_profile(self, identity):
+        resolver = self.extractors.pop(identity, None)
+        if resolver is not None and identity != "guest":
+            resolver.invalidate()
 
     def for_profile(self, profile):
         if profile == "guest":

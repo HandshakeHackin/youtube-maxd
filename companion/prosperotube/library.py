@@ -74,6 +74,31 @@ class LibraryService:
         self.pending = 0
         self.closed = False
         self.watch_states = {}
+        self.on_profile_removed = lambda identity: None
+
+    def has_profile(self, identity):
+        return identity == "guest" or any(p["id"] == identity for p in self.profiles)
+
+    async def _remove_profile(self, request):
+        identity = request.get("profile", "guest")
+        profile = next((p for p in self.profiles if p["id"] == identity), None)
+        if identity == "guest":
+            raise ServiceError("account_required", "Select an account profile first.", 400)
+        if profile is None:
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        if "oauth" not in profile or self.oauth_store is None:
+            raise ServiceError("profile_managed", "Remove this externally configured account from the companion profile configuration.", 409)
+        # Commit private storage first. Pre-commit failure preserves the profile,
+        # worker, caches and capabilities. No upstream account mutation occurs.
+        confirmed = self.oauth_store.remove(identity)
+        self.profiles = [p for p in self.profiles if p["id"] != identity]
+        self.profile_revision += 1
+        self.watch_states = {k: v for k, v in self.watch_states.items() if k[0] != identity}
+        self.on_profile_removed(identity)
+        await self._stop()  # retire all cached Node credentials/continuations
+        if not confirmed:
+            raise ServiceError("auth_storage_unconfirmed", "The account was removed, but disk synchronization was not confirmed. Restart the companion before adding accounts.", 507)
+        return {"api_version": 1, "success": True, "profile": identity}
 
     def add_oauth_profile(self, profile):
         from .device_auth import credentials_valid
@@ -192,6 +217,8 @@ class LibraryService:
                     if self.closed:
                         raise ServiceError("library_closed", "The library service has stopped.", 503)
                     owned = True
+                    if operation == "execute" and request.get("action") == "profile_remove":
+                        return await self._remove_profile(request)
                     self._watch_state(request)
                     await self._start()
                     watch_state = self._watch_state(request, create=True)

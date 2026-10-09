@@ -46,7 +46,7 @@ class LibraryRequest(BaseModel):
                     "watch_later", "playlist", "comments", "replies", "continue", "like", "dislike",
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
-                    "watch_later_remove", "watch_progress"]
+                    "watch_later_remove", "watch_progress", "profile_remove"]
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
@@ -86,7 +86,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         finally:
             if device_auth is not None:
                 device_auth.close()
-            tasks = [job[1] for job in app.state.jobs.values()]
+            tasks = list({job[1] for job in app.state.jobs.values()} | app.state.retired_tasks)
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -105,8 +105,26 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.sponsorblock = sponsorblock
     app.state.sponsor_cache = {}
     app.state.jobs = {}
+    app.state.retired_tasks = set()
     app.state.library = library
     app.state.device_auth = device_auth
+
+    def profile_removed(identity):
+        if hasattr(app.state.extractor, "invalidate_profile"):
+            app.state.extractor.invalidate_profile(identity)
+        app.state.sessions.invalidate_profile(identity)
+        if app.state.device_auth is not None:
+            app.state.device_auth.forget_profile(identity)
+        current = asyncio.current_task()
+        for key, (_, task) in list(app.state.jobs.items()):
+            if task is not current and getattr(task, "profile", None) == identity:
+                task.cancel()
+                if not task.done():
+                    app.state.retired_tasks.add(task)
+                    task.add_done_callback(app.state.retired_tasks.discard)
+                del app.state.jobs[key]
+    if library is not None and hasattr(library, "on_profile_removed"):
+        library.on_profile_removed = profile_removed
 
     @app.exception_handler(ServiceError)
     async def service_error(_request, exc):
@@ -137,6 +155,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         return app.state.public_base or str(request.base_url).rstrip("/")
 
     def resolver(profile):
+        if library is not None and hasattr(library, "has_profile") and not library.has_profile(profile):
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
         extractor = app.state.extractor
         if hasattr(extractor, "for_profile"):
             return extractor.for_profile(profile)
@@ -212,6 +232,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def resolve(payload: ResolveRequest, request: Request):
         video_id(payload.id)
         info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}")
+        resolver(payload.profile)  # profile may have been removed while awaiting extraction
         return app.state.sessions.create(info, payload, base(request))
 
     def cancel_auth_result(task):
@@ -256,6 +277,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 elif payload.action == "resolve":
                     identifier = video_id(payload.playback.id)
                     info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
+                    resolver(payload.playback.profile)
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":
                     result = await app.state.library.execute(payload.library.model_dump())
@@ -270,6 +292,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     identifier = video_id(payload.id)
                     info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
                     result = {"item": item(info).model_dump(), "chapters": info.get("chapters") or []}
+                if payload.action == "auth" and isinstance(result, dict) and result.get("state") == "authorized":
+                    asyncio.current_task().profile = result.get("profile", {}).get("id", "guest")
                 return {"state": "done", "result": result.model_dump() if hasattr(result, "model_dump") else result}
             except ServiceError as exc:
                 return {"state": "failed", "error": {"code": exc.code, "message": exc.message}}
@@ -279,6 +303,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         task = asyncio.create_task(work())
         task.auth_start = payload.action == "auth" and payload.auth.action == "start"
         task.auth_delivered = False
+        task.profile = (payload.playback.profile if payload.action == "resolve" else
+                        payload.library.profile if payload.action == "library" else payload.profile)
         app.state.jobs[identifier] = (now + 120, task)
         return {"api_version": 1, "job": identifier, "state": "pending"}
 
@@ -360,6 +386,13 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             lines.append(line)
         return "\n".join(lines) + "\n"
 
+    def relay_profile(session):
+        # Account removal stops even a long stream whose capability has since
+        # expired/pruned. Do not turn the existing start-request TTL into a
+        # cutoff for a healthy, already-open media response.
+        if library is not None and hasattr(library, "has_profile") and not library.has_profile(session.profile):
+            raise ServiceError("expired_session", "Playback information expired. Select the video again to refresh it.", 410)
+
     @app.api_route("/media/{session_token}/{key}", methods=["GET", "HEAD"])
     async def media(session_token: str, key: str, request: Request):
         session = app.state.sessions.get(session_token)
@@ -377,6 +410,11 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 raise ServiceError("invalid_range", "Only a single byte range is supported.", 416)
             headers["Range"] = byte_range
         reply, final_url = await upstream(remote.url, headers, request.method)
+        try:
+            relay_profile(session)
+        except ServiceError:
+            await reply.aclose()
+            raise
         if reply.status_code in (401, 403, 410):
             await reply.aclose()
             app.state.sessions.sessions.pop(session_token, None)
@@ -388,9 +426,11 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         content_type = reply.headers.get("content-type", remote.mime)
         if key.endswith(".srt") and request.method == "GET":
             raw = await bounded(reply, 2 * 1024 * 1024)
+            relay_profile(session)
             return Response(vtt_to_srt(raw), media_type="application/x-subrip", headers={"Cache-Control": "no-store"})
         if request.method == "GET" and ("mpegurl" in content_type or final_url.split("?")[0].endswith(".m3u8")):
             raw = await bounded(reply, 2 * 1024 * 1024)
+            relay_profile(session)
             try:
                 rewritten = hls_rewrite(raw.decode("utf-8-sig"), final_url, session, base(request))
             except UnicodeError:
@@ -404,6 +444,10 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         async def body():
             try:
                 async for chunk in reply.aiter_raw():
+                    try:
+                        relay_profile(session)
+                    except ServiceError:
+                        return
                     yield chunk
             finally:
                 await reply.aclose()

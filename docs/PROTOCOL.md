@@ -71,3 +71,15 @@ and video resolution through a TV-only extraction adapter. Token preparation is
 an internal worker operation and cannot be requested through HTTP. All public
 resolve/job responses retain the existing capability-only media protocol. Real
 account and TV signature compatibility acceptance remain pending.
+
+Account removal uses the existing authenticated library endpoint or library job:
+`{"action":"profile_remove","profile":"oauth_0123456789abcdef"}`.
+Confirmed results contain `api_version: 1`, `success: true` and the same `profile`.
+The companion removes that app-signed-in profile from private storage and runtime,
+invalidates its resolver/capabilities/jobs and retained authorization results,
+then retires the cached Node worker. The removal job retains its own result.
+Guest is rejected with `account_required`, missing profiles with `unknown_profile`,
+and externally configured cookie accounts with `profile_managed`.
+`auth_storage_unconfirmed` means replacement occurred but durable synchronization
+was not confirmed; runtime credentials still retire. No upstream account mutation
+or token-revocation request is sent by this operation.

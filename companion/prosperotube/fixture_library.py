@@ -27,6 +27,10 @@ class FixtureLibrary:
                               "videos": [VIDEOS[i % 3]], "privacy": "PRIVATE"} for i in range(25)},
                 "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}}
         self.watches = {}
+        self.on_profile_removed = lambda identity: None
+
+    def has_profile(self, identity):
+        return identity in self.profiles
 
     def _reference(self, owner, kind, items):
         now = self.clock()
@@ -66,6 +70,15 @@ class FixtureLibrary:
                     "account_configured": k != "guest"} for k, v in self.profiles.items()]}
         if owner not in self.accounts:
             raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        if action == "profile_remove":
+            if owner == "guest":
+                raise ServiceError("account_required", "Select an account profile first.", 400)
+            del self.accounts[owner]
+            del self.profiles[owner]
+            self.references = {k: v for k, v in self.references.items() if v["owner"] != owner}
+            self.watches = {k: v for k, v in self.watches.items() if k[0] != owner}
+            self.on_profile_removed(owner)
+            return {"api_version": 1, "success": True, "profile": owner}
         if action in PRIVATE and owner == "guest":
             raise ServiceError("account_required", "Select an offline account profile.", 401)
         if action in {"continue", "replies"}:

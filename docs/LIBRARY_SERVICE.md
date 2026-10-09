@@ -371,3 +371,42 @@ handled one synthetic signature and one synthetic `n` input. See
 [the probe command](BUILD.md) and [validation evidence](VALIDATION.md).
 This establishes evaluator compatibility with that public script, not account
 authorization, real signed media URLs, all TV variants or PS5 playback.
+
+## Remove an account from ProsperoTube
+
+Accounts & library > Remove selected account opens a profile-bound review.
+Cross submits one `profile_remove` library job; Circle returns without submitting.
+Confirmation must echo the removed profile. Success resets the selected profile,
+history/queue handoff and browser stack to Guest/the refreshed account list.
+Invalid confirmations preserve selection; replay and profile/source changes do
+not resubmit. An authoritative profile list also reconciles an account removed
+elsewhere, while malformed lists cannot erase selection.
+
+The companion serializes removal with library operations, commits the private
+OAuth credential file, then removes the live profile and cached Node worker.
+Profile resolver caches and running evaluator processes are invalidated, queued
+or completed jobs for that profile are discarded, retained authorization results
+forget it, and its relay/caption/HLS capabilities expire. Active relay streams
+stop delivering subsequent chunks and close upstream responses. Guest and other
+profiles' capabilities remain available. Node's temporary continuation/tracking
+contexts are reset; existing uncertainty guards remain in effect.
+
+An owned-lock, snapshot or pre-commit write failure keeps the live account.
+If the file replacement committed but directory sync/cleanup failed, runtime
+credentials are still invalidated and `auth_storage_unconfirmed` reports the
+durability uncertainty. No success is claimed for that result. Restart the
+companion before adding accounts after this error.
+
+This matches the pinned SmartTube service's local
+[account removal](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/internal/YouTubeAccountManager.java#L168).
+It does not mutate YouTube playlists or revoke the Google account globally.
+Accounts added through the app are removable; externally configured cookie
+profiles report `profile_managed` and are removed from companion configuration.
+Console-local history/favorites/queue records remain scoped to their prior
+profile ID. Fixture accounts support the same removal API in memory.
+
+Offline tests include a real bundled Node worker with fetch disabled, private
+store reload, failure/foreign-write preservation, removal jobs keeping their
+own confirmation, peer isolation, stale authorization/jobs, real resolver-child
+retirement, active streaming shutdown and native one-time confirmation. PS5 and
+real-account acceptance remain pending; see [validation](VALIDATION.md).

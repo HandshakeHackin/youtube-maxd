@@ -79,6 +79,7 @@ class OAuthProfiles:
         except FileExistsError:
             raise ServiceError("auth_storage_busy", "The account credential store is in use.", 409) from None
         temporary = None
+        committed = False
         try:
             with os.fdopen(lock_descriptor, "w") as lock:
                 lock.write(lock_token)
@@ -95,6 +96,7 @@ class OAuthProfiles:
                 os.chmod(temporary, 0o600)
                 stream.write(data); stream.flush(); os.fsync(stream.fileno())
             os.replace(temporary, self.path)
+            committed = True
             if hasattr(os, "O_DIRECTORY"):
                 directory_descriptor = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
                 try:
@@ -102,6 +104,9 @@ class OAuthProfiles:
                 finally:
                     os.close(directory_descriptor)
         finally:
+            if committed:
+                self.snapshot = data
+                self.profiles = profiles
             if temporary is not None and os.path.exists(temporary):
                 os.unlink(temporary)
             if self.lock_path.read_text() == lock_token:
@@ -125,6 +130,18 @@ class OAuthProfiles:
         profiles = [({**p, "oauth": credentials} if p["id"] == identity else p) for p in self.profiles]
         self._save(profiles)
 
+    def remove(self, identity):
+        if not any(p["id"] == identity for p in self.profiles):
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        remaining = [p for p in self.profiles if p["id"] != identity]
+        try:
+            self._save(remaining)
+        except OSError:
+            if self.profiles == remaining:
+                return False  # replace committed; directory sync/cleanup unconfirmed
+            raise ServiceError("auth_storage", "The account could not be removed from private storage.", 507) from None
+        return True
+
 
 class DeviceAuth:
     def __init__(self, execute, store, register, capacity, *, clock=time.monotonic):
@@ -133,6 +150,12 @@ class DeviceAuth:
         self.sessions = {}
         self.active = None
         self.closed = False
+
+    def forget_profile(self, identity):
+        for session in self.sessions.values():
+            if session.get("profile", {}).get("id") == identity:
+                session.pop("profile", None)
+                session["state"] = "canceled"
 
     def _get(self, identity):
         session = self.sessions.get(identity)

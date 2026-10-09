@@ -148,6 +148,15 @@ int main(int argc, char** argv) {
     assert(!doc->GetElementById("tube-footer")->IsVisible());
     assert(doc->GetElementById("tube-discussion-text")->IsVisible());
     capture(context, renderer, pixels, output / "playlist-confirmation.ppm");
+    model.breadcrumb = "Accounts / Remove selected account";
+    model.rows[0].title = model.selected_title = "Remove selected account";
+    model.selected_subtitle = "Cross confirms; Circle returns without removing it";
+    model.rows[0].subtitle = model.selected_subtitle;
+    model.selected_overview = "Profile: Living room. Remove this account and its saved sign-in from ProsperoTube. Continue as Guest; other accounts remain available.";
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    assert(doc->GetElementById("tube-review-footer")->IsVisible());
+    assert(doc->GetElementById("tube-discussion-text")->IsVisible());
+    capture(context, renderer, pixels, output / "account-removal.ppm");
     model.auth = true; model.breadcrumb = "Accounts / YouTube sign-in";
     model.rows.clear();
     const char* auth_titles[] = {"ABCD-EFGH", "https://www.google.com/device", "Cancel sign-in"};

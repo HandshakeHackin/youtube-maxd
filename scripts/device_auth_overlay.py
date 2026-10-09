@@ -11,6 +11,15 @@ def apply_device_auth_overlay(replace, player):
     m_model.review = m_provider_id == "youtube" && parent_id &&''')
     replace(ui, '    if (!IsOpen()) return;\n    evo_bundle_poll();', '''    if (!IsOpen()) return;
     static unsigned auth_revision = 0;
+    static unsigned accounts_revision = 0;
+    if (m_provider_id == "youtube" && !m_model.loading &&
+        accounts_revision != tube_accounts_revision()) {
+        accounts_revision = tube_accounts_revision();
+        m_stack.clear(); m_crumbs.clear();
+        m_stack.push_back("library:profiles"); m_crumbs.push_back("Accounts");
+        m_page = 0;
+        RequestPage(m_stack.back().c_str(), 0);
+    }
     if (m_provider_id == "youtube" && !m_stack.empty() &&
         m_stack.back().rfind("auth:", 0) == 0 && !m_model.loading &&
         auth_revision != tube_auth_revision()) {
@@ -29,4 +38,4 @@ def apply_device_auth_overlay(replace, player):
 {
     if (m_provider_id == "youtube") tube_cancel();''')
     replace(ui, '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0);',
-            '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0 || std::strncmp(parent_id, "auth:", 5) == 0);')
+            '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0 || std::strncmp(parent_id, "auth:", 5) == 0 || std::strcmp(parent_id, "account:remove") == 0);')

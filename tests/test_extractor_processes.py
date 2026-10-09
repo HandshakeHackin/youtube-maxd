@@ -13,7 +13,7 @@ from prosperotube.models import ServiceError
 
 
 @pytest.mark.skipif(os.name != "posix" or not Path("/proc").is_dir(), reason="WSL/Linux process groups")
-@pytest.mark.parametrize("mode", ["cancel", "timeout", "success"])
+@pytest.mark.parametrize("mode", ["cancel", "timeout", "success", "invalidate"])
 def test_real_worker_reaps_live_evaluator_descendant(tmp_path, monkeypatch, mode):
     marker = tmp_path / "child.json"
     worker = tmp_path / "worker.py"
@@ -51,6 +51,11 @@ def test_real_worker_reaps_live_evaluator_descendant(tmp_path, monkeypatch, mode
                 task.cancel()
                 with pytest.raises(asyncio.CancelledError):
                     await task
+            elif mode == "invalidate":
+                resolver.invalidate()
+                with pytest.raises(ServiceError) as error:
+                    await task
+                assert error.value.code == "unknown_profile" and resolver.revoked
             elif mode == "timeout":
                 with pytest.raises(ServiceError) as error:
                     await task
@@ -71,6 +76,7 @@ def test_real_worker_reaps_live_evaluator_descendant(tmp_path, monkeypatch, mode
                         break
                     await asyncio.sleep(.01)
             assert not resolver.semaphore.locked()
+            assert not resolver.processes
             assert bool(resolver.cache) == (mode == "success")
         finally:
             if not task.done():

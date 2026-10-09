@@ -21,6 +21,7 @@ class Session:
     token: str
     video_id: str
     deadline: float
+    profile: str = "guest"
     tracks: dict[str, Remote] = field(default_factory=dict)
     manifests: dict[str, str] = field(default_factory=dict)
 
@@ -67,6 +68,9 @@ class Sessions:
         self.sessions = {}
         self.max_sessions, self.ttl = max_sessions, ttl
 
+    def invalidate_profile(self, identity):
+        self.sessions = {k: v for k, v in self.sessions.items() if v.profile != identity}
+
     def get(self, token):
         session = self.sessions.get(token)
         if not session or session.deadline <= time.monotonic():
@@ -81,7 +85,7 @@ class Sessions:
                 del self.sessions[key]
         if len(self.sessions) >= self.max_sessions:
             raise ServiceError("busy", "The companion has too many active playback sessions. Retry shortly.", 503)
-        session = Session(secrets.token_urlsafe(24), request.id, now + self.ttl)
+        session = Session(secrets.token_urlsafe(24), request.id, now + self.ttl, profile=request.profile)
         prefix = f"{base.rstrip('/')}/media/{session.token}"
         formats = info.get("formats") or []
         live = info.get("is_live") is True

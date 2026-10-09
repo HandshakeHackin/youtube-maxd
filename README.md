@@ -30,6 +30,10 @@ Circle cancels pending sign-in. Its provider flow and layout have offline covera
 with PS5/real-account acceptance pending. OAuth profiles now use a TV-only resolver
 adapter and private token-refresh bridge, with offline format/pagination coverage.
 Live account playback and TV signature challenges remain unverified.
+Accounts & library > Remove selected account reviews a one-time removal of an
+app-signed-in account. It clears the companion's saved credentials and account
+requests/playback links, then returns to Guest. Local profile lists stay on the
+PS5; externally configured cookie profiles are managed in companion configuration.
 Casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 

@@ -11,6 +11,7 @@ void tube_poll(void);
 void tube_cancel(void);
 void tube_auth_cancel(void);
 unsigned tube_auth_revision(void);
+unsigned tube_accounts_revision(void);
 int tube_toggle_favorite(const char *id);
 int tube_toggle_queue(const char *id);
 int tube_toggle_subscription(const char *id);

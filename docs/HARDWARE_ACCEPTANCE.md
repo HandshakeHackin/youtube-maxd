@@ -148,11 +148,20 @@ or malformed state files must remain unchanged. Keep copies of the test files
 and distinguish this console-local state from YouTube account history.
 
 The device authorization backend and native sign-in view are implemented with
-offline coverage. Real authorization, TV account catalogs, sign-out and OAuth
+offline coverage. Real authorization, TV account catalogs, account removal and OAuth
 playback acceptance remain pending. Comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part
 of the full-parity goal and require implementation and explicit acceptance cases.
+
+Account removal now has offline implementation/coverage. On PS5, verify the
+selected app-signed-in account is reviewed, submitted once, removed from the
+refreshed profile list and replaced by Guest. Circle before confirmation must
+retain it. Old playback links and authorization/job results must no longer work;
+another account and Guest must remain usable, and the removed sign-in must stay
+absent after restarting the companion. Check profile/source changes during the
+review and pending job. Externally configured cookie accounts remain managed by
+the companion configuration; console-local lists retain their previous owner.
 
 The audio-tail revision `0af336d` needs a bounded hardware case with short AAC
 media, a non-block-aligned audio tail, pause/resume near EOF, and seek after EOF.

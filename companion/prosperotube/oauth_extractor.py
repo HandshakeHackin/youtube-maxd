@@ -19,10 +19,18 @@ class OAuthExtractor(Extractor):
         self.catalogs = {}
         self.catalog_lock = asyncio.Lock()
 
+    def invalidate(self):
+        super().invalidate()
+        self.catalogs.clear()
+
     async def _private(self, request):
-        return await self.library.execute({**request, "profile": self.profile}, operation="playback")
+        self.ensure_active()
+        result = await self.library.execute({**request, "profile": self.profile}, operation="playback")
+        self.ensure_active()
+        return result
 
     async def extract(self, target, *, flat=False, start=1, end=24):
+        self.ensure_active()
         try:
             async with asyncio.timeout(self.timeout):
                 return await self._extract_authorized(target, flat=flat, start=start, end=end)

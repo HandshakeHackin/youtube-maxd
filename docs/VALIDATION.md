@@ -197,3 +197,25 @@ and `.deps/tv-signature-public-probe.log`. This is compatibility evidence for
 that script with synthetic inputs, not real signed-media or account playback.
 
 - 2026-10-09 | Lapy | a07e1733 | PS5 6.02 | no-run: first title check busy; no further operations; owned lock released | .deps/console/storage-a07e1733-second/ | storage/startup acceptance
+
+Account removal: 109 Python tests passed. Coverage includes private store reload,
+foreign lock/write preservation, post-replacement directory-sync uncertainty,
+real bundled Node retirement with fetch disabled, resolver caches and real child
+process invalidation, queued extraction rejection, stale authorization/job
+results, removal jobs retaining their own confirmation, relay capability/active
+stream invalidation without an open-stream TTL regression, peer/Guest availability,
+fixture API behavior and shutdown reaping of discarded pending jobs.
+Evidence: `.deps/account-remove-full-python.log`,
+`.deps/account-remove-verified-focused-python.log`.
+
+Native ASan/UBSan cases passed for full review, one-time removal, profile-bound
+confirmation, mismatching confirmations, Guest reset, persisted selection and
+authoritative missing-profile reconciliation. Malformed/Guest-missing lists
+preserve selection. Existing provider regressions passed. Evidence:
+`.deps/account-remove-native-verified-test.log`,
+`.deps/account-remove-native-regression.log`. The shipping RML removal review
+rendered on the host and was inspected; evidence:
+`.deps/account-remove-native-preview.log`, `output/preview/account-removal.png`.
+These establish offline implementation only; PS5 and real-account acceptance
+remain pending. The Node service source is unchanged, with 24 tests previously
+passing; account removal is serialized in the Python companion.

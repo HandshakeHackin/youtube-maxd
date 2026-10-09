@@ -80,6 +80,9 @@ static char g_library_profile[33] = "guest", g_library_parent[160];
 static char g_library_cursors[LIBRARY_PAGES][65];
 static struct { char id[160], content[16385]; } g_comments[LOCAL_PAGE];
 static unsigned g_account_serial;
+static unsigned g_accounts_revision;
+unsigned tube_accounts_revision(void) { return g_accounts_revision; }
+static void account_removed(void);
 enum { AUTH_IDLE, AUTH_STARTING, AUTH_PENDING, AUTH_AUTHORIZED, AUTH_CANCELED,
        AUTH_EXPIRED, AUTH_DENIED, AUTH_FAILED };
 static struct { int state; unsigned serial, revision;
@@ -307,6 +310,22 @@ static void save(void) {
         else tube_set_error("Local library could not be saved. Check the ProsperoTube data directory.");
     }
     free(body);
+}
+
+static void account_removed(void) {
+    if (!strcmp(g_auth.profile, g_library_profile)) {
+        unsigned serial = g_auth.serial + 1, revision = g_auth.revision + 1;
+        memset(&g_auth, 0, sizeof g_auth);
+        g_auth.serial = serial; g_auth.revision = revision; g_auth.state = AUTH_CANCELED;
+    }
+    copy(g_library_profile, sizeof g_library_profile, "guest");
+    watch_reset(1);
+    g_next_id[0] = 0; g_next_profile[0] = 0;
+    memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
+    memset(g_comments, 0, sizeof g_comments);
+    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
+    save();
+    ++g_accounts_revision;
 }
 
 static void parse_item(evo_provider_item_t *item, const cJSON *o) {
@@ -755,9 +774,14 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (!boolean(result, "success")) {
             cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
         }
+        int removing = !strcmp(g_account_intent.action, "profile_remove");
+        if (removing && strcmp(str(result, "profile"), g_account_intent.profile)) {
+            cJSON_Delete(root); tube_set_error("The companion did not confirm removal of this profile."); complete(r, 0); return;
+        }
         if (r->intent == g_account_intent.serial) g_account_intent.state = 2;
         evo_provider_item_t item;
-        folder(&item, "account:notice", "YouTube account updated", "The companion confirmed this change");
+        folder(&item, "account:notice", removing ? "Account removed" : "YouTube account updated",
+            removing ? "Select another profile or continue as Guest" : "The companion confirmed this change");
         if (!strcmp(g_account_intent.action, "playlist_create") && valid_playlist(str(result, "playlist_id"))) {
             snprintf(item.id, sizeof item.id, "library:playlist:%s", str(result, "playlist_id"));
             copy(item.title, sizeof item.title, "Open created playlist");
@@ -765,6 +789,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         snprintf(item.overview, sizeof item.overview, "Operation: %s | Profile: %s. Circle returns to the video browser.",
             g_account_intent.action, g_account_intent.profile);
         evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+        if (removing) account_removed();
         memset(r, 0, sizeof *r); if (cb) cb(1, &item, 1, 0, data);
         cJSON_Delete(root); return;
     }
@@ -772,11 +797,22 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (!items) { cJSON_Delete(root); complete(r, 0); return; }
     int n = 0; cJSON *o;
     if (r->kind == 4) {
-        cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "profiles")) {
+        const cJSON *profiles = cJSON_GetObjectItemCaseSensitive(result, "profiles");
+        if (!cJSON_IsArray(profiles)) {
+            free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
+        }
+        int selected = !strcmp(g_library_profile, "guest"), guest = 0;
+        cJSON_ArrayForEach(o, profiles) {
             if (n >= LOCAL_PAGE || !valid_profile(str(o, "id"))) continue;
+            if (!strcmp(str(o, "id"), "guest")) guest = 1;
+            if (!strcmp(str(o, "id"), g_library_profile)) selected = 1;
             char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
             folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? "Account configured on the companion" : "Browse as guest");
         }
+        if (!guest) {
+            free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
+        }
+        if (!selected) account_removed();
         evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
         memset(r, 0, sizeof *r);
         if (cb) cb(1, items, n, 0, data);
@@ -987,7 +1023,22 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         cb(1, out, n, 0, ud); return 1;
     }
     if (parent && !strncmp(parent, "account:", 8)) {
-        if (!strncmp(parent, "account:menu:", 13) && valid_id(parent + 13)) {
+        if (!strcmp(parent, "account:remove")) {
+            if (!strcmp(g_library_profile, "guest")) {
+                tube_set_error("Select an account profile first."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            memset(&g_account_intent, 0, sizeof g_account_intent);
+            memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
+            g_account_intent.serial = ++g_account_serial;
+            copy(g_account_intent.action, sizeof g_account_intent.action, "profile_remove");
+            copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
+            char id[80]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
+            folder(&out[n++], id, "Remove selected account", "Cross confirms; Circle returns without removing it");
+            snprintf(out[0].overview, sizeof out[0].overview,
+                "Profile: %s. Remove this account and its saved sign-in from ProsperoTube. Continue as Guest; other accounts remain available.", g_library_profile);
+            copy(g_comments[0].id, sizeof g_comments[0].id, id);
+            copy(g_comments[0].content, sizeof g_comments[0].content, out[0].overview);
+        } else if (!strncmp(parent, "account:menu:", 13) && valid_id(parent + 13)) {
             if (!strcmp(g_library_profile, "guest")) {
                 folder(&out[n++], "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
             } else {
@@ -1089,6 +1140,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "library:playlists", "Your playlists", "Playlists from the selected account");
         folder(&out[n++], "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
         folder(&out[n++], "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
+        if (strcmp(g_library_profile, "guest"))
+            folder(&out[n++], "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
         if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
