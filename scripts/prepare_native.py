@@ -71,6 +71,12 @@ def main():
         shutil.copyfile(ROOT / "native" / name, WORK / player / "assets/rml" / name)
     for name in ("icon0.png", "pic0.png", "pic1.png"):
         shutil.copyfile(ROOT / "native/branding" / name, WORK / player / "sce_sys" / name)
+    notices = WORK / player / "assets/prosperotube-notices"
+    notices.mkdir(exist_ok=True)
+    for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
+        shutil.copyfile(ROOT / name, notices / name)
+    shutil.copyfile(ROOT / "native/vendor/cJSON/LICENSE", notices / "cJSON-MIT.txt")
+    shutil.copyfile(EVO / "COPYRIGHT.md", notices / "EVO-COPYRIGHT.md")
     replace(player + "Makefile", "    addons/src/provider_stremio.c", "    addons/src/provider_stremio.c \\\n    addons/src/tube_provider.c")
     replace(player + "addons/src/evo_provider_mgr.c", "extern const evo_provider_t evo_provider_iptv;", "extern const evo_provider_t evo_provider_youtube;\nextern const evo_provider_t evo_provider_iptv;")
     replace(player + "addons/src/evo_provider_mgr.c", "    &evo_provider_iptv,\n    &evo_provider_xtream,\n    &evo_provider_emby,\n    &evo_provider_jellyfin,     /* native screens; the web UI as an extra */\n    &evo_provider_stremio,      /* Stremio addons, native (provider_stremio.c) */\n    &evo_provider_nuvio,        /* web UI only - Stremio addons, debrid */", "    &evo_provider_youtube,")
