@@ -61,7 +61,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_subtitles.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     for name in ("cJSON.c", "cJSON.h"):
@@ -107,8 +107,9 @@ def main():
     replace(host, "    if (!kit_drew)\n        evo_rmlui_render_nav_overlay(framebuffer, width, height);", "    if (!kit_drew && m_providerId != \"youtube\")\n        evo_rmlui_render_nav_overlay(framebuffer, width, height);")
     # Native caption sidecar is complete before the playback worker starts.
     path = player + "core/src/services/PlaybackController.cpp"
-    replace(path, '#include "evo_provider.h"', '#include "evo_provider.h"\n#include "tube_provider.h"')
-    replace(path, "    prospero_subtitle_load_for_media(filePath.c_str());", "    prospero_subtitle_load_for_media(m_source.provider == \"youtube\" && *tube_caption_media_path()\n        ? tube_caption_media_path() : filePath.c_str());")
+    replace(path, '#include "evo_provider.h"', '#include "evo_provider.h"\n#include "tube_provider.h"\n#include "tube_subtitles.h"')
+    replace(path, "    prospero_subtitle_load_for_media(filePath.c_str());", "    const int tube_cues = prospero_subtitle_load_for_media(m_source.provider == \"youtube\" && *tube_caption_media_path()\n        ? tube_caption_media_path() : filePath.c_str());")
+    replace(path, "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file", "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file\n    if (m_source.provider == \"youtube\") tube_subtitle_activate(tube_cues);")
     replace(path, "void PlaybackController::jumpChapter(int direction) {", "void PlaybackController::jumpChapter(int direction) {\n    if (m_source.provider == \"youtube\") {\n        double target = tube_chapter_target(getPositionSeconds(), direction);\n        if (target >= 0) { seekTo(clampScrubTarget(target)); return; }\n    }")
     path = player + "core/src/screens/PlayerScreen.cpp"
     replace(path, '#include "evo/screens/PlayerScreen.hpp"', '#include "evo/screens/PlayerScreen.hpp"\n#include "tube_provider.h"')
