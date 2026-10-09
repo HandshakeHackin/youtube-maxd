@@ -59,3 +59,9 @@ queue completion additionally requires audio drain. These tests mock AudioOut
 and do not prove audible hardware output, video/presentation drain, or completion
 of unknown-duration streams. Those remain explicit acceptance and implementation
 gaps; the full SmartTube parity goal remains open.
+
+The PS5 build passed compilation of 211 objects, linking, native container
+validation and PFS/ZIP packaging. Candidate `0af336d4-audio-drain` is frozen
+with 126 files and eboot SHA-256 prefix `374108a2168bc7cb`; its embedded build ID
+is `prosperotube-0af336d4_1009-1854`. Evidence:
+`.deps/audio-drain-ps5-build.log`. No console deployment or launch was performed.
