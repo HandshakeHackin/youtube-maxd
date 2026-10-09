@@ -63,4 +63,5 @@ Deleting an in-flight sign-in job invalidates its operation before canceling the
 worker. Deleting or expiring an undelivered completed start also cancels its
 orphaned session. Once GET delivers a start result, the caller owns the session:
 deleting that completed job leaves authorization pending until explicit session
-cancellation or expiry. Native sign-in screens remain pending.
+cancellation or expiry. The native account browser now uses this job flow;
+PS5 and real-account acceptance remain pending.

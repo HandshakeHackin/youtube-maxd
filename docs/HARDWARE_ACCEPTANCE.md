@@ -145,7 +145,9 @@ fixture must migrate to Guest with its original local data preserved; unsupporte
 or malformed state files must remain unchanged. Keep copies of the test files
 and distinguish this console-local state from YouTube account history.
 
-Device authorization, comment posting, casting, HDR, AV1 and standalone
+The device authorization backend and native sign-in view are implemented with
+offline coverage. Real authorization, TV account catalogs, sign-out and OAuth
+playback acceptance remain pending. Comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part
 of the full-parity goal and require implementation and explicit acceptance cases.
@@ -162,3 +164,14 @@ Test AVC and VP9, audio ending before video, pause near EOF, failed input and se
 after EOF. Native flush errors or GPU fence/flip timeouts must not advance the
 queue. Host tests inject render retirement and mock Sony flush; these are not
 hardware proofs of the new gates.
+
+Device sign-in acceptance requires an idle-first console case using the paired
+companion with its library worker enabled. Open Accounts & library > Sign in to
+YouTube; verify the code and URL, automatic polling and stable focus. Test Circle
+and explicit Cancel, expiry, source change during initiation and closing the
+browser while a poll is pending. No canceled/late response may select a profile.
+For successful authorization, the user must enter the displayed code on their
+phone/computer, verify the authorized profile becomes selectable and restart the
+companion to check persistence/refresh. Distinguish public initiation from real
+account authorization. OAuth playback currently reports an explicit unsupported
+context; implementing and verifying its TV stream path is still required.

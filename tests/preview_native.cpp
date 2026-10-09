@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     BIND(provider_name); BIND(breadcrumb); BIND(page_info); BIND(status); BIND(has_error);
     BIND(loading); BIND(empty); BIND(rows); BIND(has_selected); BIND(selected_title);
     BIND(selected_subtitle); BIND(selected_resume); BIND(selected_overview);
-    BIND(discussion); BIND(review);
+    BIND(discussion); BIND(review); BIND(auth);
 #undef BIND
     Rml::String activated;
     constructor.BindEventCallback("activate", [&activated](Rml::DataModelHandle, Rml::Event& event, const Rml::VariantList&) {
@@ -148,6 +148,29 @@ int main(int argc, char** argv) {
     assert(!doc->GetElementById("tube-footer")->IsVisible());
     assert(doc->GetElementById("tube-discussion-text")->IsVisible());
     capture(context, renderer, pixels, output / "playlist-confirmation.ppm");
+    model.auth = true; model.breadcrumb = "Accounts / YouTube sign-in";
+    model.rows.clear();
+    const char* auth_titles[] = {"ABCD-EFGH", "https://www.google.com/device", "Cancel sign-in"};
+    const char* auth_ids[] = {"auth:info:code", "auth:info:url", "auth:cancel"};
+    for (int i = 0; i < 3; ++i) {
+        EvoProviderRow row; row.id = auth_ids[i]; row.title = auth_titles[i];
+        row.subtitle = "Authorize using your phone or computer"; row.is_folder = true;
+        model.rows.push_back(row);
+    }
+    model.selected_title = auth_titles[0]; model.selected_subtitle = "Enter this code on your phone or computer";
+    model.selected_overview = "Open https://www.google.com/device on your phone or computer and enter ABCD-EFGH. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed.";
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    assert(doc->GetElementById("tube-auth-footer")->IsVisible());
+    assert(!doc->GetElementById("tube-review-footer")->IsVisible());
+    assert(doc->GetElementById("tube-discussion-text")->IsVisible());
+    cards.clear(); visible.clear(); doc->GetElementsByClassName(cards, "tube-card");
+    for (auto* card : cards)
+        if (!card->GetAttribute<Rml::String>("rowid", "").empty() && card->IsVisible()) visible.push_back(card);
+    assert(visible.size() == 3);
+    visible[2]->Focus(); visible[2]->DispatchEvent(Rml::EventId::Click, params);
+    assert(activated == "auth:cancel");
+    capture(context, renderer, pixels, output / "device-sign-in.ppm");
+    model.auth = false;
     model.review = false;
     model.rows.clear(); model.empty = true; model.has_selected = false; model.status = "";
     handle.DirtyAllVariables(); context->Update();

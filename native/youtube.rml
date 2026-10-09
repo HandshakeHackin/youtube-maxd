@@ -55,10 +55,15 @@
             <span class="tube-key">R3</span> Top / newest
             <span class="tube-key">○</span> Back
         </div>
-        <div id="tube-review-footer" data-if="review">
+        <div id="tube-review-footer" data-if="review &amp;&amp; !auth">
             <span class="tube-key">✕</span> Confirm account change
             <span class="tube-key">L2 / R2</span> Scroll details
             <span class="tube-key">○</span> Back without submitting
+        </div>
+        <div id="tube-auth-footer" data-if="auth">
+            Status checked automatically
+            <span class="tube-key">✕</span> Choose
+            <span class="tube-key">○</span> Back / cancel pending sign-in
         </div>
     </div>
 </body>

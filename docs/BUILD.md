@@ -93,6 +93,12 @@ and renders the shipping interface with EVO's CPU renderer, checking card bounds
 focus and selection. PNGs: `output/preview`; media evidence: `output/validation`.
 Fixtures and outputs are generated, not tracked.
 
+`bash scripts/test_device_auth_native.sh` exercises the shipping native sign-in
+state machine with sanitizers, a deterministic clock and queued HTTP responses.
+It checks initiation, poll intervals/single-flight, cancellation, late original-
+source cleanup, expiry/denial, malformed responses and exclusion from PS5 state.
+The host UI preview includes the device-code screen and cancel-row activation.
+
 ## Public YouTube probe
 
 For an explicit public YouTube check on the companion host:

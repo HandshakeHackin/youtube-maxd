@@ -9,6 +9,8 @@ extern "C" {
 extern const evo_provider_t evo_provider_youtube;
 void tube_poll(void);
 void tube_cancel(void);
+void tube_auth_cancel(void);
+unsigned tube_auth_revision(void);
 int tube_toggle_favorite(const char *id);
 int tube_toggle_queue(const char *id);
 int tube_toggle_subscription(const char *id);

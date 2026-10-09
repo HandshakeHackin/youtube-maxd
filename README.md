@@ -24,8 +24,11 @@ profiles, subscriptions/history/watch-later and account playlist browsing.
 Native comments/replies and basic ratings, Watch later and subscription controls
 and playlist editing have offline coverage; PS5/live acceptance remains
 pending. The companion device-code backend now supports bounded polling,
-cancellation and private account/refresh persistence. Native sign-in and OAuth
-playback still need integration. Casting, HDR selection, AV1 and standalone SABR/token
+cancellation and private account/refresh persistence. Native Accounts & library >
+Sign in to YouTube now displays the device code/address and polls automatically;
+Circle cancels pending sign-in. Its provider flow and layout have offline coverage,
+with PS5/real-account acceptance pending. OAuth playback still needs integration.
+Casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 
 Selected primary-account profiles now route search and playback through separate

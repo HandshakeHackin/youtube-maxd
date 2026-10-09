@@ -129,3 +129,15 @@ endpoint, authorized an account or contacted the console. Evidence:
 This establishes public initiation only; real sign-in, private TV catalogs,
 OAuth playback and native sign-in acceptance remain pending. No native sources
 changed in this stage, so the frozen PS5 candidate remains `0a2167ce`.
+
+The next native sign-in stage passed actual shipping provider ASan/UBSan cases:
+pairing/job initiation, automatic bounded polling/single-flight, stable pending
+revision/focus, authorized profile selection, cancellation during initiation or
+polling, late original-source cleanup, expiry/denial, malformed URL/interval
+rejection and absence of codes/session references/tokens in saved PS5 state.
+Evidence: `.deps/auth-native-verified-test.log`. Existing provider regressions
+passed in `.deps/auth-native-regression.log`. The updated shipping RML rendered
+on the host, with sign-in reader/footer visibility and cancel-row activation
+checked; `output/preview/device-sign-in.png` was inspected. Evidence:
+`.deps/auth-native-final-preview.log`. This proves offline behavior/layout only;
+PS5 and real account authorization remain unverified.

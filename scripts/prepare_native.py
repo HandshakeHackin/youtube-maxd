@@ -166,6 +166,8 @@ def main():
     replace(host, "        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;", "        if (m_providerId == \"youtube\") {\n            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;")
     from discussion_overlay import apply_discussion_overlay
     apply_discussion_overlay(replace, player, host)
+    from device_auth_overlay import apply_device_auth_overlay
+    apply_device_auth_overlay(replace, player)
     from audio_drain_overlay import apply_audio_drain_overlay
     apply_audio_drain_overlay(replace, player)
     from video_drain_overlay import apply_video_drain_overlay

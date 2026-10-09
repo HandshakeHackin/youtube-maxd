@@ -141,7 +141,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"},{\"id\":\"fixture\",\"name\":\"Fixture\",\"account_configured\":true},{\"id\":\"../../bad\"}]}}");
     assert(last_ok && last_count == 2 && !strcmp(last_items[1].id, "library:profile:fixture"));
     p->list_catalog(last_items[1].id, 0, items_cb, NULL);
-    assert(last_ok && last_count == 7 && strstr(last_items[0].title, "fixture"));
+    assert(last_ok && last_count == 8 && strstr(last_items[0].title, "fixture"));
     p->list_catalog("library:playlists", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"Account playlist\",\"is_folder\":true}],\"has_more\":true,\"cursor\":\"fixture_cursor\"}}");

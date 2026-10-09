@@ -43,6 +43,7 @@ typedef struct Request {
     char parent[160];
     char profile[33];
     int64_t watch_position;
+    char auth_source[512], auth_token[128];
 } Request;
 
 static Record g_records[RECORDS];
@@ -79,6 +80,13 @@ static char g_library_profile[33] = "guest", g_library_parent[160];
 static char g_library_cursors[LIBRARY_PAGES][65];
 static struct { char id[160], content[16385]; } g_comments[LOCAL_PAGE];
 static unsigned g_account_serial;
+enum { AUTH_IDLE, AUTH_STARTING, AUTH_PENDING, AUTH_AUTHORIZED, AUTH_CANCELED,
+       AUTH_EXPIRED, AUTH_DENIED, AUTH_FAILED };
+static struct { int state; unsigned serial, revision;
+    char session[33], code[33], url[64], profile[33], name[601];
+    long long deadline, next_poll; } g_auth;
+static void ignored(int ok, int status, const char *body, size_t size, void *ud);
+static void auth_cleanup_request(Request *r, const cJSON *root);
 static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
@@ -316,6 +324,10 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    tube_auth_cancel();
+    unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
+    memset(&g_auth, 0, sizeof g_auth);
+    g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -397,16 +409,25 @@ static int set_source(const char *value) {
     snprintf(normalized, sizeof normalized, "%s://%s:%d", tls ? "https" : "http", host, port);
     tube_cancel();
     watch_reset(1);
+    unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
+    memset(&g_auth, 0, sizeof g_auth);
+    g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
+    if (strcmp(normalized, g_source)) copy(g_library_profile, sizeof g_library_profile, "guest");
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
     ++g_generation; save(); return 0;
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 9 && r->intent == g_auth.serial && !ok &&
+        (g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING)) {
+        auth_cleanup_request(r, NULL);
+        tube_auth_cancel(); g_auth.state = AUTH_FAILED; ++g_auth.revision;
+    }
     if (r->kind == 8 && r->intent == g_watch.serial && !ok) {
         g_watch.failed = 1; g_watch.dirty = 0; g_watch.status = -1;
     }
@@ -455,7 +476,125 @@ static int begin(Request *r) {
         char payload[64]; snprintf(payload, sizeof payload, "{\"code\":\"%s\"}", g_pin);
         r->stage = 0; return send_request(r, "POST", "/v1/pair", payload);
     }
+    if (r->kind == 9) {
+        copy(r->auth_source, sizeof r->auth_source, g_source);
+        copy(r->auth_token, sizeof r->auth_token, g_token);
+    }
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
+}
+
+static int auth_session_valid(const char *value) {
+    return value && strlen(value) == 32 && strspn(value, "0123456789abcdef") == 32;
+}
+
+unsigned tube_auth_revision(void) { return g_auth.revision; }
+
+static void auth_cancel_remote(const char *source, const char *token, const char *session) {
+    if (!*source || !*token || !auth_session_valid(session)) return;
+    char url[640], auth[160], body[80];
+    snprintf(url, sizeof url, "%s/v1/auth/cancel", source);
+    snprintf(auth, sizeof auth, "Authorization: Bearer %s", token);
+    snprintf(body, sizeof body, "{\"session\":\"%s\"}", session);
+    const char *headers[] = {"Content-Type: application/json", auth};
+    evo_net_request_async("POST", url, body, headers, 2, ignored, NULL);
+}
+
+void tube_auth_cancel(void) {
+    if (g_auth.state != AUTH_PENDING && g_auth.state != AUTH_STARTING) return;
+    auth_cancel_remote(g_source, g_token, g_auth.session);
+    g_auth.state = AUTH_CANCELED;
+    g_auth.code[0] = g_auth.url[0] = 0;
+    if (!++g_auth.serial) ++g_auth.serial;
+    ++g_auth.revision;
+}
+
+static void auth_cleanup_request(Request *r, const cJSON *root) {
+    char url[640], auth[160];
+    const char *job = r->stage == 1 ? str(root, "job") : r->job;
+    if (valid_cursor(job) && *r->auth_source && *r->auth_token) {
+        snprintf(url, sizeof url, "%s/v1/jobs/%s", r->auth_source, job);
+        snprintf(auth, sizeof auth, "Authorization: Bearer %s", r->auth_token);
+        const char *headers[] = {auth};
+        evo_net_request_async("DELETE", url, NULL, headers, 1, ignored, NULL);
+    }
+    const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
+    if (!strcmp(str(result, "state"), "pending"))
+        auth_cancel_remote(r->auth_source, r->auth_token, str(result, "session"));
+}
+
+static int auth_rows(evo_provider_items_cb cb, void *ud) {
+    evo_provider_item_t rows[4]; int n = 0;
+    if (g_auth.state == AUTH_PENDING) {
+        folder(&rows[n++], "auth:info:code", g_auth.code, "Enter this code on your phone or computer");
+        folder(&rows[n++], "auth:info:url", g_auth.url, "Open this address to authorize YouTube");
+        folder(&rows[n++], "auth:cancel", "Cancel sign-in", "Circle also cancels when leaving sign-in");
+        snprintf(rows[0].overview, sizeof rows[0].overview,
+            "Open %s on your phone or computer and enter %s. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed.",
+            g_auth.url, g_auth.code);
+    } else if (g_auth.state == AUTH_AUTHORIZED) {
+        char id[64]; snprintf(id, sizeof id, "library:profile:%s", g_auth.profile);
+        folder(&rows[n++], id, "Use authorized YouTube account", g_auth.name);
+        folder(&rows[n++], "library:profiles", "All profiles", "Account saved privately on the companion");
+    } else {
+        const char *title = g_auth.state == AUTH_CANCELED ? "Sign-in canceled" :
+            g_auth.state == AUTH_EXPIRED ? "Sign-in code expired" :
+            g_auth.state == AUTH_DENIED ? "YouTube authorization denied" :
+            g_auth.state == AUTH_STARTING ? "Requesting YouTube sign-in code" : "YouTube sign-in could not be completed";
+        folder(&rows[n++], "auth:info", title, "Account credentials stay on the companion");
+        if (g_auth.state != AUTH_STARTING)
+            folder(&rows[n++], "auth:start", "Start a new sign-in", "Authorize using your phone or computer");
+    }
+    if (cb) cb(1, rows, n, 0, ud);
+    return 0;
+}
+
+static void auth_result(Request *r, const cJSON *result) {
+    int changed = 1;
+    const char *state = str(result, "state"), *session = str(result, "session");
+    if (!auth_session_valid(session) || (*g_auth.session && strcmp(g_auth.session, session))) {
+        tube_set_error("The sign-in response was invalid."); complete(r, 0); return;
+    }
+    if (!strcmp(state, "pending")) {
+        const char *code = str(result, "user_code"), *url = str(result, "verification_url");
+        double expires = num(result, "expires_in"), delay = num(result, "poll_after");
+        if (!*code || strlen(code) > 32 || strspn(code, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-") != strlen(code) ||
+            (strcmp(url, "https://www.google.com/device") && strcmp(url, "https://google.com/device") &&
+             strcmp(url, "https://www.youtube.com/activate") && strcmp(url, "https://youtube.com/activate") &&
+             strcmp(url, "https://www.google.com/activate") && strcmp(url, "https://google.com/activate") &&
+             strcmp(url, "https://www.youtube.com/device") && strcmp(url, "https://youtube.com/device")) ||
+            !cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(result, "expires_in")) ||
+            !cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(result, "poll_after")) ||
+            cJSON_GetObjectItemCaseSensitive(result, "poll_after")->valuedouble < 0 ||
+            cJSON_GetObjectItemCaseSensitive(result, "poll_after")->valuedouble > 60 ||
+            expires < 1 || expires > 1800 || floor(expires) != expires || floor(delay) != delay || delay > 60) {
+            auth_cancel_remote(r->auth_source, r->auth_token, session);
+            tube_set_error("The sign-in response was invalid."); complete(r, 0); return;
+        }
+        changed = g_auth.state != AUTH_PENDING || strcmp(g_auth.code, code) || strcmp(g_auth.url, url);
+        copy(g_auth.session, sizeof g_auth.session, session);
+        copy(g_auth.code, sizeof g_auth.code, code); copy(g_auth.url, sizeof g_auth.url, url);
+        long long deadline = now_ms() + (long long)(expires * 1000);
+        if (g_auth.state != AUTH_PENDING || deadline < g_auth.deadline) g_auth.deadline = deadline;
+        g_auth.state = AUTH_PENDING;
+        g_auth.next_poll = now_ms() + (long long)((delay < 1 ? 1 : delay) * 1000);
+    } else if (!strcmp(state, "authorized")) {
+        const cJSON *profile = cJSON_GetObjectItemCaseSensitive(result, "profile");
+        const char *id = str(profile, "id"), *name = str(profile, "name");
+        if (g_auth.state != AUTH_PENDING || !valid_profile(id) || strlen(id) != 22 || strncmp(id, "oauth_", 6) ||
+            strspn(id + 6, "0123456789abcdef") != 16 || !*name || strlen(name) > 600) {
+            tube_set_error("The authorized profile response was invalid."); complete(r, 0); return;
+        }
+        g_auth.state = AUTH_AUTHORIZED;
+        copy(g_auth.profile, sizeof g_auth.profile, id); copy(g_auth.name, sizeof g_auth.name, name);
+    } else if (!strcmp(state, "canceled")) g_auth.state = AUTH_CANCELED;
+    else if (!strcmp(state, "expired")) g_auth.state = AUTH_EXPIRED;
+    else if (!strcmp(state, "denied")) g_auth.state = AUTH_DENIED;
+    else if (!strcmp(state, "failed")) g_auth.state = AUTH_FAILED;
+    else { tube_set_error("The sign-in response was invalid."); complete(r, 0); return; }
+    if (g_auth.state != AUTH_PENDING) g_auth.code[0] = g_auth.url[0] = 0;
+    if (changed) ++g_auth.revision;
+    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r); auth_rows(cb, data);
 }
 
 static void watch_flush(int terminal_flush) {
@@ -565,6 +704,10 @@ static void resolved(Request *r, const cJSON *root) {
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
+    if (r->kind == 9 && (r->generation != g_generation || r->intent != g_auth.serial)) {
+        cJSON *late = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
+        auth_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
+    }
     if (r->generation != g_generation) { complete(r, 0); return; }
     if (r->kind == 8 && r->intent != g_watch.serial) { complete(r, 0); return; }
     cJSON *root = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
@@ -606,6 +749,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); complete(r, 0); return;
     }
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
+    if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
     if (r->kind == 6) {
         if (!boolean(result, "success")) {
@@ -722,6 +866,24 @@ void tube_poll(void) {
             send_request(r, "GET", path, NULL);
         }
     }
+    if (g_auth.state == AUTH_PENDING) {
+        if (now_ms() >= g_auth.deadline) {
+            tube_auth_cancel(); g_auth.state = AUTH_EXPIRED; ++g_auth.revision;
+        } else if (now_ms() >= g_auth.next_poll) {
+            int busy = 0;
+            for (int i = 0; i < REQUESTS; ++i)
+                if (g_requests[i].used && g_requests[i].kind == 9 && g_requests[i].intent == g_auth.serial) busy = 1;
+            if (!busy) {
+                Request *r = request_new(9, NULL);
+                if (r) {
+                    r->intent = g_auth.serial;
+                    snprintf(r->payload, sizeof r->payload,
+                        "{\"action\":\"auth\",\"auth\":{\"action\":\"status\",\"session\":\"%s\"}}", g_auth.session);
+                    begin(r);
+                }
+            }
+        }
+    }
     watch_flush(0);
 }
 
@@ -730,6 +892,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 void tube_cancel(void) {
+    tube_auth_cancel();
     ++g_generation;
     for (int i = 0; i < REQUESTS; ++i) {
         Request *r = &g_requests[i];
@@ -925,6 +1088,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "library:watch_later", "Watch later", "Videos saved to your account");
         folder(&out[n++], "library:playlists", "Your playlists", "Playlists from the selected account");
         folder(&out[n++], "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
+        folder(&out[n++], "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
     } else if (!strncmp(parent, "settings", 8)) {
         if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
@@ -1005,6 +1169,24 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if (parent && !strncmp(parent, "auth:", 5)) {
+        if (page || (strcmp(parent, "auth:start") && strcmp(parent, "auth:session") &&
+            strcmp(parent, "auth:cancel") && strncmp(parent, "auth:info", 9))) {
+            tube_set_error("The sign-in screen was invalid."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (!strcmp(parent, "auth:cancel")) { tube_cancel(); return auth_rows(cb, ud); }
+        if (strcmp(parent, "auth:start") || g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING)
+            return auth_rows(cb, ud);
+        tube_cancel();
+        unsigned serial = g_auth.serial + 1, revision = g_auth.revision + 1;
+        memset(&g_auth, 0, sizeof g_auth); g_auth.serial = serial ? serial : 1;
+        g_auth.revision = revision; g_auth.state = AUTH_STARTING;
+        Request *r = request_new(9, ud);
+        if (!r) { g_auth.state = AUTH_FAILED; ++g_auth.revision; cb(0, NULL, 0, 0, ud); return 0; }
+        r->items_cb = cb; r->intent = g_auth.serial;
+        copy(r->payload, sizeof r->payload, "{\"action\":\"auth\",\"auth\":{\"action\":\"start\"}}");
+        return begin(r);
+    }
     if (parent && (!strncmp(parent, "account:", 8) ||
         (!strncmp(parent, "playlist:", 9) && strchr(parent + 9, ':') && strncmp(parent, "playlist:pick:", 14))) && page != 0) {
         tube_set_error("Account action screens do not have additional pages."); cb(0, NULL, 0, 0, ud); return 0;

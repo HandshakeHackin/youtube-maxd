@@ -309,6 +309,18 @@ TV request headers/context and token refresh. A live public device-code request
 and local cancellation passed without token polling or account authorization.
 Real authorization and private-account feeds remain unverified. Asynchronous
 sign-in jobs use the existing job transport; abandoned starts and canceled polls
-discard late responses before persistence. Native sign-in screens, sign-out and OAuth stream resolution are
+discard late responses before persistence. Sign-out and OAuth stream resolution are
 still unfinished; attempting playback with an OAuth profile returns the explicit
 `playback_oauth_context` error rather than resolving another account's context.
+
+The native Accounts & library screen now includes **Sign in to YouTube**. It
+obtains a code through the job API, shows the verification URL and code, and polls
+automatically at the supplied interval. Pending polls preserve controller focus.
+Expiry, denial, cancellation and failure stop polling; restarting requires an
+explicit new sign-in. An authorized result offers a link to select its profile.
+Circle leaving sign-in, closing the browser, searching or changing the companion
+source cancels pending authorization. A late response is cleaned up against its
+captured original companion address/token. Changing the companion source also
+resets the selected account to Guest. Codes/session references remain in memory
+and never enter `youtube.json`. This implementation has native sanitizer and
+host layout coverage; actual PS5 sign-in and live account acceptance are pending.
