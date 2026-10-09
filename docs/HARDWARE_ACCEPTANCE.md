@@ -1,5 +1,20 @@
 # Hardware acceptance — pending
 
+The host companion's real public YouTube path passed credential-free AVC/AAC
+and VP9/AAC cases on 2026-10-09 with video `jNQXAC9IVRw` at a 240p limit:
+actual LAN-API pairing, resolution, separate-track DASH relay, host FFmpeg probe,
+two-second audio/video decode and seek decode. Node 24.10.0, yt-dlp 2026.8.19
+and yt-dlp-ejs 0.8.0 were used. Private result metadata is in
+`.deps/public-avc-probe.json` and `.deps/public-vp9-probe.json`. No media URLs
+or account credentials were saved in those reports. An unavailable public test
+video returned the new allowlisted `video_unavailable` code with HTTP 404 through
+the same real API. Resolver-error privacy/IPC regressions passed as part of the
+67-test Python suite. Run `scripts/probe_youtube.py` for an explicit repeat.
+
+These are host results. Real YouTube PS5 playback, pacing, sound, long-video
+behavior, other qualities and live streams remain unverified. The native Lapy
+candidate below is unchanged by this companion-only error-handling work.
+
 Lapy storage candidate `1b74462d` passed native ASan/UBSan regressions, the
 existing/resident/helper and mounted-data listing tests, and PS5 folder/ZIP/PFS
 build inspection. Its frozen folder has 126 files, eboot SHA-256 prefix

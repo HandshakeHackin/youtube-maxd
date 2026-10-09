@@ -71,7 +71,9 @@ def main():
                 attach_media_cookies(ydl, info)
                 result = ydl.sanitize_info(info)
         json.dump(result, sys.stdout, ensure_ascii=False)
-    except Exception:
+    except Exception as error:
+        from .resolver_errors import classify_error
+        json.dump({"worker_error": {"version": 1, "code": classify_error(error)}}, sys.stdout)
         return 1
     return 0
 

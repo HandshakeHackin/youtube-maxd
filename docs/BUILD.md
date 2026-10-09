@@ -93,6 +93,32 @@ and renders the shipping interface with EVO's CPU renderer, checking card bounds
 focus and selection. PNGs: `output/preview`; media evidence: `output/validation`.
 Fixtures and outputs are generated, not tracked.
 
+## Public YouTube probe
+
+For an explicit public YouTube check on the companion host:
+
+```sh
+PYTHONPATH=companion .venv/bin/python scripts/probe_youtube.py \
+  --video PUBLIC_VIDEO_ID --codec avc --height 720 \
+  --js-runtime node --js-runtime-path /path/to/node
+```
+
+The probe uses no account cookies and does not contact the PS5. It starts a
+temporary loopback companion, pairs through the real API, resolves the video,
+probes its relayed streams, decodes two seconds of audio/video, and repeats after
+a short seek. Select `--codec vp9` to check that path. Only allowlisted result
+metadata is saved; media URLs, pairing tokens and raw decoder messages are not.
+Success is host companion/FFmpeg evidence, not console decoder or audio proof.
+The selected runtime and installed `yt-dlp-ejs` are required for full YouTube
+extraction; see upstream [EJS setup](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
+
+Expected upstream failures are mapped to `video_unavailable`,
+`authentication_required`, `youtube_challenge`, `youtube_rate_limited`, or
+`resolver_network` when recognized. Unknown errors retain `extraction_failed`.
+The worker returns only an allowlisted code, and the parent supplies a fixed
+message. Raw upstream text, cookies and signed URLs never enter API errors.
+YouTube authentication errors use 403 so they do not invalidate LAN pairing.
+
 ## Offline console fixtures
 
 After generating media:

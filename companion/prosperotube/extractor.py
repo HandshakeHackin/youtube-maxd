@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from .models import ServiceError
+from .resolver_errors import service_error
 
 
 class Extractor:
@@ -45,7 +46,16 @@ class Extractor:
                         chunks.append(chunk)
                     await process.wait()
                 if process.returncode:
-                    raise ServiceError("extraction_failed", "YouTube could not be resolved. Check the companion's yt-dlp/runtime configuration and retry.")
+                    code = None
+                    try:
+                        failure = json.loads(b"".join(chunks))
+                        if isinstance(failure, dict) and set(failure) == {"worker_error"}:
+                            diagnostic = failure["worker_error"]
+                            if isinstance(diagnostic, dict) and set(diagnostic) == {"version", "code"} and type(diagnostic["version"]) is int and diagnostic["version"] == 1:
+                                code = diagnostic["code"]
+                    except (ValueError, UnicodeError):
+                        pass
+                    raise service_error(code)
                 result = json.loads(b"".join(chunks))
                 if not isinstance(result, dict):
                     raise ValueError("expected object")

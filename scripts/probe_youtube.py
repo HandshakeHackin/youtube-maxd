@@ -1,0 +1,108 @@
+"""Explicit, credential-free YouTube API/relay probe; no console traffic."""
+import argparse
+import json
+from pathlib import Path
+import socket
+import subprocess
+import threading
+import time
+import urllib.error
+import urllib.request
+
+import uvicorn
+from prosperotube.app import create_app
+from prosperotube.extractor import Extractor
+from prosperotube.models import ServiceError, video_id
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--video", required=True, help="Public eleven-character YouTube video ID")
+    parser.add_argument("--codec", choices=("avc", "vp9"), default="avc")
+    parser.add_argument("--height", type=int, choices=(144, 240, 360, 480, 720, 1080), default=720)
+    parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
+    parser.add_argument("--js-runtime-path")
+    parser.add_argument("--output", type=Path, default=Path("output/validation/public-youtube.json"))
+    args = parser.parse_args()
+    try:
+        identifier = video_id(args.video)
+    except ServiceError as error:
+        parser.error(error.message)
+    runtimes = {args.js_runtime: {"path": args.js_runtime_path} if args.js_runtime_path else {}}
+    app = create_app(extractor=Extractor(timeout=60, js_runtimes=runtimes))
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    base = f"http://127.0.0.1:{listener.getsockname()[1]}"
+    server = uvicorn.Server(uvicorn.Config(app, log_level="critical", access_log=False))
+    thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
+    result = {"id": identifier, "codec": args.codec, "height_limit": args.height,
+              "scope": "public YouTube -> authenticated companion -> relay -> host FFmpeg",
+              "result": "failed"}
+    stage = "startup"
+    token = ""
+
+    def request(path, data):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = "Bearer " + token
+        req = urllib.request.Request(base + path, data=json.dumps(data).encode(), headers=headers)
+        with urllib.request.urlopen(req, timeout=70) as response:
+            return json.load(response)
+
+    try:
+        thread.start()
+        deadline = time.monotonic() + 10
+        while not server.started:
+            if not thread.is_alive() or time.monotonic() >= deadline:
+                raise RuntimeError("server_start_failed")
+            time.sleep(.01)
+        stage = "pairing"
+        token = request("/v1/pair", {"code": app.state.pairing_code})["token"]
+        stage = "resolve"
+        playback = request("/v1/resolve", {"id": identifier, "codec": args.codec, "max_height": args.height})
+        choice = playback["choices"][0]
+        result["transport"] = choice["container"]
+        stage = "relay_probe"
+        probe = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", choice["url"]],
+                               capture_output=True, text=True, timeout=45, check=True)
+        streams = json.loads(probe.stdout)["streams"]
+        if not {"audio", "video"}.issubset({stream["codec_type"] for stream in streams}):
+            raise RuntimeError("audio_video_streams_missing")
+        result["streams"] = [{"type": stream["codec_type"], "codec": stream["codec_name"]}
+                             for stream in streams]
+        for offset in (0, min(4, max(0, playback.get("duration_sec", 0) - 2))):
+            stage = "decode" if offset == 0 else "seek_decode"
+            command = ["ffmpeg", "-v", "error"] + (["-ss", str(offset)] if offset else [])
+            command += ["-i", choice["url"], "-t", "2", "-map", "0:v", "-map", "0:a", "-f", "null", "-"]
+            subprocess.run(command, capture_output=True, timeout=45, check=True)
+        result["result"] = "pass"
+        result["checks"] = ["pair", "resolve", "relay_probe", "two_second_audio_video_decode", "seek_decode"]
+    except urllib.error.HTTPError as error:
+        result.update(stage=stage, status=error.code)
+        # Only our API's stable machine code is persisted. Never copy error
+        # text, upstream URLs, request headers or raw FFmpeg diagnostics.
+        try:
+            code = json.loads(error.read(8192)).get("error", {}).get("code", "http_error")
+            result["code"] = code if isinstance(code, str) and code.replace("_", "").isalnum() else "http_error"
+        except (ValueError, AttributeError):
+            result["code"] = "http_error"
+    except subprocess.CalledProcessError as error:
+        result.update(stage=stage, code="ffmpeg_failed", exit_code=error.returncode)
+    except subprocess.TimeoutExpired:
+        result.update(stage=stage, code="ffmpeg_timeout")
+    except (RuntimeError, KeyError, ValueError, OSError):
+        result.update(stage=stage, code="probe_failed")
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        listener.close()
+        if thread.is_alive():
+            result.update(result="failed", stage="cleanup", code="server_shutdown_timeout")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    print(json.dumps(result, indent=2))
+    return 0 if result["result"] == "pass" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
