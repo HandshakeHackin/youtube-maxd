@@ -7,6 +7,44 @@ import { YTNodes } from 'youtubei.js';
 const video = index => ({ video_id: String(index).padStart(11, '0'), title: `Video ${index}`,
   author: { id: `UC${'a'.repeat(22)}`, name: 'Fixture channel' }, duration: { seconds: 8 },
   thumbnails: [{ url: 'https://i.ytimg.com/fixture.jpg' }] });
+test('playlist creation explicitly requests private visibility and stable video identity', async () => {
+  const calls = [];
+  const client = { session: { logged_in: true }, actions: { execute: async (path, payload) => {
+    calls.push([path, payload]); return { success: true, status_code: 200, data: { playlistId: 'PLabcdefghijk' } };
+  } } };
+  const library = new Library(async () => client, [{ id: 'one', cookie: 'fixture-cookie' }]);
+  const result = await library.execute({ action: 'playlist_create', profile: 'one', title: ' New "playlist" ', id: 'abcdefghijk' });
+  assert.equal(result.playlist_id, 'PLabcdefghijk');
+  assert.deepEqual(calls[0], ['playlist/create', { title: 'New "playlist"', videoIds: ['abcdefghijk'], privacyStatus: 'PRIVATE' }]);
+  const endpoint = new YTNodes.CreatePlaylistServiceEndpoint(calls[0][1]);
+  assert.deepEqual(endpoint.buildRequest(), calls[0][1]);
+});
+test('playlist names preserve Unicode code points and reject invalid or oversized input', async () => {
+  const calls = [];
+  const library = new Library(async () => ({ session: { logged_in: true }, actions: { execute: async (_, payload) => {
+    calls.push(payload); return { success: true, data: { playlistId: 'PLabcdefghijk' } };
+  } }, playlist: { setName: async (id, title) => { calls.push([id, title]); return { success: true }; } } }),
+  [{ id: 'one', cookie: 'fixture-cookie' }]);
+  const title = '🌍'.repeat(150);
+  await library.execute({ action: 'playlist_create', profile: 'one', title });
+  assert.equal(calls[0].title, title); assert.deepEqual(calls[0].videoIds, []);
+  await library.execute({ action: 'playlist_rename', profile: 'one', playlist: 'PLabcdefghijk', title });
+  assert.deepEqual(calls[1], ['PLabcdefghijk', title]);
+  for (const invalid of ['', ' ', 'x'.repeat(151), 'a\nb', 'a\0b'])
+    await assert.rejects(library.execute({ action: 'playlist_create', profile: 'one', title: invalid }), { code: 'invalid_title' });
+  assert.equal(calls.length, 2);
+});
+test('playlist creation requires a signed-in session and a confirmed new identity', async () => {
+  let calls = 0, logged_in = false;
+  const client = { session: { get logged_in() { return logged_in; } }, actions: { execute: async () => {
+    calls++; return { success: true, data: {} };
+  } } };
+  const library = new Library(async () => client, [{ id: 'one', cookie: 'fixture-cookie' }]);
+  await assert.rejects(library.execute({ action: 'playlist_create', profile: 'one', title: 'Name' }), { code: 'account_required' });
+  assert.equal(calls, 0); logged_in = true;
+  await assert.rejects(library.execute({ action: 'playlist_create', profile: 'one', title: 'Name' }), { code: 'operation_failed' });
+  assert.equal(calls, 1);
+});
 test('pagination retains every item and scopes cursors to the profile', async () => {
   const second = { videos: [video(53)], has_continuation: false };
   const feed = { videos: Array.from({ length: 53 }, (_, i) => video(i)), has_continuation: true,

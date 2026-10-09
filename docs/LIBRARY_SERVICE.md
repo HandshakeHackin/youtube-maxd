@@ -7,8 +7,8 @@ The native Discover screen opens home and account/library screens through the
 existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue and history remain console data.
 
-This is not full SmartTube parity. Device-code login, live chat, comment posting
-and native playlist-edit controls are not connected yet. Account
+This is not full SmartTube parity. Device-code login, live chat and comment posting
+are not connected yet. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real YouTube/account acceptance remains unverified.
@@ -29,6 +29,18 @@ address/undefined-behavior sanitizers. Offline cases cover all seven operations,
 one-time submissions, profile changes, re-pairing and unconfirmed results. The
 shipping menu and confirmation RML were rendered and inspected on the host.
 PS5 controller acceptance and real-account outcomes remain unverified.
+
+Native playlist controls support create, rename, delete and adding/removing a
+selected video. Accounts & library creates an empty playlist; video account
+actions create one with the video or open the paginated account-playlist picker.
+Touchpad click on an account playlist opens rename/delete. The keyboard accepts
+names of 1–150 Unicode code points; invalid UTF-8, control characters and longer
+names are rejected. The full name and selected identities appear in the scrollable
+confirmation reader. New playlists explicitly request `PRIVATE` visibility.
+All changes use the same one-time, profile-bound confirmation as account actions;
+source/profile changes invalidate text-entry tickets. Built-in Watch later and
+Liked videos cannot be renamed or deleted from these controls. Created-playlist
+responses offer a link to open the new playlist. PS5/live acceptance remains pending.
 
 ## Installation
 

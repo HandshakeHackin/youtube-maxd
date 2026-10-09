@@ -22,7 +22,7 @@ SponsorBlock, native player controls and diagnostics. The optional
 [library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account
 profiles, subscriptions/history/watch-later and account playlist browsing.
 Native comments/replies and basic ratings, Watch later and subscription controls
-have offline coverage; PS5/live acceptance and native playlist editing remain
+and playlist editing have offline coverage; PS5/live acceptance remains
 pending. Device sign-in, casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 
@@ -88,7 +88,7 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
 | R3 | Open comments on a video |
-| Touchpad click | YouTube account actions for a video |
+| Touchpad click | Account actions for a video; edits for an account playlist |
 | Options | Companion address and pairing code |
 
 Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
@@ -104,6 +104,12 @@ Watch later, and channel subscribe/unsubscribe controls. Each change shows a
 confirmation for that profile. Reopening an operation screen does not submit it
 again; an unconfirmed result requires checking the account before repeating the
 change. These controls have offline coverage; live account acceptance is pending.
+
+Video actions include adding/removing the video from an account playlist and
+creating a private playlist with it. Touchpad click on an account playlist opens
+rename/delete controls. Accounts & library also creates an empty private playlist.
+Names are entered with the keyboard and reviewed before submission. L2/R2 scroll
+the confirmation details; Circle returns without submitting.
 
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
 Up toggles captions, Down opens the caption picker, R2 opens audio tracks,

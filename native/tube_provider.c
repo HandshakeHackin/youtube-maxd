@@ -63,8 +63,10 @@ static unsigned g_account_serial;
 static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
-    char action[32], identity[101], profile[33];
+    char action[32], identity[101], profile[33], playlist[101], title[601];
 } g_account_intent;
+static struct { tube_playlist_prompt_t prompt; int pending, active, create;
+    char identity[101], profile[33]; } g_playlist_prompt;
 static const struct { const char *action, *title; int channel; } g_account_actions[] = {
     {"like", "Like video", 0}, {"dislike", "Dislike video", 0}, {"unrate", "Remove video rating", 0},
     {"watch_later_add", "Add to YouTube Watch later", 0},
@@ -134,6 +136,54 @@ static int valid_catalog_id(const char *id) {
     if (id && !strncmp(id, "library:playlist:", 17) && strlen(id + 17) <= 100 &&
         (strlen(id + 17) >= 10 || !strcmp(id + 17, "WL") || !strcmp(id + 17, "LL"))) value = id + 17;
     return value && strspn(value, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(value);
+}
+
+static int valid_playlist(const char *id) {
+    char parent[128]; snprintf(parent, sizeof parent, "library:playlist:%s", id ? id : "");
+    return valid_catalog_id(parent);
+}
+
+static unsigned account_intent(const char *action, const char *identity, const char *playlist, const char *title) {
+    memset(&g_account_intent, 0, sizeof g_account_intent);
+    if (!++g_account_serial) ++g_account_serial;
+    g_account_intent.serial = g_account_serial;
+    copy(g_account_intent.action, sizeof g_account_intent.action, action);
+    copy(g_account_intent.identity, sizeof g_account_intent.identity, identity);
+    copy(g_account_intent.playlist, sizeof g_account_intent.playlist, playlist);
+    copy(g_account_intent.title, sizeof g_account_intent.title, title);
+    copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
+    return g_account_intent.serial;
+}
+
+int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt) {
+    if (!prompt || !g_playlist_prompt.pending) return 0;
+    *prompt = g_playlist_prompt.prompt; g_playlist_prompt.pending = 0; return 1;
+}
+
+int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity) {
+    if (!g_playlist_prompt.active || ticket != g_playlist_prompt.prompt.ticket || !text ||
+        !parent || capacity < 48 || strcmp(g_playlist_prompt.profile, g_library_profile)) return -1;
+    while (*text && isspace((unsigned char)*text)) ++text;
+    size_t length = strlen(text);
+    while (length && isspace((unsigned char)text[length - 1])) --length;
+    if (!length || length > 600) return -1;
+    size_t points = 0;
+    for (size_t i = 0; i < length;) {
+        unsigned char c = (unsigned char)text[i];
+        size_t n = c < 0x80 ? 1 : c >= 0xc2 && c <= 0xdf ? 2 : c >= 0xe0 && c <= 0xef ? 3 : c >= 0xf0 && c <= 0xf4 ? 4 : 0;
+        if (!n || c < 0x20 || c == 0x7f || i + n > length || ++points > 150) return -1;
+        for (size_t k = 1; k < n; ++k) if (((unsigned char)text[i+k] & 0xc0) != 0x80) return -1;
+        unsigned char next = n > 1 ? (unsigned char)text[i+1] : 0;
+        if ((c == 0xe0 && next < 0xa0) || (c == 0xed && next >= 0xa0) ||
+            (c == 0xf0 && next < 0x90) || (c == 0xf4 && next >= 0x90)) return -1;
+        i += n;
+    }
+    char title[601]; memcpy(title, text, length); title[length] = 0;
+    unsigned serial = account_intent(g_playlist_prompt.create ? "playlist_create" : "playlist_rename",
+        g_playlist_prompt.create ? g_playlist_prompt.identity : "",
+        g_playlist_prompt.create ? "" : g_playlist_prompt.identity, title);
+    g_playlist_prompt.active = 0;
+    snprintf(parent, capacity, "playlist:review:%u", serial); return 0;
 }
 
 static Record *record(const char *id, int create) {
@@ -235,6 +285,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 static int init(void) {
     memset(g_comments, 0, sizeof g_comments);
     memset(&g_account_intent, 0, sizeof g_account_intent);
+    memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     FILE *f = fopen(evo_data_path("youtube.json"), "rb");
     if (!f) return 0;
     if (fseek(f, 0, SEEK_END) || ftell(f) < 0 || ftell(f) > 2 * 1024 * 1024) { fclose(f); return -1; }
@@ -302,6 +353,7 @@ static int set_source(const char *value) {
     snprintf(normalized, sizeof normalized, "%s://%s:%d", tls ? "https" : "http", host, port);
     tube_cancel();
     memset(&g_account_intent, 0, sizeof g_account_intent);
+    memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
@@ -483,6 +535,10 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (r->intent == g_account_intent.serial) g_account_intent.state = 2;
         evo_provider_item_t item;
         folder(&item, "account:notice", "YouTube account updated", "The companion confirmed this change");
+        if (!strcmp(g_account_intent.action, "playlist_create") && valid_playlist(str(result, "playlist_id"))) {
+            snprintf(item.id, sizeof item.id, "library:playlist:%s", str(result, "playlist_id"));
+            copy(item.title, sizeof item.title, "Open created playlist");
+        }
         snprintf(item.overview, sizeof item.overview, "Operation: %s | Profile: %s. Circle returns to the video browser.",
             g_account_intent.action, g_account_intent.profile);
         evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
@@ -507,7 +563,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         !cJSON_IsArray(cJSON_GetObjectItemCaseSensitive(result, "items")))) {
         free(items); cJSON_Delete(root); tube_set_error("The comment response was invalid."); complete(r, 0); return;
     }
-    if (r->kind == 3 || r->kind == 5) {
+    if (r->kind == 3 || r->kind == 5 || r->kind == 7) {
         const char *cursor = str(result, "cursor");
         int more = boolean(result, "has_more");
         if (more && !valid_cursor(cursor)) {
@@ -546,6 +602,19 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         for (int i = 0; i < n; ++i) if (!strcmp(items[i].id, str(o, "id"))) duplicate = 1;
         if (duplicate) continue;
         parse_item(&items[n], o);
+        if (r->kind == 7) {
+            if (strncmp(items[n].id, "library:playlist:", 17)) continue;
+            const char *video = strrchr(r->parent, ':');
+            char target[160];
+            snprintf(target, sizeof target, "playlist:confirm:%s:%.11s:%.100s",
+                !strncmp(r->parent, "playlist:pick:add:", 18) ? "add" : "remove",
+                video ? video + 1 : "", items[n].id + 17);
+            for (int i = 0; i < n; ++i) if (!strcmp(items[i].id, target)) duplicate = 1;
+            if (duplicate) continue;
+            copy(items[n].id, sizeof items[n].id, target); items[n].is_folder = 1;
+            copy(items[n].subtitle, sizeof items[n].subtitle, "Select this playlist, then confirm the change");
+            ++n; continue;
+        }
         Record *cached = record(items[n].id, 1);
         if (cached) {
             items[n].resume_pos_sec = cached->item.resume_pos_sec;
@@ -604,6 +673,74 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
+    if (parent && !strncmp(parent, "playlist:", 9)) {
+        if (!strchr(parent + 9, ':')) return 0; /* ordinary public playlist browsing */
+        if (!strncmp(parent, "playlist:pick:", 14)) return 0;
+        if (!strcmp(g_library_profile, "guest")) {
+            folder(&out[n++], "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
+        } else if (!strncmp(parent, "playlist:menu:", 14) && valid_playlist(parent + 14) &&
+            strcmp(parent + 14, "WL") && strcmp(parent + 14, "LL")) {
+            char id[160]; snprintf(id, sizeof id, "playlist:prompt:rename:%.100s", parent + 14);
+            folder(&out[n++], id, "Rename YouTube playlist", "Enter a new name, then confirm");
+            snprintf(id, sizeof id, "playlist:confirm:delete:%.100s", parent + 14);
+            folder(&out[n++], id, "Delete YouTube playlist", "Requires confirmation for the selected profile");
+        } else if (!strncmp(parent, "playlist:prompt:", 16)) {
+            int create = !strncmp(parent, "playlist:prompt:create:", 23);
+            int rename = !strncmp(parent, "playlist:prompt:rename:", 23);
+            const char *identity = (create || rename) ? parent + 23 : "";
+            if ((!create && !rename) || (create && *identity && !valid_id(identity)) ||
+                (rename && (!valid_playlist(identity) || !strcmp(identity, "WL") || !strcmp(identity, "LL")))) {
+                tube_set_error("Select a valid playlist or video."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            memset(&g_account_intent, 0, sizeof g_account_intent);
+            memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
+            if (!++g_account_serial) ++g_account_serial;
+            g_playlist_prompt.prompt.ticket = g_account_serial;
+            copy(g_playlist_prompt.prompt.label, sizeof g_playlist_prompt.prompt.label,
+                create ? "New private YouTube playlist name" : "New YouTube playlist name");
+            copy(g_playlist_prompt.identity, sizeof g_playlist_prompt.identity, identity);
+            copy(g_playlist_prompt.profile, sizeof g_playlist_prompt.profile, g_library_profile);
+            g_playlist_prompt.create = create; g_playlist_prompt.pending = g_playlist_prompt.active = 1;
+            folder(&out[n++], "account:notice", "Enter a playlist name", "Circle returns without changing your account");
+        } else if (!strncmp(parent, "playlist:confirm:", 17)) {
+            const char *value = parent + 17, *identity = NULL, *playlist = NULL, *action = NULL;
+            char video[12] = "";
+            if (!strncmp(value, "delete:", 7)) { playlist = value + 7; action = "playlist_delete"; }
+            else {
+                int add = !strncmp(value, "add:", 4), remove = !strncmp(value, "remove:", 7);
+                identity = add ? value + 4 : remove ? value + 7 : "";
+                if ((add || remove) && strlen(identity) > 12 && identity[11] == ':') {
+                    memcpy(video, identity, 11); playlist = identity + 12;
+                    action = add ? "playlist_add" : "playlist_remove";
+                }
+            }
+            if (!action || !valid_playlist(playlist) ||
+                (strcmp(action, "playlist_delete") ? !valid_id(video) : (!strcmp(playlist, "WL") || !strcmp(playlist, "LL")))) {
+                tube_set_error("The playlist change was invalid."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            unsigned serial = account_intent(action, video, playlist, "");
+            char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", serial);
+            snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
+            folder(&out[n++], id, !strcmp(action, "playlist_delete") ? "Delete this YouTube playlist" :
+                !strcmp(action, "playlist_add") ? "Add video to this playlist" : "Remove video from this playlist", hint);
+            snprintf(out[0].overview, sizeof out[0].overview, "Playlist: %s | Video: %s. Cross applies this change; Circle returns without submitting it.", playlist, *video ? video : "none");
+            copy(g_comments[0].id, sizeof g_comments[0].id, out[0].id);
+            copy(g_comments[0].content, sizeof g_comments[0].content, out[0].overview);
+        } else if (!strncmp(parent, "playlist:review:", 16)) {
+            char expected[80]; snprintf(expected, sizeof expected, "playlist:review:%u", g_account_intent.serial);
+            if (!g_account_intent.serial || strcmp(parent, expected) || strcmp(g_account_intent.profile, g_library_profile)) {
+                tube_set_error("Reopen this playlist action for the current profile."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
+            snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
+            folder(&out[n++], id, !strcmp(g_account_intent.action, "playlist_create") ? "Create private YouTube playlist" : "Rename YouTube playlist", hint);
+            copy(g_comments[0].id, sizeof g_comments[0].id, out[0].id);
+            snprintf(g_comments[0].content, sizeof g_comments[0].content, "Name: %s\nPlaylist: %s\nVideo: %s\nCross confirms; Circle returns without submitting it.",
+                g_account_intent.title, g_account_intent.playlist, g_account_intent.identity);
+            copy(out[0].overview, sizeof out[0].overview, g_comments[0].content);
+        } else { tube_set_error("The playlist screen was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
+        cb(1, out, n, 0, ud); return 1;
+    }
     if (parent && !strncmp(parent, "account:", 8)) {
         if (!strncmp(parent, "account:menu:", 13) && valid_id(parent + 13)) {
             if (!strcmp(g_library_profile, "guest")) {
@@ -618,6 +755,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     snprintf(hint, sizeof hint, "YouTube profile: %s", g_library_profile);
                     folder(&out[n++], id, g_account_actions[i].title, hint);
                 }
+                char id[80]; snprintf(id, sizeof id, "playlist:pick:add:%s", parent + 13);
+                folder(&out[n++], id, "Add to a YouTube playlist", "Choose a playlist, then confirm");
+                snprintf(id, sizeof id, "playlist:pick:remove:%s", parent + 13);
+                folder(&out[n++], id, "Remove from a YouTube playlist", "Choose a playlist containing this video");
+                snprintf(id, sizeof id, "playlist:prompt:create:%s", parent + 13);
+                folder(&out[n++], id, "Create playlist with this video", "A new private playlist on the selected account");
             }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
@@ -631,6 +774,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid video or channel and account profile."); cb(0, NULL, 0, 0, ud); return 1;
             }
             memset(&g_account_intent, 0, sizeof g_account_intent);
+            memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
             g_account_intent.serial = ++g_account_serial;
             copy(g_account_intent.action, sizeof g_account_intent.action, g_account_actions[found].action);
             copy(g_account_intent.identity, sizeof g_account_intent.identity, colon + 1);
@@ -684,6 +828,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (!strncmp(parent, "library:profile:", 16)) {
             if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
             memset(&g_account_intent, 0, sizeof g_account_intent);
+            memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
             copy(g_library_profile, sizeof g_library_profile, parent + 16);
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
@@ -695,6 +840,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "library:history", "YouTube history", "History from the selected account");
         folder(&out[n++], "library:watch_later", "Watch later", "Videos saved to your account");
         folder(&out[n++], "library:playlists", "Your playlists", "Playlists from the selected account");
+        folder(&out[n++], "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
     } else if (!strncmp(parent, "settings", 8)) {
         if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
@@ -764,7 +910,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
-    if (parent && !strncmp(parent, "account:", 8) && page != 0) {
+    if (parent && (!strncmp(parent, "account:", 8) ||
+        (!strncmp(parent, "playlist:", 9) && strchr(parent + 9, ':') && strncmp(parent, "playlist:pick:", 14))) && page != 0) {
         tube_set_error("Account action screens do not have additional pages."); cb(0, NULL, 0, 0, ud); return 0;
     }
     if (parent && !strncmp(parent, "account:apply:", 14) && g_account_intent.state)
@@ -775,9 +922,33 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         Request *r = request_new(6, ud); if (!r) return -1;
         r->items_cb = cb; r->intent = g_account_intent.serial;
         g_account_intent.state = 1;
-        snprintf(r->payload, sizeof r->payload,
-            "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"id\":\"%s\"}}",
-            g_account_intent.action, g_account_intent.profile, g_account_intent.identity);
+        cJSON *job = cJSON_CreateObject(), *operation = cJSON_CreateObject();
+        if (!job || !operation) { cJSON_Delete(job); cJSON_Delete(operation); complete(r, 0); return -1; }
+        cJSON_AddStringToObject(job, "action", "library"); cJSON_AddItemToObject(job, "library", operation);
+        cJSON_AddStringToObject(operation, "action", g_account_intent.action);
+        cJSON_AddStringToObject(operation, "profile", g_account_intent.profile);
+        cJSON_AddStringToObject(operation, "id", g_account_intent.identity);
+        cJSON_AddStringToObject(operation, "playlist", g_account_intent.playlist);
+        cJSON_AddStringToObject(operation, "title", g_account_intent.title);
+        char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
+        if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
+        copy(r->payload, sizeof r->payload, body); free(body);
+        begin(r); return 0;
+    }
+    if (parent && !strncmp(parent, "playlist:pick:", 14)) {
+        int add = !strncmp(parent, "playlist:pick:add:", 18), remove = !strncmp(parent, "playlist:pick:remove:", 21);
+        const char *video = add ? parent + 18 : remove ? parent + 21 : "";
+        if ((!add && !remove) || !valid_id(video) || !strcmp(g_library_profile, "guest")) {
+            tube_set_error("Select a video and an account profile first."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
+            tube_set_error("Reload the playlist picker to continue."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        Request *r = request_new(7, ud); if (!r) return -1;
+        r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        snprintf(r->payload, sizeof r->payload, "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\"}}",
+            page ? "continue" : "playlists", g_library_profile, page ? g_library_cursors[page] : "");
         begin(r); return 0;
     }
     if (parent && !strncmp(parent, "discussion:", 11)) {

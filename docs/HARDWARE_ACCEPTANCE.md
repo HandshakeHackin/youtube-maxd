@@ -83,7 +83,7 @@ runtime/lock versions and artifact SHA-256 before testing.
 9. Check logs/storage/title isolation and credential redaction. Repeat
    launch/stop/soft-close and confirm renderer/audio resources are released.
 
-Device authorization, native playlist-edit UI, casting, HDR, AV1 and standalone
+Device authorization, comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part
 of the full-parity goal and require implementation and explicit acceptance cases.

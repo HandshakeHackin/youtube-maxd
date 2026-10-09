@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     BIND(provider_name); BIND(breadcrumb); BIND(page_info); BIND(status); BIND(has_error);
     BIND(loading); BIND(empty); BIND(rows); BIND(has_selected); BIND(selected_title);
     BIND(selected_subtitle); BIND(selected_resume); BIND(selected_overview);
-    BIND(discussion);
+    BIND(discussion); BIND(review);
 #undef BIND
     Rml::String activated;
     constructor.BindEventCallback("activate", [&activated](Rml::DataModelHandle, Rml::Event& event, const Rml::VariantList&) {
@@ -140,6 +140,15 @@ int main(int argc, char** argv) {
     visible[0]->Focus(); visible[0]->DispatchEvent(Rml::EventId::Click, params);
     assert(activated == "account:apply:1");
     capture(context, renderer, pixels, output / "account-confirmation.ppm");
+    model.review = true; model.breadcrumb = "Accounts / Confirm playlist change";
+    model.rows[0].title = model.selected_title = "Create private YouTube playlist";
+    model.selected_overview = "Name: A new private playlist with a long name\nVideo: abcdefghijk\nCross confirms; Circle returns without submitting it.";
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    assert(doc->GetElementById("tube-review-footer")->IsVisible());
+    assert(!doc->GetElementById("tube-footer")->IsVisible());
+    assert(doc->GetElementById("tube-discussion-text")->IsVisible());
+    capture(context, renderer, pixels, output / "playlist-confirmation.ppm");
+    model.review = false;
     model.rows.clear(); model.empty = true; model.has_selected = false; model.status = "";
     handle.DirtyAllVariables(); context->Update();
     doc->GetElementById("tv-card-setup-url")->Focus();

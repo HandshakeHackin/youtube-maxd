@@ -15,10 +15,10 @@
             <div class="empty-note" data-if="discussion">No comments returned. Circle to return. R3 changes comment sorting.</div>
             <button id="tv-card-setup-url" class="tv-setup-card" data-if="!discussion" data-event-click="setup_url()">PAIR COMPANION</button>
         </div>
-        <div id="tube-grid" data-if="!empty" data-class-discussion="discussion">
+        <div id="tube-grid" data-if="!empty" data-class-discussion="discussion || review">
             <div class="tube-card" data-for="row : rows" data-attr-rowid="row.id"
                  data-event-click="activate()" data-class-folder="row.is_folder">
-                <div class="tube-image" data-if="!discussion">
+                <div class="tube-image" data-if="!discussion &amp;&amp; !review">
                     <img data-if="row.art != ''" data-attr-src="row.art"/>
                     <div class="tube-placeholder" data-if="row.art == ''">{{ row.initial }}</div>
                     <div class="tube-badge" data-if="row.is_live">LIVE</div>
@@ -30,13 +30,13 @@
                 <div class="tube-watched" data-if="row.played">WATCHED</div>
             </div>
         </div>
-        <div id="tube-preview" data-if="has_selected" data-class-discussion="discussion">
+        <div id="tube-preview" data-if="has_selected" data-class-discussion="discussion || review">
             <div id="tube-selected-title">{{ selected_title }}</div>
             <div id="tube-selected-detail">{{ selected_subtitle }} · {{ selected_resume }}</div>
-            <div id="tube-selected-overview" data-if="!discussion">{{ selected_overview }}</div>
-            <div id="tube-discussion-text" data-if="discussion">{{ selected_overview }}</div>
+            <div id="tube-selected-overview" data-if="!discussion &amp;&amp; !review">{{ selected_overview }}</div>
+            <div id="tube-discussion-text" data-if="discussion || review">{{ selected_overview }}</div>
         </div>
-        <div id="tube-footer" data-if="!discussion">
+        <div id="tube-footer" data-if="!discussion &amp;&amp; !review">
             <span class="tube-key">✕</span> Watch / open
             <span class="tube-key">□</span> Search
             <span class="tube-key">△</span> Favorite
@@ -54,6 +54,11 @@
             <span class="tube-key">L1 / R1</span> Page
             <span class="tube-key">R3</span> Top / newest
             <span class="tube-key">○</span> Back
+        </div>
+        <div id="tube-review-footer" data-if="review">
+            <span class="tube-key">✕</span> Confirm account change
+            <span class="tube-key">L2 / R2</span> Scroll details
+            <span class="tube-key">○</span> Back without submitting
         </div>
     </div>
 </body>

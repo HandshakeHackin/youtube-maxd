@@ -5,6 +5,12 @@ export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
 }
 const text = (value, limit = 192) => String(value ?? '').replaceAll('\0', '').slice(0, limit);
+const playlistTitle = value => {
+  const title = String(value ?? '').trim();
+  if (!title || Array.from(title).length > 150 || /[\0-\x1f\x7f]/.test(title))
+    throw new LibraryError('invalid_title', 'Enter a playlist title of 1 to 150 characters.');
+  return title;
+};
 const videoId = value => /^[A-Za-z0-9_-]{11}$/.test(value ?? '');
 const channelId = value => /^UC[A-Za-z0-9_-]{22}$/.test(value ?? '');
 const playlistId = value => /^(WL|LL|[A-Za-z0-9_-]{10,100})$/.test(value ?? '');
@@ -193,13 +199,17 @@ export class Library {
       case 'subscribe': response = await client.interact.subscribe(requireId(input.id, channelId)); break;
       case 'unsubscribe': response = await client.interact.unsubscribe(requireId(input.id, channelId)); break;
       case 'playlist_create': {
-        const title = text(input.title, 150).trim();
-        if (!title) throw new LibraryError('invalid_title', 'Enter a playlist title.');
-        response = await client.playlist.create(title, input.id ? [requireId(input.id, videoId)] : []); break;
+        const title = playlistTitle(input.title);
+        if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+        const created = await client.actions.execute('playlist/create', {
+          title, videoIds: input.id ? [requireId(input.id, videoId)] : [], privacyStatus: 'PRIVATE'
+        });
+        if (!playlistId(created?.data?.playlistId))
+          throw new LibraryError('operation_failed', 'YouTube did not return the created playlist.', 502);
+        response = { success: created.success, status_code: created.status_code, playlist_id: created.data.playlistId }; break;
       }
       case 'playlist_rename': {
-        const title = text(input.title, 150).trim();
-        if (!title) throw new LibraryError('invalid_title', 'Enter a playlist title.');
+        const title = playlistTitle(input.title);
         response = await client.playlist.setName(requireId(input.playlist, playlistId), title); break;
       }
       case 'playlist_delete': response = await client.playlist.delete(requireId(input.playlist, playlistId)); break;

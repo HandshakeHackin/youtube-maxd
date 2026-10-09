@@ -3,6 +3,7 @@
 #include "tube_provider.h"
 #include "evo_net.h"
 #include "evo_data_path.h"
+#include "cJSON.h"
 #include <assert.h>
 #include <math.h>
 #include <stdarg.h>
@@ -125,7 +126,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"},{\"id\":\"fixture\",\"name\":\"Fixture\",\"account_configured\":true},{\"id\":\"../../bad\"}]}}");
     assert(last_ok && last_count == 2 && !strcmp(last_items[1].id, "library:profile:fixture"));
     p->list_catalog(last_items[1].id, 0, items_cb, NULL);
-    assert(last_ok && last_count == 6 && strstr(last_items[0].title, "fixture"));
+    assert(last_ok && last_count == 7 && strstr(last_items[0].title, "fixture"));
     p->list_catalog("library:playlists", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"Account playlist\",\"is_folder\":true}],\"has_more\":true,\"cursor\":\"fixture_cursor\"}}");
@@ -189,7 +190,7 @@ int main(void) {
     p->search("account fixture", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 7 && !pending_count);
+    assert(last_ok && last_count == 10 && !pending_count);
     char account_choices[7][160];
     for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
     const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};
@@ -231,6 +232,77 @@ int main(void) {
     assert(!last_ok && !pending_count);
     p->list_catalog("account:confirm:subscribe:bad-channel", 0, items_cb, NULL);
     assert(!last_ok && !pending_count);
+    /* Playlist picker pages preserve video identity and selected profile. */
+    p->list_catalog("playlist:pick:add:abcdefghijk", 0, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"playlists\"") && strstr(pending[0].body, "fixture"));
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"First playlist\",\"is_folder\":true},{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"Duplicate\",\"is_folder\":true},{\"id\":\"abcdefghijk\",\"title\":\"Not a playlist\"}],\"has_more\":true,\"cursor\":\"playlist_next\"}}");
+    assert(last_ok && last_count == 1 && last_more);
+    assert(!strcmp(last_items[0].id, "playlist:confirm:add:abcdefghijk:PLabcdefghijk"));
+    p->list_catalog("playlist:pick:add:abcdefghijk", 1, items_cb, NULL);
+    assert(strstr(pending[0].body, "\"action\":\"continue\"") && strstr(pending[0].body, "playlist_next"));
+    poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");
+    assert(last_ok && !last_more);
+    const char *playlist_changes[] = {"playlist:confirm:add:abcdefghijk:PLabcdefghijk",
+        "playlist:confirm:remove:abcdefghijk:PLabcdefghijk", "playlist:confirm:delete:PLabcdefghijk"};
+    const char *playlist_operations[] = {"playlist_add", "playlist_remove", "playlist_delete"};
+    for (int i = 0; i < 3; ++i) {
+        p->list_catalog(playlist_changes[i], 0, items_cb, NULL);
+        assert(last_ok && last_count == 1 && !pending_count);
+        snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+        p->list_catalog(account_apply, 0, items_cb, NULL);
+        cJSON *job = cJSON_Parse(pending[0].body);
+        cJSON *operation = cJSON_GetObjectItem(job, "library");
+        assert(!strcmp(cJSON_GetObjectItem(operation, "action")->valuestring, playlist_operations[i]));
+        assert(!strcmp(cJSON_GetObjectItem(operation, "playlist")->valuestring, "PLabcdefghijk"));
+        assert(!strcmp(cJSON_GetObjectItem(operation, "id")->valuestring, i == 2 ? "" : "abcdefghijk"));
+        cJSON_Delete(job);
+        p->list_catalog(account_apply, 0, items_cb, NULL); assert(pending_count == 1);
+        poll_job("{\"state\":\"done\",\"result\":{\"success\":true}}"); assert(last_ok);
+        p->list_catalog(account_apply, 0, items_cb, NULL); assert(!pending_count);
+    }
+    p->list_catalog("playlist:menu:PLabcdefghijk", 0, items_cb, NULL);
+    assert(last_ok && last_count == 2 && strstr(last_items[0].id, "rename"));
+    p->list_catalog("playlist:prompt:rename:PLabcdefghijk", 0, items_cb, NULL);
+    tube_playlist_prompt_t prompt;
+    assert(tube_take_playlist_prompt(&prompt) && strstr(prompt.label, "name"));
+    assert(!tube_take_playlist_prompt(&prompt));
+    char review[80];
+    assert(tube_submit_playlist_name(prompt.ticket, "  Name \"&\" café  ", review, sizeof review) == 0 && !pending_count);
+    p->list_catalog(review, 0, items_cb, NULL); assert(last_ok && last_count == 1 && !pending_count);
+    assert(strstr(tube_comment_text(last_items[0].id), "Name \"&\" café"));
+    snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    cJSON *job = cJSON_Parse(pending[0].body), *operation = cJSON_GetObjectItem(job, "library");
+    assert(!strcmp(cJSON_GetObjectItem(operation, "action")->valuestring, "playlist_rename"));
+    assert(!strcmp(cJSON_GetObjectItem(operation, "title")->valuestring, "Name \"&\" café"));
+    cJSON_Delete(job); poll_job("{\"state\":\"done\",\"result\":{\"success\":true}}");
+    p->list_catalog("playlist:prompt:create:abcdefghijk", 0, items_cb, NULL);
+    assert(tube_take_playlist_prompt(&prompt));
+    assert(tube_submit_playlist_name(prompt.ticket, "", review, sizeof review) < 0);
+    assert(tube_submit_playlist_name(prompt.ticket, "x\ny", review, sizeof review) < 0);
+    assert(tube_submit_playlist_name(prompt.ticket, "\xed\xa0\x80", review, sizeof review) < 0);
+    char oversized[152]; memset(oversized, 'a', 151); oversized[151] = 0;
+    assert(tube_submit_playlist_name(prompt.ticket, oversized, review, sizeof review) < 0);
+    char unicode[601]; for (int i = 0; i < 150; ++i) memcpy(unicode + i*4, "\xf0\x9f\x8c\x8d", 4); unicode[600] = 0;
+    assert(tube_submit_playlist_name(prompt.ticket, unicode, review, sizeof review) == 0);
+    assert(tube_submit_playlist_name(prompt.ticket, "Duplicate", review, sizeof review) < 0);
+    p->list_catalog(review, 0, items_cb, NULL); assert(last_ok && !pending_count);
+    assert(strlen(tube_comment_text(last_items[0].id)) > 600);
+    snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    job = cJSON_Parse(pending[0].body); operation = cJSON_GetObjectItem(job, "library");
+    assert(!strcmp(cJSON_GetObjectItem(operation, "action")->valuestring, "playlist_create"));
+    assert(!strcmp(cJSON_GetObjectItem(operation, "id")->valuestring, "abcdefghijk"));
+    assert(!strcmp(cJSON_GetObjectItem(operation, "title")->valuestring, unicode));
+    cJSON_Delete(job);
+    poll_job("{\"state\":\"done\",\"result\":{\"success\":true,\"playlist_id\":\"PLcreatedfixture\"}}");
+    assert(last_ok && !strcmp(last_items[0].id, "library:playlist:PLcreatedfixture"));
+    p->list_catalog("playlist:prompt:create:", 0, items_cb, NULL); assert(tube_take_playlist_prompt(&prompt));
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    assert(tube_submit_playlist_name(prompt.ticket, "Stale", review, sizeof review) < 0 && !pending_count);
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    p->list_catalog("playlist:menu:WL", 0, items_cb, NULL); assert(!last_ok && !pending_count);
+    p->list_catalog("playlist:confirm:delete:LL", 0, items_cb, NULL); assert(!last_ok && !pending_count);
     p->list_catalog(account_choices[0], 0, items_cb, NULL);
     snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
     p->list_catalog(account_apply, 0, items_cb, NULL);
