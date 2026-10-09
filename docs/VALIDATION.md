@@ -240,3 +240,22 @@ These tests use synthetic account credentials and media metadata; no real
 authorization, upstream account playback, media download or console traffic
 occurred. Native sources are unchanged from the frozen `0e75c5ea` candidate,
 whose complete checksum manifest also passed verification.
+
+Comment ratings: 116 Python and 26 Node tests passed. Shipping API/job fixture
+cases cover comment/reply rating capabilities, Guest/peer isolation, removal,
+changed-intent rejection, expiration and cursor-kind separation. Actual Python
+subprocess cases prove confirmed-result reuse and uncertainty retention across
+timeout, cancellation, mismatching responses and worker retirement. The pinned
+CommentView/NavigationEndpoint/HTTP client sends the retained synthetic command
+with TVHTML5 OAuth context; opaque capability responses exclude command keys.
+Evidence: `.deps/comment-rating-python-test.log`,
+`.deps/comment-rating-full-python.log`, `.deps/comment-rating-node-test.log`.
+
+Shipping-provider ASan/UBSan regressions passed for full comment review,
+one-time submissions, mismatching confirmations, rating removal and stale-profile
+contexts. The shipping RML rendered; comment-rating review and the updated
+discussion footer were inspected. Native sign-in/removal regressions also passed.
+Evidence: `.deps/comment-rating-native-verified.log`, `.deps/comment-rating-auth-regression.log`,
+`.deps/comment-rating-preview.log`, `output/preview/comment-rating.png`.
+No real account mutation or console traffic occurred; live vote readback and
+PS5 controls remain unverified.

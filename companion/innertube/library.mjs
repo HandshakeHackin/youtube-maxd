@@ -101,6 +101,7 @@ export class Library {
       this.profiles.set(profile.id, { ...profile, name: text(profile.name) });
     }
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
+    this.commentRatings = new Map();
   }
   async client(id) {
     const profile = this.profiles.get(id);
@@ -150,6 +151,23 @@ export class Library {
         item.reply_cursor = randomUUID();
         this.threads.set(item.reply_cursor, { owner, thread, deadline: this.clock() + 120000 });
       } else item.reply_cursor = '';
+      item.rating_cursor = ''; item.rating_like = item.rating_dislike = item.rating_remove = false;
+      const node = thread.comment ?? thread;
+      const profile = this.profiles.get(owner);
+      if (profile?.cookie || profile?.oauth) {
+        const methods = {
+          like: !node.is_liked && node.like_command && typeof node.like === 'function' ? 'like' : '',
+          dislike: !node.is_disliked && node.dislike_command && typeof node.dislike === 'function' ? 'dislike' : '',
+          none: node.is_liked && node.unlike_command && typeof node.unlike === 'function' ? 'unlike' :
+            node.is_disliked && node.undislike_command && typeof node.undislike === 'function' ? 'undislike' : ''
+        };
+        for (const [key, entry] of this.commentRatings) if (entry.deadline <= this.clock()) this.commentRatings.delete(key);
+        if (Object.values(methods).some(Boolean) && this.commentRatings.size < 256) {
+          item.rating_cursor = randomUUID();
+          item.rating_like = !!methods.like; item.rating_dislike = !!methods.dislike; item.rating_remove = !!methods.none;
+          this.commentRatings.set(item.rating_cursor, { owner, node, methods, deadline: this.clock() + 120000 });
+        }
+      }
       return item;
     });
     const remaining = items.slice(24);
@@ -193,7 +211,7 @@ export class Library {
     const authenticated = !!(profile.cookie || profile.oauth);
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
-      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress']);
+      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
     if (!privateActions.has(input.action) && !['home', 'playlist', 'comments'].includes(input.action))
@@ -205,6 +223,25 @@ export class Library {
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
+    if (input.action === 'comment_rate') {
+      const entry = this.commentRatings.get(input.cursor);
+      if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
+        throw new LibraryError('cursor_expired', 'Reload the comments before rating this comment.', 409);
+      if (!['like', 'dislike', 'none'].includes(input.rating) || !entry.methods[input.rating])
+        throw new LibraryError('invalid_rating', 'Select an available comment rating.');
+      if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+      if (entry.attempted) {
+        if (entry.result && entry.rating === input.rating) return entry.result;
+        throw new LibraryError('comment_unconfirmed', 'Reload the comments; this rating intent cannot be repeated.', 409);
+      }
+      entry.attempted = true; entry.rating = input.rating;
+      const response = await entry.node[entry.methods[input.rating]]();
+      if (response?.success !== true || !Number.isInteger(response.status_code) ||
+          response.status_code < 200 || response.status_code >= 300 || response.data?.error)
+        throw new LibraryError('comment_unconfirmed', 'YouTube did not accept the comment rating.', 502);
+      entry.result = { api_version: 1, success: true, rating: input.rating };
+      return entry.result;
+    }
     if (input.action === 'watch_progress') {
       if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(input.session ?? '') ||

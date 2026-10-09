@@ -25,6 +25,7 @@ int tube_take_next(evo_provider_item_t *item);
 int tube_autoplay_enabled(void);
 int tube_choose_stream_enabled(void);
 const char *tube_comment_text(const char *id);
+const char *tube_comment_rating(const char *id);
 typedef struct { unsigned ticket; char label[64], initial[601]; } tube_playlist_prompt_t;
 int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt);
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity);

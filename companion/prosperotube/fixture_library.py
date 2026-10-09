@@ -10,7 +10,7 @@ CHANNEL = "UC" + "f" * 22
 PRIVATE = {"subscriptions", "history", "library", "playlists", "watch_later",
            "like", "dislike", "unrate", "subscribe", "unsubscribe", "playlist_create",
            "playlist_add", "playlist_remove", "playlist_rename", "playlist_delete",
-           "watch_later_add", "watch_later_remove", "watch_progress"}
+           "watch_later_add", "watch_later_remove", "watch_progress", "comment_rate"}
 
 
 class FixtureLibrary:
@@ -25,7 +25,7 @@ class FixtureLibrary:
             self.accounts[owner] = {
                 "playlists": {f"PLfixture{i:02d}": {"title": f"Offline playlist {i + 1}",
                               "videos": [VIDEOS[i % 3]], "privacy": "PRIVATE"} for i in range(25)},
-                "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}}
+                "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}, "comment_ratings": {}}
         self.watches = {}
         self.on_profile_removed = lambda identity: None
 
@@ -81,11 +81,27 @@ class FixtureLibrary:
             return {"api_version": 1, "success": True, "profile": owner}
         if action in PRIVATE and owner == "guest":
             raise ServiceError("account_required", "Select an offline account profile.", 401)
+        if action == "comment_rate":
+            ref = self.references.get(request.get("cursor"))
+            if not ref or ref["owner"] != owner or ref["kind"] != "rating" or ref["deadline"] <= self.clock():
+                raise ServiceError("cursor_expired", "Reload the comments before rating this comment.", 409)
+            rating = request.get("rating")
+            if rating not in ("like", "dislike", "none"):
+                raise ServiceError("invalid_rating", "Select an available comment rating.", 400)
+            if ref["result"] is not None:
+                if ref["result"]["rating"] != rating:
+                    raise ServiceError("comment_unconfirmed", "Reload the comments; this rating intent cannot be repeated.", 409)
+                return copy.deepcopy(ref["result"])
+            if rating not in ref["items"][1]:
+                raise ServiceError("invalid_rating", "Select an available comment rating.", 400)
+            self.accounts[owner]["comment_ratings"][ref["items"][0]] = rating
+            ref["result"] = {"api_version": 1, "success": True, "rating": rating}
+            return copy.deepcopy(ref["result"])
         if action in {"continue", "replies"}:
             ref = self.references.get(request.get("cursor"))
             replies = action == "replies"
             if (not ref or ref["owner"] != owner or ref["deadline"] <= self.clock()
-                    or (ref["kind"] == "replies") != replies):
+                    or (ref["kind"] == "replies") != replies or ref["kind"] == "rating"):
                 raise ServiceError("cursor_expired", "Reload this page to continue.", 409)
             if ref["result"] is None:
                 ref["result"] = self._page(owner, "comments" if replies else ref["kind"], ref["items"])
@@ -125,6 +141,15 @@ class FixtureLibrary:
                      "pinned": i == 0, "owner": i == 0, "art_url": "", "reply_cursor": ""} for i in range(25)]
             replies = [{**rows[1], "id": f"fixture-reply-{i}", "content": f"Generated reply {i + 1}.", "replies": "0"} for i in range(3)]
             rows[0]["reply_cursor"] = self._reference(owner, "replies", replies)
+            for row in [*rows, *replies]:
+                current = account["comment_ratings"].get(row["id"], "none")
+                options = [r for r in ("like", "dislike", "none") if r != current]
+                row.update(rating_like=owner != "guest" and "like" in options,
+                           rating_dislike=owner != "guest" and "dislike" in options,
+                           rating_remove=owner != "guest" and "none" in options,
+                           rating_cursor=self._reference(owner, "rating", [row["id"], options]) if owner != "guest" else "")
+            # The reply reference takes its snapshot after rating capabilities exist.
+            self.references[rows[0]["reply_cursor"]]["items"] = copy.deepcopy(replies)
             if request.get("sort", "top") == "newest":
                 rows.reverse()
             return self._page(owner, "comments", rows)

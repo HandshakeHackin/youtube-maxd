@@ -38,4 +38,4 @@ def apply_device_auth_overlay(replace, player):
 {
     if (m_provider_id == "youtube") tube_cancel();''')
     replace(ui, '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0);',
-            '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0 || std::strncmp(parent_id, "auth:", 5) == 0 || std::strcmp(parent_id, "account:remove") == 0);')
+            '(std::strncmp(parent_id, "playlist:review:", 16) == 0 || std::strncmp(parent_id, "playlist:confirm:", 17) == 0 || std::strncmp(parent_id, "comment:confirm:", 16) == 0 || std::strncmp(parent_id, "auth:", 5) == 0 || std::strcmp(parent_id, "account:remove") == 0);')

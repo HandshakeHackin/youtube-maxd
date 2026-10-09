@@ -188,3 +188,13 @@ account authorization. OAuth playback now has a TV-only adapter with offline
 request/format/refresh coverage. Verify real account-only playback, captions,
 TV signature/n challenges, profile isolation and post-refresh resolution before
 claiming it works. A public TV probe returning LOGIN_REQUIRED proves no playback.
+
+Comment-rating acceptance remains pending. In the offline fixture account, open
+comments or a reply thread, select a comment, and press Touchpad. Check available
+like/dislike/remove-rating choices, the full literal-text review, Cross submission
+and Circle cancellation. A result screen must not resubmit, and changing profile
+or companion source must invalidate old reviews. Guest and malformed capabilities
+must produce no rating request. Repeat with a real designated test comment after
+account authorization, then reload/read back its rating before treating transport
+acceptance as a verified live outcome. Exercise expired references, timeout and
+restarting the companion during a pending request without automatic resubmission.

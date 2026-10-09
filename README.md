@@ -107,7 +107,7 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
 | R3 | Open comments on a video |
-| Touchpad click | Account actions for a video; edits for an account playlist |
+| Touchpad click | Account actions, playlist edits, or ratings for a displayed comment |
 | Options | Companion address and pairing code |
 
 Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
@@ -115,7 +115,9 @@ Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
 
 In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
 switches top/newest sorting, and Circle returns. Enable the companion library
-worker for discussion browsing. Comment posting and live/PS5 acceptance remain
+worker for discussion browsing. With an account profile, Touchpad opens available
+comment like/dislike/remove-rating controls. Review the comment and press Cross
+to submit once; reload comments before another rating change. Comment posting and live/PS5 acceptance remain
 unfinished.
 
 With an account profile selected, touchpad click opens video ratings, YouTube

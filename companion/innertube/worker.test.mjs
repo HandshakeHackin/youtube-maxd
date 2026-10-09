@@ -8,6 +8,65 @@ import { DeviceAuthorization, createProfileClient, validCredentials } from './de
 Log.setLevel(Log.Level.NONE);
 const oauthFixture = { access_token: 'fixture-access', refresh_token: 'fixture-refresh',
   expiry_date: '2099-01-01T00:00:00.000Z', client: { client_id: 'fixture-client', client_secret: 'fixture-secret' } };
+
+test('actual pinned comment votes use scoped TV endpoints and one-time references', async () => {
+  let clock = 0;
+  const requests = [];
+  const profile = {id:'one', name:'TV', cookie:'', oauth:oauthFixture};
+  const client = await createProfileClient(profile, Innertube, async (input, init) => {
+    const request = new Request(input, init);
+    const data = JSON.parse(await request.text());
+    assert.equal(new URL(request.url).pathname, '/youtubei/v1/comment/perform_comment_action');
+    assert.equal(request.headers.get('Authorization'), 'Bearer fixture-access');
+    assert.equal(request.headers.get('Cookie'), null);
+    assert.equal(data.context.client.clientName, 'TVHTML5');
+    requests.push(data.actions);
+    return new Response('{}', {status:200, headers:{'Content-Type':'application/json'}});
+  });
+  const comment = new YTNodes.CommentView({commentId:'fixture-comment',toolbarStateKey:'private-state-key'});
+  comment.content = 'Comment <b>literal</b>'; comment.author = {name:'Author'};
+  comment.like_command = new YTNodes.NavigationEndpoint({performCommentActionEndpoint:{actions:['private-like-action']}});
+  comment.dislike_command = new YTNodes.NavigationEndpoint({performCommentActionEndpoint:{actions:['private-dislike-action']}});
+  comment.unlike_command = new YTNodes.NavigationEndpoint({performCommentActionEndpoint:{actions:['private-unlike-action']}});
+  comment.setActions(client.actions);
+  client.getComments = async () => ({contents:[{comment}],has_continuation:false});
+  const library = new Library(async () => client, [profile,{id:'two',name:'Peer',cookie:'peer-cookie'}], () => clock);
+  let page = await library.execute({action:'comments',profile:'one',id:'00000000000'});
+  const cursor = page.items[0].rating_cursor;
+  assert.ok(cursor); assert.equal(page.items[0].rating_like, true); assert.equal(page.items[0].rating_remove, false);
+  assert.equal(JSON.stringify(page).includes('private-'), false);
+  await assert.rejects(library.execute({action:'comment_rate',profile:'guest',cursor,rating:'like'}), {code:'account_required'});
+  await assert.rejects(library.execute({action:'comment_rate',profile:'two',cursor,rating:'like'}), {code:'cursor_expired'});
+  await assert.rejects(library.execute({action:'comment_rate',profile:'one',cursor,rating:'none'}), {code:'invalid_rating'});
+  const result = await library.execute({action:'comment_rate',profile:'one',cursor,rating:'like'});
+  assert.deepEqual(result, {api_version:1,success:true,rating:'like'});
+  assert.deepEqual(await library.execute({action:'comment_rate',profile:'one',cursor,rating:'like'}), result);
+  await assert.rejects(library.execute({action:'comment_rate',profile:'one',cursor,rating:'dislike'}), {code:'comment_unconfirmed'});
+  assert.deepEqual(requests, [['private-like-action']]);
+  comment.is_liked = true;
+  page = await library.execute({action:'comments',profile:'one',id:'00000000000'});
+  assert.equal(page.items[0].rating_remove, true); assert.equal(page.items[0].rating_like, false);
+  await library.execute({action:'comment_rate',profile:'one',cursor:page.items[0].rating_cursor,rating:'none'});
+  assert.deepEqual(requests[1], ['private-unlike-action']);
+  page = await library.execute({action:'comments',profile:'one',id:'00000000000'});
+  clock = 120001;
+  await assert.rejects(library.execute({action:'comment_rate',profile:'one',cursor:page.items[0].rating_cursor,rating:'dislike'}), {code:'cursor_expired'});
+  assert.equal(requests.length, 2);
+});
+
+test('failed comment rating references cannot attempt another upstream mutation', async () => {
+  let calls = 0;
+  const comment = {comment_id:'failure',content:'Failure',like_command:{},dislike_command:{},
+    like:async () => {calls++; throw new Error('private upstream error');}, dislike:async () => {calls++;}};
+  const library = new Library(async () => ({session:{logged_in:true},getComments:async () => ({contents:[{comment}]})}),
+    [{id:'one',name:'One',cookie:'cookie'}]);
+  const page = await library.execute({action:'comments',profile:'one',id:'00000000000'});
+  const request = {action:'comment_rate',profile:'one',cursor:page.items[0].rating_cursor,rating:'like'};
+  await assert.rejects(library.execute(request));
+  await assert.rejects(library.execute(request), {code:'comment_unconfirmed'});
+  await assert.rejects(library.execute({...request,rating:'dislike'}), {code:'comment_unconfirmed'});
+  assert.equal(calls, 1);
+});
 test('private playback preflight refreshes actual pinned TV tokens before expiry', async () => {
   const updates = [], requests = [];
   const nearExpiry = { ...oauthFixture, expiry_date: new Date(Date.now() + 30000).toISOString() };

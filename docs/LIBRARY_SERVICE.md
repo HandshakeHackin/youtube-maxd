@@ -8,11 +8,35 @@ existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue, follows and history remain console
 data, stored separately for each selected profile.
 
-This is not full SmartTube parity. Device-code login, live chat and comment posting
-are not connected yet. Account
+This is not full SmartTube parity. Live chat and comment posting are not connected
+yet. Device-code login is implemented with real-account/PS5 acceptance pending. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real YouTube/account acceptance remains unverified.
+
+### Ratings for displayed comments
+
+Touchpad on a displayed comment or reply opens available like, dislike, or
+remove-rating controls. Guest has no rating controls. The full comment and
+selected profile appear in a review; Cross submits once and Circle returns
+without submitting it. The pinned SmartTube service provides
+[comment like/dislike operations](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/YouTubeCommentsService.kt).
+
+The companion retains the actual pinned parser node and its server-provided
+commands. Only a random, profile-owned `rating_cursor` and option booleans cross
+the API; clients cannot supply an endpoint or encoded comment command.
+References expire after two minutes and are capped at 256. Each permits one
+rating attempt; a confirmed retry returns the prior result. A different rating
+or an uncertain attempt requires reloading comments. The Python guard retains
+attempted intents for 30 minutes, including across Node worker loss, so a queued
+or canceled request cannot recreate an uncertain mutation.
+
+HTTP success establishes request acceptance, not a verified readback of the
+live account's vote. Unknown responses and mismatching native confirmations
+fail. Offline fixtures support isolated ratings/removal in comment lists and
+reply threads; restart resets them. Capabilities remain in RAM. Persisted PS5
+state stays under `/data/prosperotube` through Lapy. Real-account outcomes and
+PS5 controls remain unverified.
 
 Touchpad click on a native video opens account actions for the selected profile:
 like, dislike, remove rating, add/remove YouTube Watch later, and subscribe or

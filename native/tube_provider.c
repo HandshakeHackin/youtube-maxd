@@ -78,7 +78,7 @@ static int g_chapter_count;
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 static char g_library_cursors[LIBRARY_PAGES][65];
-static struct { char id[160], content[16385]; } g_comments[LOCAL_PAGE];
+static struct { char id[160], content[16385], rating[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
 static unsigned g_account_serial;
 static unsigned g_accounts_revision;
 unsigned tube_accounts_revision(void) { return g_accounts_revision; }
@@ -110,8 +110,15 @@ static int valid_cursor(const char *value) {
 }
 
 const char *tube_comment_text(const char *id) {
-    if (id) for (int i = 0; i < LOCAL_PAGE; ++i)
+    if (id) for (int i = 0; i <= LOCAL_PAGE; ++i)
         if (*g_comments[i].id && !strcmp(id, g_comments[i].id)) return g_comments[i].content;
+    return "";
+}
+
+const char *tube_comment_rating(const char *id) {
+    if (id && strcmp(g_library_profile, "guest")) for (int i = 0; i < LOCAL_PAGE; ++i)
+        if (!strcmp(g_comments[i].id, id) && !strcmp(g_comments[i].profile, g_library_profile) && g_comments[i].rating_options)
+            return g_comments[i].rating;
     return "";
 }
 
@@ -775,6 +782,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
         }
         int removing = !strcmp(g_account_intent.action, "profile_remove");
+        if (!strcmp(g_account_intent.action, "comment_rate") && strcmp(str(result, "rating"), g_account_intent.identity)) {
+            cJSON_Delete(root); tube_set_error("The comment rating was not confirmed."); complete(r, 0); return;
+        }
         if (removing && strcmp(str(result, "profile"), g_account_intent.profile)) {
             cJSON_Delete(root); tube_set_error("The companion did not confirm removal of this profile."); complete(r, 0); return;
         }
@@ -847,6 +857,13 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             copy(items[n].overview, sizeof items[n].overview, str(o, "content"));
             copy(g_comments[n].id, sizeof g_comments[n].id, id);
             copy(g_comments[n].content, sizeof g_comments[n].content, str(o, "content"));
+            const char *rating = str(o, "rating_cursor");
+            if (valid_cursor(rating)) {
+                copy(g_comments[n].rating, sizeof g_comments[n].rating, rating);
+                copy(g_comments[n].profile, sizeof g_comments[n].profile, g_library_profile);
+                g_comments[n].rating_options = (boolean(o, "rating_like") ? 1u : 0u) |
+                    (boolean(o, "rating_dislike") ? 2u : 0u) | (boolean(o, "rating_remove") ? 4u : 0u);
+            }
             ++n;
         }
         evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
@@ -954,6 +971,44 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
+    if (parent && !strncmp(parent, "comment:", 8)) {
+        const char *cursor = !strncmp(parent, "comment:menu:", 13) ? parent + 13 :
+            !strncmp(parent, "comment:confirm:", 16) ? strchr(parent + 16, ':') : NULL;
+        const int reviewing = !strncmp(parent, "comment:confirm:", 16);
+        if (reviewing && cursor) ++cursor;
+        int found = -1;
+        if (valid_cursor(cursor) && strcmp(g_library_profile, "guest"))
+            for (int i = 0; i < LOCAL_PAGE; ++i)
+                if (!strcmp(g_comments[i].rating, cursor) && !strcmp(g_comments[i].profile, g_library_profile)) found = i;
+        if (page || found < 0) {
+            tube_set_error("Reload the comments for the current profile before rating a comment.");
+            cb(0, NULL, 0, 0, ud); return 1;
+        }
+        const char *ratings[] = {"like", "dislike", "none"};
+        const char *titles[] = {"Like comment", "Dislike comment", "Remove comment rating"};
+        if (!reviewing) {
+            for (int i = 0; i < 3; ++i) if (g_comments[found].rating_options & (1u << i)) {
+                char id[160]; snprintf(id, sizeof id, "comment:confirm:%s:%s", ratings[i], cursor);
+                folder(&out[n++], id, titles[i], "Review the selected comment before confirming");
+            }
+        } else {
+            int choice = -1;
+            for (int i = 0; i < 3; ++i) {
+                char expected[160]; snprintf(expected, sizeof expected, "comment:confirm:%s:%s", ratings[i], cursor);
+                if (!strcmp(expected, parent) && (g_comments[found].rating_options & (1u << i))) choice = i;
+            }
+            if (choice < 0) { tube_set_error("Select an available comment rating."); cb(0, NULL, 0, 0, ud); return 1; }
+            char content[16001]; copy(content, sizeof content, g_comments[found].content);
+            unsigned serial = account_intent("comment_rate", ratings[choice], cursor, "");
+            char id[80]; snprintf(id, sizeof id, "account:apply:%u", serial);
+            folder(&out[n++], id, titles[choice], "Cross confirms for the selected YouTube profile; Circle cancels");
+            copy(g_comments[LOCAL_PAGE].id, sizeof g_comments[LOCAL_PAGE].id, id);
+            snprintf(g_comments[LOCAL_PAGE].content, sizeof g_comments[LOCAL_PAGE].content, "Profile: %s\nComment:\n%s\nCross confirms; Circle returns without submitting it.",
+                     g_library_profile, content);
+            copy(out[0].overview, sizeof out[0].overview, g_comments[LOCAL_PAGE].content);
+        }
+        cb(1, out, n, 0, ud); return 1;
+    }
     if (parent && !strncmp(parent, "playlist:", 9)) {
         if (!strchr(parent + 9, ':')) return 0; /* ordinary public playlist browsing */
         if (!strncmp(parent, "playlist:pick:", 14)) return 0;
@@ -1260,6 +1315,10 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         cJSON_AddStringToObject(operation, "id", g_account_intent.identity);
         cJSON_AddStringToObject(operation, "playlist", g_account_intent.playlist);
         cJSON_AddStringToObject(operation, "title", g_account_intent.title);
+        if (!strcmp(g_account_intent.action, "comment_rate")) {
+            cJSON_AddStringToObject(operation, "cursor", g_account_intent.playlist);
+            cJSON_AddStringToObject(operation, "rating", g_account_intent.identity);
+        }
         char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
         if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
         copy(r->payload, sizeof r->payload, body); free(body);

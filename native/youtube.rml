@@ -53,6 +53,7 @@
             <span class="tube-key">L2 / R2</span> Scroll comment
             <span class="tube-key">L1 / R1</span> Page
             <span class="tube-key">R3</span> Top / newest
+            <span class="tube-key">Touchpad</span> Rate comment
             <span class="tube-key">○</span> Back
         </div>
         <div id="tube-review-footer" data-if="review &amp;&amp; !auth">

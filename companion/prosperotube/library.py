@@ -74,6 +74,7 @@ class LibraryService:
         self.pending = 0
         self.closed = False
         self.watch_states = {}
+        self.comment_states = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -94,6 +95,7 @@ class LibraryService:
         self.profiles = [p for p in self.profiles if p["id"] != identity]
         self.profile_revision += 1
         self.watch_states = {k: v for k, v in self.watch_states.items() if k[0] != identity}
+        self.comment_states = {k: v for k, v in self.comment_states.items() if k[0] != identity}
         self.on_profile_removed(identity)
         await self._stop()  # retire all cached Node credentials/continuations
         if not confirmed:
@@ -202,6 +204,30 @@ class LibraryService:
             self.watch_states[key] = state
         return state
 
+    def _comment_state(self, request, *, create=False):
+        if request.get("action") != "comment_rate":
+            return None
+        owner, cursor, rating = request.get("profile", "guest"), request.get("cursor", ""), request.get("rating")
+        if (not isinstance(owner, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner)
+                or not isinstance(cursor, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", cursor)
+                or rating not in ("like", "dislike", "none")):
+            raise ServiceError("invalid_rating", "Select an available comment rating.", 400)
+        if owner == "guest":
+            raise ServiceError("account_required", "Select an account profile first.", 401)
+        if not self.has_profile(owner):
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        now = time.monotonic()
+        self.comment_states = {k: v for k, v in self.comment_states.items() if v["deadline"] > now}
+        state = self.comment_states.get((owner, cursor))
+        if state and (state["rating"] != rating or state["result"] is None):
+            raise ServiceError("comment_unconfirmed", "Reload the comments; this rating intent cannot be repeated.", 409)
+        if state is None and create:
+            if len(self.comment_states) >= 256:
+                raise ServiceError("comment_busy", "Too many comment rating intents are retained.", 429)
+            state = {"rating": rating, "result": None, "deadline": now + 1800}
+            self.comment_states[(owner, cursor)] = state
+        return state
+
     async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
@@ -219,12 +245,20 @@ class LibraryService:
                     owned = True
                     if operation == "execute" and request.get("action") == "profile_remove":
                         return await self._remove_profile(request)
+                    comment_state = self._comment_state(request) if operation == "execute" else None
+                    if comment_state is not None:
+                        return dict(comment_state["result"])
                     self._watch_state(request)
                     await self._start()
+                    comment_state = self._comment_state(request, create=True) if operation == "execute" else None
                     watch_state = self._watch_state(request, create=True)
                     if watch_state is not None:
                         watch_state["blocked"] = True
                     result = await self._exchange({"operation": operation, "request": request})
+                    if comment_state is not None:
+                        if result.get("success") is not True or result.get("rating") != request["rating"]:
+                            raise ServiceError("comment_unconfirmed", "YouTube did not accept the comment rating.", 502)
+                        comment_state["result"] = dict(result)
                     if watch_state is not None:
                         if (result.get("success") is not True or type(result.get("position_sec")) not in (int, float)
                                 or result.get("position_sec") != request.get("position_sec")):

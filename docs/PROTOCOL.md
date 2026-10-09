@@ -83,3 +83,18 @@ and externally configured cookie accounts with `profile_managed`.
 `auth_storage_unconfirmed` means replacement occurred but durable synchronization
 was not confirmed; runtime credentials still retire. No upstream account mutation
 or token-revocation request is sent by this operation.
+
+Comment ratings use the authenticated library endpoint/job with
+`{"action":"comment_rate","profile":"PROFILE","cursor":"RATING_REFERENCE","rating":"like"}`.
+`rating` is `like`, `dislike`, or `none`. Comment/reply rows expose
+`rating_cursor`, `rating_like`, `rating_dislike` and `rating_remove`; Guest or
+unsupported parser controls expose an empty cursor and false options.
+References are opaque, profile-bound and valid for two minutes. They are not
+reply or paging cursors. Accepted results contain `api_version:1`, `success:true`
+and the requested `rating`, with no raw upstream commands/results.
+One reference permits one attempt: confirmed same-rating retries reuse its
+result, while changed/uncertain attempts return `comment_unconfirmed` (409).
+Missing/expired/wrong-owner references return `cursor_expired` (409), Guest
+returns `account_required`, unavailable choices return `invalid_rating`, and
+exhausted companion intent retention returns `comment_busy` (429).
+Transport acceptance still requires live account readback during validation.

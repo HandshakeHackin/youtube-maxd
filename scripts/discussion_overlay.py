@@ -37,7 +37,15 @@ int EvoRmlProviderHost::DiscussionKey(int key)
         m_dirty = true; return 1;
     }
     if (key == 4) {
-        if (m_model.discussion) return 0;
+        if (m_model.discussion) {
+            const auto* comment = GetFocusedRow();
+            const char* rating = comment ? tube_comment_rating(comment->id.c_str()) : "";
+            if (!*rating) { SetStatus("Select an account profile and reload comments to rate this comment.", false); return 1; }
+            m_pos_stack.push_back({m_row_offset, comment->index});
+            m_stack.push_back(std::string("comment:menu:") + rating);
+            m_crumbs.push_back("Comment rating"); m_page = 0;
+            RequestPage(m_stack.back().c_str(), 0); return 1;
+        }
         const auto* row = GetFocusedRow();
         if (row && row->is_folder && row->id.rfind("library:playlist:", 0) == 0) {
             m_pos_stack.push_back({m_row_offset, row->index});
