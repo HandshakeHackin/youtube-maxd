@@ -76,6 +76,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r companion/requirements.lock
 PYTHONPATH=companion .venv/bin/python -m pytest -q
 bash scripts/test_native.sh
+bash scripts/test_elevation.sh
 bash scripts/test_subtitles.sh
 python3 scripts/generate_fixtures.py
 PYTHONPATH=companion .venv/bin/python scripts/probe_companion.py

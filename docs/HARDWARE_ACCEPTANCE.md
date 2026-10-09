@@ -1,5 +1,21 @@
 # Hardware acceptance — pending
 
+Lapy storage candidate `1b74462d` passed native ASan/UBSan regressions, the
+existing/resident/helper and mounted-data listing tests, and PS5 folder/ZIP/PFS
+build inspection. Its frozen folder has 126 files, eboot SHA-256 prefix
+`02317fceecfb2f30`, and exact-title Lapy helper prefix `c894f5eb1084c5a3`.
+App state, captions, caches and diagnostics use `/data/prosperotube`; verified
+Lapy access and app-directory write/read/close/delete are required before app
+services start. Transient persistence fallback and render-loop elevation
+retries are removed. GPU/decoder preload ordering remains part of acceptance.
+
+- 2026-10-09 | Lapy storage | 1b74462d | PS5 6.02 | no-run: a title was running at the first console operation; no probes, upload, launch or input followed | .deps/console/storage-1b74462/ | verified storage, relaunch persistence and playback
+
+The candidate has not run on PS5. Verify native startup and saved state under
+the exact durable directory across two clean launches, then rerun playback,
+caption, controller and teardown cases. Earlier accepted sandbox builds do not
+prove this new storage/elevation contract.
+
 Standing user instruction: the first console operation of each new session is
 a read-only running-title check, after checking the shared lock locally. Any
 running title blocks the session, including this app. Continue offline; do not
