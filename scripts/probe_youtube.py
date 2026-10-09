@@ -46,6 +46,8 @@ def main():
     parser.add_argument("--video", required=True, help="Public eleven-character YouTube video ID")
     parser.add_argument("--codec", choices=("avc", "vp9"), default="avc")
     parser.add_argument("--height", type=int, choices=(144, 240, 360, 480, 720, 1080), default=720)
+    parser.add_argument("--transport", choices=("any", "hls", "dash"), default="any", help="Require a specific returned transport")
+    parser.add_argument("--expect-live", action="store_true", help="Fail unless the selected stream is currently live")
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
     parser.add_argument("--js-runtime-path")
     parser.add_argument("--profile", help="Explicit authorized OAuth profile ID; never falls back to Guest")
@@ -94,7 +96,14 @@ def main():
         stage = "resolve"
         playback = request("/v1/resolve", {"id": identifier, "codec": args.codec, "max_height": args.height,
                                             "profile": args.profile or "guest"})
-        choice = playback["choices"][0]
+        choices = [choice for choice in playback["choices"] if args.transport == "any" or choice["container"] == args.transport]
+        if not choices:
+            raise RuntimeError("requested_transport_missing")
+        choice = choices[0]
+        live = choice.get("is_live") is True
+        result["is_live"] = live
+        if args.expect_live and not live:
+            raise RuntimeError("expected_live_stream_missing")
         result["transport"] = choice["container"]
         stage = "relay_probe"
         probe = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", choice["url"]],
@@ -104,13 +113,15 @@ def main():
             raise RuntimeError("audio_video_streams_missing")
         result["streams"] = [{"type": stream["codec_type"], "codec": stream["codec_name"]}
                              for stream in streams]
-        for offset in (0, min(4, max(0, playback.get("duration_sec", 0) - 2))):
+        offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - 2)))
+        for offset in offsets:
             stage = "decode" if offset == 0 else "seek_decode"
             command = ["ffmpeg", "-v", "error"] + (["-ss", str(offset)] if offset else [])
             command += ["-i", choice["url"], "-t", "2", "-map", "0:v", "-map", "0:a", "-f", "null", "-"]
             subprocess.run(command, capture_output=True, timeout=45, check=True)
         result["result"] = "pass"
-        result["checks"] = ["pair", "resolve", "relay_probe", "two_second_audio_video_decode", "seek_decode"]
+        result["checks"] = ["pair", "resolve", "relay_probe", "two_second_audio_video_decode"]
+        result["checks"] += ["live_edge_decode"] if live else ["seek_decode"]
     except urllib.error.HTTPError as error:
         result.update(stage=stage, status=error.code)
         # Only our API's stable machine code is persisted. Never copy error

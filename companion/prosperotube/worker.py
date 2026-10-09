@@ -70,6 +70,9 @@ def main():
                         raise ValueError("invalid OAuth extraction context")
                     from .oauth_video import TVOAuthYoutubeIE
                     ydl.add_info_extractor(TVOAuthYoutubeIE(request["oauth_access_token"]))
+                else:
+                    from .live_hls import LiveHLSYoutubeIE
+                    ydl.add_info_extractor(LiveHLSYoutubeIE())
                 if request.get("cookie_header") is not None:
                     install_profile_cookies(ydl, request["cookie_header"])
                 info = ydl.extract_info(request["target"], download=False)

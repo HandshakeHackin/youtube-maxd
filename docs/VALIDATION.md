@@ -271,3 +271,34 @@ found a running title and stopped immediately, before probes, upload, launch,
 close or input; its owned lock was released. This candidate is undeployed.
 
 - 2026-10-09 | Lapy | 0b5f0712 | PS5 6.02 | no-run: first title check busy; owned lock released | .deps/console/storage-0b5f071/ | storage/startup acceptance
+
+### Live HLS relay and idle capabilities (2026-10-09)
+
+The current public NASA Space Station stream `awQzjn72bI0` passed the shipping
+companion pairing/resolve/relay path with `--transport hls --expect-live`. Host
+FFmpeg found H.264 video and AAC audio and decoded two seconds at the live edge.
+Evidence: `.deps/live-split-public-youtube.json` and its matching log. This was
+anonymous public YouTube traffic with no account authorization or console traffic.
+The earlier candidate `DfEr5XCFNWM` failed resolution; the first current-stream
+case returned `unsupported_media` because split audio/video HLS was not paired.
+
+The pinned yt-dlp master parser now retains explicit audio codec/group relations
+from the original response. A second master fetch was rejected as an approach
+because refreshed signed URLs did not exactly match the first response. The
+shipping adapter does not add that fetch, infer AAC from format IDs, or pair
+unrelated manifests. It applies to public/cookie and TV OAuth extractors; real
+OAuth live-stream acceptance remains pending.
+
+Active delivery renews the 30-minute idle capability lease. Rolling HLS resource
+registries retain the current graph and retire older unreferenced windows at
+capacity; invalid/oversized replacements leave the previous graph intact.
+Sixteen focused tests passed, including the actual pinned HLS parser, synthetic
+rolling windows, shipping HTTP lease renewal, OAuth regressions and real worker
+process-group cleanup. The cleanup test's marker is now published atomically to
+avoid observing an empty file during the timeout case. Evidence:
+`.deps/live-split-focused.log`. Signed upstream URL renewal, long-duration/DVR
+behavior and PS5 decoding/audio remain separate acceptance gates.
+
+The final full Python suite passed 121 tests (one known Starlette deprecation
+warning): `.deps/live-split-full-python.log`. Native sources were unchanged, so
+this companion revision did not produce or deploy a new PS5 package.

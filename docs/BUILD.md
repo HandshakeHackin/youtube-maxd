@@ -126,6 +126,12 @@ Success is host companion/FFmpeg evidence, not console decoder or audio proof.
 The selected runtime and installed `yt-dlp-ejs` are required for full YouTube
 extraction; see upstream [EJS setup](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
+Add `--transport hls --expect-live` for a currently active public live-stream
+check. The runner requires an HLS choice flagged live, then probes and decodes
+at its live edge. Its result reports `live_edge_decode`; it does not perform or
+claim a VOD seek for live media. DVR seek, long-duration playback, reconnect and
+PS5 decoding/audio remain separate checks.
+
 To run the same host decode/seek check through an already authorized OAuth
 profile, explicitly add all three account options:
 

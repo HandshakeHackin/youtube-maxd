@@ -23,12 +23,24 @@ first choice. Preferences apply to the next opened video.
 captions, requiring no bearer header. The relay preserves single byte ranges,
 scopes sensitive headers to origins, limits redirects and restricts resolver
 URLs to known HTTPS YouTube domains. Separate full-file streams become static
-DASH. HLS links/keys become bounded relay capabilities. WebVTT becomes SRT
+DASH. Split live HLS is paired using explicit CODECS and AUDIO-group metadata
+from the extractor's original master response. Exact rendition URLs establish
+the relationship; unknown audio codecs and unrelated manifests are not paired.
+A local master references separate audio/video relay playlists, without exposing
+signed upstream URLs. HLS links/keys become bounded relay capabilities. WebVTT becomes SRT
 without changing timestamps. HLS keys retain file suffixes for FFmpeg extension
 validation. The PS5 checks resolved/caption URLs against its configured origin.
 
 Limits: 8 KiB request bodies, 8 MiB extractor JSON, two workers, 45-second worker
-deadline, 16 jobs, 32 sessions, 30-minute session expiry and 4,096 HLS resources.
+deadline, 16 jobs, 32 sessions, a 30-minute idle session lease and 4,096 HLS resources.
+Successful manifest/caption delivery and streamed media bytes renew that lease.
+Missing resources, failed upstream requests and expired/invalidated tokens do
+not renew it; activity never restores a removed capability. Active HLS playlists
+retain their current variant/segment/key/init graph. At capacity, the least
+recently listed resources outside that graph are retired. Recent older windows
+remain available while capacity permits. An oversized current graph fails
+atomically and preserves the previous usable registry. This does not guarantee
+unbounded DVR history; long-window playback/seek requires separate acceptance.
 Expired upstream access returns a sanitized error; reselecting the ID refreshes.
 
 This is a trusted-LAN service. HTTP is plaintext; pairing does not replace TLS.

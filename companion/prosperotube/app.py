@@ -6,7 +6,6 @@ import hashlib
 import hmac
 import json
 import os
-from pathlib import Path
 import re
 import secrets
 import time
@@ -22,8 +21,9 @@ from . import __version__
 from .catalog import item, page_for
 from .captions import vtt_to_srt
 from .extractor import Extractor
+from .hls import rewrite as hls_rewrite
 from .models import ResolveRequest, ServiceError, safe_remote, video_id
-from .sessions import Remote, Sessions
+from .sessions import Sessions
 
 
 class PairRequest(BaseModel):
@@ -363,30 +363,6 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         finally:
             await reply.aclose()
 
-    def hls_rewrite(content, origin_url, session, request_base):
-        def register(raw):
-            target = safe_remote(urljoin(origin_url, raw))
-            suffix = Path(urlsplit(target).path).suffix.lower()
-            if suffix not in {".m3u8", ".ts", ".m4s", ".mp4", ".aac", ".vtt", ".key"}:
-                suffix = ".ts"
-            key = "hls-" + hashlib.sha256(target.encode()).hexdigest()[:24] + suffix
-            if key not in session.tracks:
-                if len(session.tracks) >= 4096:
-                    raise ServiceError("playlist_limit", "The live playlist exceeded its resource limit.")
-                source = next(iter(session.tracks.values()))
-                headers = source.headers if urlsplit(source.url).hostname == urlsplit(target).hostname else {
-                    k: v for k, v in source.headers.items() if k.lower() not in {"cookie", "authorization"}}
-                session.tracks[key] = Remote(target, headers, "application/octet-stream")
-            return f"{request_base}/media/{session.token}/{key}"
-        lines = []
-        for line in content.splitlines():
-            if line and not line.startswith("#"):
-                line = register(line.strip())
-            elif 'URI="' in line:
-                line = re.sub(r'URI="([^"]+)"', lambda m: 'URI="' + register(m.group(1)) + '"', line)
-            lines.append(line)
-        return "\n".join(lines) + "\n"
-
     def relay_profile(session):
         # Account removal stops even a long stream whose capability has since
         # expired/pruned. Do not turn the existing start-request TTL into a
@@ -397,8 +373,11 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     @app.api_route("/media/{session_token}/{key}", methods=["GET", "HEAD"])
     async def media(session_token: str, key: str, request: Request):
         session = app.state.sessions.get(session_token)
-        if key in session.manifests:
-            return Response(session.manifests[key] if request.method == "GET" else "", media_type="application/dash+xml",
+        if key in session.manifests or key in session.hls_manifests:
+            app.state.sessions.touch(session)
+            manifest = session.hls_manifests.get(key, session.manifests.get(key, ''))
+            mime = 'application/vnd.apple.mpegurl' if key in session.hls_manifests else 'application/dash+xml'
+            return Response(manifest if request.method == "GET" else "", media_type=mime,
                             headers={"Cache-Control": "no-store"})
         remote = session.tracks.get(key)
         if not remote:
@@ -428,14 +407,16 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if key.endswith(".srt") and request.method == "GET":
             raw = await bounded(reply, 2 * 1024 * 1024)
             relay_profile(session)
+            app.state.sessions.touch(session)
             return Response(vtt_to_srt(raw), media_type="application/x-subrip", headers={"Cache-Control": "no-store"})
         if request.method == "GET" and ("mpegurl" in content_type or final_url.split("?")[0].endswith(".m3u8")):
             raw = await bounded(reply, 2 * 1024 * 1024)
             relay_profile(session)
             try:
-                rewritten = hls_rewrite(raw.decode("utf-8-sig"), final_url, session, base(request))
+                rewritten = hls_rewrite(raw.decode("utf-8-sig"), final_url, session, base(request), key, remote)
             except UnicodeError:
                 raise ServiceError("invalid_playlist", "The live playlist could not be read.") from None
+            app.state.sessions.touch(session)
             return Response(rewritten, media_type="application/vnd.apple.mpegurl", headers={"Cache-Control": "no-store"})
         outgoing = {k: reply.headers[k] for k in ("content-length", "content-range", "accept-ranges") if k in reply.headers}
         outgoing["Cache-Control"] = "no-store"
@@ -449,6 +430,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                         relay_profile(session)
                     except ServiceError:
                         return
+                    app.state.sessions.touch(session)
                     yield chunk
             finally:
                 await reply.aclose()

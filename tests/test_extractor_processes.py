@@ -22,8 +22,9 @@ def test_real_worker_reaps_live_evaluator_descendant(tmp_path, monkeypatch, mode
         "request=json.load(sys.stdin)\n"
         "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(120)'],"
         "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
-        f"open({str(marker)!r},'w').write(json.dumps({{'parent':os.getpid(),'child':child.pid,"
+        f"with open({str(marker) + '.tmp'!r},'w') as f: f.write(json.dumps({{'parent':os.getpid(),'child':child.pid,"
         "'parent_group':os.getpgrp(),'child_group':os.getpgid(child.pid)}))\n"
+        f"os.replace({str(marker) + '.tmp'!r},{str(marker)!r})\n"
         + ("print(json.dumps({'id':'abcdefghijk','title':'Done'}),flush=True)\n" if mode == "success"
            else "time.sleep(120)\n"), encoding="utf-8")
     compile(worker.read_text(), str(worker), "exec")

@@ -198,3 +198,10 @@ must produce no rating request. Repeat with a real designated test comment after
 account authorization, then reload/read back its rating before treating transport
 acceptance as a verified live outcome. Exercise expired references, timeout and
 restarting the companion during a pending request without automatic resubmission.
+
+Split live HLS now passes a public host case with AVC/AAC on the current NASA
+Space Station stream. Verify the same transport on PS5 after the idle-first
+guard: both audio and video, capture-free pacing, pause/resume, live-edge
+recovery and a session longer than 30 minutes. Exercise rolling playlists and
+seeking within the available live window separately. The host two-second decode
+does not prove PS5 audio output, long-session signed-URL validity or DVR support.

@@ -30,6 +30,9 @@ def test_real_ytdlp_exception_boundary_is_allowlisted(monkeypatch, message, code
             assert options["logger"].error(message) is None
         def __enter__(self): return self
         def __exit__(self, *_): pass
+        def add_info_extractor(self, ie):
+            from prosperotube.live_hls import LiveHLSYoutubeIE
+            assert isinstance(ie, LiveHLSYoutubeIE)
         def extract_info(self, *_args, **_kwargs): raise DownloadError(message + " " + secret)
     monkeypatch.setattr(yt_dlp, "YoutubeDL", YDL)
     output, errors = io.StringIO(), io.StringIO()

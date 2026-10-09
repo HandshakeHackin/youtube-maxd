@@ -24,6 +24,9 @@ class Session:
     profile: str = "guest"
     tracks: dict[str, Remote] = field(default_factory=dict)
     manifests: dict[str, str] = field(default_factory=dict)
+    hls_manifests: dict[str, str] = field(default_factory=dict)
+    hls_resources: dict[str, bool] = field(default_factory=dict)
+    hls_playlists: dict[str, set[str]] = field(default_factory=dict)
 
 
 def codec_name(raw):
@@ -78,6 +81,11 @@ class Sessions:
             raise ServiceError("expired_session", "Playback information expired. Select the video again to refresh it.", 410)
         return session
 
+    def touch(self, session):
+        # Activity renews the idle lease, but never restores an invalidated token.
+        if self.sessions.get(session.token) is session:
+            session.deadline = time.monotonic() + self.ttl
+
     def create(self, info, request: ResolveRequest, base):
         now = time.monotonic()
         for key in list(self.sessions):
@@ -120,6 +128,11 @@ class Sessions:
                   and f.get("protocol") in ("http", "https") and not f.get("has_drm")]
         audios.sort(key=lambda f: (bool(request.audio_language) and f.get("language") == request.audio_language,
                                    codec_name(str(f.get("acodec", ""))) == "aac", number(f.get("abr"))), reverse=True)
+        hls_audios = [f for f in formats if f.get('url') and f.get('vcodec') == 'none'
+                      and codec_name(str(f.get('acodec', ''))) in {'aac', 'opus'}
+                      and f.get('protocol') in ('m3u8', 'm3u8_native') and not f.get('has_drm')]
+        hls_audios.sort(key=lambda f: (bool(request.audio_language) and f.get('language') == request.audio_language,
+                                      codec_name(str(f.get('acodec', ''))) == 'aac', number(f.get('abr'))), reverse=True)
         seen = set()
         for fmt in videos:
             vcodec = codec_name(str(fmt.get("vcodec", "")))
@@ -132,6 +145,21 @@ class Sessions:
             if protocol in ("m3u8", "m3u8_native") and live and acodec:
                 url = remote(f"h{len(choices)}.m3u8", fmt, "application/vnd.apple.mpegurl")
                 container = "hls"
+            elif protocol in ('m3u8', 'm3u8_native') and live and not acodec:
+                audio = next((a for a in hls_audios if a['url'] in fmt.get('hls_audio_urls', [])
+                              and a.get('manifest_url') == fmt.get('manifest_url')), None)
+                if audio is None:
+                    continue
+                acodec = codec_name(str(audio['acodec']))
+                stem = f'h{len(choices)}'
+                vu = remote(stem + 'v.m3u8', fmt, 'application/vnd.apple.mpegurl')
+                au = remote(stem + 'a.m3u8', audio, 'application/vnd.apple.mpegurl')
+                bandwidth = max(1, int((number(fmt.get('tbr')) + number(audio.get('tbr'))) * 1000))
+                session.hls_manifests[stem + '.m3u8'] = (
+                    '#EXTM3U\n#EXT-X-VERSION:3\n'
+                    f'#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="{au}"\n'
+                    f'#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},AUDIO="audio"\n{vu}\n')
+                url, container = f'{prefix}/{stem}.m3u8', 'hls'
             elif protocol in ("http", "https") and acodec:
                 url = remote(f"p{len(choices)}", fmt, "video/mp4" if fmt.get("ext") == "mp4" else "video/webm")
                 container = text(fmt.get("ext"), 16)

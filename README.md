@@ -147,9 +147,10 @@ Local lists are independent of Google, bounded to 384 cached records. State uses
 an atomic JSON replacement and is saved periodically during playback. The
 companion bearer token is stored in PS5 state and the PC token file; PS5 storage
 encryption is not provided. Cookies, resolver headers and signed YouTube URLs
-stay on the companion. Media capabilities expire after 30 minutes; selecting
-the video again refreshes them. Automatic mid-playback renewal is not
-implemented. Access logs are disabled and native diagnostics redact
+stay on the companion. Media capabilities expire after 30 minutes of inactivity;
+delivered media and manifests renew this idle lease. Upstream signed URLs can
+still expire independently; selecting the video again refreshes them. Automatic
+re-resolution of expired upstream URLs is not implemented. Access logs are disabled and native diagnostics redact
 capabilities. See [protocol/security notes](docs/PROTOCOL.md).
 
 GPL-3.0-or-later. See [LICENSE](LICENSE) and

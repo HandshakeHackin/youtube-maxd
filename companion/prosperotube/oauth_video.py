@@ -6,9 +6,10 @@ from urllib.parse import urlsplit, urljoin
 import httpx
 from yt_dlp.extractor.youtube import YoutubeIE
 from yt_dlp.utils import ExtractorError
+from .live_hls import LiveHLSMixin
 
 
-class TVOAuthYoutubeIE(YoutubeIE):
+class TVOAuthYoutubeIE(LiveHLSMixin, YoutubeIE):
     def __init__(self, token):
         super().__init__()
         if not isinstance(token, str) or not 1 <= len(token) <= 8192 or re.search(r"[^\x21-\x7e]", token):
