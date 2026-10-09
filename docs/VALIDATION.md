@@ -170,3 +170,11 @@ token polling, media download or console traffic. Evidence:
 `.deps/tv-player-verified-public-probe.json` and its matching log. This does not
 verify account-only streams or current TV signature challenges. No native sources
 changed in this stage; the frozen native candidate remains `a07e1733` and undeployed.
+
+The follow-up TV timestamp correction exercises the actual pinned timestamp
+parser/cache with distinct synthetic TV variants and mismatching WEB/config/
+caller override timestamps. The actual TV player request is checked for the
+matching script timestamp in its playback context. Missing script timestamps
+remain missing instead of using WEB STS. This is identity/request regression
+coverage, not live cipher verification. Evidence:
+`.deps/oauth-tv-timestamp-test.log` and `.deps/oauth-tv-timestamp-full-python.log`.

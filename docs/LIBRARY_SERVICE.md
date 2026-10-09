@@ -342,6 +342,10 @@ Video extraction and preflight share the resolver's overall deadline. Cookies an
 OAuth cannot be mixed. Bearer headers are stripped from normalized formats and
 captions; the relay never uses an OAuth header. TV script URLs supplied by TV
 configuration are retained; a missing script reference uses the pinned TV variant.
+The signature timestamp is extracted from that exact TV script, with the pinned
+variant-scoped cache. WEB/config timestamps and caller-supplied `STS@HASH`
+overrides cannot replace the TV identity. This prevents a TV request from using
+a timestamp belonging to another script; it does not prove current cipher support.
 
 OAuth search/channel/playlist pages use the TV library session and its opaque,
 profile-scoped continuations. They retain explicit `has_more` even when a page

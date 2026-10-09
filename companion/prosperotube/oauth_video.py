@@ -43,6 +43,22 @@ class TVOAuthYoutubeIE(YoutubeIE):
                or "tv-player" in str(cfg.get("PLAYER_JS_URL", "")))]
         return super()._extract_player_url(*(tv or ytcfgs), webpage=webpage)
 
+    def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
+        # The pinned loop can supply WEB STS when TV config retrieval fails.
+        # Even a TV config can refer to a different variant than player_url.
+        # Obtain STS from the exact TV script used by the signature solver.
+        if player_url:
+            parsed = urlsplit(player_url)
+            if (parsed.scheme != "https" or parsed.netloc != "www.youtube.com"
+                    or not re.fullmatch(r"/s/player/[0-9a-fA-F]{8,}/tv-player[^?]+\.js", parsed.path)
+                    or parsed.query or parsed.fragment):
+                raise ExtractorError("Invalid TV player script origin", expected=True)
+        return super()._extract_signature_timestamp(video_id, player_url, None, fatal=fatal)
+
+    def _get_player_js_version(self):
+        # Caller-supplied WEB STS@HASH overrides cannot define TV identity.
+        return None, None
+
     def generate_api_headers(self, *, default_client="web", **kwargs):
         headers = super().generate_api_headers(default_client=default_client, **kwargs)
         if default_client in ("tv", "tv_downgraded"):

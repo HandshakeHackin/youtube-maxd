@@ -38,6 +38,31 @@ def test_actual_pinned_tv_extractor_headers_context_fallback_and_script():
         with pytest.raises(ExtractorError): ie._construct_player_url(player_url="https://evil.example/s/player/879f7172/tv-player-ias.vflset/tv-player-ias.js")
 
 
+def test_actual_pinned_tv_timestamp_uses_matching_script_not_web_config(monkeypatch):
+    with YoutubeDL({"quiet": True, "skip_download": True,
+                    "extractor_args": {"youtube": {"player_js_version": ["11111@aaaaaaaa"]}}}) as ydl:
+        ie = TVOAuthYoutubeIE(TOKEN); ydl.add_info_extractor(ie)
+        scripts = []
+        def load(video_id, player_url, fatal=True):
+            scripts.append(player_url)
+            return "var cfg={signatureTimestamp:22222};" if "ias-tcl" in player_url else "var cfg={signatureTimestamp:33333};"
+        monkeypatch.setattr(ie, "_load_player", load)
+        first = "https://www.youtube.com/s/player/879f7172/tv-player-ias-tcl.vflset/tv-player-ias-tcl.js"
+        second = "https://www.youtube.com/s/player/879f7172/tv-player-ias.vflset/tv-player-ias.js"
+        # WEB STS, TV config STS and caller STS@HASH cannot substitute for JS.
+        assert ie._extract_signature_timestamp(ID, first, {"STS": 11111}) == 22222
+        assert ie._extract_signature_timestamp(ID, second, {"STS": 44444}) == 33333
+        assert ie._extract_signature_timestamp(ID, first, {"STS": 55555}) == 22222
+        assert scripts == [first, second]  # variant-scoped pinned cache
+        assert ie._get_player_js_version() == (None, None)
+        for url in ("https://evil.example/s/player/879f7172/tv-player-ias.js",
+                    "https://www.youtube.com/s/player/879f7172/player_ias.vflset/en_US/base.js"):
+            with pytest.raises(ExtractorError): ie._extract_signature_timestamp(ID, url, {"STS": 11111})
+        monkeypatch.setattr(ie, "_load_player", lambda *args, **kwargs: "var cfg={};")
+        missing = "https://www.youtube.com/s/player/aaaaaaaa/tv-player-ias.vflset/tv-player-ias.js"
+        assert ie._extract_signature_timestamp(ID, missing, {"STS": 11111}) is None
+
+
 def test_tv_api_transport_blocks_redirects_other_origins_and_web_context(monkeypatch):
     requests = []
     response = [httpx.Response(200, json={"videoDetails": {"videoId": ID}})]
@@ -79,11 +104,14 @@ def test_actual_pinned_player_request_is_tv_and_authenticated(monkeypatch):
     monkeypatch.setattr(httpx, "Client", lambda **kwargs: original(**kwargs, transport=httpx.MockTransport(handler)))
     with YoutubeDL({"quiet": True, "skip_download": True}) as ydl:
         ie = TVOAuthYoutubeIE(TOKEN); ydl.add_info_extractor(ie)
-        result = ie._extract_player_response("tv", ID, {}, ie._get_default_ytcfg("tv"), None, None, None, None, None)
+        monkeypatch.setattr(ie, "_load_player", lambda *args, **kwargs: "var cfg={signatureTimestamp:22222};")
+        script = "https://www.youtube.com/s/player/879f7172/tv-player-ias.vflset/tv-player-ias.js"
+        result = ie._extract_player_response("tv", ID, {"STS": 11111}, ie._get_default_ytcfg("tv"), script, None, None, None, None)
         assert result["videoDetails"]["videoId"] == ID
     assert len(captured) == 1
     payload = json.loads(captured[0].content)
     assert payload["context"]["client"]["clientName"] == "TVHTML5"
+    assert payload["playbackContext"]["contentPlaybackContext"]["signatureTimestamp"] == 22222
     assert captured[0].headers["Authorization"] == "Bearer " + TOKEN
 
 
