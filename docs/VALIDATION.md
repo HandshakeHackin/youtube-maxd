@@ -29,3 +29,17 @@ offline behavior and packaging, not console or live-service acceptance.
 No deployment, console launch, PS5 frame/audio measurement, Google login,
 live YouTube extraction or live SponsorBlock call was performed. Follow
 HARDWARE_ACCEPTANCE.md before describing the app as hardware-validated.
+
+## PS5 parity integration — 2026-10-09
+
+On the PS5-only branch at `7c63593`, 41 Python tests, 14 Node tests, and the
+native provider ASan/UBSan suite with leak checking passed. Library coverage
+includes profile isolation, modern cards, bounded continuation and replies;
+native mocked HTTP covers profile/feed/playlist navigation. These are offline
+checks and do not establish live account behavior or full SmartTube parity.
+
+Candidate `bc3a686` compiled 210 PS5 objects and passed native container and PFS
+packaging checks with development controls enabled. Its commands, status and
+logs use the application's own data directory. Normal builds keep development
+controls disabled. The exact candidate is frozen separately from release output;
+console acceptance is recorded in HARDWARE_ACCEPTANCE.md.

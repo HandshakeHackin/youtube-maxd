@@ -151,6 +151,26 @@ def main():
         updated = updated.replace("/mnt/usb0/evo_ui.json", "/data/prosperotube/dev_ui.json")
         if source != updated:
             file.write_text(updated)
+    # App modules can remain sandboxed. Resolve diagnostic paths through EVO's
+    # existing data-root contract, just like the provider's persistent state.
+    log = player + "src/evo_boot_log.c"
+    replace(log, '#include "evo_boot_log.h"', '#include "evo_boot_log.h"\n#include "evo_data_path.h"')
+    replace(log, '#define EVO_LOG_PATH "/data/prosperotube/console.log"', '#define EVO_LOG_PATH evo_data_path("console.log")')
+    replace(log, 'EVO_LOG_PATH ".1"', 'evo_data_path("console.log.1")')
+    remote = player + "src/evo_usb_remote.c"
+    replace(remote, '#include "evo_usb_remote.h"', '#include "evo_usb_remote.h"\n#include "evo_data_path.h"')
+    replace(remote, '#define CMD_PATH    "/data/prosperotube/dev_command"', '''/* Separate buffers preserve both rename arguments; evo_data_path itself
+ * returns one thread-local buffer. Resolve again if the sandbox root changes. */
+static const char* tube_dev_path(unsigned index) {
+    static char paths[4][512];
+    static const char* leaves[] = {"dev_command", "dev_status", "dev_ui.json", "dev_ui.json.tmp"};
+    snprintf(paths[index], sizeof paths[index], "%s/%s", evo_data_dir(), leaves[index]);
+    return paths[index];
+}
+#define CMD_PATH tube_dev_path(0)''')
+    replace(remote, '#define STATUS_PATH "/data/prosperotube/dev_status"', '#define STATUS_PATH tube_dev_path(1)')
+    replace(remote, '#define UI_PATH     "/data/prosperotube/dev_ui.json"', '#define UI_PATH tube_dev_path(2)')
+    replace(remote, '#define UI_TMP_PATH "/data/prosperotube/dev_ui.json.tmp"', '#define UI_TMP_PATH tube_dev_path(3)')
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')

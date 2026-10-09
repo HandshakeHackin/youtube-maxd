@@ -1,6 +1,14 @@
 # Hardware acceptance — pending
 
-No PS5 has been deployed to or tested during this offline implementation.
+The first PS5 candidate reached the native browser and reported frame
+presentation. Acceptance remains incomplete: its absolute diagnostic paths
+were unavailable inside the closed sandbox, so automated graceful shutdown
+could not be verified. The title-aware controller closed the test instance;
+runtime release and declared service health were confirmed. The next candidate
+uses EVO's resolved data root for diagnostics and development commands.
+
+- 2026-10-09 | startup | bc3a686 | PS5 6.02 | inconclusive: app checkpoint; title cleanup passed | .deps/console/first-start-bc3a686/ | validate sandbox-aware paths
+
 Record firmware, loader/mounter versions, TV mode, source revision, companion
 runtime/lock versions and artifact SHA-256 before testing.
 
@@ -27,5 +35,7 @@ runtime/lock versions and artifact SHA-256 before testing.
 9. Check logs/storage/title isolation and credential redaction. Repeat
    launch/stop/soft-close and confirm renderer/audio resources are released.
 
-Google auth/account mutations, casting, HDR, AV1 and standalone SABR/token
-execution are not implemented and have no acceptance gate in this version.
+Device authorization, native account-action UI, casting, HDR, AV1 and standalone
+SABR/token execution remain unfinished. The companion's cookie-profile account
+APIs have offline tests but no live account acceptance. These gaps remain part
+of the full-parity goal and require implementation and explicit acceptance cases.
