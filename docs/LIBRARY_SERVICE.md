@@ -158,6 +158,18 @@ do not prove real YouTube watch-history display, cross-device resume behavior or
 PS5 playback-lifecycle timing. Those remain acceptance gates. The console's local
 history remains separate; clearing it does not clear YouTube account history.
 
+Native candidate `8a8d84ed` passed the PS5 build/package and was frozen with
+123 files (eboot SHA-256 prefix `00fd2953f8cf3456`). Companion revision `385f6d9`
+adds the worker-loss guard; native sources and build scripts are unchanged from
+the frozen candidate. The native sanitizer suite verifies the actual 30-second
+throttle, coalescing, stop reports, rapid changes, settings persistence, browsing
+cancellation, profile changes, stale 401s and suppression after uncertainty.
+All 19 Node tests passed, including actual pinned tracking calls, response failure,
+identity checks, closed sessions and storage limits. The full Python suite passed
+50 tests; its subprocess cases prove that timeout and unrelated worker loss block
+queued/repeated reports while a new explicit context can recover. No PS5 or live
+account history acceptance was performed for this candidate.
+
 ## API and failure contract
 
 All operations require the ordinary companion bearer token.
