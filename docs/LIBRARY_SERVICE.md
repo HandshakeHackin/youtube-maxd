@@ -146,6 +146,12 @@ show pending, confirmed or unconfirmed report status. A new playback selection
 creates a new context. Server restart/expiry discards retained contexts; this is
 not a durable exactly-once transaction protocol.
 
+The Python companion also retains bounded uncertainty guards outside the Node
+worker. Worker loss blocks all tracking contexts whose objects were lost, so a
+queued final report cannot recreate an attempted history addition after a timeout
+or cancellation restarts Node. These guards survive worker restarts while the
+companion process remains running; a new explicit playback context can proceed.
+
 Fixture mode records synthetic history and resume positions separately per
 account through this same API. These offline cases and confirmed HTTP responses
 do not prove real YouTube watch-history display, cross-device resume behavior or

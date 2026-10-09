@@ -32,6 +32,73 @@ for line in sys.stdin:
     return path
 
 
+def history_worker(tmp_path):
+    path = tmp_path / "history-worker.py"
+    calls = tmp_path / "history-calls.jsonl"
+    path.write_text('''import json, sys, time
+from pathlib import Path
+calls = Path(__file__).with_name("history-calls.jsonl")
+for line in sys.stdin:
+    value = json.loads(line)
+    if value["operation"] == "init": result = {"ready": True}
+    else:
+        request = value["request"]
+        with calls.open("a") as f: f.write(json.dumps(request) + "\\n")
+        if request.get("position_sec") == 2 or request.get("action") == "hang": time.sleep(30)
+        result = {"api_version": 1, "success": True, "position_sec": request.get("position_sec", 0)}
+    print(json.dumps({"id": value["id"], "result": result}), flush=True)
+''', encoding="utf-8")
+    return path, calls
+
+
+def test_history_uncertainty_survives_worker_restarts_and_blocks_queued_reports(tmp_path):
+    async def run():
+        worker, calls = history_worker(tmp_path)
+        service = LibraryService(sys.executable, worker=worker, timeout=2)
+        service.profiles = [{"id": "one", "cookie": "synthetic-only"}]
+        request = {"action": "watch_progress", "profile": "one", "id": "abcdefghijk",
+                   "session": "playback-one", "position_sec": 1, "state": "playing"}
+        assert (await service.execute(request))["success"]
+        service.timeout = 1
+        first = asyncio.create_task(service.execute({**request, "position_sec": 2}))
+        # Confirm the first request reached the live worker before queueing stop.
+        for _ in range(100):
+            if len(calls.read_text().splitlines()) == 2: break
+            await asyncio.sleep(0.005)
+        assert len(calls.read_text().splitlines()) == 2
+        assert not first.done() and service.process.returncode is None
+        queued = asyncio.create_task(service.execute({**request, "position_sec": 3, "state": "stopped"}))
+        results = await asyncio.gather(first, queued, return_exceptions=True)
+        assert [r.code for r in results] == ["library_timeout", "history_unconfirmed"]
+        assert service.process is None and len(calls.read_text().splitlines()) == 2
+        service.timeout = 2
+        with pytest.raises(ServiceError) as error: await service.execute(request)
+        assert error.value.code == "history_unconfirmed" and service.process is None
+        assert (await service.execute({**request, "session": "new-playback"}))["success"]
+        assert len(calls.read_text().splitlines()) == 3
+        # A loss caused by another operation also invalidates retained tracking.
+        service.timeout = 0.1
+        with pytest.raises(ServiceError): await service.execute({"action": "hang"})
+        service.timeout = 2
+        with pytest.raises(ServiceError) as error: await service.execute({**request, "session": "new-playback"})
+        assert error.value.code == "history_unconfirmed"
+        await service.close()
+    asyncio.run(run())
+
+
+def test_history_guests_and_unknown_profiles_fail_before_starting_worker(tmp_path):
+    async def run():
+        worker, _ = history_worker(tmp_path)
+        service = LibraryService(sys.executable, worker=worker)
+        request = {"action": "watch_progress", "id": "abcdefghijk", "session": "playback", "position_sec": 1}
+        for profile, code in (("guest", "account_required"), ("unknown", "unknown_profile")):
+            with pytest.raises(ServiceError) as error: await service.execute({**request, "profile": profile})
+            assert error.value.code == code and service.process is None
+        assert not service.watch_states
+        await service.close()
+    asyncio.run(run())
+
+
 def test_profile_credentials_are_explicit_and_bounded(tmp_path):
     cookie = tmp_path / "account.cookies"
     cookie.write_text("SAPISID=synthetic-only; SESSION=not-a-real-account\n")

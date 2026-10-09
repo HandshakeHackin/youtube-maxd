@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import secrets
+import time
 
 from .models import ServiceError
 
@@ -65,8 +66,13 @@ class LibraryService:
         self.lock = asyncio.Lock()
         self.pending = 0
         self.closed = False
+        self.watch_states = {}
 
     async def _stop(self):
+        # Tracking objects live in Node. Losing them must not silently recreate
+        # an already attempted history mutation in a queued request.
+        for state in self.watch_states.values():
+            state["blocked"] = True
         process, self.process = self.process, None
         if process is not None:
             if process.returncode is None:
@@ -108,6 +114,8 @@ class LibraryService:
     async def _start(self):
         if self.process is not None and self.process.returncode is None:
             return
+        if self.process is not None:
+            await self._stop()
         self.process = await asyncio.create_subprocess_exec(
             str(self.node), str(self.worker), stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
@@ -115,6 +123,33 @@ class LibraryService:
         result = await self._exchange({"operation": "init", "profiles": self.profiles})
         if result.get("ready") is not True:
             raise ServiceError("library_transport", "The library worker did not initialize.")
+
+    def _watch_state(self, request, *, create=False):
+        if request.get("action") != "watch_progress":
+            return None
+        owner, session, identifier = request.get("profile", "guest"), request.get("session", ""), request.get("id", "")
+        if (not isinstance(owner, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner)
+                or not isinstance(session, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session)
+                or not isinstance(identifier, str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", identifier)):
+            raise ServiceError("invalid_progress", "The playback report is invalid.", 400)
+        if owner == "guest":
+            raise ServiceError("account_required", "Select an account profile first.", 401)
+        if not any(profile["id"] == owner for profile in self.profiles):
+            raise ServiceError("unknown_profile", "Select an available profile.", 404)
+        now = time.monotonic()
+        self.watch_states = {k: v for k, v in self.watch_states.items() if v["deadline"] > now}
+        key = (owner, session)
+        state = self.watch_states.get(key)
+        if state and state["id"] != identifier:
+            raise ServiceError("invalid_progress", "The playback session belongs to another video.", 400)
+        if state and state["blocked"]:
+            raise ServiceError("history_unconfirmed", "The history change was not confirmed; this session will not repeat it.", 409)
+        if state is None and create:
+            if len(self.watch_states) >= 64:
+                raise ServiceError("history_busy", "Too many playback sessions are retained.", 429)
+            state = {"id": identifier, "blocked": False, "deadline": now + 1800}
+            self.watch_states[key] = state
+        return state
 
     async def execute(self, request):
         if self.closed:
@@ -131,8 +166,19 @@ class LibraryService:
                     if self.closed:
                         raise ServiceError("library_closed", "The library service has stopped.", 503)
                     owned = True
+                    self._watch_state(request)
                     await self._start()
-                    return await self._exchange({"operation": "execute", "request": request})
+                    watch_state = self._watch_state(request, create=True)
+                    if watch_state is not None:
+                        watch_state["blocked"] = True
+                    result = await self._exchange({"operation": "execute", "request": request})
+                    if watch_state is not None:
+                        if (result.get("success") is not True or type(result.get("position_sec")) not in (int, float)
+                                or result.get("position_sec") != request.get("position_sec")):
+                            raise ServiceError("history_unconfirmed", "The history change was not confirmed; this session will not repeat it.", 502)
+                        watch_state["blocked"] = False
+                        watch_state["deadline"] = time.monotonic() + 1800
+                    return result
         except asyncio.CancelledError:
             if owned:
                 await self._stop()
