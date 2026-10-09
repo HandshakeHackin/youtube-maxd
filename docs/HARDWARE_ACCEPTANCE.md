@@ -149,3 +149,10 @@ Device authorization, comment posting, casting, HDR, AV1 and standalone
 SABR/token execution remain unfinished. The companion's cookie-profile account
 APIs have offline tests but no live account acceptance. These gaps remain part
 of the full-parity goal and require implementation and explicit acceptance cases.
+
+The audio-tail revision `0af336d` needs a bounded hardware case with short AAC
+media, a non-block-aligned audio tail, pause/resume near EOF, and seek after EOF.
+Check audible tail output, natural completion, and failure behavior separately.
+Host tests exercise the actual decoder/resampler and clock but mock AudioOut;
+two silence submissions are an output-retirement assumption to verify on PS5.
+Video/presentation drain and unknown-duration completion still need implementation.

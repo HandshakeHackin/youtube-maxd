@@ -43,3 +43,19 @@ packaging checks with development controls enabled. Its commands, status and
 logs use the application's own data directory. Normal builds keep development
 controls disabled. The exact candidate is frozen separately from release output;
 console acceptance is recorded in HARDWARE_ACCEPTANCE.md.
+
+## Audio tail completion — 2026-10-09
+
+Revision `0af336d` adds bounded FFmpeg decoder and resampler EOF flushing,
+counted padding for the final PCM block, and an epoch-scoped audio drain signal.
+The actual generated EVO audio implementation and playback clock were linked
+with host FFmpeg 8 and exercised under ASan/UBSan. The cases passed for real AAC
+decoder EOF, a 44.1 kHz resampler tail, partial-block padding, output failure,
+stale seek epochs, producer parking during seek, and video continuing after the
+audio clock stops. Evidence: `.deps/audio-drain-current.log`.
+
+Natural demux EOF is now distinguished from failed input recovery. Known-duration
+queue completion additionally requires audio drain. These tests mock AudioOut
+and do not prove audible hardware output, video/presentation drain, or completion
+of unknown-duration streams. Those remain explicit acceptance and implementation
+gaps; the full SmartTube parity goal remains open.
