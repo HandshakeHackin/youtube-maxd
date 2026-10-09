@@ -13,7 +13,7 @@ def apply_discussion_overlay(replace, player, host):
     replace(ui, "        r.overview  = display_text(s.overview);", "        const char* comment = m_provider_id == \"youtube\" ? tube_comment_text(s.id) : \"\";\n        r.overview = display_text(*comment ? comment : s.overview);")
     replace(ui, "        m_model.selected_id = row->id;", "        if (m_model.selected_id != row->id && m_doc)\n            if (auto text = m_doc->GetElementById(\"tube-discussion-text\")) text->SetScrollTop(0);\n        m_model.selected_id = row->id;")
     folder_branch = '    if (hit->is_folder && !(m_provider_id == "youtube" && id.rfind("app:", 0) == 0)) {'
-    replace(ui, folder_branch, '    if (m_provider_id == "youtube" && hit->id.rfind("discussion:leaf:", 0) == 0) {\n        SetStatus("This comment has no reply thread. L2 / R2 scroll the text.", false); return;\n    }\n' + folder_branch)
+    replace(ui, folder_branch, '    if (m_provider_id == "youtube" && hit->id == "account:notice") {\n        SetStatus("Circle returns to the previous screen.", false); return;\n    }\n    if (m_provider_id == "youtube" && hit->id.rfind("discussion:leaf:", 0) == 0) {\n        SetStatus("This comment has no reply thread. L2 / R2 scroll the text.", false); return;\n    }\n' + folder_branch)
     replace(ui, "void evo_rmlui_provider_search(const char *query)", "int evo_rmlui_provider_discussion_key(int key)\n{\n    return EvoRmlProviderHost::Instance().DiscussionKey(key);\n}\n\nvoid evo_rmlui_provider_search(const char *query)")
     replace(ui, "void EvoRmlProviderHost::ReloadCurrentLevel()", '''int EvoRmlProviderHost::DiscussionKey(int key)
 {
@@ -24,6 +24,15 @@ def apply_discussion_overlay(replace, player, host):
             text->SetScrollTop(text->GetScrollTop() + (key == 1 ? -1 : 1) *
                 (m_context ? m_context->GetDimensions().y * 0.2f : 180.0f));
         m_dirty = true; return 1;
+    }
+    if (key == 4) {
+        if (m_model.discussion) return 0;
+        const auto* row = GetFocusedRow();
+        if (!row || row->is_folder || row->id.size() != 11) return 0;
+        m_pos_stack.push_back({m_row_offset, row->index});
+        m_stack.push_back(std::string("account:menu:") + row->id.c_str());
+        m_crumbs.push_back("YouTube account actions"); m_page = 0;
+        RequestPage(m_stack.back().c_str(), 0); return 1;
     }
     if (key != 0) return 0;
     if (m_model.discussion) {
@@ -49,4 +58,4 @@ def apply_discussion_overlay(replace, player, host):
 }
 
 void EvoRmlProviderHost::ReloadCurrentLevel()''')
-    replace(host, "    if (pressed & PadButtons::Square) {\n        openSearch();", "    if (m_providerId == \"youtube\") {\n        if ((pressed & PadButtons::R3) && evo_rmlui_provider_discussion_key(0)) return true;\n        if ((pressed & PadButtons::L2) && evo_rmlui_provider_discussion_key(1)) return true;\n        if ((pressed & PadButtons::R2) && evo_rmlui_provider_discussion_key(2)) return true;\n    }\n    if (pressed & PadButtons::Square) {\n        openSearch();")
+    replace(host, "    if (pressed & PadButtons::Square) {\n        openSearch();", "    if (m_providerId == \"youtube\") {\n        if ((pressed & PadButtons::TouchPad) && evo_rmlui_provider_discussion_key(4)) return true;\n        if ((pressed & PadButtons::R3) && evo_rmlui_provider_discussion_key(0)) return true;\n        if ((pressed & PadButtons::L2) && evo_rmlui_provider_discussion_key(1)) return true;\n        if ((pressed & PadButtons::R2) && evo_rmlui_provider_discussion_key(2)) return true;\n    }\n    if (pressed & PadButtons::Square) {\n        openSearch();")

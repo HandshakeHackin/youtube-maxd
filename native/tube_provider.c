@@ -37,6 +37,7 @@ typedef struct Request {
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
     int page;
+    unsigned intent;
     char parent[160];
 } Request;
 
@@ -58,6 +59,18 @@ static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 static char g_library_cursors[LIBRARY_PAGES][65];
 static struct { char id[160], content[16385]; } g_comments[LOCAL_PAGE];
+static unsigned g_account_serial;
+static struct {
+    unsigned serial;
+    int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
+    char action[32], identity[101], profile[33];
+} g_account_intent;
+static const struct { const char *action, *title; int channel; } g_account_actions[] = {
+    {"like", "Like video", 0}, {"dislike", "Dislike video", 0}, {"unrate", "Remove video rating", 0},
+    {"watch_later_add", "Add to YouTube Watch later", 0},
+    {"watch_later_remove", "Remove from YouTube Watch later", 0},
+    {"subscribe", "Subscribe on YouTube", 1}, {"unsubscribe", "Unsubscribe on YouTube", 1}
+};
 
 static int valid_cursor(const char *value) {
     return value && *value && strlen(value) <= 64 &&
@@ -221,6 +234,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 
 static int init(void) {
     memset(g_comments, 0, sizeof g_comments);
+    memset(&g_account_intent, 0, sizeof g_account_intent);
     FILE *f = fopen(evo_data_path("youtube.json"), "rb");
     if (!f) return 0;
     if (fseek(f, 0, SEEK_END) || ftell(f) < 0 || ftell(f) > 2 * 1024 * 1024) { fclose(f); return -1; }
@@ -286,12 +300,18 @@ static int set_source(const char *value) {
     if (strchr(base, '@') || strchr(base, '?') || strchr(base, '\r') || strchr(base, '\n')) return -1;
     char normalized[512];
     snprintf(normalized, sizeof normalized, "%s://%s:%d", tls ? "https" : "http", host, port);
+    tube_cancel();
+    memset(&g_account_intent, 0, sizeof g_account_intent);
+    memset(g_comments, 0, sizeof g_comments);
+    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
     ++g_generation; save(); return 0;
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 6 && r->intent == g_account_intent.serial && g_account_intent.state == 1)
+        g_account_intent.state = -1;
     evo_provider_items_cb items_cb = r->items_cb;
     evo_provider_resolve_cb resolve_cb = r->resolve_cb;
     void *ud = r->ud;
@@ -456,6 +476,19 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
+    if (r->kind == 6) {
+        if (!boolean(result, "success")) {
+            cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
+        }
+        if (r->intent == g_account_intent.serial) g_account_intent.state = 2;
+        evo_provider_item_t item;
+        folder(&item, "account:notice", "YouTube account updated", "The companion confirmed this change");
+        snprintf(item.overview, sizeof item.overview, "Operation: %s | Profile: %s. Circle returns to the video browser.",
+            g_account_intent.action, g_account_intent.profile);
+        evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+        memset(r, 0, sizeof *r); if (cb) cb(1, &item, 1, 0, data);
+        cJSON_Delete(root); return;
+    }
     evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items);
     if (!items) { cJSON_Delete(root); complete(r, 0); return; }
     int n = 0; cJSON *o;
@@ -533,7 +566,8 @@ void tube_poll(void) {
         Request *r = &g_requests[i];
         if (!r->used || r->inflight) continue;
         if (r->generation != g_generation || now_ms() > r->deadline) {
-            tube_set_error("The companion request was cancelled or timed out. Retry."); complete(r, 0); continue;
+            tube_set_error(r->kind == 6 ? "The account change was not confirmed. Check your account before repeating it." :
+                "The companion request was cancelled or timed out. Retry."); complete(r, 0); continue;
         }
         if (r->stage == 2 && now_ms() >= r->next_poll) {
             char path[128]; snprintf(path, sizeof path, "/v1/jobs/%s", r->job);
@@ -570,6 +604,64 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
+    if (parent && !strncmp(parent, "account:", 8)) {
+        if (!strncmp(parent, "account:menu:", 13) && valid_id(parent + 13)) {
+            if (!strcmp(g_library_profile, "guest")) {
+                folder(&out[n++], "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
+            } else {
+                Record *r = record(parent + 13, 0);
+                for (size_t i = 0; i < sizeof g_account_actions / sizeof g_account_actions[0]; ++i) {
+                    const char *identity = g_account_actions[i].channel ? r ? r->item.parent_id : "" : parent + 13;
+                    if (!*identity) continue;
+                    char id[160], hint[160];
+                    snprintf(id, sizeof id, "account:confirm:%.32s:%.100s", g_account_actions[i].action, identity);
+                    snprintf(hint, sizeof hint, "YouTube profile: %s", g_library_profile);
+                    folder(&out[n++], id, g_account_actions[i].title, hint);
+                }
+            }
+        } else if (!strncmp(parent, "account:confirm:", 16)) {
+            const char *value = parent + 16, *colon = strchr(value, ':');
+            int found = -1;
+            for (size_t i = 0; colon && i < sizeof g_account_actions / sizeof g_account_actions[0]; ++i)
+                if ((size_t)(colon - value) == strlen(g_account_actions[i].action) &&
+                    !strncmp(value, g_account_actions[i].action, (size_t)(colon - value))) found = (int)i;
+            char catalog_id[128]; snprintf(catalog_id, sizeof catalog_id, "channel:%s", colon ? colon + 1 : "");
+            if (found < 0 || !strcmp(g_library_profile, "guest") ||
+                (g_account_actions[found].channel ? !valid_catalog_id(catalog_id) : !valid_id(colon + 1))) {
+                tube_set_error("Select a valid video or channel and account profile."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            memset(&g_account_intent, 0, sizeof g_account_intent);
+            g_account_intent.serial = ++g_account_serial;
+            copy(g_account_intent.action, sizeof g_account_intent.action, g_account_actions[found].action);
+            copy(g_account_intent.identity, sizeof g_account_intent.identity, colon + 1);
+            copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
+            char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
+            snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
+            folder(&out[n++], id, g_account_actions[found].title, hint);
+            const char *label = colon + 1;
+            Record *target = record(colon + 1, 0);
+            if (target && *target->item.title) label = target->item.title;
+            if (g_account_actions[found].channel) for (int i = 0; i < g_count; ++i)
+                if (!strcmp(g_records[i].item.parent_id, colon + 1) && *g_records[i].item.subtitle) {
+                    label = g_records[i].item.subtitle; break;
+                }
+            snprintf(out[0].overview, sizeof out[0].overview,
+                "Selected %s: %.128s (%s). Cross applies this change to YouTube; Circle returns without submitting it.",
+                g_account_actions[found].channel ? "channel" : "video", label, colon + 1);
+        } else if (!strncmp(parent, "account:apply:", 14)) {
+            char expected[80]; snprintf(expected, sizeof expected, "account:apply:%u", g_account_intent.serial);
+            if (!g_account_intent.serial || strcmp(parent, expected) || strcmp(g_account_intent.profile, g_library_profile)) {
+                tube_set_error("Reopen the account action to confirm it for the current profile."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            if (!g_account_intent.state) return 0; /* first explicit confirmation submits one job */
+            folder(&out[n++], "account:notice", g_account_intent.state == 2 ? "YouTube account updated" :
+                g_account_intent.state == 1 ? "Account change pending" : "Account change not confirmed",
+                g_account_intent.state == 1 ? "Wait for the companion response" : "Check your account before repeating an unconfirmed change");
+        } else if (!strcmp(parent, "account:notice")) {
+            folder(&out[n++], "account:notice", "Circle to return", "No account operation submitted");
+        } else { tube_set_error("The selected account action was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
+        cb(1, out, n, 0, ud); return 1;
+    }
     if (!parent || !*parent) {
         folder(&out[n++], "discover", "Discover", "Search public videos by topic");
         folder(&out[n++], "history", "Continue watching & history", "Stored on this PS5");
@@ -591,6 +683,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
         if (!strncmp(parent, "library:profile:", 16)) {
             if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
+            memset(&g_account_intent, 0, sizeof g_account_intent);
             copy(g_library_profile, sizeof g_library_profile, parent + 16);
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
@@ -671,8 +764,22 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if (parent && !strncmp(parent, "account:", 8) && page != 0) {
+        tube_set_error("Account action screens do not have additional pages."); cb(0, NULL, 0, 0, ud); return 0;
+    }
+    if (parent && !strncmp(parent, "account:apply:", 14) && g_account_intent.state)
+        return local_catalog(parent, page, cb, ud) ? 0 : -1;
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
+    if (parent && !strncmp(parent, "account:apply:", 14)) {
+        Request *r = request_new(6, ud); if (!r) return -1;
+        r->items_cb = cb; r->intent = g_account_intent.serial;
+        g_account_intent.state = 1;
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"id\":\"%s\"}}",
+            g_account_intent.action, g_account_intent.profile, g_account_intent.identity);
+        begin(r); return 0;
+    }
     if (parent && !strncmp(parent, "discussion:", 11)) {
         const char *action = parent + 11, *identity = NULL, *sort = "top";
         int replies = !strncmp(action, "replies:", 8);

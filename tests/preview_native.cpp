@@ -115,6 +115,31 @@ int main(int argc, char** argv) {
     context->GetFocusElement()->DispatchEvent(Rml::EventId::Click, params);
     assert(activated == "fixture-1");
     capture(context, renderer, pixels, output / "focus.ppm");
+    model.rows.clear(); model.breadcrumb = "Search / fixture / YouTube account actions";
+    model.page_info = "1 / 1"; model.selected_title = "Like video";
+    model.selected_subtitle = "YouTube profile: fixture"; model.selected_resume = "";
+    model.selected_overview = "Choose a change for the selected video. A confirmation follows.";
+    const char* actions[] = {"Like video", "Dislike video", "Remove video rating", "Add to YouTube Watch later",
+        "Remove from YouTube Watch later", "Subscribe on YouTube", "Unsubscribe on YouTube"};
+    for (int i = 0; i < 7; ++i) {
+        EvoProviderRow row; row.id = "account:confirm:fixture-" + std::to_string(i);
+        row.title = actions[i]; row.subtitle = "YouTube profile: fixture"; row.initial = "Y"; row.is_folder = true;
+        model.rows.push_back(row);
+    }
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    capture(context, renderer, pixels, output / "account-actions.ppm");
+    model.rows.resize(1); model.rows[0].id = "account:apply:1";
+    model.rows[0].subtitle = "Confirm for YouTube profile: fixture";
+    model.selected_subtitle = model.rows[0].subtitle;
+    model.selected_overview = "Selected video: Offline fixture. Cross applies the change to YouTube; Circle returns without submitting it.";
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    cards.clear(); visible.clear(); doc->GetElementsByClassName(cards, "tube-card");
+    for (auto* card : cards)
+        if (!card->GetAttribute<Rml::String>("rowid", "").empty() && card->IsVisible()) visible.push_back(card);
+    assert(visible.size() == 1);
+    visible[0]->Focus(); visible[0]->DispatchEvent(Rml::EventId::Click, params);
+    assert(activated == "account:apply:1");
+    capture(context, renderer, pixels, output / "account-confirmation.ppm");
     model.rows.clear(); model.empty = true; model.has_selected = false; model.status = "";
     handle.DirtyAllVariables(); context->Update();
     doc->GetElementById("tv-card-setup-url")->Focus();

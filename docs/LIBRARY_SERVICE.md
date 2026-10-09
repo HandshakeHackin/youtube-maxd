@@ -8,10 +8,21 @@ existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue and history remain console data.
 
 This is not full SmartTube parity. Device-code login, live chat, comment posting
-and native account-edit controls are not connected yet. Account
+and native playlist-edit controls are not connected yet. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real YouTube/account acceptance remains unverified.
+
+Touchpad click on a native video opens account actions for the selected profile:
+like, dislike, remove rating, add/remove YouTube Watch later, and subscribe or
+unsubscribe when the video's channel identity is available. Guest browsing
+directs the user to select an account profile. Selecting an operation opens a
+confirmation; only Cross on that confirmation submits its one-time intent.
+Pending, confirmed and unconfirmed results are distinguished. Reopening the
+result does not resubmit; switching profiles invalidates the confirmation.
+An interrupted operation may have changed the account, so the user must check
+it before deliberately repeating the action. No live account mutations were
+performed to validate this implementation.
 
 ## Installation
 

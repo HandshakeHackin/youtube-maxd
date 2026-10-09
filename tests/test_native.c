@@ -181,6 +181,61 @@ int main(void) {
     p->list_catalog("discussion:top:abcdefghijk", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");
     assert(!last_ok);
+    /* Account actions require a deliberate confirmation and submit only once. */
+    p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
+    assert(last_ok && last_count == 1 && strstr(last_items[0].title, "profile first"));
+    assert(!pending_count);
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    p->search("account fixture", 0, items_cb, NULL);
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
+    p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
+    assert(last_ok && last_count == 7 && !pending_count);
+    char account_choices[7][160];
+    for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
+    const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};
+    for (int i = 0; i < 7; ++i) {
+        p->list_catalog(account_choices[i], 0, items_cb, NULL);
+        assert(last_ok && last_count == 1 && !pending_count && strstr(last_items[0].subtitle, "fixture"));
+        char apply[160]; snprintf(apply, sizeof apply, "%s", last_items[0].id);
+        p->list_catalog(apply, 1, items_cb, NULL);
+        assert(!last_ok && !pending_count);
+        p->list_catalog(apply, 0, items_cb, NULL);
+        char operation[80]; snprintf(operation, sizeof operation, "\"action\":\"%s\"", operations[i]);
+        assert(pending_count == 1 && strstr(pending[0].body, operation) && strstr(pending[0].body, "\"profile\":\"fixture\""));
+        assert(strstr(pending[0].body, i >= 5 ? "UCaaaaaaaaaaaaaaaaaaaaaa" : "abcdefghijk"));
+        p->list_catalog(apply, 0, items_cb, NULL); /* a repeated catalog read never submits again */
+        assert(last_ok && pending_count == 1 && strstr(last_items[0].title, "pending"));
+        poll_job("{\"state\":\"done\",\"result\":{\"success\":true}}");
+        assert(last_ok && last_count == 1 && strstr(last_items[0].title, "updated"));
+        p->list_catalog(apply, 0, items_cb, NULL);
+        assert(last_ok && !pending_count && strstr(last_items[0].title, "updated"));
+    }
+    p->list_catalog(account_choices[0], 0, items_cb, NULL);
+    char account_apply[160]; snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(!last_ok && !pending_count); /* confirmation cannot cross profiles */
+    p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(!last_ok && !pending_count); /* switching back cannot revive the old confirmation */
+    p->list_catalog(account_choices[0], 0, items_cb, NULL);
+    snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    poll_job("{\"state\":\"done\",\"result\":{\"success\":false}}");
+    assert(!last_ok);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(last_ok && !pending_count && strstr(last_items[0].title, "not confirmed"));
+    p->list_catalog("account:apply:999999999", 0, items_cb, NULL);
+    assert(!last_ok && !pending_count);
+    p->list_catalog("account:confirm:unknown:abcdefghijk", 0, items_cb, NULL);
+    assert(!last_ok && !pending_count);
+    p->list_catalog("account:confirm:subscribe:bad-channel", 0, items_cb, NULL);
+    assert(!last_ok && !pending_count);
+    p->list_catalog(account_choices[0], 0, items_cb, NULL);
+    snprintf(account_apply, sizeof account_apply, "%s", last_items[0].id);
+    assert(p->set_source("http://127.0.0.1:8765#123456") == 0);
+    p->list_catalog(account_apply, 0, items_cb, NULL);
+    assert(!last_ok && !pending_count); /* re-pairing invalidates an unsubmitted intent */
     /* The YouTube playback prompt is opt-in and survives a reload in both states. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     assert(tube_choose_stream_enabled());
@@ -213,6 +268,6 @@ int main(void) {
     p->list_catalog("favorites", 0, items_cb, NULL);
     assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
     p->shutdown();
-    printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters\n");
+    printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters, discussions, account intents\n");
     return 0;
 }

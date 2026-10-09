@@ -87,6 +87,7 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
 | R3 | Open comments on a video |
+| Touchpad click | YouTube account actions for a video |
 | Options | Companion address and pairing code |
 
 Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
@@ -96,6 +97,12 @@ In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
 switches top/newest sorting, and Circle returns. Enable the companion library
 worker for discussion browsing. Comment posting and live/PS5 acceptance remain
 unfinished.
+
+With an account profile selected, touchpad click opens video ratings, YouTube
+Watch later, and channel subscribe/unsubscribe controls. Each change shows a
+confirmation for that profile. Reopening an operation screen does not submit it
+again; an unconfirmed result requires checking the account before repeating the
+change. These controls have offline coverage; live account acceptance is pending.
 
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
 Up toggles captions, Down opens the caption picker, R2 opens audio tracks,
