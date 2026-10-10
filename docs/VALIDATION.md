@@ -1,5 +1,45 @@
 # Offline validation record — 0.1.0
 
+## Accurate resume — 2026-10-10
+
+Source `c6ec8804` preserves decoder preroll while suppressing presentation
+before the requested resume position. The initial video discard gate is armed
+after `pp_playback_on_file_open`, before consumers start; audio-only playback
+does not acquire a video hold. Audio packets reach the decoder normally, and
+decoded PCM is discarded or trimmed before resampling. Both normal decode and
+FFmpeg EOF drain use the same acceptance helper. Unknown initial audio timing
+is bounded; malformed frames mark the existing audio failure state, which is
+now included in the player's fatal query.
+
+The comparison uses the pinned SmartTube source: `VideoStateController` restores
+saved positions through `ExoPlayerController.setPositionMs`; ExoPlayer defaults
+to `SeekParameters.EXACT`. Its optional TextureView sync-seek workaround is a
+separate behavior and is not implemented by this change.
+
+Shipping resume/UI/request methods and the audio acceptance helper passed
+ASan/UBSan tests. Actual host AVC decode starts at the first frame at or after
+4.25 seconds; actual AAC and Opus decode starts within one input sample of
+4.250001 seconds. Interleaved/native-style S16 and planar S16 tests verify sample
+contents, copy-on-write behavior, timestamp inference and bounded missing timing.
+Audio-only resume, refused seeks and nonzero container origins are covered.
+The Opus fixture emits a demux/decode header warning during seeking; the asserted
+decoded-frame checks still pass. Actual AVC/VP9 playback/drain regressions also
+pass. Evidence: `.deps/accurate-resume-test.log` / `.result` (0) and
+`.deps/accurate-resume-drain.log` / `.result` (0). Host FFmpeg is 8.x; the PS5
+recipe remains 7.1.1. These results do not prove native Audiodec timing or sound.
+
+The complete PS5 build, link, packaging and freeze passed: build
+`prosperotube-c6ec8804_1010-0423`, 126 files, eboot SHA-256 prefix
+`370b64741f7917ae`. Evidence: `.deps/accurate-resume-ps5-build.log` / `.result`
+(0) and `.deps/accurate-resume-freeze.log` / `.result` (0).
+
+The reserved-console case stopped at its first minimal FTP running-title check
+because a title was running. No other service probe, upload, launch, input or
+close followed; the owned lock was released. Evidence:
+`.deps/accurate-resume-storage-reserved-console.log` / `.result` (1). The frozen
+candidate remains undeployed and unlaunched. Lapy PR50 execution, durable storage
+and real YouTube playback on PS5 remain pending.
+
 Host: Windows/WSL Ubuntu, LLVM 18.1.8, Python 3.14. Native implementation
 revision: `ecacf92` plus the packaged-notices change. This record concerns
 offline behavior and packaging, not console or live-service acceptance.

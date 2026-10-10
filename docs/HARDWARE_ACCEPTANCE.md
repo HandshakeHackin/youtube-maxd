@@ -1,5 +1,10 @@
 # Hardware acceptance — pending
 
+- 2026-10-10 | accurate resume | c6ec8804 | reserved console, firmware unreported | no-run: busy at first FTP check; no upload or launch | .deps/accurate-resume-storage-reserved-console.log | Lapy storage/startup, then real YouTube playback
+
+The accurate-resume candidate passed the PS5 build and host decoded-frame/sample
+tests. It has not been deployed or launched; see [validation](VALIDATION.md).
+
 The host companion's real public YouTube path passed credential-free AVC/AAC
 and VP9/AAC cases on 2026-10-09 with video `jNQXAC9IVRw` at a 240p limit:
 actual LAN-API pairing, resolution, separate-track DASH relay, host FFmpeg probe,
