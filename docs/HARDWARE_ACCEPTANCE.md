@@ -297,3 +297,12 @@ The full PS5 package and freeze passed for build
 Firmware is unreported. Installed-byte mismatch has no established cause;
 see VALIDATION.md for the verifier limitation. Storage, helper execution,
 persistence, teardown and real YouTube playback remain pending.
+
+- 2026-10-09 | seek/resume origin | 3c3eb818 | offline PS5 | partial-pass: full build/package/freeze; host shipping-code regressions passed; no deployment | .deps/resume-timeline-ps5-build.log; .deps/resume-timeline.log | idle-first storage/startup case
+
+Frozen build `prosperotube-3c3eb818_1010-0333` has 126 files, eboot SHA-256
+prefix `7c3e112076128376`. Its in-place seeks and initial resume use the common
+container origin; the audio re-anchor returns to relative UI positions.
+Host packet/clock assertions do not establish PS5 decoded position or sound.
+This candidate has never launched. Startup/storage, persistence, actual YouTube
+playback, A/V synchronization and clean teardown remain pending.

@@ -847,3 +847,12 @@ shipping UI/request handoff passed in the same case. Evidence:
 `.deps/resume-timeline.log` / `.result` (0). Header linkage was also compiled
 as C++ against host FFmpeg. Full PS5 packaging of this follow-up remains
 pending at the source milestone; console resume/audio acceptance is unverified.
+
+Source `3c3eb818` subsequently passed all 211 PS5 object builds, link,
+containers, folder/PFS/ZIP packaging and immutable freeze:
+`prosperotube-3c3eb818_1010-0333`, 126 files, eboot SHA-256 prefix
+`7c3e112076128376`. Evidence: `.deps/resume-timeline-ps5-build.log` and
+`.deps/resume-timeline-freeze.log` / result files (both 0). No deployment or
+launch occurred. This package includes both seek and initial-resume origin
+fixes. Actual decoded resume position, video-only resume anchoring, PS5 sound
+and synchronization remain acceptance requirements.

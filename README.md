@@ -14,6 +14,12 @@ The active [goal](GOAL.md) is full SmartTube equivalence on **PS5**. This
 prototype does not yet satisfy it. The player uses the pinned EVO PS5 foundation;
 ProsperoLight and ProsperoTV are integration references.
 
+Hardware status: an earlier PS5 baseline played a synthetic video; real YouTube
+decoding has passed on the PC companion. End-to-end YouTube playback on PS5 is
+still unverified. Earlier builds stopped at Lapy storage initialization, and
+the newer PR50 builds have not launched: bounded console cases stopped on busy
+title checks or an installed-byte mismatch. See [validation](docs/VALIDATION.md).
+
 Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay; quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
