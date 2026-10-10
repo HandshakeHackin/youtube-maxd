@@ -1,6 +1,18 @@
 # Hardware acceptance — in progress
 
-Installed `639b015a` (`prosperotube-639b015a_1010-1905`, 126 files,
+Candidate `17455475` (`prosperotube-17455475_1010-2002`, 126 files, eboot prefix
+`c89ff35e59e6ac5f`) passed public 1.25× playback, paused normal-speed selection,
+last-speed restoration, pause/resume, forward/backward seek and saved speed on
+the fallback console. Paused position remained 43.04 s through the reopen.
+GPU park and exact process/title/mount release passed; temporary configuration
+was removed and the console was left idle. The case published 5,035 frames with
+108 late drops; physical pitch, smoothness and sync remain unassessed.
+The earlier pause-check adapter failure was resolved by aligning telemetry
+timestamps, using identical frozen bytes. See [validation](VALIDATION.md).
+
+- 2026-10-10 | speed controls | 17455475 | fallback console | pass: rate progression, paused toggle, last-speed restore, seek, saved speed and clean teardown | .deps/speed-controls-fresh-aligned.log | physical pitch/sync, other rates and scoped-memory hardware coverage
+
+Previous `639b015a` (`prosperotube-639b015a_1010-1905`, 126 files,
 eboot prefix `64f9d8b3b6bffab4`) passed a bounded retained-chat fixture case:
 newest-message opening, older-page focus across growth to 31 messages, top/live
 switching and context retirement. Original pairing/history were restored exactly

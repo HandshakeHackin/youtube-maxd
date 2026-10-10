@@ -1,5 +1,39 @@
 # Offline validation record — 0.1.0
 
+## PS5 speed controls acceptance — 2026-10-10
+
+Frozen `17455475` passed a bounded public Big Buck Bunny case on the fallback
+console after idle checks, full installation verification, a 130-second settling
+period and confirmed title registration. A temporary Guest configuration was
+used because this console had no saved provider state. The existing companion
+was unchanged. The primary console was busy and was not modified this turn.
+
+The corrected case passed initial 1.25× playback, a paused R2 toggle to normal
+speed, resume, restoration of the last 1.25× speed, forward/backward seeks, Stop
+and persistence of the selected/last speed. Position stayed exactly 43.04 s
+across the pause hold and paused reopen. Sampled progression ratios were 1.211,
+0.973 and 1.301 (1 Hz position telemetry; respective tolerances ±0.10/0.15/0.15).
+Three playback opens published 5,035 frames with 108 late drops across the case;
+the last session reported four successful seeks and zero failed seeks.
+These results do not establish physical smoothness, pitch or perceived sync.
+Per-channel/video memory remains host-tested rather than console-accepted.
+
+GPU park, exact process/app/video-owner/mount release and service health passed.
+The temporary provider configuration was deleted, restoring its original
+absence, and the shared lock was released. Evidence:
+`.deps/speed-controls-fresh-aligned.{log,result}` (exit 0) and
+`.deps/console/speed-controls-fresh-aligned/verified-result.json`. The verifier
+limits accumulated console logs to the final matching boot.
+
+The preceding fresh-install case measured 1.245× but stopped at an inconclusive
+pause check: an event-driven UI snapshot was compared with an independently
+sampled older position file. It is retained as exit 1. A nonstandard positive
+FTP delete reply (`226`) also raised in Python; a separate idle-first read
+verified the temporary configuration was absent. The corrected adapter waits
+for a position timestamp strictly after the paused UI event and handles that
+positive reply with an absence check. Identical frozen bytes were rerun without
+upload; no playback code changed to obtain the pass.
+
 ## Remembered speed and quick toggle — 2026-10-10
 
 Reference: SmartTube `2c60453007df`, `PlayerData` and `VideoStateController`.
