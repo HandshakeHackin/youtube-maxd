@@ -29,15 +29,15 @@ class OAuthExtractor(Extractor):
         self.ensure_active()
         return result
 
-    async def extract(self, target, *, flat=False, start=1, end=24):
+    async def extract(self, target, *, flat=False, start=1, end=24, fresh=False):
         self.ensure_active()
         try:
             async with asyncio.timeout(self.timeout):
-                return await self._extract_authorized(target, flat=flat, start=start, end=end)
+                return await self._extract_authorized(target, flat=flat, start=start, end=end, fresh=fresh)
         except TimeoutError:
             raise ServiceError("timeout", "YouTube took too long to respond. Retry from the video screen.", 504) from None
 
-    async def _extract_authorized(self, target, *, flat, start, end):
+    async def _extract_authorized(self, target, *, flat, start, end, fresh=False):
         if flat:
             return await self._catalog(target, start, end)
         if not re.fullmatch(r"https://www\.youtube\.com/watch\?v=[A-Za-z0-9_-]{11}", target):
@@ -52,7 +52,7 @@ class OAuthExtractor(Extractor):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403) from None
         if not isinstance(token, str) or not 1 <= len(token) <= 8192 or re.search(r"[^\x21-\x7e]", token):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403)
-        return await super().extract(target, _oauth_access_token=token)
+        return await super().extract(target, fresh=fresh, _oauth_access_token=token)
 
     async def _catalog(self, target, start, end):
         if type(start) is not int or type(end) is not int or start < 1 or (start - 1) % 24 or end != start + 24 or end > 24025:

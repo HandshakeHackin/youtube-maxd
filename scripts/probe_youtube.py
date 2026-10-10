@@ -1,5 +1,6 @@
 """Explicit public or configured OAuth YouTube API/relay probe; no console traffic."""
 import argparse
+import asyncio
 import json
 import re
 from pathlib import Path
@@ -11,9 +12,28 @@ import urllib.error
 import urllib.request
 
 import uvicorn
+import httpx
 from prosperotube.app import create_app
 from prosperotube.extractor import Extractor
 from prosperotube.models import ServiceError, video_id
+
+
+class ExpireOnceTransport(httpx.AsyncBaseTransport):
+    """Inject one local 403 after a real successful probe; never alter YouTube."""
+    def __init__(self):
+        self.inner = httpx.AsyncHTTPTransport()
+        self.fail_url = None
+        self.injections = 0
+
+    async def handle_async_request(self, request):
+        if self.fail_url is not None and str(request.url) == self.fail_url:
+            self.fail_url = None
+            self.injections += 1
+            return httpx.Response(403, request=request)
+        return await self.inner.handle_async_request(request)
+
+    async def aclose(self):
+        await self.inner.aclose()
 
 
 def probe_app(args):
@@ -48,6 +68,7 @@ def main():
     parser.add_argument("--height", type=int, choices=(144, 240, 360, 480, 720, 1080), default=720)
     parser.add_argument("--transport", choices=("any", "hls", "dash"), default="any", help="Require a specific returned transport")
     parser.add_argument("--expect-live", action="store_true", help="Fail unless the selected stream is currently live")
+    parser.add_argument("--simulate-vod-expiry", action="store_true", help="Inject one local expired-link response after real ffprobe, then require fresh resolution and decode")
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
     parser.add_argument("--js-runtime-path")
     parser.add_argument("--profile", help="Explicit authorized OAuth profile ID; never falls back to Guest")
@@ -63,6 +84,20 @@ def main():
         app = probe_app(args)
     except ValueError as error:
         parser.error(str(error))
+    expiry = None
+    fresh_resolutions = [0]
+    if args.simulate_vod_expiry:
+        asyncio.run(app.state.http.aclose())  # Unused client; no transport was opened.
+        expiry = ExpireOnceTransport()
+        app.state.http = httpx.AsyncClient(transport=expiry, timeout=httpx.Timeout(20, connect=5), follow_redirects=False)
+        extractor = app.state.extractor
+        scoped = extractor.for_profile(args.profile or 'guest') if hasattr(extractor, 'for_profile') else extractor
+        original_extract = scoped.extract
+        async def tracked_extract(target, **kwargs):
+            if kwargs.get('fresh'):
+                fresh_resolutions[0] += 1
+            return await original_extract(target, **kwargs)
+        scoped.extract = tracked_extract
     listener = socket.socket()
     listener.bind(("127.0.0.1", 0))
     base = f"http://127.0.0.1:{listener.getsockname()[1]}"
@@ -72,6 +107,7 @@ def main():
               "scope": ("OAuth TV YouTube" if args.profile else "public YouTube") +
                        " -> authenticated companion -> relay -> host FFmpeg",
               "account_profile_selected": bool(args.profile), "console_traffic": False,
+              "simulated_media_expiry": args.simulate_vod_expiry,
               "result": "failed"}
     stage = "startup"
     token = ""
@@ -113,15 +149,32 @@ def main():
             raise RuntimeError("audio_video_streams_missing")
         result["streams"] = [{"type": stream["codec_type"], "codec": stream["codec_name"]}
                              for stream in streams]
+        if expiry is not None:
+            stage = 'simulate_expiry'
+            if live:
+                raise RuntimeError('vod_required_for_expiry_probe')
+            token_part = choice['url'].split('/media/', 1)[1].split('/', 1)[0]
+            session = app.state.sessions.get(token_part)
+            resources = [r for r in session.tracks.values() if r.binding and r.binding[3] != 'none'
+                         and r.representation.observed]
+            if not resources or resources[0].representation.validator is None:
+                result['code'] = 'media_identity_missing'
+                raise RuntimeError('media_identity_missing')
+            expiry.fail_url = resources[0].url
         offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - 2)))
         for offset in offsets:
             stage = "decode" if offset == 0 else "seek_decode"
             command = ["ffmpeg", "-v", "error"] + (["-ss", str(offset)] if offset else [])
             command += ["-i", choice["url"], "-t", "2", "-map", "0:v", "-map", "0:a", "-f", "null", "-"]
             subprocess.run(command, capture_output=True, timeout=45, check=True)
+        if expiry is not None and (expiry.injections != 1 or fresh_resolutions[0] != 1):
+            stage = 'renewal_assertion'
+            raise RuntimeError('renewal_not_exercised_once')
         result["result"] = "pass"
         result["checks"] = ["pair", "resolve", "relay_probe", "two_second_audio_video_decode"]
         result["checks"] += ["live_edge_decode"] if live else ["seek_decode"]
+        if expiry is not None:
+            result['checks'].append('injected_expiry_fresh_resolution_same_relay_decode')
     except urllib.error.HTTPError as error:
         result.update(stage=stage, status=error.code)
         # Only our API's stable machine code is persisted. Never copy error
@@ -136,11 +189,13 @@ def main():
     except subprocess.TimeoutExpired:
         result.update(stage=stage, code="ffmpeg_timeout")
     except (RuntimeError, KeyError, ValueError, OSError):
-        result.update(stage=stage, code="probe_failed")
+        result.update(stage=stage, code=result.get('code', 'probe_failed'))
     finally:
         server.should_exit = True
         thread.join(timeout=10)
         listener.close()
+        if expiry is not None:
+            result.update(expiry_injections=expiry.injections, fresh_resolutions=fresh_resolutions[0])
         if thread.is_alive():
             result.update(result="failed", stage="cleanup", code="server_shutdown_timeout")
     args.output.parent.mkdir(parents=True, exist_ok=True)

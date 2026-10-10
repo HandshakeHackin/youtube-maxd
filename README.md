@@ -152,8 +152,11 @@ companion bearer token is stored in PS5 state and the PC token file; PS5 storage
 encryption is not provided. Cookies, resolver headers and signed YouTube URLs
 stay on the companion. Media capabilities expire after 30 minutes of inactivity;
 delivered media and manifests renew this idle lease. Upstream signed URLs can
-still expire independently; selecting the video again refreshes them. Automatic
-re-resolution of expired upstream URLs is not implemented. Access logs are disabled and native diagnostics redact
+still expire independently. VOD HTTP/DASH tracks now resolve fresh links once
+under the same profile after an expired-link response, preserving local relay
+URLs and validating resumed byte identity. Live HLS renewal, missing/changed
+validators and native restart recovery still require selecting the video again.
+Access logs are disabled and native diagnostics redact
 capabilities. See [protocol/security notes](docs/PROTOCOL.md).
 
 GPL-3.0-or-later. See [LICENSE](LICENSE) and

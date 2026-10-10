@@ -215,3 +215,11 @@ and browser closure must stop polling and release the companion context. Repeat
 with an available public live chat, reporting public service and PS5 rendering
 separately. No posting, account authorization or replay is part of this reader
 case; those require their own implementation and acceptance.
+
+VOD URL renewal now needs PS5 acceptance through unchanged relay capabilities.
+The host AVC/AAC and VP9/AAC probes use real public media with one local injected
+403, fresh same-profile resolution, byte-identity checks, decode and seek. Test
+the same bounded injection through PS5, then naturally expired links during a
+long session. Check audio/video continuity, seeking and graceful failure when
+identity changes. Live HLS, expired idle capabilities, missing validators and
+controlled native restart remain unfinished recovery paths.

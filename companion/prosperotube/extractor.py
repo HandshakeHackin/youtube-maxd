@@ -42,11 +42,11 @@ class Extractor:
         for process in tuple(self.processes):
             self._kill_worker(process)
 
-    async def extract(self, target: str, *, flat=False, start=1, end=24, _oauth_access_token=None):
+    async def extract(self, target: str, *, flat=False, start=1, end=24, fresh=False, _oauth_access_token=None):
         self.ensure_active()
         key = (target, flat, start, end)
         cached = self.cache.get(key)
-        if cached and cached[0] > time.monotonic():
+        if not fresh and cached and cached[0] > time.monotonic():
             return cached[1]
         async with self.semaphore:
             self.ensure_active()

@@ -24,6 +24,7 @@ from .extractor import Extractor
 from .hls import rewrite as hls_rewrite
 from .models import ResolveRequest, ServiceError, safe_remote, video_id
 from .sessions import Sessions
+from .media_refresh import expired as expired_media, observe as observe_media, renew as renew_media
 
 
 class PairRequest(BaseModel):
@@ -399,14 +400,18 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         remote = session.tracks.get(key)
         if not remote:
             raise ServiceError("missing_media", "The playback resource does not exist.", 404)
-        headers = dict(remote.headers)
-        headers["Accept-Encoding"] = "identity"
         byte_range = request.headers.get("range")
         if byte_range:
-            if not re.fullmatch(r"bytes=(?:[0-9]+-[0-9]*|-[0-9]+)", byte_range):
+            if len(byte_range) > 100 or not re.fullmatch(r"bytes=(?:[0-9]+-[0-9]*|-[0-9]+)", byte_range):
                 raise ServiceError("invalid_range", "Only a single byte range is supported.", 416)
-            headers["Range"] = byte_range
-        reply, final_url = await upstream(remote.url, headers, request.method)
+        async def fetch(resource, renewed=False):
+            headers = {**resource.headers, "Accept-Encoding": "identity"}
+            if byte_range:
+                headers["Range"] = byte_range
+                if renewed and resource.representation.validator:
+                    headers["If-Range"] = resource.representation.validator[1].encode('latin-1')
+            return await upstream(resource.url, headers, request.method)
+        reply, final_url = await fetch(remote)
         try:
             relay_profile(session)
         except ServiceError:
@@ -414,13 +419,29 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise
         if reply.status_code in (401, 403, 410):
             await reply.aclose()
-            app.state.sessions.sessions.pop(session_token, None)
-            raise ServiceError("expired_media", "YouTube media access expired. Select the video again to refresh it.", 410)
+            try:
+                remote = await renew_media(app.state.sessions, session, key, remote, resolver)
+                reply, final_url = await fetch(remote, True)
+                relay_profile(session)
+                if reply.status_code not in (200, 206):
+                    raise expired_media()
+                observe_media(remote, reply, byte_range, renewed=True)
+            except (ServiceError, httpx.HTTPError, TimeoutError):
+                await reply.aclose()
+                app.state.sessions.sessions.pop(session_token, None)
+                raise expired_media() from None
         if reply.status_code not in (200, 206):
             status = reply.status_code
             await reply.aclose()
             raise ServiceError("upstream_media", "The media server could not provide this resource.", 416 if status == 416 else 502)
         content_type = reply.headers.get("content-type", remote.mime)
+        if remote.binding is not None:
+            try:
+                observe_media(remote, reply, byte_range)
+            except ServiceError:
+                await reply.aclose()
+                app.state.sessions.sessions.pop(session_token, None)
+                raise
         if key.endswith(".srt") and request.method == "GET":
             raw = await bounded(reply, 2 * 1024 * 1024)
             relay_profile(session)
@@ -448,6 +469,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     except ServiceError:
                         return
                     app.state.sessions.touch(session)
+                    remote.representation.delivered = True
                     yield chunk
             finally:
                 await reply.aclose()

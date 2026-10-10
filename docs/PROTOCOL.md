@@ -41,7 +41,29 @@ recently listed resources outside that graph are retired. Recent older windows
 remain available while capacity permits. An oversized current graph fails
 atomically and preserves the previous usable registry. This does not guarantee
 unbounded DVR history; long-window playback/seek requires separate acceptance.
-Expired upstream access returns a sanitized error; reselecting the ID refreshes.
+Expired VOD HTTP/DASH access (401/403/410) triggers one fresh resolution under the
+session's profile. It bypasses the extractor cache, keeps the relay capability
+and manifests, and atomically renews matched format roots. Identity includes
+format ID, container, codecs, dimensions, frame rate, language and audio layout;
+changed or ambiguous matches never select another quality automatically.
+
+After an upstream representation has been accepted, resumed ranges require its
+unchanged strong ETag, or Last-Modified when no ETag exists and the response Date
+is at least 60 seconds newer. The latter is our clock margin for the
+[HTTP validator rules](https://www.rfc-editor.org/rfc/rfc9110.html#section-8.8.2.2).
+Renewed range requests use If-Range and verify response bounds and total size;
+weak tags, changed/missing validators, ignored ranges and changed content coding
+end the capability with a sanitized `expired_media` error. First-open failures
+can renew before any representation is accepted. Observation state is shared
+with earlier in-flight responses, preventing stale streams from losing its
+identity checks.
+
+Renewal is single-flight per session, with a 30-second minimum between attempts
+and a 60-second resolution bound in addition to the resolver's own deadline.
+Removal/idle expiry cannot resurrect a session. Live HLS roots/segments, captions,
+unverifiable byte identity and native re-open recovery remain separate work;
+their expired access still requires reselecting the video ID. Network failures
+and other upstream statuses do not enter this expired-link retry path.
 
 This is a trusted-LAN service. HTTP is plaintext; pairing does not replace TLS.
 Do not expose it to the public internet. PS5 state contains a bearer credential

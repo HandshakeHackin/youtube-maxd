@@ -123,6 +123,13 @@ probes its relayed streams, decodes two seconds of audio/video, and repeats afte
 a short seek. Select `--codec vp9` to check that path. Only allowlisted result
 metadata is saved; media URLs, pairing tokens and raw decoder messages are not.
 Success is host companion/FFmpeg evidence, not console decoder or audio proof.
+For the VOD renewal path, add `--transport dash --simulate-vod-expiry`. After a
+real successful ffprobe, this injects one local 403 for a selected video track.
+The runner then requires exactly one fresh resolution plus actual audio/video
+decode and seek through the same relay URLs. The server itself is never changed.
+Reports label the injected expiry; this is not evidence of a naturally expired
+six-hour link, long-session playback or PS5 recovery. The source must return
+verifiable representation metadata, or this case fails explicitly.
 The selected runtime and installed `yt-dlp-ejs` are required for full YouTube
 extraction; see upstream [EJS setup](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 

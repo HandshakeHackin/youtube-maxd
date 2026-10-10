@@ -380,3 +380,30 @@ service probes, upload, launch, close or input, and released its owned lock.
 The candidate remains undeployed. Evidence: `.deps/native-chat-console.log`.
 
 - 2026-10-09 | native chat / Lapy storage | 30a1bef8 | PS5 | no-run: first title check busy | .deps/native-chat-console.log | continue offline, await idle console
+
+### VOD expired-link renewal (2026-10-09)
+
+The shipping relay now performs one cache-bypassing, same-profile resolution
+after an expired VOD HTTP/DASH request. It preserves session links/manifests,
+atomically maps exact format roots, and shares representation observations with
+older in-flight responses. Resumed ranges verify strong HTTP identity, total
+size, requested bounds and content coding before any renewed body is forwarded.
+The policy and remaining paths are detailed in `docs/PROTOCOL.md`.
+
+The full Python suite passed 146 tests: `.deps/media-refresh-python.log`.
+Coverage includes ETag/Last-Modified/Latin-1 tag handling, first-open renewal,
+both-track mapping, concurrent single-flight requests, cooldown, cancellation,
+profile invalidation, changed/ambiguous formats, changed duration/video/entity,
+ignored/wrong/oversized ranges and repeated upstream expiry. Actual OAuth
+preflight/base-extractor tests verify fresh extraction bypasses its cache while
+retaining the selected profile and private token IPC.
+
+Public video `jNQXAC9IVRw` passed AVC/AAC and VP9/AAC DASH cases at 240p: actual
+API pairing/resolution/ffprobe, one local injected expired-link response, exactly
+one fresh resolution, then real audio/video decode and seek through the same
+relay URLs. Evidence: `.deps/media-refresh-public.json`, matching log, and
+`.deps/media-refresh-public-vp9.json`, matching log. The reports explicitly mark
+the simulated expiry. These are host proofs with real YouTube media; naturally
+expired links, uninterrupted mid-playback continuity, OAuth media and PS5 recovery
+still need acceptance. Live HLS renewal and controlled native restart remain
+unfinished. No native source/build or console traffic changed in this stage.

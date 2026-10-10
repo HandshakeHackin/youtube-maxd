@@ -4,6 +4,7 @@ import secrets
 import time
 import xml.etree.ElementTree as ET
 from .models import Caption, Choice, Playback, ResolveRequest, ServiceError, number, safe_remote, text
+from .media_refresh import Representation, binding, media_headers
 
 DASH = "urn:mpeg:dash:schema:mpd:2011"
 ET.register_namespace("", DASH)
@@ -14,6 +15,8 @@ class Remote:
     url: str
     headers: dict
     mime: str
+    binding: tuple | None = None
+    representation: Representation = field(default_factory=Representation)
 
 
 @dataclass
@@ -27,6 +30,10 @@ class Session:
     hls_manifests: dict[str, str] = field(default_factory=dict)
     hls_resources: dict[str, bool] = field(default_factory=dict)
     hls_playlists: dict[str, set[str]] = field(default_factory=dict)
+    duration: float = 0
+    is_live: bool = False
+    refresh_lock: object = None
+    refresh_after: float = 0
 
 
 def codec_name(raw):
@@ -98,17 +105,14 @@ class Sessions:
         formats = info.get("formats") or []
         live = info.get("is_live") is True
         duration = number(info.get("duration"))
+        session.duration, session.is_live = duration, live
         choices = []
         headers = info.get("http_headers") or {}
 
         def remote(key, fmt, mime):
             url = safe_remote(fmt["url"])
-            supplied = {**headers, **(fmt.get("http_headers") or {})}
-            # Authentication is sent to the resolver's validated origin only.
-            allowed = {k: str(v) for k, v in supplied.items() if k.lower() in
-                       {"user-agent", "referer", "origin", "cookie", "accept", "accept-language"}
-                       and "\r" not in str(v) and "\n" not in str(v)}
-            session.tracks[key] = Remote(url, allowed, mime)
+            allowed = media_headers(headers, fmt)
+            session.tracks[key] = Remote(url, allowed, mime, binding=None if live else binding(fmt))
             return f"{prefix}/{key}"
 
         def eligible(fmt):

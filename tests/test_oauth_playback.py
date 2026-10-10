@@ -153,6 +153,8 @@ def test_oauth_profile_refresh_private_subprocess_cache_and_paged_tv_search(monk
         assert first["title"] == "TV authorized"
         await resolver.extract("https://www.youtube.com/watch?v=" + ID)
         assert len(bodies) == 1 and bodies[0]["oauth_access_token"] == TOKEN
+        await resolver.extract("https://www.youtube.com/watch?v=" + ID, fresh=True)
+        assert len(bodies) == 2 and bodies[1]["oauth_access_token"] == TOKEN
         assert bodies[0]["cookies"] is None and bodies[0]["cookie_header"] is None
         result = await page_for(resolver, query="TV search")
         assert result.has_more and result.items[0].id == ID
