@@ -3,6 +3,14 @@
 
 def apply_seek_overlay(replace, player):
     controller = player + 'core/src/services/PlaybackController.cpp'
+    replace(controller, '#include <cmath>', '#include <cmath>\n#include "tube_seek_timeline.h"')
+    replace(controller, '''        int64_t seekTs = static_cast<int64_t>(
+            seekPos / av_q2d(play_fmt->streams[seekStream]->time_base));
+
+        if (av_seek_frame(play_fmt, seekStream, seekTs, AVSEEK_FLAG_BACKWARD) >= 0) {''', '''        int64_t absoluteTargetUs, seekTs;
+        const bool converted = tube_seek_times(play_fmt, seekStream, seekPos,
+                                               &absoluteTargetUs, &seekTs);
+        if (converted && av_seek_frame(play_fmt, seekStream, seekTs, AVSEEK_FLAG_BACKWARD) >= 0) {''')
     replace(controller, '''    if (!isActive() || targetSeconds < 0.0) return;
 
     m_resumeBaseOffset = targetSeconds;
@@ -62,6 +70,11 @@ def apply_seek_overlay(replace, player):
      * The committed UI base and audio discard target remain relative. */''')
     audio = player + 'media/src/evo_audio_out.c'
     replace(audio, '#include <math.h>', '#include <math.h>\n#include "tube_seek_timeline.h"')
+    replace(audio, '    const double landed = first_audio_pts_seconds;', '''    const int origin_stream = video_stream_index >= 0 ? video_stream_index : audio_stream_index;
+    const double origin = play_fmt && origin_stream >= 0 &&
+        (unsigned)origin_stream < play_fmt->nb_streams
+        ? (double)tube_media_origin_us(play_fmt, origin_stream) / AV_TIME_BASE : 0.0;
+    const double landed = first_audio_pts_seconds - origin;''')
     replace(audio, '''            if (pkt->pts != AV_NOPTS_VALUE && play_fmt && audio_stream_index >= 0)
                 pkt_seconds = (double)pkt->pts *
                     av_q2d(play_fmt->streams[audio_stream_index]->time_base);''', '''            if (pkt->pts != AV_NOPTS_VALUE && play_fmt && audio_stream_index >= 0) {

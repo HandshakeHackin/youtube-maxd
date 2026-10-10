@@ -195,6 +195,10 @@ helper adds the common container origin for demux/video discard timestamps;
 audio packet comparisons subtract that same origin. Boundary tests cover
 distinct stream starts, negative and missing origins, fractional positions,
 invalid time bases and overflow. This is host evidence, not PS5 acceptance.
+The handoff script also extracts the actual initial-resume block and audio
+re-anchor function, exercises real HLS seeking, and checks relative clock
+anchoring, refused seeks and invalid/overflow conversion without a seek call.
+It likewise requires host FFmpeg development libraries and generated fixtures.
 
 For expiry during an ongoing live decode, use `--decode-seconds 60
 --hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for

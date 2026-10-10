@@ -21,3 +21,6 @@ demux = Path(sys.argv[2]).read_text()
 dest = Path(sys.argv[3]); dest.mkdir(parents=True, exist_ok=True)
 dest.joinpath('seek_ui.inc').write_text(block(controller, 'void PlaybackController::seekTo(double targetSeconds)'))
 dest.joinpath('seek_request.inc').write_text(block(demux, 'int prospero_request_inplace_seek('))
+dest.joinpath('resume_seek.inc').write_text(block(controller, '    if (wantResume) {'))
+audio = Path(sys.argv[1]).parents[3] / 'media/src/evo_audio_out.c'
+dest.joinpath('resume_anchor.inc').write_text(block(audio.read_text(), 'static void anchor_resume_base(void)'))

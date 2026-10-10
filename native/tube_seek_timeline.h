@@ -3,8 +3,14 @@
 
 #include <math.h>
 #include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <libavformat/avformat.h>
 #include <libavutil/mathematics.h>
+#ifdef __cplusplus
+}
+#endif
 
 /* UI positions share the container origin; audio/video stream starts can
  * differ. Packet PTS, demux seeks and the video discard gate remain absolute. */

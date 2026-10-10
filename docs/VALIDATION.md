@@ -822,3 +822,28 @@ Native provider and playback-recovery ASan/UBSan regressions passed
 The host uses libavformat 62.3.100; PS5 uses the existing FFmpeg 7.1.1 recipe.
 Full PS5 packaging and hardware acceptance of this change remain pending.
 No console or YouTube traffic occurred for this offline change.
+
+Source `dd34eb58` subsequently passed the full PS5 build and immutable freeze:
+`prosperotube-dd34eb58_1010-0325`, 126 files, eboot SHA-256 prefix
+`ffde9983f34493af`. Evidence: `.deps/seek-timeline-ps5-build.log` and
+`.deps/seek-timeline-freeze.log` / result files (both 0). No console deployment
+or launch occurred. This package corrects in-place seeks, not initial resume.
+
+### Initial resume origin and clock anchoring (2026-10-09)
+
+Initial resume used another relative-to-stream conversion that omitted the
+container origin. Its audio re-anchor also treated absolute first-packet PTS
+as a relative UI position. The overlay now uses the common shipping timestamp
+helper for initial seeking and subtracts the same origin when re-anchoring.
+The existing intentional keyframe run-up is preserved; resume position follows
+the actual landing rather than claiming an exact decoded start at the saved
+position. Invalid conversions take the existing failed-resume path.
+
+The extracted shipping initial-resume block and audio re-anchor passed a real
+generated HLS seek under ASan/UBSan. Checks cover the requested absolute stream
+timestamp, relative first-audio landing, one-shot re-anchor, refused seeking,
+nonfinite positions and overflow rejection without a seek call. Existing
+shipping UI/request handoff passed in the same case. Evidence:
+`.deps/resume-timeline.log` / `.result` (0). Header linkage was also compiled
+as C++ against host FFmpeg. Full PS5 packaging of this follow-up remains
+pending at the source milestone; console resume/audio acceptance is unverified.
