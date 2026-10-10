@@ -1,5 +1,37 @@
 # Offline validation record — 0.1.0
 
+## First actual YouTube playback on PS5 — 2026-10-10
+
+The fresh reserved `.40` case used unchanged native build
+`prosperotube-b9b5c916_1010-1402` and corrected Windows companion `c7d6f35`.
+Both idle checks, both full installed-byte verifications, settling, registration,
+Lapy storage, UI and first frame passed. Native pairing and direct public lookup
+returned `jNQXAC9IVRw` ("Me at the zoo"). The resident Sony AVC decoder opened
+320x240 at 15 fps; native AAC initialized for stereo 44.1 kHz with an AudioOut
+handle. Playback progressed from 0 to 18.87 seconds, reporting `eof=1`,
+`complete=1`, `fatal=0`. All 133 sampled statuses had no decoder fatal; 130 were
+active. Shipping engine stop statistics report 284 frames in/converted/published
+and zero late drops. The 3840x2160 scanout capture visibly contains the video,
+English captions and native OSD. Physical audible sound remains unverified.
+
+The original adapter retains result 1: its final-position threshold required
+within 0.10 seconds of metadata duration 19, while the last presented frame is
+0.13 seconds short (two frames at this source's 15 fps). This is a verifier
+failure, not evidence that playback failed. Independent read-only analysis of
+the saved samples proves progress and final EOF/completion within 2.1 frames.
+Evidence: `.deps/public-video-utf8-reserved-console.log`,
+`.deps/console/public-video-utf8-b9b5c916-fallback/`, and
+`.deps/verify-public-video-end.py`.
+
+A bounded cleanup verified our launched process identity, requested quit,
+proved matching GPU park, then sent one exact-title close. Matching kill,
+video-owner removal and app-mount completion, idle titles and reachable services
+passed. Saved version-2 pairing and Guest history contain this video with
+`played=true`, `position=0`, `duration=19`. Evidence and capture:
+`.deps/console/public-video-utf8-b9-cleanup/` (including `youtube-scanout.bmp`).
+No account mutation or real chat message occurred. History reload, pause/seek,
+other formats, physical audio/controller pacing and long sessions remain open.
+
 ## Windows public resolver encoding corrected — 2026-10-10
 
 The first real public-video case on `.40` passed immutable installed-byte

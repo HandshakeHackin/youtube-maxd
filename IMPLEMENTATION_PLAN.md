@@ -28,6 +28,13 @@ resident codec creation, UI/first frame, GPU park and exact-title close on `.40`
 A separate idle-first read-only check confirms title release and reachable
 services. Real YouTube playback and configuration persistence are the next
 acceptance case; global L3/R3 screenshot dispatch also needs integration work.
+The corrected Windows companion `c7d6f35` now establishes the first real public
+YouTube playback on `.40`: native AVC, rendered English captions, 284 published
+frames without late drops, EOF/completion and durable Guest history. Native AAC
+initialized; physical sound, history reload, seeking and wider playback/control
+acceptance remain open. The original verifier's 0.10-second endpoint condition
+failed on the final 15-fps frame; its failure is retained alongside independent
+sample/capture and graceful-close evidence in `docs/VALIDATION.md`.
 
 ## 1. Objective and current conclusion
 
