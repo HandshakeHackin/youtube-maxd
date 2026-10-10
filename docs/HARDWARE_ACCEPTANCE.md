@@ -367,3 +367,10 @@ from the reserved fallback console. It reports roots_moved=0, cred_changed=0
 and detached=1. It does not expose which stop predicate failed. Storage,
 persistence, physical playback and clean teardown remain unaccepted. See
 VALIDATION.md for the log hash and diagnostic-only build option.
+
+- 2026-10-10 | stopped-target snapshot diagnostic | 146945b5 | PS5 | failed: full installation/readbacks and one launch, stable stopped snapshots with 92 threads/credential references; helper requires single-thread private credentials; no root/credential changes, detached; no input/close/relaunch, lock released | .deps/lapy-stop-reserved-console.log; .deps/console/lapy-stop-helper-readonly-146945b/ | split query-only warmup from resident decoder/display creation
+
+The separate diagnostic-log retrieval began with an idle title check and made
+no application changes. The subsequent startup-order overlay has host coverage
+only. A newly built candidate must establish storage proof, decoder availability,
+native UI, persistence and teardown before real YouTube playback acceptance.

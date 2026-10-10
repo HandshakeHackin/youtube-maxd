@@ -109,6 +109,8 @@ def main():
         evo_bt("ProsperoTube requires writable /data/prosperotube; startup stopped");
         return false;
     }''')
+    from startup_overlay import apply as apply_startup_overlay
+    apply_startup_overlay(WORK, replace, player)
     replace(player + "core/src/Application.cpp", 'std::snprintf(path, sizeof(path), "/mnt/usb0/evo_shot_%03d.bmp", slot);',
             'std::snprintf(path, sizeof(path), "%s/evo_shot_%03d.bmp", evo_data_dir(), slot);')
     replace(player + "core/src/Application.cpp", '''    if (!fp) {

@@ -39,8 +39,11 @@ responses must match PID, capability, version and phase. Protocol markers use
 `tube_jailbreak.cpp` bridges the client to EVO's C interface, makes one startup
 attempt, creates the app directory and verifies write/read/close/delete there.
 Startup stops before app services if that proof fails; no render-loop retry or
-transient persistence fallback remains. Decoder, IME and browser modules retain
-EVO's preload ordering before the credential transition.
+transient persistence fallback remains. Video module/library queries precede
+the transition, while resident video decoder and display resources follow
+storage proof. Audio, IME and browser preloads retain their earlier ordering.
+The split addresses the observed 92-thread request state; console acceptance
+must still establish the helper's single-thread precondition and decoder use.
 
 Old sandbox fixture data is not automatically copied or merged into durable
 state. Console acceptance must verify a clean launch, exact app storage path,

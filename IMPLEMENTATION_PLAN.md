@@ -19,8 +19,11 @@ jump/action behavior, paid-content notices and remaining
 action/default equivalence. See [validation](docs/VALIDATION.md).
 
 The existing player already supplies the correct live-source OSD flag; physical
-live-UI acceptance remains pending. The next startup candidate can enable
-diagnostic-only target-stop snapshot logging while retaining upstream checks.
+live-UI acceptance remains pending. Diagnostic source `146945b5` subsequently
+established stable stopped snapshots with 92 threads and 92 credential
+references, incompatible with the helper's single-thread requirement. Startup
+now separates query-only video-library warmup from resident decoder and display
+creation; console acceptance of this change remains pending.
 
 ## 1. Objective and current conclusion
 

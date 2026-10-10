@@ -1,5 +1,49 @@
 # Offline validation record — 0.1.0
 
+## Native warmup before single-thread Lapy request — 2026-10-10
+
+The complete diagnostic app build/package/freeze passed for source `146945b5`:
+`prosperotube-146945b5_1010-0612`, 126 files, eboot SHA-256 prefix
+`5c55d9800fcf741b`. Evidence: `.deps/lapy-stop-ps5-build.log` / `.result` (0)
+and `.deps/lapy-stop-freeze.log` / `.result` (0).
+
+The reserved fallback case passed idle-first installation, both complete byte
+readbacks, settling, registration and final idle check. One launch again failed
+the storage gate; the adapter stopped without input/close/relaunch and released
+its owned lock. A separate idle-first read-only case retrieved the matching
+diagnostic helper log. Evidence: `.deps/lapy-stop-reserved-console.log` /
+`.result` (1), `.deps/console/lapy-stop-helper-readonly-146945b/`.
+The 2,680-byte helper log SHA-256 is
+`acbd341e849fef0404add54027e84c907a49deea34b49af61bcb5835ec89264d`.
+
+Both stopped snapshots report `fd_refs=1`, `threads=92`, `suspended=92`,
+`cred_refs=92`, matching proc/fd/credential/prison/root/jail/cwd and thread-list
+identities, and `stable=1`. The helper requires `cred_refs=2` there and a
+single-thread private credential later. Its `target_stop error=16` rejection
+therefore precedes root/credential mutation, with `detached=1`. These values
+establish the incompatible startup state, not which individual preload created
+each worker. FTP retrieval passed after failure; comprehensive service-health
+and clean app teardown acceptance remain absent.
+
+The startup overlay now follows ProsperoLight's query-only VideoDec2 warmup
+approach (`src/main.cpp`, `src/moonlight_stream.cpp` in the inspected reference):
+load VideoDec2 and query compute/selected codec memory information before Lapy,
+without creating compute queues, allocating decoder memory or creating resident
+decoders. Cache that module result across the credential transition. Resident
+video decoder and AGC/display creation now follow successful storage proof.
+Existing audio-library and dialog preloads retain their ordering; a fresh
+changed-candidate console case must establish whether they meet the remaining
+single-thread precondition. This is not yet a proven startup fix.
+
+The extracted generated preload body passed host ASan/UBSan for AVC-only,
+secondary codecs and 10-bit configurations, checking query-only calls,
+configuration fields, idempotence, failed module loading and optional query
+failure. Actual generated application-order assertions verify that preloads
+precede Lapy and display/resident creation follows it. Evidence:
+`.deps/native-preload.log` / `.result` (0). The existing generated startup-log
+gate regression also passed, preserving buffered logging before storage proof.
+Sony module/decoder behavior remains mocked in these host tests.
+
 ## Reserved console startup and Lapy stop diagnosis — 2026-10-10
 
 Frozen `prosperotube-58390ef6_1010-0550` passed the initial idle check,
