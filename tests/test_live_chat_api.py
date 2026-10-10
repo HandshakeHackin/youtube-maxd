@@ -37,3 +37,73 @@ def test_live_chat_api_auth_modes_jobs_and_close_are_read_operations():
         assert client.post('/v1/library', headers=headers, json={'action': 'chat_poll', 'cursor': 'opaque-cursor'}).status_code == 200
         assert client.post('/v1/library', headers=headers, json={'action': 'chat_close', 'cursor': 'opaque-cursor'}).json()['success']
         assert [call['action'] for call in calls] == ['live_chat', 'chat_poll', 'chat_close']
+
+
+def test_abandoned_chat_jobs_release_the_context_but_delivered_results_transfer_ownership():
+    closed = []
+    class Library:
+        async def close(self): pass
+        async def execute(self, request):
+            if request['action'] == 'chat_close':
+                closed.append((request['profile'], request['cursor']))
+                return {'api_version': 1, 'success': True}
+            return {'api_version': 1, 'kind': 'live_chat', 'cursor': 'owned-cursor'}
+    app = create_app(token='test-token', library=Library())
+    headers = {'Authorization': 'Bearer test-token'}
+    with TestClient(app) as client:
+        def start():
+            job = client.post('/v1/jobs', headers=headers, json={'action': 'library', 'library': {
+                'action': 'live_chat', 'id': 'abcdefghijk', 'profile': 'one'}}).json()['job']
+            deadline = time.monotonic() + 5
+            while not app.state.jobs[job][1].done():
+                assert time.monotonic() < deadline
+                time.sleep(.01)
+            return job
+        job = start()
+        assert client.delete('/v1/jobs/' + job, headers=headers).status_code == 200
+        deadline = time.monotonic() + 5
+        while not closed:
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        assert closed == [('one', 'owned-cursor')]
+        job = start()
+        assert client.get('/v1/jobs/' + job, headers=headers).json()['state'] == 'done'
+        assert client.delete('/v1/jobs/' + job, headers=headers).status_code == 200
+        assert len(closed) == 1
+        assert client.post('/v1/library', headers=headers, json={'action': 'chat_close', 'profile': 'one',
+                                                              'cursor': 'owned-cursor'}).status_code == 200
+        assert len(closed) == 2
+
+
+def test_offline_fixture_chat_rolls_stable_message_ids_and_scopes_capabilities(tmp_path):
+    from prosperotube.demo import FixtureExtractor
+    from prosperotube.fixture_library import FixtureLibrary, VIDEOS
+    from prosperotube.models import ServiceError
+    import asyncio
+    import pytest
+    clock = [100.0]
+    library = FixtureLibrary(FixtureExtractor(), clock=lambda: clock[0])
+    async def run():
+        first = await library.execute({'action': 'live_chat', 'profile': 'guest', 'id': VIDEOS[2]})
+        assert len(first['items']) == 24 and first['chat_mode'] == 'top'
+        assert first['items'][1]['amount'] == '$5.00' and '<b>' in first['items'][0]['content']
+        early = await library.execute({'action': 'chat_poll', 'cursor': first['cursor']})
+        assert early['cursor'] == first['cursor'] and early['items'] == first['items']
+        with pytest.raises(ServiceError):
+            await library.execute({'action': 'chat_poll', 'profile': 'fixture_one', 'cursor': first['cursor']})
+        with pytest.raises(ServiceError):
+            await library.execute({'action': 'continue', 'cursor': first['cursor']})
+        clock[0] += 2
+        second = await library.execute({'action': 'chat_poll', 'cursor': first['cursor']})
+        assert second['items'][0]['id'] == first['items'][1]['id']
+        assert second['items'][-1]['id'] != first['items'][-1]['id']
+        assert await library.execute({'action': 'chat_poll', 'cursor': first['cursor']}) == second
+        assert (await library.execute({'action': 'chat_close', 'cursor': first['cursor']}))['success']
+        with pytest.raises(ServiceError):
+            await library.execute({'action': 'chat_poll', 'cursor': second['cursor']})
+        live = await library.execute({'action': 'live_chat', 'profile': 'fixture_one', 'id': VIDEOS[2], 'chat_mode': 'live'})
+        assert live['chat_mode'] == 'live'
+        await library.execute({'action': 'profile_remove', 'profile': 'fixture_one'})
+        assert not library.chats
+        await library.close()
+    asyncio.run(run())

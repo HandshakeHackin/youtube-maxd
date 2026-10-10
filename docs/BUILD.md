@@ -206,3 +206,20 @@ PYTHONPATH=companion .venv/bin/python -m prosperotube \
 Pair and search any term. Three labelled synthetic videos exercise AVC/AAC DASH,
 VP9/Opus DASH and finite HLS. Thumbnails/media are local. This mode does not
 contact YouTube or SponsorBlock and does not establish service compatibility.
+The HLS fixture also exposes generated rolling top/live chat through R3. This
+checks the reader and context lifecycle independently of public chat availability.
+
+Native chat checks run in sequence, sharing the prepared EVO tree:
+
+```sh
+bash scripts/test_live_chat_native.sh
+bash scripts/test_live_chat_ui.sh
+bash scripts/preview_native.sh
+```
+
+The first command prepares the tree and runs the shipping C reader under
+ASan/UBSan. The second compiles the generated EVO callbacks with the shipping
+RML and tests selection/scroll retention, removals, mode changes and setup
+cleanup. Its host pump simulates the render-time scroll restoration; PS5
+controller/render timing still needs hardware acceptance. The preview includes
+`output/preview/live-chat.png`. Do not run preparations concurrently.

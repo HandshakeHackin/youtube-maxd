@@ -341,3 +341,28 @@ service acceptance, not native display, OAuth chat or PS5 acceptance.
 The same verified-current video also passed explicit `--mode live`: open,
 server-paced poll and close each completed, both snapshots contained 24 messages,
 and the chat remained active. Evidence: `.deps/live-chat-live-mode.json` and log.
+
+### Native recent live-chat reader (2026-10-09)
+
+The native C reader passed ASan/UBSan checks for pairing, direct library polls,
+server intervals, single-flight requests, 24-message bounds, stable message
+identities, mode changes, ended/failed states, old-source late cleanup and saved
+state privacy. Evidence: `.deps/native-chat-test.log`. The full Python suite
+passed 124 tests, including abandoned chat-job cleanup and rolling profile-bound
+offline fixtures: `.deps/native-chat-full-python.log`.
+
+The actual generated EVO RequestPage, RefreshChat, ItemsCallback, ApplyItems and
+focus methods passed a host integration check with the shipping C reader and
+RML. It moves selection while a request is pending, retains completion-time
+selection/scroll, handles selected-message removal, switches top/live mode and
+closes chat on setup. Literal text cannot create markup elements. Evidence:
+`.deps/chat-ui-test.log`. The test uses mocked HTTP/time and a host focus/render
+pump; it does not establish console controller timing or rendering acceptance.
+Replay, posting, complete scrollback, real account chat and PS5 chat remain
+unverified or unfinished.
+
+Existing provider and device-auth/removal sanitizer regressions passed:
+`.deps/chat-native-regression.log`, `.deps/chat-auth-regression.log`.
+The shipping RML preview passed its binding, navigation, literal-text and
+reader-scroll assertions; `output/preview/live-chat.png` was inspected for
+reader and chat-footer visibility. Evidence: `.deps/chat-preview.log`.

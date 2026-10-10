@@ -27,6 +27,7 @@ class FixtureLibrary:
                               "videos": [VIDEOS[i % 3]], "privacy": "PRIVATE"} for i in range(25)},
                 "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}, "comment_ratings": {}}
         self.watches = {}
+        self.chats = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -77,10 +78,13 @@ class FixtureLibrary:
             del self.profiles[owner]
             self.references = {k: v for k, v in self.references.items() if v["owner"] != owner}
             self.watches = {k: v for k, v in self.watches.items() if k[0] != owner}
+            self.chats = {k: v for k, v in self.chats.items() if v["owner"] != owner}
             self.on_profile_removed(owner)
             return {"api_version": 1, "success": True, "profile": owner}
         if action in PRIVATE and owner == "guest":
             raise ServiceError("account_required", "Select an offline account profile.", 401)
+        if action in {"live_chat", "chat_poll", "chat_close"}:
+            return self._chat(request, owner)
         if action == "comment_rate":
             ref = self.references.get(request.get("cursor"))
             if not ref or ref["owner"] != owner or ref["kind"] != "rating" or ref["deadline"] <= self.clock():
@@ -101,7 +105,7 @@ class FixtureLibrary:
             ref = self.references.get(request.get("cursor"))
             replies = action == "replies"
             if (not ref or ref["owner"] != owner or ref["deadline"] <= self.clock()
-                    or (ref["kind"] == "replies") != replies or ref["kind"] == "rating"):
+                    or (ref["kind"] == "replies") != replies or ref["kind"] in {"rating", "chat"}):
                 raise ServiceError("cursor_expired", "Reload this page to continue.", 409)
             if ref["result"] is None:
                 ref["result"] = self._page(owner, "comments" if replies else ref["kind"], ref["items"])
@@ -206,7 +210,59 @@ class FixtureLibrary:
             raise ServiceError("unknown_operation", "This library operation is unavailable.", 400)
         return {"api_version": 1, "success": True, "playlist_id": created}
 
+    def _chat(self, request, owner):
+        now = self.clock()
+        self.chats = {k: v for k, v in self.chats.items() if v["deadline"] > now}
+        action = request["action"]
+        previous = None
+        if action == "live_chat":
+            if request.get("id") != VIDEOS[2]:
+                raise ServiceError("chat_unavailable", "Select the HLS fixture for offline chat.", 404)
+            mode = request.get("chat_mode", "top")
+            if mode not in {"top", "live"}:
+                raise ServiceError("invalid_sort", "Select top or live chat.", 400)
+            if len(self.chats) >= 16:
+                raise ServiceError("chat_busy", "Close another chat before opening this one.", 429)
+            identity = str(uuid4())
+            context = {"owner": owner, "id": VIDEOS[2], "mode": mode, "step": 0, "next_poll": now,
+                       "deadline": now + 1800}
+            self.chats[identity] = context
+        else:
+            ref = self.references.get(request.get("cursor"))
+            identity = ref["items"] if ref and ref["kind"] == "chat" else None
+            context = self.chats.get(identity)
+            if not context or ref["owner"] != owner or ref["deadline"] <= now:
+                raise ServiceError("cursor_expired", "Reopen this chat to continue.", 409)
+            if action == "chat_close":
+                del self.chats[identity]
+                self.references = {k: v for k, v in self.references.items() if v["kind"] != "chat" or v["items"] != identity}
+                return {"api_version": 1, "success": True}
+            if ref["result"] is not None:
+                return copy.deepcopy(ref["result"])
+            previous = ref
+            if now < context["next_poll"]:
+                return {**copy.deepcopy(context["result"]), "cursor": request["cursor"],
+                        "poll_after_ms": max(0, int((context["next_poll"] - now) * 1000))}
+            context["step"] += 1
+        start = context["step"]
+        rows = [{"id": f"fixture-chat-{i}", "author": f"Offline viewer {i + 1}",
+                 "content": f"Generated {context['mode']} chat message {i + 1}.\nLiteral <b>markup</b> & café 日本語.\n" +
+                            ("Full message scroll test. " * 100 if i % 24 == 0 else ""),
+                 "published": "Offline fixture", "type": "LiveChatPaidMessage" if i % 24 == 1 else "LiveChatTextMessage",
+                 "amount": "$5.00" if i % 24 == 1 else "", "moderator": i % 24 == 2, "verified": i % 24 == 3,
+                 "art_url": ""} for i in range(start, start + 24)]
+        cursor = self._reference(owner, "chat", identity)
+        self.references[cursor]["deadline"] = now + 1800
+        result = {"api_version": 1, "kind": "live_chat", "id": context["id"], "chat_mode": context["mode"],
+                  "items": rows, "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
+                  "poll_after_ms": 2000}
+        context.update(next_poll=now + 2, deadline=now + 1800, result=result)
+        if previous is not None:
+            previous["result"] = copy.deepcopy(result)
+        return copy.deepcopy(result)
+
     async def close(self):
         self.closed = True
         self.references.clear()
         self.watches.clear()
+        self.chats.clear()

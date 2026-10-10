@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     BIND(provider_name); BIND(breadcrumb); BIND(page_info); BIND(status); BIND(has_error);
     BIND(loading); BIND(empty); BIND(rows); BIND(has_selected); BIND(selected_title);
     BIND(selected_subtitle); BIND(selected_resume); BIND(selected_overview);
-    BIND(discussion); BIND(review); BIND(auth);
+    BIND(discussion); BIND(review); BIND(auth); BIND(chat);
 #undef BIND
     Rml::String activated;
     constructor.BindEventCallback("activate", [&activated](Rml::DataModelHandle, Rml::Event& event, const Rml::VariantList&) {
@@ -223,6 +223,14 @@ int main(int argc, char** argv) {
     reader->SetScrollTop(500); context->Update();
     assert(reader->GetScrollTop() > 0);
     capture(context, renderer, pixels, output / "discussion-scroll.ppm");
+    model.chat = true; model.breadcrumb = "Live video / Top chat";
+    model.selected_title = "Supporter"; model.selected_subtitle = "Now | Super Chat | $5.00 | Moderator";
+    handle.DirtyAllVariables(); context->Update(); context->Update();
+    assert(doc->GetElementById("tube-chat-footer")->IsVisible());
+    assert(!doc->GetElementById("tube-discussion-footer")->IsVisible());
+    assert(!doc->GetElementById("comment-injection"));
+    capture(context, renderer, pixels, output / "live-chat.ppm");
+    model.chat = false;
     model.discussion = false; model.review = true; model.rows.clear();
     model.breadcrumb = "Top comments / Comment rating / Confirm";
     model.page_info = "1 / 1"; model.selected_title = "Like comment";

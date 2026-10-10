@@ -23,7 +23,10 @@ SponsorBlock, native player controls and diagnostics. The optional
 profiles, subscriptions/history/watch-later and account playlist browsing.
 Native comments/replies and basic ratings, Watch later and subscription controls
 and playlist editing have offline coverage; PS5/live acceptance remains
-pending. The companion device-code backend now supports bounded polling,
+pending. R3 on a live video opens a recent-message chat reader, with top/live
+mode switching, timed updates and literal full message text. Replay, posting,
+complete scrollback and native PS5 chat acceptance remain pending.
+The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;
 Circle cancels pending sign-in. Its provider flow and layout have offline coverage,

@@ -205,3 +205,13 @@ guard: both audio and video, capture-free pacing, pause/resume, live-edge
 recovery and a session longer than 30 minutes. Exercise rolling playlists and
 seeking within the available live window separately. The host two-second decode
 does not prove PS5 audio output, long-session signed-URL validity or DVR support.
+
+Native live-chat acceptance requires an idle-first bounded case. Start with the
+offline HLS fixture, open R3 chat, switch top/live mode, page and scroll a long
+message while rolling updates arrive, then open ordinary comments and return.
+Check selection/scroll retention when the message remains and fresh selection
+when it leaves the snapshot. Leaving chat, setup, search, source/profile changes
+and browser closure must stop polling and release the companion context. Repeat
+with an available public live chat, reporting public service and PS5 rendering
+separately. No posting, account authorization or replay is part of this reader
+case; those require their own implementation and acceptance.

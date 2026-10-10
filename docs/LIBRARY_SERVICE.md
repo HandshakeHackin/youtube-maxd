@@ -8,8 +8,8 @@ existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue, follows and history remain console
 data, stored separately for each selected profile.
 
-This is not full SmartTube parity. Live chat has a request-driven service reader;
-native chat display, replay timing and posting are not connected yet. Comment
+This is not full SmartTube parity. Live chat has a request-driven service and
+native recent-message reader; replay timing and posting remain unfinished. Comment
 posting is also unfinished. Device-code login is implemented with real-account/PS5 acceptance pending. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
@@ -39,8 +39,24 @@ retained snapshot; unsupported actions are skipped. Text remains literal, not
 trusted markup. Signed server continuations, author moderation IDs, endpoints and
 account credentials remain private to the worker. This bounded recent snapshot is
 not a complete scrollback implementation. Replay returns `chat_replay_pending`
-until playback-position timing is implemented. Native integration, real account
-contexts and PS5 acceptance remain pending.
+until playback-position timing is implemented. Real account contexts and PS5
+acceptance remain pending.
+
+R3 on a native live-video row opens top chat. Within chat, R3 switches top/live
+mode, L1/R1 page through the 24-message snapshot, L2/R2 scroll the selected
+message, and Touchpad opens the video's ordinary comments. Updates honor the
+server interval and allow one request at a time. They preserve the currently
+selected message and its scroll position when that message remains in the
+snapshot. A removed message selects a nearby row with fresh text scroll.
+
+The native client uses authenticated direct `/v1/library` requests for chat;
+regular catalog jobs retain their existing behavior. Closing chat, changing
+mode/source/profile, entering setup or search closes the owned context. Late
+results are retired using the original companion address, bearer and profile.
+Chat capabilities and full message text remain in RAM, outside `youtube.json`.
+Malformed updates retain the last readable snapshot and require reopening;
+the client does not retry an uncertain failed poll automatically. Fixture mode
+provides rolling generated chat on the HLS fixture for offline lifecycle checks.
 
 ### Ratings for displayed comments
 

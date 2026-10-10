@@ -41,7 +41,7 @@ div { display: block; box-sizing: border-box; }
 #tube-grid.discussion .tube-card-author { font-size: 17dp; }
 #tube-preview.discussion { left: 670dp; top: 140dp; width: 1100dp; height: 780dp; }
 #tube-discussion-text { width: 1100dp; height: 690dp; overflow-y: auto; white-space: pre-line; font-size: 25dp; line-height: 38dp; color: #f6f7fb; padding: 18dp 26dp; background: #1b1d27; }
-#tube-discussion-footer, #tube-review-footer, #tube-auth-footer { position: absolute; bottom: 0; font-size: 21dp; color: #bfc4d3; height: 40dp; width: 1792dp; border-top: 1dp #2b2e3a; }
+#tube-discussion-footer, #tube-chat-footer, #tube-review-footer, #tube-auth-footer { position: absolute; bottom: 0; font-size: 21dp; color: #bfc4d3; height: 40dp; width: 1792dp; border-top: 1dp #2b2e3a; }
 #tube-discussion-text scrollbarvertical { width: 12dp; }
 #tube-discussion-text scrollbarvertical slidertrack { background: #292c39; }
 #tube-discussion-text scrollbarvertical sliderbar { width: 12dp; min-height: 36dp; background: #9399ad; border-radius: 6dp; }

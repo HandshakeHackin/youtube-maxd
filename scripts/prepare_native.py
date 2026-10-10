@@ -168,6 +168,8 @@ def main():
     apply_discussion_overlay(replace, player, host)
     from device_auth_overlay import apply_device_auth_overlay
     apply_device_auth_overlay(replace, player)
+    from live_chat_overlay import apply_live_chat_overlay
+    apply_live_chat_overlay(replace, player)
     from audio_drain_overlay import apply_audio_drain_overlay
     apply_audio_drain_overlay(replace, player)
     from video_drain_overlay import apply_video_drain_overlay

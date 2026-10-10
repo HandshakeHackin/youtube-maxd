@@ -251,6 +251,20 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     signin().cancel(result["session"])
                 except ServiceError:
                     pass
+        if (library is not None and getattr(task, "chat_read", False) and not getattr(task, "auth_delivered", False)
+                and not getattr(task, "chat_cleanup_started", False) and task.done() and not task.cancelled()):
+            result = task.result().get("result", {})
+            cursor = result.get("cursor", "")
+            if result.get("kind") == "live_chat" and isinstance(cursor, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,64}", cursor):
+                task.chat_cleanup_started = True
+                async def cleanup_chat():
+                    try:
+                        await library.execute({"action": "chat_close", "profile": task.profile, "cursor": cursor})
+                    except ServiceError:
+                        pass
+                cleanup = asyncio.create_task(cleanup_chat())
+                app.state.retired_tasks.add(cleanup)
+                cleanup.add_done_callback(app.state.retired_tasks.discard)
 
     @app.post("/v1/jobs")
     async def create_job(payload: JobRequest, request: Request):
@@ -305,6 +319,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         identifier = secrets.token_urlsafe(18)
         task = asyncio.create_task(work())
         task.auth_start = payload.action == "auth" and payload.auth.action == "start"
+        task.chat_read = payload.action == "library" and payload.library.action in {"live_chat", "chat_poll"}
         task.auth_delivered = False
         task.profile = (payload.playback.profile if payload.action == "resolve" else
                         payload.library.profile if payload.action == "library" else payload.profile)

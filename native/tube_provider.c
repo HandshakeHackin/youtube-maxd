@@ -90,6 +90,11 @@ static struct { int state; unsigned serial, revision;
     long long deadline, next_poll; } g_auth;
 static void ignored(int ok, int status, const char *body, size_t size, void *ud);
 static void auth_cleanup_request(Request *r, const cJSON *root);
+static void chat_cleanup_request(Request *r, const cJSON *root);
+static void cancel_requests(int preserve_chat);
+static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
+static struct { int state; unsigned serial; long long next_poll;
+    char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
 static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
@@ -126,6 +131,19 @@ static long long now_ms(void) {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return (long long)t.tv_sec * 1000 + t.tv_nsec / 1000000;
+}
+
+int tube_chat_due(const char *parent) {
+    if (!parent || g_chat.state != 2 || strcmp(parent, g_chat.parent) ||
+        strcmp(g_chat.profile, g_library_profile) || !valid_cursor(g_chat.cursor) || now_ms() < g_chat.next_poll) return 0;
+    for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) return 0;
+    return 1;
+}
+
+void tube_chat_stop(void) {
+    chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
+    unsigned serial = g_chat.serial + 1;
+    memset(&g_chat, 0, sizeof g_chat); g_chat.serial = serial ? serial : 1;
 }
 
 static void copy(char *out, size_t cap, const char *src) {
@@ -350,6 +368,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    tube_chat_stop();
     tube_auth_cancel();
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
     memset(&g_auth, 0, sizeof g_auth);
@@ -449,6 +468,13 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 10 && !ok) {
+        chat_cleanup_request(r, NULL);
+        if (r->intent == g_chat.serial) {
+            chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
+            g_chat.cursor[0] = 0; g_chat.state = -1;
+        }
+    }
     if (r->kind == 9 && r->intent == g_auth.serial && !ok &&
         (g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING)) {
         auth_cleanup_request(r, NULL);
@@ -502,10 +528,11 @@ static int begin(Request *r) {
         char payload[64]; snprintf(payload, sizeof payload, "{\"code\":\"%s\"}", g_pin);
         r->stage = 0; return send_request(r, "POST", "/v1/pair", payload);
     }
-    if (r->kind == 9) {
+    if (r->kind == 9 || r->kind == 10) {
         copy(r->auth_source, sizeof r->auth_source, g_source);
         copy(r->auth_token, sizeof r->auth_token, g_token);
     }
+    if (r->kind == 10) { r->stage = 4; return send_request(r, "POST", "/v1/library", r->payload); }
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
 }
 
@@ -523,6 +550,91 @@ static void auth_cancel_remote(const char *source, const char *token, const char
     snprintf(body, sizeof body, "{\"session\":\"%s\"}", session);
     const char *headers[] = {"Content-Type: application/json", auth};
     evo_net_request_async("POST", url, body, headers, 2, ignored, NULL);
+}
+
+static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor) {
+    if (!*source || !*token || !valid_profile(profile) || !valid_cursor(cursor)) return;
+    char url[640], auth[160], payload[256];
+    snprintf(url, sizeof url, "%s/v1/library", source);
+    snprintf(auth, sizeof auth, "Authorization: Bearer %s", token);
+    snprintf(payload, sizeof payload, "{\"action\":\"chat_close\",\"profile\":\"%s\",\"cursor\":\"%s\"}", profile, cursor);
+    const char *headers[] = {"Content-Type: application/json", auth};
+    evo_net_request_async("POST", url, payload, headers, 2, ignored, NULL);
+}
+
+static void chat_cleanup_request(Request *r, const cJSON *root) {
+    const char *job = r->stage == 1 ? str(root, "job") : r->job;
+    if (valid_cursor(job) && *r->auth_source && *r->auth_token) {
+        char url[640], auth[160];
+        snprintf(url, sizeof url, "%s/v1/jobs/%s", r->auth_source, job);
+        snprintf(auth, sizeof auth, "Authorization: Bearer %s", r->auth_token);
+        const char *headers[] = {auth};
+        evo_net_request_async("DELETE", url, NULL, headers, 1, ignored, NULL);
+    }
+    const cJSON *result = !strcmp(str(root, "kind"), "live_chat") ? root : cJSON_GetObjectItemCaseSensitive(root, "result");
+    if (!strcmp(str(result, "kind"), "live_chat"))
+        chat_close_remote(r->auth_source, r->auth_token, r->profile, str(result, "cursor"));
+}
+
+static void chat_row_id(char *out, size_t capacity, const char *id) {
+    unsigned long long hash = 14695981039346656037ULL;
+    for (const unsigned char *p = (const unsigned char *)id; *p; ++p) { hash ^= *p; hash *= 1099511628211ULL; }
+    snprintf(out, capacity, "chat:leaf:%u:%016llx", g_chat.serial, hash);
+}
+
+static void chat_result(Request *r, const cJSON *result) {
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(result, "items");
+    const cJSON *delay = cJSON_GetObjectItemCaseSensitive(result, "poll_after_ms");
+    const cJSON *ended = cJSON_GetObjectItemCaseSensitive(result, "ended");
+    int count = cJSON_GetArraySize(rows);
+    int valid = num(result, "api_version") == 1 && !strcmp(str(result, "kind"), "live_chat") &&
+        !strcmp(str(result, "id"), g_chat.video) && !strcmp(str(result, "chat_mode"), g_chat.mode) &&
+        cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "is_replay")) &&
+        cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "has_more")) &&
+        valid_cursor(str(result, "cursor")) && (cJSON_IsTrue(ended) || cJSON_IsFalse(ended)) &&
+        cJSON_IsNumber(delay) && isfinite(delay->valuedouble) && delay->valuedouble >= 0 && delay->valuedouble <= 30000 &&
+        floor(delay->valuedouble) == delay->valuedouble && cJSON_IsArray(rows) && count <= LOCAL_PAGE;
+    char ids[LOCAL_PAGE][160];
+    for (int i = 0; valid && i < count; ++i) {
+        const cJSON *row = cJSON_GetArrayItem(rows, i);
+        valid = *str(row, "id") && strlen(str(row, "id")) <= 640 &&
+            cJSON_IsString(cJSON_GetObjectItemCaseSensitive(row, "content")) &&
+            cJSON_IsString(cJSON_GetObjectItemCaseSensitive(row, "author"));
+        chat_row_id(ids[i], sizeof ids[i], str(row, "id"));
+        for (int j = 0; j < i; ++j) if (!strcmp(ids[i], ids[j])) valid = 0;
+    }
+    if (!valid) {
+        chat_cleanup_request(r, result);
+        tube_set_error("The chat response was invalid. Reopen the chat to retry."); complete(r, 0); return;
+    }
+    evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items);
+    if (!items) { chat_cleanup_request(r, result); complete(r, 0); return; }
+    memset(g_comments, 0, sizeof g_comments);
+    for (int i = 0; i < count; ++i) {
+        const cJSON *row = cJSON_GetArrayItem(rows, i);
+        const char *type = str(row, "type"), *label = "";
+        if (!strcmp(type, "LiveChatPaidMessage")) label = "Super Chat";
+        else if (!strcmp(type, "LiveChatPaidSticker")) label = "Super Sticker";
+        else if (!strcmp(type, "LiveChatMembershipItem")) label = "Member";
+        else if (strstr(type, "Gift")) label = "Membership gift";
+        char hint[256];
+        snprintf(hint, sizeof hint, "%s%s%s%s%s%s%s", str(row, "published"), *label ? " | " : "", label,
+            *str(row, "amount") ? " | " : "", str(row, "amount"),
+            boolean(row, "moderator") ? " | Moderator" : "", boolean(row, "verified") ? " | Verified" : "");
+        folder(&items[i], ids[i], *str(row, "author") ? str(row, "author") : "Viewer", hint);
+        copy(items[i].overview, sizeof items[i].overview, str(row, "content"));
+        copy(items[i].art_url, sizeof items[i].art_url, str(row, "art_url"));
+        copy(g_comments[i].id, sizeof g_comments[i].id, ids[i]);
+        copy(g_comments[i].content, sizeof g_comments[i].content, str(row, "content"));
+    }
+    copy(g_chat.cursor, sizeof g_chat.cursor, str(result, "cursor"));
+    copy(g_chat.source, sizeof g_chat.source, r->auth_source); copy(g_chat.token, sizeof g_chat.token, r->auth_token);
+    g_chat.state = cJSON_IsTrue(ended) ? 3 : 2;
+    g_chat.next_poll = now_ms() + (delay->valuedouble < 1000 ? 1000 : (long long)delay->valuedouble);
+    evo_provider_items_cb callback = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r);
+    if (callback) callback(1, items, count, 0, data);
+    free(items);
 }
 
 void tube_auth_cancel(void) {
@@ -730,6 +842,10 @@ static void resolved(Request *r, const cJSON *root) {
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
+    if (r->kind == 10 && (r->generation != g_generation || r->intent != g_chat.serial)) {
+        cJSON *late = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
+        chat_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
+    }
     if (r->kind == 9 && (r->generation != g_generation || r->intent != g_auth.serial)) {
         cJSON *late = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
         auth_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
@@ -757,6 +873,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         copy(g_token, sizeof g_token, token); g_pin[0] = 0; save();
         cJSON_Delete(root); begin(r); return;
     }
+    if (r->kind == 10 && r->stage == 4) { chat_result(r, root); cJSON_Delete(root); return; }
     if (r->stage == 1) {
         const char *job = str(root, "job");
         if (!*job || strlen(job) >= sizeof r->job || strspn(job, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(job)) {
@@ -944,7 +1061,8 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
     (void)ok; (void)status; (void)body; (void)size; (void)ud;
 }
 
-void tube_cancel(void) {
+static void cancel_requests(int preserve_chat) {
+    if (!preserve_chat) tube_chat_stop();
     tube_auth_cancel();
     ++g_generation;
     for (int i = 0; i < REQUESTS; ++i) {
@@ -962,6 +1080,8 @@ void tube_cancel(void) {
         if (!r->inflight) complete(r, 0);
     }
 }
+
+void tube_cancel(void) { cancel_requests(0); }
 
 static void folder(evo_provider_item_t *out, const char *id, const char *title, const char *hint) {
     memset(out, 0, sizeof *out);
@@ -1301,6 +1421,28 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     }
     if (parent && !strncmp(parent, "account:apply:", 14) && g_account_intent.state)
         return local_catalog(parent, page, cb, ud) ? 0 : -1;
+    if (parent && !strncmp(parent, "chat:", 5)) {
+        const char *id = NULL, *mode = "top";
+        if (!strncmp(parent, "chat:top:", 9)) id = parent + 9;
+        else if (!strncmp(parent, "chat:live:", 10)) { id = parent + 10; mode = "live"; }
+        if (page || !valid_id(id)) {
+            tube_set_error("Select a valid live video to open chat."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        int reuse = (g_chat.state == 2 || g_chat.state == 3) && !strcmp(parent, g_chat.parent) &&
+            !strcmp(g_chat.profile, g_library_profile) && valid_cursor(g_chat.cursor);
+        cancel_requests(reuse);
+        if (!reuse) {
+            g_chat.state = 1;
+            copy(g_chat.parent, sizeof g_chat.parent, parent); copy(g_chat.video, sizeof g_chat.video, id);
+            copy(g_chat.mode, sizeof g_chat.mode, mode); copy(g_chat.profile, sizeof g_chat.profile, g_library_profile);
+        }
+        Request *r = request_new(10, ud); if (!r) { g_chat.state = -1; return -1; }
+        r->items_cb = cb; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_library_profile);
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\"}",
+            reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "");
+        begin(r); return 0;
+    }
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
     if (parent && !strncmp(parent, "account:apply:", 14)) {
