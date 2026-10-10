@@ -70,7 +70,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -183,6 +183,8 @@ def main():
     apply_seek_overlay(replace, player)
     from accurate_resume_overlay import apply_accurate_resume_overlay
     apply_accurate_resume_overlay(replace, player, WORK)
+    from sponsor_overlay import apply_sponsor_overlay
+    apply_sponsor_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

@@ -270,6 +270,28 @@ def test_privacy_preserving_sponsorblock_prefix_and_category_filter():
         assert len(observed[0].url.path.split("/")[-1]) == 4
 
 
+@pytest.mark.parametrize("category", ["sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "music_offtopic", "filler"])
+def test_sponsorblock_selected_category_and_invalid_timestamps(category):
+    observed = []
+    def handler(request):
+        observed.append(request)
+        return httpx.Response(200, json=[{"videoID": ID, "segments": [
+            {"category": category, "segment": [2, 12], "actionType": "skip"},
+            {"category": category, "segment": [True, 12], "actionType": "skip"},
+            {"category": category, "segment": [2, False], "actionType": "skip"},
+            {"category": category, "segment": [-1, 12], "actionType": "skip"},
+            {"category": category, "segment": [2, 12], "actionType": "mute"}]}])
+    with TestClient(app(sponsorblock=True, handler=handler)) as client:
+        result = client.get("/v1/sponsor/" + ID, params={"categories": category}, headers=AUTH)
+        assert result.status_code == 200
+        assert result.json()["segments"] == [{"start": 2, "end": 12, "category": category}]
+        assert json.loads(observed[0].url.params["categories"]) == [category]
+        assert ID not in str(observed[0].url)
+        client.get("/v1/sponsor/" + ID, params={"categories": category}, headers=AUTH)
+        assert len(observed) == 1
+        assert client.get("/v1/sponsor/" + ID, params={"categories": "invalid"}, headers=AUTH).status_code == 400
+
+
 def test_post_body_limit():
     with TestClient(app()) as client:
         assert client.post("/v1/jobs", headers=AUTH, content=b"x" * 9000).status_code == 413

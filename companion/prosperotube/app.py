@@ -543,7 +543,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                         for s in result.get("segments", []):
                             pair = s.get("segment", [])
                             if (s.get("category") in chosen and s.get("actionType", "skip") == "skip"
-                                and len(pair) == 2 and all(isinstance(n, (int, float)) for n in pair)
+                                and len(pair) == 2 and all(type(n) in (int, float) for n in pair)
                                 and 0 <= pair[0] < pair[1] < 604800):
                                 segments.append({"start": pair[0], "end": pair[1], "category": s["category"]})
         except (httpx.HTTPError, ValueError, TypeError, KeyError):

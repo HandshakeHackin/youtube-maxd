@@ -13,6 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "tube_sponsor.h"
 
 #define RECORDS 384
 #define REQUESTS 8
@@ -71,6 +72,12 @@ static void watch_reset(int clear_resolution) {
 }
 static char g_language[16] = "en", g_audio_language[16];
 static double g_segments[SEGMENTS][2];
+static unsigned char g_segment_categories[SEGMENTS], g_segment_seen[SEGMENTS];
+static tube_sb_policy g_sb;
+static unsigned g_sb_serial, g_sb_generation;
+static char g_sb_channel[25], g_sb_profile[33], g_sb_prompt_text[128];
+static int g_sb_prompt = -1, g_sb_message;
+static double g_sb_prompt_end, g_sb_last_position = -1;
 static int g_segment_count, g_skip_guard = -1;
 static double g_skip_until;
 static double g_chapters[128];
@@ -350,6 +357,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "audio_language", g_audio_language);
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
+    tube_sb_save(&g_sb, root);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
     cJSON_AddBoolToObject(root, "history_sync", g_history_sync);
@@ -425,6 +433,8 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    tube_sb_defaults(&g_sb);
+    g_sb_prompt = -1; g_sb_last_position = -1;
     tube_chat_stop();
     tube_auth_cancel();
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
@@ -461,6 +471,7 @@ static int init(void) {
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
+    tube_sb_load(&g_sb, root);
     g_autoplay = boolean(root, "autoplay");
     g_ask_stream = boolean(root, "ask_stream");
     const cJSON *history_sync = cJSON_GetObjectItemCaseSensitive(root, "history_sync");
@@ -831,14 +842,21 @@ static void caption_response(int ok, int status, const char *body, size_t size, 
 
 static void sponsor_response(int ok, int status, const char *body, size_t size, void *ud) {
     unsigned gen = (unsigned)(size_t)ud;
-    if (!ok || status != 200 || gen != g_generation || size > 65536) return;
+    if (!ok || status != 200 || gen != g_sb_serial || g_sb_generation != g_generation ||
+        strcmp(g_sb_profile, g_library_profile) || size > 65536) return;
     cJSON *root = cJSON_ParseWithLength(body, size);
     if (!root) return;
     g_segment_count = 0;
     cJSON *s;
     cJSON_ArrayForEach(s, cJSON_GetObjectItemCaseSensitive(root, "segments")) {
         double start = num(s, "start"), end = num(s, "end");
-        if (end > start && end < 604800 && g_segment_count < SEGMENTS) {
+        const cJSON *a = cJSON_GetObjectItemCaseSensitive(s, "start"), *b = cJSON_GetObjectItemCaseSensitive(s, "end");
+        const char *category = str(s, "category");
+        int kind = tube_sb_category(*category ? category : "sponsor");
+        if (cJSON_IsNumber(a) && cJSON_IsNumber(b) && isfinite(start) && isfinite(end) &&
+            kind >= 0 && start >= 0 && end > start && end < 604800 && g_segment_count < SEGMENTS) {
+            g_segment_categories[g_segment_count] = (unsigned char)kind;
+            g_segment_seen[g_segment_count] = 0;
             g_segments[g_segment_count][0] = start; g_segments[g_segment_count++][1] = end;
         }
     }
@@ -874,16 +892,27 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.duration_sec = (int64_t)num(root, "duration_sec");
     }
     g_caption_path[0] = 0; g_segment_count = 0; g_skip_guard = -1;
+    g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0;
+    if (!++g_sb_serial) ++g_sb_serial;
+    g_sb_generation = g_generation;
+    copy(g_sb_channel, sizeof g_sb_channel, cached ? cached->item.parent_id : "");
+    copy(g_sb_profile, sizeof g_sb_profile, g_library_profile);
     g_chapter_count = 0;
     cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "chapters")) {
         if (g_chapter_count < 128) g_chapters[g_chapter_count++] = num(c, "start");
     }
-    if (g_sponsor && cached) {
+    if (g_sponsor && cached && !cached->item.is_live && r->choice_count > 0 &&
+        !r->choices[0].is_live && !tube_sb_excluded(&g_sb, g_sb_channel)) {
         char url[1024], auth[160];
-        snprintf(url, sizeof url, "%s/v1/sponsor/%s", g_source, cached->item.id);
+        char categories[160] = {0};
+        for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) if (g_sb.actions[i] != 3) {
+            size_t used = strlen(categories);
+            snprintf(categories + used, sizeof categories - used, "%s%s", used ? "," : "", tube_sb_names[i]);
+        }
+        snprintf(url, sizeof url, "%s/v1/sponsor/%s?categories=%s", g_source, cached->item.id, categories);
         snprintf(auth, sizeof auth, "Authorization: Bearer %s", g_token);
         const char *headers[] = {auth};
-        evo_net_request_async("GET", url, NULL, headers, 1, sponsor_response, (void *)(size_t)g_generation);
+        if (*categories) evo_net_request_async("GET", url, NULL, headers, 1, sponsor_response, (void *)(size_t)g_sb_serial);
     }
     if (g_captions) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
@@ -1432,6 +1461,30 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; save(); }
+        else if (!strncmp(parent, "settings:sb:action:", 19)) {
+            int category = tube_sb_category(parent + 19);
+            if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
+            g_sb.actions[category] = (g_sb.actions[category] + 1) % 4; g_sb_prompt = -1; save();
+        } else if (!strcmp(parent, "settings:sb:minimum")) {
+            g_sb.minimum = g_sb.minimum < 1 ? 1 : g_sb.minimum < 3 ? 3 : g_sb.minimum < 5 ? 5 :
+                g_sb.minimum < 10 ? 10 : g_sb.minimum < 15 ? 15 : g_sb.minimum < 30 ? 30 :
+                g_sb.minimum < 60 ? 60 : 0; save();
+        } else if (!strcmp(parent, "settings:sb:repeat")) { g_sb.no_repeat = !g_sb.no_repeat; save(); }
+        else if (!strncmp(parent, "settings:sb:exclude:", 20)) {
+            const char *channel = parent + 20;
+            if (!tube_sb_channel_valid(channel)) { cb(0, NULL, 0, 0, ud); return 1; }
+            int found = -1;
+            for (int i = 0; i < g_sb.excluded_count; ++i) if (!strcmp(channel, g_sb.excluded[i])) found = i;
+            if (found >= 0) {
+                if (found + 1 < g_sb.excluded_count)
+                    memmove(g_sb.excluded[found], g_sb.excluded[found + 1],
+                        (size_t)(g_sb.excluded_count - found - 1) * sizeof g_sb.excluded[0]);
+                --g_sb.excluded_count;
+            } else if (g_sb.excluded_count < TUBE_SB_EXCLUSIONS) {
+                memcpy(g_sb.excluded[g_sb.excluded_count++], channel, 25);
+            } else { tube_set_error("The excluded channel list is full."); cb(0, NULL, 0, 0, ud); return 1; }
+            g_sb_prompt = -1; save();
+        }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
         else if (!strcmp(parent, "settings:history-sync")) {
@@ -1449,7 +1502,42 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
-        if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
+        if (!strcmp(parent, "settings:sb:exclusions") || !strncmp(parent, "settings:sb:exclude:", 20)) {
+            char channels[RECORDS + TUBE_SB_EXCLUSIONS + 1][25]; int count = 0;
+            if (tube_sb_channel_valid(g_sb_channel)) memcpy(channels[count++], g_sb_channel, 25);
+            for (int i = 0; i < g_sb.excluded_count; ++i) {
+                int duplicate = 0;
+                for (int j = 0; j < count; ++j) if (!strcmp(channels[j], g_sb.excluded[i])) duplicate = 1;
+                if (!duplicate) memcpy(channels[count++], g_sb.excluded[i], 25);
+            }
+            for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i]) && g_records[i].subscribed &&
+                tube_sb_channel_valid(g_records[i].item.parent_id)) {
+                int duplicate = 0;
+                for (int j = 0; j < count; ++j) if (!strcmp(channels[j], g_records[i].item.parent_id)) duplicate = 1;
+                if (!duplicate) memcpy(channels[count++], g_records[i].item.parent_id, 25);
+            }
+            for (int i = page * LOCAL_PAGE; i < count && n < LOCAL_PAGE; ++i) {
+                char id[80], label[96]; snprintf(id, sizeof id, "settings:sb:exclude:%s", channels[i]);
+                const char *name = !strcmp(channels[i], g_sb_channel) ? "Current channel" : channels[i];
+                for (int j = 0; j < g_count; ++j)
+                    if (!strcmp(g_records[j].item.parent_id, channels[i]) && *g_records[j].item.subtitle) {
+                        name = g_records[j].item.subtitle; break;
+                    }
+                snprintf(label, sizeof label, "%s: %.70s", tube_sb_excluded(&g_sb, channels[i]) ? "Excluded" : "Enabled", name);
+                folder(&out[n++], id, label, "Select to toggle; current and followed channels are listed");
+            }
+            cb(1, out, n, (page + 1) * LOCAL_PAGE < count, ud); return 1;
+        } else if (!strncmp(parent, "settings:sb", 11)) {
+            for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) {
+                char id[80], label[128]; snprintf(id, sizeof id, "settings:sb:action:%s", tube_sb_names[i]);
+                snprintf(label, sizeof label, "%s: %s", tube_sb_labels[i], tube_sb_actions[g_sb.actions[i]]);
+                folder(&out[n++], id, label, "Select to cycle the action; fetch new categories on the next video");
+            }
+            char label[96]; snprintf(label, sizeof label, "Minimum remaining skip: %.0f seconds", g_sb.minimum);
+            folder(&out[n++], "settings:sb:minimum", label, "Cycle 0 / 1 / 3 / 5 / 10 / 15 / 30 / 60 seconds");
+            folder(&out[n++], "settings:sb:repeat", g_sb.no_repeat ? "Don't skip again: on" : "Don't skip again: off", "Keep skipped segments when rewinding this video");
+            folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
+        } else if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
             const char *langs[] = {"en", "fr", "es", "de", "it", "pt", "ja", "ko", "zh", "ru"};
             for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); folder(&out[n++], id, langs[i], "Select this language for the next video"); }
         } else {
@@ -1464,6 +1552,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:audio-languages", label, "Prefer an alternate audio language when available");
             folder(&out[n++], "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
             folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
+            folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
             folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
             folder(&out[n++], "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
@@ -1751,19 +1840,60 @@ int tube_toggle_subscription(const char *id) {
 const char *tube_caption_media_path(void) { return g_caption_path; }
 int tube_autoplay_enabled(void) { return g_autoplay; }
 
+static int sponsor_scope(void) {
+    return g_sponsor && g_sb_generation == g_generation && !strcmp(g_sb_profile, g_library_profile) &&
+        !tube_sb_excluded(&g_sb, g_sb_channel);
+}
+const char *tube_sponsor_prompt(double position) {
+    if (!sponsor_scope() || !isfinite(position) || g_sb_prompt < 0 ||
+        position < g_segments[g_sb_prompt][0] - .5 || position >= g_sb_prompt_end - .25) {
+        g_sb_prompt = -1; return NULL;
+    }
+    return g_sb_prompt_text;
+}
+double tube_sponsor_confirm(double position, int accept) {
+    if (!tube_sponsor_prompt(position)) return -1;
+    int index = g_sb_prompt; double end = g_sb_prompt_end; g_sb_prompt = -1;
+    for (int i = 0; i < g_segment_count; ++i)
+        if (g_sb.actions[g_segment_categories[i]] == 2 && g_segments[i][0] <= end &&
+            g_segments[i][1] >= position) g_segment_seen[i] = accept ? 1 : 2;
+    g_skip_guard = index; g_skip_until = end;
+    return accept ? end : -1;
+}
+int tube_sponsor_show_message(void) { return g_sb_message; }
 double tube_skip_target(double position) {
-    if (!g_sponsor || !isfinite(position) || position < 0) return -1;
-    if (g_skip_guard >= 0 && position < g_segments[g_skip_guard][0] - 2) g_skip_guard = -1;
+    if (!sponsor_scope() || !isfinite(position) || position < 0) { g_sb_prompt = -1; return -1; }
+    if (g_sb_last_position >= 0 && position < g_sb_last_position - .5) {
+        g_skip_guard = -1; g_sb_prompt = -1;
+        for (int i = 0; i < g_segment_count; ++i)
+            if (!g_sb.no_repeat || g_segment_seen[i] == 2) g_segment_seen[i] = 0;
+    }
+    g_sb_last_position = position;
+    if (tube_sponsor_prompt(position)) return -1;
     if (g_skip_guard >= 0 && position < g_skip_until + .25) return -1;
     for (int i = 0; i < g_segment_count; ++i) {
-        if (i != g_skip_guard && position >= g_segments[i][0] && position < g_segments[i][1] - .25) {
+        int action = g_sb.actions[g_segment_categories[i]];
+        if (action != 3 && g_segment_seen[i] != 2 && !(g_sb.no_repeat && g_segment_seen[i]) &&
+            i != g_skip_guard && position >= g_segments[i][0] && position < g_segments[i][1] - .25) {
             double end = g_segments[i][1];
             for (int pass = 0; pass < g_segment_count; ++pass) {
                 double previous = end;
                 for (int j = 0; j < g_segment_count; ++j)
-                    if (g_segments[j][0] <= end && g_segments[j][1] > end) end = g_segments[j][1];
+                    if (g_sb.actions[g_segment_categories[j]] == action &&
+                        !(g_sb.no_repeat && g_segment_seen[j]) && g_segment_seen[j] != 2 &&
+                        g_segments[j][0] <= end && g_segments[j][1] > end) end = g_segments[j][1];
                 if (end == previous) break;
             }
+            if (end - position < g_sb.minimum) continue;
+            if (action == 2) {
+                g_sb_prompt = i; g_sb_prompt_end = end;
+                snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Skip %s? Cross: skip   Circle: keep", tube_sb_labels[g_segment_categories[i]]);
+                return -1;
+            }
+            for (int j = 0; j < g_segment_count; ++j)
+                if (g_sb.actions[g_segment_categories[j]] == action && g_segments[j][0] <= end &&
+                    g_segments[j][1] >= position) g_segment_seen[j] = 1;
+            g_sb_message = action == 1;
             g_skip_guard = i; g_skip_until = end; return end;
         }
     }
