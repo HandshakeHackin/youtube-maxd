@@ -366,3 +366,17 @@ Existing provider and device-auth/removal sanitizer regressions passed:
 The shipping RML preview passed its binding, navigation, literal-text and
 reader-scroll assertions; `output/preview/live-chat.png` was inspected for
 reader and chat-footer visibility. Evidence: `.deps/chat-preview.log`.
+
+Candidate `30a1bef8` compiled 211 PS5 objects and passed linking, native container
+validation and PFS/ZIP packaging. Clean build ID:
+`prosperotube-30a1bef8_1010-0015`. The frozen folder contains 126 files, with
+eboot hash prefix `b92428ceaf99e560`, under
+`candidates/30a1bef8-native-chat/PPSA99142` in the local build cache. Evidence:
+`.deps/native-chat-ps5-build.log`, `.deps/native-chat-freeze.log`.
+
+The bounded Lapy storage/startup case found an active title on its first console
+operation, the minimal read-only FTP running-title check. It stopped before
+service probes, upload, launch, close or input, and released its owned lock.
+The candidate remains undeployed. Evidence: `.deps/native-chat-console.log`.
+
+- 2026-10-09 | native chat / Lapy storage | 30a1bef8 | PS5 | no-run: first title check busy | .deps/native-chat-console.log | continue offline, await idle console
