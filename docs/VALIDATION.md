@@ -21,8 +21,16 @@ exited 0 (`.deps/player-chat-native.{log,result}`). Final sidebar plus extracted
 shipping HUI/RML blocks passed ASan/UBSan (`.deps/player-chat-final.{log,result}`,
 exit 0), covering ownership, delayed polling, foreground priority, six-row bound,
 failure handling, late cursor cleanup, UTF-8, placement, escaped text, stable DOM
-updates and suppression. PS5 build/hardware acceptance, physical readability,
-in-player toggle controls and chat replay remain open.
+updates and suppression. Committed candidate `112dadf8` passed the PS5 build and
+freeze: 126 files, build `prosperotube-112dadf8_1010-2146`, eboot SHA-256 prefix
+`08df0ecd51c02b74` (`.deps/player-chat-ps5-build.{log,result}` and
+`.deps/player-chat-freeze.{log,result}`, both exit 0). The combined six-section,
+speed and sidebar lifecycle/screenshot case stopped at its first read-only
+running-title check on both consoles (`.deps/player-chat-hardware` and
+`.deps/player-chat-fallback-hardware`): no upload, launch or state write occurred.
+The isolated fixture was stopped and the shared lock released. Player-sidebar
+hardware acceptance, physical readability, in-player toggle controls and chat
+replay remain open.
 
 ## Companion job admission — 2026-10-10
 
