@@ -2,6 +2,13 @@
 
 ## Provider stick controls survive global dispatch — 2026-10-10
 
+The committed `d4d5b66d` PS5 candidate passed all 211 objects, linking, signed
+containers, packaging and immutable freeze: `prosperotube-d4d5b66d_1010-1450`,
+126 files, eboot SHA-256 prefix `2f50242646332878`. Evidence:
+`.deps/controller-dispatch-ps5-build.log` / `.result` (0) and
+`.deps/controller-dispatch-freeze.log` / `.result` (0). Console acceptance of
+this new package remains pending.
+
 The generated application now reserves L3/R3 for the provider screen rather
 than consuming them for screenshot capture. Keyboard and system-browser input
 also retain their buttons. Screenshot capture remains available on other
