@@ -47,7 +47,10 @@ pending. R3 on a live video opens a recent-message chat reader, with top/live
 mode switching, timed updates and literal full message text. L3 opens account
 chat composition with full-text review and one-time confirmation. The reader
 and send flow have offline coverage, including generated account fixtures;
-real-account posting, replay, complete scrollback and PS5 acceptance remain pending.
+real-account posting, complete scrollback and PS5 acceptance remain pending.
+The player sidebar now supports playback-clock chat replay, including pause,
+seek and rewind; service/native host checks and live Guest replay checks passed.
+PS5 replay acceptance remains pending.
 The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;

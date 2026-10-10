@@ -6,6 +6,28 @@ from fastapi.testclient import TestClient
 from prosperotube.app import create_app
 
 
+def test_replay_clock_is_bounded_numeric_and_forwarded_without_account_mutation():
+    calls = []
+    class Library:
+        async def close(self): pass
+        async def execute(self, request):
+            calls.append(request)
+            return {'api_version': 1, 'kind': 'live_chat', 'is_replay': True,
+                    'position_ms': int(request['chat_position_sec'] * 1000), 'items': []}
+    with TestClient(create_app(token='test-token', library=Library())) as client:
+        headers = {'Authorization': 'Bearer test-token'}
+        for value in (-1, 1000001, '5', True):
+            response = client.post('/v1/library', headers=headers, json={
+                'action': 'live_chat', 'id': 'abcdefghijk', 'chat_position_sec': value})
+            assert response.status_code == 422 and not calls
+        for value in (0, 1.25, 1000000):
+            response = client.post('/v1/library', headers=headers, json={
+                'action': 'live_chat', 'id': 'abcdefghijk', 'chat_position_sec': value})
+            assert response.status_code == 200
+            assert response.json()['position_ms'] == int(value * 1000)
+            assert calls[-1]['chat_position_sec'] == value
+
+
 def test_live_chat_api_auth_modes_jobs_and_close_are_read_operations():
     calls = []
     class Library:

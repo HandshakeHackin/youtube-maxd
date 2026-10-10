@@ -9,7 +9,7 @@ their account context. Local favorites, queue, follows and history remain consol
 data, stored separately for each selected profile.
 
 This is not full SmartTube parity. Live chat has a request-driven service and
-native retained-message reader; replay timing remains unfinished. Chat posting has
+native retained-message reader and playback-clock replay sidebar; PS5 replay acceptance remains pending. Chat posting has
 composition/review and confirmation guards, with real-account/PS5 acceptance pending.
 Comment posting is also unfinished. Device-code login is implemented with real-account/PS5 acceptance pending. Account
 cookies are configured explicitly on the companion; no browser cookies are
@@ -27,21 +27,24 @@ video. Selecting a side again retries a failed chat. The sidebar shows
 six recent previews; the browser reader retains full message text and history.
 Updates are request-driven, scoped to the playing video/profile, and stop when
 the player leaves or the chat ends/fails. The sidebar hides during stats,
-scrubbing and Music mode. This is live chat; synchronized replay remains pending.
+scrubbing and Music mode. Completed broadcasts with replay use the video clock
+and show CHAT REPLAY. Pause holds messages; seeks clear the old view and synchronize
+the new one. PS5 replay acceptance remains pending.
 
 `live_chat` opens a public or configured-profile chat for an eleven-character
 video `id`, with `chat_mode` set to `top` or `live`. `chat_poll` and `chat_close`
 use the returned opaque `cursor` and the same profile. These operations use the
 authenticated companion library/job API. They never post messages, execute
-message menus, or run background pollers. Each poll performs at most one upstream
-request. Opening a nonselected mode can require the initial header and one mode
+message menus, or run background pollers. A live poll performs at most one upstream
+request. A replay update performs at most four bounded catch-up requests. Opening a nonselected mode can require the initial header and one mode
 continuation request. Honor `poll_after_ms`; early polls do not contact YouTube.
 
 Responses have `kind: live_chat`, the most recent 24 normalized messages by default,
 `cursor`, `ended`, `is_replay: false`, and `poll_after_ms`. The service retains at
 most 256 messages in each of 16 chats and 256 opaque continuation references.
 Contexts expire after 30 minutes without a completed update. Repeating a consumed
-cursor returns its cached update. Close invalidates all references to that chat;
+live cursor returns its cached update; a replay repeat is cached for the exact
+position, and stale cursors cannot seek the current view. Close invalidates all references to that chat;
 foreign, expired and ordinary catalog cursors cannot poll it. Worker loss or
 profile removal requires reopening the chat.
 
@@ -57,9 +60,17 @@ an authoritative snapshot, so moderator removals also remove older retained text
 Selection and text scroll remain stable while the selected message is retained.
 History stays in RAM and is cleared on chat/source/profile changes; messages from
 before opening the chat cannot be recovered by this path. Deploy the matching
-companion version with the native client. Replay returns `chat_replay_pending`
-until playback-position timing is implemented. Real account contexts and PS5
-acceptance remain pending.
+companion version with the native client. For replay, open/poll with numeric
+`chat_position_sec` (0–1,000,000). Responses have `is_replay: true`, matching
+`position_ms` and message `offset_ms` fields. Future actions are held until the
+video reaches them. Pause avoids new upstream reads once the view is populated;
+rewind or a jump over ten seconds resets the retained view and uses a seek
+continuation. EOF waits for buffered future actions. Replay is read-only; sending
+returns `chat_replay_readonly`. Replay without a playback clock returns
+`chat_playback_required`; the native browser reader currently directs users to
+play the video and enable the sidebar. Pending actions are limited to 4,096 and
+1 MiB per context; request failures preserve committed state. Full replay-history
+browsing, real account contexts and PS5 acceptance remain pending.
 
 R3 on a native live-video row opens top chat. Within chat, R3 switches top/live
 mode, L1/R1 page through the retained snapshot, L2/R2 scroll the selected

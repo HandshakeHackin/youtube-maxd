@@ -20,6 +20,7 @@ static tube_player_chat_row_t rows[8];static int mode=1,count=1;
 static int tube_player_chat_mode(){return mode;}
 static int tube_player_chat_rows(const tube_player_chat_row_t** value){*value=rows;return count;}
 static const char* tube_player_chat_status(){return "Loading <chat> & waiting";}
+static const char* tube_player_chat_title(){return "CHAT REPLAY";}
 struct Element {std::string display,left,markup;int writes=0;
     void SetProperty(const char* key,const char* value){if(!std::strcmp(key,"display"))display=value;else left=value;}
     std::string GetInnerRML(){return markup;}
@@ -39,6 +40,7 @@ int main(){
     assert(list.panels.size()==1 && list.panels[0].x==24 && list.texts.back()==rows[0].message);
     auto& panel=document.elements["player-chat"];auto& row=document.elements["player-chat-row-0"];
     assert(panel.display=="block" && panel.left=="24dp");
+    assert(list.texts.front()=="CHAT REPLAY" && document.elements["player-chat-title"].markup=="CHAT REPLAY");
     assert(row.markup=="<b>&lt;Viewer&gt;&amp;</b><br/>&lt;script&gt;alert(1)&lt;/script&gt; &amp; text");
     int writes=row.writes;rml();assert(row.writes==writes);
     mode=2;list=DrawList{};draw(list);rml();assert(list.panels[0].x==1456 && panel.left=="1456dp");

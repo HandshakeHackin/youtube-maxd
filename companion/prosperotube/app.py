@@ -61,6 +61,7 @@ class LibraryRequest(BaseModel):
     rating: Literal["like", "dislike", "none"] = "none"
     chat_mode: Literal["top", "live"] = "top"
     chat_history: bool = False
+    chat_position_sec: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False, strict=True)
     cursor: str = Field(default="", max_length=64)
     session: str = Field(default="", max_length=64, pattern="^[A-Za-z0-9_-]*$")
     text: str = Field(default="", max_length=200)

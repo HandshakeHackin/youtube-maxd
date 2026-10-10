@@ -44,9 +44,9 @@ bool PlaybackController::canChangePlaybackSpeed() const {''')
     replace(screen, 'void PlayerScreen::onExit() {',
             'void PlayerScreen::onExit() {\n    tube_player_chat_tick(0);')
     replace(screen, '    playback->tickScrubAutoCommit();', '''    const auto chatState = playback->getPlaybackState();
-    tube_player_chat_tick(!playback->isMusicMode() &&
+    tube_player_chat_tick_at(!playback->isMusicMode() &&
         (chatState == PlaybackState::Playing || chatState == PlaybackState::Paused ||
-         chatState == PlaybackState::Scrubbing || chatState == PlaybackState::Seeking));
+         chatState == PlaybackState::Scrubbing || chatState == PlaybackState::Seeking), playback->getPositionSeconds());
     playback->tickScrubAutoCommit();''')
     replace(screen, 'bool PlayerScreen::hasActiveOverlay() const {',
             'bool PlayerScreen::hasActiveOverlay() const {\n    if (tube_player_chat_mode()) return true;')
@@ -59,7 +59,7 @@ bool PlaybackController::canChangePlaybackSpeed() const {''')
     if (chatMode) {
         const Rect panel{chatMode == 1 ? 24.0f : 1456.0f, 180, 440, 560};
         list.rounded_rect(panel, 18, kBlack.with_alpha(0.72f));
-        ui::text(list, fonts.semibold, "TOP CHAT", panel.x + 16, panel.y + 34, 18, ctx.palette.accent);
+        ui::text(list, fonts.semibold, tube_player_chat_title(), panel.x + 16, panel.y + 34, 18, ctx.palette.accent);
         const tube_player_chat_row_t *rows = nullptr;
         const int count = tube_player_chat_rows(&rows);
         if (!count) ui::text(list, fonts.regular, fit(fonts.regular, tube_player_chat_status(), 18, panel.w - 32),
@@ -88,6 +88,10 @@ bool PlaybackController::canChangePlaybackSpeed() const {''')
             }
             return escaped;
         };
+        if (auto* title = m_playback_doc->GetElementById("player-chat-title")) {
+            const std::string text = escape(tube_player_chat_title());
+            if (title->GetInnerRML() != text) title->SetInnerRML(text);
+        }
         const tube_player_chat_row_t *rows = nullptr;
         const int count = mode ? tube_player_chat_rows(&rows) : 0;
         if (auto* status = m_playback_doc->GetElementById("player-chat-status")) {

@@ -1,0 +1,94 @@
+// Shipping replay reader, parsed by the pinned YouTube.js parser; no network.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Library } from './library.mjs';
+const item = id => ({ liveChatTextMessageRenderer: {
+  id, authorName: {simpleText: 'Viewer'}, authorExternalChannelId: 'author',
+  message: {runs: [{text: id}]}, timestampText: {simpleText:'0:00'}, timestampUsec:'123000000',
+}});
+const add = id => ({addChatItemAction:{item:item(id)}});
+const event = (ms, actions) => ({replayChatItemAction:{videoOffsetTimeMsec:String(ms),actions}});
+const response = (events, next='', extra={}) => ({data:{continuationContents:{liveChatContinuation:{
+  actions:events, continuations:[{playerSeekContinuationData:{continuation:'private-seek'}},
+    ...(next ? [{liveChatReplayContinuationData:{continuation:next}}] : [])], ...extra,
+}}}});
+function fixture(responder, profiles=[]) {
+  let now=0;const calls=[];
+  const client={session:{logged_in:true},async getInfo(id) {return {basic_info:{id},livechat:{is_replay:true,continuation:'private-root'},
+    actions:{async execute(path,options) {
+      assert.equal(path,'live_chat/get_live_chat_replay');assert.equal(options.parse,false);
+      assert.match(options.currentPlayerState.playerOffsetMs,/^\d+$/);
+      calls.push(options);return responder(options,calls.length);
+    }}};}};
+  const library=new Library(async()=>client,profiles,()=>now);
+  return {library,calls,time(value){now=value;}};
+}
+const open = (library,position=0,extra={}) => library.execute({action:'live_chat',id:'abcdefghijk',chat_position_sec:position,...extra});
+const poll = (library,cursor,position,extra={}) => library.execute({action:'chat_poll',cursor,chat_position_sec:position,...extra});
+
+test('replay uses playback clock, holds future actions through pause and applies timed deletion',async()=>{
+  const {library,calls,time}=fixture(()=>response([
+    event(0,[add('start')]),event(5000,[add('five')]),
+    event(10000,[{removeChatItemAction:{targetItemId:'start'}}]),
+  ]));
+  const first=await open(library);assert.deepEqual(first.items.map(x=>x.id),['start']);
+  assert.equal(first.items[0].offset_ms,0);assert.equal(first.is_replay,true);assert.equal(first.ended,false);
+  assert.equal(JSON.stringify(first).includes('private-'),false);
+  time(2000);const paused=await poll(library,first.cursor,0);assert.equal(calls.length,1);
+  const five=await poll(library,paused.cursor,5);assert.equal(calls.length,1);
+  assert.deepEqual(five.items.map(x=>x.id),['start','five']);assert.equal(five.items[1].offset_ms,5000);
+  const ended=await poll(library,five.cursor,10);assert.equal(ended.ended,true);
+  assert.deepEqual(ended.items.map(x=>x.id),['five']);assert.equal(ended.position_ms,10000);
+  assert.deepEqual(await poll(library,five.cursor,10),ended); // repeat a delivered request
+  await assert.rejects(poll(library,first.cursor,2),{code:'cursor_expired'});
+  await library.execute({action:'chat_close',cursor:ended.cursor});assert.equal(library.chats.contexts.size,0);
+});
+
+test('replay rewind and large forward seek reset rows and use the server seek continuation',async()=>{
+  const {library,calls,time}=fixture(options=>{
+    const position=Number(options.currentPlayerState.playerOffsetMs);
+    return response([event(position,[add('at-'+position)]),event(position+1000,[add('future')])],'private-next');
+  });
+  const first=await open(library,30);assert.equal(first.items[0].id,'at-30000');
+  time(2000);const back=await poll(library,first.cursor,2);
+  assert.equal(calls[1].continuation,'private-seek');assert.deepEqual(back.items.map(x=>x.id),['at-2000']);
+  const ahead=await poll(library,back.cursor,100);
+  assert.equal(calls[2].continuation,'private-seek');assert.deepEqual(ahead.items.map(x=>x.id),['at-100000']);
+  await assert.rejects(poll(library,ahead.cursor,100,{profile:'another'}));
+});
+
+test('replay view switches before committing and scope, read-only and invalid clock are enforced',async()=>{
+  const profile={id:'one',name:'Fixture',cookie:'fixture-cookie'};
+  const {library,calls,time}=fixture(options=>options.continuation==='private-root'
+    ? response([], 'unused', {header:{liveChatHeaderRenderer:{viewSelector:{sortFilterSubMenuRenderer:{subMenuItems:[
+      {title:'Top chat',selected:true}, {title:'Live chat',selected:false,continuation:{reloadContinuationData:{continuation:'private-all'}}},
+    ]}}}}}) : response([event(0,[add('all')])]),[profile]);
+  const first=await open(library,0,{profile:'one',chat_mode:'live'});
+  assert.equal(calls.length,2);assert.equal(calls[1].continuation,'private-all');assert.equal(first.items[0].id,'all');
+  await assert.rejects(poll(library,first.cursor,0),{code:'cursor_expired'});
+  await assert.rejects(library.execute({action:'chat_send',cursor:first.cursor,profile:'one',id:'abcdefghijk',text:'hello',session:'intent'}),{code:'chat_replay_readonly'});
+  for (const value of [undefined,null,-1,Infinity,NaN,'2',1000001])
+    await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk',chat_position_sec:value,profile:'one'}),{code:'chat_playback_required'});
+  time(1800001);await assert.rejects(poll(library,first.cursor,1,{profile:'one'}),{code:'cursor_expired'});
+});
+
+test('invalid replay timestamps and response limits preserve the committed messages and cursor',async()=>{
+  let invalid=false;
+  const {library,time}=fixture(()=>response([event(invalid?'bad':0,[add('good')])],'private-next'));
+  const first=await open(library);const context=library.chats.cursors.get(first.cursor).context;
+  const before=[...context.messages];invalid=true;time(2000);
+  await assert.rejects(poll(library,first.cursor,1),{code:'chat_response'});
+  assert.deepEqual([...context.messages],before);assert.equal(context.current_cursor,first.cursor);
+  assert.equal(context.position,0);invalid=false;
+  assert.equal((await poll(library,first.cursor,1)).items[0].id,'good');
+  const oversized=fixture(()=>response(new Array(4097).fill(event(0,[]))));
+  await assert.rejects(open(oversized.library),{code:'chat_response'});
+  assert.equal(oversized.library.chats.contexts.size,0);
+});
+
+test('sparse replay catch-up is bounded and does not create background pollers',async()=>{
+  const {library,calls,time}=fixture((_,number)=>response([],'private-page-'+number));
+  const first=await open(library);assert.equal(calls.length,4);assert.equal(first.ended,false);
+  time(2000);const next=await poll(library,first.cursor,0);assert.equal(calls.length,8);
+  await library.execute({action:'chat_close',cursor:next.cursor});time(10000);assert.equal(calls.length,8);
+});

@@ -59,6 +59,8 @@ void tube_chat_stop(void);
 /* Main/UI thread: request-driven live-chat sidebar, independent of controls fade. */
 typedef struct { char author[128], message[1024]; } tube_player_chat_row_t;
 void tube_player_chat_tick(int visible);
+void tube_player_chat_tick_at(int visible, double position_sec);
+const char *tube_player_chat_title(void);
 int tube_player_chat_mode(void); /* active sidebar: 0 off, 1 left, 2 right */
 int tube_player_chat_preference(void);
 int tube_player_chat_set_mode(int mode);

@@ -1,5 +1,6 @@
 // Original behavior/failure tests; no network or account use. GPL-3.0-or-later
 import './topic_catalog.test.mjs';
+import './chat_replay.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';
@@ -173,7 +174,7 @@ test('chat mode selection, failures, capacity and expiry do not spawn background
   await assert.rejects(library.execute({action:'chat_poll',cursor:first.cursor}), {code:'chat_response'});
   assert.equal(library.chats.cursors.get(first.cursor).context.messages.size,1);
   oversized = false; replay = true;
-  await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk'}), {code:'chat_replay_pending'});
+  await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk'}), {code:'chat_playback_required'});
   replay = false;
   for (let i=1; i<16; i++) await library.execute({action:'live_chat',id:'abcdefghijk'});
   await assert.rejects(library.execute({action:'live_chat',id:'abcdefghijk'}), {code:'chat_busy'});

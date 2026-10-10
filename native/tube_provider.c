@@ -46,6 +46,8 @@ typedef struct Request {
     char parent[160];
     char profile[33];
     int64_t watch_position;
+    int has_chat_position;
+    int64_t chat_position_ms;
     char auth_source[512], auth_token[128];
 } Request;
 
@@ -91,6 +93,7 @@ static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
 static tube_player_chat_row_t g_player_chat_rows[6];
 static int g_player_chat_count;
+static double g_player_chat_position = -1;
 static int g_history_sync = 1;
 static int g_paid_notifications;
 static int g_dearrow_titles, g_dearrow_thumbnails;
@@ -164,7 +167,8 @@ static void auth_cleanup_request(Request *r, const cJSON *root);
 static void chat_cleanup_request(Request *r, const cJSON *root);
 static void cancel_requests(int preserve_chat);
 static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
-static struct { int state, player; unsigned serial; long long next_poll;
+static struct { int state, player, replay, seek; unsigned serial; long long next_poll;
+    int64_t position_ms, seek_position_ms;
     char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
 static struct { int phase, pending; unsigned ticket, chat_serial;
     char text[801], session[65], cursor[65], video[12], profile[33]; } g_message;
@@ -222,6 +226,7 @@ int tube_chat_due(const char *parent) {
 }
 
 void tube_chat_stop(void) {
+    g_player_chat_position = -1;
     memset(g_player_chat_rows, 0, sizeof g_player_chat_rows); g_player_chat_count = 0;
     memset(g_chat_messages, 0, sizeof g_chat_messages);
     chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
@@ -861,9 +866,14 @@ static void chat_result(Request *r, const cJSON *result) {
     const cJSON *delay = cJSON_GetObjectItemCaseSensitive(result, "poll_after_ms");
     const cJSON *ended = cJSON_GetObjectItemCaseSensitive(result, "ended");
     int count = cJSON_GetArraySize(rows);
+    const cJSON *replay = cJSON_GetObjectItemCaseSensitive(result, "is_replay");
+    const cJSON *position = cJSON_GetObjectItemCaseSensitive(result, "position_ms");
+    int replay_valid = cJSON_IsFalse(replay) || (cJSON_IsTrue(replay) && g_chat.player &&
+        r->has_chat_position && cJSON_IsNumber(position) && isfinite(position->valuedouble) &&
+        position->valuedouble == (double)r->chat_position_ms);
     int valid = num(result, "api_version") == 1 && !strcmp(str(result, "kind"), "live_chat") &&
         !strcmp(str(result, "id"), g_chat.video) && !strcmp(str(result, "chat_mode"), g_chat.mode) &&
-        cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "is_replay")) &&
+        replay_valid &&
         cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "has_more")) &&
         valid_cursor(str(result, "cursor")) && (cJSON_IsTrue(ended) || cJSON_IsFalse(ended)) &&
         cJSON_IsNumber(delay) && isfinite(delay->valuedouble) && delay->valuedouble >= 0 && delay->valuedouble <= 30000 &&
@@ -905,6 +915,8 @@ static void chat_result(Request *r, const cJSON *result) {
     copy(g_chat.cursor, sizeof g_chat.cursor, str(result, "cursor"));
     copy(g_chat.source, sizeof g_chat.source, r->auth_source); copy(g_chat.token, sizeof g_chat.token, r->auth_token);
     g_chat.state = cJSON_IsTrue(ended) ? 3 : 2;
+    g_chat.replay = cJSON_IsTrue(replay);
+    g_chat.position_ms = g_chat.replay ? r->chat_position_ms : 0;
     g_chat.next_poll = now_ms() + (delay->valuedouble < 1000 ? 1000 : (long long)delay->valuedouble);
     evo_provider_items_cb callback = r->items_cb; void *data = r->ud;
     memset(r, 0, sizeof *r);
@@ -932,6 +944,12 @@ static void player_chat_text(char *out, size_t capacity, const char *text) {
 static void player_chat_result(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
     (void)more;
     if (!g_chat.player || (unsigned)(size_t)ud != g_chat.serial) return;
+    if (ok && g_chat.replay && (g_chat.position_ms / 1000.0 > g_player_chat_position + .001 ||
+        (g_chat.seek && g_chat.position_ms < g_chat.seek_position_ms))) {
+        g_player_chat_count = 0; g_chat.seek = 1; g_chat.next_poll = 0;
+        return; /* Keep the returned cursor, but never render a pre-seek view. */
+    }
+    g_chat.seek = 0;
     memset(g_player_chat_rows, 0, sizeof g_player_chat_rows); g_player_chat_count = 0;
     if (!ok || !items || count < 0) return;
     int first = count > 6 ? count - 6 : 0;
@@ -943,6 +961,7 @@ static void player_chat_result(int ok, const evo_provider_item_t *items, int cou
 }
 
 int tube_player_chat_mode(void) { return g_chat.player ? g_player_chat_mode : 0; }
+const char *tube_player_chat_title(void) { return g_chat.replay ? "CHAT REPLAY" : "TOP CHAT"; }
 int tube_player_chat_preference(void) { return g_player_chat_mode; }
 int tube_player_chat_set_mode(int mode) {
     if (mode < 0 || mode > 2) return 0;
@@ -961,17 +980,28 @@ const char *tube_player_chat_status(void) {
            g_chat.state == 1 ? "Loading chat" : "Waiting for messages";
 }
 void tube_player_chat_tick(int visible) {
+    tube_player_chat_tick_at(visible, g_player_chat_position >= 0 ? g_player_chat_position : 0);
+}
+void tube_player_chat_tick_at(int visible, double position_sec) {
     if (!visible || !g_player_chat_mode || !valid_id(g_active_id) ||
-        strcmp(g_active_profile, g_library_profile) || !*g_source || !*g_token) {
+        strcmp(g_active_profile, g_library_profile) || !*g_source || !*g_token ||
+        !isfinite(position_sec) || position_sec < 0 || position_sec > 1000000) {
         if (g_chat.player) tube_chat_stop();
         return;
     }
     if (g_chat.player && (strcmp(g_chat.video, g_active_id) || strcmp(g_chat.profile, g_active_profile))) tube_chat_stop();
+    if (g_chat.player && g_player_chat_position >= 0 &&
+        (position_sec < g_player_chat_position - .25 || position_sec > g_player_chat_position + 10)) {
+        g_player_chat_count = 0; g_chat.seek = 1; g_chat.next_poll = 0;
+        g_chat.seek_position_ms = (int64_t)floor(position_sec * 1000 + .000001);
+    }
+    g_player_chat_position = position_sec;
     if (!g_chat.player && g_chat.state) return; /* The browser reader owns this chat. */
-    if (g_chat.player && (g_chat.state < 0 || g_chat.state == 3 || now_ms() < g_chat.next_poll)) return;
+    if (g_chat.player && (g_chat.state < 0 || (!g_chat.seek &&
+        (g_chat.state == 3 || now_ms() < g_chat.next_poll)))) return;
     for (int i = 0; i < REQUESTS; ++i)
         if (g_requests[i].used && g_requests[i].kind != 8) return; /* Foreground work has priority. */
-    int reuse = g_chat.player && g_chat.state == 2 && valid_cursor(g_chat.cursor);
+    int reuse = g_chat.player && (g_chat.state == 2 || g_chat.state == 3) && valid_cursor(g_chat.cursor);
     if (!reuse) {
         g_chat.player = 1; g_chat.state = 1;
         copy(g_chat.video, sizeof g_chat.video, g_active_id); copy(g_chat.profile, sizeof g_chat.profile, g_active_profile);
@@ -981,9 +1011,10 @@ void tube_player_chat_tick(int visible) {
     Request *r = request_new(10, (void *)(size_t)g_chat.serial);
     if (!r) return;
     r->items_cb = player_chat_result; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_active_profile);
+    r->has_chat_position = 1; r->chat_position_ms = (int64_t)floor(position_sec * 1000 + .000001);
     snprintf(r->payload, sizeof r->payload,
-        "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"top\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":false}",
-        reuse ? "chat_poll" : "live_chat", g_active_id, g_active_profile, reuse ? g_chat.cursor : "");
+        "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"top\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":false,\"chat_position_sec\":%.3f}",
+        reuse ? "chat_poll" : "live_chat", g_active_id, g_active_profile, reuse ? g_chat.cursor : "", r->chat_position_ms / 1000.0);
     begin(r);
 }
 

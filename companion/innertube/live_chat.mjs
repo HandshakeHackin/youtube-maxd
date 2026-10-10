@@ -1,5 +1,6 @@
 // Original request-driven live-chat reader. SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
+import { ReplayTimeline } from './chat_replay.mjs';
 
 // Pinned SmartTube ChatController author filter, including Cyrillic lookalikes.
 const blockedAuthors = ['. XYZ', '. ХYZ', '⠄XYZ', '⠄ХYZ', 'Ricardo Merlino', '⠄СОM', '.COM', '.СОM', '. COM']
@@ -9,6 +10,7 @@ export class ChatReader {
   constructor(ErrorType, text, imageUrl, clock) {
     this.ErrorType = ErrorType; this.text = text; this.imageUrl = imageUrl; this.clock = clock;
     this.contexts = new Set(); this.cursors = new Map();
+    this.replay = new ReplayTimeline(this);
   }
   fail(code, message, status = 409) { throw new this.ErrorType(code, message, status); }
   prune() {
@@ -69,7 +71,15 @@ export class ChatReader {
     items.reverse();
     return { api_version: 1, kind: 'live_chat', id: context.id, chat_mode: context.mode,
       items,
-      cursor, has_more: false, ended: !context.token, is_replay: false, poll_after_ms: delay };
+      cursor, has_more: false, ended: !context.token && !(context.replay && context.pending.length),
+      is_replay: !!context.replay, poll_after_ms: delay,
+      ...(context.replay ? { position_ms: context.position } : {}) };
+  }
+  commitReplayCursor(context) {
+    if (this.cursors.size >= 256) this.cursors.delete(this.cursors.keys().next().value);
+    const cursor = randomUUID(); context.current_cursor = cursor;
+    this.cursors.set(cursor, { context, deadline: context.deadline });
+    return this.snapshot(context, cursor, context.token || context.pending.length ? 1000 : 0);
   }
   commit(context, contents) {
     const messages = this.update(context.messages, contents.actions ?? []);
@@ -93,10 +103,15 @@ export class ChatReader {
       const info = await client.getInfo(input.id);
       if (info?.basic_info?.id !== input.id || !info.livechat?.continuation || !info.actions)
         this.fail('chat_unavailable', 'This video has no available live chat.', 404);
-      if (info.livechat.is_replay) this.fail('chat_replay_pending', 'Chat replay is not connected to playback yet.', 422);
       const context = { owner, id: input.id, mode: input.chat_mode ?? 'top', history: input.chat_history === true, actions: info.actions,
         messages: new Map(), token: info.livechat.continuation,
         sender: typeof info.getLiveChat === 'function' ? info.getLiveChat() : null, sends: new Map() };
+      if (info.livechat.is_replay) {
+        Object.assign(context, { replay: true, pending: [], seed: context.token, seek_token: '', position: -1 });
+        const result = await this.replay.advance(context, this.replay.position(input), true);
+        this.contexts.add(context);
+        return result;
+      }
       let contents = await this.fetch(context, context.token);
       const views = contents.header?.view_selector?.sub_menu_items;
       const selected = views?.[context.mode === 'top' ? 0 : 1];
@@ -114,6 +129,7 @@ export class ChatReader {
     const context = entry.context;
     if (input.action === 'chat_close') { this.drop(context); return { api_version: 1, success: true }; }
     if (input.action === 'chat_send') {
+      if (context.replay) this.fail('chat_replay_readonly', 'Chat replay is read-only.', 422);
       if (input.id !== context.id || !context.token || typeof context.sender?.sendMessage !== 'function')
         this.fail('chat_unavailable', 'Reopen an active chat before sending a message.');
       if (typeof input.text !== 'string' || !input.text.trim() || Array.from(input.text).length > 200 || /[\0-\x1f\x7f]/.test(input.text) ||
@@ -135,6 +151,14 @@ export class ChatReader {
       while (context.messages.size > 256) context.messages.delete(context.messages.keys().next().value);
       send.result = { api_version: 1, success: true, id: context.id, session: input.session, message_id: items[0].id };
       return send.result;
+    }
+    if (context.replay) {
+      const position = this.replay.position(input);
+      if (entry.result && entry.position === position) return entry.result;
+      if (input.cursor !== context.current_cursor) this.fail('cursor_expired', 'Use the latest replay view to seek.');
+      const result = await this.replay.advance(context, position);
+      entry.position = position; entry.result = result;
+      return result;
     }
     if (entry.result) return entry.result;
     if (!context.token || this.clock() < context.next_at)

@@ -1,5 +1,43 @@
 # Offline validation record — 0.1.0
 
+## Playback-clock chat replay — 2026-10-10
+
+The companion now reads replay through `live_chat/get_live_chat_replay`, sends
+`currentPlayerState.playerOffsetMs` and preserves raw player-seek continuations
+that the pinned parser does not expose. The request format was checked against
+[yt-dlp's replay downloader](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/downloader/youtube_live_chat.py)
+and the pinned YouTube.js replay node. Replay requires `chat_position_sec`;
+messages/deletions wait for their video offsets, pause holds the timeline, and
+rewinds or large jumps reset rows and use the server seek continuation. Replay
+is read-only, scoped to its profile and cursor, with bounded actions/buffering,
+four upstream requests at most per update and no background timers. Failed
+responses preserve the last committed timeline. Exact request repeats are cached;
+older cursors cannot seek a newer view.
+
+The native player sends its displayed position, accepts only a matching replay
+response timestamp, shows CHAT REPLAY in both HUDs, and clears old rows on a seek.
+An in-flight pre-seek result supplies the next scoped cursor but cannot repopulate
+rows; the next request uses the new video position. A rewind can reopen an ended
+timeline. The browser reader still has no replay clock and directs users to play
+the video; full replay-history browsing remains open.
+
+Validation: 47 worker tests passed; the bundle rebuilt. Full companion regression
+passed 233 tests; focused chat/library/fixture regression passed 24. Native provider,
+player chat, extracted shipping HUI/RML and chat options passed ASan/UBSan
+(`.deps/chat-replay-native.{log,result}`, exit 0), including fractional position,
+forward seek, ended rewind, delayed pre-seek suppression and invalid clock cleanup.
+
+Live Guest checks used two public recordings, including
+[NASA's Artemis I broadcast](https://www.youtube.com/watch?v=CMLD0Lp0JBg): 120-second
+and 5-second views contained only messages at/before the requested time. NASA
+returned 19 and eight messages respectively; another public replay returned 24
+and 20. One other video reported unavailable chat. The rebuilt bundle also passed
+through Python LibraryService at positions 120, paused 120 and rewind 5, including
+clean close. Evidence: `.deps/chat-replay-live-result.json`,
+`.deps/chat-replay-process-result.json` and `.deps/verify-chat-replay-live.py`.
+These checks prove service behavior, not PS5 replay rendering, audio/motion or
+account acceptance. PS5 build and console acceptance are separate gates.
+
 ## In-player live-chat controls — 2026-10-10
 
 R2 Playback Options now offers Hide / Left / Right before the speed list for
