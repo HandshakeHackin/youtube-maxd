@@ -30,6 +30,12 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   and integrity hashes are in `companion/innertube/package-lock.json`.
   esbuild 0.25.10 (MIT) builds its host-side worker bundle. Dependency license
   files remain in the installed packages; keep them with binary distributions.
+* Optional segment information comes from the SponsorBlock community database
+  and API by Ajay Ramachandran and contributors: https://sponsor.ajay.app/.
+  The API/database license is CC BY-NC-SA 4.0:
+  https://github.com/ajayyy/SponsorBlock/wiki/Database-and-API-License.
+  No database snapshot is bundled. The client filters fetched segment metadata
+  into playback intervals; no automated submissions or votes are implemented.
 
 Matching source consists of this repository, recursive submodules, pinned
 dependencies and build overlay. Keep these notices with binary distributions

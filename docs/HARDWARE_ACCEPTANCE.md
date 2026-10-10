@@ -1,5 +1,7 @@
 # Hardware acceptance — pending
 
+- 2026-10-10 | SponsorBlock policy | 1b0a0dca | reserved console, firmware unreported | no-run: busy at first FTP check; no upload/launch | .deps/sponsor-policy-storage-reserved-console.log | Lapy startup/storage, then public YouTube and confirmation controls
+
 Latest offline candidate `c2779195` fixes audio-only seek holds and audio EOF
 handling, including known audio tracks shorter than video. Its complete PS5
 package passed and froze with 126 files, eboot prefix `c09f0aff45b24d48`.

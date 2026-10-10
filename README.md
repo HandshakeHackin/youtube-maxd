@@ -24,7 +24,9 @@ Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay; quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
 adaptive playback, progressive video, HLS, chapters, timed captions, optional
-SponsorBlock, native player controls and diagnostics. The optional
+SponsorBlock category actions, minimum skip duration, channel exclusions and
+rewind policy; native player controls and diagnostics. Cross/Circle SponsorBlock
+confirmation has offline coverage; console acceptance remains pending. The optional
 [library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account
 profiles, subscriptions/history/watch-later and account playlist browsing.
 Native comments/replies and basic ratings, Watch later and subscription controls

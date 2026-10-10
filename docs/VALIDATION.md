@@ -1,5 +1,58 @@
 # Offline validation record — 0.1.0
 
+## SponsorBlock category policy — 2026-10-10
+
+Source `1b0a0dca` adds eight skip-category actions: silent skip, skip with a
+message, ask before skipping, and do nothing. Same-action overlapping intervals
+merge; disabled categories and different actions do not extend that merge.
+The category defaults follow pinned SmartTube `SponsorBlockData`: message skips,
+filler disabled, five seconds minimum remaining skip, and repeat skipping allowed.
+The existing opt-in master switch is retained. Persisted version-2 data gains
+optional named category actions, minimum duration, no-repeat and excluded-channel
+settings. Legacy files load defaults without losing their existing master flag.
+
+The native player presents confirmation through its existing toast and Cross/
+Circle controls; Circle wins if both buttons arrive together. Expired, canceled
+and out-of-scope prompts cannot submit a seek. Buffering, seek preroll and live
+sources do not trigger actions. Fetches use a distinct resolve serial plus
+generation/profile guards, so delayed responses cannot replace another video's
+segments. Exclusions are bounded to 128 channels; current/followed channels and
+previous exclusions can be paged, toggled and persisted.
+
+All three shipping native provider/recovery/SponsorBlock executables passed
+ASan/UBSan: `.deps/sponsor-policy-native.log` / `.result` (0). The dedicated
+SponsorBlock test drives actual catalog/settings, queued HTTP resolution and
+callbacks, persistence/reload, mixed-category merging, minimum durations,
+confirmation acceptance/decline, repeat guards, exclusions, live suppression,
+invalid metadata and delayed responses. The companion test module passed 38
+tests, including every requested category and boolean timestamp rejection:
+`.deps/sponsor-policy-companion.log` / `.result` (0). Its inherited Starlette
+deprecation warning remains.
+
+A read-only live host case exercised the shipping companion endpoint against
+the real [SponsorBlock API](https://wiki.sponsor.ajay.app/w/API_Docs). Two
+four-character-prefix GETs returned HTTP 200 and JSON arrays for all eight
+requested categories. A public record present in that response was selected
+after fixed sample IDs returned no matching skips; the shipping filter returned
+one valid segment. No account, mutation, media download or console was used.
+Evidence: `.deps/sponsor-policy-public.json`, `.log` / `.result` (0). Empty sample
+and invalid-ID diagnostics are retained separately; they were not accepted as
+proof of nonempty filtering.
+
+The complete PS5 build/link/package/freeze passed: build
+`prosperotube-1b0a0dca_1010-0504`, 126 files, eboot prefix `b297f87e76c87752`.
+Evidence: `.deps/sponsor-policy-ps5-build.log` / `.result` (0) and
+`.deps/sponsor-policy-freeze.log` / `.result` (0). The reserved-console case
+stopped at its first FTP running-title check. No other service probe, upload,
+launch, input or close followed; the owned lock was released. Evidence:
+`.deps/sponsor-policy-storage-reserved-console.log` / `.result` (1).
+
+The candidate remains undeployed/unlaunched. On-console prompt behavior, timeline
+colors/highlights, paid-content notices, precise outro-to-end behavior and full
+settings/default equivalence remain incomplete or unverified. The new database
+attribution notice was added after this build and must be bundled in the next
+package; the `1b0a0dca` freeze remains immutable.
+
 ## Audio seek and EOF lifecycle — 2026-10-10
 
 Sources `bf6852cd` and `c2779195` fix in-place audio-only seeks acquiring a

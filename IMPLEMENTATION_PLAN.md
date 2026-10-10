@@ -5,14 +5,14 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): `c2779195` extends accurate resume with audio-only
-seek hold handling, exact PCM boundaries, explicit audio failure and known audio
-tail completion. Host source-level regressions and the complete PS5 package
-passed; the candidate remains undeployed. The previous reserved-console case
-stopped at its first busy title check. Next hardware acceptance remains Lapy
-startup/storage, then real YouTube playback. Next offline work expands the
-incomplete SponsorBlock category/action, exclusion and repeat-skip behavior
-against the pinned SmartTube source. See [validation](docs/VALIDATION.md).
+Current milestone (2026-10-10): `1b0a0dca` adds SponsorBlock category actions,
+confirmation, exclusions, minimum duration and repeat-skip policy. Native/host
+tests and the complete PS5 package passed; a live API case returned one filtered
+public segment. The reserved-console case stopped at its first busy title check,
+before deployment. Next hardware acceptance remains Lapy startup/storage, then
+real YouTube playback. Next offline work covers timeline colors/highlights,
+paid-content notices and precise outro-to-end handling; the new attribution
+notice must be included in the next package. See [validation](docs/VALIDATION.md).
 
 ## 1. Objective and current conclusion
 
