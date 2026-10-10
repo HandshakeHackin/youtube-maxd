@@ -211,10 +211,15 @@ export class Library {
     const profile = this.profiles.get(owner);
     if (!profile) throw new LibraryError('unknown_profile', 'Select an available profile.', 404);
     const authenticated = !!(profile.cookie || profile.oauth);
-    if (['live_chat', 'chat_poll', 'chat_close'].includes(input.action)) {
+    if (['live_chat', 'chat_poll', 'chat_close', 'chat_send'].includes(input.action)) {
       if (input.action === 'live_chat') {
         requireId(input.id, videoId);
         if (!['top', 'live', undefined].includes(input.chat_mode)) throw new LibraryError('invalid_sort', 'Select top or live chat.');
+      }
+      if (input.action === 'chat_send') {
+        if (!authenticated || !(await this.client(owner)).session?.logged_in)
+          throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+        requireId(input.id, videoId);
       }
       return this.chats.execute(input, owner, input.action === 'live_chat' ? await this.client(owner) : null);
     }

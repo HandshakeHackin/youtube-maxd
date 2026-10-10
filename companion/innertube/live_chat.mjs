@@ -78,7 +78,8 @@ export class ChatReader {
         this.fail('chat_unavailable', 'This video has no available live chat.', 404);
       if (info.livechat.is_replay) this.fail('chat_replay_pending', 'Chat replay is not connected to playback yet.', 422);
       const context = { owner, id: input.id, mode: input.chat_mode ?? 'top', actions: info.actions,
-        messages: new Map(), token: info.livechat.continuation };
+        messages: new Map(), token: info.livechat.continuation,
+        sender: typeof info.getLiveChat === 'function' ? info.getLiveChat() : null, sends: new Map() };
       let contents = await this.fetch(context, context.token);
       const views = contents.header?.view_selector?.sub_menu_items;
       const selected = views?.[context.mode === 'top' ? 0 : 1];
@@ -95,6 +96,29 @@ export class ChatReader {
     if (!entry || entry.context.owner !== owner) this.fail('cursor_expired', 'Reopen this chat to continue.');
     const context = entry.context;
     if (input.action === 'chat_close') { this.drop(context); return { api_version: 1, success: true }; }
+    if (input.action === 'chat_send') {
+      if (input.id !== context.id || !context.token || typeof context.sender?.sendMessage !== 'function')
+        this.fail('chat_unavailable', 'Reopen an active chat before sending a message.');
+      if (typeof input.text !== 'string' || !input.text.trim() || Array.from(input.text).length > 200 || /[\0-\x1f\x7f]/.test(input.text) ||
+          !/^[A-Za-z0-9_-]{1,64}$/.test(input.session ?? ''))
+        this.fail('invalid_message', 'Enter a message of 1 to 200 characters.', 400);
+      const attempted = context.sends.get(input.session);
+      if (attempted) {
+        if (attempted.text === input.text && attempted.result) return attempted.result;
+        this.fail('chat_unconfirmed', 'Check the chat; this message intent cannot be repeated.');
+      }
+      if (context.sends.size >= 256) this.fail('chat_busy', 'Reopen the chat before sending more messages.', 429);
+      const send = { text: input.text, result: null };
+      context.sends.set(input.session, send);
+      const actions = await context.sender.sendMessage(input.text);
+      const items = Array.from(actions ?? []).filter(action => action.type === 'AddChatItemAction')
+        .map(action => this.normalize(action.item)).filter(item => item?.type === 'LiveChatTextMessage' && item.content === input.text);
+      if (items.length !== 1) this.fail('chat_unconfirmed', 'YouTube did not confirm this message.', 502);
+      context.messages.set(items[0].id, items[0]);
+      while (context.messages.size > 256) context.messages.delete(context.messages.keys().next().value);
+      send.result = { api_version: 1, success: true, id: context.id, session: input.session, message_id: items[0].id };
+      return send.result;
+    }
     if (entry.result) return entry.result;
     if (!context.token || this.clock() < context.next_at)
       return this.snapshot(context, input.cursor, Math.max(0, context.next_at - this.clock()));

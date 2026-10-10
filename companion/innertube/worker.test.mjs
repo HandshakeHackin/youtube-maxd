@@ -15,6 +15,64 @@ const chatResponse = (actions, token = 'private-chat-next', extra = {}) => ({ co
   liveChatContinuation: { actions, continuations:[{timedContinuationData:{continuation:token,timeoutMs:2000}}], ...extra }
 }});
 
+test('pinned chat send is scoped, confirms exact Unicode text and never repeats an intent', async () => {
+  let sends = 0;
+  const message = 'Hello 日本語 😀 <literal>';
+  const client = await Innertube.create({retrieve_player:false,retrieve_innertube_config:false,generate_session_locally:true,
+    cookie:'SAPISID=synthetic-chat-cookie', fetch:async (input, init) => {
+      const request = new Request(input, init);
+      const path = new URL(request.url).pathname;
+      let response;
+      if (path.endsWith('/live_chat/get_live_chat')) response = chatResponse([]);
+      else {
+        assert.equal(path, '/youtubei/v1/live_chat/send_message'); sends++;
+        const body = await request.json();
+        assert.equal(body.richMessage.textSegments[0].text, message);
+        assert.equal(body.context.client.clientName, 'WEB');
+        assert.ok(body.params && body.clientMessageId);
+        response = {actions:[{addChatItemAction:{item:chatMessage('sent-message', 'own-private-author', message)}}]};
+      }
+      return new Response(JSON.stringify(response), {headers:{'Content-Type':'application/json'}});
+    }});
+  client.getInfo = async id => {
+    const info = {basic_info:{id, channel_id:'UC'+'a'.repeat(22)}, livechat:{continuation:'initial'}, actions:client.actions};
+    info.getLiveChat = () => new YT.LiveChat(info); return info;
+  };
+  const library = new Library(async () => client, [{id:'one', cookie:'synthetic'}, {id:'two', cookie:'synthetic'}]);
+  const chat = await library.execute({action:'live_chat',id:'abcdefghijk',profile:'one'});
+  const request = {action:'chat_send', id:'abcdefghijk',profile:'one',cursor:chat.cursor,session:'intent-one',text:message};
+  await assert.rejects(library.execute({...request,profile:'guest'}), {code:'account_required'});
+  await assert.rejects(library.execute({...request,profile:'two'}), {code:'cursor_expired'});
+  await assert.rejects(library.execute({...request,id:'different11'}), {code:'chat_unavailable'});
+  const result = await library.execute(request);
+  assert.deepEqual(result, {api_version:1,success:true,id:'abcdefghijk',session:'intent-one',message_id:'sent-message'});
+  assert.deepEqual(await library.execute(request), result);
+  await assert.rejects(library.execute({...request,text:'Different'}), {code:'chat_unconfirmed'});
+  assert.equal(sends,1);
+  assert.equal(JSON.stringify(result).includes(message),false);
+  assert.equal(Array.from(library.chats.contexts)[0].sender.running,false);
+  await library.execute({action:'chat_close',profile:'one',cursor:chat.cursor});
+  await assert.rejects(library.execute({...request,session:'intent-two'}), {code:'cursor_expired'});
+});
+
+test('chat send without an echoed message stays uncertain and cannot be retried', async () => {
+  let sends = 0;
+  const actions = {async execute() {return Parser.parseResponse(chatResponse([]));}};
+  const client = {session:{logged_in:true}, async getInfo(id) {
+    return {basic_info:{id},livechat:{continuation:'initial'},actions,
+      getLiveChat:() => ({async sendMessage() {sends++; return [];}})};
+  }};
+  const library = new Library(async () => client, [{id:'one',cookie:'synthetic'}]);
+  const chat = await library.execute({action:'live_chat',id:'abcdefghijk',profile:'one'});
+  const request = {action:'chat_send',id:'abcdefghijk',profile:'one',cursor:chat.cursor,session:'intent',text:'Message'};
+  for (const text of ['', ' ', 'x'.repeat(201), 'bad\nline'])
+    await assert.rejects(library.execute({...request,text}), {code:'invalid_message'});
+  assert.equal(sends,0);
+  await assert.rejects(library.execute(request), {code:'chat_unconfirmed'});
+  await assert.rejects(library.execute(request), {code:'chat_unconfirmed'});
+  assert.equal(sends,1);
+});
+
 test('chat snapshots are bounded and retain paid-message text without private menu endpoints', async () => {
   let batch = Array.from({length:300}, (_,i) => ({addChatItemAction:{item:chatMessage(String(i))}}));
   batch.push({addChatItemAction:{item:{liveChatPaidMessageRenderer:{id:'paid',authorName:{simpleText:'Supporter'},

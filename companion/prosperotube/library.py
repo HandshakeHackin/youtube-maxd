@@ -1,5 +1,6 @@
 """Bounded InnerTube worker; account credentials remain on the companion."""
 import asyncio
+import hashlib
 import http.cookiejar
 import json
 from pathlib import Path
@@ -75,6 +76,7 @@ class LibraryService:
         self.closed = False
         self.watch_states = {}
         self.comment_states = {}
+        self.chat_sends = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -96,6 +98,7 @@ class LibraryService:
         self.profile_revision += 1
         self.watch_states = {k: v for k, v in self.watch_states.items() if k[0] != identity}
         self.comment_states = {k: v for k, v in self.comment_states.items() if k[0] != identity}
+        self.chat_sends = {k: v for k, v in self.chat_sends.items() if k[0] != identity}
         self.on_profile_removed(identity)
         await self._stop()  # retire all cached Node credentials/continuations
         if not confirmed:
@@ -228,6 +231,34 @@ class LibraryService:
             self.comment_states[(owner, cursor)] = state
         return state
 
+    def _chat_send_state(self, request, *, create=False):
+        if request.get('action') != 'chat_send':
+            return None
+        owner, intent, cursor = request.get('profile', 'guest'), request.get('session', ''), request.get('cursor', '')
+        text, video = request.get('text'), request.get('id')
+        if (not isinstance(intent, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', intent)
+                or not isinstance(cursor, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', cursor)
+                or not isinstance(video, str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', video)
+                or not isinstance(text, str) or not text.strip() or len(text) > 200
+                or re.search(r'[\x00-\x1f\x7f]', text)):
+            raise ServiceError('invalid_message', 'Enter a message of 1 to 200 characters.', 400)
+        if owner == 'guest':
+            raise ServiceError('account_required', 'Select an account profile first.', 401)
+        if not self.has_profile(owner):
+            raise ServiceError('unknown_profile', 'Select an available profile.', 404)
+        now = time.monotonic()
+        self.chat_sends = {k: v for k, v in self.chat_sends.items() if v['deadline'] > now}
+        identity = (cursor, video, hashlib.sha256(text.encode('utf-8')).hexdigest())
+        state = self.chat_sends.get((owner, intent))
+        if state and (state['identity'] != identity or state['result'] is None):
+            raise ServiceError('chat_unconfirmed', 'Check the chat; this message intent cannot be repeated.', 409)
+        if state is None and create:
+            if len(self.chat_sends) >= 256:
+                raise ServiceError('chat_busy', 'Too many message intents are retained.', 429)
+            state = {'identity': identity, 'result': None, 'deadline': now + 1800}
+            self.chat_sends[(owner, intent)] = state
+        return state
+
     async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
@@ -245,16 +276,28 @@ class LibraryService:
                     owned = True
                     if operation == "execute" and request.get("action") == "profile_remove":
                         return await self._remove_profile(request)
+                    chat_state = self._chat_send_state(request) if operation == 'execute' else None
+                    if chat_state is not None:
+                        return dict(chat_state['result'])
                     comment_state = self._comment_state(request) if operation == "execute" else None
                     if comment_state is not None:
                         return dict(comment_state["result"])
                     self._watch_state(request)
                     await self._start()
+                    chat_state = self._chat_send_state(request, create=True) if operation == 'execute' else None
                     comment_state = self._comment_state(request, create=True) if operation == "execute" else None
                     watch_state = self._watch_state(request, create=True)
                     if watch_state is not None:
                         watch_state["blocked"] = True
                     result = await self._exchange({"operation": operation, "request": request})
+                    if chat_state is not None:
+                        message = result.get('message_id')
+                        if (result.get('api_version') != 1 or result.get('success') is not True or result.get('id') != request['id']
+                                or result.get('session') != request['session'] or not isinstance(message, str)
+                                or not 1 <= len(message) <= 160 or re.search(r'[\x00-\x1f\x7f]', message)):
+                            raise ServiceError('chat_unconfirmed', 'YouTube did not confirm this message.', 502)
+                        chat_state['result'] = {key: result[key] for key in ('api_version', 'success', 'id', 'session', 'message_id')}
+                        result = dict(chat_state['result'])
                     if comment_state is not None:
                         if result.get("success") is not True or result.get("rating") != request["rating"]:
                             raise ServiceError("comment_unconfirmed", "YouTube did not accept the comment rating.", 502)

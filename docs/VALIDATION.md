@@ -525,3 +525,30 @@ the decode. Evidence: `.deps/live-sustained-public.json`,
 This extends the two-second startup-renewal case to an ongoing host decode;
 it does not establish PS5 pacing/audio, natural signed-link expiry, 30-minute
 lease continuity or full DVR behavior. No account profile or console traffic.
+
+### Companion live-chat message intents (2026-10-09)
+
+Added account-only `chat_send` with an owned active chat cursor, exact video ID,
+unique intent and bounded Unicode text. The actual pinned YouTube.js sender
+creates the request; one matching returned text-message action is required for
+confirmation. No automatic reader starts and no optimistic message is inserted.
+Companion guards survive Node loss, timeout and cancellation without replaying
+an uncertain send; changed text/video/cursor cannot reuse an intent. Confirmed
+retries return allowlisted metadata. Native compose/review/cancel and real-account
+posting acceptance remain pending. No real messages were sent.
+
+Full Python suite: 172 passed, known Starlette warning only; Node worker suite:
+31 passed; worker bundle build: pass. All three returned 0. Evidence:
+`.deps/chat-send-python.log`, `.deps/chat-send-node.log`,
+`.deps/chat-send-bundle.log` and corresponding `.result` files. Tests use the
+shipping direct/job APIs, actual worker subprocess loss, and the actual pinned
+sender/parser with fetch replaced. Unicode request text, WEB request shape,
+profile/video ownership, one-time confirmation, blank/control/oversized text,
+worker restart, timeout and cancellation are covered. These are offline proofs,
+not authorization or YouTube acceptance of an actual account message.
+
+- 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 | no-run: current first title check busy | .deps/storage-current-console.log | continue offline
+
+The current frozen recovery candidate case again stopped at its first read-only
+running-title check. No other probe, deployment, launch, close or input occurred;
+the owned lock was released. The frozen candidate remains undeployed.

@@ -249,3 +249,5 @@ injected root expiry. Validate unchanged relay manifests, both audio and video,
 and continuity on PS5 separately. Expired segments/keys/init objects require
 controlled live-edge restart; full DVR and naturally expired long-session
 playback remain unverified. No console traffic occurred for the host case.
+
+- 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 6.02 | no-run: current first title check busy; no probes/upload/launch/close/input; owned lock released | .deps/storage-current-console.log | continue offline

@@ -478,3 +478,27 @@ store reload, failure/foreign-write preservation, removal jobs keeping their
 own confirmation, peer isolation, stale authorization/jobs, real resolver-child
 retirement, active streaming shutdown and native one-time confirmation. PS5 and
 real-account acceptance remain pending; see [validation](VALIDATION.md).
+
+## Live-chat message service
+
+`chat_send` accepts the selected `profile`, live video `id`, owned chat `cursor`,
+unique `session` intent and `text` (1 to 200 Unicode characters, no control
+characters or blank message). It requires an authenticated library session and
+an active, non-replay chat. The pinned YouTube.js sender is used without starting
+its background reader; existing request-driven chat polling remains in control.
+Only a single returned text-message action echoing the submitted text confirms
+success. Attestation-only, missing, different or ambiguous echoes do not confirm
+the message. No optimistic local insertion precedes that confirmation.
+
+Successful results contain only API version, success, video ID, intent and
+message ID. Repeated identical intents return the retained confirmation;
+changed text/context and unconfirmed attempts cannot resubmit. Companion RAM
+guards retain up to 256 intents for 30 minutes and survive Node worker loss,
+timeout and cancellation. They store a text hash, not message content, and are
+removed when the profile is removed. They do not survive a companion restart.
+The active Node chat context also bounds attempted intents and confirms the
+returned message before adding it to its rolling reader snapshot.
+
+This is the companion API path. Native PS5 compose/review/cancel controls and
+real-account posting acceptance remain unfinished. No real chat messages were
+sent during development tests.
