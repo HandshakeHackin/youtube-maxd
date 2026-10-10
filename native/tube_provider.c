@@ -74,10 +74,10 @@ static char g_language[16] = "en", g_audio_language[16];
 static double g_segments[SEGMENTS][2];
 static unsigned char g_segment_categories[SEGMENTS], g_segment_seen[SEGMENTS];
 static tube_sb_policy g_sb;
-static unsigned g_sb_serial, g_sb_generation;
+static unsigned g_sb_serial, g_sb_generation, g_sb_active_serial;
 static char g_sb_channel[25], g_sb_profile[33], g_sb_prompt_text[128];
 static int g_sb_prompt = -1, g_sb_message;
-static double g_sb_prompt_end, g_sb_last_position = -1;
+static double g_sb_prompt_end, g_sb_last_position = -1, g_sb_finish_target = -1;
 static int g_segment_count, g_skip_guard = -1;
 static double g_skip_until;
 static double g_chapters[128];
@@ -434,7 +434,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 
 static int init(void) {
     tube_sb_defaults(&g_sb);
-    g_sb_prompt = -1; g_sb_last_position = -1;
+    g_sb_prompt = -1; g_sb_last_position = -1; g_sb_finish_target = -1; g_sb_active_serial = 0;
     tube_chat_stop();
     tube_auth_cancel();
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
@@ -892,7 +892,7 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.duration_sec = (int64_t)num(root, "duration_sec");
     }
     g_caption_path[0] = 0; g_segment_count = 0; g_skip_guard = -1;
-    g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0;
+    g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0; g_sb_finish_target = -1;
     if (!++g_sb_serial) ++g_sb_serial;
     g_sb_generation = g_generation;
     copy(g_sb_channel, sizeof g_sb_channel, cached ? cached->item.parent_id : "");
@@ -1460,15 +1460,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
-        else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; save(); }
+        else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_finish_target = -1; save(); }
         else if (!strncmp(parent, "settings:sb:action:", 19)) {
             int category = tube_sb_category(parent + 19);
             if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
-            g_sb.actions[category] = (g_sb.actions[category] + 1) % 4; g_sb_prompt = -1; save();
+            g_sb.actions[category] = (g_sb.actions[category] + 1) % 4; g_sb_prompt = -1; g_sb_finish_target = -1; save();
         } else if (!strcmp(parent, "settings:sb:minimum")) {
             g_sb.minimum = g_sb.minimum < 1 ? 1 : g_sb.minimum < 3 ? 3 : g_sb.minimum < 5 ? 5 :
                 g_sb.minimum < 10 ? 10 : g_sb.minimum < 15 ? 15 : g_sb.minimum < 30 ? 30 :
-                g_sb.minimum < 60 ? 60 : 0; save();
+                g_sb.minimum < 60 ? 60 : 0; g_sb_finish_target = -1; save();
         } else if (!strcmp(parent, "settings:sb:repeat")) { g_sb.no_repeat = !g_sb.no_repeat; save(); }
         else if (!strncmp(parent, "settings:sb:exclude:", 20)) {
             const char *channel = parent + 20;
@@ -1483,7 +1483,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             } else if (g_sb.excluded_count < TUBE_SB_EXCLUSIONS) {
                 memcpy(g_sb.excluded[g_sb.excluded_count++], channel, 25);
             } else { tube_set_error("The excluded channel list is full."); cb(0, NULL, 0, 0, ud); return 1; }
-            g_sb_prompt = -1; save();
+            g_sb_prompt = -1; g_sb_finish_target = -1; save();
         }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
@@ -1782,7 +1782,11 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     const char *profile = *g_active_profile ? g_active_profile : g_library_profile;
     Record *r = record_for(id, profile, 1); if (!r) return;
     if (dur > 0) r->item.duration_sec = dur;
-    if (state != EVO_PROVIDER_PLAY_START || pos > 0) r->item.resume_pos_sec = pos > 0 ? pos : 0;
+    if (g_finished && state != EVO_PROVIDER_PLAY_START && !strcmp(id, g_active_id)) {
+        /* Explicit SponsorBlock completion stops before the old clock reaches
+         * the end. Its final stop report must not restore an outro resume. */
+        r->item.played = 1; r->item.resume_pos_sec = 0;
+    } else if (state != EVO_PROVIDER_PLAY_START || pos > 0) r->item.resume_pos_sec = pos > 0 ? pos : 0;
     r->updated = (long long)time(NULL);
     if (dur > 0 && pos >= dur * 0.95 && pos >= dur - 10) { r->item.played = 1; r->item.resume_pos_sec = 0; }
     if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; }
@@ -1797,6 +1801,8 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
+    g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;
+    g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
     if (!recovering) memset(&g_recovery, 0, sizeof g_recovery);
@@ -1858,13 +1864,14 @@ double tube_sponsor_confirm(double position, int accept) {
         if (g_sb.actions[g_segment_categories[i]] == 2 && g_segments[i][0] <= end &&
             g_segments[i][1] >= position) g_segment_seen[i] = accept ? 1 : 2;
     g_skip_guard = index; g_skip_until = end;
+    g_sb_finish_target = accept ? end : -1;
     return accept ? end : -1;
 }
 int tube_sponsor_show_message(void) { return g_sb_message; }
 double tube_skip_target(double position) {
-    if (!sponsor_scope() || !isfinite(position) || position < 0) { g_sb_prompt = -1; return -1; }
+    if (!sponsor_scope() || !isfinite(position) || position < 0) { g_sb_prompt = -1; g_sb_finish_target = -1; return -1; }
     if (g_sb_last_position >= 0 && position < g_sb_last_position - .5) {
-        g_skip_guard = -1; g_sb_prompt = -1;
+        g_skip_guard = -1; g_sb_prompt = -1; g_sb_finish_target = -1;
         for (int i = 0; i < g_segment_count; ++i)
             if (!g_sb.no_repeat || g_segment_seen[i] == 2) g_segment_seen[i] = 0;
     }
@@ -1884,7 +1891,10 @@ double tube_skip_target(double position) {
                         g_segments[j][0] <= end && g_segments[j][1] > end) end = g_segments[j][1];
                 if (end == previous) break;
             }
-            if (end - position < g_sb.minimum) continue;
+            const Record *media = record_for(g_resolved_id, g_sb_profile, 0);
+            double bounded_end = media && media->item.duration_sec > 0 ?
+                fmin(end, (double)media->item.duration_sec) : end;
+            if (bounded_end - position < g_sb.minimum) continue;
             if (action == 2) {
                 g_sb_prompt = i; g_sb_prompt_end = end;
                 snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Skip %s? Cross: skip   Circle: keep", tube_sb_labels[g_segment_categories[i]]);
@@ -1894,7 +1904,7 @@ double tube_skip_target(double position) {
                 if (g_sb.actions[g_segment_categories[j]] == action && g_segments[j][0] <= end &&
                     g_segments[j][1] >= position) g_segment_seen[j] = 1;
             g_sb_message = action == 1;
-            g_skip_guard = i; g_skip_until = end; return end;
+            g_skip_guard = i; g_skip_until = end; g_sb_finish_target = end; return end;
         }
     }
     return -1;
@@ -1933,6 +1943,20 @@ static int finish_and_next(void) {
     if (!next) return 0;
     copy(g_next_id, sizeof g_next_id, next->item.id);
     copy(g_next_profile, sizeof g_next_profile, next->profile); return 1;
+}
+
+int tube_sponsor_finish(double target, double duration) {
+    /* An acknowledged optional skip may reach (or overrun) the known end.
+     * Finish deliberately instead of asking the demuxer to seek past its last
+     * decodable frame. This is separate from natural presentation drain. */
+    if (!sponsor_scope() || g_finished || g_sb_active_serial != g_sb_serial ||
+        strcmp(g_active_id, g_resolved_id) || strcmp(g_active_profile, g_sb_profile) ||
+        g_recovery.choice.is_live || !isfinite(target) || !isfinite(duration) ||
+        duration <= 0 || duration > 1000000 || target < duration ||
+        target != g_sb_finish_target || target != g_skip_until || g_skip_guard < 0) return 0;
+    g_sb_finish_target = -1;
+    (void)finish_and_next();
+    return 1; /* The caller stops and returns even with autoplay disabled. */
 }
 
 int tube_finish_and_next(double position, double duration) {

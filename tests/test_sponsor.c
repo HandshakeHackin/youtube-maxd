@@ -75,11 +75,74 @@ int main(void) {
     assert(tube_skip_target(12) < 0); // Old request cannot fill the new video's segment list.
     reply(0, 1, 200, "{\"segments\":[{\"start\":10,\"end\":25,\"category\":\"sponsor\"},{\"start\":0,\"end\":99,\"category\":\"unknown\"},{\"start\":-1,\"end\":90,\"category\":\"intro\"}]}");
     assert(tube_skip_target(12) == 25);
+    /* A skip to the known end completes deliberately, without claiming a
+     * natural drain or asking the decoder for an impossible endpoint frame. */
+    action("sponsor", 1);
+    segments("{\"segments\":[{\"start\":80,\"end\":105,\"category\":\"sponsor\"}]}");
+    evo_stream_choice_t selected = {0};
+    snprintf(selected.url, sizeof selected.url, "http://127.0.0.1:8765/media/test/a.mpd");
+    provider->stream_chosen("abcdefghijk", &selected);
+    provider->report_progress("abcdefghijk", 80, 100, EVO_PROVIDER_PLAY_START);
+    assert(!tube_sponsor_finish(105, 100)); // No acknowledged skip yet.
+    double target = tube_skip_target(80);
+    assert(target == 105 && tube_sponsor_show_message());
+    assert(!tube_sponsor_finish(target, NAN) && !tube_sponsor_finish(target, 0));
+    assert(!tube_sponsor_finish(NAN, 100) && !tube_sponsor_finish(100, 100));
+    assert(!tube_sponsor_finish(target, 110)); // In-video targets must seek instead.
+    assert(tube_sponsor_finish(target, 100));
+    assert(!tube_sponsor_finish(target, 100)); // One completion, even without autoplay.
+    provider->report_progress("abcdefghijk", 80, 100, EVO_PROVIDER_PLAY_STOP);
+    provider->list_catalog("history", 0, items_cb, NULL);
+    assert(last_ok && last_count == 1 && last_items[0].played && !last_items[0].resume_pos_sec);
+    assert(!tube_take_next(&last_items[0]));
+    // Confirmed end skips use the same queue transition as normal completion.
+    provider->list_catalog("settings:autoplay", 0, items_cb, NULL);
+    assert(tube_toggle_queue("abcdefghijk") == 1 && tube_toggle_queue("12345678901") == 1);
+    action("sponsor", 2);
+    segments("{\"segments\":[{\"start\":80,\"end\":100,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(80) < 0 && tube_sponsor_prompt(80));
+    assert(tube_sponsor_confirm(80, 0) < 0 && !tube_sponsor_finish(100, 100));
+    assert(tube_skip_target(10) < 0 && tube_skip_target(80) < 0 && tube_sponsor_prompt(80));
+    target = tube_sponsor_confirm(80, 1); assert(target == 100);
+    assert(tube_sponsor_finish(target, 100));
+    evo_provider_item_t next;
+    assert(tube_take_next(&next) && !strcmp(next.id, "12345678901"));
+    assert(!tube_take_next(&next));
+    provider->report_progress("abcdefghijk", 80, 100, EVO_PROVIDER_PLAY_STOP);
+    provider->list_catalog("queue", 0, items_cb, NULL);
+    assert(last_count == 1 && !strcmp(last_items[0].id, "12345678901"));
+    // Resolving again invalidates completion authorization from the old instance.
+    action("sponsor", 0);
+    segments("{\"segments\":[{\"start\":80,\"end\":100,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(80) == 100);
+    segments("{\"segments\":[{\"start\":80,\"end\":100,\"category\":\"sponsor\"}]}");
+    assert(!tube_sponsor_finish(100, 100));
+    assert(tube_skip_target(80) == 100 && !tube_sponsor_finish(100, 100));
+    // A stale or excluded playing item cannot advance a new video's queue.
+    provider->stream_chosen("12345678901", &selected);
+    assert(!tube_sponsor_finish(100, 100));
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(80) == 100);
+    provider->list_catalog("settings:sb:exclude:UCaaaaaaaaaaaaaaaaaaaaaa", 0, items_cb, NULL);
+    assert(!tube_sponsor_finish(100, 100));
+    provider->list_catalog("settings:sb:exclude:UCaaaaaaaaaaaaaaaaaaaaaa", 0, items_cb, NULL);
+    // Minimum skip duration is the playable remainder, even if metadata overruns.
+    for (int i = 0; i < 3; ++i) provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
+    segments("{\"segments\":[{\"start\":80,\"end\":105,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(97) < 0); // Three playable seconds, not eight.
+    assert(tube_skip_target(90) == 105);
+    provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
+    assert(!tube_sponsor_finish(105, 100));
+    provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
+    assert(!tube_sponsor_finish(105, 100)); // Re-enabling cannot revive an old authorization.
     provider->resolve("abcdefghijk", resolve_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"duration_sec\":0,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/live/a.m3u8\",\"video_codec\":\"h264\",\"audio_codec\":\"aac\",\"is_live\":true}]}}");
     assert(pending_count == 0 && tube_skip_target(12) < 0 && !tube_sponsor_prompt(12));
     provider->list_catalog("settings:sb:action:invalid", 0, items_cb, NULL); assert(!last_ok);
     assert(provider->list_catalog("settings:sb:exclusions", 1001, items_cb, NULL) < 0);
-    puts("PASS: shipping SponsorBlock category policy, merging, minimum duration, silent/message/confirmation actions, rewind guards, exclusions, persistence and stale replies");
+    puts("PASS: shipping SponsorBlock actions, confirmation, end skips, watched state, queue transitions, exclusions, persistence and stale replies");
     return 0;
 }

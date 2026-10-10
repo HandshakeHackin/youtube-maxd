@@ -11,6 +11,11 @@ def apply_sponsor_overlay(replace, player):
         double target = tube_sponsor_confirm(playback->getPositionSeconds(), accept);
         m_tubeSponsorPromptAt = 0;
         toast("SPONSORBLOCK", accept ? "Skipping segment" : "Keeping this segment");
+        if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
+            playback->stopPlayback();
+            if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
+            return true;
+        }
         if (target >= 0 && target < playback->getDurationSeconds()) playback->seekTo(target);
         return true;
     }
@@ -18,6 +23,13 @@ def apply_sponsor_overlay(replace, player):
     // Scrub hold update''')
     replace(screen, '            playback->seekTo(target); toast("SPONSORBLOCK", "Skipped an optional segment");', '''            playback->seekTo(target);
             if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped an optional segment");''')
+    replace(screen, '        if (target >= 0 && target < playback->getDurationSeconds()) {', '''        if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
+            if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped the final segment");
+            playback->stopPlayback();
+            if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
+            return;
+        }
+        if (target >= 0 && target < playback->getDurationSeconds()) {''')
     replace(screen, '        double target = tube_skip_target(playback->getPositionSeconds());', '''        double target = tube_skip_target(playback->getPositionSeconds());
         const char *prompt = tube_sponsor_prompt(playback->getPositionSeconds());
         if (!prompt) m_tubeSponsorPromptAt = 0;

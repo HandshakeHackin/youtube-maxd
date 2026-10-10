@@ -1,0 +1,13 @@
+"""Extract the shipping PS5 player's SponsorBlock tick and input paths."""
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+destination = Path(sys.argv[2])
+destination.mkdir(parents=True, exist_ok=True)
+tick_start = source.index("    const bool ended = evo_pb_is_complete() != 0;")
+tick_end = source.index("    /*\n     * Ask the playback engine", tick_start)
+input_start = source.index("    if (tube_sponsor_prompt(playback->getPositionSeconds()) &&")
+input_end = source.index("    // Scrub hold update", input_start)
+(destination / "tick.inc").write_text(source[tick_start:tick_end])
+(destination / "input.inc").write_text(source[input_start:input_end])

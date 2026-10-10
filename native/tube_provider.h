@@ -20,6 +20,7 @@ double tube_skip_target(double position);
 const char *tube_sponsor_prompt(double position);
 double tube_sponsor_confirm(double position, int accept);
 int tube_sponsor_show_message(void);
+int tube_sponsor_finish(double target, double duration);
 double tube_chapter_target(double position, int direction);
 int tube_playback_at_end(double position, double duration);
 int tube_finish_drained_and_next(double position);
