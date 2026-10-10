@@ -279,3 +279,10 @@ registration and idle checks passed before one launch. The case stopped on the
 matching storage-failure breadcrumb. Storage/persistence, graceful teardown,
 post-failure service health and YouTube playback remain unverified. No identical
 candidate retry. See VALIDATION.md for hashes and logging-discovery limits.
+
+- 2026-10-09 | Lapy PR50 app candidate | ec358d07 | no-run: first primary FTP connection refused; running-title state unestablished; no directory preparation/upload/launch/close/input/retry; owned lock released | .deps/lapy-pr50-console.log | continue offline, candidate undeployed
+
+Complete PS5 build and freeze passed for `prosperotube-ec358d07_1010-0225`:
+126 files, eboot SHA-256 prefix `08748ab3bd47c1c2`. These bytes have not yet
+been tested on either console. Storage/startup, helper stage logs, persistence,
+clean teardown, service health and actual YouTube playback remain pending.

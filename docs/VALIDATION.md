@@ -679,3 +679,16 @@ still required; PR #50 does not itself prove the cause or resolution of our
 captured status 7 failures. Diagnostic installation must create the app data
 directory before launch and retain helper logs. Shared logging settings remain
 unchanged. No custom logging adapter is incorporated.
+
+- 2026-10-09 | Lapy PR50 / complete PS5 package | ec358d07 | pass: 211 objects, link, package and immutable freeze; 126 files, eboot prefix 08748ab3bd47c1c2 | .deps/lapy-pr50-ps5-build.log; .deps/lapy-pr50-freeze.log | guarded application acceptance
+- 2026-10-09 | Lapy PR50 / primary console | ec358d07 | no-run: first FTP connection refused before running-title check | .deps/lapy-pr50-console.log; .deps/console/storage-lapy-pr50-ec358d07-primary/milestones.txt | continue offline
+
+Exact build `prosperotube-ec358d07_1010-0225`; package helper SHA-256
+`bf1d7b1017a6c078b81c5267152dfc985389f4836d288c34351243de98a2b0e1`.
+Build and freeze returned 0. The console wrapper returned 1 and is terminal.
+The first console operation, FTP connection on port 2121, was refused; it did
+not establish idle or busy state. No other service probe, app directory creation,
+upload, launch, close, input or retry occurred. The owned lock was released.
+The frozen candidate remains undeployed; helper-stage, storage, persistence,
+teardown and playback acceptance remain pending. No fallback case was started
+after this transport failure.
