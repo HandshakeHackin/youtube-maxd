@@ -765,3 +765,32 @@ handoff regressions also passed (`.deps/seek-provider-regression.log` /
 `.result` and `.deps/seek-recovery-regression.log` / `.result`, both 0).
 A new full PS5 build remains pending at this source milestone. The prior frozen PR50 package remains
 unchanged and does not include this native fix. No console traffic occurred.
+
+### Seek candidate packaging and bounded installation cases (2026-10-09)
+
+Source `00372796` completed the full PS5 build, packaging and immutable freeze:
+build `prosperotube-00372796_1010-0258`, 126 files, eboot SHA-256 prefix
+`ce25ebbfc8158d28`. Build and freeze evidence: `.deps/seek-ps5-build.log`
+and `.deps/seek-freeze.log`, with both result files containing 0.
+
+Both initial console cases verified all installed bytes twice, including the
+130-second settling period, and established exact title registration. Each
+final running-title check found a title running, so neither sent a launch,
+input or close command. Evidence: `.deps/seek-console.log` and
+`.deps/seek-console-primary.log` (terminal result 1).
+
+After the user reserved the fallback console, a separate idle-first case
+established idle state but found that the installed bytes no longer matched
+the frozen candidate. It stopped without uploading or launching. The case
+does not identify which file differed or why; its adapter also omitted the
+FTP SELF command used by the installation verifier, so no corruption cause
+is established. A separate fresh installation case then stopped on its very
+first running-title check because a title was running. It made no uploads,
+service probes, launch, input or close requests. Both owned locks were released.
+Evidence: `.deps/seek-console-reserved.log` and
+`.deps/seek-console-reserved-install.log` (terminal result 1 each).
+
+This frozen build has never been launched. PR50 helper execution, storage,
+persistence, native seek behavior and actual YouTube playback on PS5 remain
+unverified. A future idle-first installation must restore and verify the
+exact candidate before launch.

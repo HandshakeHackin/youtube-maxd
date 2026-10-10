@@ -286,3 +286,14 @@ Complete PS5 build and freeze passed for `prosperotube-ec358d07_1010-0225`:
 126 files, eboot SHA-256 prefix `08748ab3bd47c1c2`. These bytes have not yet
 been tested on either console. Storage/startup, helper stage logs, persistence,
 clean teardown, service health and actual YouTube playback remain pending.
+
+- 2026-10-09 | seek / PR50 candidate | 00372796 | PS5 | no-run: both installs verified twice; prelaunch checks busy | .deps/seek-console.log; .deps/seek-console-primary.log | await idle
+- 2026-10-09 | reserved installation reuse | 00372796 | PS5 | no-run: idle, installed bytes differ; no launch | .deps/seek-console-reserved.log | fresh verified install
+- 2026-10-09 | reserved fresh installation | 00372796 | PS5 | no-run: first title check busy; no probes/upload/launch/input/close | .deps/seek-console-reserved-install.log | offline work
+
+The full PS5 package and freeze passed for build
+`prosperotube-00372796_1010-0258` (126 files, eboot SHA-256 prefix
+`ce25ebbfc8158d28`). No case launched it. All owned locks were released.
+Firmware is unreported. Installed-byte mismatch has no established cause;
+see VALIDATION.md for the verifier limitation. Storage, helper execution,
+persistence, teardown and real YouTube playback remain pending.
