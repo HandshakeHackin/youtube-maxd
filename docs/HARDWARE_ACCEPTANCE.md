@@ -1,6 +1,14 @@
 # Hardware acceptance — in progress
 
-Installed `327d8606` (`prosperotube-327d8606_1010-1851`, 126 files,
+Installed `639b015a` (`prosperotube-639b015a_1010-1905`, 126 files,
+eboot prefix `64f9d8b3b6bffab4`) passed a bounded retained-chat fixture case:
+newest-message opening, older-page focus across growth to 31 messages, top/live
+switching and context retirement. Original pairing/history were restored exactly
+after clean GPU/process/title/mount release. Services remained healthy and the
+isolated fixture companion was stopped. Physical readability, actual live chat,
+posting and replay were not assessed.
+
+Previous candidate `327d8606` (`prosperotube-327d8606_1010-1851`, 126 files,
 eboot prefix `69879753599e55bd`) passed native public WebP artwork decode/cache,
 saved Guest state, GPU park, exact title/mount release and service health.
 The matching 135,454-byte image decoded to 480×270 and was read back from the
@@ -17,6 +25,8 @@ same captured run, preserving the original exit 1. No relaunch was needed.
 Physical sound/motion for this build remain unassessed. The earlier `5cc941f0`
 control retains user-confirmed smooth 1080p60 sound/video. DeArrow/SponsorBlock,
 broader codecs and full parity remain open. See [validation](VALIDATION.md).
+
+- 2026-10-10 | retained chat | 639b015a | reserved console | pass: newest/older paging, stable refresh, top/live switch, exact state restoration and clean teardown | .deps/chat-history-hardware.log | real chat, replay and physical readability
 
 - 2026-10-10 | artwork | 327d8606 | reserved console | pass: verified install, public WebP decode/cache, preserved Guest state, clean teardown | .deps/console/webp-artwork/artwork-result.json | physical appearance, DeArrow and broader playback
 

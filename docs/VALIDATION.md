@@ -21,9 +21,18 @@ opening; its failed log is retained. The worker bundle built with the cached Lin
 Node runtime after a Windows/Linux esbuild mismatch and absent system Node were
 identified. Evidence: `.deps/chat-history-*`. Native PS5 candidate `639b015a`
 passed build, package and immutable freeze (126 files, eboot prefix
-`64f9d8b3b6bffab4`); hardware acceptance with the matching companion remains
-pending. The existing console installation was not changed. Replay and history
-preceding chat opening remain open.
+`64f9d8b3b6bffab4`). A bounded PS5 case with an isolated generated-fixture
+companion then passed: newest-message opening, L1 paging to an older message,
+stable selection across eight observations while snapshots grew from 24 to 31
+messages, and top-to-live switching with context retirement. Original pairing
+and history were restored byte-for-byte after GPU park and exact process/title/
+mount release. Services remained healthy, the owned lock was removed, and the
+isolated fixture server was stopped. The public companion was left running.
+Evidence: `.deps/chat-history-hardware.{log,result}` (exit 0),
+`.deps/console/chat-history-hardware/{history-focus,fixture-request-summary,restored}.json`.
+This establishes automated fixture/controller behavior, not physical readability,
+real-account chat or moderation on hardware. No messages were posted and no video
+played in this case. Replay and history preceding chat opening remain open.
 
 ## Native WebP artwork — 2026-10-10
 
