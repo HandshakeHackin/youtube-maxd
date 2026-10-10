@@ -54,7 +54,7 @@ def main():
         "Makefile", "addons/src/evo_provider_mgr.c", "src/evo_data_path.c", "include/evo_data_path.h",
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
-        "core/include/evo/screens/PlayerScreen.hpp",
+        "core/include/evo/screens/PlayerScreen.hpp", "core/include/evo/screens/ProviderHostScreen.hpp",
         "core/src/screens/AudioTrackPickerScreen.cpp", "core/include/evo/screens/AudioTrackPickerScreen.hpp",
         "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
@@ -75,7 +75,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_volume.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -92,7 +92,7 @@ def main():
         shutil.copyfile(ROOT / name, notices / name)
     shutil.copyfile(ROOT / "native/vendor/cJSON/LICENSE", notices / "cJSON-MIT.txt")
     shutil.copyfile(EVO / "COPYRIGHT.md", notices / "EVO-COPYRIGHT.md")
-    replace(player + "Makefile", "    addons/src/provider_stremio.c", "    addons/src/provider_stremio.c \\\n    addons/src/tube_provider.c \\\n    addons/src/tube_remote.c")
+    replace(player + "Makefile", "    addons/src/provider_stremio.c", "    addons/src/provider_stremio.c \\\n    addons/src/tube_provider.c \\\n    addons/src/tube_remote.c \\\n    addons/src/tube_phone.c")
     replace(player + "addons/src/evo_provider_mgr.c", "extern const evo_provider_t evo_provider_iptv;", "extern const evo_provider_t evo_provider_youtube;\nextern const evo_provider_t evo_provider_iptv;")
     replace(player + "addons/src/evo_provider_mgr.c", "    &evo_provider_iptv,\n    &evo_provider_xtream,\n    &evo_provider_emby,\n    &evo_provider_jellyfin,     /* native screens; the web UI as an extra */\n    &evo_provider_stremio,      /* Stremio addons, native (provider_stremio.c) */\n    &evo_provider_nuvio,        /* web UI only - Stremio addons, debrid */", "    &evo_provider_youtube,")
     replace(player + "src/evo_data_path.c", '"/data/evoplayer"', '"/data/prosperotube"', count=2)
@@ -207,6 +207,8 @@ def main():
     apply_speed_controls_overlay(replace, player)
     from player_chat_overlay import apply_player_chat_overlay
     apply_player_chat_overlay(replace, player)
+    from phone_player_overlay import apply_phone_player_overlay
+    apply_phone_player_overlay(replace, player, host)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

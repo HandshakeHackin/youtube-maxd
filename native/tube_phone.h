@@ -1,0 +1,32 @@
+/* Main-thread phone/player adapter. SPDX-License-Identifier: GPL-3.0-or-later */
+#ifndef TUBE_PHONE_H
+#define TUBE_PHONE_H
+#include "tube_remote.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef struct {
+    void *context;
+    /* snapshot returns true only for the selected provider/profile/source. */
+    int (*snapshot)(void *, tube_remote_player *);
+    int (*pause)(void *, int);
+    int (*seek)(void *, double);
+    int (*stop)(void *);
+    int (*volume)(void *, int);
+    int (*key)(void *, const char *);
+    int (*captions)(void *, const char *);
+    void (*browser)(void *);
+} tube_phone_controls;
+void tube_phone_tick(const tube_phone_controls *controls);
+/* Consumed by the normal provider resolver, then acknowledged after startup. */
+unsigned tube_phone_take(char video[12], double *position);
+int tube_phone_launch_current(unsigned ticket);
+int tube_phone_launch_finish(unsigned ticket, int success);
+/* Called only after the decoder/presentation engine proves natural EOF. */
+int tube_phone_finished(void);
+void tube_phone_clear(void);
+void tube_phone_cancel(void);
+#ifdef __cplusplus
+}
+#endif
+#endif

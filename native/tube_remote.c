@@ -259,6 +259,9 @@ void tube_remote_tick(int64_t now_ms) {
     int sent = remote_send(r,kind,root); cJSON_Delete(root); if (!sent) invalidate(1);
 }
 int tube_remote_take(tube_remote_command *out) { if (!out || !enabled || state != TUBE_REMOTE_LISTENING || !count) return 0; *out = queue[0]; out->owner = generation; return 1; }
+int tube_remote_owner_current(unsigned owner) { return owner == generation && enabled && state == TUBE_REMOTE_LISTENING; }
+unsigned tube_remote_current_owner(void) { return enabled && state == TUBE_REMOTE_LISTENING ? generation : 0; }
+int tube_remote_command_current(unsigned owner, int sequence) { return tube_remote_owner_current(owner) && count && queue[0].sequence == sequence; }
 int tube_remote_finish(unsigned owner, int sequence, int applied) {
     if (owner != generation || !enabled || state != TUBE_REMOTE_LISTENING || !count || sequence != queue[0].sequence) return 0;
     if (!applied) { invalidate(1); return 0; }

@@ -152,4 +152,4 @@ int main(void) { test_commands_and_feedback(); test_scope_and_late_start_cleanup
     test_all_commands_and_pending_invalidation(); test_original_source_cleanup();
     configure(1,"guest",identity,"screen-123"); reject=1; tube_remote_tick(30000);
     assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0); tube_remote_shutdown();
-    puts("Native Lounge scope, command delivery, feedback and shutdown passed"); }
+    puts("Native Lounge scope, command delivery, feedback and shutdown passed"); return 0; }

@@ -93,9 +93,21 @@ Lounge tokens, SID and gsessionid remain private to the companion; they are neve
 returned through the API, formatted in errors or included in receiver repr.
 Upstream URLs are fixed to YouTube; no request can supply an arbitrary host.
 
-The next native batch must execute player/queue commands with acknowledged results
-and state reporting. Voice capture/search and disconnect preferences still need
-implementation. Real phone and PS5 acceptance remains open.
+The native player adapter now executes playlist launch through EVO's existing
+resolver/fallback/worker path. It acknowledges only after successful startup,
+keeps fractional offsets, rejects retired owners and reports the actual selected
+profile/source player. Play/pause, pause-preserving seek admission, stop,
+next/previous, queue replacement, PCM volume, D-pad and current-track caption
+enable/disable are connected. A separate ephemeral phone queue preserves the
+saved local queue and advances after proven presentation EOF. Playlist windows
+retain the sender's global index and click-tracking parameters.
+
+Volume scales the final S16 output with an atomic main/audio-thread gain; mute
+does not change the media clock or retirement accounting. Unknown caption
+languages and voice capture are not silently acknowledged. Voice capture/search,
+caption-language switching, disconnect preferences and playlist continuation
+beyond the supplied 128-ID window still need implementation. Real phone and PS5
+acceptance remains open.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

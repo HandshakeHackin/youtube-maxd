@@ -2339,6 +2339,14 @@ int tube_toggle_subscription(const char *id) {
 }
 
 const char *tube_caption_media_path(void) { return g_caption_path; }
+int tube_phone_video(const char *url, char video[12]) {
+    if (!url || !video || !valid_id(g_active_id) || strcmp(g_active_profile, g_library_profile) ||
+        strcmp(g_recovery.source, g_source) || strcmp(g_recovery.token, g_token) ||
+        strcmp(g_recovery.profile, g_library_profile) || strcmp(g_recovery.id, g_active_id) ||
+        strcmp(g_recovery.choice.url, url)) return 0;
+    copy(video, 12, g_active_id); return 1;
+}
+const char *tube_phone_caption_language(void) { return *g_caption_path ? g_language : ""; }
 const char *tube_take_paid_content_notice(void) {
     if (!g_paid_notifications || g_paid_shown || !*g_paid_text || g_finished ||
         !*g_active_id || !*g_sb_source || strcmp(g_sb_source, g_source) ||

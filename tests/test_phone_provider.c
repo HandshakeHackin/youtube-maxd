@@ -54,6 +54,11 @@ int main(void) {
     cJSON *seed=cJSON_Parse("{\"version\":2,\"source\":\"http://127.0.0.1:8765\",\"token\":\"synthetic-companion-token\",\"records\":[]}");
     assert(seed); write_store(seed); cJSON_Delete(seed); const evo_provider_t *p=&evo_provider_youtube;
     assert(!p->init()); tube_poll(); assert(!count); page("settings:remote"); assert(rows==4 && !count);
+    evo_stream_choice_t choice={0}; snprintf(choice.url,sizeof choice.url,"http://127.0.0.1:8765/media/fixture.mpd");
+    char video[12]; assert(!tube_phone_video(choice.url,video));
+    p->stream_chosen("abcdefghijk",&choice);
+    assert(tube_phone_video(choice.url,video) && !strcmp(video,"abcdefghijk"));
+    assert(!tube_phone_video("http://127.0.0.1:8765/media/unrelated.mpd",video));
     page("settings:remote:pair"); assert(rows==4 && !count);
     cJSON *stored=read_store(); char device[37]; snprintf(device,sizeof device,"%s",str(stored,"remote_device"));
     assert(tube_remote_identity_valid(device) && device[14]=='4' && cJSON_IsTrue(cJSON_GetObjectItem(stored,"remote_enabled")));

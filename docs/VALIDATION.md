@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Phone player and ephemeral queue adapter — 2026-10-10
+
+The native adapter connects typed Lounge commands to the shipping controller,
+provider resolver/fallback worker and PCM output. It preserves fractional offsets,
+acks only successful startup, rejects stale tickets, and keeps remote queues out
+of saved local state. Queue windows retain index/ctt, queue updates do not reopen
+playback, and proven EOF advances remotely without removing local queue items.
+Seeks use the existing checked admission path and preserve pause. Main/audio
+volume is atomic and applies S16 gain without changing clock/drain accounting.
+
+`scripts/test_phone_player.sh` passed ASan/UBSan with the shipping adapter, real
+driver and cJSON: initial device/query commands, deferred start ack, pause, seek,
+volume, next/previous, queue update, global index, EOF, D-pad, captions, stop,
+retired profiles/tickets, failed startup/seek and full-scale/mute PCM samples.
+Evidence: `.deps/phone-player-tests.{log,result}`. The generated provider, driver,
+adapter, full ProviderHostScreen/Application and audio output compiled with the
+pinned PS5 SDK (`.deps/phone-player-ps5-objects.log`). Complete packaging and actual
+phone/PS5 acceptance are pending; no hardware success is inferred from host tests.
+
 ## Native pairing settings and identity storage — 2026-10-10
 
 The provider now drives Lounge independently of browser request cancellation.
