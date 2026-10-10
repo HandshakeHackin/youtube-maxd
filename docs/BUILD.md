@@ -188,6 +188,14 @@ only the demuxer announces seek begin/end. Refused, queued, fast-completed,
 clamped, inactive and invalid targets are covered. Nonfinite targets and targets
 beyond one million seconds are rejected before pausing or publishing a request.
 
+With generated fixtures and host FFmpeg development libraries installed, run
+`bash scripts/test_seek_timeline.sh`. It exercises real HLS `av_seek_frame`
+and packet reads using the shipping timestamp helper under ASan/UBSan. The
+helper adds the common container origin for demux/video discard timestamps;
+audio packet comparisons subtract that same origin. Boundary tests cover
+distinct stream starts, negative and missing origins, fractional positions,
+invalid time bases and overflow. This is host evidence, not PS5 acceptance.
+
 For expiry during an ongoing live decode, use `--decode-seconds 60
 --hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for
 the selected root reach YouTube normally; its third request receives the single

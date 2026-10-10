@@ -794,3 +794,31 @@ This frozen build has never been launched. PR50 helper execution, storage,
 persistence, native seek behavior and actual YouTube playback on PS5 remain
 unverified. A future idle-first installation must restore and verify the
 exact candidate before launch.
+
+### Relative seek positions and absolute HLS timestamps (2026-10-09)
+
+The generated finite HLS fixture begins at 1.445333 seconds. A host FFmpeg
+`av_seek_frame`/packet-read reproduction of the previous native conversion
+admitted the first video packet at relative position 1.854667 for a requested
+3.25-second seek. Adding the common container origin to the seek and video
+discard target admitted a packet at 3.354667 instead; packet decode order
+permits this small forward difference. Audio passed its corresponding bound.
+This establishes packet gating, not decoded frame timing or audible A/V sync.
+
+The shipping helper now converts relative positions into absolute stream
+timestamps and video discard targets. Audio discard comparisons subtract the
+same common origin; separate stream start times must not become separate
+clocks. Invalid conversion leaves the prior clock base intact and resumes a
+previously playing scrub. The generated overlay applies this to the actual
+demux and audio paths without modifying the upstream checkout.
+
+Real HLS packet reads plus boundary tests passed ASan/UBSan, including
+fractional targets, distinct stream starts, negative/missing origins,
+invalid inputs/time bases and addition overflow. Evidence:
+`.deps/seek-timeline.log` / `.result` (0). Existing extracted shipping UI and
+request handoff also passed (`.deps/seek-timeline-handoff.log` / `.result`, 0).
+Native provider and playback-recovery ASan/UBSan regressions passed
+(`.deps/seek-timeline-native.log` / `.result`, 0).
+The host uses libavformat 62.3.100; PS5 uses the existing FFmpeg 7.1.1 recipe.
+Full PS5 packaging and hardware acceptance of this change remain pending.
+No console or YouTube traffic occurred for this offline change.

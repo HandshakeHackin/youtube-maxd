@@ -27,3 +27,46 @@ def apply_seek_overlay(replace, player):
         !play_fmt ||
         (video_stream_index < 0 && audio_stream_index < 0)
     ) {''')
+    replace(demux, '#include <math.h>', '#include <math.h>\n#include "tube_seek_timeline.h"')
+    replace(demux, '''    pp_playback_notify_seek_begin(
+        &g_pp_pb,
+        (int64_t)(target_seconds * 1000000.0)
+    );''', '''    const int seek_stream = video_stream_index >= 0 ? video_stream_index : audio_stream_index;
+    int64_t absolute_target_us, seek_timestamp;
+    if (!tube_seek_times(play_fmt, seek_stream, target_seconds,
+                         &absolute_target_us, &seek_timestamp)) {
+        prospero_seek_in_progress = 0;
+        if (!restore_paused) pp_playback_resume(&g_pp_pb);
+        player_paused = restore_paused ? 1 : 0;
+        controls_last_used_ms = now_ms();
+        return 0;
+    }
+    pp_playback_notify_seek_begin(&g_pp_pb, absolute_target_us);''')
+    replace(demux, '''    double decoder_seek_seconds =
+        target_seconds;''', '')
+    replace(demux, '''    int seek_stream =
+        video_stream_index >= 0
+            ? video_stream_index
+            : audio_stream_index;
+
+    AVRational time_base =
+        play_fmt->streams[
+            seek_stream
+        ]->time_base;
+
+    int64_t seek_timestamp =
+        (int64_t)(
+            decoder_seek_seconds /
+            av_q2d(time_base)
+        );''', '''    /* seek_timestamp and the video discard gate share absolute packet PTS.
+     * The committed UI base and audio discard target remain relative. */''')
+    audio = player + 'media/src/evo_audio_out.c'
+    replace(audio, '#include <math.h>', '#include <math.h>\n#include "tube_seek_timeline.h"')
+    replace(audio, '''            if (pkt->pts != AV_NOPTS_VALUE && play_fmt && audio_stream_index >= 0)
+                pkt_seconds = (double)pkt->pts *
+                    av_q2d(play_fmt->streams[audio_stream_index]->time_base);''', '''            if (pkt->pts != AV_NOPTS_VALUE && play_fmt && audio_stream_index >= 0) {
+                const int origin_stream = video_stream_index >= 0 ? video_stream_index : audio_stream_index;
+                pkt_seconds = (double)pkt->pts *
+                    av_q2d(play_fmt->streams[audio_stream_index]->time_base) -
+                    (double)tube_media_origin_us(play_fmt, origin_stream) / AV_TIME_BASE;
+            }''')
