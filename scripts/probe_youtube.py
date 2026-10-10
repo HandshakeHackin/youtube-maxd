@@ -24,16 +24,35 @@ class ExpireOnceTransport(httpx.AsyncBaseTransport):
         self.inner = httpx.AsyncHTTPTransport()
         self.fail_url = None
         self.injections = 0
+        self.matching_requests = 0
+        self.inject_on_request = 1
 
     async def handle_async_request(self, request):
         if self.fail_url is not None and str(request.url) == self.fail_url:
-            self.fail_url = None
-            self.injections += 1
-            return httpx.Response(403, request=request)
+            self.matching_requests += 1
+            if self.matching_requests == self.inject_on_request:
+                self.fail_url = None
+                self.injections += 1
+                return httpx.Response(403, request=request)
         return await self.inner.handle_async_request(request)
 
     async def aclose(self):
         await self.inner.aclose()
+
+
+def decoded_seconds(progress, required):
+    """Reject successful early exits; persist only the final decoded timestamp."""
+    text = progress.decode('ascii', errors='strict')
+    records = text.strip().split('progress=')
+    if len(records) < 2 or records[-1].strip() != 'end':
+        raise RuntimeError('decode_progress_missing')
+    times = re.findall(r'^out_time_us=([0-9]{1,16})$', records[-2], re.MULTILINE)
+    if len(times) != 1:
+        raise RuntimeError('decode_progress_invalid')
+    seconds = int(times[0]) / 1_000_000
+    if seconds < required - 0.25:
+        raise RuntimeError('decode_ended_early')
+    return round(seconds, 3)
 
 
 def probe_app(args):
@@ -71,6 +90,10 @@ def main():
     simulation = parser.add_mutually_exclusive_group()
     simulation.add_argument("--simulate-vod-expiry", action="store_true", help="Inject one local expired-link response after real ffprobe, then require fresh resolution and decode")
     simulation.add_argument("--simulate-hls-expiry", action="store_true", help="Inject one local live-root expiry after real ffprobe, then require fresh paired roots and live-edge decode")
+    parser.add_argument("--hls-expiry-after-requests", type=int, choices=range(1, 101), default=1,
+                        metavar="1..100", help="Inject on this root request during decode; requires --simulate-hls-expiry")
+    parser.add_argument("--decode-seconds", type=int, choices=range(2, 3601), default=2,
+                        metavar="2..3600", help="Required decoded duration for each decode/seek case")
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
     parser.add_argument("--js-runtime-path")
     parser.add_argument("--profile", help="Explicit authorized OAuth profile ID; never falls back to Guest")
@@ -78,6 +101,8 @@ def main():
     parser.add_argument("--account-state", type=Path, help="Explicit companion private OAuth state directory")
     parser.add_argument("--output", type=Path, default=Path("output/validation/public-youtube.json"))
     args = parser.parse_args()
+    if args.hls_expiry_after_requests != 1 and not args.simulate_hls_expiry:
+        parser.error('--hls-expiry-after-requests requires --simulate-hls-expiry')
     try:
         identifier = video_id(args.video)
     except ServiceError as error:
@@ -111,6 +136,8 @@ def main():
               "account_profile_selected": bool(args.profile), "console_traffic": False,
               "simulated_media_expiry": args.simulate_vod_expiry or args.simulate_hls_expiry,
               "simulated_expiry_kind": 'live_hls_root' if args.simulate_hls_expiry else 'vod' if args.simulate_vod_expiry else None,
+              "required_decode_seconds": args.decode_seconds,
+              "decoded_seconds": [],
               "result": "failed"}
     stage = "startup"
     token = ""
@@ -175,17 +202,21 @@ def main():
                     result['code'] = 'media_identity_missing'
                     raise RuntimeError('media_identity_missing')
             expiry.fail_url = resources[0].url
-        offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - 2)))
+            expiry.inject_on_request = args.hls_expiry_after_requests
+        offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - args.decode_seconds)))
         for offset in offsets:
             stage = "decode" if offset == 0 else "seek_decode"
             command = ["ffmpeg", "-v", "error"] + (["-ss", str(offset)] if offset else [])
-            command += ["-i", choice["url"], "-t", "2", "-map", "0:v", "-map", "0:a", "-f", "null", "-"]
-            subprocess.run(command, capture_output=True, timeout=45, check=True)
+            command += ["-i", choice["url"], "-t", str(args.decode_seconds), "-map", "0:v", "-map", "0:a",
+                        "-progress", "pipe:1", "-nostats", "-f", "null", "-"]
+            decoded = subprocess.run(command, capture_output=True, timeout=max(45, args.decode_seconds * 2 + 60), check=True)
+            result['decoded_seconds'].append(decoded_seconds(decoded.stdout, args.decode_seconds))
         if expiry is not None and (expiry.injections != 1 or fresh_resolutions[0] != 1):
             stage = 'renewal_assertion'
             raise RuntimeError('renewal_not_exercised_once')
         result["result"] = "pass"
-        result["checks"] = ["pair", "resolve", "relay_probe", "two_second_audio_video_decode"]
+        result["checks"] = ["pair", "resolve", "relay_probe",
+                            "two_second_audio_video_decode" if args.decode_seconds == 2 else "sustained_audio_video_decode"]
         result["checks"] += ["live_edge_decode"] if live else ["seek_decode"]
         if expiry is not None:
             result['checks'].append('injected_expiry_fresh_resolution_same_relay_decode')
@@ -209,7 +240,9 @@ def main():
         thread.join(timeout=10)
         listener.close()
         if expiry is not None:
-            result.update(expiry_injections=expiry.injections, fresh_resolutions=fresh_resolutions[0])
+            result.update(expiry_injections=expiry.injections, fresh_resolutions=fresh_resolutions[0],
+                          expiry_root_requests=expiry.matching_requests,
+                          expiry_inject_on_request=expiry.inject_on_request)
         if thread.is_alive():
             result.update(result="failed", stage="cleanup", code="server_shutdown_timeout")
     args.output.parent.mkdir(parents=True, exist_ok=True)

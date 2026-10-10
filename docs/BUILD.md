@@ -147,6 +147,15 @@ manifest. The result labels `live_hls_root` and reports injection/resolution
 counts. This proves host root renewal with real media, not naturally expired
 links, child-resource/DVR renewal, long-session continuity or PS5 playback.
 
+For expiry during an ongoing live decode, use `--decode-seconds 60
+--hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for
+the selected root reach YouTube normally; its third request receives the single
+local 403. The same FFmpeg process must finish the requested decode duration.
+FFmpeg progress timestamps are checked, so an exit code of zero after an early
+ending is not sufficient. Reports include decoded durations and the root request
+count at injection. Increase `--decode-seconds` up to 3600 for longer host cases;
+this remains separate from PS5 continuity and naturally expired-link acceptance.
+
 After building the library worker, an explicit anonymous chat-service probe is:
 
 ```sh

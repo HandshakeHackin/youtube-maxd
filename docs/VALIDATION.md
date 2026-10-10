@@ -506,3 +506,22 @@ No account profile or console traffic was used. This is host renewal evidence;
 natural expiry, long-session continuity, child-resource/DVR recovery, audible
 audio and PS5 playback remain separate acceptance requirements. Native sources
 are unchanged; the frozen recovery candidate remains undeployed.
+
+### Sustained decode across live root expiry (2026-10-09)
+
+The probe now checks the final FFmpeg decoded timestamp instead of accepting
+exit status alone. Missing/malformed progress and early successful endings fail.
+An optional delayed injection forwards the first root requests normally, then
+expires exactly the requested playlist refresh during the same decode process.
+Full Python suite: 167 passed, known Starlette warning only; evidence
+`.deps/live-sustained-python.log` and `.deps/live-sustained-python.result` (0).
+
+The real public NASA AVC/AAC split HLS case passed with `--decode-seconds 60
+--simulate-hls-expiry --hls-expiry-after-requests 3`: final decoded timestamp
+60.01 seconds, exactly one injected expiry on root request three and one fresh
+resolution. The same FFmpeg process used the unchanged local manifest throughout
+the decode. Evidence: `.deps/live-sustained-public.json`,
+`.deps/live-sustained-public.log`, `.deps/live-sustained-public.result` (0).
+This extends the two-second startup-renewal case to an ongoing host decode;
+it does not establish PS5 pacing/audio, natural signed-link expiry, 30-minute
+lease continuity or full DVR behavior. No account profile or console traffic.
