@@ -19,7 +19,12 @@ or use installed `libavfilter`/`libavutil` development packages. The pinned host
 build was reconfigured to enable `atempo`; `.deps/tempo-host-build.log` records it.
 
 The native build now enables `atempo`, links `libavfilter`, compiles the adapter
-and invalidates older FFmpeg SDK stamps. PS5 cross-build is pending. This is the
+and invalidates older FFmpeg SDK stamps. PS5 candidate `9829b316` passed the
+FFmpeg rebuild, all 212 native objects, package and immutable freeze (126 files,
+eboot prefix `242ad70b513f417d`). The installed PS5 archive contains `ff_af_atempo`
+and its configuration enables `CONFIG_ATEMPO_FILTER`. Evidence:
+`.deps/tempo-stage-{ps5-build,freeze}.{log,result}` (both exit 0). No console was
+connected or changed for this batch. This is the
 audio-stage foundation, not working player speed selection: queue media-clock
 accounting, video-only pacing, rate changes, persisted controls and hardware
 sound/sync acceptance still require integration. The stage is not yet called by

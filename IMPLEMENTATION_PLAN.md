@@ -613,7 +613,8 @@ is implementation evidence, not full PS5 or live-account acceptance.
 
 Current batch: playback-speed audio foundation using the existing PS5 FFmpeg
 stack. The real PCM stage passed host ASan/UBSan across all 30 reference speeds;
-player integration and PS5 build/acceptance remain open. Previous candidates:
+PS5 candidate `9829b316` built/froze with the tempo-enabled FFmpeg library.
+Player integration and hardware acceptance remain open. Previous candidates:
 `639b015a` passed console chat paging/refresh/mode and exact state restoration;
 `327d8606` passed public thumbnail decode/cache and clean lifecycle. Consolidated gate:
 `.deps/parity-batch-*`; 224 companion tests, five native executables and generated
