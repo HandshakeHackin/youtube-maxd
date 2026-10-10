@@ -1,5 +1,16 @@
 # Offline validation record — 0.1.0
 
+## Downloaded caption identity — 2026-10-10
+
+Phone feedback and current-track toggles now use the language captured when the
+caption was fetched, rather than the preference for the next video. Changing
+that preference cannot relabel the playing track. New resolve, failed download
+and provider restart retire the identity. Shipping provider ASan/UBSan tests pass
+(`scripts/test_caption_identity.sh`, `.deps/caption-identity-tests.*`, exit 0),
+and the provider compiled with the pinned PS5 SDK
+(`.deps/caption-identity-ps5-object.*`, exit 0). This correction is not in frozen
+runtime candidate `0b02a137`; full caption-language switching remains open.
+
 ## PS5 pairing entropy correction — 2026-10-10
 
 - 2026-10-10 | casting | 79ceee4d | PS5 | failed: Link a phone SIGSYS during identity generation; OS released owned app, original data restored | `.deps/phone-player-pairing-hardware.*` | checked PS5 RNG

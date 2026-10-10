@@ -51,6 +51,7 @@ typedef struct Request {
     int has_chat_position;
     int64_t chat_position_ms;
     char auth_source[512], auth_token[128];
+    char caption_language[16];
 } Request;
 
 static Record g_records[RECORDS];
@@ -60,6 +61,7 @@ static Request g_requests[REQUESTS];
 static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
+static char g_caption_language[16];
 static char g_active_profile[33], g_next_profile[33];
 /* Navigation origin, not a content classifier. Resolve snapshots the origin
  * before asynchronous work; queue entries retain the origin of their insertion. */
@@ -645,6 +647,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 
 static int init(void) {
     tube_remote_shutdown();
+    g_caption_path[0] = g_caption_language[0] = 0;
     g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     g_remote_stop_on_disconnect = 0;
     tube_sb_defaults(&g_sb);
@@ -1191,7 +1194,10 @@ static void caption_response(int ok, int status, const char *body, size_t size, 
         if (f) {
             int success = fwrite(body, 1, size, f) == size;
             if (fclose(f)) success = 0;
-            if (success) copy(g_caption_path, sizeof g_caption_path, evo_data_path("active.mp4"));
+            if (success) {
+                copy(g_caption_path, sizeof g_caption_path, evo_data_path("active.mp4"));
+                copy(g_caption_language, sizeof g_caption_language, r->caption_language);
+            }
         }
     }
     complete(r, 1); /* A missing caption never prevents ordinary playback. */
@@ -1254,7 +1260,7 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.duration_sec = (int64_t)num(root, "duration_sec");
         cached->item.is_live = r->choices[0].is_live;
     }
-    g_caption_path[0] = 0; g_segment_count = 0; g_skip_guard = -1;
+    g_caption_path[0] = g_caption_language[0] = 0; g_segment_count = 0; g_skip_guard = -1;
     g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0; g_sb_finish_target = -1;
     g_highlight_guard = -1;
     if (!++g_sb_serial) ++g_sb_serial;
@@ -1282,6 +1288,7 @@ static void resolved(Request *r, const cJSON *root) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
             if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url"))) continue;
             r->stage = 3;
+            copy(r->caption_language, sizeof r->caption_language, str(c, "language"));
             int rc = evo_net_request_async("GET", str(c, "url"), NULL, NULL, 0, caption_response, r);
             r->inflight = rc == 0;
             if (!rc) return;
@@ -2364,7 +2371,7 @@ int tube_phone_video(const char *url, char video[12]) {
         strcmp(g_recovery.choice.url, url)) return 0;
     copy(video, 12, g_active_id); return 1;
 }
-const char *tube_phone_caption_language(void) { return *g_caption_path ? g_language : ""; }
+const char *tube_phone_caption_language(void) { return *g_caption_path ? g_caption_language : ""; }
 const char *tube_take_paid_content_notice(void) {
     if (!g_paid_notifications || g_paid_shown || !*g_paid_text || g_finished ||
         !*g_active_id || !*g_sb_source || strcmp(g_sb_source, g_source) ||
