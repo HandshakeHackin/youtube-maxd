@@ -213,7 +213,14 @@ begin "inspecting signed containers"''')
     # App modules can remain sandboxed. Resolve diagnostic paths through EVO's
     # existing data-root contract, just like the provider's persistent state.
     log = player + "src/evo_boot_log.c"
-    replace(log, '#include "evo_boot_log.h"', '#include "evo_boot_log.h"\n#include "evo_data_path.h"')
+    replace(log, '#include "evo_boot_log.h"', '#include "evo_boot_log.h"\n#include "evo_data_path.h"\n#include "evo_jailbreak.h"')
+    # Mounted sandbox paths can accept writes before Lapy succeeds. Opening the
+    # log starts both a writer and a server, violating the helper's single-thread
+    # precondition. Keep breadcrumbs in RAM/klog until the complete storage proof.
+    replace(log, 'void evo_boot_log_flush(void)\n{', '''void evo_boot_log_flush(void)
+{
+    if (!evo_jailbreak_is_open())
+        return;''')
     replace(log, '#define EVO_LOG_PATH "/data/prosperotube/console.log"', '#define EVO_LOG_PATH evo_data_path("console.log")')
     replace(log, 'EVO_LOG_PATH ".1"', 'evo_data_path("console.log.1")')
     remote = player + "src/evo_usb_remote.c"

@@ -597,3 +597,30 @@ No application status/UI/storage-ready checkpoint was produced. No input,
 second launch or close payload was sent; the owned lock was released. No further
 console traffic followed the failure. Storage persistence, clean teardown,
 service health after termination, playback, audio and chat remain unverified.
+
+### Startup logger / Lapy precondition correction (2026-10-09)
+
+Closer inspection of the captured fallback klog identifies SIGSYS (signal 12)
+after `eboot.bin calls exit() exit_value=1`; it does not establish a GPU fault.
+The application returns from failed initialization without its normal run-loop
+shutdown. That failure lifecycle remains a separate hardware acceptance item.
+
+The generated boot logger now refuses to open its file, start the writer or
+start the log server until `evo_jailbreak_is_open()` confirms the complete
+storage proof. Previously a writable sandbox-mounted path could activate those
+threads before Lapy; the pinned helper requires a single-threaded target with a
+private credential. The native video watchdog does not start in the initial
+probe: its start calls belong to decoder renewal and playback. No claim is made
+that the logger was the exact cause of the captured status 7. Helper stage logs
+were unavailable in that case. No further console connection or retry occurred.
+
+`scripts/test_startup_log_gate.py` exercises the actual generated flush body:
+repeated unproved calls retain buffered messages without disk/thread/server
+effects; proved startup opens the log and enables those sinks, and subsequent
+flushes drain without reopening. Run after `scripts/prepare_native.py`.
+
+Generated-flush regression and both existing/resident/helper and mounted-data
+listing regressions passed; wrapper result 0. Evidence:
+`.deps/startup-log-test.log`, `.deps/startup-log-elevation.log` and
+`.deps/startup-log.result`. This is host evidence. A new PS5 build and an
+idle-first console case with helper-stage capture remain required.

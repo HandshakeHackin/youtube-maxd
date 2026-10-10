@@ -27,3 +27,12 @@ EVO's preload ordering before the credential transition.
 Old sandbox fixture data is not automatically copied or merged into durable
 state. Console acceptance must verify a clean launch, exact app storage path,
 save/relaunch persistence, playback and clean teardown. It is pending.
+
+ProsperoTube startup keeps the boot log buffered until
+`evo_jailbreak_is_open()` confirms both Lapy elevation and the application
+storage proof. A sandbox-mounted `/data` may accept file writes without
+directory access; opening a log there must not start the writer or log-server
+threads before the helper's single-threaded credential precondition is met.
+The generated flush regression is `scripts/test_startup_log_gate.py` (run after
+`scripts/prepare_native.py`). Kernel boot breadcrumbs remain available while
+the durable logger is gated.
