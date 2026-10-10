@@ -22,6 +22,12 @@ section capabilities and the job path. Native section routing, row IDs,
 pagination and nested Music playback/queue origin passed ASan/UBSan. Console
 acceptance and personalized account coverage remain open.
 
+Final native section/Music/provider regression exited 0 (`.deps/topics-native.log`).
+Candidate `57766c09` passed PS5 build/freeze: 126 files, eboot prefix
+`82262e0635707fc7`, build `prosperotube-57766c09_1010-2053`. Evidence:
+`.deps/topics-{ps5-build,freeze}.{log,result}`, both exit 0. The companion worker
+was rebuilt; the currently running companion and consoles were not modified.
+
 ## Music-origin speed behavior — 2026-10-10
 
 The explicit Music section has its own navigation identity. New playback from
