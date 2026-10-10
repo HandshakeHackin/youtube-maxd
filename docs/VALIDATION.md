@@ -19,8 +19,11 @@ selection/text-scroll preservation after updates, removal and mode/setup cleanup
 The initial UI test's first-page assumption was corrected for newest-message
 opening; its failed log is retained. The worker bundle built with the cached Linux
 Node runtime after a Windows/Linux esbuild mismatch and absent system Node were
-identified. Evidence: `.deps/chat-history-*`. Native PS5 build and hardware
-acceptance remain pending. Replay and history preceding chat opening remain open.
+identified. Evidence: `.deps/chat-history-*`. Native PS5 candidate `639b015a`
+passed build, package and immutable freeze (126 files, eboot prefix
+`64f9d8b3b6bffab4`); hardware acceptance with the matching companion remains
+pending. The existing console installation was not changed. Replay and history
+preceding chat opening remain open.
 
 ## Native WebP artwork — 2026-10-10
 

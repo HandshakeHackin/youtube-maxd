@@ -606,15 +606,16 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
-| Comments, playlists and live chat | Reader, composition/review and basic operations; retained history passed worker/native/UI tests with stable selection and moderation updates | Retained-history PS5 gate; live accounts, chat replay and complete live/DVR behavior |
+| Comments, playlists and live chat | Reader, composition/review and basic operations; retained history passed worker/native/UI tests and PS5 build with stable selection and moderation updates | Retained-history console acceptance; live accounts, chat replay and complete live/DVR behavior |
 | Casting and remote integration | Reference inventory only | Implement and accept |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
 Current batch: retained live-chat history across worker, fixture, native reader
 and RML paging. 32 worker and 17 targeted companion tests passed; native
-chat/compose ASan/UBSan and actual generated UI tests passed. Native PS5 gate
-pending. Previous PS5 candidate `327d8606` passed public thumbnail decode/cache
+chat/compose ASan/UBSan and actual generated UI tests passed. PS5 candidate
+`639b015a` built and froze; console acceptance pending. Previous PS5 candidate
+`327d8606` passed public thumbnail decode/cache
 and clean lifecycle. Previous consolidated gate:
 `.deps/parity-batch-*`; 224 companion tests, five native executables and generated
 player paths passed. New DeArrow/SponsorBlock hardware acceptance remains open.
