@@ -108,6 +108,8 @@ languages and voice capture are not silently acknowledged. Voice capture/search,
 caption-language switching, disconnect preferences and playlist continuation
 beyond the supplied 128-ID window still need implementation. Real phone and PS5
 acceptance remains open.
+The receiver advertises playback and D-pad capabilities. Microphone capability
+is withheld until native capture and speech search are connected.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

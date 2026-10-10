@@ -231,7 +231,8 @@ class Lounge:
                 "state": "failed" if receiver.error else "listening", "error": receiver.error}
 
     def params(self, receiver, *, rpc=False):
-        params = {"device": "LOUNGE_SCREEN", "theme": "cl", "capabilities": "dsp,mic,dpa",
+        # Advertise only connected native controls; add mic after capture/search ships.
+        params = {"device": "LOUNGE_SCREEN", "theme": "cl", "capabilities": "dsp,dpa",
                   "mdxVersion": "2", "VER": "8", "CVER": "1", "v": "2", "t": "1", "app": "lb-v4",
                   "name": receiver.name, "id": receiver.device_id, "loungeIdToken": receiver.token,
                   "zx": secrets.token_hex(8), "RID": "rpc" if rpc else str(receiver.rid)}

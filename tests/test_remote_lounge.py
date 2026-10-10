@@ -85,6 +85,7 @@ class WireServer:
         assert path == "/bc/bind"
         query = request.url.params
         assert query["id"] == DEVICE and query["loungeIdToken"] == "private-token"
+        assert query["capabilities"] == "dsp,dpa"
         if query.get("TYPE") == "terminate":
             assert request.method == "GET" and query["SID"] == "private-SID"
             return httpx.Response(200, content=b"")

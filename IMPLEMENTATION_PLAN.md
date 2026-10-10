@@ -621,7 +621,12 @@ controller/audio sources compiled with the PS5 SDK. Candidate `c2503cbb` built
 and froze; the console rendered and released cleanly, but the command fixture
 had not enabled pairing. The revised case must use the actual pairing UI.
 Explicit duplicate playlist positions and pre-callback profile retirement now
-have host/PS5 object coverage. Actual phone playback remains unverified.
+have host/PS5 object coverage. Revised candidate `79ceee4d` built/froze, but
+Link a phone triggered SIGSYS during identity generation. The OS released the
+owned app and original provider data was restored after an idle check. The checked
+PS5 kernel RNG replacement from ProsperoLight passes sanitizer/provider tests and
+PS5 object compilation. Microphone advertisement is withheld until implemented.
+Corrected package/runtime and actual phone playback remain unverified.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

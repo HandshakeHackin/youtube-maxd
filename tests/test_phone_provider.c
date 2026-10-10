@@ -13,6 +13,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
 static int64_t clock_ms=100000;
+static int entropy_failure, entropy_calls;
+int sysctlbyname(const char *name,void *out,size_t *length,const void *input,size_t size) {
+    assert(!strcmp(name,"kern.rng_pseudo") && *length==64 && !input && !size);
+    ++entropy_calls;
+    if(entropy_failure) return -1;
+    for(size_t i=0;i<*length;++i) ((unsigned char*)out)[i]=(unsigned char)(i+entropy_calls);
+    return 0;
+}
 int tube_test_clock_gettime(clockid_t id,struct timespec *t) {
     assert(id==CLOCK_MONOTONIC); t->tv_sec=clock_ms/1000; t->tv_nsec=(clock_ms%1000)*1000000; return 0;
 }
@@ -59,6 +67,11 @@ int main(void) {
     p->stream_chosen("abcdefghijk",&choice);
     assert(tube_phone_video(choice.url,video) && !strcmp(video,"abcdefghijk"));
     assert(!tube_phone_video("http://127.0.0.1:8765/media/unrelated.mpd",video));
+    entropy_failure=1; page("settings:remote:pair"); tube_poll(); assert(!count);
+    assert(strstr(items[0].title,"random source unavailable"));
+    int calls=entropy_calls; tube_poll(); tube_poll(); assert(entropy_calls==calls);
+    cJSON *failure_store=read_store(); assert(!*str(failure_store,"remote_device")); cJSON_Delete(failure_store);
+    entropy_failure=0;
     page("settings:remote:pair"); assert(rows==4 && !count);
     cJSON *stored=read_store(); char device[37]; snprintf(device,sizeof device,"%s",str(stored,"remote_device"));
     assert(tube_remote_identity_valid(device) && device[14]=='4' && cJSON_IsTrue(cJSON_GetObjectItem(stored,"remote_enabled")));

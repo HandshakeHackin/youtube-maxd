@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include "tube_sponsor.h"
 #include "tube_remote.h"
+#include "tube_random.h"
 
 #define RECORDS 384
 #define REQUESTS 8
@@ -92,7 +93,7 @@ int tube_set_playback_speed(int percent) {
 int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
-static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed;
+static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed, g_remote_entropy_failed;
 static char g_remote_device[37], g_remote_screen[129];
 static void remote_configure(void);
 static tube_player_chat_row_t g_player_chat_rows[6];
@@ -587,8 +588,13 @@ static void save(void) {
 }
 
 static void remote_configure(void) {
-    if (g_remote_enabled && g_store_writable && *g_source && *g_token && !*g_remote_device) {
-        unsigned char bytes[16]; arc4random_buf(bytes, sizeof bytes);
+    if (g_remote_enabled && !g_remote_entropy_failed && g_store_writable && *g_source && *g_token && !*g_remote_device) {
+        unsigned char bytes[16];
+        if (tube_random_bytes(bytes, sizeof bytes)) {
+            g_remote_entropy_failed = 1;
+            tube_set_error("Phone pairing could not obtain a PS5 random identity. Link a phone retries.");
+            tube_remote_shutdown(); return;
+        }
         bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
         snprintf(g_remote_device, sizeof g_remote_device,
             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
@@ -597,7 +603,7 @@ static void remote_configure(void) {
         g_remote_identity_saved = 0; save();
     }
     tube_remote_configure(g_source, g_token, g_library_profile,
-        g_remote_enabled && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
+        g_remote_enabled && !g_remote_entropy_failed && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
         g_remote_device, g_remote_screen);
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
@@ -636,7 +642,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 
 static int init(void) {
     tube_remote_shutdown();
-    g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
+    g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     tube_sb_defaults(&g_sb);
     sponsor_invalidate(); g_sb_last_position = -1;
     tube_chat_stop();
@@ -1879,13 +1885,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (!g_store_writable || !*g_source || !*g_token) {
                 tube_set_error("Pair with the companion and check local storage before linking a phone.");
             } else {
+                g_remote_entropy_failed = 0;
                 g_remote_enabled = !strcmp(parent, "settings:remote:pair") ? 1 : !g_remote_enabled;
                 save(); remote_configure();
                 if (!strcmp(parent, "settings:remote:pair")) tube_remote_pair();
             }
         }
         else if (!strcmp(parent, "settings:remote:reset")) {
-            tube_remote_shutdown(); g_remote_enabled = 0;
+            tube_remote_shutdown(); g_remote_enabled = g_remote_entropy_failed = 0;
             g_remote_device[0] = g_remote_screen[0] = 0; g_remote_identity_saved = 0;
             save(); remote_configure();
         }
@@ -1926,7 +1933,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "settings:remote", 15)) {
             char label[96]; const char *code = tube_remote_code();
             const int state = tube_remote_state();
-            snprintf(label, sizeof label, "Phone connection: %s", g_remote_write_failed ? "local data not saved" : !g_remote_enabled ? "off" :
+            snprintf(label, sizeof label, "Phone connection: %s", g_remote_write_failed ? "local data not saved" : g_remote_entropy_failed ? "random source unavailable" : !g_remote_enabled ? "off" :
                 !g_remote_identity_saved ? "storage unavailable" : state == TUBE_REMOTE_FAILED ? "stopped; retry linking" :
                 state == TUBE_REMOTE_LISTENING ? "ready" : "connecting");
             folder(&out[n++], "settings:remote:info", label, "YouTube app TV-code pairing");

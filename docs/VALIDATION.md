@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## PS5 pairing entropy correction — 2026-10-10
+
+- 2026-10-10 | casting | 79ceee4d | PS5 | failed: Link a phone SIGSYS during identity generation; OS released owned app, original data restored | `.deps/phone-player-pairing-hardware.*` | checked PS5 RNG
+
+The revised case enabled pairing through the actual UI after full candidate byte
+verification and settling. SIGSYS stopped the owned app before receiver registration
+or playback. The saved debug ELF maps the caller to `remote_configure`; its identity
+generation calls `arc4random_buf`. No launch retry followed. Captured OS logs confirm
+owned app/video/mount release. A separate idle-first cleanup verified services and
+restored the exact original provider bytes (`.deps/phone-player-crash-restoration.*`,
+exit 0).
+
+Identity generation now uses ProsperoLight's PS5 `kern.rng_pseudo` sysctl pattern,
+checks returned lengths and wipes output on failure. Failed entropy cannot advertise
+an identity or retry every frame; explicit pairing retry can recover. The PS5 branch
+is exercised by provider tests, with short/oversized/error/block-boundary tests under
+ASan/UBSan (`.deps/phone-rng-tests.*`, exit 0). Connected PS5 objects compiled
+(`.deps/phone-rng-ps5-objects.*`, exit 0). Lounge no longer advertises microphone
+support before capture/search exists; 40 backend tests passed
+(`.deps/phone-player-capabilities-tests.*`). Corrected package/runtime and real-phone
+acceptance remain pending.
+
 ## Phone player and ephemeral queue adapter — 2026-10-10
 
 - 2026-10-10 | casting | c2503cbb | PS5 | failed: rendering, owned release/state restoration passed; fixture never enabled pairing | `.deps/phone-player-hardware.*` | test UI pairing first

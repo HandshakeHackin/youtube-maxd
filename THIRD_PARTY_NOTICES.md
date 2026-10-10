@@ -17,6 +17,9 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   build recipe are adapted from ProsperoTV
   `a33031e9e50b4942ca0e2287cc757271345d874f`; existing/resident/helper regression
   coverage derives from ProsperoLight. Source: `native/elevation`.
+* PS5 UUID entropy adapts the checked `kern.rng_pseudo` reader from
+  [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight/blob/b0149a941617c9e92a3be475b78304052c718d7c/platform/ps5/ps5_entropy.c)
+  (GPL-3.0-or-later). Adapted source is in `native/tube_random.h`.
 * FFmpeg 7.1.1 minimal software profile, dav1d 1.5.1, RmlUi 6.2, SDL2,
   FreeType, OpenSSL, zlib and Pacbrew libraries retain upstream licenses.
   Source recipes/checksums are in EVO scripts and Pacbrew v0.39 source.
