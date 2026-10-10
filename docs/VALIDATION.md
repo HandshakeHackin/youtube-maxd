@@ -47,8 +47,14 @@ at frame zero. The native retry anchor now follows the decoder's settled positio
 if a paused seek lands just before its requested target; future/pre-seek rows
 remain suppressed. Forty-nine worker tests and the final native/HUD/menu sanitizer
 check passed (`.deps/chat-replay-final-native.{log,result}`, exit 0). The first
-frozen native candidate predates this settled-position refinement; the corrected
-candidate needs a fresh PS5 build. Console replay acceptance remains pending.
+frozen native candidate predates this settled-position refinement. Corrected
+candidate `9ac95e69` passed PS5 build/freeze: 126 files, build
+`prosperotube-9ac95e69_1010-2216`, eboot SHA-256 prefix `1130e1801750a6c7`
+(`.deps/chat-replay-final-{ps5-build,freeze}.{log,result}`, both exit 0).
+The latest rebuilt bundle repeated the Python process replay check successfully.
+No console work was performed in this replay batch; PS5 rendering/timing and
+physical appearance acceptance remain pending. Deploy the matching new companion
+and bundle: an older running companion rejects the new playback-clock field.
 
 ## In-player live-chat controls — 2026-10-10
 
