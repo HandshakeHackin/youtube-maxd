@@ -313,3 +313,10 @@ playback, A/V synchronization and clean teardown remain pending.
 Both cases released their owned locks. No launch, input or close was sent.
 The corrected case establishes stored bytes, not app execution. Current PR50
 startup/storage, persistence, playback/audio and teardown remain unverified.
+
+- 2026-10-10 | video-only resume | e52315dd | offline PS5 | partial-pass: complete package/freeze and host decoded-frame regression; no deployment | .deps/video-resume-ps5-build.log; .deps/video-resume-timeline.log | idle-first startup
+
+Build `prosperotube-e52315dd_1010-0354` has 126 frozen files and eboot SHA-256
+prefix `60967ac1c01c1852`. Fresh Guest YouTube AVC/AAC DASH host decode passed
+eight seconds at offsets zero and four. This candidate has never launched;
+the host result does not establish console playback, motion or sound.

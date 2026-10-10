@@ -892,3 +892,28 @@ the actual decoded frame position, one-shot anchoring, A/V ownership, missing
 timestamps, seek discard and unrelated origins. Evidence:
 `.deps/video-resume-timeline.log` / `.result` (0). PS5 build and hardware
 acceptance of this follow-up remain pending at the source milestone.
+
+### Video-only PS5 package and fresh public YouTube check (2026-10-10)
+
+Source `e52315dd` completed all 211 PS5 object builds, link, container conversion,
+folder/PFS/ZIP packaging and immutable freeze: build
+`prosperotube-e52315dd_1010-0354`, 126 files, eboot SHA-256 prefix
+`60967ac1c01c1852`. Evidence: `.deps/video-resume-ps5-build.log` and
+`.deps/video-resume-freeze.log` / result files (both 0). This package has
+never been deployed or launched. The previous `3c3eb818` installation remains
+verified but unlaunched by its bounded case.
+
+A fresh Guest check resolved public video `jNQXAC9IVRw` through the shipping
+companion and DASH relay, then host FFmpeg decoded AVC/AAC for 8.0 seconds
+at input offset zero and 8.0 seconds at input offset four. Pairing, resolution,
+audio/video probing, both duration checks and temporary-server cleanup passed.
+Evidence: `.deps/first-video-current-public.json`, `.log` and `.result` (0).
+No account profile, mutation, simulated expiry or console traffic occurred.
+The probe now records attempted input offsets explicitly and labels VOD cases
+without a positive offset as `vod_decode_without_seek`, avoiding a false seek
+claim when metadata provides no usable duration. The updated probe was executed
+successfully; observed offsets were exactly `[0, 4]`.
+
+This is host service compatibility and build evidence. PR50 helper execution,
+PS5 storage/persistence, real YouTube playback, decoded position, physical
+controller behavior, audible A/V synchronization and teardown remain pending.

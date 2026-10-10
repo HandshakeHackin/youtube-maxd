@@ -206,6 +206,7 @@ def main():
         offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - args.decode_seconds)))
         for offset in offsets:
             stage = "decode" if offset == 0 else "seek_decode"
+            result.setdefault("decode_offsets_seconds", []).append(offset)
             command = ["ffmpeg", "-v", "error"] + (["-ss", str(offset)] if offset else [])
             command += ["-i", choice["url"], "-t", str(args.decode_seconds), "-map", "0:v", "-map", "0:a",
                         "-progress", "pipe:1", "-nostats", "-f", "null", "-"]
@@ -217,7 +218,12 @@ def main():
         result["result"] = "pass"
         result["checks"] = ["pair", "resolve", "relay_probe",
                             "two_second_audio_video_decode" if args.decode_seconds == 2 else "sustained_audio_video_decode"]
-        result["checks"] += ["live_edge_decode"] if live else ["seek_decode"]
+        if live:
+            result["checks"].append("live_edge_decode")
+        elif any(offset > 0 for offset in offsets):
+            result["checks"].append("seek_decode")
+        else:
+            result["checks"].append("vod_decode_without_seek")
         if expiry is not None:
             result['checks'].append('injected_expiry_fresh_resolution_same_relay_decode')
     except urllib.error.HTTPError as error:
