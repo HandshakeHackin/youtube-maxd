@@ -54,6 +54,11 @@ void EvoRmlProviderHost::ReplaceFolder(const char* parent, const char* title)'''
         self->m_all_rows.clear(); self->m_art_urls.clear(); self->m_art_keys.clear(); self->m_row_offset = 0;
     }
     self->ApplyItems(items, count, has_more);
+    if (self->m_model.chat && !refreshing_chat && count > 0) {
+        const int target = count - 1;
+        self->SetPageOffset((size_t)(target / EVO_PROVIDER_PAGE_SIZE) * EVO_PROVIDER_PAGE_SIZE,
+                            target % EVO_PROVIDER_PAGE_SIZE);
+    }
     if (refreshing_chat) {
         int target = count > 0 ? std::min(old_absolute, count - 1) : 0;
         bool retained = false;

@@ -24,7 +24,7 @@ def test_live_chat_api_auth_modes_jobs_and_close_are_read_operations():
         invalid = client.post('/v1/library', headers=headers, json={'action': 'live_chat', 'id': 'abcdefghijk', 'chat_mode': 'bad'})
         assert invalid.status_code == 422 and not calls
         started = client.post('/v1/jobs', headers=headers, json={'action': 'library', 'library': {
-            'action': 'live_chat', 'id': 'abcdefghijk', 'chat_mode': 'live'}})
+            'action': 'live_chat', 'id': 'abcdefghijk', 'chat_mode': 'live', 'chat_history': True}})
         assert started.status_code == 200
         deadline = time.monotonic() + 5
         while True:
@@ -33,7 +33,7 @@ def test_live_chat_api_auth_modes_jobs_and_close_are_read_operations():
             assert time.monotonic() < deadline
             time.sleep(.01)
         assert result['state'] == 'done' and result['result']['kind'] == 'live_chat'
-        assert calls[0]['chat_mode'] == 'live'
+        assert calls[0]['chat_mode'] == 'live' and calls[0]['chat_history'] is True
         assert client.post('/v1/library', headers=headers, json={'action': 'chat_poll', 'cursor': 'opaque-cursor'}).status_code == 200
         assert client.post('/v1/library', headers=headers, json={'action': 'chat_close', 'cursor': 'opaque-cursor'}).json()['success']
         assert [call['action'] for call in calls] == ['live_chat', 'chat_poll', 'chat_close']
@@ -106,4 +106,28 @@ def test_offline_fixture_chat_rolls_stable_message_ids_and_scopes_capabilities(t
         await library.execute({'action': 'profile_remove', 'profile': 'fixture_one'})
         assert not library.chats
         await library.close()
+    asyncio.run(run())
+
+
+def test_fixture_chat_history_retains_and_bounds_previous_messages():
+    import asyncio
+    from prosperotube.demo import FixtureExtractor
+    from prosperotube.fixture_library import FixtureLibrary, VIDEOS
+
+    async def run():
+        clock = [100.0]
+        library = FixtureLibrary(FixtureExtractor(), clock=lambda: clock[0])
+        try:
+            snapshot = await library.execute(dict(action='live_chat', id=VIDEOS[2], chat_history=True))
+            first_id = snapshot['items'][0]['id']
+            for index in range(240):
+                clock[0] += 2
+                snapshot = await library.execute(dict(action='chat_poll', cursor=snapshot['cursor']))
+                assert len(snapshot['items']) == min(25 + index, 256)
+                if index < 232:
+                    assert snapshot['items'][0]['id'] == first_id
+            assert snapshot['items'][0]['id'] != first_id
+            assert len({row['id'] for row in snapshot['items']}) == 256
+        finally:
+            await library.close()
     asyncio.run(run())

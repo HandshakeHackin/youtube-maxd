@@ -91,6 +91,27 @@ test('chat snapshots are bounded and retain paid-message text without private me
   await library.execute({action:'chat_close',cursor:result.cursor});
 });
 
+test('retained chat history preserves moderation and stays below the worker byte limit', async () => {
+  let now=1000;
+  let batch=Array.from({length:300},(_,i)=>({addChatItemAction:{item:chatMessage(String(i))}}));
+  const actions={async execute(){return Parser.parseResponse(chatResponse(batch));}};
+  const library=new Library(async()=>({async getInfo(id){return {basic_info:{id},livechat:{continuation:'initial'},actions};}}), [], ()=>now);
+  const first=await library.execute({action:'live_chat',id:'abcdefghijk',chat_history:true});
+  assert.equal(first.items.length,256);assert.equal(first.items[0].id,'44');
+  batch=[{markChatItemAsDeletedAction:{targetItemId:'44',deletedStateMessage:{simpleText:'Removed'}}}];
+  now+=2000;
+  const second=await library.execute({action:'chat_poll',cursor:first.cursor});
+  assert.equal(second.items.length,255);assert.equal(second.items[0].id,'45');
+  assert.equal(first.items.length,256);
+  batch=Array.from({length:300},(_,i)=>({addChatItemAction:{item:chatMessage('long-'+i,'private','😀'.repeat(4096))}}));
+  now+=2000;
+  const large=await library.execute({action:'chat_poll',cursor:second.cursor});
+  assert.ok(large.items.length>24 && large.items.length<256);
+  assert.ok(Buffer.byteLength(JSON.stringify(large))<800*1024);
+  assert.equal(large.items.at(-1).id,'long-299');
+  assert.ok(!JSON.stringify(large).includes('private'));
+});
+
 test('pinned live chat transport parses text, replacements and author moderation with private cursors', async () => {
   let now = 0; const requests = [];
   const responses = [chatResponse([{addChatItemAction:{item:chatMessage('one')}}]),

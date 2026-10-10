@@ -17,7 +17,7 @@ int tube_test_clock_gettime(clockid_t id, struct timespec *t) {
 }
 typedef struct { char method[8], url[1024], body[2048], bearer[160]; evo_net_cb cb; void *ud; } Pending;
 static Pending pending[32]; static int count, calls, ok, rows;
-static evo_provider_item_t items[24];
+static evo_provider_item_t items[256];
 int evo_net_request_async(const char *method, const char *url, const char *body,
                          const char **headers, int n, evo_net_cb callback, void *ud) {
     assert(count < 32); Pending *p = &pending[count++]; memset(p, 0, sizeof *p);
@@ -34,7 +34,7 @@ static void reply(int i, int status, const char *body) {
     p.cb(status == 200, status, body, strlen(body)+1, p.ud);
 }
 static void received(int success, const evo_provider_item_t *value, int n, int more, void *ud) {
-    (void)ud; assert(!more); ++calls; ok = success; rows = n; assert(n <= 24);
+    (void)ud; assert(!more); ++calls; ok = success; rows = n; assert(n <= 256);
     if (value) memcpy(items, value, (size_t)n * sizeof *items);
 }
 static cJSON *frame(const char *cursor, const char *mode, int first, int total) {
@@ -87,6 +87,16 @@ int main(void) {
     respond(frame("chat-cap-two","top",1,24));
     assert(ok && rows==24 && !strcmp(items[0].id,stable) && !*tube_comment_text(removed));
     assert(!count); privacy();
+    /* Full retained history remains readable; moderation removes old text. */
+    clock_ms += 2000;
+    assert(!p->list_catalog("chat:top:abcdefghijk",0,received,NULL));
+    assert(strstr(pending[0].body,"\"chat_history\":true"));
+    respond(frame("chat-cap-history","top",0,256));
+    assert(ok && rows==256 && *tube_comment_text(items[255].id));
+    snprintf(removed,sizeof removed,"%s",items[0].id);
+    clock_ms += 2000; assert(!p->list_catalog("chat:top:abcdefghijk",0,received,NULL));
+    respond(frame("chat-cap-two","top",1,255));
+    assert(ok && rows==255 && !*tube_comment_text(removed));
     /* Mode change closes the old context and opens a new one. */
     assert(!p->list_catalog("chat:live:abcdefghijk",0,received,NULL));
     assert(count==2 && strstr(pending[0].body,"chat_close") && strstr(pending[0].body,"chat-cap-two"));

@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Retained live-chat history — 2026-10-10
+
+The native reader requests `chat_history: true`, opening at the newest message
+and allowing existing L1/R1 paging through up to 256 retained messages. Worker
+snapshots also cap serialized message data at 768 KiB, preserving full text while
+remaining below the 1 MiB worker line limit. Legacy requests retain 24-message
+responses. Authoritative snapshots apply moderation to retained history; stable
+message identities preserve selection and text scroll across updates. Native
+chat text has separate bounded RAM storage, cleared on context changes.
+
+Validation: 32 worker tests passed, including retained-history moderation and
+large Unicode response bounds; 17 targeted companion tests passed and the four
+API tests passed again after adding the history-field forwarding assertion.
+Both native chat/compose executables passed ASan/UBSan. The actual generated RML
+provider test passed newest-message opening, paging into older history,
+selection/text-scroll preservation after updates, removal and mode/setup cleanup.
+The initial UI test's first-page assumption was corrected for newest-message
+opening; its failed log is retained. The worker bundle built with the cached Linux
+Node runtime after a Windows/Linux esbuild mismatch and absent system Node were
+identified. Evidence: `.deps/chat-history-*`. Native PS5 build and hardware
+acceptance remain pending. Replay and history preceding chat opening remain open.
+
 ## Native WebP artwork — 2026-10-10
 
 The existing PS5 FFmpeg 7.1.1 build already enables WebP decoding and parsing;

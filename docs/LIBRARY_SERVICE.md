@@ -9,8 +9,9 @@ their account context. Local favorites, queue, follows and history remain consol
 data, stored separately for each selected profile.
 
 This is not full SmartTube parity. Live chat has a request-driven service and
-native recent-message reader; replay timing and posting remain unfinished. Comment
-posting is also unfinished. Device-code login is implemented with real-account/PS5 acceptance pending. Account
+native retained-message reader; replay timing remains unfinished. Chat posting has
+composition/review and confirmation guards, with real-account/PS5 acceptance pending.
+Comment posting is also unfinished. Device-code login is implemented with real-account/PS5 acceptance pending. Account
 cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real-account acceptance remains unverified.
@@ -25,7 +26,7 @@ message menus, or run background pollers. Each poll performs at most one upstrea
 request. Opening a nonselected mode can require the initial header and one mode
 continuation request. Honor `poll_after_ms`; early polls do not contact YouTube.
 
-Responses have `kind: live_chat`, the most recent 24 normalized messages,
+Responses have `kind: live_chat`, the most recent 24 normalized messages by default,
 `cursor`, `ended`, `is_replay: false`, and `poll_after_ms`. The service retains at
 most 256 messages in each of 16 chats and 256 opaque continuation references.
 Contexts expire after 30 minutes without a completed update. Repeating a consumed
@@ -37,13 +38,20 @@ Text, paid messages/stickers and membership/gift announcements are normalized as
 display data. Replacement and moderator item/author deletion actions update the
 retained snapshot; unsupported actions are skipped. Text remains literal, not
 trusted markup. Signed server continuations, author moderation IDs, endpoints and
-account credentials remain private to the worker. This bounded recent snapshot is
-not a complete scrollback implementation. Replay returns `chat_replay_pending`
+account credentials remain private to the worker. Opening with `chat_history: true`
+returns up to 256 retained messages, bounded additionally to 768 KiB of serialized
+message data to fit the worker transport. The native reader requests this mode;
+L1/R1 browse the retained history, opening at the newest message. Each update is
+an authoritative snapshot, so moderator removals also remove older retained text.
+Selection and text scroll remain stable while the selected message is retained.
+History stays in RAM and is cleared on chat/source/profile changes; messages from
+before opening the chat cannot be recovered by this path. Deploy the matching
+companion version with the native client. Replay returns `chat_replay_pending`
 until playback-position timing is implemented. Real account contexts and PS5
 acceptance remain pending.
 
 R3 on a native live-video row opens top chat. Within chat, R3 switches top/live
-mode, L1/R1 page through the 24-message snapshot, L2/R2 scroll the selected
+mode, L1/R1 page through the retained snapshot, L2/R2 scroll the selected
 message, and Touchpad opens the video's ordinary comments. Updates honor the
 server interval and allow one request at a time. They preserve the currently
 selected message and its scroll position when that message remains in the

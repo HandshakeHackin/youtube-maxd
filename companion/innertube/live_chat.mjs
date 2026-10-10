@@ -52,8 +52,17 @@ export class ChatReader {
     return contents;
   }
   snapshot(context, cursor, delay) {
+    // Keep full message text, while staying below the worker's 1 MiB line limit.
+    const items = [];
+    let bytes = 0;
+    for (const { author_id, ...item } of Array.from(context.messages.values()).reverse()) {
+      const size = Buffer.byteLength(JSON.stringify(item)) + 1;
+      if (items.length >= (context.history ? 256 : 24) || bytes + size > 768 * 1024) break;
+      items.push(item); bytes += size;
+    }
+    items.reverse();
     return { api_version: 1, kind: 'live_chat', id: context.id, chat_mode: context.mode,
-      items: Array.from(context.messages.values()).slice(-24).map(({ author_id, ...item }) => item),
+      items,
       cursor, has_more: false, ended: !context.token, is_replay: false, poll_after_ms: delay };
   }
   commit(context, contents) {
@@ -72,12 +81,14 @@ export class ChatReader {
   async execute(input, owner, client) {
     this.prune();
     if (input.action === 'live_chat') {
+      if (input.chat_history !== undefined && typeof input.chat_history !== 'boolean')
+        this.fail('invalid_chat_history', 'Select a valid chat history mode.', 400);
       if (this.contexts.size >= 16) this.fail('chat_busy', 'Close another chat before opening this one.', 429);
       const info = await client.getInfo(input.id);
       if (info?.basic_info?.id !== input.id || !info.livechat?.continuation || !info.actions)
         this.fail('chat_unavailable', 'This video has no available live chat.', 404);
       if (info.livechat.is_replay) this.fail('chat_replay_pending', 'Chat replay is not connected to playback yet.', 422);
-      const context = { owner, id: input.id, mode: input.chat_mode ?? 'top', actions: info.actions,
+      const context = { owner, id: input.id, mode: input.chat_mode ?? 'top', history: input.chat_history === true, actions: info.actions,
         messages: new Map(), token: info.livechat.continuation,
         sender: typeof info.getLiveChat === 'function' ? info.getLiveChat() : null, sends: new Map() };
       let contents = await this.fetch(context, context.token);

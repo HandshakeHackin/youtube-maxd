@@ -34,14 +34,14 @@ extern "C" int evo_failure_reason(char*, size_t) { return 0; }
 extern "C" int evo_provider_art_ready(const char*) { return 0; }
 extern "C" int evo_provider_art_request(const char*,const char*,char*,size_t) { return -1; }
 static void reply(const char* value) { assert(!pending.empty()); auto p=pending.front(); pending.erase(pending.begin()); p.callback(1,200,value,strlen(value)+1,p.data); }
-static void frame(int first, const char* mode, const char* cursor) {
+static void frame(int first, const char* mode, const char* cursor, int total=24) {
     auto root=cJSON_CreateObject(); auto rows=cJSON_CreateArray();
     cJSON_AddNumberToObject(root,"api_version",1); cJSON_AddStringToObject(root,"kind","live_chat");
     cJSON_AddStringToObject(root,"id","abcdefghijk"); cJSON_AddStringToObject(root,"chat_mode",mode);
     cJSON_AddStringToObject(root,"cursor",cursor); cJSON_AddBoolToObject(root,"has_more",0);
     cJSON_AddBoolToObject(root,"is_replay",0); cJSON_AddBoolToObject(root,"ended",0); cJSON_AddNumberToObject(root,"poll_after_ms",2000);
     cJSON_AddItemToObject(root,"items",rows);
-    for(int i=first;i<first+24;++i) {
+    for(int i=first;i<first+total;++i) {
         auto row=cJSON_CreateObject(); std::string id="message-"+std::to_string(i), body="Literal <b id='chat-injection'>text</b>.\n";
         for(int line=0;line<100;++line) body += "Readable message line "+std::to_string(line)+"\n";
         cJSON_AddStringToObject(row,"id",id.c_str()); cJSON_AddStringToObject(row,"author","Viewer");
@@ -86,7 +86,9 @@ int main(int argc,char**argv) {
         host.UpdateSelectedPreview();host.m_context->Update();
     };
     pump(); assert(model.chat && model.discussion && host.m_all_rows.size()==24);
+    assert(host.GetFocusedRow()->id==host.m_all_rows.back().id);
     assert(host.m_doc->GetElementById("tube-chat-footer")->IsVisible());
+    host.SetPageOffset(0,2);pump();
     assert(host.FocusPublishedRow(2));host.UpdateSelectedPreview();host.m_context->Update();
     auto reader=host.m_doc->GetElementById("tube-discussion-text");assert(reader && reader->GetScrollHeight()>reader->GetClientHeight());
     reader->SetScrollTop(400);host.m_context->Update();
@@ -100,6 +102,13 @@ int main(int argc,char**argv) {
     assert(host.m_all_rows.size()==24 && !host.m_chat_refresh && !model.loading);
     clock_ms+=2000;host.RefreshChat();frame(4,"top","ui-cap-three");pump();
     assert(model.selected_id!=selected.c_str() && host.GetFocusedRow() && reader->GetScrollTop()==0);
+    clock_ms+=2000;host.RefreshChat();frame(4,"top","ui-cap-history",256);pump();
+    assert(host.m_all_rows.size()==256);
+    host.SetPageOffset(48,3);pump();
+    selected=model.selected_id.c_str();reader->SetScrollTop(300);host.m_context->Update();scroll=reader->GetScrollTop();
+    clock_ms+=2000;host.RefreshChat();frame(5,"top","ui-cap-history-next",256);pump();
+    assert(host.GetFocusedRow()->id==selected.c_str() && model.selected_id==selected.c_str());
+    assert(host.m_row_offset==48 && std::abs(reader->GetScrollTop()-scroll)<1);
     assert(host.DiscussionKey(0)==1 && host.m_stack.back()=="chat:live:abcdefghijk");
     assert(pending.size()==2 && pending[0].body.find("chat_close")!=std::string::npos);reply("{}");frame(4,"live","ui-cap-live");pump();
     assert(model.chat && host.m_all_rows.size()==24);

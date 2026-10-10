@@ -253,7 +253,7 @@ class FixtureLibrary:
         # Include the confirmed fixture message in the next poll, including a
         # poll before the normal two-second refresh interval. Do not alter a
         # previously cached continuation response.
-        context["result"]["items"] = [*context["result"]["items"], message][-24:]
+        context["result"]["items"] = [*context["result"]["items"], message][-context["limit"]:]
         state["result"] = {"api_version": 1, "success": True, "id": video,
                            "session": intent, "message_id": message["id"]}
         return copy.deepcopy(state["result"])
@@ -273,7 +273,7 @@ class FixtureLibrary:
                 raise ServiceError("chat_busy", "Close another chat before opening this one.", 429)
             identity = str(uuid4())
             context = {"owner": owner, "id": VIDEOS[2], "mode": mode, "step": 0, "next_poll": now,
-                       "deadline": now + 1800, "sent": []}
+                       "deadline": now + 1800, "sent": [], "limit": 256 if request.get("chat_history") is True else 24}
             self.chats[identity] = context
         else:
             ref = self.references.get(request.get("cursor"))
@@ -298,11 +298,11 @@ class FixtureLibrary:
                             ("Full message scroll test. " * 100 if i % 24 == 0 else ""),
                  "published": "Offline fixture", "type": "LiveChatPaidMessage" if i % 24 == 1 else "LiveChatTextMessage",
                  "amount": "$5.00" if i % 24 == 1 else "", "moderator": i % 24 == 2, "verified": i % 24 == 3,
-                 "art_url": ""} for i in range(start, start + 24)]
+                 "art_url": ""} for i in range(max(0, start + 24 - context["limit"]), start + 24)]
         cursor = self._reference(owner, "chat", identity)
         self.references[cursor]["deadline"] = now + 1800
         result = {"api_version": 1, "kind": "live_chat", "id": context["id"], "chat_mode": context["mode"],
-                  "items": [*rows, *copy.deepcopy(context["sent"])][-24:], "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
+                  "items": [*rows, *copy.deepcopy(context["sent"])][-context["limit"]:], "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
                   "poll_after_ms": 2000}
         context.update(next_poll=now + 2, deadline=now + 1800, result=result)
         if previous is not None:

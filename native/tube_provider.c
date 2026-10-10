@@ -20,6 +20,7 @@
 #define CHOICES 8
 #define SEGMENTS 128
 #define LOCAL_PAGE 24
+#define CHAT_HISTORY 256
 #define LIBRARY_PAGES 1001
 
 typedef struct {
@@ -112,6 +113,7 @@ int tube_recovery_active(void) { return g_recovery.phase == 2 && recovery_scope(
 int tube_recovery_pending(void) { return g_recovery.phase == 1 && recovery_scope(); }
 static char g_library_cursors[LIBRARY_PAGES][65];
 static struct { char id[160], content[16385], rating[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
+static struct { char id[160], content[16385]; } g_chat_messages[CHAT_HISTORY];
 static unsigned g_account_serial;
 static unsigned g_accounts_revision;
 unsigned tube_accounts_revision(void) { return g_accounts_revision; }
@@ -156,6 +158,8 @@ static int valid_cursor(const char *value) {
 }
 
 const char *tube_comment_text(const char *id) {
+    if (id) for (int i = 0; i < CHAT_HISTORY; ++i)
+        if (*g_chat_messages[i].id && !strcmp(id, g_chat_messages[i].id)) return g_chat_messages[i].content;
     if (id) for (int i = 0; i <= LOCAL_PAGE; ++i)
         if (*g_comments[i].id && !strcmp(id, g_comments[i].id)) return g_comments[i].content;
     return "";
@@ -182,6 +186,7 @@ int tube_chat_due(const char *parent) {
 }
 
 void tube_chat_stop(void) {
+    memset(g_chat_messages, 0, sizeof g_chat_messages);
     chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
     unsigned serial = g_chat.serial + 1;
     memset(&g_chat, 0, sizeof g_chat); g_chat.serial = serial ? serial : 1;
@@ -705,8 +710,8 @@ static void chat_result(Request *r, const cJSON *result) {
         cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "has_more")) &&
         valid_cursor(str(result, "cursor")) && (cJSON_IsTrue(ended) || cJSON_IsFalse(ended)) &&
         cJSON_IsNumber(delay) && isfinite(delay->valuedouble) && delay->valuedouble >= 0 && delay->valuedouble <= 30000 &&
-        floor(delay->valuedouble) == delay->valuedouble && cJSON_IsArray(rows) && count <= LOCAL_PAGE;
-    char ids[LOCAL_PAGE][160];
+        floor(delay->valuedouble) == delay->valuedouble && cJSON_IsArray(rows) && count <= CHAT_HISTORY;
+    char ids[CHAT_HISTORY][160];
     for (int i = 0; valid && i < count; ++i) {
         const cJSON *row = cJSON_GetArrayItem(rows, i);
         valid = *str(row, "id") && strlen(str(row, "id")) <= 640 &&
@@ -719,9 +724,10 @@ static void chat_result(Request *r, const cJSON *result) {
         chat_cleanup_request(r, result);
         tube_set_error("The chat response was invalid. Reopen the chat to retry."); complete(r, 0); return;
     }
-    evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items);
+    evo_provider_item_t *items = calloc(CHAT_HISTORY, sizeof *items);
     if (!items) { chat_cleanup_request(r, result); complete(r, 0); return; }
     memset(g_comments, 0, sizeof g_comments);
+    memset(g_chat_messages, 0, sizeof g_chat_messages);
     for (int i = 0; i < count; ++i) {
         const cJSON *row = cJSON_GetArrayItem(rows, i);
         const char *type = str(row, "type"), *label = "";
@@ -736,8 +742,8 @@ static void chat_result(Request *r, const cJSON *result) {
         folder(&items[i], ids[i], *str(row, "author") ? str(row, "author") : "Viewer", hint);
         copy(items[i].overview, sizeof items[i].overview, str(row, "content"));
         copy(items[i].art_url, sizeof items[i].art_url, str(row, "art_url"));
-        copy(g_comments[i].id, sizeof g_comments[i].id, ids[i]);
-        copy(g_comments[i].content, sizeof g_comments[i].content, str(row, "content"));
+        copy(g_chat_messages[i].id, sizeof g_chat_messages[i].id, ids[i]);
+        copy(g_chat_messages[i].content, sizeof g_chat_messages[i].content, str(row, "content"));
     }
     copy(g_chat.cursor, sizeof g_chat.cursor, str(result, "cursor"));
     copy(g_chat.source, sizeof g_chat.source, r->auth_source); copy(g_chat.token, sizeof g_chat.token, r->auth_token);
@@ -1715,7 +1721,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         Request *r = request_new(10, ud); if (!r) { g_chat.state = -1; return -1; }
         r->items_cb = cb; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_library_profile);
         snprintf(r->payload, sizeof r->payload,
-            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\"}",
+            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":true}",
             reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "");
         begin(r); return 0;
     }
