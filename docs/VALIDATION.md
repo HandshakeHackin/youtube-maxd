@@ -1,5 +1,33 @@
 # Offline validation record — 0.1.0
 
+## Native pairing settings and identity storage — 2026-10-10
+
+The provider now drives Lounge independently of browser request cancellation.
+Phone pairing preferences offer explicit enable, code generation and reset;
+the RML host refreshes the code screen while preserving its navigation stack.
+Only a durably saved UUID can be advertised; the returned screen ID is saved
+before pairing continues. Fields use the existing atomic, Lapy-backed
+`/data/prosperotube/youtube.json` path. Code/session secrets are not persisted.
+Reset, shutdown and source/profile changes preserve owned late-callback cleanup.
+Write failures display a local-data warning and prevent advertisement; future or
+corrupt storage is preserved.
+
+`scripts/test_phone_provider.sh` passed ASan/UBSan, covering code formatting,
+stable restart identity, blocked registration save, failed reset persistence,
+successful reset, fresh identity, reset during registration and future-file
+protection (`.deps/phone-provider-tests.{log,result}`, exit 0). Driver tests,
+all nine native provider regressions and sign-in/chat/compose regressions passed.
+The existing real RML callback/binding test also passed. The provider, driver and
+RML host object targets compiled with the pinned PS5 SDK; no full new package or
+console run is claimed. Evidence: `.deps/phone-native-regression-final.*`,
+`.deps/phone-account-chat-regression.*`, `.deps/phone-rml-ui-tests.*`,
+`.deps/phone-driver-tests.*` and `.deps/phone-native-ps5-objects.*`.
+
+Player/queue command execution and state reporting remain unconnected. Native
+random-source runtime, actual pairing, UI readability and phone acceptance need
+PS5 verification after the complete integration. No console was contacted; the
+last frozen playback candidate remains `9ac95e69`.
+
 ## Native Lounge driver foundation — 2026-10-10
 
 `tube_remote.c` now implements asynchronous native registration, code requests,

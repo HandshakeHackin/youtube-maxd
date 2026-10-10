@@ -607,13 +607,16 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
 | Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; replay candidates `6097d274` and corrected `9ac95e69` PS5 build/freeze passed; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
-| Casting and remote integration | Authentic Lounge backend host/live-tested; native asynchronous driver compiled with PS5 SDK and passed sanitizer tests for all typed commands, atomic polling, in-flight acknowledgment, owner changes, late pairing cleanup and state feedback | Connect driver to native opt-in/pair/reset settings, Lapy identity persistence and main-thread player/queue execution; voice/disconnect preferences and real phone/PS5 acceptance |
+| Casting and remote integration | Authentic Lounge backend host/live-tested; native driver, opt-in pairing/reset menu and atomic Lapy identity persistence host-tested; provider/driver/RML objects compiled with PS5 SDK; late callbacks, blocked saves and lease/ack behavior covered | Player/queue execution and state reporting, voice/disconnect preferences, full new package and real phone/PS5 acceptance |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-Current batch: the native Lounge driver is in generated PS5 build inputs and
-passed sanitizer tests and a PS5 SDK object compile. Provider/settings/player
-integration is still pending; this does not enable phone-controlled PS5 playback.
+Current batch: pairing settings and Lapy-backed identity storage are connected to
+the native receiver. The UUID is durable before registration and the returned
+screen ID is durable before pairing. Reset closes late registration without
+restoring IDs; blocked saves warn and stop advertisement. Provider, driver and
+RML objects compiled with the PS5 SDK. Player/queue command execution remains the
+next gate; this does not enable phone-controlled PS5 playback.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

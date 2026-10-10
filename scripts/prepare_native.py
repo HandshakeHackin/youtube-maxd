@@ -178,6 +178,8 @@ def main():
     apply_discussion_overlay(replace, player, host)
     from device_auth_overlay import apply_device_auth_overlay
     apply_device_auth_overlay(replace, player)
+    from phone_overlay import apply_phone_overlay
+    apply_phone_overlay(replace, player)
     from live_chat_overlay import apply_live_chat_overlay
     apply_live_chat_overlay(replace, player)
     from chat_compose_overlay import apply_chat_compose_overlay

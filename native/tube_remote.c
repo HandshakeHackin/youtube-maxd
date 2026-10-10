@@ -269,4 +269,5 @@ const char *tube_remote_code(void) { return code; }
 const char *tube_remote_device(void) { return device; }
 const char *tube_remote_screen(void) { return screen; }
 unsigned tube_remote_revision(void) { return revision; }
+int tube_remote_identity_valid(const char *value) { return value && uuid(value); }
 void tube_remote_shutdown(void) { invalidate(0); enabled = 0; }

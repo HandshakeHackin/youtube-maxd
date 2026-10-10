@@ -53,8 +53,9 @@ seek and rewind; service/native host checks and live Guest replay checks passed.
 PS5 replay acceptance remains pending.
 The [phone receiver backend](docs/REMOTE_SERVICE.md) now supports authentic
 YouTube TV-code pairing, typed commands and playback-state feedback. Offline
-tests and a live temporary-receiver check passed; PS5 pairing UI and command
-execution remain pending, so phone-controlled PS5 playback is not available yet.
+tests and a live temporary-receiver check passed. Native pairing settings and
+Lapy-backed identity persistence now have host coverage; player-command execution
+and PS5/phone acceptance remain pending. Phone-controlled PS5 playback is unavailable.
 The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;

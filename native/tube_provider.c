@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "tube_sponsor.h"
+#include "tube_remote.h"
 
 #define RECORDS 384
 #define REQUESTS 8
@@ -91,6 +92,9 @@ int tube_set_playback_speed(int percent) {
 int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
+static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed;
+static char g_remote_device[37], g_remote_screen[129];
+static void remote_configure(void);
 static tube_player_chat_row_t g_player_chat_rows[6];
 static int g_player_chat_count;
 static double g_player_chat_position = -1;
@@ -500,6 +504,7 @@ void tube_set_error(const char *message) {
 }
 
 static void save(void) {
+    g_remote_write_failed = 1;
     if (!g_store_writable) {
         tube_set_error("Local data could not be loaded. The existing file has not been overwritten."); return;
     }
@@ -529,6 +534,9 @@ static void save(void) {
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
+    cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
+    cJSON_AddStringToObject(root, "remote_device", g_remote_device);
+    cJSON_AddStringToObject(root, "remote_screen", g_remote_screen);
     cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
     cJSON_AddBoolToObject(root, "dearrow_titles", g_dearrow_titles);
     cJSON_AddBoolToObject(root, "dearrow_thumbnails", g_dearrow_thumbnails);
@@ -572,11 +580,27 @@ static void save(void) {
         size_t size = strlen(body);
         int ok = fwrite(body, 1, size, f) == size && fflush(f) == 0;
         if (fclose(f)) ok = 0;
-        if (ok && rename(tmp, dst) == 0) g_last_save = now_ms();
+        if (ok && rename(tmp, dst) == 0) { g_last_save = now_ms(); g_remote_identity_saved = !!*g_remote_device; g_remote_write_failed = 0; }
         else tube_set_error("Local library could not be saved. Check the ProsperoTube data directory.");
     }
     free(body);
 }
+
+static void remote_configure(void) {
+    if (g_remote_enabled && g_store_writable && *g_source && *g_token && !*g_remote_device) {
+        unsigned char bytes[16]; arc4random_buf(bytes, sizeof bytes);
+        bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+        snprintf(g_remote_device, sizeof g_remote_device,
+            "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+            bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],
+            bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15]);
+        g_remote_identity_saved = 0; save();
+    }
+    tube_remote_configure(g_source, g_token, g_library_profile,
+        g_remote_enabled && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
+        g_remote_device, g_remote_screen);
+}
+unsigned tube_phone_revision(void) { return tube_remote_revision(); }
 
 static void account_removed(void) {
     tube_recovery_finish();
@@ -610,6 +634,8 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    tube_remote_shutdown();
+    g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     tube_sb_defaults(&g_sb);
     sponsor_invalidate(); g_sb_last_position = -1;
     tube_chat_stop();
@@ -629,7 +655,7 @@ static int init(void) {
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     FILE *f = fopen(evo_data_path("youtube.json"), "rb");
-    if (!f) { if (errno == ENOENT) { g_store_writable = 1; return 0; } return -1; }
+    if (!f) { if (errno == ENOENT) { g_store_writable = 1; remote_configure(); return 0; } return -1; }
     if (fseek(f, 0, SEEK_END) || ftell(f) < 0 || ftell(f) > 2 * 1024 * 1024) { fclose(f); return -1; }
     long n = ftell(f); rewind(f);
     char *body = calloc(1, (size_t)n + 1);
@@ -657,6 +683,13 @@ static int init(void) {
     g_sponsor = boolean(root, "sponsorblock");
     double chat_mode = num(root, "player_chat_mode");
     g_player_chat_mode = chat_mode >= 0 && chat_mode <= 2 && floor(chat_mode) == chat_mode ? (int)chat_mode : 0;
+    const char *remote_device = str(root, "remote_device"), *remote_screen = str(root, "remote_screen");
+    if (tube_remote_identity_valid(remote_device) && strlen(remote_screen) < sizeof g_remote_screen &&
+        strspn(remote_screen, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(remote_screen)) {
+        copy(g_remote_device, sizeof g_remote_device, remote_device);
+        copy(g_remote_screen, sizeof g_remote_screen, remote_screen);
+        g_remote_identity_saved = 1; g_remote_enabled = boolean(root, "remote_enabled");
+    }
     g_paid_notifications = boolean(root, "paid_content_notifications");
     g_dearrow_titles = boolean(root, "dearrow_titles");
     g_dearrow_thumbnails = boolean(root, "dearrow_thumbnails");
@@ -690,7 +723,7 @@ static int init(void) {
         r->queued_music = r->queued && boolean(o, "queued_music");
         r->subscribed = boolean(o, "subscribed");
     }
-    cJSON_Delete(root); if (version == 1) save(); return 0;
+    cJSON_Delete(root); if (version == 1) save(); remote_configure(); return 0;
 }
 
 /* Local library and preferences remain usable before pairing or while offline. */
@@ -1448,6 +1481,14 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 }
 
 void tube_poll(void) {
+    if (g_remote_enabled && tube_remote_state() == TUBE_REMOTE_LISTENING &&
+        !strcmp(g_remote_device, tube_remote_device()) && *tube_remote_screen() &&
+        strcmp(g_remote_screen, tube_remote_screen())) {
+        copy(g_remote_screen, sizeof g_remote_screen, tube_remote_screen());
+        g_remote_identity_saved = 0; save();
+    }
+    remote_configure();
+    tube_remote_tick(now_ms());
     for (int i = 0; i < REQUESTS; ++i) {
         Request *r = &g_requests[i];
         if (!r->used || r->inflight) continue;
@@ -1833,6 +1874,20 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:player-chat")) {
             tube_player_chat_set_mode((g_player_chat_mode + 1) % 3);
         }
+        else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
+            if (!g_store_writable || !*g_source || !*g_token) {
+                tube_set_error("Pair with the companion and check local storage before linking a phone.");
+            } else {
+                g_remote_enabled = !strcmp(parent, "settings:remote:pair") ? 1 : !g_remote_enabled;
+                save(); remote_configure();
+                if (!strcmp(parent, "settings:remote:pair")) tube_remote_pair();
+            }
+        }
+        else if (!strcmp(parent, "settings:remote:reset")) {
+            tube_remote_shutdown(); g_remote_enabled = 0;
+            g_remote_device[0] = g_remote_screen[0] = 0; g_remote_identity_saved = 0;
+            save(); remote_configure();
+        }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
         else if (!strcmp(parent, "settings:history-sync")) {
             g_history_sync = !g_history_sync;
@@ -1867,6 +1922,22 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 folder(&out[n++], id, label, "Use this speed for all on-demand videos; live streams play at normal speed");
             }
             cb(1, out, n, start + n < total, ud); return 1;
+        } else if (!strncmp(parent, "settings:remote", 15)) {
+            char label[96]; const char *code = tube_remote_code();
+            const int state = tube_remote_state();
+            snprintf(label, sizeof label, "Phone connection: %s", g_remote_write_failed ? "local data not saved" : !g_remote_enabled ? "off" :
+                !g_remote_identity_saved ? "storage unavailable" : state == TUBE_REMOTE_FAILED ? "stopped; retry linking" :
+                state == TUBE_REMOTE_LISTENING ? "ready" : "connecting");
+            folder(&out[n++], "settings:remote:info", label, "YouTube app TV-code pairing");
+            if (*code) {
+                char formatted[20] = ""; size_t length = strlen(code), j = 0;
+                for (size_t i = 0; i < length; ++i) { if (i && !(i % 3)) formatted[j++] = ' '; formatted[j++] = code[i]; }
+                snprintf(label, sizeof label, "TV code: %s", formatted);
+                folder(&out[n++], "settings:remote:code", label, "Enter this code in the YouTube app's TV-code pairing screen");
+            }
+            folder(&out[n++], "settings:remote:pair", *code ? "Get a new TV code" : "Link a phone", "Enable connection and request a TV code");
+            folder(&out[n++], "settings:remote:toggle", g_remote_enabled ? "Turn phone connection off" : "Turn phone connection on", "Your local library stays available");
+            folder(&out[n++], "settings:remote:reset", "Reset phone pairing", "Turn off and forget this TV's pairing identity");
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
             folder(&out[n++], "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
             folder(&out[n++], "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
@@ -1942,6 +2013,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:player-chat", g_player_chat_mode == 1 ? "Live chat sidebar: left" :
                 g_player_chat_mode == 2 ? "Live chat sidebar: right" : "Live chat sidebar: off",
                 "Select to cycle Off / Left / Right; shows chat beside playing video");
+            folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
             folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
@@ -2522,7 +2594,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_cancel(); save(); }
+static void tube_shutdown(void) { tube_remote_shutdown(); tube_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
     .caps = EVO_PROVIDER_CAP_CATALOG | EVO_PROVIDER_CAP_SEARCH | EVO_PROVIDER_CAP_RESOLVE |

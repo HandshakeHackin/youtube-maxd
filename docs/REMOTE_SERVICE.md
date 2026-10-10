@@ -2,15 +2,40 @@
 
 The companion implements YouTube's Lounge / MDX TV-code receiver protocol.
 Registration, code generation, command reception and player-state feedback passed
-a live temporary-receiver check. **The PS5 pairing screen and native command
-execution are not integrated yet. This does not enable phone-to-PS5 playback.**
+a live temporary-receiver check. Native pairing settings and identity storage are
+integrated and host-tested. **Player command execution remains unconnected.
+This does not enable phone-to-PS5 playback.**
 The existing PS5 playback candidate remains `9ac95e69`.
 
 The native `tube_remote` driver is now included in generated PS5 build inputs.
 It has passed ASan/UBSan command/scope/feedback tests and a PS5 SDK object compile.
 It provides opt-in asynchronous registration/pair/poll/report/stop, typed commands,
-owner-tagged acknowledgments and stable device/screen identity getters. It is not
-yet called by the provider or player, so the pairing/control UI remains unavailable.
+owner-tagged acknowledgments and stable device/screen identity getters.
+The provider now calls the driver; player execution remains pending.
+
+## Native pairing settings
+
+YouTube preferences > Phone pairing provides Link a phone, connection On/Off,
+and Reset phone pairing. The screen refreshes when the receiver returns its code
+and formats it into groups of three digits. Opening preferences does not enable
+the receiver. Linking explicitly enables it and requests a code; an enabled saved
+receiver starts again with the application. Turning it off closes the receiver
+while retaining its identity; reset closes it and forgets both IDs.
+
+The native device UUID is created before registration using the PS5 C library's
+random source. Enable/device/screen fields live in the atomic `youtube.json` under
+`/data/prosperotube`, through the existing Lapy-backed data path. The UUID must be
+saved before advertising; a returned screen ID is saved before pairing continues.
+Failed writes stop advertisement and display a local-data warning. Neither the
+TV code nor opaque receiver session is persisted. Corrupt/future storage remains
+protected. Identities survive restart; late registration after reset is closed
+without restoring the forgotten IDs. Browser cancellation keeps an explicitly
+enabled receiver; provider shutdown closes it.
+
+The provider workflow passed mock-transport ASan/UBSan tests, including blocked
+atomic save, reset, restart and late cleanup. The provider, driver and RML host
+objects compiled with the PS5 SDK. A full package, console pairing, random-source
+runtime behavior and real phone acceptance still need verification.
 
 This is original Python implementation based on the pinned SmartTube service
 [Lounge interface](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/lounge/LoungeService.java)
@@ -68,12 +93,9 @@ Lounge tokens, SID and gsessionid remain private to the companion; they are neve
 returned through the API, formatted in errors or included in receiver repr.
 Upstream URLs are fixed to YouTube; no request can supply an arbitrary host.
 
-The next native batch must add opt-in pairing/reset settings, persist the stable
-non-secret device/screen identity under `/data/prosperotube` through Lapy, scope
-callbacks to the current provider/profile/generation, and execute player/queue
-commands with acknowledged results and state reporting. Voice capture/search and
-disconnect preferences still need implementation. Native reset must stop the
-receiver and forget its saved IDs. Real phone and PS5 acceptance remains open.
+The next native batch must execute player/queue commands with acknowledged results
+and state reporting. Voice capture/search and disconnect preferences still need
+implementation. Real phone and PS5 acceptance remains open.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

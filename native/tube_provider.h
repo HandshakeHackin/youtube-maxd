@@ -8,6 +8,7 @@ extern "C" {
 #endif
 extern const evo_provider_t evo_provider_youtube;
 void tube_poll(void);
+unsigned tube_phone_revision(void);
 /* Selected on-demand video speed in percent; main/UI thread only. */
 int tube_playback_speed(void);
 int tube_speed_count(void);

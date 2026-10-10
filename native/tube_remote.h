@@ -38,6 +38,7 @@ const char *tube_remote_code(void);
 const char *tube_remote_device(void);
 const char *tube_remote_screen(void);
 unsigned tube_remote_revision(void);
+int tube_remote_identity_valid(const char *device);
 void tube_remote_shutdown(void);
 #ifdef __cplusplus
 }

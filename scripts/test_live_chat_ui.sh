@@ -7,7 +7,7 @@ cache="${HOME}/.cache/prosperotube/rmlui"
 include="${cache}/RmlUi-6.2/Include"
 [[ -d "${include}" ]] || include="${cache}/RmlUi-2230d1a6e8e0848ed87a5761e2a5160b2a175ba4/Include"
 mkdir -p "${root}/build/tests/chat-ui"
-for source in "${root}/native/tube_provider.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do
+for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do
   cc -std=c11 -D_DEFAULT_SOURCE -Dclock_gettime=tube_test_clock_gettime -O1 -g -ffunction-sections -fdata-sections \
     -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include" -c "${source}" \
     -o "${root}/build/tests/chat-ui/$(basename "${source}" .c).o"
