@@ -84,6 +84,13 @@ int main(void) {
     assert(pending_count==1 && strstr(pending[0].body,"pre-seek-view"));
     reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":true,\"position_ms\":50000,\"has_more\":false,\"ended\":false,\"poll_after_ms\":1000,\"cursor\":\"post-seek-view\",\"items\":[{\"id\":\"current\",\"author\":\"Past viewer\",\"content\":\"Fifty seconds\"}]}");
     assert(tube_player_chat_rows(&rows)==1 && !strcmp(rows[0].message,"Fifty seconds"));
+    tube_player_chat_tick_at(1,100);assert(pending_count==1);
+    tube_player_chat_tick_at(1,99.99); /* Decoder settles just before the seek target while paused. */
+    reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":true,\"position_ms\":100000,\"has_more\":false,\"ended\":false,\"poll_after_ms\":1000,\"cursor\":\"seek-target-view\",\"items\":[{\"id\":\"target\",\"author\":\"Past viewer\",\"content\":\"Future frame\"}]}");
+    assert(!tube_player_chat_rows(&rows));tube_player_chat_tick_at(1,99.99);
+    assert(pending_count==1 && strstr(pending[0].body,"\"chat_position_sec\":99.990"));
+    reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":true,\"position_ms\":99990,\"has_more\":false,\"ended\":false,\"poll_after_ms\":1000,\"cursor\":\"settled-view\",\"items\":[{\"id\":\"settled\",\"author\":\"Past viewer\",\"content\":\"Settled frame\"}]}");
+    assert(tube_player_chat_rows(&rows)==1 && !strcmp(rows[0].message,"Settled frame"));
     tube_player_chat_tick_at(1,NAN);assert(!tube_player_chat_mode() && pending_count==1);
     reply(0,1,200,"{\"success\":true}");
     p->shutdown();puts("PASS: player chat setting, request ownership, rows, foreground priority and close");

@@ -63,7 +63,7 @@ before opening the chat cannot be recovered by this path. Deploy the matching
 companion version with the native client. For replay, open/poll with numeric
 `chat_position_sec` (0–1,000,000). Responses have `is_replay: true`, matching
 `position_ms` and message `offset_ms` fields. Future actions are held until the
-video reaches them. Pause avoids new upstream reads once the view is populated;
+video reaches them; signed pre-stream offsets remain visible at frame zero. Pause avoids new upstream reads once catch-up reaches a future action or EOF;
 rewind or a jump over ten seconds resets the retained view and uses a seek
 continuation. EOF waits for buffered future actions. Replay is read-only; sending
 returns `chat_replay_readonly`. Replay without a playback clock returns

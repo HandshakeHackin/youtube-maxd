@@ -21,7 +21,7 @@ rows; the next request uses the new video position. A rewind can reopen an ended
 timeline. The browser reader still has no replay clock and directs users to play
 the video; full replay-history browsing remains open.
 
-Validation: 47 worker tests passed; the bundle rebuilt. Full companion regression
+Validation: 49 worker tests passed; the bundle rebuilt. Full companion regression
 passed 233 tests; focused chat/library/fixture regression passed 24. Native provider,
 player chat, extracted shipping HUI/RML and chat options passed ASan/UBSan
 (`.deps/chat-replay-native.{log,result}`, exit 0), including fractional position,
@@ -36,7 +36,19 @@ through Python LibraryService at positions 120, paused 120 and rewind 5, includi
 clean close. Evidence: `.deps/chat-replay-live-result.json`,
 `.deps/chat-replay-process-result.json` and `.deps/verify-chat-replay-live.py`.
 These checks prove service behavior, not PS5 replay rendering, audio/motion or
-account acceptance. PS5 build and console acceptance are separate gates.
+account acceptance. Native candidate `6097d274` passed PS5 build/freeze:
+126 files, build `prosperotube-6097d274_1010-2211`, eboot SHA-256 prefix
+`09fef4dd66beda0c` (`.deps/chat-replay-{ps5-build,freeze}.{log,result}`, exit 0).
+
+Final refinements cover paused seeks through more than four sparse pages: bounded
+catch-up continues on subsequent explicit polls until a future action or EOF,
+then pause avoids extra upstream reads. Signed pre-stream offsets remain visible
+at frame zero. The native retry anchor now follows the decoder's settled position
+if a paused seek lands just before its requested target; future/pre-seek rows
+remain suppressed. Forty-nine worker tests and the final native/HUD/menu sanitizer
+check passed (`.deps/chat-replay-final-native.{log,result}`, exit 0). The first
+frozen native candidate predates this settled-position refinement; the corrected
+candidate needs a fresh PS5 build. Console replay acceptance remains pending.
 
 ## In-player live-chat controls — 2026-10-10
 

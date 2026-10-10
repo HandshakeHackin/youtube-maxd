@@ -606,13 +606,13 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference timing/grouping/actions; persistent review, keep/skip/expiry accepted on PS5 with generated AVC/AAC | Real-service skip/highlight/notice and physical appearance acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
-| Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
+| Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; first replay candidate `6097d274` PS5 build/freeze passed; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
 | Casting and remote integration | Reference inventory only | Implement and accept |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
 Current batch: playback-clock replay is integrated into the service and native
-sidebar. Forty-seven worker tests, 233 companion tests and native/HUD sanitizer
+sidebar. Forty-nine worker tests, 233 companion tests and native/HUD sanitizer
 checks passed. Live Guest replay and the rebuilt worker process boundary accepted
 pause, forward seek and rewind with no future messages. PS5 replay acceptance,
 full replay-history browsing and real-account behavior remain open; the last

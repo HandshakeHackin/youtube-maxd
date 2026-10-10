@@ -947,6 +947,7 @@ static void player_chat_result(int ok, const evo_provider_item_t *items, int cou
     if (ok && g_chat.replay && (g_chat.position_ms / 1000.0 > g_player_chat_position + .001 ||
         (g_chat.seek && g_chat.position_ms < g_chat.seek_position_ms))) {
         g_player_chat_count = 0; g_chat.seek = 1; g_chat.next_poll = 0;
+        g_chat.seek_position_ms = (int64_t)floor(g_player_chat_position * 1000 + .000001);
         return; /* Keep the returned cursor, but never render a pre-seek view. */
     }
     g_chat.seek = 0;

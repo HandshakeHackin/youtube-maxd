@@ -38,10 +38,10 @@ export class ReplayTimeline {
     const events = [];
     for (const group of parsed.actions ?? []) {
       if (group.type !== 'ReplayChatItemAction') continue;
-      if (!/^[0-9]+$/.test(String(group.video_offset_time_msec ?? '')))
+      if (!/^-?[0-9]+$/.test(String(group.video_offset_time_msec ?? '')))
         this.reader.fail('chat_response', 'YouTube returned an invalid replay timestamp.', 502);
       const offset = Number(group.video_offset_time_msec);
-      if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1000000000 || !Array.isArray(group.actions))
+      if (!Number.isSafeInteger(offset) || Math.abs(offset) > 1000000000 || !Array.isArray(group.actions))
         this.reader.fail('chat_response', 'YouTube returned an invalid replay timestamp.', 502);
       for (const action of group.actions) {
         events.push({ offset, action });
@@ -72,8 +72,9 @@ export class ReplayTimeline {
     this.apply(staged, position);
     let selected = !initial;
     const mayFetch = initial || seek || (!staged.pending.length &&
-      (position !== context.position || !context.messages.size) && this.reader.clock() >= context.next_at);
+      (position !== context.position || !context.messages.size || context.catching_up) && this.reader.clock() >= context.next_at);
     if (mayFetch) {
+      staged.catching_up = false;
       for (let request = 0; staged.token && request < 4; ++request) {
         const fetched = await this.fetch(staged, staged.token, position);
         if (!selected) {
@@ -86,6 +87,7 @@ export class ReplayTimeline {
             staged.token = this.token(view.continuation);
             if (!staged.token) this.reader.fail('chat_mode_unavailable', 'YouTube did not offer this replay continuation.', 422);
             staged.seed = staged.token;
+            if (request === 3) staged.catching_up = true;
             continue;
           }
         }
@@ -98,6 +100,7 @@ export class ReplayTimeline {
         this.apply(staged, position);
         // Future actions are held until video reaches them. Empty header pages may advance once.
         if (staged.pending.length || staged.token === previous || !staged.token) break;
+        if (request === 3) staged.catching_up = true;
       }
     }
     staged.position = position; staged.next_at = this.reader.clock() + 1000;

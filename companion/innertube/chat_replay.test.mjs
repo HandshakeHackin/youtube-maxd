@@ -92,3 +92,26 @@ test('sparse replay catch-up is bounded and does not create background pollers',
   time(2000);const next=await poll(library,first.cursor,0);assert.equal(calls.length,8);
   await library.execute({action:'chat_close',cursor:next.cursor});time(10000);assert.equal(calls.length,8);
 });
+
+test('a paused seek keeps catching up across sparse pages until it reaches a future action',async()=>{
+  const {library,calls,time}=fixture((_,number)=>number<=4
+    ? response([event(number*1000,[add('early-'+number)])],'private-page-'+number)
+    : response([event(11000,[add('future-eleven')])]));
+  const first=await open(library,10);assert.equal(calls.length,4);
+  assert.equal(first.items.length,4);
+  time(2000);const caught=await poll(library,first.cursor,10);assert.equal(calls.length,5);
+  assert.equal(caught.items.length,4);assert.equal(caught.ended,false);
+  time(4000);const paused=await poll(library,caught.cursor,10);assert.equal(calls.length,5);
+  const eleven=await poll(library,paused.cursor,11);assert.equal(eleven.items.at(-1).id,'future-eleven');
+  assert.equal(eleven.ended,true);
+});
+
+test('signed pre-stream replay offsets are visible at frame zero while later actions remain buffered',async()=>{
+  const {library}=fixture(()=>response([
+    event(-2000,[add('waiting-room')]),event(0,[add('start')]),event(1000,[add('later')]),
+  ]));
+  const first=await open(library);
+  assert.deepEqual(first.items.map(x=>x.id),['waiting-room','start']);
+  assert.equal(first.items[0].offset_ms,-2000);
+  assert.equal(first.position_ms,0);assert.equal(first.ended,false);
+});
