@@ -244,6 +244,37 @@ static void unreached_seek_is_not_drain(void)
     av_frame_free(&af);
 }
 
+static void seek_after_known_audio_end(const char *path)
+{
+    reset();
+    assert(avformat_open_input(&play_fmt, path, NULL, NULL) == 0);
+    assert(avformat_find_stream_info(play_fmt, NULL) >= 0);
+    audio_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    assert(audio_stream_index >= 0);
+    AVStream *audio = play_fmt->streams[audio_stream_index];
+    assert(audio->duration > 0);
+    /* Model an indexed video that continues after this real AAC track. */
+    AVStream *video = avformat_new_stream(play_fmt, NULL); assert(video);
+    video->time_base = (AVRational){1, 30}; video->start_time = 0;
+    video_stream_index = video->index;
+    const double origin = (double)tube_media_origin_us(play_fmt, video_stream_index) / AV_TIME_BASE;
+    const double end = (audio->start_time == AV_NOPTS_VALUE ? origin : audio->start_time * av_q2d(audio->time_base)) +
+        audio->duration * av_q2d(audio->time_base) - origin;
+    audio_seek_discard_until = end + .25;
+    resume_base_anchor_pending = audio_seek_discard_until;
+    AVFrame *af = av_frame_alloc(); assert(af);
+    assert(tube_audio_flush_tail(af, tube_audio_epoch(&tube_drain)) == 1);
+    assert(audio_seek_discard_until == -1 && resume_base_anchor_pending == -1 && !audio_samples_decoded);
+    /* Metadata cannot excuse missing timing when the requested position is
+     * inside the audio track, or when the track duration is unknown. */
+    audio_seek_discard_until = end - .25;
+    assert(tube_audio_flush_tail(af, tube_audio_epoch(&tube_drain)) == 0);
+    audio->duration = AV_NOPTS_VALUE;
+    audio_seek_discard_until = end + .25;
+    assert(tube_audio_flush_tail(af, tube_audio_epoch(&tube_drain)) == 0);
+    av_frame_free(&af); avformat_close_input(&play_fmt);
+}
+
 static void seek_cancels_before_flush(void)
 {
     reset();
@@ -287,6 +318,7 @@ int main(int argc, char **argv)
     actual_aac_decoder(argv[1]); seek_cancels_before_flush();
     seek_parks_a_queue_blocked_producer();
     native_preroll_and_failure(); unreached_seek_is_not_drain();
+    seek_after_known_audio_end(argv[1]);
     prospero_audio_resampler_destroy();
     puts("PASS: actual EVO native PCM decode/trim/output, invalid PCM failure, unreached seek EOF failure, resampler drain, AAC EOF and stale seek epochs");
     return 0;

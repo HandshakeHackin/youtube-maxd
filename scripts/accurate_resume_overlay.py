@@ -102,7 +102,24 @@ static int tube_audio_flush_tail(AVFrame *af, uint64_t epoch) {''')
     replace(audio, source[start:end], '                tube_audio_accept_frame(af);')
     replace(audio, '    SwrContext *resampler = prospero_audio_resampler_ctx();', '''    /* Draining without reaching the requested position is not a successful
      * seek. Do not retire silent preroll as completed media. */
-    if (audio_seek_discard_until >= 0.0) return 0;
+    if (audio_seek_discard_until >= 0.0) {
+        /* A video may outlast its selected audio track. An indexed, known
+         * audio end before the requested position is legitimate silence,
+         * not an unverified seek. Unknown timing still fails explicitly. */
+        if (!play_fmt || video_stream_index < 0 || audio_stream_index < 0 ||
+            (unsigned)video_stream_index >= play_fmt->nb_streams ||
+            (unsigned)audio_stream_index >= play_fmt->nb_streams) return 0;
+        const AVStream *stream = play_fmt->streams[audio_stream_index];
+        const double origin = (double)tube_media_origin_us(play_fmt, video_stream_index) / AV_TIME_BASE;
+        const double scale = av_q2d(stream->time_base);
+        const long double start = stream->start_time == AV_NOPTS_VALUE ? origin :
+            (long double)stream->start_time * scale;
+        const double end = (double)(start + (long double)stream->duration * scale - origin);
+        if (stream->duration <= 0 || !isfinite(scale) || scale <= 0.0 ||
+            !isfinite(end) || end < 0.0 || end > audio_seek_discard_until + 1e-9) return 0;
+        audio_seek_discard_until = -1.0;
+        resume_base_anchor_pending = -1.0;
+    }
     SwrContext *resampler = prospero_audio_resampler_ctx();''')
     replace(audio, '    if (!af) return NULL;', '''    if (!af) {
         tube_audio_mark(&tube_drain, tube_audio_epoch(&tube_drain), TUBE_AUDIO_FAILED);
