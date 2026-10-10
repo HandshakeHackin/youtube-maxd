@@ -5,12 +5,14 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): `c6ec8804` implements decoded-preroll suppression
-and sample-level audio trimming for accurate resume. Host regressions and the
-complete PS5 package passed. The reserved-console case stopped on its first busy
-title check, before deployment. Next hardware acceptance remains Lapy startup
-and durable storage, followed by real YouTube playback; see
-[validation](docs/VALIDATION.md) for evidence and limits.
+Current milestone (2026-10-10): `c2779195` extends accurate resume with audio-only
+seek hold handling, exact PCM boundaries, explicit audio failure and known audio
+tail completion. Host source-level regressions and the complete PS5 package
+passed; the candidate remains undeployed. The previous reserved-console case
+stopped at its first busy title check. Next hardware acceptance remains Lapy
+startup/storage, then real YouTube playback. Next offline work expands the
+incomplete SponsorBlock category/action, exclusion and repeat-skip behavior
+against the pinned SmartTube source. See [validation](docs/VALIDATION.md).
 
 ## 1. Objective and current conclusion
 

@@ -1,5 +1,12 @@
 # Hardware acceptance — pending
 
+Latest offline candidate `c2779195` fixes audio-only seek holds and audio EOF
+handling, including known audio tracks shorter than video. Its complete PS5
+package passed and froze with 126 files, eboot prefix `c09f0aff45b24d48`.
+It has not been deployed or launched; this milestone made no console connection.
+Sony Audiodec timing and audible AudioOut acceptance remain pending. See
+[validation](VALIDATION.md).
+
 - 2026-10-10 | accurate resume | c6ec8804 | reserved console, firmware unreported | no-run: busy at first FTP check; no upload or launch | .deps/accurate-resume-storage-reserved-console.log | Lapy storage/startup, then real YouTube playback
 
 The accurate-resume candidate passed the PS5 build and host decoded-frame/sample

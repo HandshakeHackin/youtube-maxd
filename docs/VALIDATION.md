@@ -1,5 +1,46 @@
 # Offline validation record — 0.1.0
 
+## Audio seek and EOF lifecycle — 2026-10-10
+
+Sources `bf6852cd` and `c2779195` fix in-place audio-only seeks acquiring a
+video presentation hold that no video frame could release. Audio discard also
+covers zero and sub-50ms targets. Floating-point uncertainty at exact PCM sample
+boundaries no longer trims an extra sample. Invalid native PCM byte counts,
+channel counts and frame allocations mark audio failure; the player presents an
+audio error before leaving playback.
+
+EOF with an unreached audio seek target is no longer retired as successful
+audio output. A video may nevertheless continue silently after an indexed audio
+track has ended: known stream start/duration metadata is compared in the common
+media timeline before allowing that case. Unknown duration/timing cannot excuse
+an unreached seek. This is a bounded failure rule, not proof of parity for all
+unknown-duration sources.
+
+The actual generated EVO audio decoder loop, resampler, ring, EOF drain and
+output code passed ASan/UBSan. Scripted native-decoder PCM proves all preroll
+packets reach the decoder, retained sample contents are correct, counted output
+excludes padding, invalid byte counts become fatal, and unreached EOF cannot
+become drained. Sony Audiodec and AudioOut are mocked; native codec priming and
+audible output remain unverified. Real host AAC decode/EOF and known-duration
+audio-tail metadata checks also passed. Evidence:
+`.deps/audio-seek-lifecycle.log` / `.result` (0).
+
+The shipping demux request/process methods passed ASan/UBSan with actual FFmpeg
+AAC/Opus/HLS seeking and the real `pp_playback` hold/clock. Tests cover audio-only
+playing/paused seeks, zero/sub-50ms targets, nonzero origins, video discard and
+failed-seek base retention. The presentation frames in this process test are
+synthetic; actual AVC/AAC/Opus decode remains covered by the existing resume
+tests in the same suite. Evidence: `.deps/audio-only-seek-process.log` / `.result`
+(0). The Opus fixture retains its previously documented seek header warning.
+
+The final `c2779195` PS5 build, link, packaging and freeze passed: 126 files,
+eboot SHA-256 prefix `c09f0aff45b24d48`. Evidence:
+`.deps/audio-seek-lifecycle-ps5-build.log` / `.result` (0) and
+`.deps/audio-seek-lifecycle-freeze.log` / `.result` (0). The preceding
+`bf6852cd` package also passed; its evidence is preserved under
+`.deps/audio-seek-lifecycle-bf6852cd-*`. Neither candidate was deployed or
+launched. This milestone made no console connection.
+
 ## Accurate resume — 2026-10-10
 
 Source `c6ec8804` preserves decoder preroll while suppressing presentation
