@@ -298,7 +298,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 cancel_auth_result(task)
                 task.cancel()
                 del app.state.jobs[key]
-        if len(app.state.jobs) >= 16:
+        if sum(not task.done() for _, task in app.state.jobs.values()) >= 16:
             raise ServiceError("job_limit", "The companion is busy. Wait for the current request or cancel it.", 503)
         if payload.action == "resolve" and payload.playback is None:
             raise ServiceError("invalid_job", "A playback request is required.", 400)
@@ -309,6 +309,16 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 raise ServiceError("invalid_job", "An enabled sign-in service and operation are required.", 400)
             if payload.auth.action != "start" and not payload.auth.session:
                 raise ServiceError("invalid_job", "A sign-in session is required.", 400)
+        # Finished jobs are retained for repeat polling, not counted as active
+        # work. Bound that cache separately so normal browsing cannot exhaust
+        # the concurrency limit within the two-minute retry window.
+        if len(app.state.jobs) >= 80:
+            completed = [key for key, (_, task) in app.state.jobs.items() if task.done()]
+            key = min(completed, key=lambda key: (not getattr(app.state.jobs[key][1], "auth_delivered", False),
+                                                 app.state.jobs[key][0]))
+            _, task = app.state.jobs.pop(key)
+            cancel_auth_result(task)
+            task.cancel()
         async def work():
             try:
                 if payload.action == "search":

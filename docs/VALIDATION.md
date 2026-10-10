@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Companion job admission — 2026-10-10
+
+The six-section PS5 case exposed a busy response after rapid browsing: completed
+jobs were retained for two minutes and counted against the 16-job concurrency
+limit. Gaming/News/Sports/Live/Movies opened their fixture shelves and video lists;
+Music's row request was rejected. Matching-build GPU park, exact owned teardown,
+healthy services and restoration of the original absence of provider state passed.
+Evidence: `.deps/console/six-topics-hardware`; the functional case exited 1.
+
+Admission now counts only in-flight tasks. Up to 80 job records are retained for
+repeat polling, with delivered completed results evicted first. Abandoned results
+use the existing sign-in/chat cleanup. Invalid submissions do not evict results.
+The API/auth/chat/library regression passed 83 tests
+(`.deps/job-capacity-tests.{log,result}`). The final capacity-only run passed three
+tests (`.deps/job-capacity-final.{log,result}`), covering 140
+successive jobs, retained/evicted polling, 16 real pending jobs, cancellation and
+abandoned-chat cleanup. Console acceptance with the corrected companion is pending.
+
 ## Remaining TV topic sections — 2026-10-10
 
 Sports, Live and Movies now have native Discover entries and use the reference

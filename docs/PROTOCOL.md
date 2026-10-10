@@ -36,7 +36,11 @@ without changing timestamps. HLS keys retain file suffixes for FFmpeg extension
 validation. The PS5 checks resolved/caption URLs against its configured origin.
 
 Limits: 8 KiB request bodies, 8 MiB extractor JSON, two workers, 45-second worker
-deadline, 16 jobs, 32 sessions, a 30-minute idle session lease and 4,096 HLS resources.
+deadline, 16 in-flight jobs, 80 retained job records, 32 sessions, a 30-minute idle
+session lease and 4,096 HLS resources. Completed jobs permit repeat polling but
+do not consume the in-flight limit. At capacity, the oldest delivered completed
+result is evicted first; abandoned completed sign-in/chat results use the usual
+cancellation cleanup. An evicted or expired job returns 410.
 Successful manifest/caption delivery and streamed media bytes renew that lease.
 Missing resources, failed upstream requests and expired/invalidated tokens do
 not renew it; activity never restores a removed capability. Active HLS playlists
