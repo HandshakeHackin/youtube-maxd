@@ -575,3 +575,25 @@ tests use deterministic HTTP; physical PS5 virtual keyboard/controller behavior,
 real-account sending and hardware continuity remain unverified.
 
 - 2026-10-09 | fallback availability | read-only | pass: idle running-title list, no other probes or changes; owned lock released | .deps/fallback-idle.json | recheck idle before deployment
+
+- 2026-10-09 | native chat / PS5 package | 9a7609c8 | PS5 | pass: 211 objects, link, native container, package and freeze | .deps/chat-compose-ps5-build.log; .deps/chat-compose-freeze.log | storage/startup acceptance
+
+Build ID `prosperotube-9a7609c8_1010-0141`; frozen candidate contains 126 files,
+eboot SHA-256 prefix `08b98295d73f6689`. Build and freeze returned 0.
+
+- 2026-10-09 | fallback Lapy startup | 9a7609c8 | PS5, firmware unreported | failed: Lapy helper apply_failed, startup stopped | .deps/chat-compose-fallback-console.log; .deps/console/storage-chat-compose-9a7609c8-fallback/klog.txt | diagnose offline, no identical-byte retry
+
+The idle-first case uploaded and read back all 126 frozen files, verified them
+again after the 130-second settle, established exact title registration and
+rechecked idle before sending one launch. The script returned 1 with an
+inconclusive missing-checkpoint result. Captured klog strengthens that result:
+the matching build reached main, configured 3840x2160 display and native IME,
+then reported `Lapy: path=helper status=7; durable storage unavailable` and
+`ProsperoTube requires writable /data/prosperotube; startup stopped`.
+Status 7 is `elevation::Status::apply_failed`. The system subsequently captured
+a title coredump and terminated it. The exact helper failure stage and shutdown
+behavior remain to be diagnosed; no root-layout cause is assumed from this code.
+No application status/UI/storage-ready checkpoint was produced. No input,
+second launch or close payload was sent; the owned lock was released. No further
+console traffic followed the failure. Storage persistence, clean teardown,
+service health after termination, playback, audio and chat remain unverified.

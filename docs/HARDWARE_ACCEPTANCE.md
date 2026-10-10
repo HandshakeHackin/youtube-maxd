@@ -261,3 +261,12 @@ Use a fixture first. Actual account posting requires a separately reviewed
 message and acceptance; offline tests have sent no real messages.
 
 - 2026-10-09 | fallback availability | read-only | pass: idle title list; no other console probes or changes; owned lock released | .deps/fallback-idle.json | build frozen candidate, recheck idle before deployment
+
+- 2026-10-09 | fallback storage/startup | 9a7609c8 | PS5, firmware unreported | failed: exact build entered main, Lapy helper apply_failed (7), startup stopped; system captured a coredump | .deps/chat-compose-fallback-console.log; .deps/console/storage-chat-compose-9a7609c8-fallback/klog.txt | offline Lapy/startup diagnosis
+
+Installation, full byte readback after settling, registration and idle recheck
+passed. One launch was sent. No input, close payload or second launch followed;
+the owned lock was released. Writable app storage, persistence and post-failure
+service health were not accepted. Do not retry these identical bytes. Diagnose
+the helper apply failure and startup-failure lifecycle before another bounded
+case; the fallback's firmware has not been established.
