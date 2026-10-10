@@ -26,8 +26,22 @@ SponsorBlock, paid-content and DeArrow regressions (`.deps/rate-provider.log`).
 The generated player tick/pad ASan/UBSan suite also passed, asserting that
 SponsorBlock receives the session rate (`.deps/rate-sponsor.log`).
 
+PS5 candidate `3cb46c5e` passed compilation of 212 objects, packaging and
+immutable freeze: 126 files, build `prosperotube-3cb46c5e_1010-1942`, eboot
+prefix `e11b6e015c5d7b6f`. Evidence:
+`.deps/rate-player-{ps5-build,freeze}.{log,result}` (both exit 0).
+
 Hardware speed/pitch/sync acceptance and changing speed during an active video
 remain open; the earlier foundation section describes its historical state.
+
+The bounded 1.25× console case did not launch: the primary console was initially
+idle, then another title appeared during delta upload. The adapter stopped at
+its per-file running-title check. The fallback was already busy at its first
+read-only check. No title was closed, no test input or temporary speed preference
+was sent, and the shared lock was released. Primary installation is partially
+updated and must complete a full frozen-file comparison and settling period
+before any later launch. Evidence: `.deps/rate-player-hardware.log` and
+`.deps/rate-player-hardware-fallback.log` (both no-run, exit 1).
 
 ## Playback-speed audio stage — 2026-10-10
 

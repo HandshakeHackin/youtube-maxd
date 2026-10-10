@@ -616,6 +616,9 @@ stack: audio queue/media clocks, silent-video pacing, seek/EOF handling and
 persisted next-open speed selection. The real PCM stage passed host ASan/UBSan
 across all 30 reference speeds; generated audio and clock paths also passed.
 Active-session controls and hardware acceptance remain open. Previous candidates:
+`3cb46c5e` compiled/froze successfully (212 objects, 126 files); its speed case
+did not launch because both consoles were busy. The primary upload stopped
+partway and requires complete verification before a later launch.
 `639b015a` passed console chat paging/refresh/mode and exact state restoration;
 `327d8606` passed public thumbnail decode/cache and clean lifecycle. Consolidated gate:
 `.deps/parity-batch-*`; 224 companion tests, five native executables and generated
