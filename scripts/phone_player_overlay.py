@@ -70,6 +70,7 @@ void ProviderHostScreen::startSelected()''')
         if (!ProviderHostScreen::playbackStartupBusy()) {
             tube_phone_controls phone{};
             phone.context = this;
+            phone.stop_on_disconnect = tube_phone_stop_on_disconnect();
             phone.snapshot = [](void* ctx, tube_remote_player* p) -> int {
                 auto pb = static_cast<Application*>(ctx)->getPlaybackController();
                 p->volume = evo_audio_volume(); p->muted = p->volume == 0;

@@ -16,6 +16,8 @@ typedef struct {
     int (*key)(void *, const char *);
     int (*captions)(void *, const char *);
     void (*browser)(void *);
+    /* Default keeps playback running if the phone disconnects. */
+    int stop_on_disconnect;
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */

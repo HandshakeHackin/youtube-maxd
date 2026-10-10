@@ -61,7 +61,9 @@ int main(void) {
     char dir[]="/tmp/prosperotube-phone-XXXXXX"; assert(mkdtemp(dir)); assert(!setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     cJSON *seed=cJSON_Parse("{\"version\":2,\"source\":\"http://127.0.0.1:8765\",\"token\":\"synthetic-companion-token\",\"records\":[]}");
     assert(seed); write_store(seed); cJSON_Delete(seed); const evo_provider_t *p=&evo_provider_youtube;
-    assert(!p->init()); tube_poll(); assert(!count); page("settings:remote"); assert(rows==4 && !count);
+    assert(!p->init()); tube_poll(); assert(!count); page("settings:remote"); assert(rows==5 && !count);
+    assert(!tube_phone_stop_on_disconnect()); page("settings:remote:disconnect");
+    assert(tube_phone_stop_on_disconnect());
     evo_stream_choice_t choice={0}; snprintf(choice.url,sizeof choice.url,"http://127.0.0.1:8765/media/fixture.mpd");
     char video[12]; assert(!tube_phone_video(choice.url,video));
     p->stream_chosen("abcdefghijk",&choice);
@@ -72,7 +74,7 @@ int main(void) {
     int calls=entropy_calls; tube_poll(); tube_poll(); assert(entropy_calls==calls);
     cJSON *failure_store=read_store(); assert(!*str(failure_store,"remote_device")); cJSON_Delete(failure_store);
     entropy_failure=0;
-    page("settings:remote:pair"); assert(rows==4 && !count);
+    page("settings:remote:pair"); assert(rows==5 && !count);
     cJSON *stored=read_store(); char device[37]; snprintf(device,sizeof device,"%s",str(stored,"remote_device"));
     assert(tube_remote_identity_valid(device) && device[14]=='4' && cJSON_IsTrue(cJSON_GetObjectItem(stored,"remote_enabled")));
     assert(!*str(stored,"remote_screen")); cJSON_Delete(stored);
@@ -81,7 +83,7 @@ int main(void) {
     stored=read_store(); assert(!strcmp(str(stored,"remote_screen"),"screen-123")); cJSON_Delete(stored);
     unsigned revision=tube_phone_revision();
     reply("{\"api_version\":1,\"state\":\"listening\",\"session\":\"0123456789abcdef0123456789abcdef\",\"pairing_code\":\"123456789012\"}");
-    assert(tube_phone_revision()!=revision); page("settings:remote"); assert(rows==5 && !strcmp(items[1].title,"TV code: 123 456 789 012"));
+    assert(tube_phone_revision()!=revision); page("settings:remote"); assert(rows==6 && !strcmp(items[1].title,"TV code: 123 456 789 012"));
     stored=read_store(); char *data=cJSON_PrintUnformatted(stored); assert(data && !strstr(data,session) && !strstr(data,"123456789012") && !strstr(data,"lounge_token")); free(data); cJSON_Delete(stored);
     unsigned owner=tube_remote_current_owner(); assert(owner);
     page("library:profile:other"); assert(!tube_phone_video(choice.url,video));
@@ -89,9 +91,9 @@ int main(void) {
     tube_phone_sync_scope(); assert(!tube_remote_owner_current(owner)); stop();
     page("library:profile:guest"); tube_phone_sync_scope(); tube_poll();
     root=request("start"); cJSON_Delete(root); started(device);
-    p->shutdown(); stop(); assert(!p->init()); tube_poll(); root=request("start");
+    p->shutdown(); stop(); assert(!p->init()); assert(tube_phone_stop_on_disconnect()); tube_poll(); root=request("start");
     assert(!strcmp(str(root,"device_id"),device) && !strcmp(str(root,"screen_id"),"screen-123")); cJSON_Delete(root); started(device);
-    page("settings:remote:toggle"); assert(rows==4); stop(); tube_poll(); assert(!count);
+    page("settings:remote:toggle"); assert(rows==5); stop(); tube_poll(); assert(!count);
     char blocked[512]; snprintf(blocked,sizeof blocked,"%s",evo_data_path("youtube.json.tmp")); assert(!mkdir(blocked,0700));
     page("settings:remote:reset"); assert(strstr(items[0].title,"local data not saved"));
     stored=read_store(); assert(!strcmp(str(stored,"remote_device"),device)); cJSON_Delete(stored); assert(!rmdir(blocked));

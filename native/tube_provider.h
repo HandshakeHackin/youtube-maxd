@@ -11,6 +11,7 @@ void tube_poll(void);
 unsigned tube_phone_revision(void);
 /* Synchronize UI scope before callbacks can start a deferred phone launch. */
 void tube_phone_sync_scope(void);
+int tube_phone_stop_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
 const char *tube_phone_caption_language(void);

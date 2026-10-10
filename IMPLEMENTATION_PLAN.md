@@ -626,7 +626,11 @@ Link a phone triggered SIGSYS during identity generation. The OS released the
 owned app and original provider data was restored after an idle check. The checked
 PS5 kernel RNG replacement from ProsperoLight passes sanitizer/provider tests and
 PS5 object compilation. Microphone advertisement is withheld until implemented.
-Corrected package/runtime and actual phone playback remain unverified.
+Corrected `f0b9f41c` PS5 package built/froze (126 files); 83 companion regressions
+passed. A saved keep-playing / stop-phone-playback-on-disconnect choice is now
+connected to the native settings/player, with ownership and restart sanitizer
+coverage. Corrected runtime and actual phone playback remain unverified; caption
+language switching, voice, full app-exit behavior and long playlists remain open.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

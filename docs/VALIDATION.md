@@ -19,8 +19,22 @@ is exercised by provider tests, with short/oversized/error/block-boundary tests 
 ASan/UBSan (`.deps/phone-rng-tests.*`, exit 0). Connected PS5 objects compiled
 (`.deps/phone-rng-ps5-objects.*`, exit 0). Lounge no longer advertises microphone
 support before capture/search exists; 40 backend tests passed
-(`.deps/phone-player-capabilities-tests.*`). Corrected package/runtime and real-phone
-acceptance remain pending.
+(`.deps/phone-player-capabilities-tests.*`). The corrected `f0b9f41c` PS5 package
+built and froze: 126 files, build `prosperotube-f0b9f41c_1010-2345`, eboot prefix
+`6a956afa089dc830` (`.deps/phone-pairing-rng-{ps5-build,freeze}.*`, exit 0).
+Remote/companion regressions passed 83 tests (`.deps/phone-rng-companion-regression.*`).
+Corrected runtime and real-phone acceptance remain pending.
+
+The next batch adds a saved default-continue / stop-on-disconnect preference to
+the actual phone settings and Application adapter. Stop only applies to the current
+phone-owned video, clears its ephemeral queue and uses normal player/browser
+teardown; unrelated local playback is preserved. Explicit remote disconnect events
+trigger the choice; profile changes and network errors are not treated as commands.
+ASan/UBSan tests cover default continuation, opted-in stop, queue retirement,
+unrelated media and preference restart persistence (`.deps/phone-disconnect-tests.*`,
+exit 0). This adapts SmartTube's optional finish-on-disconnect behavior to stopping
+PS5 playback; automatic app exit is not implemented. New package/runtime acceptance
+remains pending.
 
 ## Phone player and ephemeral queue adapter — 2026-10-10
 

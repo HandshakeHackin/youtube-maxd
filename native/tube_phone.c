@@ -137,7 +137,14 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
     case TUBE_REMOTE_DPAD: applied = ctl->key && ctl->key(ctl->context, c.key); break;
     case TUBE_REMOTE_CAPTIONS:
         applied = active && (!*c.video || !strcmp(c.video, p.video)) && ctl->captions && ctl->captions(ctl->context, c.language); break;
-    case TUBE_REMOTE_QUERY: case TUBE_REMOTE_CONNECTED: case TUBE_REMOTE_DISCONNECTED: case TUBE_REMOTE_DEVICES:
+    case TUBE_REMOTE_DISCONNECTED:
+        applied = 1;
+        if (ctl->stop_on_disconnect && active && current.owner == c.owner && !strcmp(p.video, current.video)) {
+            applied = ctl->stop && ctl->stop(ctl->context);
+            if (applied) memset(&current, 0, sizeof current);
+        }
+        break;
+    case TUBE_REMOTE_QUERY: case TUBE_REMOTE_CONNECTED: case TUBE_REMOTE_DEVICES:
         applied = 1; break;
     default: break;
     }
