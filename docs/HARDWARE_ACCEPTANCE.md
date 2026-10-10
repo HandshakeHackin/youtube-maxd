@@ -380,3 +380,6 @@ native UI, persistence and teardown before real YouTube playback acceptance.
 
 The original adapter failure is retained. No second launch or preference change
 occurred, so this does not establish persistence across relaunch or playback.
+
+- 2026-10-10 | first public YouTube case | b9b5c916 native | reserved PS5 .40 | failed: verified reuse and startup, pairing saved; search returned resolver invalid_response before playback | .deps/public-video-reserved-console.log | fix Windows worker protocol encoding
+- 2026-10-10 | owned failed-case cleanup | b9b5c916 | PS5 .40 | pass: known PID 121/app ID 0x8018 gracefully parked, exact close, matching process/mount release, idle titles and reachable services | .deps/console/public-video-b9-cleanup/ | fresh idle-first public-video case with corrected companion

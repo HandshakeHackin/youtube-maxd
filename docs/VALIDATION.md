@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Windows public resolver encoding corrected — 2026-10-10
+
+The first real public-video case on `.40` passed immutable installed-byte
+checks, settling, final idle, Lapy storage and native UI startup. Pairing saved a
+version-2 configuration under `/data/prosperotube`, but public search returned
+`invalid_response`; no playback started. Original case result remains 1:
+`.deps/public-video-reserved-console.log` and
+`.deps/console/public-video-b9b5c916-fallback/`.
+
+A separate bounded cleanup verified that only our launched PID 121/app ID
+`0x8018` remained, requested graceful quit, proved matching `parked=1`, then
+sent one exact-title close. Matching kernel kill/video-owner/mount-end records,
+absence of running titles and reachable services passed. Evidence:
+`.deps/console/public-video-b9-cleanup/`. This cleanup does not accept playback.
+
+The shipping Windows worker reproduced the fault locally: exit 0, 105,427 output
+bytes, invalid UTF-8 but valid CP1252 JSON for `jNQXAC9IVRw` with 24 formats.
+The worker now explicitly configures protocol input/output as strict UTF-8,
+independent of the Windows system code page. A real redirected-stream regression
+round-trips Japanese, accented text and emoji with CP1252 initial streams and
+keeps extractor output separate. All 18 resolver-boundary tests passed on Windows.
+Fresh actual public extraction then returned valid UTF-8 JSON and 24 formats.
+Console playback with this companion correction remains the next case; native
+package bytes remain the accepted `b9b5c916` build.
+
 ## PS5 storage startup and first graceful close — 2026-10-10
 
 Source `b9b5c916` passed all 211 PS5 objects, linking, signed containers,

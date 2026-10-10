@@ -48,6 +48,12 @@ class Quiet:
 
 
 def main():
+    # Parent/worker JSON is UTF-8 bytes on every platform. Windows redirected
+    # streams otherwise inherit the system code page, corrupting non-ASCII
+    # search queries and successful video metadata without a worker failure.
+    for stream in (sys.stdin, sys.stdout):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="strict")
     from yt_dlp import YoutubeDL
     request = json.load(sys.stdin)
     opts = {"quiet": True, "no_warnings": True, "logger": Quiet(), "skip_download": True,

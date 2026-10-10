@@ -11,6 +11,38 @@ from prosperotube.resolver_errors import classify_error, service_error
 from prosperotube import worker
 
 
+def test_worker_protocol_uses_utf8_with_windows_code_page_streams(monkeypatch):
+    import yt_dlp
+    target = "ytsearch1:日本語 café"
+    metadata = {"id": "abcdefghijk", "title": "日本語 café 🎥", "formats": []}
+    class YDL:
+        def __init__(self, _options): pass
+        def __enter__(self): return self
+        def __exit__(self, *_): pass
+        def add_info_extractor(self, _ie): pass
+        def extract_info(self, actual, **_kwargs):
+            assert actual == target
+            print("extractor output stays separate")
+            return metadata
+        def sanitize_info(self, info): return info
+        cookiejar = None
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", YDL)
+    request = json.dumps({"target": target, "flat": False, "start": 1,
+                          "end": 24}, ensure_ascii=False).encode("utf-8")
+    incoming = io.TextIOWrapper(io.BytesIO(request), encoding="cp1252")
+    raw = io.BytesIO()
+    outgoing = io.TextIOWrapper(raw, encoding="cp1252")
+    errors = io.StringIO()
+    monkeypatch.setattr(sys, "stdin", incoming)
+    monkeypatch.setattr(sys, "stdout", outgoing)
+    monkeypatch.setattr(sys, "stderr", errors)
+    assert worker.main() == 0
+    outgoing.flush()
+    assert json.loads(raw.getvalue()) == metadata
+    assert "extractor output" not in raw.getvalue().decode("utf-8")
+    assert "extractor output" in errors.getvalue()
+
+
 @pytest.mark.parametrize("message,code", [
     ("ERROR: This video is unavailable", "video_unavailable"),
     ("Video has been removed by the uploader", "video_unavailable"),
