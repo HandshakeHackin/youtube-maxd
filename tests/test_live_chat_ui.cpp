@@ -53,6 +53,8 @@ int main(int argc,char**argv) {
     assert(argc==3); std::filesystem::path source(argv[1]),fonts(argv[2]);
     char directory[]="/tmp/prosperotube-chat-ui-XXXXXX"; assert(mkdtemp(directory)); assert(!setenv("EVO_DATA_DIR_OVERRIDE",directory,1));
     assert(!evo_provider_youtube.init()); assert(!evo_provider_youtube.set_source("http://127.0.0.1:8765#123456"));
+    evo_provider_youtube.list_catalog("library:profile:one",0,
+        [](int ok,const evo_provider_item_t*,int,int,void*) { assert(ok); },nullptr);
     EvoSystemInterface system; EvoRenderInterface renderer(1920,1080);
     Rml::SetSystemInterface(&system); Rml::SetRenderInterface(&renderer); assert(Rml::Initialise());
     assert(Rml::LoadFontFace((fonts/"Lato-Regular.ttf").string())); assert(Rml::LoadFontFace((fonts/"Lato-Bold.ttf").string()));
@@ -101,6 +103,14 @@ int main(int argc,char**argv) {
     assert(host.DiscussionKey(0)==1 && host.m_stack.back()=="chat:live:abcdefghijk");
     assert(pending.size()==2 && pending[0].body.find("chat_close")!=std::string::npos);reply("{}");frame(4,"live","ui-cap-live");pump();
     assert(model.chat && host.m_all_rows.size()==24);
+    assert(host.DiscussionKey(5)==1 && host.m_stack.back()=="message:compose");pump();
+    assert(!model.chat && pending.empty());
+    tube_chat_prompt_t prompt; assert(tube_take_chat_prompt(&prompt));
+    char review[80]; assert(!tube_submit_chat_message(prompt.ticket,"Literal <b id='send-injection'>draft</b> & café",review,sizeof review));
+    host.ReplaceFolder(review,"Review chat message");pump();
+    assert(model.review && !model.chat && host.GetFocusedRow());
+    assert(std::string(tube_comment_text(host.GetFocusedRow()->id.c_str())).find("Literal <b")!=std::string::npos);
+    assert(!host.m_doc->GetElementById("send-injection") && pending.empty());
     host.ShowSetupScreen();assert(!model.chat && !model.discussion && !pending.empty());reply("{}");
     assert(pending.empty() && !tube_chat_due("chat:live:abcdefghijk"));
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};

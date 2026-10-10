@@ -251,3 +251,13 @@ controlled live-edge restart; full DVR and naturally expired long-session
 playback remain unverified. No console traffic occurred for the host case.
 
 - 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 6.02 | no-run: current first title check busy; no probes/upload/launch/close/input; owned lock released | .deps/storage-current-console.log | continue offline
+
+Native live-chat composition is implemented. With an explicitly selected account
+and active chat, check L3 keyboard open/cancel, Unicode limits, full literal text
+in review, Cross submission once, confirmation and Circle return. R3 mode change
+and Touchpad comments must still work. Repeat scope changes, delayed callbacks,
+ended chat, uncertain response and cancellation; none may automatically resend.
+Use a fixture first. Actual account posting requires a separately reviewed
+message and acceptance; offline tests have sent no real messages.
+
+- 2026-10-09 | fallback availability | read-only | pass: idle title list; no other console probes or changes; owned lock released | .deps/fallback-idle.json | build frozen candidate, recheck idle before deployment

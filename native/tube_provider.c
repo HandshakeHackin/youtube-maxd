@@ -106,6 +106,14 @@ static void cancel_requests(int preserve_chat);
 static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
 static struct { int state; unsigned serial; long long next_poll;
     char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
+static struct { int phase, pending; unsigned ticket, chat_serial;
+    char text[801], session[65], cursor[65], video[12], profile[33]; } g_message;
+static int message_scope(void) {
+    return g_message.ticket && g_message.chat_serial == g_chat.serial && g_chat.state == 2 &&
+        !strcmp(g_message.profile, g_library_profile) && !strcmp(g_message.profile, g_chat.profile) &&
+        !strcmp(g_message.video, g_chat.video) && !strcmp(g_message.cursor, g_chat.cursor) &&
+        !strcmp(g_chat.source, g_source) && !strcmp(g_chat.token, g_token);
+}
 static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
@@ -155,6 +163,8 @@ void tube_chat_stop(void) {
     chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
     unsigned serial = g_chat.serial + 1;
     memset(&g_chat, 0, sizeof g_chat); g_chat.serial = serial ? serial : 1;
+    memset(&g_message, 0, sizeof g_message);
+    memset(&g_comments[LOCAL_PAGE], 0, sizeof g_comments[LOCAL_PAGE]);
 }
 
 static void copy(char *out, size_t cap, const char *src) {
@@ -250,6 +260,41 @@ int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, s
         g_playlist_prompt.create ? "" : g_playlist_prompt.identity, title);
     g_playlist_prompt.active = 0;
     snprintf(parent, capacity, "playlist:review:%u", serial); return 0;
+}
+
+int tube_take_chat_prompt(tube_chat_prompt_t *prompt) {
+    if (!prompt || !g_message.pending || g_message.phase != 1 || !message_scope()) return 0;
+    memset(prompt, 0, sizeof *prompt); prompt->ticket = g_message.ticket;
+    copy(prompt->label, sizeof prompt->label, "YouTube live-chat message");
+    g_message.pending = 0; return 1;
+}
+
+void tube_cancel_chat_prompt(unsigned ticket) {
+    if (ticket == g_message.ticket && g_message.phase == 1) memset(&g_message, 0, sizeof g_message);
+}
+
+int tube_submit_chat_message(unsigned ticket, const char *text, char *parent, size_t capacity) {
+    if (ticket != g_message.ticket || g_message.phase != 1 || !message_scope() || !text || !parent || capacity < 48) return -1;
+    size_t length = strnlen(text, 801), points = 0; int visible = 0;
+    if (!length || length > 800) return -1;
+    for (size_t i = 0; i < length;) {
+        unsigned char c = (unsigned char)text[i];
+        size_t n = c < 0x80 ? 1 : c >= 0xc2 && c <= 0xdf ? 2 : c >= 0xe0 && c <= 0xef ? 3 : c >= 0xf0 && c <= 0xf4 ? 4 : 0;
+        if (!n || c < 0x20 || c == 0x7f || i + n > length || ++points > 200) return -1;
+        for (size_t k = 1; k < n; ++k) if (((unsigned char)text[i+k] & 0xc0) != 0x80) return -1;
+        unsigned char next = n > 1 ? (unsigned char)text[i+1] : 0;
+        if ((c == 0xe0 && next < 0xa0) || (c == 0xed && next >= 0xa0) ||
+            (c == 0xf0 && next < 0x90) || (c == 0xf4 && next >= 0x90)) return -1;
+        unsigned cp = c & (n == 1 ? 0x7f : n == 2 ? 0x1f : n == 3 ? 0x0f : 0x07);
+        for (size_t k = 1; k < n; ++k) cp = (cp << 6) | ((unsigned char)text[i+k] & 0x3f);
+        if (cp != 0x20 && cp != 0x85 && cp != 0xa0 && cp != 0x1680 &&
+            !(cp >= 0x2000 && cp <= 0x200a) && cp != 0x2028 && cp != 0x2029 &&
+            cp != 0x202f && cp != 0x205f && cp != 0x3000) visible = 1;
+        i += n;
+    }
+    if (!visible) return -1;
+    copy(g_message.text, sizeof g_message.text, text); g_message.phase = 2;
+    snprintf(parent, capacity, "message:review:%u", ticket); return 0;
 }
 
 static Record *record_for(const char *id, const char *profile, int create) {
@@ -481,6 +526,7 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 11 && r->intent == g_message.ticket && g_message.phase == 3) g_message.phase = -1;
     if (r->kind == 10 && !ok) {
         chat_cleanup_request(r, NULL);
         if (r->intent == g_chat.serial) {
@@ -907,6 +953,19 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
     if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
+    if (r->kind == 11) {
+        if (r->intent != g_message.ticket || !message_scope() || !boolean(result, "success") ||
+            num(result, "api_version") != 1 || strcmp(str(result, "id"), g_message.video) ||
+            strcmp(str(result, "session"), g_message.session) || !*str(result, "message_id") ||
+            strlen(str(result, "message_id")) > 160) {
+            cJSON_Delete(root); tube_set_error("The message was not confirmed. Check the chat before sending again."); complete(r, 0); return;
+        }
+        g_message.phase = 4; g_message.text[0] = 0;
+        memset(&g_comments[LOCAL_PAGE], 0, sizeof g_comments[LOCAL_PAGE]);
+        evo_provider_item_t item; folder(&item, "account:notice", "Chat message sent", "Circle returns to the chat");
+        if (r->items_cb) { r->items_cb(1, &item, 1, 0, r->ud); r->items_cb = NULL; }
+        cJSON_Delete(root); complete(r, 1); return;
+    }
     if (r->kind == 6) {
         if (!boolean(result, "success")) {
             cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
@@ -1104,6 +1163,41 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
+    if (parent && !strncmp(parent, "message:", 8)) {
+        if (page || !strcmp(g_library_profile, "guest") || g_chat.state != 2 || !valid_cursor(g_chat.cursor) ||
+            strcmp(g_chat.profile, g_library_profile) || strcmp(g_chat.source, g_source) || strcmp(g_chat.token, g_token)) {
+            tube_set_error("Open an active chat with an account profile before composing a message."); cb(0, NULL, 0, 0, ud); return 1;
+        }
+        if (!strcmp(parent, "message:compose")) {
+            memset(&g_message, 0, sizeof g_message);
+            if (!++g_account_serial) ++g_account_serial;
+            g_message.ticket = g_account_serial; g_message.chat_serial = g_chat.serial;
+            g_message.phase = g_message.pending = 1;
+            copy(g_message.video, sizeof g_message.video, g_chat.video);
+            copy(g_message.profile, sizeof g_message.profile, g_library_profile);
+            copy(g_message.cursor, sizeof g_message.cursor, g_chat.cursor);
+            snprintf(g_message.session, sizeof g_message.session, "chat-%lld-%u", now_ms(), g_message.ticket);
+            folder(&out[n++], "account:notice", "Compose a chat message", "Review before sending; Circle cancels");
+        } else {
+            char review[80], send[80];
+            snprintf(review, sizeof review, "message:review:%u", g_message.ticket);
+            snprintf(send, sizeof send, "message:send:%u", g_message.ticket);
+            if (!message_scope() || (strcmp(parent, review) && strcmp(parent, send)) || g_message.phase < 2) {
+                tube_set_error("Reopen chat to compose a new message for the current profile."); cb(0, NULL, 0, 0, ud); return 1;
+            }
+            if (!strcmp(parent, send) && g_message.phase == 2) return 0;
+            if (g_message.phase == 2) {
+                folder(&out[n++], send, "Send this chat message", "Cross sends once; Circle cancels");
+                copy(g_comments[LOCAL_PAGE].id, sizeof g_comments[LOCAL_PAGE].id, send);
+                snprintf(g_comments[LOCAL_PAGE].content, sizeof g_comments[LOCAL_PAGE].content,
+                    "Profile: %s\nVideo: %s\nMessage:\n%s\nCross sends once; Circle returns without sending.",
+                    g_message.profile, g_message.video, g_message.text);
+                copy(out[0].overview, sizeof out[0].overview, g_comments[LOCAL_PAGE].content);
+            } else folder(&out[n++], "account:notice", g_message.phase == 4 ? "Chat message sent" : "Chat message pending",
+                          "Check the chat before composing another message");
+        }
+        cb(1, out, n, 0, ud); return 1;
+    }
     if (parent && !strncmp(parent, "comment:", 8)) {
         const char *cursor = !strncmp(parent, "comment:menu:", 13) ? parent + 13 :
             !strncmp(parent, "comment:confirm:", 16) ? strchr(parent + 16, ':') : NULL;
@@ -1436,6 +1530,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     if (parent && !strncmp(parent, "account:apply:", 14) && g_account_intent.state)
         return local_catalog(parent, page, cb, ud) ? 0 : -1;
     if (parent && !strncmp(parent, "chat:", 5)) {
+        memset(&g_message, 0, sizeof g_message);
+        memset(&g_comments[LOCAL_PAGE], 0, sizeof g_comments[LOCAL_PAGE]);
         const char *id = NULL, *mode = "top";
         if (!strncmp(parent, "chat:top:", 9)) id = parent + 9;
         else if (!strncmp(parent, "chat:live:", 10)) { id = parent + 10; mode = "live"; }
@@ -1456,6 +1552,29 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
             "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\"}",
             reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "");
         begin(r); return 0;
+    }
+    if (parent && !strncmp(parent, "message:", 8)) {
+        for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) {
+            tube_set_error("Wait for the chat update before composing a message."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (!strncmp(parent, "message:send:", 13) && g_message.phase != 2)
+            return local_catalog(parent, page, cb, ud) ? 0 : -1;
+        cancel_requests(1);
+        if (local_catalog(parent, page, cb, ud)) return 0;
+        Request *r = request_new(11, ud); if (!r) { g_message.phase = -1; return -1; }
+        r->items_cb = cb; r->intent = g_message.ticket; g_message.phase = 3;
+        cJSON *job = cJSON_CreateObject(), *operation = cJSON_CreateObject();
+        if (!job || !operation) { cJSON_Delete(job); cJSON_Delete(operation); complete(r, 0); return -1; }
+        cJSON_AddStringToObject(job, "action", "library"); cJSON_AddItemToObject(job, "library", operation);
+        cJSON_AddStringToObject(operation, "action", "chat_send");
+        cJSON_AddStringToObject(operation, "profile", g_message.profile);
+        cJSON_AddStringToObject(operation, "id", g_message.video);
+        cJSON_AddStringToObject(operation, "cursor", g_message.cursor);
+        cJSON_AddStringToObject(operation, "session", g_message.session);
+        cJSON_AddStringToObject(operation, "text", g_message.text);
+        char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
+        if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
+        copy(r->payload, sizeof r->payload, body); free(body); begin(r); return 0;
     }
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;

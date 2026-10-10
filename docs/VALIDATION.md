@@ -552,3 +552,26 @@ not authorization or YouTube acceptance of an actual account message.
 The current frozen recovery candidate case again stopped at its first read-only
 running-title check. No other probe, deployment, launch, close or input occurred;
 the owned lock was released. The frozen candidate remains undeployed.
+
+### Native chat compose/review/send (2026-10-09)
+
+L3 in an active chat opens a RAM-only message prompt, retaining its owned reader
+context. Review displays the selected profile, video and full literal text.
+Cross creates one chat-send job; repeated confirmation does not submit or cancel
+another job. Returning to chat, leaving the browser or profile/source changes
+invalidate the draft and stale keyboard callbacks. The confirmed response must
+echo the video and intent and include a message ID. Uncertain sends cannot reuse
+the action. UTF-8 validation bounds input to 200 scalar characters / 800 bytes,
+rejecting blank, control, malformed, surrogate and overlong forms. R3 and
+Touchpad retain their reader-mode/comments functions.
+
+Shipping reader and compose/review provider ASan/UBSan tests passed, as did
+actual generated RML callbacks and broader provider/recovery regressions.
+Evidence: `.deps/chat-compose-native.log`, `.deps/chat-compose-ui.log`,
+`.deps/chat-compose-provider.log` and corresponding `.result` files (all 0).
+The RML case verifies L3 navigation, review state, full RAM text, no early HTTP
+send and literal markup. Existing RML warnings remain in the host log. These
+tests use deterministic HTTP; physical PS5 virtual keyboard/controller behavior,
+real-account sending and hardware continuity remain unverified.
+
+- 2026-10-09 | fallback availability | read-only | pass: idle running-title list, no other probes or changes; owned lock released | .deps/fallback-idle.json | recheck idle before deployment

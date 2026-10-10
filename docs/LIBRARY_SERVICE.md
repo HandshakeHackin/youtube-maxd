@@ -499,6 +499,14 @@ removed when the profile is removed. They do not survive a companion restart.
 The active Node chat context also bounds attempted intents and confirms the
 returned message before adding it to its rolling reader snapshot.
 
-This is the companion API path. Native PS5 compose/review/cancel controls and
-real-account posting acceptance remain unfinished. No real chat messages were
+On PS5, L3 in an active chat opens the virtual keyboard. The message is held in
+RAM and reviewed with its profile and video before Cross submits one library
+job. Circle returns without sending; returning to chat invalidates the draft.
+R3 still changes chat mode and Touchpad still opens comments. Composition waits
+for an in-flight reader update instead of canceling that context. Guest and
+ended chats cannot compose. Profile/source changes, browser closure and stale
+keyboard callbacks invalidate the draft. A confirmed result clears its text;
+an uncertain result cannot reuse the send action. Native compose/review controls
+are implemented with offline evidence; physical keyboard/controller behavior
+and real-account posting acceptance remain pending. No real chat messages were
 sent during development tests.

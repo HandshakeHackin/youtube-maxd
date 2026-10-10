@@ -37,6 +37,10 @@ void tube_chat_stop(void);
 typedef struct { unsigned ticket; char label[64], initial[601]; } tube_playlist_prompt_t;
 int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt);
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity);
+typedef struct { unsigned ticket; char label[64], initial[801]; } tube_chat_prompt_t;
+int tube_take_chat_prompt(tube_chat_prompt_t *prompt);
+int tube_submit_chat_message(unsigned ticket, const char *text, char *parent, size_t capacity);
+void tube_cancel_chat_prompt(unsigned ticket);
 void tube_set_error(const char *message);
 #ifdef __cplusplus
 }

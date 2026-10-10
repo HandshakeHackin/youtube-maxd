@@ -156,6 +156,12 @@ ending is not sufficient. Reports include decoded durations and the root request
 count at injection. Increase `--decode-seconds` up to 3600 for longer host cases;
 this remains separate from PS5 continuity and naturally expired-link acceptance.
 
+`bash scripts/test_live_chat_native.sh` covers the shipping reader and native
+compose/review/send provider with ASan/UBSan. It prepares the native overlay;
+then `bash scripts/test_live_chat_ui.sh` exercises the actual generated RML
+callbacks, L3 composition, review text and literal rendering. These host tests
+mock HTTP and do not send real account messages or prove the PS5 virtual keyboard.
+
 After building the library worker, an explicit anonymous chat-service probe is:
 
 ```sh

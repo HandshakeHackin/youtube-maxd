@@ -11,3 +11,10 @@ cc -std=c11 -D_DEFAULT_SOURCE -Dclock_gettime=tube_test_clock_gettime -O1 -g -Wa
   "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c" -lm \
   -o "${root}/build/tests/test_live_chat_native"
 ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_live_chat_native"
+cc -std=c11 -D_DEFAULT_SOURCE -Dclock_gettime=tube_test_clock_gettime -O1 -g -Wall -Wextra -Werror \
+  -fsanitize=address,undefined -fno-omit-frame-pointer \
+  -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include" \
+  "${root}/tests/test_chat_compose_native.c" "${root}/native/tube_provider.c" \
+  "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c" -lm \
+  -o "${root}/build/tests/test_chat_compose_native"
+ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_chat_compose_native"
