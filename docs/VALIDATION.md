@@ -16,7 +16,17 @@ updates and text escaping. This is offline evidence, not console acceptance.
 Source `e8486d38` passed the PS5 build and immutable freeze (126 files;
 eboot prefix `c14090d6f9e367ef`; build `prosperotube-e8486d38_1010-2024`).
 Evidence: `.deps/sponsor-review-{ps5-build,freeze}.{log,result}`, both exit 0.
-No console deployment was performed for this candidate.
+The same frozen candidate subsequently passed a PS5 generated AVC/AAC case with
+known segment times. Review remained focused at 16.64 seconds after controls
+faded; Circle kept playback at 17.66 seconds, Cross on the next review sought to
+55.68 seconds, and an untouched review expired by 78.85 seconds. Normal Stop
+returned to the provider. Build-scoped logs recorded 1,824 published frames,
+zero late drops and one successful seek with no failures. GPU park, exact
+process/video-owner/mount release, service health and restoration of the original
+absence of provider state passed. The owned fixture server was stopped and lock
+released. This does not prove real SponsorBlock service behavior or physical
+appearance/sound. Evidence: `.deps/console/sponsor-review-hardware/verified-result.json`
+and `.deps/sponsor-review-hardware.{log,result}` (exit 0).
 
 ## PS5 speed controls acceptance — 2026-10-10
 

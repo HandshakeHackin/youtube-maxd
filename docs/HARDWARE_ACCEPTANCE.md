@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | SponsorBlock review | e8486d38 | PS5 | pass: generated AVC/AAC persistent review, keep/skip/expiry, Stop and clean release | .deps/console/sponsor-review-hardware/verified-result.json | real service and physical appearance
+
 Candidate `17455475` (`prosperotube-17455475_1010-2002`, 126 files, eboot prefix
 `c89ff35e59e6ac5f`) passed public 1.25× playback, paused normal-speed selection,
 last-speed restoration, pause/resume, forward/backward seek and saved speed on
