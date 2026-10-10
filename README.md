@@ -51,6 +51,10 @@ real-account posting, complete scrollback and PS5 acceptance remain pending.
 The player sidebar now supports playback-clock chat replay, including pause,
 seek and rewind; service/native host checks and live Guest replay checks passed.
 PS5 replay acceptance remains pending.
+The [phone receiver backend](docs/REMOTE_SERVICE.md) now supports authentic
+YouTube TV-code pairing, typed commands and playback-state feedback. Offline
+tests and a live temporary-receiver check passed; PS5 pairing UI and command
+execution remain pending, so phone-controlled PS5 playback is not available yet.
 The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;

@@ -607,11 +607,17 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
 | Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; replay candidates `6097d274` and corrected `9ac95e69` PS5 build/freeze passed; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
-| Casting and remote integration | Reference inventory only | Implement and accept |
+| Casting and remote integration | Authentic Lounge receiver backend: registration, TV code, typed commands, acknowledged delivery, state feedback, lease and shutdown host-tested; live temporary receiver registered, paired and reported state | Native opt-in/pair/reset settings, Lapy identity persistence, main-thread player/queue execution, voice and disconnect preferences, real phone/PS5 acceptance |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-Current batch: playback-clock replay is integrated into the service and native
+Current batch: the authenticated Lounge receiver backend is implemented and
+passed 40 offline protocol/API tests and a live temporary YouTube receiver check.
+It does not yet expose pairing or execute commands on PS5. Native integration and
+real phone acceptance are the next casting gates; the current native candidate is
+unchanged. See `docs/REMOTE_SERVICE.md` for the contract and implementation gate.
+
+Previous replay batch: playback-clock replay is integrated into the service and native
 sidebar. Forty-nine worker tests, 233 companion tests and native/HUD sanitizer
 checks passed. Live Guest replay and the rebuilt worker process boundary accepted
 pause, forward seek and rewind with no future messages. Corrected candidate `9ac95e69` passed PS5 build/freeze (126 files). PS5 replay acceptance,

@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## YouTube Lounge receiver backend — 2026-10-10
+
+Original companion transport now registers a Lounge screen, generates the phone
+TV code, parses UTF-16-length BrowserChannel frames, receives typed commands and
+sends playback/volume/queue/caption state through the authenticated `/v1/remote`
+API. It starts only on explicit enable, independently of the library worker.
+Command delivery requires native acknowledgment; duplicate wire IDs are ignored,
+missing IDs and overflow fail closed. Lease expiry, ordered/cached state updates,
+in-flight cancellation/failure, private protocol state, bounded termination and
+app shutdown have offline coverage.
+
+Forty protocol/API tests passed. Full companion regression passed 273 tests
+(`.deps/lounge-full-api.{log,result}`, exit 0). A live temporary receiver on
+YouTube registered, obtained a valid TV code, received loungeStatus/getNowPlaying,
+and successfully posted paused state; local cleanup passed. Evidence:
+`.deps/lounge-live-result.json`. The probe records only booleans and command names,
+never the pairing code or Lounge credentials. No phone was linked or console
+contacted. This establishes backend compatibility, not casting to PS5. Native
+pairing/reset settings, Lapy identity storage and command execution remain open;
+the native build/frozen candidate is unchanged. See `docs/REMOTE_SERVICE.md`.
+
 ## Playback-clock chat replay — 2026-10-10
 
 The companion now reads replay through `live_chat/get_live_chat_replay`, sends

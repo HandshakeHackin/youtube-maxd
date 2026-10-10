@@ -28,6 +28,7 @@ from .models import ResolveRequest, ServiceError, safe_remote, video_id
 from .sessions import Sessions
 from .dearrow import DeArrow
 from .media_refresh import expired as expired_media, observe as observe_media, renew as renew_media
+from .remote_lounge import Lounge, RemoteRequest
 
 
 class PairRequest(BaseModel):
@@ -91,12 +92,14 @@ class JobRequest(BaseModel):
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
-               http_client=None, sponsorblock=False, library=None, device_auth=None):
+               http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None):
     @asynccontextmanager
     async def lifespan(app):
         try:
             yield
         finally:
+            if app.state.remote is not None:
+                await app.state.remote.close()
             if device_auth is not None:
                 device_auth.close()
             tasks = list({job[1] for job in app.state.jobs.values()} | app.state.retired_tasks)
@@ -124,6 +127,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.retired_tasks = set()
     app.state.library = library
     app.state.device_auth = device_auth
+    app.state.remote = remote
 
     def profile_removed(identity):
         if hasattr(app.state.extractor, "invalidate_profile"):
@@ -193,6 +197,14 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if app.state.library is None:
             raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
         return await app.state.library.execute(payload.model_dump())
+
+    @app.post("/v1/remote")
+    async def remote_operation(payload: RemoteRequest):
+        if app.state.remote is None:
+            if payload.action != "start":
+                raise ServiceError("remote_session", "Enable phone connection first.", 404)
+            app.state.remote = Lounge()
+        return await app.state.remote.execute(payload)
 
     def signin():
         if app.state.device_auth is None:
