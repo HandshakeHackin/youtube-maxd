@@ -7,7 +7,8 @@ jobs were retained for two minutes and counted against the 16-job concurrency
 limit. Gaming/News/Sports/Live/Movies opened their fixture shelves and video lists;
 Music's row request was rejected. Matching-build GPU park, exact owned teardown,
 healthy services and restoration of the original absence of provider state passed.
-Evidence: `.deps/console/six-topics-hardware`; the functional case exited 1.
+Evidence: `.deps/console/six-topics-hardware/verified-failure.json`; the functional
+case exited 1 and the independent teardown/partial-navigation verifier passed.
 
 Admission now counts only in-flight tasks. Up to 80 job records are retained for
 repeat polling, with delivered completed results evicted first. Abandoned results
@@ -16,7 +17,13 @@ The API/auth/chat/library regression passed 83 tests
 (`.deps/job-capacity-tests.{log,result}`). The final capacity-only run passed three
 tests (`.deps/job-capacity-final.{log,result}`), covering 140
 successive jobs, retained/evicted polling, 16 real pending jobs, cancellation and
-abandoned-chat cleanup. Console acceptance with the corrected companion is pending.
+abandoned-chat cleanup. The exact six-section job sequence also passed through
+the shipping fixture API (eight fixture tests passed;
+`.deps/job-capacity-six-section.{log,result}`, exit 0). Corrected companion
+`991728f` paired with unchanged native candidate `fb3bf1aa` was prepared for a
+retest. Both authorized consoles had other running titles at the first read-only
+idle check, so neither case changed files or launched. Both owned fixture servers
+were stopped. Combined console acceptance with the corrected companion is pending.
 
 ## Remaining TV topic sections — 2026-10-10
 

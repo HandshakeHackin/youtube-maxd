@@ -37,6 +37,26 @@ def test_curated_section_api_keeps_rows_and_profile_scopes(tmp_path):
         assert call("topics", section="arbitrary").status_code == 422
 
 
+def test_rapid_six_section_job_navigation_does_not_exhaust_admission(tmp_path):
+    with TestClient(create_demo_app(tmp_path, token="fixture-test-token")) as client:
+        def job(request):
+            response = client.post("/v1/jobs", headers=AUTH, json={"action": "library", "library": request})
+            assert response.status_code == 200
+            path = "/v1/jobs/" + response.json()["job"]
+            for _ in range(100):
+                reply = client.get(path, headers=AUTH).json()
+                if reply["state"] != "pending":
+                    break
+                time.sleep(.001)
+            assert reply["state"] == "done"
+            return reply["result"]
+        for section in ("gaming", "news", "sports", "live", "movies", "music"):
+            root = job({"action": "topics", "section": section})
+            row = job({"action": "topic_open", "section": section, "id": root["items"][0]["id"].split(":")[2]})
+            assert len(row["items"]) == 3
+            assert job({"action": "topics", "section": section})["items"][0]["is_folder"]
+
+
 def test_fixture_account_api_and_mutations_are_profile_isolated(tmp_path, monkeypatch):
     # Any accidental real network client creation in fixture mode fails this test.
     import httpx
