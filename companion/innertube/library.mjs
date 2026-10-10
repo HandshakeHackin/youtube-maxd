@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { validCredentials } from './device_auth.mjs';
 import { ChatReader } from './live_chat.mjs';
+import { TopicCatalog } from './topic_catalog.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -104,6 +105,7 @@ export class Library {
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
     this.commentRatings = new Map();
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
+    this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
   async client(id) {
     const profile = this.profiles.get(id);
@@ -141,7 +143,7 @@ export class Library {
   }
   page(owner, kind, feed, pending = null) {
     const comments = kind === 'comments';
-    const items = pending ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
+    const items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
       [...Array.from(feed.videos ?? []).map(normalizeVideo), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
@@ -228,7 +230,7 @@ export class Library {
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
     if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress'].includes(input.action))
       requireId(input.id, videoId);
@@ -237,6 +239,11 @@ export class Library {
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
+    if (input.action === 'topics' || input.action === 'topic_open') {
+      const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client) :
+        await this.topics.open(owner, input.section, input.id);
+      return this.page(owner, 'catalog', feed);
+    }
     if (input.action === 'comment_rate') {
       const entry = this.commentRatings.get(input.cursor);
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())

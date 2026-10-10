@@ -282,6 +282,15 @@ on shutdown. The shipping layout is unchanged; PS5 behavior remains unverified.
 
 All operations require the ordinary companion bearer token.
 `POST /v1/library` accepts a bounded action/profile/item request.
+
+Curated TV sections use `{"action":"topics","section":"music"}` (also
+`gaming` and `news`). Shelf items are folders named `section:<section>:<id>`;
+open one with `{"action":"topic_open","section":"music","id":"<id>"}`.
+Continue either shelf lists or their contents with the usual `continue` action
+and returned cursor. IDs/cursors are opaque, profile-scoped and expire; reload
+the section when expired. Playlist folders preserve their originating section.
+These requests use YouTube's TV browse feed, not keyword search. Personalized
+liked-Music rows are not yet included.
 `POST /v1/jobs` with `action: "library"` and a nested `library` request is the
 native route, allowing polling/cancellation without blocking input.
 

@@ -264,7 +264,19 @@ static int valid_profile(const char *id) {
         strspn(id, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(id);
 }
 
+static const char *topic_section(const char *id) {
+    static const char *const names[] = {"music", "gaming", "news"};
+    if (!id || strncmp(id, "section:", 8)) return NULL;
+    for (unsigned i = 0; i < sizeof names / sizeof *names; ++i) {
+        size_t n = strlen(names[i]);
+        if (!strncmp(id + 8, names[i], n) &&
+            (!id[8 + n] || (id[8 + n] == ':' && valid_cursor(id + 9 + n)))) return names[i];
+    }
+    return NULL;
+}
+
 static int valid_catalog_id(const char *id) {
+    if (topic_section(id)) return 1;
     if (valid_id(id)) return 1;
     const char *value = NULL;
     if (id && !strncmp(id, "channel:UC", 10) && strlen(id) == 32) value = id + 8;
@@ -1624,8 +1636,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "library", "Accounts & library", "Profiles, subscriptions, history and playlists");
         folder(&out[n++], "search:science", "Science", "Explore science videos");
         folder(&out[n++], "search:technology", "Technology", "Explore technology videos");
-        folder(&out[n++], "search:gaming", "Gaming", "Explore gaming videos");
-        folder(&out[n++], "section:music", "Music", "Explore music videos");
+        folder(&out[n++], "section:gaming", "Gaming", "YouTube gaming shelves");
+        folder(&out[n++], "section:news", "News", "YouTube news shelves");
+        folder(&out[n++], "section:music", "Music", "YouTube music shelves");
         folder(&out[n++], "search:documentary", "Documentaries", "Explore documentaries");
         folder(&out[n++], "search:education", "Learning", "Explore educational videos");
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
@@ -1848,7 +1861,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
-    g_browse_music = parent && !strcmp(parent, "section:music");
+    const char *section = topic_section(parent);
+    g_browse_music = section && !strcmp(section, "music");
     g_browse_queue = parent && !strcmp(parent, "queue");
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     if (parent && !strncmp(parent, "auth:", 5)) {
@@ -1924,6 +1938,21 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     }
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
+    if (parent && !strncmp(parent, "section:", 8)) {
+        if (!section || page >= LIBRARY_PAGES ||
+            (page && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
+            tube_set_error("Reload this section to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        const char *key = parent + 8 + strlen(section);
+        Request *r = request_new(3, ud); if (!r) return -1;
+        r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"section\":\"%s\",\"id\":\"%s\",\"cursor\":\"%s\"}}",
+            page ? "continue" : *key ? "topic_open" : "topics", g_library_profile, section,
+            *key ? key + 1 : "", page ? g_library_cursors[page] : "");
+        begin(r); return 0;
+    }
     if (parent && !strncmp(parent, "account:apply:", 14)) {
         Request *r = request_new(6, ud); if (!r) return -1;
         r->items_cb = cb; r->intent = g_account_intent.serial;
@@ -2004,10 +2033,10 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     Request *r = request_new(1, ud); if (!r) return -1;
     r->items_cb = cb;
     cJSON *o = cJSON_CreateObject();
-    int search = g_browse_music || (parent && !strncmp(parent, "search:", 7));
+    int search = parent && !strncmp(parent, "search:", 7);
     cJSON_AddStringToObject(o, "action", search ? "search" : "catalog");
     cJSON_AddStringToObject(o, "profile", g_library_profile);
-    cJSON_AddStringToObject(o, search ? "query" : "parent", g_browse_music ? "music" : search ? parent + 7 : parent);
+    cJSON_AddStringToObject(o, search ? "query" : "parent", search ? parent + 7 : parent);
     cJSON_AddNumberToObject(o, "page", page);
     char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
     if (!body) { memset(r, 0, sizeof *r); return -1; }

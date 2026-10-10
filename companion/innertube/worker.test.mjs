@@ -1,4 +1,5 @@
 // Original behavior/failure tests; no network or account use. GPL-3.0-or-later
+import './topic_catalog.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';

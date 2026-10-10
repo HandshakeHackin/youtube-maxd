@@ -160,7 +160,9 @@ int main(void) {
     assert(!strstr(error_text, "secret"));
     /* Remote library navigation is asynchronous and retains only opaque cursors. */
     p->list_catalog("discover", 0, items_cb, NULL);
-    assert(last_count == 8 && !strcmp(last_items[0].id, "library:home"));
+    assert(last_count == 9 && !strcmp(last_items[0].id, "library:home"));
+    assert(!strcmp(last_items[4].id, "section:gaming") && !strcmp(last_items[5].id, "section:news") &&
+           !strcmp(last_items[6].id, "section:music"));
     p->list_catalog("library:profiles", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"action\":\"library\""));
     poll_job("{\"state\":\"done\",\"result\":{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"},{\"id\":\"fixture\",\"name\":\"Fixture\",\"account_configured\":true},{\"id\":\"../../bad\"}]}}");

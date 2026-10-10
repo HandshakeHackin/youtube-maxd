@@ -12,6 +12,31 @@ from prosperotube.models import ServiceError
 AUTH = {"Authorization": "Bearer fixture-test-token"}
 
 
+def test_curated_section_api_keeps_rows_and_profile_scopes(tmp_path):
+    app = create_demo_app(tmp_path, token="fixture-test-token")
+    with TestClient(app) as client:
+        def call(action, **kw):
+            return client.post("/v1/library", headers=AUTH, json={"action": action, **kw})
+        for section in ("music", "gaming", "news"):
+            root = call("topics", section=section).json()
+            row = root["items"][0]
+            assert row["is_folder"] and row["id"].startswith(f"section:{section}:")
+            key = row["id"].split(":")[2]
+            opened = call("topic_open", section=section, id=key)
+            assert opened.status_code == 200 and len(opened.json()["items"]) == 3
+            assert call("topic_open", section=section, id=key, profile="fixture_one").status_code == 409
+            assert call("continue", cursor=key).status_code == 409
+        job = client.post("/v1/jobs", headers=AUTH, json={"action": "library", "library": {
+            "action": "topics", "section": "music"}}).json()
+        for _ in range(100):
+            result = client.get("/v1/jobs/" + job["job"], headers=AUTH).json()
+            if result["state"] != "pending":
+                break
+            time.sleep(.01)
+        assert result["state"] == "done" and result["result"]["items"][0]["is_folder"]
+        assert call("topics", section="arbitrary").status_code == 422
+
+
 def test_fixture_account_api_and_mutations_are_profile_isolated(tmp_path, monkeypatch):
     # Any accidental real network client creation in fixture mode fails this test.
     import httpx

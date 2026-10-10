@@ -107,11 +107,24 @@ class FixtureLibrary:
             self.accounts[owner]["comment_ratings"][ref["items"][0]] = rating
             ref["result"] = {"api_version": 1, "success": True, "rating": rating}
             return copy.deepcopy(ref["result"])
+        if action in {"topics", "topic_open"}:
+            section = request.get("section")
+            if section not in {"music", "gaming", "news"}:
+                raise ServiceError("invalid_catalog", "Choose an available section.", 400)
+            if action == "topics":
+                key = self._reference(owner, "topic:" + section, [self._video(i) for i in VIDEOS])
+                return self._page(owner, "catalog", [{"id": f"section:{section}:{key}",
+                    "title": "Generated " + section + " row", "is_folder": True}])
+            ref = self.references.get(request.get("id"))
+            if not ref or ref["owner"] != owner or ref["kind"] != "topic:" + section or ref["deadline"] <= self.clock():
+                raise ServiceError("cursor_expired", "Reload this section to open the row.", 409)
+            return self._page(owner, "catalog", ref["items"])
         if action in {"continue", "replies"}:
             ref = self.references.get(request.get("cursor"))
             replies = action == "replies"
             if (not ref or ref["owner"] != owner or ref["deadline"] <= self.clock()
-                    or (ref["kind"] == "replies") != replies or ref["kind"] in {"rating", "chat"}):
+                    or (ref["kind"] == "replies") != replies or ref["kind"] in {"rating", "chat"}
+                    or ref["kind"].startswith("topic:")):
                 raise ServiceError("cursor_expired", "Reload this page to continue.", 409)
             if ref["result"] is None:
                 ref["result"] = self._page(owner, "comments" if replies else ref["kind"], ref["items"])

@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Curated TV sections — 2026-10-10
+
+Music/Gaming/News now use the TV `FEtopics_*` browse endpoints rather than
+search placeholders. Shelves remain folders with server-issued capabilities;
+row/playlist navigation, local 24-item pagination and upstream continuations
+retain section and profile scope. Music origin survives nested row/playlist
+navigation. Row retention is bounded to 128 capabilities / 8 MiB of source
+data with expiry, and upstream endpoints stay on the companion.
+
+Reference: pinned MediaServiceCore `4d9767733aa9`, `BrowseApiHelper` and
+`BrowseService2.getMusic/getGaming/getNews`; SmartTube prepends a personalized
+liked-Music row, which remains unimplemented. Live Guest checks returned four
+initial shelves and another shelf page for each section, playable row contents,
+and a 14-item Music playlist. A tracking-only response at continuation exhaustion
+is an empty terminal page; unsupported initial layouts remain errors. Evidence:
+`.deps/browse-reference/live-adapter-result.json`.
+
+Worker tests: 35 passed. Python library/API tests: 18 passed, including fixture
+section capabilities and the job path. Native section routing, row IDs,
+pagination and nested Music playback/queue origin passed ASan/UBSan. Console
+acceptance and personalized account coverage remain open.
+
 ## Music-origin speed behavior — 2026-10-10
 
 The explicit Music section has its own navigation identity. New playback from

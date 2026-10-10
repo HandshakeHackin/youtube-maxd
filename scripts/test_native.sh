@@ -2,9 +2,9 @@
 set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cases=("$@")
-if [ ${#cases[@]} -eq 0 ]; then cases=(native playback_recovery sponsor paid_content dearrow speed_memory music_context); fi
+if [ ${#cases[@]} -eq 0 ]; then cases=(native playback_recovery sponsor paid_content dearrow speed_memory music_context topic_catalog); fi
 for name in "${cases[@]}"; do
-  case "$name" in native|playback_recovery|sponsor|paid_content|dearrow|speed_memory|music_context) ;; *) echo "Unknown native test: $name" >&2; exit 2 ;; esac
+  case "$name" in native|playback_recovery|sponsor|paid_content|dearrow|speed_memory|music_context|topic_catalog) ;; *) echo "Unknown native test: $name" >&2; exit 2 ;; esac
 done
 work="$(python3 "${root}/scripts/prepare_native.py")"
 evo="${work}/projects/evoplayer"
