@@ -64,7 +64,7 @@ def test_shipping_api_renews_expired_ranges_and_dash_pair_using_fresh_resolver(v
             assert client.get(video, headers={'Range': 'bytes=0-3'}).content == b'0123'
         response = client.get(video, headers={'Range': 'bytes=4-7'})
         assert response.status_code == 206 and response.content == b'4567'
-        assert extractor.calls == [{}, {'fresh': True}]
+        assert extractor.calls == [{'fresh': False}, {'fresh': True}]
         assert application.state.sessions.get(session.token) is session
         assert set(session.tracks) == original_keys and session.manifests == original_manifests
         assert all('renewed=1' in r.url for r in session.tracks.values() if r.binding)

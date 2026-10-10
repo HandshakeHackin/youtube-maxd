@@ -54,6 +54,7 @@ def main():
         "Makefile", "addons/src/evo_provider_mgr.c", "src/evo_data_path.c", "include/evo_data_path.h",
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
+        "core/include/evo/screens/PlayerScreen.hpp",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h",
         "ui/src/evo_keyboard.c",
@@ -174,6 +175,8 @@ def main():
     apply_audio_drain_overlay(replace, player)
     from video_drain_overlay import apply_video_drain_overlay
     apply_video_drain_overlay(replace, player)
+    from playback_recovery_overlay import apply_playback_recovery_overlay
+    apply_playback_recovery_overlay(replace, player, host)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

@@ -132,3 +132,27 @@ Missing/expired/wrong-owner references return `cursor_expired` (409), Guest
 returns `account_required`, unavailable choices return `invalid_rating`, and
 exhausted companion intent retention returns `comment_busy` (429).
 Transport acceptance still requires live account readback during validation.
+
+## Controlled native playback restart
+
+`/v1/resolve` and a resolve job's `playback` record accept an optional strict
+boolean `fresh` (default false). True bypasses the selected profile's extraction
+cache through the same bounded worker and OAuth preflight. It creates a new
+playback capability; it does not splice changed bytes into an old representation.
+The profile is checked again after extraction before capability creation.
+
+After terminal input failure, the PS5 player may stop and reopen through the
+existing asynchronous launch worker. The native provider retains a RAM-only
+recovery snapshot bound to the video, profile, companion address and pairing
+token. It allows three restarts per explicit selection. Recovery does not consume
+or complete a queue entry. It preserves fractional VOD position and caption
+visibility; live sources reopen at position zero. Paused/scrubbing/seeking
+playback waits. Decoder fatal errors retain the existing stop path.
+
+Fresh choices must have a unique match for the prior container, codecs,
+dimensions, live flag, range and audio channel count. Missing/ambiguous matches
+fail without choosing a different format. Cancel, profile/source changes and
+leaving the browser invalidate pending recovery. A changed context after open
+stops the newly opened player before navigation. Open failure returns control
+to the browser; selecting the video again starts a new retry budget. Console
+restart, audio/position/format continuity and controller acceptance remain pending.

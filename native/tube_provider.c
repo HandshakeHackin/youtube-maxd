@@ -77,6 +77,17 @@ static double g_chapters[128];
 static int g_chapter_count;
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
+static struct { int phase, attempts, subtitles; double position;
+    char source[512], token[128], profile[33], id[160];
+    evo_stream_choice_t choice; } g_recovery;
+void tube_recovery_finish(void) { g_recovery.phase = 0; }
+static int recovery_scope(void) {
+    return *g_recovery.id && !strcmp(g_recovery.id, g_active_id) &&
+        !strcmp(g_recovery.profile, g_active_profile) && !strcmp(g_recovery.profile, g_library_profile) &&
+        !strcmp(g_recovery.source, g_source) && !strcmp(g_recovery.token, g_token);
+}
+int tube_recovery_active(void) { return g_recovery.phase == 2 && recovery_scope(); }
+int tube_recovery_pending(void) { return g_recovery.phase == 1 && recovery_scope(); }
 static char g_library_cursors[LIBRARY_PAGES][65];
 static struct { char id[160], content[16385], rating[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
 static unsigned g_account_serial;
@@ -338,6 +349,7 @@ static void save(void) {
 }
 
 static void account_removed(void) {
+    tube_recovery_finish();
     if (!strcmp(g_auth.profile, g_library_profile)) {
         unsigned serial = g_auth.serial + 1, revision = g_auth.revision + 1;
         memset(&g_auth, 0, sizeof g_auth);
@@ -376,6 +388,7 @@ static int init(void) {
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
+    memset(&g_recovery, 0, sizeof g_recovery);
     memset(g_comments, 0, sizeof g_comments);
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
@@ -1081,7 +1094,7 @@ static void cancel_requests(int preserve_chat) {
     }
 }
 
-void tube_cancel(void) { cancel_requests(0); }
+void tube_cancel(void) { tube_recovery_finish(); cancel_requests(0); }
 
 static void folder(evo_provider_item_t *out, const char *id, const char *title, const char *hint) {
     memset(out, 0, sizeof *out);
@@ -1297,6 +1310,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "search:education", "Learning", "Explore educational videos");
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
         if (!strncmp(parent, "library:profile:", 16)) {
+            tube_recovery_finish();
             if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
             memset(&g_account_intent, 0, sizeof g_account_intent);
             memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
@@ -1544,13 +1558,14 @@ static int search(const char *query, int page, evo_provider_items_cb cb, void *u
 
 static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     if (!valid_id(id) || !cb) return -1;
-    tube_cancel();
+    int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
+    if (recovering) cancel_requests(0); else tube_cancel();
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
     snprintf(r->payload, sizeof r->payload,
-        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s}}",
-        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false");
+        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
+        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
     begin(r); return 0;
 }
 
@@ -1572,9 +1587,18 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 }
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
+    int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
+    if (!recovering) memset(&g_recovery, 0, sizeof g_recovery);
+    if (choice) {
+        g_recovery.choice = *choice;
+        copy(g_recovery.id, sizeof g_recovery.id, id);
+        copy(g_recovery.profile, sizeof g_recovery.profile, g_active_profile);
+        copy(g_recovery.source, sizeof g_recovery.source, g_source);
+        copy(g_recovery.token, sizeof g_recovery.token, g_token);
+    }
     if (g_watch.stopped && g_watch.dirty) watch_flush(1);
     watch_reset(0);
     if (valid_id(id) && valid_profile(profile) && strcmp(profile, "guest")) {
@@ -1680,6 +1704,42 @@ int tube_take_next(evo_provider_item_t *item) {
 }
 
 int tube_choose_stream_enabled(void) { return g_ask_stream; }
+
+int tube_queue_recovery(double position, int live, int subtitles) {
+    if (g_recovery.phase || g_recovery.attempts >= 3 || !recovery_scope() ||
+        !isfinite(position) || position < 0 || position > 1000000 ||
+        !!live != !!g_recovery.choice.is_live || !companion_url(g_recovery.choice.url)) return 0;
+    g_recovery.position = live ? 0 : position;
+    g_recovery.subtitles = !!subtitles;
+    ++g_recovery.attempts; g_recovery.phase = 1;
+    return 1;
+}
+
+int tube_take_recovery(evo_provider_item_t *item, double *position, int *subtitles) {
+    if (g_recovery.phase != 1) return 0;
+    if (!item || !position || !subtitles || !recovery_scope()) { tube_recovery_finish(); return 0; }
+    Record *r = record_for(g_recovery.id, g_recovery.profile, 0);
+    if (!r) { tube_recovery_finish(); return 0; }
+    *item = r->item; item->is_live = g_recovery.choice.is_live;
+    *position = g_recovery.position; *subtitles = g_recovery.subtitles;
+    g_recovery.phase = 2; return 1;
+}
+
+int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
+    if (!tube_recovery_active() || !choices || count < 1 || count > CHOICES) return -1;
+    const evo_stream_choice_t *old = &g_recovery.choice;
+    int found = -1;
+    for (int i = 0; i < count; ++i) {
+        const evo_stream_choice_t *c = &choices[i];
+        if (!companion_url(c->url) || c->width != old->width || c->height != old->height ||
+            !!c->is_live != !!old->is_live || c->audio_channels != old->audio_channels ||
+            strcmp(c->container, old->container) || strcmp(c->video_codec, old->video_codec) ||
+            strcmp(c->audio_codec, old->audio_codec) || strcmp(c->video_range, old->video_range)) continue;
+        if (found >= 0) return -1; /* ambiguous replacement requires a new user selection */
+        found = i;
+    }
+    return found;
+}
 
 static void tube_shutdown(void) { tube_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {

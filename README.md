@@ -154,8 +154,13 @@ stay on the companion. Media capabilities expire after 30 minutes of inactivity;
 delivered media and manifests renew this idle lease. Upstream signed URLs can
 still expire independently. VOD HTTP/DASH tracks now resolve fresh links once
 under the same profile after an expired-link response, preserving local relay
-URLs and validating resumed byte identity. Live HLS renewal, missing/changed
-validators and native restart recovery still require selecting the video again.
+URLs and validating resumed byte identity. Terminal native input failures now
+trigger up to three fresh resolutions/reopens per explicit video selection,
+preserving the profile, format, fractional VOD position and caption visibility;
+live playback restarts at the live edge. Paused playback waits until resumed.
+Changed/ambiguous formats or an exhausted budget require selecting the video
+again. This controlled restart still needs PS5 acceptance. Transparent live HLS
+URL renewal remains unfinished.
 Access logs are disabled and native diagnostics redact
 capabilities. See [protocol/security notes](docs/PROTOCOL.md).
 

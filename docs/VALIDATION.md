@@ -431,3 +431,26 @@ network interruption, queue/watch-state and sound acceptance remain pending.
 
 Clean build ID: `prosperotube-0f961373_1010-0043`. Both build and freeze returned
 0; the candidate remains undeployed. No console connections were made.
+
+### Controlled native restart (2026-10-09)
+
+The native player now routes terminal input failures through the existing
+stop/resolve/launch lifecycle, with a RAM-only, same-video/profile/source/token
+recovery context. Each explicit selection permits three restarts. The provider
+retains fractional VOD position, caption visibility and the selected format;
+live reopens use the live edge. Paused, scrubbing and seeking playback waits.
+Missing/ambiguous replacement formats fail rather than opening another quality.
+Cancellation and scope changes invalidate pending recovery. A changed context
+after open stops the new session before navigation. Open failure returns to the
+browser; decoder fatal errors retain their independent stop path.
+
+Full Python suite: 147 passed, one known Starlette deprecation warning.
+`scripts/test_native.sh` passed original provider and recovery ASan/UBSan
+regressions. Shipping provider/HTTP jobs verify `fresh` resolution, exact
+fractional resume, live-edge position, unique format matching, queue retention,
+budget retention across reopens, cancellation and profile/source invalidation.
+Evidence: `.deps/recovery-python.log`, `.deps/recovery-native.log`; both exit 0.
+The Python API test verifies fresh dispatch through both direct and job routes.
+These are offline proofs; integrated PS5 compilation and hardware restart,
+caption/audio/position continuity, controller feel and network interruption
+acceptance remain pending. No console traffic occurred.

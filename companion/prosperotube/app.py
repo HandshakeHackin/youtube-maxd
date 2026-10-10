@@ -235,7 +235,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     @app.post("/v1/resolve")
     async def resolve(payload: ResolveRequest, request: Request):
         video_id(payload.id)
-        info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}")
+        info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}", fresh=payload.fresh)
         resolver(payload.profile)  # profile may have been removed while awaiting extraction
         return app.state.sessions.create(info, payload, base(request))
 
@@ -294,7 +294,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     result = await page_for(resolver(payload.profile), parent=payload.parent, page=payload.page)
                 elif payload.action == "resolve":
                     identifier = video_id(payload.playback.id)
-                    info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
+                    info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}", fresh=payload.playback.fresh)
                     resolver(payload.playback.profile)
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":

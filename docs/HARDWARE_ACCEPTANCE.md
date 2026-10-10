@@ -230,3 +230,13 @@ demux retry budget must leave the video unwatched and the queue unchanged, even
 after buffered audio and video have drained. Test this on PS5 with an interrupted
 VOD and live stream, followed by stop/reopen and a clean natural ending. Host
 classification and renderer tests cannot establish console recovery or sound.
+
+Controlled restart now uses the native stop/resolve/launch lifecycle. Validate
+the same video/profile/format and fractional resume position after a bounded
+VOD interruption or expired idle capability. Validate live-edge restart
+separately. Check caption visibility, audible audio and A/V synchronization,
+pause until explicitly resumed, seek cancellation, browser cancel, account/source
+changes, all three retry attempts, and that recovery leaves the queue entry
+unconsumed. Missing/ambiguous formats and failed reopen must return control
+without opening another video or replaying account mutations. All of these
+remain hardware acceptance requirements.

@@ -77,6 +77,7 @@ class ResolveRequest(BaseModel):
     caption_language: str = Field(default="en", max_length=16, pattern="^[A-Za-z0-9_-]*$")
     audio_language: str = Field(default="", max_length=16, pattern="^[A-Za-z0-9_-]*$")
     automatic_captions: bool = False
+    fresh: bool = Field(default=False, strict=True)
 
 
 class Choice(BaseModel):
