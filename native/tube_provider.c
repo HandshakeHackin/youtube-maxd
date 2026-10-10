@@ -88,6 +88,9 @@ int tube_set_playback_speed(int percent) {
 }
 int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
+static int g_player_chat_mode;
+static tube_player_chat_row_t g_player_chat_rows[6];
+static int g_player_chat_count;
 static int g_history_sync = 1;
 static int g_paid_notifications;
 static int g_dearrow_titles, g_dearrow_thumbnails;
@@ -161,7 +164,7 @@ static void auth_cleanup_request(Request *r, const cJSON *root);
 static void chat_cleanup_request(Request *r, const cJSON *root);
 static void cancel_requests(int preserve_chat);
 static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
-static struct { int state; unsigned serial; long long next_poll;
+static struct { int state, player; unsigned serial; long long next_poll;
     char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
 static struct { int phase, pending; unsigned ticket, chat_serial;
     char text[801], session[65], cursor[65], video[12], profile[33]; } g_message;
@@ -219,6 +222,7 @@ int tube_chat_due(const char *parent) {
 }
 
 void tube_chat_stop(void) {
+    memset(g_player_chat_rows, 0, sizeof g_player_chat_rows); g_player_chat_count = 0;
     memset(g_chat_messages, 0, sizeof g_chat_messages);
     chat_close_remote(g_chat.source, g_chat.token, g_chat.profile, g_chat.cursor);
     unsigned serial = g_chat.serial + 1;
@@ -519,6 +523,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "audio_language", g_audio_language);
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
+    cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
     cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
     cJSON_AddBoolToObject(root, "dearrow_titles", g_dearrow_titles);
     cJSON_AddBoolToObject(root, "dearrow_thumbnails", g_dearrow_thumbnails);
@@ -645,6 +650,8 @@ static int init(void) {
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
+    double chat_mode = num(root, "player_chat_mode");
+    g_player_chat_mode = chat_mode >= 0 && chat_mode <= 2 && floor(chat_mode) == chat_mode ? (int)chat_mode : 0;
     g_paid_notifications = boolean(root, "paid_content_notifications");
     g_dearrow_titles = boolean(root, "dearrow_titles");
     g_dearrow_thumbnails = boolean(root, "dearrow_thumbnails");
@@ -903,6 +910,73 @@ static void chat_result(Request *r, const cJSON *result) {
     memset(r, 0, sizeof *r);
     if (callback) callback(1, items, count, 0, data);
     free(items);
+}
+
+static void player_chat_text(char *out, size_t capacity, const char *text) {
+    size_t length = strlen(text);
+    if (length >= capacity) {
+        length = capacity - 1;
+        while (length && ((unsigned char)text[length] & 0xc0) == 0x80) --length;
+    }
+    /* The upstream fixed-size item may itself have clipped the final codepoint. */
+    size_t tail = length;
+    while (tail && ((unsigned char)text[tail - 1] & 0xc0) == 0x80) --tail;
+    if (tail) {
+        --tail;
+        unsigned char lead = (unsigned char)text[tail];
+        size_t needed = lead >= 0xf0 ? 4 : lead >= 0xe0 ? 3 : lead >= 0xc0 ? 2 : 1;
+        if (length - tail < needed) length = tail;
+    }
+    memcpy(out, text, length); out[length] = 0;
+}
+static void player_chat_result(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
+    (void)more;
+    if (!g_chat.player || (unsigned)(size_t)ud != g_chat.serial) return;
+    memset(g_player_chat_rows, 0, sizeof g_player_chat_rows); g_player_chat_count = 0;
+    if (!ok || !items || count < 0) return;
+    int first = count > 6 ? count - 6 : 0;
+    for (int i = first; i < count; ++i) {
+        tube_player_chat_row_t *row = &g_player_chat_rows[g_player_chat_count++];
+        player_chat_text(row->author, sizeof row->author, items[i].title);
+        player_chat_text(row->message, sizeof row->message, items[i].overview);
+    }
+}
+
+int tube_player_chat_mode(void) { return g_chat.player ? g_player_chat_mode : 0; }
+int tube_player_chat_rows(const tube_player_chat_row_t **rows) {
+    if (rows) *rows = g_player_chat_rows;
+    return g_chat.player ? g_player_chat_count : 0;
+}
+const char *tube_player_chat_status(void) {
+    return g_chat.state < 0 ? "Chat unavailable. Toggle the sidebar to retry." :
+           g_chat.state == 3 ? "Chat ended" : g_player_chat_count ? "" :
+           g_chat.state == 1 ? "Loading chat" : "Waiting for messages";
+}
+void tube_player_chat_tick(int visible) {
+    if (!visible || !g_player_chat_mode || !valid_id(g_active_id) ||
+        strcmp(g_active_profile, g_library_profile) || !*g_source || !*g_token) {
+        if (g_chat.player) tube_chat_stop();
+        return;
+    }
+    if (g_chat.player && (strcmp(g_chat.video, g_active_id) || strcmp(g_chat.profile, g_active_profile))) tube_chat_stop();
+    if (!g_chat.player && g_chat.state) return; /* The browser reader owns this chat. */
+    if (g_chat.player && (g_chat.state < 0 || g_chat.state == 3 || now_ms() < g_chat.next_poll)) return;
+    for (int i = 0; i < REQUESTS; ++i)
+        if (g_requests[i].used && g_requests[i].kind != 8) return; /* Foreground work has priority. */
+    int reuse = g_chat.player && g_chat.state == 2 && valid_cursor(g_chat.cursor);
+    if (!reuse) {
+        g_chat.player = 1; g_chat.state = 1;
+        copy(g_chat.video, sizeof g_chat.video, g_active_id); copy(g_chat.profile, sizeof g_chat.profile, g_active_profile);
+        copy(g_chat.mode, sizeof g_chat.mode, "top");
+        snprintf(g_chat.parent, sizeof g_chat.parent, "chat:top:%.11s", g_active_id);
+    }
+    Request *r = request_new(10, (void *)(size_t)g_chat.serial);
+    if (!r) return;
+    r->items_cb = player_chat_result; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_active_profile);
+    snprintf(r->payload, sizeof r->payload,
+        "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"top\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":false}",
+        reuse ? "chat_poll" : "live_chat", g_active_id, g_active_profile, reuse ? g_chat.cursor : "");
+    begin(r);
 }
 
 void tube_auth_cancel(void) {
@@ -1716,6 +1790,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save();
         }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
+        else if (!strcmp(parent, "settings:player-chat")) {
+            g_player_chat_mode = (g_player_chat_mode + 1) % 3;
+            if (!g_player_chat_mode && g_chat.player) tube_chat_stop();
+            save();
+        }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
         else if (!strcmp(parent, "settings:history-sync")) {
             g_history_sync = !g_history_sync;
@@ -1822,6 +1901,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
             folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
             folder(&out[n++], "settings:dearrow", "DeArrow titles and thumbnails", "Optional community replacements; original metadata is retained");
+            folder(&out[n++], "settings:player-chat", g_player_chat_mode == 1 ? "Live chat sidebar: left" :
+                g_player_chat_mode == 2 ? "Live chat sidebar: right" : "Live chat sidebar: off",
+                "Select to cycle Off / Left / Right; shows chat beside playing video");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
             folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
@@ -1893,6 +1975,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     if (parent && !strncmp(parent, "account:apply:", 14) && g_account_intent.state)
         return local_catalog(parent, page, cb, ud) ? 0 : -1;
     if (parent && !strncmp(parent, "chat:", 5)) {
+        if (g_chat.player) tube_chat_stop();
         memset(&g_message, 0, sizeof g_message);
         memset(&g_comments[LOCAL_PAGE], 0, sizeof g_comments[LOCAL_PAGE]);
         const char *id = NULL, *mode = "top";

@@ -147,6 +147,14 @@ test('pinned live chat transport parses text, replacements and author moderation
   assert.equal(library.chats.contexts.size, 0);
 });
 
+test('chat author filtering matches the pinned SmartTube Unicode spam patterns', () => {
+  const reader = new Library(async()=>null).chats;
+  const message = author => ({type:'LiveChatTextMessage',id:'test-message',author:{name:author},message:'Hello'});
+  for(const author of ['', 'name . XYZ', 'name . хYZ', '⠄xyz', '⠄хyz', 'RICARDO MERLINO', 'name ⠄соm',
+    'name.COM', 'name.СОM', 'name . com']) assert.equal(reader.normalize(message(author)),null);
+  for(const author of ['Viewer','COMIC fan','日本語の視聴者']) assert.equal(reader.normalize(message(author)).author,author);
+});
+
 test('chat mode selection, failures, capacity and expiry do not spawn background pollers', async () => {
   let now = 0, calls = 0, replay = false, oversized = false;
   const client = {async getInfo(id) { return {basic_info:{id},livechat:{continuation:'initial',is_replay:replay},actions:{

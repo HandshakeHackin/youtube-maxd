@@ -1,5 +1,29 @@
 # Offline validation record — 0.1.0
 
+## Player live-chat sidebar — 2026-10-10
+
+The pinned SmartTube `ChatController` places live chat beside playing video.
+ProsperoTube now has a saved Off/Left/Right sidebar preference under YouTube
+preferences. The player requests top chat while Playing/Paused/Seeking/Scrubbing;
+the sidebar hides during stats, scrubbing and Music mode. Both shipping HUDs draw
+the latest six author/message previews independently of the controls fade.
+The existing browser reader retains full text and history navigation.
+
+Foreground requests take priority. The sidebar never cancels a resolve/library
+request, owns one scoped chat context, stops polling after a terminal error/end,
+and closes its context when the player leaves. Late responses after closing are
+discarded and their remote cursor is closed. Long text is clipped at UTF-8
+boundaries, including a partial codepoint in an upstream fixed-size item. The
+worker now matches the pinned SmartTube author filter and Unicode lookalikes.
+
+Worker regression: 42 passed; bundle rebuilt. Native provider/sidebar regression
+exited 0 (`.deps/player-chat-native.{log,result}`). Final sidebar plus extracted
+shipping HUI/RML blocks passed ASan/UBSan (`.deps/player-chat-final.{log,result}`,
+exit 0), covering ownership, delayed polling, foreground priority, six-row bound,
+failure handling, late cursor cleanup, UTF-8, placement, escaped text, stable DOM
+updates and suppression. PS5 build/hardware acceptance, physical readability,
+in-player toggle controls and chat replay remain open.
+
 ## Companion job admission — 2026-10-10
 
 The six-section PS5 case exposed a busy response after rapid browsing: completed

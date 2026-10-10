@@ -56,6 +56,12 @@ const char *tube_comment_text(const char *id);
 const char *tube_comment_rating(const char *id);
 int tube_chat_due(const char *parent);
 void tube_chat_stop(void);
+/* Main/UI thread: request-driven live-chat sidebar, independent of controls fade. */
+typedef struct { char author[128], message[1024]; } tube_player_chat_row_t;
+void tube_player_chat_tick(int visible);
+int tube_player_chat_mode(void); /* active sidebar: 0 off, 1 left, 2 right */
+int tube_player_chat_rows(const tube_player_chat_row_t **rows);
+const char *tube_player_chat_status(void);
 typedef struct { unsigned ticket; char label[64], initial[601]; } tube_playlist_prompt_t;
 int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt);
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity);

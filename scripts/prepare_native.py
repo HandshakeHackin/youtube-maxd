@@ -203,6 +203,8 @@ def main():
     apply_audio_rate_overlay(replace, player, WORK)
     from speed_controls_overlay import apply_speed_controls_overlay
     apply_speed_controls_overlay(replace, player)
+    from player_chat_overlay import apply_player_chat_overlay
+    apply_player_chat_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

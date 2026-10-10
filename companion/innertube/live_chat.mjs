@@ -1,6 +1,10 @@
 // Original request-driven live-chat reader. SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
 
+// Pinned SmartTube ChatController author filter, including Cyrillic lookalikes.
+const blockedAuthors = ['. XYZ', '. ХYZ', '⠄XYZ', '⠄ХYZ', 'Ricardo Merlino', '⠄СОM', '.COM', '.СОM', '. COM']
+  .map(value => value.toLowerCase());
+
 export class ChatReader {
   constructor(ErrorType, text, imageUrl, clock) {
     this.ErrorType = ErrorType; this.text = text; this.imageUrl = imageUrl; this.clock = clock;
@@ -19,7 +23,9 @@ export class ChatReader {
     if (!node || !['LiveChatTextMessage', 'LiveChatPaidMessage', 'LiveChatPaidSticker',
       'LiveChatMembershipItem', 'LiveChatSponsorshipsGiftPurchaseAnnouncement',
       'LiveChatSponsorshipsGiftRedemptionAnnouncement'].includes(node.type) || !node.id) return null;
-    return { id: this.text(node.id, 160), author: this.text(node.author?.name ?? node.header?.author_name),
+    const author = this.text(node.author?.name ?? node.header?.author_name);
+    if (!author || blockedAuthors.some(value => author.toLowerCase().includes(value))) return null;
+    return { id: this.text(node.id, 160), author,
       content: this.text(node.message ?? node.header_subtext ?? node.header_primary_text ?? node.header?.primary_text ?? node.sticker_accessibility_label, 4096),
       published: this.text(node.timestamp_text, 64), amount: this.text(node.purchase_amount, 64),
       type: node.type, art_url: this.imageUrl(node.author?.thumbnails?.[0]?.url ?? node.header?.author_photo?.[0]?.url),

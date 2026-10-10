@@ -18,6 +18,13 @@ Real-account acceptance remains unverified.
 
 ### Live-chat service reader
 
+The native player can show a live top-chat sidebar beside video. In YouTube
+preferences, select **Live chat sidebar** to cycle Off / Left / Right. It shows
+six recent previews; the browser reader retains full message text and history.
+Updates are request-driven, scoped to the playing video/profile, and stop when
+the player leaves or the chat ends/fails. The sidebar hides during stats,
+scrubbing and Music mode. This is live chat; synchronized replay remains pending.
+
 `live_chat` opens a public or configured-profile chat for an eleven-character
 video `id`, with `chat_mode` set to `top` or `live`. `chat_poll` and `chat_close`
 use the returned opaque `cursor` and the same profile. These operations use the
