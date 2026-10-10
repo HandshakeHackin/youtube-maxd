@@ -617,8 +617,11 @@ receiver/profile requests cannot launch or acknowledge a new receiver's command.
 The phone queue is ephemeral and preserves the saved local queue, including EOF.
 Fractional offsets, queue index/ctt, pause-preserving seek admission and atomic
 PCM volume are integrated. Adapter sanitizer tests passed and the connected
-controller/audio sources compiled with the PS5 SDK. Complete package and bounded
-hardware acceptance are the next gate; actual phone playback remains unverified.
+controller/audio sources compiled with the PS5 SDK. Candidate `c2503cbb` built
+and froze; the console rendered and released cleanly, but the command fixture
+had not enabled pairing. The revised case must use the actual pairing UI.
+Explicit duplicate playlist positions and pre-callback profile retirement now
+have host/PS5 object coverage. Actual phone playback remains unverified.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

@@ -6,7 +6,8 @@ def apply_phone_player_overlay(replace, player, host):
     replace(host, 'static bool g_tube_recovery_launch;', '''static unsigned g_phone_ticket;
 static double g_phone_resume;
 static bool g_tube_recovery_launch;''')
-    replace(host, '    g_pending.active_choice = idx;', '''    if (g_phone_ticket && !tube_phone_launch_current(g_phone_ticket)) {
+    replace(host, '    g_pending.active_choice = idx;', '''    tube_phone_sync_scope();
+    if (g_phone_ticket && !tube_phone_launch_current(g_phone_ticket)) {
         g_phone_ticket = 0; g_resolve_finished = true;
         evo_rmlui_provider_set_tuning(0); evo_rmlui_provider_set_loading(0, "");
         return -1;
@@ -63,6 +64,7 @@ static bool g_tube_recovery_launch;''')
 void ProviderHostScreen::startSelected()''')
     replace(player + 'core/include/evo/screens/ProviderHostScreen.hpp', '    void setNavigatingToPlayer(bool b)', '    static bool playbackStartupBusy();\n    void setNavigatingToPlayer(bool b)')
     app = player + 'core/src/Application.cpp'
+    replace(app, '        evo_net_poll();', '        tube_phone_sync_scope(); /* retire changed profiles before resolver callbacks */\n        evo_net_poll();')
     replace(app, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_phone.h"\n#include "evo_audio_out.h"')
     replace(app, '        tube_poll();', '''        tube_poll();
         if (!ProviderHostScreen::playbackStartupBusy()) {

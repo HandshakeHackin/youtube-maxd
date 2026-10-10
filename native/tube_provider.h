@@ -9,6 +9,8 @@ extern "C" {
 extern const evo_provider_t evo_provider_youtube;
 void tube_poll(void);
 unsigned tube_phone_revision(void);
+/* Synchronize UI scope before callbacks can start a deferred phone launch. */
+void tube_phone_sync_scope(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
 const char *tube_phone_caption_language(void);

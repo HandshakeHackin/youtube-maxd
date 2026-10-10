@@ -70,6 +70,12 @@ int main(void) {
     reply("{\"api_version\":1,\"state\":\"listening\",\"session\":\"0123456789abcdef0123456789abcdef\",\"pairing_code\":\"123456789012\"}");
     assert(tube_phone_revision()!=revision); page("settings:remote"); assert(rows==5 && !strcmp(items[1].title,"TV code: 123 456 789 012"));
     stored=read_store(); char *data=cJSON_PrintUnformatted(stored); assert(data && !strstr(data,session) && !strstr(data,"123456789012") && !strstr(data,"lounge_token")); free(data); cJSON_Delete(stored);
+    unsigned owner=tube_remote_current_owner(); assert(owner);
+    page("library:profile:other"); assert(!tube_phone_video(choice.url,video));
+    /* Retire the UI's new profile before delivering resolver callbacks. */
+    tube_phone_sync_scope(); assert(!tube_remote_owner_current(owner)); stop();
+    page("library:profile:guest"); tube_phone_sync_scope(); tube_poll();
+    root=request("start"); cJSON_Delete(root); started(device);
     p->shutdown(); stop(); assert(!p->init()); tube_poll(); root=request("start");
     assert(!strcmp(str(root,"device_id"),device) && !strcmp(str(root,"screen_id"),"screen-123")); cJSON_Delete(root); started(device);
     page("settings:remote:toggle"); assert(rows==4); stop(); tube_poll(); assert(!count);

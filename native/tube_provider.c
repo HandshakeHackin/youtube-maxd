@@ -601,6 +601,7 @@ static void remote_configure(void) {
         g_remote_device, g_remote_screen);
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
+void tube_phone_sync_scope(void) { remote_configure(); }
 
 static void account_removed(void) {
     tube_recovery_finish();

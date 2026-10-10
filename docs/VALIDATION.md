@@ -2,6 +2,25 @@
 
 ## Phone player and ephemeral queue adapter — 2026-10-10
 
+- 2026-10-10 | casting | c2503cbb | PS5 | failed: rendering, owned release/state restoration passed; fixture never enabled pairing | `.deps/phone-player-hardware.*` | test UI pairing first
+
+Candidate `c2503cbb` built/froze successfully (126 files,
+`prosperotube-c2503cbb_1010-2314`; `.deps/phone-player-{ps5-build,freeze}.*`).
+The bounded console case verified all bytes again after 130 seconds, rendered
+with Lapy storage ready, then stopped on the missing initial command ack. Its
+fixture had enabled=true but no valid identity, which initialization deliberately
+ignores. No receiver registered or video started. Exact GPU/app release, healthy
+services and original provider-state restoration passed. This is a fixture
+correction, not evidence of working phone playback.
+
+Follow-up source checks cover repeated video occurrences at an explicit playlist
+index and retiring changed UI profiles before resolver callbacks. Shipping
+adapter/provider tests and connected PS5 objects passed:
+`.deps/phone-player-duplicate-tests.*`,
+`.deps/phone-player-corrected-provider-tests.*`, and
+`.deps/phone-player-corrected-scope-ps5-objects.*`. Revised hardware must enable
+pairing through the actual UI before injecting commands.
+
 The native adapter connects typed Lounge commands to the shipping controller,
 provider resolver/fallback worker and PCM output. It preserves fractional offsets,
 acks only successful startup, rejects stale tickets, and keeps remote queues out

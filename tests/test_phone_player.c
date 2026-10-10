@@ -87,6 +87,12 @@ static void test_retired_launch_and_failure(void) {
     active = 1; strcpy(engine.video,"abcdefghijk"); reject_seek = 1;
     tube_phone_tick(&controls); assert(tube_remote_state() == TUBE_REMOTE_FAILED);
 }
+static void test_duplicate_playlist_position(void) {
+    feed("[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\",\"abcdefghijk\"],\"playlist\":\"PLtest\",\"index\":2,\"position_sec\":0,\"ctt\":\"\"}]");
+    tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); feedback(2,1,0); assert(tube_phone_finished());
+    char video[12]; double position; assert(!tube_phone_take(video,&position));
+}
 static void test_gain(void) {
     int16_t input[]={-32768,-100,0,100,32767}, output[5];
     tube_volume_pcm(output,input,5,100); assert(!memcmp(input,output,sizeof input));
@@ -96,6 +102,6 @@ static void test_gain(void) {
     tube_volume_pcm(output,input,5,-1); assert(output[0] == 0);
 }
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_gain(); cleanup();
+    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }
