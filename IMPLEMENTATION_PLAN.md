@@ -603,8 +603,9 @@ retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
 - [x] Reload pairing/history and verify pause/resume and native seek on PS5.
 - [x] Implement atomic diagnostic status with host partial-write and I/O-failure coverage; new-package acceptance follows separately.
 - [x] Implement idle retry after asynchronous failed highlights, with threaded ownership and real FFmpeg failure coverage; new-package hardware acceptance remains pending.
-- [ ] Verify physical sound, A/V synchronization and controller feel.
-- [ ] Accept longer adaptive/progressive clips, alternate formats/audio, initial resume and quality/caption changes on hardware.
+- [x] Verify physical sound, smooth motion and A/V synchronization for the bounded public 1080p60 AVC/AAC case with user observation.
+- [x] Accept a bounded longer public adaptive clip at native 1080p60 AVC/AAC, with zero late drops and clean teardown.
+- [ ] Verify physical controller feel; broader codecs/audio, progressive playback, long sessions, initial resume and quality/caption changes on hardware.
 - [x] Implement optional YouTube paid-promotion notices: localized matching-video metadata, persisted off-by-default preference, once-only successful-start display and stale/recovery guards; host tests pass, hardware acceptance pending.
 - [ ] Finish remaining SponsorBlock reference timing/actions and hardware acceptance of point jumps and paid-content notices.
 - [ ] Accept real account/private-library flows and complete live/DVR/chat replay behavior.
