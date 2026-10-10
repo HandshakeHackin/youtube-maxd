@@ -596,7 +596,8 @@ retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
 - [x] Establish Lapy storage, native UI/video startup and graceful title release.
 - [x] Play a real public YouTube video with captions and saved Guest history.
 - [x] Reload pairing/history and verify pause/resume and native seek on PS5.
-- [ ] Publish diagnostic status atomically and cover asynchronous failed highlight retry.
+- [x] Implement atomic diagnostic status with host partial-write and I/O-failure coverage; new-package acceptance follows separately.
+- [ ] Cover asynchronous failed highlight retry.
 - [ ] Verify physical sound, A/V synchronization and controller feel.
 - [ ] Accept longer adaptive/progressive clips, alternate formats/audio, initial resume and quality/caption changes on hardware.
 - [ ] Finish SponsorBlock reference behavior, paid-content notices and hardware actions/point jumps.

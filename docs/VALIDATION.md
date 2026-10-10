@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Atomic diagnostic status publication — 2026-10-10
+
+The status publisher now stages `dev_status.tmp` under the same Lapy-backed app
+directory, checks formatted output and close, then atomically renames it over
+`dev_status`. Creation, write, close or rename failure keeps the previous complete
+snapshot. Active/parked states use distinct path buffers, preserving rename
+arguments and preventing a partial write from exposing a false park checkpoint.
+
+`scripts/test_atomic_status.py` extracts the actual generated path resolver and
+status function. Its ASan/UBSan run observes the published file while staging is
+empty and partially written, injects each I/O failure and checks complete active
+and parked publication. Passed evidence: `.deps/atomic-status-prepare.{log,result}`
+and `.deps/atomic-status-test.{log,result}` (both results 0). This source follows
+the accepted `5cc941f0` package; a new PS5 build and hardware acceptance are separate.
+
 ## Current PS5 package: history, pairing, pause and seek — 2026-10-10
 
 Native `5cc941f0` built all 211 objects, linked and packaged successfully, then

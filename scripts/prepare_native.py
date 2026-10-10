@@ -241,15 +241,26 @@ begin "inspecting signed containers"''')
     replace(remote, '#define CMD_PATH    "/data/prosperotube/dev_command"', '''/* Separate buffers preserve both rename arguments; evo_data_path itself
  * returns one thread-local buffer. Resolve again if the sandbox root changes. */
 static const char* tube_dev_path(unsigned index) {
-    static char paths[4][512];
-    static const char* leaves[] = {"dev_command", "dev_status", "dev_ui.json", "dev_ui.json.tmp"};
+    static char paths[5][512];
+    static const char* leaves[] = {"dev_command", "dev_status", "dev_ui.json", "dev_ui.json.tmp", "dev_status.tmp"};
     snprintf(paths[index], sizeof paths[index], "%s/%s", evo_data_dir(), leaves[index]);
     return paths[index];
 }
 #define CMD_PATH tube_dev_path(0)''')
-    replace(remote, '#define STATUS_PATH "/data/prosperotube/dev_status"', '#define STATUS_PATH tube_dev_path(1)')
+    replace(remote, '#define STATUS_PATH "/data/prosperotube/dev_status"', '#define STATUS_PATH tube_dev_path(1)\n#define STATUS_TMP_PATH tube_dev_path(4)')
     replace(remote, '#define UI_PATH     "/data/prosperotube/dev_ui.json"', '#define UI_PATH tube_dev_path(2)')
     replace(remote, '#define UI_TMP_PATH "/data/prosperotube/dev_ui.json.tmp"', '#define UI_TMP_PATH tube_dev_path(3)')
+    # Publish a complete status snapshot, including the GPU-park checkpoint.
+    # A reader must retain the prior snapshot during writes and on I/O failure.
+    replace(remote, '    FILE *sf = fopen(STATUS_PATH, "w");', '    FILE *sf = fopen(STATUS_TMP_PATH, "w");')
+    replace(remote, '    fprintf(sf,', '    const int written = fprintf(sf,')
+    replace(remote, '    fclose(sf);', '''    const int closed = fclose(sf);
+    if (written < 0 || closed != 0) {
+        remove(STATUS_TMP_PATH);
+        return;
+    }
+    if (rename(STATUS_TMP_PATH, STATUS_PATH) != 0)
+        remove(STATUS_TMP_PATH);''')
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')
