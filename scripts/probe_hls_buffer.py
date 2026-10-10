@@ -21,6 +21,35 @@ class Bytes(httpx.AsyncByteStream):
     async def __aiter__(self): yield self.data
 
 
+def decode(ffmpeg, source, seek, duration, *, fingerprints=False, require=True):
+    args = [ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'error']
+    # An input seek exercises the demuxer. An output -ss would just discard
+    # decoded frames from the beginning and cannot establish this behavior.
+    if seek: args += ['-ss', str(seek)]
+    args += ['-i', str(source), '-t', str(duration), '-map', '0:v:0', '-map', '0:a:0',
+             '-progress', 'pipe:2' if fingerprints else 'pipe:1', '-nostats',
+             '-f', 'framemd5' if fingerprints else 'null', '-']
+    result = subprocess.run(args, capture_output=True, text=True, timeout=45)
+    times = re.findall(r'^out_time_us=([0-9]+)$', result.stderr if fingerprints else result.stdout, re.M)
+    seconds = int(times[-1]) / 1000000 if times else 0
+    valid = result.returncode == 0 and seconds >= duration - .25
+    if require and not valid:
+        raise RuntimeError(f'Generated HLS decode failed ({result.returncode}, {seconds:.3f}s).')
+    hashes = []
+    if fingerprints:
+        for line in result.stdout.splitlines():
+            if not line or line.startswith('#'): continue
+            parts = [part.strip() for part in line.split(',')]
+            if len(parts) != 6 or not re.fullmatch('[0-9a-f]{32}', parts[-1]):
+                raise RuntimeError('Invalid generated frame fingerprint.')
+            # Compare stream, duration, byte size and content. DTS/PTS are
+            # rebased by FFmpeg and are checked separately through duration.
+            hashes.append((int(parts[0]), int(parts[3]), int(parts[4]), parts[5]))
+        if require and not {0, 1} <= {row[0] for row in hashes}:
+            raise RuntimeError('Both decoded audio and video fingerprints are required.')
+    return seconds, hashes, valid
+
+
 def run(fixtures):
     ffmpeg = shutil.which('ffmpeg')
     if not ffmpeg: raise RuntimeError('Host FFmpeg is required.')
@@ -64,28 +93,36 @@ def run(fixtures):
                                 json={'id': 'BUFFERHLS01'})
             reply.raise_for_status()
             url = reply.json()['choices'][0]['url']
-        def decode(seek, duration):
-            args = [ffmpeg, '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', url]
-            if seek: args += ['-ss', str(seek)]
-            args += ['-t', str(duration), '-map', '0:v:0', '-map', '0:a:0',
-                     '-progress', 'pipe:1', '-nostats', '-f', 'null', '-']
-            result = subprocess.run(args, capture_output=True, text=True, timeout=45)
-            times = re.findall(r'^out_time_us=([0-9]+)$', result.stdout, re.M)
-            seconds = int(times[-1]) / 1000000 if times else 0
-            if result.returncode or seconds < duration - .25:
-                raise RuntimeError(f'Generated HLS decode failed ({result.returncode}, {seconds:.3f}s).')
-            return seconds
-        first = decode(0, 8)
+        first, _, _ = decode(ffmpeg, url, 0, 8)
+        reference = (fixtures / 'fixture.m3u8').resolve()
+        _, expected, _ = decode(ffmpeg, reference, 3, 2, fingerprints=True)
+        _, beginning, _ = decode(ffmpeg, reference, 0, 2, fingerprints=True)
+        if [row for row in expected if row[0] == 0] == [row for row in beginning if row[0] == 0]:
+            raise RuntimeError('The fixture cannot distinguish a seek from playback at the beginning.')
         buffered_count, buffered_size = len(app.state.hls_buffer.items), app.state.hls_buffer.size
         if not buffered_count: raise RuntimeError('No complete HLS resources were buffered.')
         origin_before = sum(name.endswith('.ts') for name in requests)
         expired[0] = True
-        second = decode(3, 2)
+        second, actual, _ = decode(ffmpeg, url, 3, 2, fingerprints=True)
         origin_after = sum(name.endswith('.ts') for name in requests)
         if origin_before != origin_after:
             raise RuntimeError('Seek contacted an expired origin resource.')
+        if actual != expected:
+            raise RuntimeError('Buffered input seek differs from the local decoded audio/video reference.')
+        # A negative control proves that a successful cached seek cannot be
+        # explained by an origin still serving bytes or by ignoring expiry.
+        app.state.hls_buffer.clear()
+        _, _, uncached_succeeded = decode(ffmpeg, url, 3, 2, require=False)
+        missed_origin = sum(name.endswith('.ts') for name in requests) - origin_after
+        if uncached_succeeded or missed_origin <= 0:
+            raise RuntimeError('Unbuffered expired-origin negative control did not fail as required.')
         return {'scope': 'generated finite HLS / host FFmpeg', 'initial_decode_seconds': first,
-                'seek_seconds': 3, 'seek_decode_seconds': second, 'buffered_resources': buffered_count,
+                'seek_seconds': 3, 'seek_mode': 'input', 'seek_decode_seconds': second,
+                'decoded_video_frames': sum(row[0] == 0 for row in actual),
+                'decoded_audio_blocks': sum(row[0] == 1 for row in actual),
+                'decoded_audio_video_match_local_reference': True,
+                'seek_differs_from_beginning': True, 'uncached_expiry_rejected': True,
+                'uncached_origin_requests': missed_origin, 'buffered_resources': buffered_count,
                 'buffered_bytes': buffered_size, 'origin_resources_before_expiry': origin_before,
                 'origin_resources_during_seek': origin_after - origin_before,
                 'console_traffic': False, 'youtube_traffic': False}

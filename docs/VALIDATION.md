@@ -720,7 +720,7 @@ bodies revalidate session ownership and profile availability between 64-KiB
 chunks, preserving account-removal retirement behavior.
 
 The generated finite-HLS host probe decoded 8.0 seconds with audio and video,
-retained four resources (977224 bytes), then sought to 3 seconds and decoded
+retained four resources (977224 bytes), then used output seeking to 3 seconds and decoded
 2.0 seconds after synthetic origin segments began returning 403. It made zero
 origin segment requests during the second decode. Evidence:
 `.deps/hls-buffer-decode.json`, `.log` and `.result` (0).
@@ -736,3 +736,32 @@ HLS sequence numbers alone cannot establish matching bytes across different
 playlists ([RFC 8216 section 4.3.3.2](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.3.3.2)).
 This buffer reuses actual complete downloads rather than inferring replacement
 media identity from matching sequence numbers.
+
+### Input-seek proof and native seek ownership (2026-10-09)
+
+The initial buffered-HLS probe used output `-ss`, which decodes/discards from
+the beginning and did not establish a demuxer input seek. The probe now places
+`-ss` before the input ([FFmpeg seeking options](https://ffmpeg.org/ffmpeg.html#Main-options)).
+After eight seconds of initial decode and synthetic origin expiry, a 3-second
+input seek decoded two seconds with zero origin segment requests. Its 59 video
+frame and 95 audio-block fingerprints exactly matched a local input-seek
+reference; the video differs from playback at the beginning. Clearing the
+buffer caused the same request to fail with one rejected origin request.
+Evidence: `.deps/hls-buffer-decode.json`, `.log` and `.result` (0).
+
+The native UI previously updated the playback clock base before the seek was
+accepted or completed, then announced seek begin after publishing the request.
+A fast demux completion could therefore be followed by a late UI begin,
+re-arming the hold without a remaining request. The generated overlay now
+leaves clock commits and begin/end ownership on the demux thread. Both the UI
+and direct request path reject nonfinite and excessive targets before side
+effects; the existing duration clamp remains authoritative.
+
+The extracted shipping UI method and demux request passed ASan/UBSan tests for
+refusal, pending requests, fast completion before UI return, duration clamping,
+inactive playback and invalid targets. Evidence: `.deps/seek-handoff.log` /
+`.result` (0). Existing provider/playback-recovery and exact generated pthread
+handoff regressions also passed (`.deps/seek-provider-regression.log` /
+`.result` and `.deps/seek-recovery-regression.log` / `.result`, both 0).
+A new full PS5 build remains pending at this source milestone. The prior frozen PR50 package remains
+unchanged and does not include this native fix. No console traffic occurred.

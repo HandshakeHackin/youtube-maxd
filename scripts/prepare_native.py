@@ -179,6 +179,8 @@ def main():
     apply_video_drain_overlay(replace, player)
     from playback_recovery_overlay import apply_playback_recovery_overlay
     apply_playback_recovery_overlay(replace, player, host)
+    from seek_overlay import apply_seek_overlay
+    apply_seek_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

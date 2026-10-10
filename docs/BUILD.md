@@ -173,10 +173,20 @@ PYTHONPATH=companion .venv/bin/python scripts/probe_hls_buffer.py \
 ```
 
 The probe decodes eight seconds, makes synthetic segment origins reject access,
-then seeks to three seconds and requires two seconds of audio/video decode
-without another origin segment request. This exercises the shipping HTTP relay;
+then performs an input seek to three seconds and requires two seconds of
+audio/video decode without another origin segment request. Decoded frame/audio
+fingerprints must match a local seek reference and differ from playback at the
+beginning. Clearing the buffer must make the expired-origin request fail.
+This exercises the shipping HTTP relay;
 it does not establish real YouTube DVR or PS5 behavior. Never-downloaded or evicted
 expired objects still require renewal/restart handling.
+
+Check the native seek handoff with `bash scripts/test_seek_handoff.sh`. It
+extracts the shipping UI method and demux request into an ASan/UBSan regression.
+Seek requests retain the previous playback position until the demuxer succeeds;
+only the demuxer announces seek begin/end. Refused, queued, fast-completed,
+clamped, inactive and invalid targets are covered. Nonfinite targets and targets
+beyond one million seconds are rejected before pausing or publishing a request.
 
 For expiry during an ongoing live decode, use `--decode-seconds 60
 --hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for
