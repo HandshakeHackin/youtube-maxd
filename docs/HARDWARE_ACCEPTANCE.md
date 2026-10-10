@@ -1,6 +1,12 @@
 # Hardware acceptance — in progress
 
-Installed `1e523316` (`prosperotube-1e523316_1010-1834`, 126 files,
+Installed `327d8606` (`prosperotube-327d8606_1010-1851`, 126 files,
+eboot prefix `69879753599e55bd`) passed native public WebP artwork decode/cache,
+saved Guest state, GPU park, exact title/mount release and service health.
+The matching 135,454-byte image decoded to 480×270 and was read back from the
+app's data directory. This case did not play video or assess physical appearance.
+
+Previous candidate `1e523316` (`prosperotube-1e523316_1010-1834`, 126 files,
 eboot prefix `f2561db427571559`) passed verified installation, initial resume,
 public playback and forward/backward seeking on the reserved console. The first
 frame at the saved 161-second position arrived 5.367 s after selection; the native
@@ -11,6 +17,8 @@ same captured run, preserving the original exit 1. No relaunch was needed.
 Physical sound/motion for this build remain unassessed. The earlier `5cc941f0`
 control retains user-confirmed smooth 1080p60 sound/video. DeArrow/SponsorBlock,
 broader codecs and full parity remain open. See [validation](VALIDATION.md).
+
+- 2026-10-10 | artwork | 327d8606 | reserved console | pass: verified install, public WebP decode/cache, preserved Guest state, clean teardown | .deps/console/webp-artwork/artwork-result.json | physical appearance, DeArrow and broader playback
 
 - 2026-10-10 | G1 | 1e523316 | reserved console | pass: 5.367s resume, bidirectional seek, clean teardown; corrected counter assertion | .deps/console/dash-index-resume/verified-result.json | WebP artwork and broader playback
 

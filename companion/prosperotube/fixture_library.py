@@ -253,7 +253,7 @@ class FixtureLibrary:
         # Include the confirmed fixture message in the next poll, including a
         # poll before the normal two-second refresh interval. Do not alter a
         # previously cached continuation response.
-        context["result"]["items"] = [*context["result"]["items"], message][-256:]
+        context["result"]["items"] = [*context["result"]["items"], message][-24:]
         state["result"] = {"api_version": 1, "success": True, "id": video,
                            "session": intent, "message_id": message["id"]}
         return copy.deepcopy(state["result"])
@@ -302,7 +302,7 @@ class FixtureLibrary:
         cursor = self._reference(owner, "chat", identity)
         self.references[cursor]["deadline"] = now + 1800
         result = {"api_version": 1, "kind": "live_chat", "id": context["id"], "chat_mode": context["mode"],
-                  "items": [*rows, *copy.deepcopy(context["sent"])][-256:], "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
+                  "items": [*rows, *copy.deepcopy(context["sent"])][-24:], "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
                   "poll_after_ms": 2000}
         context.update(next_poll=now + 2, deadline=now + 1800, result=result)
         if previous is not None:

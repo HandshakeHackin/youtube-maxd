@@ -601,17 +601,19 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | --- | --- | --- |
 | PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
 | Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
-| Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests | WebP sniff/decode/cache fix host-tested; PS5 image acceptance, broader console coverage and reference behavior inventory |
+| Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests; public WebP decode/cache passed on PS5 | Physical artwork appearance, broader console coverage and reference behavior inventory |
 | Recovery, timing and diagnostics | Host-tested fractional resume, demux seek ownership, paused retry and atomic status | PS5 indexed resume accepted: 5.367 s to target frame, bidirectional seek; wider recovery acceptance and playback speed remain |
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
-| Comments, playlists and live chat | Reader, composition/review and basic operations host-tested | Live account acceptance, chat replay/scrollback and complete live/DVR behavior |
+| Comments, playlists and live chat | Reader, composition/review and basic operations host-tested; post-send fixture snapshots retain native limits | Live account acceptance, chat replay/scrollback and complete live/DVR behavior |
 | Casting and remote integration | Reference inventory only | Implement and accept |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-Current batch: DeArrow service/settings/persistence plus SponsorBlock timing.
-Consolidated gate: `.deps/parity-batch-*`; 224 companion tests, five native
-executables, generated player paths and the frozen PS5 package passed.
+Current batch: native WebP artwork acceptance and chat fixture snapshot limits.
+PS5 candidate `327d8606` passed public thumbnail decode/cache and clean lifecycle;
+16 targeted chat/API/fixture tests passed. Previous consolidated gate:
+`.deps/parity-batch-*`; 224 companion tests, five native executables and generated
+player paths passed. New DeArrow/SponsorBlock hardware acceptance remains open.
 The objective remains complete SmartTube feature and behavior parity.

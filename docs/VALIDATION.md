@@ -12,8 +12,23 @@ The generated shipping sniff/download/cache-request/decode functions passed host
 ASan/UBSan with real FFmpeg: lossy/lossless WebP, premultiplied alpha, 480-pixel
 scaling, persistent cache reuse without a second network request, PNG/JPEG,
 malformed input and injected write failure. Run `python3 scripts/test_artwork.py`;
-evidence is `.deps/artwork-native.log`. Native PS5 package/render acceptance is
-pending. No new decoder library or companion change is required.
+evidence is `.deps/artwork-native.log`. No new decoder library is required.
+
+Frozen native candidate `327d8606` (`prosperotube-327d8606_1010-1851`,
+211 objects, 126 files, eboot prefix `69879753599e55bd`) passed PS5 installation,
+settled readback, startup and public Big Buck Bunny search. Its 135,454-byte
+RIFF/WebP thumbnail decoded to 480×270; the matching `.webp` cache entry was
+read back from `/data/prosperotube/providers/youtube/art`. Guest pairing/history,
+GPU park, exact process/title/mount release and service health passed. The owned
+lock was removed. This case did not play video or assess the thumbnail's physical
+appearance. Evidence: `.deps/webp-artwork-console.{log,result}` (exit 0),
+`.deps/console/webp-artwork/artwork-result.json` and `cached-thumbnail.webp`.
+
+The same batch corrected offline chat fixtures that returned more than the native
+reader's 24-message limit after sending. Both immediate and timed snapshots now
+retain that limit. Sixteen targeted chat/API/fixture tests passed, including one
+and thirty sends, duplicate-intent confirmation, immutable earlier snapshots and
+cached poll responses. No real messages were sent; scrollback remains unfinished.
 
 ## Indexed full-file DASH resume — 2026-10-10
 

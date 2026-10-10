@@ -35,6 +35,38 @@ REQUEST = dict(action='chat_send', profile='one', id='abcdefghijk', cursor='owne
                session='reviewed-intent', text='Hello 日本語 😀')
 
 
+@pytest.mark.parametrize('total', [1, 30])
+def test_fixture_sent_messages_keep_native_snapshot_limit(total):
+    from prosperotube.demo import FixtureExtractor
+    from prosperotube.fixture_library import FixtureLibrary, VIDEOS
+
+    async def run():
+        clock = [100.0]
+        library = FixtureLibrary(FixtureExtractor(), clock=lambda: clock[0])
+        try:
+            opened = await library.execute(dict(action='live_chat', profile='fixture_one', id=VIDEOS[2]))
+            sent = []
+            for index in range(total):
+                request = dict(action='chat_send', profile='fixture_one', id=VIDEOS[2],
+                               cursor=opened['cursor'], session=f'intent-{index}', text=f'Hello 日本語 {index}')
+                sent.append((await library.execute(request))['message_id'])
+                assert (await library.execute(request))['message_id'] == sent[-1]
+            poll = dict(action='chat_poll', profile='fixture_one', cursor=opened['cursor'])
+            early = await library.execute(poll)
+            assert len(early['items']) == 24
+            assert [row['id'] for row in early['items']][-min(total, 24):] == sent[-24:]
+            clock[0] += 2
+            updated = await library.execute(poll)
+            assert len(updated['items']) == 24
+            assert [row['id'] for row in updated['items']][-min(total, 24):] == sent[-24:]
+            assert await library.execute(poll) == updated
+            assert len({row['id'] for row in updated['items']}) == 24
+            assert len(opened['items']) == 24 and all(row['id'] not in sent for row in opened['items'])
+        finally:
+            await library.close()
+    asyncio.run(run())
+
+
 def test_confirmed_message_cached_without_text_or_worker_restart(tmp_path):
     async def run():
         library, calls = service(tmp_path, 'success')
