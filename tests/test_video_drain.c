@@ -9,6 +9,7 @@
 
 int player_paused, screen = 2, playback_profile = 2;
 double media_duration_sec, resume_base_offset_seconds;
+volatile double resume_base_anchor_pending = -1;
 volatile int pb_prebuffer_hold, pb_scrub_hold;
 struct SwsContext *play_sws;
 AVFormatContext *play_fmt;
@@ -35,6 +36,7 @@ AVPacket *packet_queue_pop(PacketQueue *q) {
 }
 int evo_demux_is_seeking(void) { return seeking; }
 int evo_audio_is_drained(void) { return audio_drained; }
+int evo_audio_has_failed(void) { return 0; }
 long long now_ms(void) { return 0; }
 void toast(const char *title, const char *message) { (void)title; (void)message; }
 pp_aspect_mode prospero_view_mode_to_aspect(void) { return PP_ASPECT_FIT; }

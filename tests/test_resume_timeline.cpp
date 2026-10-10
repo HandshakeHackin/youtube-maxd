@@ -17,6 +17,12 @@ static volatile double resume_base_anchor_pending;
 static int seek_calls, flush_calls;
 static int64_t requested_timestamp;
 static bool force_refusal;
+static double audio_seek_discard_until = -1;
+static struct { int64_t target; bool discarding; } g_pp_pb;
+static void pp_playback_notify_seek_begin(decltype(g_pp_pb) *pb, int64_t pts) {
+    pb->target = pts; pb->discarding = true;
+}
+static void pp_playback_notify_seek_end(decltype(g_pp_pb) *, int ok, uint64_t, uint64_t) { assert(ok); }
 static void evo_vdec_flush(void *) { ++flush_calls; }
 static void evo_adec_flush(void *) {}
 static void prospero_audio_resampler_reset() {}
@@ -69,8 +75,9 @@ static void decoded_video_only(const char *file) {
                 assert(frame->best_effort_timestamp != AV_NOPTS_VALUE);
                 const int64_t pts_us = av_rescale_q(frame->best_effort_timestamp, stream->time_base, AV_TIME_BASE_Q);
                 const double landing = (double)(pts_us - tube_media_origin_us(play_fmt, video_stream_index)) / AV_TIME_BASE;
+                if (pts_us < g_pp_pb.target) { av_frame_unref(frame); av_packet_unref(packet); continue; }
                 shipping_video_clock(pts_us, false);
-                assert(landing >= 1.8 && landing <= 3.3);
+                assert(landing >= 4.25 && landing < 4.25 + 1.0 / 30.0);
                 assert(std::fabs(resume_base_offset_seconds - landing) < 1e-6);
                 assert(resume_base_anchor_pending == -1);
                 decoded = true; av_packet_unref(packet); break;
@@ -93,6 +100,8 @@ int main(int argc, char **argv) {
     const double origin = (double)play_fmt->start_time / AV_TIME_BASE;
     assert(origin > 1);
     assert(shipping_resume(4.25) == 4.25);
+    assert(g_pp_pb.discarding && g_pp_pb.target == 4250000 + play_fmt->start_time);
+    assert(audio_seek_discard_until == 4.25);
     assert(seek_calls == 1 && flush_calls == 1 && resume_base_anchor_pending == 4.25);
     const int64_t expected = av_rescale_q(3250000 + play_fmt->start_time, AV_TIME_BASE_Q,
                                         play_fmt->streams[video_stream_index]->time_base);
@@ -121,6 +130,7 @@ int main(int argc, char **argv) {
     assert(resume_base_anchor_pending == 4.25 && resume_base_offset_seconds == base);
     audio_stream_index = -1;
     assert(shipping_resume(4.25) == 4.25 && resume_base_anchor_pending == 4.25);
+    assert(audio_seek_discard_until == -1);
     shipping_video_clock(INT64_MIN, false);
     shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), true);
     assert(resume_base_anchor_pending == 4.25 && resume_base_offset_seconds == 4.25);
@@ -135,8 +145,17 @@ int main(int argc, char **argv) {
     shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), false);
     assert(resume_base_offset_seconds == 4.25);
     resume_base_anchor_pending = -1;
+    const int saved_video = video_stream_index;
+    video_stream_index = -1;
+    audio_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+    g_pp_pb.discarding = false;
+    assert(shipping_resume(4.25) == 4.25 && !g_pp_pb.discarding);
+    assert(audio_seek_discard_until == 4.25);
+    video_stream_index = saved_video;
+    audio_stream_index = -1;
     force_refusal = true;
-    assert(shipping_resume(4.25) == 0 && resume_base_offset_seconds == 0 && flush_calls == 2);
+    const int flushed = flush_calls;
+    assert(shipping_resume(4.25) == 0 && resume_base_offset_seconds == 0 && flush_calls == flushed);
     force_refusal = false;
     const int calls = seek_calls;
     assert(shipping_resume(NAN) == 0 && seek_calls == calls);

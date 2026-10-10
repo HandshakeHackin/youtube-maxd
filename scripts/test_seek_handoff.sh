@@ -19,3 +19,10 @@ g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -o "${destination}/resume-test"
 ASAN_OPTIONS=detect_leaks=1 "${destination}/resume-test" \
     "${root}/fixtures/generated/fixture.m3u8" "${root}/fixtures/generated/video.mp4"
+g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
+    -fno-omit-frame-pointer -I"${destination}" -I"${root}/native" \
+    "${root}/tests/test_audio_seek.cpp" \
+    $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm \
+    -o "${destination}/audio-test"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/audio-test" \
+    "${root}/fixtures/generated/audio.m4a" "${root}/fixtures/generated/audio.webm"
