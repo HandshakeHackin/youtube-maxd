@@ -917,3 +917,21 @@ successfully; observed offsets were exactly `[0, 4]`.
 This is host service compatibility and build evidence. PR50 helper execution,
 PS5 storage/persistence, real YouTube playback, decoded position, physical
 controller behavior, audible A/V synchronization and teardown remain pending.
+
+### Settled-install startup control and primary availability (2026-10-10)
+
+A separate `3c3eb818` startup control reused the already-settled installation
+without uploading. Fresh idle checks and declared services passed, followed by
+an exact readback of every installed file and exact title registration. The
+final prelaunch check found an unrelated title had started; no launch, input,
+close or installation upload was sent. Evidence:
+`.deps/resume-storage-reuse-control-console.log` / `.result` (1). The saved
+ShadowMount delta confirms the unrelated start. The case used this committed
+control intentionally; it does not test the newer video-only resume change.
+
+A separate primary-console case for frozen source `e52315dd` stopped on its
+first minimal FTP running-title check because a title was running. No other
+service probe, directory preparation, upload, launch, input, close or retry
+occurred. Evidence: `.deps/video-resume-storage-primary-console.log` /
+`.result` (1). Both owned locks were released. These are no-run results;
+neither establishes PR50 helper execution or native startup.

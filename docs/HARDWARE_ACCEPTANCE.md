@@ -320,3 +320,10 @@ Build `prosperotube-e52315dd_1010-0354` has 126 frozen files and eboot SHA-256
 prefix `60967ac1c01c1852`. Fresh Guest YouTube AVC/AAC DASH host decode passed
 eight seconds at offsets zero and four. This candidate has never launched;
 the host result does not establish console playback, motion or sound.
+
+- 2026-10-10 | settled startup control | 3c3eb818 | PS5 | no-run: fresh exact readback and registration passed; prelaunch title check busy; no uploads/launch/input/close | .deps/resume-storage-reuse-control-console.log | offline work
+- 2026-10-10 | current primary candidate | e52315dd | PS5 | no-run: first title check busy; no other probes/uploads/launch/input/close | .deps/video-resume-storage-primary-console.log | offline work
+
+Both owned locks were released. The settled control used the earlier committed
+installation and unchanged PR50 helper; the current `e52315dd` package remains
+undeployed. No startup, persistence, playback or teardown acceptance was added.
