@@ -5,15 +5,29 @@
 The status publisher now stages `dev_status.tmp` under the same Lapy-backed app
 directory, checks formatted output and close, then atomically renames it over
 `dev_status`. Creation, write, close or rename failure keeps the previous complete
-snapshot. Active/parked states use distinct path buffers, preserving rename
+snapshot. Published/staging paths use distinct buffers, preserving rename
 arguments and preventing a partial write from exposing a false park checkpoint.
 
 `scripts/test_atomic_status.py` extracts the actual generated path resolver and
 status function. Its ASan/UBSan run observes the published file while staging is
 empty and partially written, injects each I/O failure and checks complete active
 and parked publication. Passed evidence: `.deps/atomic-status-prepare.{log,result}`
-and `.deps/atomic-status-test.{log,result}` (both results 0). This source follows
-the accepted `5cc941f0` package; a new PS5 build and hardware acceptance are separate.
+and `.deps/atomic-status-test.{log,result}` (both results 0).
+
+Committed `66014522` also passed all 211 PS5 objects, linking, packaging and
+immutable freeze: `prosperotube-66014522_1010-1548`, 126 files, eboot SHA-256 prefix
+`55786d4f8693fadf`. Evidence: `.deps/atomic-status-ps5-build.{log,result}` and
+`.deps/atomic-status-freeze.{log,result}` (both results 0). This package remains
+undeployed; the accepted `5cc941f0` package stays installed. No further console
+launch followed the playback-control milestone.
+
+A fresh read-only Windows extraction also verified the public Blender video
+`aqz-KE-bpKQ` (Big Buck Bunny), duration 635 seconds, 53 formats and AVC choices
+from 144p30 through 1080p60. The strict-UTF-8 worker returned successfully with
+no stderr. Evidence: `.deps/windows-public-bunny-worker.result` (0),
+`.deps/console/windows-public-bunny-summary.json` and private raw worker output.
+This supplies a broader test candidate; it does not establish native PS5 decoding
+or playback of that video.
 
 ## Current PS5 package: history, pairing, pause and seek — 2026-10-10
 
