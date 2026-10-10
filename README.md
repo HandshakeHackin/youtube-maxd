@@ -163,8 +163,10 @@ live playback restarts at the live edge. Paused playback waits until resumed.
 Changed/ambiguous formats or an exhausted budget require selecting the video
 again. This controlled restart still needs PS5 acceptance. Live HLS playlist
 roots now renew together under the same profile, preserving relay URLs and
-checking the audio-group pairing. Expired segments, keys and initialization
-objects still use controlled live-edge restart; full DVR recovery is pending.
+checking the audio-group pairing. Complete HLS segments, keys and initialization
+objects are retained in a bounded session-owned RAM buffer, so revisiting their
+exact bytes does not require an unexpired origin URL. Unbuffered expired objects
+still use controlled live-edge restart; full DVR recovery is pending.
 Access logs are disabled and native diagnostics redact
 capabilities. See [protocol/security notes](docs/PROTOCOL.md).
 

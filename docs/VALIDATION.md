@@ -708,3 +708,31 @@ with the existing Starlette TestClient deprecation warning. Evidence:
 `.deps/fixture-chat-send-full.log` / `.result` (both 0). No console traffic or
 real YouTube posting occurred. Native source and the undeployed PR50 package
 remain unchanged; PS5 compose/review/send acceptance is still required.
+
+### Buffered HLS seek after origin expiry (2026-10-09)
+
+The shipping relay now retains bounded, session-owned copies of completely
+downloaded HLS resources. HTTP tests cover exact full/range/suffix reads and HEAD
+metadata after origin expiry, continued fresh root fetching, session isolation,
+expiry, account-removal callback cleanup, size/count/staging limits, eviction,
+incomplete lengths, encoded/partial responses and interrupted streams. Buffered
+bodies revalidate session ownership and profile availability between 64-KiB
+chunks, preserving account-removal retirement behavior.
+
+The generated finite-HLS host probe decoded 8.0 seconds with audio and video,
+retained four resources (977224 bytes), then sought to 3 seconds and decoded
+2.0 seconds after synthetic origin segments began returning 403. It made zero
+origin segment requests during the second decode. Evidence:
+`.deps/hls-buffer-decode.json`, `.log` and `.result` (0).
+
+Full companion suite: 182 passed, with the existing Starlette TestClient warning.
+Evidence: `.deps/hls-buffer-full.log` / `.result` (0). Focused relay suite:
+26 passed (`.deps/hls-buffer-focused.log` / `.result`, 0). No YouTube or console
+traffic occurred. Native source and the frozen PR50 package are unchanged.
+Never-downloaded/evicted expired resources, real rolling live/DVR windows,
+long-session continuity and PS5 seek/playback acceptance remain incomplete.
+
+HLS sequence numbers alone cannot establish matching bytes across different
+playlists ([RFC 8216 section 4.3.3.2](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.3.3.2)).
+This buffer reuses actual complete downloads rather than inferring replacement
+media identity from matching sequence numbers.

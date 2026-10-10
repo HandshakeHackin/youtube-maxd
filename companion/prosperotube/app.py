@@ -22,6 +22,7 @@ from .catalog import item, page_for
 from .captions import vtt_to_srt
 from .extractor import Extractor
 from .hls import rewrite as hls_rewrite
+from .hls_buffer import HLSBuffer
 from .models import ResolveRequest, ServiceError, safe_remote, video_id
 from .sessions import Sessions
 from .media_refresh import expired as expired_media, observe as observe_media, renew as renew_media
@@ -98,12 +99,14 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             if library is not None:
                 await library.close()
             await app.state.http.aclose()
+            app.state.hls_buffer.clear()
     app = FastAPI(title="ProsperoTube Companion", version=__version__, docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.extractor = extractor or Extractor()
     app.state.token = token or secrets.token_urlsafe(32)
     app.state.pairing_code = pairing_code or f"{secrets.randbelow(1000000):06d}"
     app.state.pairing_deadline = time.monotonic() + 600
     app.state.sessions = Sessions()
+    app.state.hls_buffer = HLSBuffer(app.state.sessions)
     app.state.http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(20, connect=5), follow_redirects=False)
     app.state.public_base = public_base.rstrip("/") if public_base else None
     app.state.pair_attempts = defaultdict(list)
@@ -118,6 +121,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if hasattr(app.state.extractor, "invalidate_profile"):
             app.state.extractor.invalidate_profile(identity)
         app.state.sessions.invalidate_profile(identity)
+        app.state.hls_buffer.prune()
         if app.state.device_auth is not None:
             app.state.device_auth.forget_profile(identity)
         current = asyncio.current_task()
@@ -405,6 +409,37 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if byte_range:
             if len(byte_range) > 100 or not re.fullmatch(r"bytes=(?:[0-9]+-[0-9]*|-[0-9]+)", byte_range):
                 raise ServiceError("invalid_range", "Only a single byte range is supported.", 416)
+        relay_profile(session)
+        buffered = app.state.hls_buffer.get(session_token, key, remote)
+        if buffered is not None:
+            data = buffered.data
+            length = len(data)
+            first, last, status = 0, length - 1, 200
+            outgoing = {"Cache-Control": "no-store", "Accept-Ranges": "bytes"}
+            if byte_range and request.method == "GET":
+                left, right = byte_range[6:].split('-')
+                first = int(left) if left else max(0, length - int(right))
+                last = min(int(right), length - 1) if left and right else length - 1
+                if first >= length or first > last or not left and int(right) == 0:
+                    return Response(status_code=416, headers={**outgoing, "Content-Range": f"bytes */{length}"})
+                status = 206
+                outgoing["Content-Range"] = f"bytes {first}-{last}/{length}"
+            outgoing["Content-Length"] = str(last - first + 1)
+            app.state.sessions.touch(session)
+            if request.method == "HEAD":
+                return Response(b"", status_code=status, media_type=buffered.mime, headers=outgoing)
+            async def buffered_body():
+                for offset in range(first, last + 1, 64 * 1024):
+                    if app.state.sessions.sessions.get(session_token) is not session:
+                        return
+                    try:
+                        relay_profile(session)
+                    except ServiceError:
+                        return
+                    app.state.sessions.touch(session)
+                    yield data[offset:min(offset + 64 * 1024, last + 1)]
+            return StreamingResponse(buffered_body(), status_code=status,
+                                     media_type=buffered.mime, headers=outgoing)
         async def fetch(resource, renewed=False):
             headers = {**resource.headers, "Accept-Encoding": "identity"}
             if byte_range and resource.live_binding is None:
@@ -464,6 +499,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             await reply.aclose()
             return Response(status_code=reply.status_code, headers=outgoing, media_type=content_type)
         async def body():
+            capture = app.state.hls_buffer.begin(session_token, key, remote, reply)
             try:
                 async for chunk in reply.aiter_raw():
                     try:
@@ -472,8 +508,14 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                         return
                     app.state.sessions.touch(session)
                     remote.representation.delivered = True
+                    if capture is not None:
+                        capture.feed(chunk)
                     yield chunk
+                if capture is not None:
+                    capture.finish()
             finally:
+                if capture is not None:
+                    capture.close()
                 await reply.aclose()
         return StreamingResponse(body(), status_code=reply.status_code, headers=outgoing, media_type=content_type)
 

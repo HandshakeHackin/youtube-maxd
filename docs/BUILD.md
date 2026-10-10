@@ -157,6 +157,27 @@ manifest. The result labels `live_hls_root` and reports injection/resolution
 counts. This proves host root renewal with real media, not naturally expired
 links, child-resource/DVR renewal, long-session continuity or PS5 playback.
 
+The companion retains complete downloaded HLS resources in a session-owned RAM
+buffer: 64 MiB across all sessions, at most 256 objects and 8 MiB per object.
+At most four downloads stage copies concurrently. Partial, encoded, oversized
+and interrupted downloads are excluded. Cached GET byte ranges and HEAD metadata
+use the exact retained bytes; root playlists remain fresh. Session expiry,
+resource retirement and account removal invalidate buffered access. No disk
+files or account credentials are added.
+
+After generating fixtures, verify buffered seeking with host FFmpeg:
+
+```sh
+PYTHONPATH=companion .venv/bin/python scripts/probe_hls_buffer.py \
+  --result .deps/hls-buffer-decode.json
+```
+
+The probe decodes eight seconds, makes synthetic segment origins reject access,
+then seeks to three seconds and requires two seconds of audio/video decode
+without another origin segment request. This exercises the shipping HTTP relay;
+it does not establish real YouTube DVR or PS5 behavior. Never-downloaded or evicted
+expired objects still require renewal/restart handling.
+
 For expiry during an ongoing live decode, use `--decode-seconds 60
 --hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for
 the selected root reach YouTube normally; its third request receives the single
