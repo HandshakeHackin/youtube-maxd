@@ -265,7 +265,7 @@ static int valid_profile(const char *id) {
 }
 
 static const char *topic_section(const char *id) {
-    static const char *const names[] = {"music", "gaming", "news"};
+    static const char *const names[] = {"music", "gaming", "news", "sports", "live", "movies"};
     if (!id || strncmp(id, "section:", 8)) return NULL;
     for (unsigned i = 0; i < sizeof names / sizeof *names; ++i) {
         size_t n = strlen(names[i]);
@@ -1641,6 +1641,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "section:music", "Music", "YouTube music shelves");
         folder(&out[n++], "search:documentary", "Documentaries", "Explore documentaries");
         folder(&out[n++], "search:education", "Learning", "Explore educational videos");
+        folder(&out[n++], "section:sports", "Sports", "YouTube sports shelves");
+        folder(&out[n++], "section:live", "Live", "YouTube live shelves");
+        folder(&out[n++], "section:movies", "Movies", "YouTube movies and shows");
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
         if (!strncmp(parent, "library:profile:", 16)) {
             tube_recovery_finish();

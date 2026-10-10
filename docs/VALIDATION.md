@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## Remaining TV topic sections — 2026-10-10
+
+Sports, Live and Movies now have native Discover entries and use the reference
+`FEtopics_sports/live/movies` TV endpoints. Section capabilities preserve their
+origin and account scope. Channel and Movies storefront folders retain nested
+shelves; movie video identities use the ordinary playback resolver. An empty
+storefront returns YouTube's explanation as `catalog_unavailable`, rather than
+an unsupported-layout error. This adds browsing, not purchase/DRM playback.
+
+Live Guest checks returned Sports: four shelves / 18 items / three live markers;
+Live: three shelves / 15 items / ten live markers; Movies: three shelves / seven
+items, one nested storefront shelf and one empty purchase-library explanation.
+Evidence: `.deps/browse-reference/extra-adapter-result.json` and
+`.deps/extra-topics-live-adapter.{log,result}` (exit 0). Counts can vary upstream.
+Worker regression: 41 passed, including nested storefront/channel shelves,
+continuations and empty-storefront reporting. Python library/API regression:
+18 passed, with all six section identities exercised through the shipping API.
+Native section/Music/provider ASan/UBSan regression exited 0
+(`.deps/extra-topics-native.{log,result}`); the worker bundle rebuilt successfully.
+PS5 navigation/playback acceptance for these three new entries remains open.
+
 ## Personalized Music row — 2026-10-10
 
 Signed-in account profiles now prepend Liked music to the Music section. The

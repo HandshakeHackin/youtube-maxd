@@ -52,7 +52,7 @@ class LibraryRequest(BaseModel):
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
                     "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open"]
-    section: Literal["", "music", "gaming", "news"] = ""
+    section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)

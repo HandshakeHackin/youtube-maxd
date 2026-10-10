@@ -32,6 +32,14 @@ int main(void) {
     assert(strstr(pending[0].body,"\"section\":\"news\""));
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");
     p->list_catalog("section:news",1,items_cb,NULL); assert(!last_ok && !pending_count);
+    const char *extra[]={"sports","live","movies"};
+    for(unsigned i=0;i<sizeof extra/sizeof *extra;i++) {
+        char parent[40],needle[64];snprintf(parent,sizeof parent,"section:%s",extra[i]);
+        snprintf(needle,sizeof needle,"\"section\":\"%s\"",extra[i]);
+        p->list_catalog(parent,0,items_cb,NULL);assert(strstr(pending[0].body,needle));
+        poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");
+        assert(last_ok && last_count==0);
+    }
     p->list_catalog("section:invalid",0,items_cb,NULL); assert(!last_ok && !pending_count);
     p->shutdown(); puts("PASS: native TV section routing, row IDs, pagination, invalid sections and nested Music playback/queue origin");
 }

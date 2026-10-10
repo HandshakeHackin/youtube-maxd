@@ -109,7 +109,7 @@ class FixtureLibrary:
             return copy.deepcopy(ref["result"])
         if action in {"topics", "topic_open"}:
             section = request.get("section")
-            if section not in {"music", "gaming", "news"}:
+            if section not in {"music", "gaming", "news", "sports", "live", "movies"}:
                 raise ServiceError("invalid_catalog", "Choose an available section.", 400)
             if action == "topics":
                 key = self._reference(owner, "topic:" + section, [self._video(i) for i in VIDEOS])

@@ -17,7 +17,7 @@ def test_curated_section_api_keeps_rows_and_profile_scopes(tmp_path):
     with TestClient(app) as client:
         def call(action, **kw):
             return client.post("/v1/library", headers=AUTH, json={"action": action, **kw})
-        for section in ("music", "gaming", "news"):
+        for section in ("music", "gaming", "news", "sports", "live", "movies"):
             root = call("topics", section=section).json()
             row = root["items"][0]
             assert row["is_folder"] and row["id"].startswith(f"section:{section}:")

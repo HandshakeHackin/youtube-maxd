@@ -144,3 +144,44 @@ test('an empty liked row needs no fallback and other sections never request it',
   await library.execute({action:'topics',section:'news',profile:'signed'});
   assert.deepEqual(calls.map(call=>call.browseId),['FEtopics_gaming','FEtopics_news']);
 });
+
+test('Sports/Live/Movies route real section identities and preserve nested storefront/channel shelves', async () => {
+  const calls=[];
+  const folder=(browseId)=>({tileRenderer:{contentType:'TILE_CONTENT_TYPE_CHANNEL',
+    metadata:{tileMetadataRenderer:{title:{simpleText:'Nested shelves'}}},onSelectCommand:{browseEndpoint:{browseId,params:'genre'}}}});
+  const movie=tile(5);movie.tileRenderer.onSelectCommand={browseEndpoint:{browseId:'MV00000000005'}};
+  const live=tile(6);live.tileRenderer.header.tileHeaderRenderer.thumbnailOverlays[0].thumbnailOverlayTimeStatusRenderer.style='LIVE';
+  const client={actions:{execute:async(_,args)=>{
+    calls.push(args);
+    if(args.browseId==='FEstorefront' || args.browseId?.startsWith('UC'))
+      return response({sectionListRenderer:{contents:[shelf([tile(7)])],...cont('nested-next')}});
+    if(args.continuation==='nested-next') return response({sectionListContinuation:{contents:[shelf([tile(8)])]}});
+    return response({sectionListRenderer:{contents:[shelf([movie,live,folder('FEstorefront'),folder('UC'+'a'.repeat(22)),folder('FEarbitrary')])]}});
+  }}};
+  const library=new Library(async()=>client);
+  for(const section of ['sports','live','movies']) {
+    const root=await library.execute({action:'topics',section}); assert.equal(calls.at(-1).browseId,'FEtopics_'+section);
+    const row=await library.execute({action:'topic_open',section,id:root.items[0].id.split(':')[2]});
+    assert.equal(row.items[0].id,'00000000005');assert(row.items[1].is_live);
+    assert.equal(row.items.length,section==='movies'?4:3);
+    const nested=await library.execute({action:'topic_open',section,id:row.items.at(-1).id.split(':')[2]});
+    assert(nested.items[0].is_folder);
+    const next=await library.execute({action:'continue',cursor:nested.cursor});assert(next.items[0].is_folder);
+    if(section==='movies') {
+      const genres=await library.execute({action:'topic_open',section,id:row.items[2].id.split(':')[2]});
+      assert(genres.items[0].is_folder);assert.equal(calls.at(-1).browseId,'FEstorefront');
+    }
+  }
+});
+
+test('an empty storefront reports the upstream explanation instead of an unsupported layout', async () => {
+  const library=new Library(async()=>({actions:{execute:async(_,args)=>response(args.browseId==='FEstorefront' ?
+    {tvBrowseRenderer:{content:{genericPromoRenderer:{bodyText:{runs:[{text:'Videos you purchase or rent will appear here'}]}}}}} :
+    {sectionListRenderer:{contents:[shelf([{tileRenderer:{contentType:'TILE_CONTENT_TYPE_CHANNEL',
+      onSelectCommand:{browseEndpoint:{browseId:'FEstorefront',params:'ogUCKAQ%3D'}}}}])]}})
+  }}));
+  const root=await library.execute({action:'topics',section:'movies'});
+  const row=await library.execute({action:'topic_open',section:'movies',id:root.items[0].id.split(':')[2]});
+  await assert.rejects(library.execute({action:'topic_open',section:'movies',id:row.items[0].id.split(':')[2]}),
+    {code:'catalog_unavailable',status:404,message:'Videos you purchase or rent will appear here'});
+});

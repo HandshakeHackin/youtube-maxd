@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
 
-const sections = new Set(['music', 'gaming', 'news']);
+const sections = new Set(['music', 'gaming', 'news', 'sports', 'live', 'movies']);
 // MediaServiceCore 4d9767733aa9 BrowseApiHelper.getLikedMusicContinuation.
 const likedMusicContinuation = '4qmFsgIWEhRGRW11c2ljX2xpa2VkX3ZpZGVvcw%3D%3D';
 const text = value => typeof value === 'string' ? value.slice(0, 192) :
@@ -89,7 +89,7 @@ export class TopicCatalog {
     if (entry.feed) return entry.feed;
     const clientType = entry.source.clientType ?? 'TV';
     const raw = entry.source.row ?? await this.request(entry.client, entry.source.endpoint, clientType);
-    entry.feed = this.feed(owner, section, entry.client, raw, false, false, clientType);
+    entry.feed = this.feed(owner, section, entry.client, raw, entry.source.root === true, false, clientType);
     return entry.feed;
   }
   tile(owner, section, client, tile) {
@@ -99,10 +99,12 @@ export class TopicCatalog {
     const header = tile.header?.tileHeaderRenderer;
     const image = header?.thumbnail?.thumbnails?.[0]?.url;
     const endpoint = tile.onSelectCommand?.browseEndpoint;
-    if (endpoint && /^(VL[A-Za-z0-9_-]{10,100}|UC[A-Za-z0-9_-]{22})$/.test(endpoint.browseId ?? '') &&
+    if (endpoint && (/^(VL[A-Za-z0-9_-]{10,100}|UC[A-Za-z0-9_-]{22})$/.test(endpoint.browseId ?? '') ||
+        (section === 'movies' && endpoint.browseId === 'FEstorefront')) &&
         (!endpoint.params || (typeof endpoint.params === 'string' && endpoint.params.length <= 4096)))
       return this.folder(owner, section, client, title, image,
-        { endpoint: { browseId: endpoint.browseId, ...(endpoint.params ? { params: endpoint.params } : {}) } });
+        { endpoint: { browseId: endpoint.browseId, ...(endpoint.params ? { params: endpoint.params } : {}) },
+          root: endpoint.browseId === 'FEstorefront' || endpoint.browseId.startsWith('UC') });
     if (tile.contentType !== 'TILE_CONTENT_TYPE_VIDEO') return null;
     const id = tile.onSelectCommand?.watchEndpoint?.videoId ?? tile.contentId;
     const lines = metadata?.lines ?? metadata?.bylines ?? [];
@@ -137,6 +139,9 @@ export class TopicCatalog {
       if (update) node = { items: update.continuationItems };
     }
     if (!node) {
+      const promo = root && find(raw, 'genericPromoRenderer');
+      if (promo?.bodyText)
+        throw new this.Error('catalog_unavailable', text(promo.bodyText) || 'This section has no available videos.', 404);
       // TV sometimes returns a final tracking-only response for an exhausted token.
       if (continuationResponse && Object.keys(raw).every(key => ['responseContext', 'trackingParams'].includes(key)))
         return { catalog_items: [], has_continuation: false };
