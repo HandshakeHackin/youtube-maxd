@@ -1,13 +1,22 @@
 # Hardware acceptance — pending
 
+Latest offline candidate `58390ef6` passed the PS5 package and immutable freeze:
+build `prosperotube-58390ef6_1010-0550`, 126 files, eboot prefix
+`23101bbd1b1a7f4d`. Provider/companion and extracted UI-kit/RML marker rendering
+tests passed; this candidate is undeployed/unlaunched. Physical marker rendering,
+controller behavior, Lapy startup/storage and real YouTube playback remain open.
+
+- 2026-10-10 | verified installation of known-end skip candidate | c758351c | primary console, firmware unreported | no-run: idle initially; all 126 bytes verified before/after 130-second settle and registration confirmed; another title running before launch; no launch/input/close; owned lock released | .deps/sponsor-end-storage-primary-console.log | Lapy startup/storage, then public YouTube acceptance
+
 - 2026-10-10 | SponsorBlock known-end skip | c758351c | reserved console, firmware unreported | no-run: busy at first FTP check; no other probes/upload/launch/input/close; owned lock released | .deps/sponsor-end-storage-reserved-console.log | Lapy startup/storage, public YouTube, then end-skip/confirmation/queue behavior
 
-Latest offline candidate `c758351c` passed the PS5 package and immutable freeze:
+Prior offline candidate `c758351c` passed the PS5 package and immutable freeze:
 126 files, eboot prefix `fbaa644e95bda5b7`, build
 `prosperotube-c758351c_1010-0527`. SponsorBlock attribution is bundled and matches
 the source file. Provider and extracted player paths passed host ASan/UBSan;
 physical controls, stop/teardown and end-skip queue behavior remain unverified.
-The candidate has not been deployed or launched. See [validation](VALIDATION.md).
+The reserved case below did not deploy it; the later primary-console installation
+above passed stored-byte verification but did not launch. See [validation](VALIDATION.md).
 
 - 2026-10-10 | SponsorBlock policy | 1b0a0dca | reserved console, firmware unreported | no-run: busy at first FTP check; no upload/launch | .deps/sponsor-policy-storage-reserved-console.log | Lapy startup/storage, then public YouTube and confirmation controls
 

@@ -5,15 +5,16 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): `c758351c` adds explicit SponsorBlock completion
-when an acknowledged skip reaches the known end, preserving watched/resume state
-and normal queue transitions without seeking past decodable media. Provider and
-generated player-path ASan/UBSan tests and the complete PS5 package passed. The
-package includes the new SponsorBlock attribution. The reserved-console case
-stopped at its first busy title check, before deployment. Next hardware acceptance
-remains Lapy startup/storage, then real YouTube playback. Next offline work covers
-timeline colors/highlights, paid-content notices and remaining action/default
-equivalence. See [validation](docs/VALIDATION.md).
+Current milestone (2026-10-10): `58390ef6` adds nine-category SponsorBlock timeline
+markers to the primary PS5 UI kit and RML fallback, including validated highlight
+points, persisted color toggles and playback data retained across browsing
+cancellation. Native/companion/render-path tests and the complete PS5 package
+passed. This candidate remains undeployed/unlaunched. The prior `c758351c` bytes
+were installed and verified twice on the primary console, but another title
+started before the final launch check. Next hardware acceptance remains Lapy
+startup/storage, then real YouTube playback. Next offline work covers highlight
+jump/action behavior, paid-content notices, live OSD flags and remaining
+action/default equivalence. See [validation](docs/VALIDATION.md).
 
 ## 1. Objective and current conclusion
 

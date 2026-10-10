@@ -25,7 +25,9 @@ thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay; quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
 adaptive playback, progressive video, HLS, chapters, timed captions, optional
 SponsorBlock category actions, minimum skip duration, channel exclusions and
-rewind policy; native player controls and diagnostics. Cross/Circle SponsorBlock
+rewind policy; nine-category timeline colors and highlight-point markers on the
+PS5 UI kit and RML fallback; native player controls and diagnostics. Highlight
+jump/action behavior remains open. Cross/Circle SponsorBlock
 confirmation and known-end skips have offline coverage, including queue/watched
 state and extracted player paths; console acceptance remains pending. The optional
 [library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account

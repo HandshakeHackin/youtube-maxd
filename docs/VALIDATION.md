@@ -1,5 +1,57 @@
 # Offline validation record — 0.1.0
 
+## SponsorBlock timeline markers and playback lifetime — 2026-10-10
+
+Source `58390ef6` adds independent persisted timeline-color toggles for the nine
+pinned SmartTube categories. Legacy settings default all marker colors on,
+including filler while its automatic skip action remains disabled. Fetches
+include the union of action and marker categories. Category RGB values match
+the pinned SmartTube color resources.
+
+The companion explicitly requests `skip` and, when selected, `poi` action types.
+Highlight points must have equal start/end times and `poi` action type; ordinary
+intervals must have positive duration and `skip` action type. This follows the
+[API types](https://wiki.sponsor.ajay.app/w/Types) and
+[hashed-prefix API](https://wiki.sponsor.ajay.app/w/API_Docs). Malformed top-level
+payloads/entries, mismatched action/category pairs, boolean or out-of-range
+timestamps and invalid point intervals are ignored. Highlight points do not
+become automatic skip intervals; their jump/action behavior remains open.
+
+The shipping PS5 UI-kit OSD and RML fallback draw the same normalized markers.
+Intervals clip to known duration, and point markers remain visible inside both
+ends of the track. Marker reads require the selected playing instance, profile,
+source, master switch and exclusion policy; invalid/unknown duration and live
+playback produce no markers. Source/profile changes invalidate old data, even
+when switching back. Ordinary browsing-request cancellation no longer discards
+the playing video's valid metadata, including a pending matching response.
+
+The three actual native provider/recovery/SponsorBlock ASan/UBSan executables
+passed: `.deps/sponsor-marker-native.log` / `.result` (0). The additional pending-
+response cancellation assertion passed in the focused actual-provider run:
+`.deps/sponsor-marker-policy.log` / `.result` (0). Tests cover default marker
+fetches, disabled actions with visible markers, all nine settings rows, persisted
+toggles/reload, point validation, clipping/capacity, playing-instance ownership,
+profile switching and retained data across browsing cancellation. Extracted
+shipping UI-kit and RML draw blocks passed ASan/UBSan with mocked draw-list/DOM
+functions: `.deps/sponsor-marker-render.log` / `.result` (0). Point/interval
+geometry, right-end containment, unchanged DOM reuse and clearing were checked.
+The companion module passed 43 tests, with its inherited Starlette deprecation
+warning: `.deps/sponsor-marker-companion.log` / `.result` (0).
+
+All 211 PS5 objects, linking, signed containers, package and immutable freeze
+passed: build `prosperotube-58390ef6_1010-0550`, 126 files, eboot prefix
+`23101bbd1b1a7f4d`. Evidence: `.deps/sponsor-marker-ps5-build.log` / `.result` (0)
+and `.deps/sponsor-marker-freeze.log` / `.result` (0). Bundled attribution matches
+the source bytes. This candidate has not been deployed or launched; physical
+marker rendering, controller behavior and playback remain unverified.
+
+Separately, the prior `c758351c` candidate passed the first idle check on the
+primary console, full 126-file stored-byte upload/readback, 130-second settling,
+second full readback and title registration. A title started before the final
+launch check, so no launch/input/close was sent. The owned lock was released.
+Evidence: `.deps/sponsor-end-storage-primary-console.log` / `.result` (1).
+This proves installation of those earlier bytes, not Lapy execution or playback.
+
 ## SponsorBlock skips to the known end — 2026-10-10
 
 Source `c758351c` handles acknowledged automatic or confirmed skips reaching or

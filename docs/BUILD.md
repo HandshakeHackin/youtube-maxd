@@ -318,6 +318,7 @@ SponsorBlock provider and generated PS5 player-path checks run in sequence:
 ```sh
 bash scripts/test_native.sh
 bash scripts/test_sponsor_player.sh
+bash scripts/test_sponsor_markers.sh
 ```
 
 The second command extracts the actual generated `PlayerScreen` tick and input
@@ -325,3 +326,6 @@ paths, then compiles them with mocked playback/pad/navigation functions under
 ASan/UBSan. It checks skip versus explicit known-end completion, silent/message
 actions, confirmation/cancellation and competing playback gates. Physical pad,
 audio/video teardown and console queue behavior still require PS5 acceptance.
+The marker command extracts both actual UI-kit and fallback draw blocks and
+checks clipped intervals, visible point markers, track containment and clearing
+with mocked draw-list/DOM functions. Physical rendering remains unverified.
