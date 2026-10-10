@@ -240,7 +240,8 @@ export class Library {
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
     if (input.action === 'topics' || input.action === 'topic_open') {
-      const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client) :
+      const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client,
+        authenticated && client.session?.logged_in === true) :
         await this.topics.open(owner, input.section, input.id);
       return this.page(owner, 'catalog', feed);
     }

@@ -3,6 +3,8 @@
 import { randomUUID } from 'node:crypto';
 
 const sections = new Set(['music', 'gaming', 'news']);
+// MediaServiceCore 4d9767733aa9 BrowseApiHelper.getLikedMusicContinuation.
+const likedMusicContinuation = '4qmFsgIWEhRGRW11c2ljX2xpa2VkX3ZpZGVvcw%3D%3D';
 const text = value => typeof value === 'string' ? value.slice(0, 192) :
   String(value?.simpleText ?? value?.runs?.map(run => run.text ?? '').join('') ?? '').replaceAll('\0', '').slice(0, 192);
 function find(node, name, all = false) {
@@ -22,7 +24,8 @@ function find(node, name, all = false) {
   return all ? matches : null;
 }
 function continuation(node) {
-  const value = node?.continuations?.[0]?.nextContinuationData?.continuation;
+  const value = node?.continuations?.[0]?.nextContinuationData?.continuation ??
+    find(node, 'continuationItemRenderer')?.continuationEndpoint?.continuationCommand?.token;
   return typeof value === 'string' && value.length <= 16384 ? value : '';
 }
 
@@ -48,15 +51,35 @@ export class TopicCatalog {
     return { id: `section:${section}:${key}`, title: text(title) || 'More videos',
       subtitle: 'YouTube', art_url: this.imageUrl(image), is_folder: true };
   }
-  async request(client, payload) {
-    const response = await client.actions.execute('/browse', { ...payload, client: 'TV' });
+  async request(client, payload, clientType = 'TV') {
+    const response = await client.actions.execute('/browse', { ...payload, client: clientType });
     if (!response?.success || response.status_code >= 400 || !response.data)
       throw new this.Error('upstream_failure', 'YouTube did not return this section.', 502);
     return response.data;
   }
-  async root(owner, section, client) {
+  async root(owner, section, client, authenticated = false) {
     if (!sections.has(section)) throw new this.Error('invalid_catalog', 'Choose an available section.');
-    return this.feed(owner, section, client, await this.request(client, { browseId: `FEtopics_${section}` }), true);
+    const feed = this.feed(owner, section, client, await this.request(client, { browseId: `FEtopics_${section}` }), true);
+    if (section === 'music' && authenticated) {
+      const liked = await this.likedMusic(owner, client);
+      if (liked) feed.catalog_items.unshift(liked);
+    }
+    return feed;
+  }
+  async likedMusic(owner, client) {
+    // Match SmartTube's TV row first, then the WEB VLLM fallback. A missing
+    // personalized row must not prevent the public Music shelves from loading.
+    for (const [clientType, payload] of [['TV', { continuation: likedMusicContinuation }],
+      ['WEB', { browseId: 'VLLM' }]]) {
+      try {
+        const raw = await this.request(client, payload, clientType);
+        const feed = this.feed(owner, 'music', client, raw, false, false, clientType);
+        if (!feed.catalog_items.length && !feed.has_continuation) return null;
+        return this.folder(owner, 'music', client, 'Liked music', feed.catalog_items[0]?.art_url,
+          { row: raw, clientType });
+      } catch { /* Optional account row; try the reference fallback. */ }
+    }
+    return null;
   }
   async open(owner, section, key) {
     this.prune();
@@ -64,8 +87,9 @@ export class TopicCatalog {
     if (!entry || entry.owner !== owner || entry.section !== section)
       throw new this.Error('cursor_expired', 'Reload this section to open the row.', 409);
     if (entry.feed) return entry.feed;
-    const raw = entry.source.row ?? await this.request(entry.client, entry.source.endpoint);
-    entry.feed = this.feed(owner, section, entry.client, raw, false);
+    const clientType = entry.source.clientType ?? 'TV';
+    const raw = entry.source.row ?? await this.request(entry.client, entry.source.endpoint, clientType);
+    entry.feed = this.feed(owner, section, entry.client, raw, false, false, clientType);
     return entry.feed;
   }
   tile(owner, section, client, tile) {
@@ -93,11 +117,25 @@ export class TopicCatalog {
     return this.normalizeVideo({ id, title, author: { name: author, id: channel }, duration,
       thumbnails: [{ url: image }], is_live: status?.style === 'LIVE' });
   }
-  feed(owner, section, client, raw, root, continuationResponse = false) {
-    const node = root ? find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation') :
+  webVideo(video) {
+    if (!video || video.isPlayable === false || video.isAd || video.adSlotMetadata) return null;
+    const author = video.shortBylineText ?? video.longBylineText;
+    const durationText = text(video.lengthText);
+    const parts = /^\d{1,3}:\d{2}(?::\d{2})?$/.test(durationText) ? durationText.split(':').map(Number) : [];
+    const duration = parts.length && parts.slice(1).every(value => value < 60) ? parts.reduce((n, v) => n * 60 + v, 0) : 0;
+    return this.normalizeVideo({ id: video.videoId, title: text(video.title),
+      author: { name: text(author), id: find(author, 'browseEndpoint')?.browseId }, duration,
+      thumbnails: video.thumbnail?.thumbnails ?? [] });
+  }
+  feed(owner, section, client, raw, root, continuationResponse = false, clientType = 'TV') {
+    let node = root ? find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation') :
       find(raw, 'horizontalListRenderer') ?? find(raw, 'horizontalListContinuation') ??
       find(raw, 'playlistVideoListRenderer') ?? find(raw, 'playlistVideoListContinuation') ??
       find(raw, 'gridRenderer') ?? find(raw, 'gridContinuation');
+    if (!node && clientType === 'WEB' && continuationResponse) {
+      const update = find(raw, 'appendContinuationItemsAction') ?? find(raw, 'reloadContinuationItemsCommand');
+      if (update) node = { items: update.continuationItems };
+    }
     if (!node) {
       // TV sometimes returns a final tracking-only response for an exhausted token.
       if (continuationResponse && Object.keys(raw).every(key => ['responseContext', 'trackingParams'].includes(key)))
@@ -121,7 +159,8 @@ export class TopicCatalog {
       if (!Array.isArray(entries) || entries.length > 4096)
         throw new this.Error('upstream_limit', 'The section row exceeds the item limit.', 502);
       const seen = new Set();
-      items = entries.map(value => this.tile(owner, section, client, value.tileRenderer)).filter(item => {
+      items = entries.map(value => clientType === 'WEB' ? this.webVideo(value.playlistVideoRenderer) :
+        this.tile(owner, section, client, value.tileRenderer)).filter(item => {
         if (!item || seen.has(item.id)) return false;
         seen.add(item.id); return true;
       });
@@ -130,7 +169,7 @@ export class TopicCatalog {
     return { catalog_items: items, has_continuation: !!token,
       getContinuation: async () => {
         if (!token) throw new this.Error('cursor_expired', 'This row has ended.', 409);
-        return this.feed(owner, section, client, await this.request(client, { continuation: token }), root, true);
+        return this.feed(owner, section, client, await this.request(client, { continuation: token }, clientType), root, true, clientType);
       } };
   }
 }

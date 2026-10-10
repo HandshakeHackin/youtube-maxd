@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Personalized Music row — 2026-10-10
+
+Signed-in account profiles now prepend Liked music to the Music section. The
+request follows pinned MediaServiceCore `4d9767733aa9` `BrowseService2` /
+`BrowseApiHelper`: TV liked-Music continuation, then WEB `VLLM` fallback. Row
+capabilities and continuation cursors retain profile ownership and client type.
+WEB playlist metadata and append/reload continuation layouts are supported;
+unplayable playlist entries are excluded. Guest and expired sessions make no
+personalized request; unavailable or empty rows preserve the public shelves.
+
+Worker regression: 39 passed (`.deps/liked-music-worker.{log,result}`), including
+TV success, WEB fallback/continuation, cross-profile rejection, missing/empty
+rows and expired sign-in. Final topic suite: seven passed after layout cleanup
+(`.deps/liked-music-topics-final.{log,result}`). Live Guest adapter checks returned
+four initial shelves and another shelf page for each public section, plus a
+Music playlist (`.deps/liked-music-live-guest.{log,result}`, exit 0). The worker
+bundle was rebuilt. Real-account personalized data and PS5 account-row acceptance
+remain unverified; no regular companion restart or console action was performed.
+
 ## Curated TV sections — 2026-10-10
 
 Music/Gaming/News now use the TV `FEtopics_*` browse endpoints rather than
