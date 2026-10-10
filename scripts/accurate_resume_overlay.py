@@ -25,6 +25,24 @@ def apply_accurate_resume_overlay(replace, player, work):
         audio_seek_discard_until = audio_stream_index >= 0 ? resumeOffset : -1.0;
     }''')
     audio = player + 'media/src/evo_audio_out.c'
+    demux = player + 'media/src/evo_demux.c'
+    replace(demux, '    pp_playback_notify_seek_begin(&g_pp_pb, absolute_target_us);', '''    /* An audio-only source has no video frame to release a presentation hold. */
+    if (video_stream_index >= 0)
+        pp_playback_notify_seek_begin(&g_pp_pb, absolute_target_us);''')
+    replace(demux, '        pp_playback_notify_seek_end(&g_pp_pb, 0, 0, 0);', '        if (video_stream_index >= 0) pp_playback_notify_seek_end(&g_pp_pb, 0, 0, 0);')
+    replace(demux, '''    pp_playback_notify_seek_end(
+        &g_pp_pb,
+        result >= 0,
+        0,
+        0
+    );''', '''    if (video_stream_index >= 0)
+        pp_playback_notify_seek_end(&g_pp_pb, result >= 0, 0, 0);''')
+    replace(demux, '''        if (target_seconds > 0.05)
+            audio_seek_discard_until = target_seconds;
+        else
+            audio_seek_discard_until = -1.0;''', '''        /* Include zero and sub-50ms targets: negative codec priming samples
+         * must not become audible after a seek back to the beginning. */
+        audio_seek_discard_until = audio_stream_index >= 0 ? target_seconds : -1.0;''')
     replace(audio, '#include "tube_seek_timeline.h"', '#include "tube_seek_timeline.h"\n#include "tube_audio_seek.h"')
     replace(audio, 'void evo_audio_drain_reset(void) { tube_audio_reset(&tube_drain); }', '''static tube_audio_seek tube_seek_pcm;
 void evo_audio_drain_reset(void) {
@@ -43,7 +61,10 @@ int evo_audio_has_failed(void) {
     const int origin_stream = video_stream_index >= 0 ? video_stream_index : audio_stream_index;
     if (!play_fmt || audio_stream_index < 0 || origin_stream < 0 ||
         (unsigned)audio_stream_index >= play_fmt->nb_streams ||
-        (unsigned)origin_stream >= play_fmt->nb_streams) return 0;
+        (unsigned)origin_stream >= play_fmt->nb_streams) {
+        tube_audio_mark(&tube_drain, tube_audio_epoch(&tube_drain), TUBE_AUDIO_FAILED);
+        return 0;
+    }
     const int64_t timestamp = af->pts != AV_NOPTS_VALUE ? af->pts : af->best_effort_timestamp;
     double pts = timestamp == AV_NOPTS_VALUE ? NAN : timestamp *
         av_q2d(play_fmt->streams[audio_stream_index]->time_base);
@@ -79,5 +100,29 @@ static int tube_audio_flush_tail(AVFrame *af, uint64_t epoch) {''')
     start = source.index('                if (af->pts != AV_NOPTS_VALUE')
     end = source.index('                mix_audio_frame_to_queue(af);', start) + len('                mix_audio_frame_to_queue(af);')
     replace(audio, source[start:end], '                tube_audio_accept_frame(af);')
+    replace(audio, '    SwrContext *resampler = prospero_audio_resampler_ctx();', '''    /* Draining without reaching the requested position is not a successful
+     * seek. Do not retire silent preroll as completed media. */
+    if (audio_seek_discard_until >= 0.0) return 0;
+    SwrContext *resampler = prospero_audio_resampler_ctx();''')
+    replace(audio, '    if (!af) return NULL;', '''    if (!af) {
+        tube_audio_mark(&tube_drain, tube_audio_epoch(&tube_drain), TUBE_AUDIO_FAILED);
+        atomic_store_explicit(&tube_decode_parked, 1, memory_order_release);
+        return NULL;
+    }''')
+    replace(audio, '                if (produced > 0 && ch > 0 && rate > 0) {', '''                if (produced < 0 || produced > (int)sizeof(g_adec_pcm) ||
+                    ch <= 0 || ch > EVO_AUDIO_MAX_CH || rate <= 0 ||
+                    produced % ((int)sizeof(int16_t) * ch)) {
+                    tube_audio_mark(&tube_drain, tube_audio_epoch(&tube_drain), TUBE_AUDIO_FAILED);
+                } else if (produced > 0) {''')
+    replace(audio, '''                        tube_audio_accept_frame(af);
+                    }
+                    av_frame_unref(af);''', '''                        tube_audio_accept_frame(af);
+                    } else {
+                        tube_audio_mark(&tube_drain, tube_audio_epoch(&tube_drain), TUBE_AUDIO_FAILED);
+                    }
+                    av_frame_unref(af);''')
     replace(player + 'media/include/evo_audio_out.h', 'int evo_audio_is_drained(void);', 'int evo_audio_is_drained(void);\nint evo_audio_has_failed(void);')
     replace(player + 'media/src/evo_playback.c', 'int evo_pb_decode_fatal(void) { return g_pb_decode_fatal; }', 'int evo_pb_decode_fatal(void) { return g_pb_decode_fatal || evo_audio_has_failed(); }')
+    replace(player + 'core/src/screens/PlayerScreen.cpp', '    if (evo_pb_decode_fatal()) {', '''    if (evo_pb_decode_fatal()) {
+        if (evo_audio_has_failed())
+            toast("AUDIO STOPPED", "Audio decoding or output failed. Select the video to retry.");''')

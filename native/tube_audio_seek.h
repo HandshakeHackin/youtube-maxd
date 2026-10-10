@@ -2,6 +2,7 @@
 #ifndef TUBE_AUDIO_SEEK_H
 #define TUBE_AUDIO_SEEK_H
 #include <math.h>
+#include <float.h>
 #include <stdint.h>
 #include <string.h>
 #ifdef __cplusplus
@@ -36,7 +37,12 @@ static inline int tube_audio_seek_frame(tube_audio_seek *state, AVFrame *frame,
     if (!isfinite(remaining)) return -1;
     if (remaining >= frame->nb_samples) return 0;
     if (remaining > 0.0) {
-        const int skip = (int)ceil(remaining);
+        /* Subtract only floating-point subtraction uncertainty. Cap it far
+         * below one sample; exact rational PTS boundaries must not lose a
+         * sample merely because subtraction rounded a few ULPs upward. */
+        const double uncertainty = fmin(1e-6, 4.0 * DBL_EPSILON *
+            (fabs(*target + origin) + fabs(*pts)) * frame->sample_rate);
+        const int skip = (int)ceil(remaining - uncertainty);
         if (skip >= frame->nb_samples) return 0;
         const int channels = frame->ch_layout.nb_channels;
         const int bytes = av_get_bytes_per_sample((enum AVSampleFormat)frame->format);

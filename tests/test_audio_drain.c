@@ -13,16 +13,34 @@ AVFormatContext *play_fmt;
 AVCodecContext *audio_ctx;
 static _Atomic int seeking;
 static int submissions, stop_after, fail_at;
+static AVPacket *native_packets[4];
+static unsigned native_count, native_read, native_calls;
+static int native_case, native_invalid;
 PacketQueue audio_packet_queue;
 double resume_base_offset_seconds;
 
 int evo_demux_is_seeking(void) { return seeking; }
-AVPacket *packet_queue_pop(PacketQueue *queue) { (void)queue; return NULL; }
+AVPacket *packet_queue_pop(PacketQueue *queue) {
+    (void)queue;
+    if (native_case) {
+        if (native_read < native_count) return native_packets[native_read++];
+        audio_decode_thread_running = 0;
+    }
+    return NULL;
+}
 void evo_boot_log(const char *format, ...) { (void)format; }
 evo_adec_backend evo_adec_active(const evo_adec *decoder)
 { return decoder == (evo_adec *)(uintptr_t)1 ? EVO_ADEC_BACKEND_NATIVE : EVO_ADEC_BACKEND_FFMPEG; }
 int evo_adec_decode(evo_adec *decoder, const uint8_t *data, int size, int16_t *pcm, int capacity)
-{ (void)decoder; (void)data; (void)size; (void)pcm; (void)capacity; assert(0); return -1; }
+{
+    (void)decoder; (void)data; (void)size;
+    assert(native_case && capacity >= 400);
+    ++native_calls;
+    if (native_invalid) return capacity + 4;
+    for (int i = 0; i < 100; ++i)
+        pcm[i * 2] = pcm[i * 2 + 1] = (int16_t)((native_calls - 1) * 100 + i + 1);
+    return 400;
+}
 int evo_adec_channels(const evo_adec *decoder) { (void)decoder; return 2; }
 int evo_adec_rate(const evo_adec *decoder) { (void)decoder; return 48000; }
 void evo_adec_close(evo_adec *decoder) { (void)decoder; }
@@ -49,6 +67,9 @@ static void reset(void)
     audio_decode_thread_running = 1;
     seeking = submissions = fail_at = 0;
     audio_ctx = NULL; g_adec = NULL;
+    audio_seek_discard_until = -1;
+    first_audio_pts_seconds = -1;
+    native_case = native_invalid = native_count = native_read = native_calls = 0;
     evo_audio_drain_reset();
 }
 
@@ -138,10 +159,12 @@ static void actual_aac_decoder(const char *path)
     assert(avformat_find_stream_info(play_fmt, NULL) >= 0);
     int index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
     assert(index >= 0);
+    audio_stream_index = index;
     const AVCodec *codec = avcodec_find_decoder(play_fmt->streams[index]->codecpar->codec_id);
     assert(codec);
     audio_ctx = avcodec_alloc_context3(codec);
     assert(audio_ctx && avcodec_parameters_to_context(audio_ctx, play_fmt->streams[index]->codecpar) == 0);
+    audio_ctx->pkt_timebase = play_fmt->streams[index]->time_base;
     assert(avcodec_open2(audio_ctx, codec, NULL) == 0);
     AVFrame *af = av_frame_alloc(); AVPacket *pkt = av_packet_alloc();
     assert(af && pkt);
@@ -150,7 +173,7 @@ static void actual_aac_decoder(const char *path)
         if (pkt->stream_index == index) {
             assert(avcodec_send_packet(audio_ctx, pkt) == 0);
             while (avcodec_receive_frame(audio_ctx, af) == 0) {
-                mix_audio_frame_to_queue(af); submitted += collect(); av_frame_unref(af);
+                assert(tube_audio_accept_frame(af)); submitted += collect(); av_frame_unref(af);
             }
         }
         av_packet_unref(pkt);
@@ -164,6 +187,61 @@ static void actual_aac_decoder(const char *path)
     assert(tube_audio_flush_tail(af, epoch) == 1 && collect() == 0); // No tail replay.
     av_packet_free(&pkt); av_frame_free(&af);
     avcodec_free_context(&audio_ctx); avformat_close_input(&play_fmt);
+}
+
+static void native_preroll_and_failure(void)
+{
+    for (int invalid = 0; invalid < 2; ++invalid) {
+        reset(); native_case = 1; native_invalid = invalid;
+        play_fmt = avformat_alloc_context(); assert(play_fmt);
+        AVStream *stream = avformat_new_stream(play_fmt, NULL); assert(stream);
+        stream->time_base = (AVRational){1, 48000}; play_fmt->start_time = 0;
+        audio_stream_index = 0; g_adec = (evo_adec *)(uintptr_t)1;
+        audio_seek_discard_until = 150.0 / 48000;
+        native_count = invalid ? 1 : 3;
+        for (unsigned i = 0; i < native_count; ++i) {
+            native_packets[i] = av_packet_alloc(); assert(native_packets[i]);
+            native_packets[i]->pts = i * 100;
+        }
+        audio_decode_thread_func(NULL);
+        assert(native_calls == native_count && evo_audio_decode_is_parked());
+        if (invalid) {
+            assert(evo_audio_has_failed() && evo_pb_decode_fatal());
+            assert(!audio_samples_decoded && !audio_queue_count && first_audio_pts_seconds == -1);
+        } else {
+            assert(!evo_audio_has_failed() && audio_seek_discard_until == -1);
+            assert(fabs(first_audio_pts_seconds - 150.0 / 48000) < 1e-12);
+            assert(audio_samples_decoded == 150 && audio_accum[0] == 151);
+            audio_decode_thread_running = 1;
+            AVFrame *af = av_frame_alloc(); assert(af);
+            const uint64_t epoch = tube_audio_epoch(&tube_drain);
+            assert(tube_audio_flush_tail(af, epoch) == 1);
+            tube_audio_mark(&tube_drain, epoch, TUBE_AUDIO_DECODED);
+            audio_thread_running = 1; stop_after = 3;
+            audio_output_thread(NULL);
+            assert(audio_samples_played == 150 && evo_audio_is_drained());
+            av_frame_free(&af);
+        }
+        g_adec = NULL; avformat_free_context(play_fmt); play_fmt = NULL;
+    }
+}
+
+static void unreached_seek_is_not_drain(void)
+{
+    reset();
+    AVFrame *af = frame(100, 48000);
+    const uint64_t epoch = tube_audio_epoch(&tube_drain);
+    audio_seek_discard_until = 4.25;
+    assert(tube_audio_flush_tail(af, epoch) == 0);
+    assert(audio_samples_decoded == 0 && !evo_audio_is_drained());
+    /* Exercise the shipping EOF loop that converts this refusal to failure. */
+    pthread_t thread;
+    assert(pthread_create(&thread, NULL, audio_decode_thread_func, NULL) == 0);
+    unsigned wait = 0;
+    while (!evo_audio_has_failed() && ++wait < 1000) usleep(1000);
+    assert(evo_audio_has_failed() && evo_pb_decode_fatal() && !evo_audio_is_drained());
+    audio_decode_thread_running = 0; assert(pthread_join(thread, NULL) == 0);
+    av_frame_free(&af);
 }
 
 static void seek_cancels_before_flush(void)
@@ -208,7 +286,8 @@ int main(int argc, char **argv)
     partial_and_resampler_tail(); output_error_and_native_pcm();
     actual_aac_decoder(argv[1]); seek_cancels_before_flush();
     seek_parks_a_queue_blocked_producer();
+    native_preroll_and_failure(); unreached_seek_is_not_drain();
     prospero_audio_resampler_destroy();
-    puts("PASS: actual EVO audio tail, resampler drain, AAC decoder EOF, counted padding, output failure and stale seek epochs");
+    puts("PASS: actual EVO native PCM decode/trim/output, invalid PCM failure, unreached seek EOF failure, resampler drain, AAC EOF and stale seek epochs");
     return 0;
 }
