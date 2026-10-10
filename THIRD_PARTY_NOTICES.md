@@ -20,7 +20,9 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
 * FFmpeg 7.1.1 minimal software profile, dav1d 1.5.1, RmlUi 6.2, SDL2,
   FreeType, OpenSSL, zlib and Pacbrew libraries retain upstream licenses.
   Source recipes/checksums are in EVO scripts and Pacbrew v0.39 source.
-  FFmpeg emits its configuration/license text. No new PS5 hardware codec is added.
+  FFmpeg emits its configuration/license text. The ProsperoTube DASH overlay
+  enables indexed byte seeking only for complete single-file VOD representations;
+  fragmented/live/initialization-section streams keep their existing behavior. No new PS5 hardware codec is added.
 * PS5 Payload SDK v0.42 / Pacbrew v0.39 provide toolchain/runtime. MkPFS
   `6cb8313dfe0c988ac52617794553f343243d3a56` packages the image.
 * Python uses yt-dlp/EJS, FastAPI, Uvicorn, HTTPX and dependencies. Exact versions:

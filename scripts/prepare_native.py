@@ -264,6 +264,11 @@ static const char* tube_dev_path(unsigned index) {
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')
+    shutil.copyfile(ROOT / "scripts/patch_ffmpeg_dash_seek.py", WORK / "scripts/patch_ffmpeg_dash_seek.py")
+    replace("scripts/build-ffmpeg.sh",
+            'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."',
+            'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."\n'
+            'python3 "${REPO_ROOT}/scripts/patch_ffmpeg_dash_seek.py" "${SRC_DIR}/libavformat/dashdec.c"')
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()

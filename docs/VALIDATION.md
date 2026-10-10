@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Indexed full-file DASH resume — 2026-10-10
+
+The captured PS5 initial-resume stall led to a controlled FFmpeg 7.1.1 comparison.
+A three-minute seek in a four-minute fragmented-MP4 fixture transferred 12,695,973
+bytes before the patch versus 942,088 afterward (15,577,449 total media bytes);
+local seek/decode time fell from 1.698 s to 0.101 s. These are local host timings,
+not a measured PS5 speedup. The probe decodes video and passes audio packets.
+Segmented DASH and separate initialization-section layouts also passed.
+Evidence: `.deps/dash-seek-{pinned-baseline,patched-*}.json`.
+
+The guarded FFmpeg overlay advertises seekability only for complete single-file
+VOD backed by a byte-seekable input, and forwards size/position requests correctly.
+The PS5 build applies it after extracting the pinned FFmpeg source and includes
+its SHA-256 in the installed-library marker, forcing stale libraries to rebuild.
+Initial minimal host configurations exposed an FFmpeg H.264/HEVC film-grain link
+dependency; the successful comparison uses the same corrected build on both sides.
+PS5 rebuild and timed saved-position acceptance remain pending.
+
 ## DeArrow / SponsorBlock / section tracking batch — 2026-10-10
 
 - Implemented independent DeArrow titles/thumbnails, original metadata persistence,

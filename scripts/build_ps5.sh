@@ -19,9 +19,12 @@ python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-l
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi
-if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]]; then
+ffmpeg_patch=$(sha256sum "${root}/scripts/patch_ffmpeg_dash_seek.py" | cut -d ' ' -f 1)
+ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-dash-${ffmpeg_patch}"
+if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
+   [[ "$(cat "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG")" != "${ffmpeg_identity}" ]]; then
     bash "${work}/scripts/build-ffmpeg.sh" --install --jobs 8
-    printf '%s\n' '7.1.1-minimal-EVO-9715f6e' > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
+    printf '%s\n' "${ffmpeg_identity}" > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
 fi
 bash "${work}/scripts/package-app.sh" --zip "$@"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
