@@ -12,6 +12,7 @@ static void *g_vdec, *g_adec;
 static AVCodecContext *audio_ctx;
 static int video_packet_queue, audio_packet_queue;
 static double first_audio_pts_seconds, resume_base_offset_seconds;
+static double first_video_pts_seconds = -1, video_clock_seconds;
 static volatile double resume_base_anchor_pending;
 static int seek_calls, flush_calls;
 static int64_t requested_timestamp;
@@ -37,9 +38,53 @@ static double shipping_resume(double resumeOffset) {
 }
 #undef av_seek_frame
 #include "resume_anchor.inc"
+#include "resume_video_anchor.inc"
+static void shipping_video_clock(int64_t pts_us, bool seek_discarding) {
+    struct { int64_t pts_us; } pf = {pts_us};
+#include "resume_video_clock.inc"
+}
+
+static void decoded_video_only(const char *file) {
+    assert(avformat_open_input(&play_fmt, file, nullptr, nullptr) == 0);
+    assert(avformat_find_stream_info(play_fmt, nullptr) >= 0);
+    video_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    audio_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+    assert(video_stream_index >= 0 && audio_stream_index < 0);
+    AVStream *stream = play_fmt->streams[video_stream_index];
+    const AVCodec *codec = avcodec_find_decoder(stream->codecpar->codec_id);
+    assert(codec);
+    AVCodecContext *decoder = avcodec_alloc_context3(codec);
+    assert(decoder && avcodec_parameters_to_context(decoder, stream->codecpar) == 0);
+    assert(avcodec_open2(decoder, codec, nullptr) == 0);
+    resume_base_anchor_pending = -1; force_refusal = false;
+    assert(shipping_resume(4.25) == 4.25 && resume_base_anchor_pending == 4.25);
+    AVPacket *packet = av_packet_alloc();
+    AVFrame *frame = av_frame_alloc();
+    assert(packet && frame);
+    bool decoded = false;
+    for (unsigned count = 0; count < 1000 && av_read_frame(play_fmt, packet) >= 0; ++count) {
+        if (packet->stream_index == video_stream_index) {
+            assert(avcodec_send_packet(decoder, packet) >= 0);
+            if (avcodec_receive_frame(decoder, frame) == 0) {
+                assert(frame->best_effort_timestamp != AV_NOPTS_VALUE);
+                const int64_t pts_us = av_rescale_q(frame->best_effort_timestamp, stream->time_base, AV_TIME_BASE_Q);
+                const double landing = (double)(pts_us - tube_media_origin_us(play_fmt, video_stream_index)) / AV_TIME_BASE;
+                shipping_video_clock(pts_us, false);
+                assert(landing >= 1.8 && landing <= 3.3);
+                assert(std::fabs(resume_base_offset_seconds - landing) < 1e-6);
+                assert(resume_base_anchor_pending == -1);
+                decoded = true; av_packet_unref(packet); break;
+            }
+        }
+        av_packet_unref(packet);
+    }
+    assert(decoded);
+    av_frame_free(&frame); av_packet_free(&packet);
+    avcodec_free_context(&decoder); avformat_close_input(&play_fmt);
+}
 
 int main(int argc, char **argv) {
-    assert(argc == 2);
+    assert(argc == 3);
     assert(avformat_open_input(&play_fmt, argv[1], nullptr, nullptr) == 0);
     assert(avformat_find_stream_info(play_fmt, nullptr) >= 0);
     video_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
@@ -70,8 +115,28 @@ int main(int argc, char **argv) {
     assert(resume_base_anchor_pending == -1);
     const double base = resume_base_offset_seconds;
     anchor_resume_base(); assert(resume_base_offset_seconds == base);
+    /* A/V playback keeps audio ownership even when video arrives first. */
+    resume_base_anchor_pending = 4.25;
+    shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), false);
+    assert(resume_base_anchor_pending == 4.25 && resume_base_offset_seconds == base);
+    audio_stream_index = -1;
+    assert(shipping_resume(4.25) == 4.25 && resume_base_anchor_pending == 4.25);
+    shipping_video_clock(INT64_MIN, false);
+    shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), true);
+    assert(resume_base_anchor_pending == 4.25 && resume_base_offset_seconds == 4.25);
+    shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), false);
+    assert(std::fabs(resume_base_offset_seconds - 2.1) < 1e-6 && resume_base_anchor_pending == -1);
+    shipping_video_clock((int64_t)((origin + 3.1) * AV_TIME_BASE), false);
+    assert(std::fabs(resume_base_offset_seconds - 2.1) < 1e-6);
+    resume_base_offset_seconds = resume_base_anchor_pending = 4.25;
+    shipping_video_clock((int64_t)((origin + 40) * AV_TIME_BASE), false);
+    assert(resume_base_offset_seconds == 4.25 && resume_base_anchor_pending == -1);
+    resume_base_anchor_pending = NAN;
+    shipping_video_clock((int64_t)((origin + 2.1) * AV_TIME_BASE), false);
+    assert(resume_base_offset_seconds == 4.25);
+    resume_base_anchor_pending = -1;
     force_refusal = true;
-    assert(shipping_resume(4.25) == 0 && resume_base_offset_seconds == 0 && flush_calls == 1);
+    assert(shipping_resume(4.25) == 0 && resume_base_offset_seconds == 0 && flush_calls == 2);
     force_refusal = false;
     const int calls = seek_calls;
     assert(shipping_resume(NAN) == 0 && seek_calls == calls);
@@ -79,4 +144,5 @@ int main(int argc, char **argv) {
     assert(shipping_resume(4.25) == 0 && seek_calls == calls);
     av_packet_free(&packet);
     avformat_close_input(&play_fmt);
+    decoded_video_only(argv[2]);
 }

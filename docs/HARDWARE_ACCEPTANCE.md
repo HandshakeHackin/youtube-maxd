@@ -306,3 +306,10 @@ container origin; the audio re-anchor returns to relative UI positions.
 Host packet/clock assertions do not establish PS5 decoded position or sound.
 This candidate has never launched. Startup/storage, persistence, actual YouTube
 playback, A/V synchronization and clean teardown remain pending.
+
+- 2026-10-09 | stored SELF verifier | 3c3eb818 | PS5 | no-run: upload comparison requested ELF view after duplicate mode toggle; no launch | .deps/resume-storage-console.log | correct adapter offline
+- 2026-10-09 | corrected install | 3c3eb818 | PS5 | no-run: all files verified twice after settling; registration passed; final title check busy | .deps/resume-storage-stored-self-console.log | offline work
+
+Both cases released their owned locks. No launch, input or close was sent.
+The corrected case establishes stored bytes, not app execution. Current PR50
+startup/storage, persistence, playback/audio and teardown remain unverified.

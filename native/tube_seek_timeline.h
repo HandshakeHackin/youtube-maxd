@@ -1,3 +1,6 @@
+/* ProsperoTube - relative media positions and absolute demux timestamps.
+ * Copyright (C) 2026 BlackBearReloaded. SPDX-License-Identifier: GPL-3.0-or-later
+ */
 #ifndef TUBE_SEEK_TIMELINE_H
 #define TUBE_SEEK_TIMELINE_H
 

@@ -11,6 +11,10 @@ def apply_seek_overlay(replace, player):
         const bool converted = tube_seek_times(play_fmt, seekStream, seekPos,
                                                &absoluteTargetUs, &seekTs);
         if (converted && av_seek_frame(play_fmt, seekStream, seekTs, AVSEEK_FLAG_BACKWARD) >= 0) {''')
+    replace(controller, '''            if (audio_stream_index >= 0)
+                resume_base_anchor_pending = resumeOffset;''', '''            /* Audio owns A/V re-anchoring; video owns it when no audio
+             * stream exists. Both consumers use relative media positions. */
+            resume_base_anchor_pending = resumeOffset;''')
     replace(controller, '''    if (!isActive() || targetSeconds < 0.0) return;
 
     m_resumeBaseOffset = targetSeconds;
@@ -83,3 +87,25 @@ def apply_seek_overlay(replace, player):
                     av_q2d(play_fmt->streams[audio_stream_index]->time_base) -
                     (double)tube_media_origin_us(play_fmt, origin_stream) / AV_TIME_BASE;
             }''')
+    video = player + 'media/src/evo_playback.c'
+    replace(video, '#include <math.h>', '#include <math.h>\n#include "tube_seek_timeline.h"')
+    replace(video, 'extern AVFormatContext    *play_fmt;', '''extern AVFormatContext    *play_fmt;
+extern double resume_base_offset_seconds;
+extern volatile double resume_base_anchor_pending;
+
+static void tube_anchor_video_resume(int64_t pts_us)
+{
+    const double want = resume_base_anchor_pending;
+    if (audio_stream_index >= 0 || !isfinite(want) || want < 0.0 || pts_us == INT64_MIN ||
+        !play_fmt || video_stream_index < 0 ||
+        (unsigned)video_stream_index >= play_fmt->nb_streams) return;
+    resume_base_anchor_pending = -1.0;
+    const double landed = (double)pts_us / AV_TIME_BASE -
+        (double)tube_media_origin_us(play_fmt, video_stream_index) / AV_TIME_BASE;
+    if (!isfinite(landed) || landed > want + 0.5 || landed < want - 30.0) return;
+    resume_base_offset_seconds = landed < 0.0 ? 0.0 : landed;
+}''')
+    replace(video, '''                if (first_video_pts_seconds < 0.0)
+                    first_video_pts_seconds = video_clock_seconds;''', '''                if (first_video_pts_seconds < 0.0)
+                    first_video_pts_seconds = video_clock_seconds;
+                tube_anchor_video_resume(pf.pts_us);''')

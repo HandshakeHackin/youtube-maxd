@@ -199,6 +199,9 @@ The handoff script also extracts the actual initial-resume block and audio
 re-anchor function, exercises real HLS seeking, and checks relative clock
 anchoring, refused seeks and invalid/overflow conversion without a seek call.
 It likewise requires host FFmpeg development libraries and generated fixtures.
+The same case checks video-only resume with real host AVC decoding and the
+extracted shipping video-clock callback. Only a valid frame outside seek
+discard can anchor it; A/V playback retains audio ownership.
 
 For expiry during an ongoing live decode, use `--decode-seconds 60
 --hls-expiry-after-requests 3` with `--simulate-hls-expiry`. Earlier requests for

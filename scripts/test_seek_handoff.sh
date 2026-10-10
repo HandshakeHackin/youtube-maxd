@@ -17,4 +17,5 @@ g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     "${root}/tests/test_resume_timeline.cpp" \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm \
     -o "${destination}/resume-test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/resume-test" "${root}/fixtures/generated/fixture.m3u8"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/resume-test" \
+    "${root}/fixtures/generated/fixture.m3u8" "${root}/fixtures/generated/video.mp4"

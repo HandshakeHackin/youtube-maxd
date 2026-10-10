@@ -24,3 +24,6 @@ dest.joinpath('seek_request.inc').write_text(block(demux, 'int prospero_request_
 dest.joinpath('resume_seek.inc').write_text(block(controller, '    if (wantResume) {'))
 audio = Path(sys.argv[1]).parents[3] / 'media/src/evo_audio_out.c'
 dest.joinpath('resume_anchor.inc').write_text(block(audio.read_text(), 'static void anchor_resume_base(void)'))
+video = audio.with_name('evo_playback.c').read_text()
+dest.joinpath('resume_video_anchor.inc').write_text(block(video, 'static void tube_anchor_video_resume(int64_t pts_us)'))
+dest.joinpath('resume_video_clock.inc').write_text(block(video, '            if (pf.pts_us != INT64_MIN && !seek_discarding) {'))

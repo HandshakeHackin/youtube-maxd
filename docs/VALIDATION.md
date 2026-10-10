@@ -856,3 +856,39 @@ containers, folder/PFS/ZIP packaging and immutable freeze:
 launch occurred. This package includes both seek and initial-resume origin
 fixes. Actual decoded resume position, video-only resume anchoring, PS5 sound
 and synchronization remain acceptance requirements.
+
+### Stored SELF verification and current console installation (2026-10-09)
+
+The first `3c3eb818` installation case established idle state but stopped at
+`sce_module/libc.prx` upload comparison. Its adapter mistakenly toggled FTP
+SELF mode twice on the upload connection. SELF selects signed stored bytes
+versus their ELF view; it is not a filesystem elevation command. The adapter
+therefore requested the wrong comparison view. This does not establish file
+corruption. No launch, input or close command followed; the lock was released.
+Evidence: `.deps/resume-storage-console.log` / `.result` (1).
+
+The corrected adapter selects stored bytes exactly once per data connection,
+after its separate minimal running-title checks. Extracted FTP-function and
+command-sequence checks passed without console traffic:
+`.deps/check-ftp-self-mode.log` / `.result` (0). A new bounded case then
+verified all 126 uploaded files and compared them all again after the
+130-second settling period. Registration passed, but the final running-title
+check found a title had started. No launch, input or close was sent, and the
+lock was released. Evidence: `.deps/resume-storage-stored-self-console.log`
+/ `.result` (1). These installed bytes are verified; app execution, helper
+diagnostics, persistence, clean teardown and YouTube playback remain pending.
+
+### Video-only resume clock ownership (2026-10-09)
+
+Initial resume now arms its anchor for video-only sources as well as A/V.
+The video decoder's existing valid/non-discard frame branch re-anchors the
+relative UI position when no audio stream is selected. A/V retains audio
+ownership. Missing timestamps and discarded frames leave the pending anchor
+intact; unreasonable or nonfinite positions cannot change the clock base.
+
+Extracted shipping resume, video-anchor and video-clock code passed ASan/UBSan,
+including real host AVC decoding of the generated video-only MP4. Checks cover
+the actual decoded frame position, one-shot anchoring, A/V ownership, missing
+timestamps, seek discard and unrelated origins. Evidence:
+`.deps/video-resume-timeline.log` / `.result` (0). PS5 build and hardware
+acceptance of this follow-up remain pending at the source milestone.
