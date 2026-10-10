@@ -5,14 +5,15 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): `1b0a0dca` adds SponsorBlock category actions,
-confirmation, exclusions, minimum duration and repeat-skip policy. Native/host
-tests and the complete PS5 package passed; a live API case returned one filtered
-public segment. The reserved-console case stopped at its first busy title check,
-before deployment. Next hardware acceptance remains Lapy startup/storage, then
-real YouTube playback. Next offline work covers timeline colors/highlights,
-paid-content notices and precise outro-to-end handling; the new attribution
-notice must be included in the next package. See [validation](docs/VALIDATION.md).
+Current milestone (2026-10-10): `c758351c` adds explicit SponsorBlock completion
+when an acknowledged skip reaches the known end, preserving watched/resume state
+and normal queue transitions without seeking past decodable media. Provider and
+generated player-path ASan/UBSan tests and the complete PS5 package passed. The
+package includes the new SponsorBlock attribution. The reserved-console case
+stopped at its first busy title check, before deployment. Next hardware acceptance
+remains Lapy startup/storage, then real YouTube playback. Next offline work covers
+timeline colors/highlights, paid-content notices and remaining action/default
+equivalence. See [validation](docs/VALIDATION.md).
 
 ## 1. Objective and current conclusion
 

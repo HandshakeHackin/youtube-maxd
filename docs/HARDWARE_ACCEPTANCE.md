@@ -1,8 +1,17 @@
 # Hardware acceptance — pending
 
+- 2026-10-10 | SponsorBlock known-end skip | c758351c | reserved console, firmware unreported | no-run: busy at first FTP check; no other probes/upload/launch/input/close; owned lock released | .deps/sponsor-end-storage-reserved-console.log | Lapy startup/storage, public YouTube, then end-skip/confirmation/queue behavior
+
+Latest offline candidate `c758351c` passed the PS5 package and immutable freeze:
+126 files, eboot prefix `fbaa644e95bda5b7`, build
+`prosperotube-c758351c_1010-0527`. SponsorBlock attribution is bundled and matches
+the source file. Provider and extracted player paths passed host ASan/UBSan;
+physical controls, stop/teardown and end-skip queue behavior remain unverified.
+The candidate has not been deployed or launched. See [validation](VALIDATION.md).
+
 - 2026-10-10 | SponsorBlock policy | 1b0a0dca | reserved console, firmware unreported | no-run: busy at first FTP check; no upload/launch | .deps/sponsor-policy-storage-reserved-console.log | Lapy startup/storage, then public YouTube and confirmation controls
 
-Latest offline candidate `c2779195` fixes audio-only seek holds and audio EOF
+Prior offline candidate `c2779195` fixes audio-only seek holds and audio EOF
 handling, including known audio tracks shorter than video. Its complete PS5
 package passed and froze with 126 files, eboot prefix `c09f0aff45b24d48`.
 It has not been deployed or launched; this milestone made no console connection.

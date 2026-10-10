@@ -1,5 +1,47 @@
 # Offline validation record — 0.1.0
 
+## SponsorBlock skips to the known end — 2026-10-10
+
+Source `c758351c` handles acknowledged automatic or confirmed skips reaching or
+overrunning a known video duration. The player completes deliberately, stops
+playback and returns to browsing; normal queue autoplay can select the next
+item. It does not submit a demux seek to an unavailable endpoint frame. Natural
+EOF still requires the existing decoder/output retirement proof. A subsequent
+stop report cannot restore a resume position inside the skipped outro.
+
+Completion authorization is bound to the resolved/playing instance, active
+profile, optional-service scope and exact acknowledged target. Unknown/invalid
+duration, stale resolutions, another playing video, live sources, declined
+prompts and policy/exclusion changes cannot complete the item. Minimum duration
+uses the playable remainder when segment metadata extends beyond the known end.
+
+The three actual provider/recovery/SponsorBlock ASan/UBSan executables passed:
+`.deps/sponsor-end-native.log` / `.result` (0). Tests cover end/overrun targets,
+one-time completion with autoplay off, accepted/declined confirmation, queue
+transition, watched/resume state after stop, stale contexts, exclusion changes
+and clipped minimum duration. The generated PS5 `PlayerScreen` tick/input paths
+were extracted and compiled under ASan/UBSan, with mocked playback/navigation/
+pad functions: `.deps/sponsor-end-player.log` / `.result` (0). Those paths cover
+silent/message actions, Cross/Circle precedence, stop/return versus in-video
+seek, rejected endpoint completion, and pause/scrub/live/seek/buffering gates.
+These tests do not establish physical controller behavior or native teardown.
+
+All 211 PS5 objects, linking, signed containers, package and immutable freeze
+passed: build `prosperotube-c758351c_1010-0527`, 126 files, eboot SHA-256 prefix
+`fbaa644e95bda5b7`. Evidence: `.deps/sponsor-end-ps5-build.log` / `.result` (0)
+and `.deps/sponsor-end-freeze.log` / `.result` (0). The frozen package's
+`assets/prosperotube-notices/THIRD_PARTY_NOTICES.md` matches the committed source
+byte for byte, including the SponsorBlock database/API attribution added after
+the prior candidate. Older frozen candidates were not modified.
+
+The reserved-console startup/storage case stopped at its first FTP title check
+because a title was running. No other service probe, upload, launch, input or
+close followed, and the owned lock was released. Evidence:
+`.deps/sponsor-end-storage-reserved-console.log` / `.result` (1). The candidate
+is undeployed/unlaunched. Lapy PR50 execution, durable storage and real YouTube
+playback on PS5 remain unverified. SponsorBlock timeline colors/highlights,
+paid-content notices and full settings/action/default equivalence remain open.
+
 ## SponsorBlock category policy — 2026-10-10
 
 Source `1b0a0dca` adds eight skip-category actions: silent skip, skip with a
