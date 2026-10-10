@@ -451,6 +451,23 @@ fractional resume, live-edge position, unique format matching, queue retention,
 budget retention across reopens, cancellation and profile/source invalidation.
 Evidence: `.deps/recovery-python.log`, `.deps/recovery-native.log`; both exit 0.
 The Python API test verifies fresh dispatch through both direct and job routes.
-These are offline proofs; integrated PS5 compilation and hardware restart,
+These are offline proofs; hardware restart,
 caption/audio/position continuity, controller feel and network interruption
 acceptance remain pending. No console traffic occurred.
+
+The exact generated resolve callback, launch worker, pending record and
+post-open context guard also passed a host ASan/UBSan regression. The test uses
+real pthread creation and joins, with mocked playback-engine/UI boundaries.
+It verifies stale callback rejection, selection of the matched choice, fractional
+resume, live-edge restart, headers, caption restoration, failed open and stopping
+an opened session after context invalidation. Reproduce with
+`bash scripts/test_recovery_handoff.sh`. It does not prove actual PS5 teardown,
+demux seek, audible output or physical controller behavior.
+
+- 2026-10-09 | native recovery | 17f1b904 | PS5 | pass: build/package/freeze, undeployed | .deps/recovery-ps5-build.log; .deps/recovery-freeze.log | interruption/continuity acceptance
+
+All 211 PS5 objects, linking, native container inspection and PFS/ZIP packaging
+passed. Clean build ID `prosperotube-17f1b904_1010-0100`; immutable candidate
+contains 126 files with eboot SHA-256 prefix `e0c8e041e3dc43c4`. Build and freeze
+both returned 0. The exact-title Lapy helper is packaged and verified; no console
+connections occurred. Host handoff evidence: `.deps/recovery-handoff.log`.
