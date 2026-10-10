@@ -209,5 +209,7 @@ class Sessions:
         self.sessions[session.token] = session
         chapters = [{"title": text(c.get("title"), 96), "start": number(c.get("start_time")),
                      "end": number(c.get("end_time"))} for c in (info.get("chapters") or [])[:128]]
+        from .paid_content import disclosure
         return Playback(id=request.id, title=text(info.get("title")), duration_sec=duration,
-                        expires_in=self.ttl, choices=choices, captions=captions, chapters=chapters)
+                        expires_in=self.ttl, choices=choices, captions=captions, chapters=chapters,
+                        paid_content_text=disclosure(info.get("paid_content_text")))

@@ -1,5 +1,37 @@
 # Offline validation record — 0.1.0
 
+## Optional paid-promotion notices — 2026-10-10
+
+The companion captures YouTube's `paidContentOverlayRenderer.text` from player
+responses with the exact requested video ID. Both guest and TV OAuth extractors
+share the bounded metadata hook; no extra network request is added. Localized
+simpleText/runs are normalized to at most 240 UTF-8 bytes, with malformed optional
+metadata ignored. Direct and job resolve responses include `paid_content_text`.
+
+The native preference is off by default and saved under the existing Lapy-backed
+app directory. A successful YouTube start consumes the notice once, independent
+of SponsorBlock enablement, excluded channels or segment-server availability.
+Video/source/profile/playing-instance guards reject stale notices; stream recovery
+does not repeat a consumed notice. The generated browser displays the notice only
+after successful playback navigation, on the main UI thread.
+
+Reference behavior was read from pinned SmartTube
+[`VideoLoaderController`](https://github.com/yuliskov/SmartTube/blob/2c60453007dfc3775ff525c3837c2d1d4e95aab9/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/VideoLoaderController.java)
+and `SponsorBlockData` (default false), plus pinned MediaServiceCore
+[`VideoInfo`](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/models/VideoInfo.java)
+and `YouTubeMediaItemFormatInfo`. This is a promotion disclosure, not a
+paywall/entitlement flow. The implementation is original.
+
+Companion tests passed: initial 16 cases including both resolve routes, then 15
+paid-content cases after bounding malformed Unicode and run lengths. Evidence:
+`.deps/paid-content-companion{,-final}.{log,result}`. Actual shipping native
+provider, recovery, SponsorBlock and paid-notice executables passed ASan/UBSan,
+including default off, persistence, once-only start, recovery and stale scopes:
+`.deps/paid-content-native.{log,result}` (0). The generated shipping successful-start
+UI block also passed ASan/UBSan: `.deps/paid-content-ui.{log,result}` (0).
+Account/extractor regression, PS5 packaging and hardware acceptance are recorded
+separately below when completed. The installed validated build remains unchanged.
+
 ## Public 1080p60 viewing acceptance — 2026-10-10
 
 The user watched public Blender video `aqz-KE-bpKQ` (635 seconds) through the

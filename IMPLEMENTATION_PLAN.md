@@ -605,7 +605,8 @@ retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
 - [x] Implement idle retry after asynchronous failed highlights, with threaded ownership and real FFmpeg failure coverage; new-package hardware acceptance remains pending.
 - [ ] Verify physical sound, A/V synchronization and controller feel.
 - [ ] Accept longer adaptive/progressive clips, alternate formats/audio, initial resume and quality/caption changes on hardware.
-- [ ] Finish SponsorBlock reference behavior, paid-content notices and hardware actions/point jumps.
+- [x] Implement optional YouTube paid-promotion notices: localized matching-video metadata, persisted off-by-default preference, once-only successful-start display and stale/recovery guards; host tests pass, hardware acceptance pending.
+- [ ] Finish remaining SponsorBlock reference timing/actions and hardware acceptance of point jumps and paid-content notices.
 - [ ] Accept real account/private-library flows and complete live/DVR/chat replay behavior.
 - [ ] Implement casting/remote integration, DeArrow and broader settings/localization; reconcile the full parity inventory.
 - [ ] Complete standalone service feasibility and compatibility work.

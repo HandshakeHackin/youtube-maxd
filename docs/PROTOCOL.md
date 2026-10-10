@@ -16,6 +16,10 @@ are available for host tools. Native completions are generation-checked.
 Catalog identities are video/channel/playlist IDs, never URLs. Pages include
 bounded metadata and has_more. Resolve selects height, codec, audio/caption
 language and automatic captions; returns choices, captions and chapters.
+The optional `paid_content_text` field carries YouTube's localized paid-promotion
+disclosure (at most 240 UTF-8 bytes). It is read only from a matching video's
+player response, independent of SponsorBlock. Missing/malformed disclosure
+metadata yields an empty string; it does not change stream selection.
 Each adaptive choice pairs one video/audio track; the client uses the preferred
 first choice. Preferences apply to the next opened video.
 

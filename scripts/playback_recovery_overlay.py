@@ -53,6 +53,11 @@ static int g_tube_recovery_subtitles;""")
             }
         } else {""", """                sm->navigateTo(ScreenId::Player);
             }
+            // ProsperoTube paid-content notice after successful start.
+            if (m_providerId == "youtube") {
+                if (const char* notice = tube_take_paid_content_notice()) toast("PAID PROMOTION", notice);
+            }
+            // End ProsperoTube paid-content notice.
             return; /* the browser must not consume another selection after navigation */
         } else {""")
     replace(host, '#include "evo_toast.h"', '#include "evo_toast.h"\n#include "evo_subtitle.h"')

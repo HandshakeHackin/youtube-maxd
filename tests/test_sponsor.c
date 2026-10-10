@@ -47,7 +47,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"duration_sec\":100}],\"has_more\":false}}");
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     provider->list_catalog("settings:captions", 0, items_cb, NULL);
-    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 13);
+    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 14);
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"},{\"start\":35,\"end\":50,\"category\":\"filler\"}]}");
     assert(tube_skip_target(12) == 40 && tube_sponsor_show_message());
     assert(tube_skip_target(60) < 0 && tube_skip_target(38) < 0); // Remaining skip is shorter than default five seconds.

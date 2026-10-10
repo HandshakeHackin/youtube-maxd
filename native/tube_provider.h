@@ -25,6 +25,8 @@ void tube_highlight_retry_idle(void);
 const char *tube_sponsor_prompt(double position);
 double tube_sponsor_confirm(double position, int accept);
 int tube_sponsor_show_message(void);
+/* Main/UI thread, after successful playback start; consumes at most once. */
+const char *tube_take_paid_content_notice(void);
 int tube_sponsor_finish(double target, double duration);
 typedef struct { double start, end; unsigned rgb; int point; } tube_sponsor_marker_t;
 int tube_sponsor_markers(double duration, tube_sponsor_marker_t *markers, int capacity);

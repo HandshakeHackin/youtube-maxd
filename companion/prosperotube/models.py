@@ -110,3 +110,4 @@ class Playback(BaseModel):
     choices: list[Choice]
     captions: list[Caption] = Field(default_factory=list)
     chapters: list[dict] = Field(default_factory=list)
+    paid_content_text: str = Field(default="", max_length=240)

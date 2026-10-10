@@ -58,6 +58,9 @@ static char g_active_profile[33], g_next_profile[33];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
+static int g_paid_notifications;
+static char g_paid_text[256];
+static int g_paid_shown;
 static char g_resolved_id[160], g_resolved_profile[33];
 static unsigned g_watch_serial;
 static struct { unsigned serial; char id[160], profile[33], session[64];
@@ -86,6 +89,7 @@ static double g_skip_until;
 static double g_chapters[128];
 static int g_chapter_count;
 static void sponsor_invalidate(void) {
+    g_paid_text[0] = 0; g_paid_shown = 0;
     if (!++g_sb_serial) ++g_sb_serial;
     g_sb_active_serial = 0; g_sb_source[0] = 0; g_segment_count = 0;
     g_sb_prompt = -1; g_skip_guard = -1; g_sb_finish_target = -1;
@@ -366,6 +370,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "audio_language", g_audio_language);
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
+    cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
     tube_sb_save(&g_sb, root);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
@@ -449,6 +454,7 @@ static int init(void) {
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
     memset(&g_auth, 0, sizeof g_auth);
     g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
+    g_paid_notifications = 0;
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -480,6 +486,7 @@ static int init(void) {
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
+    g_paid_notifications = boolean(root, "paid_content_notifications");
     tube_sb_load(&g_sb, root);
     g_autoplay = boolean(root, "autoplay");
     g_ask_stream = boolean(root, "ask_stream");
@@ -895,6 +902,9 @@ static void resolved(Request *r, const cJSON *root) {
         out->audio_channels = (int)num(c, "audio_channels");
     }
     if (!r->choice_count) { tube_set_error("The companion returned no supported playback choices."); complete(r, 0); return; }
+    if (!tube_recovery_active()) {
+        copy(g_paid_text, sizeof g_paid_text, str(root, "paid_content_text")); g_paid_shown = 0;
+    }
     copy(g_resolved_id, sizeof g_resolved_id, r->parent);
     copy(g_resolved_profile, sizeof g_resolved_profile, r->profile);
     Record *cached = record(str(root, "id"), 1);
@@ -1475,6 +1485,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); }
+        else if (!strcmp(parent, "settings:sb:paid")) { g_paid_notifications = !g_paid_notifications; save(); }
         else if (!strncmp(parent, "settings:sb:action:", 19)) {
             int category = tube_sb_category(parent + 19);
             if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
@@ -1566,6 +1577,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:sb:repeat", g_sb.no_repeat ? "Don't skip again: on" : "Don't skip again: off", "Keep skipped segments when rewinding this video");
             folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             folder(&out[n++], "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
+            folder(&out[n++], "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
         } else if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
             const char *langs[] = {"en", "fr", "es", "de", "it", "pt", "ja", "ko", "zh", "ru"};
             for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); folder(&out[n++], id, langs[i], "Select this language for the next video"); }
@@ -1796,7 +1808,7 @@ static int search(const char *query, int page, evo_provider_items_cb cb, void *u
 static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     if (!valid_id(id) || !cb) return -1;
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
-    if (recovering) cancel_requests(0); else tube_cancel();
+    if (recovering) cancel_requests(0); else { g_paid_text[0] = 0; g_paid_shown = 0; tube_cancel(); }
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
@@ -1873,6 +1885,14 @@ int tube_toggle_subscription(const char *id) {
 }
 
 const char *tube_caption_media_path(void) { return g_caption_path; }
+const char *tube_take_paid_content_notice(void) {
+    if (!g_paid_notifications || g_paid_shown || !*g_paid_text || g_finished ||
+        !*g_active_id || !*g_sb_source || strcmp(g_sb_source, g_source) ||
+        strcmp(g_active_id, g_resolved_id) || strcmp(g_active_profile, g_resolved_profile) ||
+        strcmp(g_active_profile, g_library_profile) || g_sb_active_serial != g_sb_serial) return NULL;
+    g_paid_shown = 1;
+    return g_paid_text;
+}
 int tube_autoplay_enabled(void) { return g_autoplay; }
 
 static int sponsor_scope(void) {

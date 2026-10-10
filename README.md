@@ -30,7 +30,8 @@ Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay; quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
 adaptive playback, progressive video, HLS, chapters, timed captions, optional
-SponsorBlock category actions, minimum skip duration, channel exclusions and
+SponsorBlock category actions, optional paid-promotion notices (off by default),
+minimum skip duration, channel exclusions and
 rewind policy; nine-category timeline colors and highlight-point markers on the
 PS5 UI kit and RML fallback; native player controls and diagnostics. R3 in the
 player explicitly jumps to the next highlight, using silent/message/ask/disabled

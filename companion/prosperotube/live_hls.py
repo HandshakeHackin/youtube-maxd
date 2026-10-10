@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 from yt_dlp.extractor.youtube import YoutubeIE
 
 from .models import ServiceError, safe_remote
+from .paid_content import PaidContentMixin
 
 
 def attributes(line):
@@ -63,7 +64,7 @@ class LiveHLSMixin:
         return formats, subtitles
 
 
-class LiveHLSYoutubeIE(LiveHLSMixin, YoutubeIE):
+class LiveHLSYoutubeIE(PaidContentMixin, LiveHLSMixin, YoutubeIE):
     @classmethod
     def ie_key(cls):
         return 'Youtube'
