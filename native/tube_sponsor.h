@@ -2,17 +2,17 @@
 #ifndef TUBE_SPONSOR_H
 #define TUBE_SPONSOR_H
 /* Shared persisted policy; rendering remains in the PS5 player. */
-#define TUBE_SB_CATEGORIES 8
+#define TUBE_SB_CATEGORIES 9
 #define TUBE_SB_EXCLUSIONS 128
 static const char *const tube_sb_names[] = {
-    "sponsor", "intro", "outro", "interaction", "selfpromo", "music_offtopic", "preview", "filler"
+    "sponsor", "intro", "outro", "interaction", "selfpromo", "music_offtopic", "preview", "filler", "poi_highlight"
 };
 static const char *const tube_sb_labels[] = {
-    "Sponsor", "Intro", "Outro", "Interaction reminder", "Self promotion", "Non-music section", "Preview / recap", "Filler"
+    "Sponsor", "Intro", "Outro", "Interaction reminder", "Self promotion", "Non-music section", "Preview / recap", "Filler", "Highlight"
 };
 static const char *const tube_sb_actions[] = {"Skip silently", "Skip with message", "Ask before skipping", "Do nothing"};
 typedef struct {
-    int actions[TUBE_SB_CATEGORIES], no_repeat, excluded_count;
+    int actions[TUBE_SB_CATEGORIES], colors[TUBE_SB_CATEGORIES], no_repeat, excluded_count;
     double minimum;
     char excluded[TUBE_SB_EXCLUSIONS][25];
 } tube_sb_policy;
@@ -32,16 +32,20 @@ static int tube_sb_excluded(const tube_sb_policy *policy, const char *channel) {
 static void tube_sb_defaults(tube_sb_policy *policy) {
     memset(policy, 0, sizeof *policy);
     for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) policy->actions[i] = i == 7 ? 3 : 1;
+    for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) policy->colors[i] = 1;
     policy->minimum = 5.0;
 }
 static void tube_sb_load(tube_sb_policy *policy, const cJSON *root) {
     tube_sb_defaults(policy);
     const cJSON *settings = cJSON_GetObjectItemCaseSensitive(root, "sponsor_settings");
     const cJSON *actions = cJSON_GetObjectItemCaseSensitive(settings, "actions");
+    const cJSON *colors = cJSON_GetObjectItemCaseSensitive(settings, "color_markers");
     for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) {
         const cJSON *value = cJSON_GetObjectItemCaseSensitive(actions, tube_sb_names[i]);
         if (cJSON_IsNumber(value) && value->valuedouble >= 0 && value->valuedouble <= 3 &&
             value->valuedouble == floor(value->valuedouble)) policy->actions[i] = value->valueint;
+        value = cJSON_GetObjectItemCaseSensitive(colors, tube_sb_names[i]);
+        if (cJSON_IsBool(value)) policy->colors[i] = cJSON_IsTrue(value);
     }
     const cJSON *minimum = cJSON_GetObjectItemCaseSensitive(settings, "minimum_seconds");
     if (cJSON_IsNumber(minimum) && isfinite(minimum->valuedouble) &&
@@ -57,8 +61,11 @@ static void tube_sb_load(tube_sb_policy *policy, const cJSON *root) {
 static void tube_sb_save(const tube_sb_policy *policy, cJSON *root) {
     cJSON *settings = cJSON_AddObjectToObject(root, "sponsor_settings");
     cJSON *actions = cJSON_AddObjectToObject(settings, "actions");
+    cJSON *colors = cJSON_AddObjectToObject(settings, "color_markers");
     for (int i = 0; i < TUBE_SB_CATEGORIES; ++i)
         cJSON_AddNumberToObject(actions, tube_sb_names[i], policy->actions[i]);
+    for (int i = 0; i < TUBE_SB_CATEGORIES; ++i)
+        cJSON_AddBoolToObject(colors, tube_sb_names[i], policy->colors[i]);
     cJSON_AddNumberToObject(settings, "minimum_seconds", policy->minimum);
     cJSON_AddBoolToObject(settings, "no_repeat", policy->no_repeat);
     cJSON *channels = cJSON_AddArrayToObject(settings, "excluded_channels");

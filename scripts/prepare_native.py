@@ -55,6 +55,8 @@ def main():
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp",
+        "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
+        "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h",
         "ui/src/evo_keyboard.c",
@@ -70,7 +72,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)

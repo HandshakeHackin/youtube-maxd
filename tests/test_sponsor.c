@@ -11,7 +11,7 @@ static void segments(const char *body) {
     assert(provider->resolve("abcdefghijk", resolve_cb, NULL) == 0);
     poll_job(resolved_fixture);
     assert(pending_count == 1 && strstr(pending[0].url, "/v1/sponsor/abcdefghijk?categories="));
-    assert(strstr(pending[0].url, "intro") && !strstr(pending[0].url, "filler"));
+    assert(strstr(pending[0].url, "intro") && strstr(pending[0].url, "filler") && strstr(pending[0].url, "poi_highlight"));
     reply(0, 1, 200, body);
 }
 static void action(const char *category, int desired) {
@@ -36,7 +36,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"duration_sec\":100}],\"has_more\":false}}");
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     provider->list_catalog("settings:captions", 0, items_cb, NULL);
-    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 11);
+    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 13);
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"},{\"start\":35,\"end\":50,\"category\":\"filler\"}]}");
     assert(tube_skip_target(12) == 40 && tube_sponsor_show_message());
     assert(tube_skip_target(60) < 0 && tube_skip_target(38) < 0); // Remaining skip is shorter than default five seconds.
@@ -138,6 +138,43 @@ int main(void) {
     assert(!tube_sponsor_finish(105, 100));
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     assert(!tube_sponsor_finish(105, 100)); // Re-enabling cannot revive an old authorization.
+    provider->list_catalog("settings:sb:colors", 0, items_cb, NULL);
+    assert(last_ok && last_count == 9);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":30,\"end\":40,\"category\":\"filler\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"},{\"start\":90,\"end\":105,\"category\":\"outro\"},{\"start\":101,\"end\":101,\"category\":\"poi_highlight\"},{\"start\":1,\"end\":2,\"category\":\"poi_highlight\"}]}");
+    tube_sponsor_marker_t markers[128];
+    assert(!tube_sponsor_markers(100, markers, 128)); // Resolution alone is not a playing instance.
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_sponsor_markers(100, markers, 128) == 4);
+    assert(markers[0].start == .1 && markers[0].end == .2 && markers[0].rgb == 0x00ff00);
+    assert(markers[1].rgb == 0x7300ff && !markers[1].point);
+    assert(markers[2].point && markers[2].start == .5 && markers[2].end == .5 && markers[2].rgb == 0xff1684);
+    assert(markers[3].start == .9 && markers[3].end == 1);
+    assert(tube_sponsor_markers(100, markers, 1) == 1);
+    assert(!tube_sponsor_markers(NAN, markers, 128) && !tube_sponsor_markers(0, markers, 128));
+    assert(!tube_sponsor_markers(100, NULL, 128) && !tube_sponsor_markers(100, markers, 0));
+    assert(tube_skip_target(32) < 0 && tube_skip_target(50) < 0); // Markers never create skip intervals.
+    provider->list_catalog("settings:sb:color:filler", 0, items_cb, NULL);
+    assert(tube_sponsor_markers(100, markers, 128) == 3); // Browsing cancellation is not playback cancellation.
+    cJSON *persisted = read_store();
+    assert(cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
+        cJSON_GetObjectItemCaseSensitive(persisted, "sponsor_settings"), "color_markers"), "filler")));
+    cJSON_Delete(persisted);
+    assert(provider->init() == 0 && !tube_sponsor_markers(100, markers, 128));
+    provider->list_catalog("settings:sb:colors", 0, items_cb, NULL);
+    assert(last_count == 9 && strstr(last_items[7].title, "off"));
+    provider->list_catalog("settings:sb:color:invalid", 0, items_cb, NULL); assert(!last_ok);
+    provider->resolve("abcdefghijk", resolve_cb, NULL); poll_job(resolved_fixture);
+    assert(pending_count == 1 && !strstr(pending[0].url, "filler") && strstr(pending[0].url, "poi_highlight"));
+    tube_cancel(); // Cancel browsing while this playing video's optional metadata is in flight.
+    reply(0, 1, 200, "{\"segments\":[{\"start\":30,\"end\":40,\"category\":\"filler\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_sponsor_markers(100, markers, 128) == 1 && markers[0].point);
+    tube_cancel();
+    assert(tube_sponsor_markers(100, markers, 128) == 1); // Keep valid playback data across menu/chat request cancellation.
+    provider->list_catalog("library:profile:another", 0, items_cb, NULL);
+    assert(!tube_sponsor_markers(100, markers, 128));
+    provider->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    assert(!tube_sponsor_markers(100, markers, 128)); // Switching back cannot revive the old instance.
     provider->resolve("abcdefghijk", resolve_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"duration_sec\":0,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/live/a.m3u8\",\"video_codec\":\"h264\",\"audio_codec\":\"aac\",\"is_live\":true}]}}");
     assert(pending_count == 0 && tube_skip_target(12) < 0 && !tube_sponsor_prompt(12));

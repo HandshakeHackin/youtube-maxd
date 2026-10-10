@@ -5,6 +5,7 @@ from collections import defaultdict
 import hashlib
 import hmac
 import json
+import math
 import os
 import re
 import secrets
@@ -522,7 +523,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     @app.get("/v1/sponsor/{identifier}")
     async def sponsor(identifier: str, categories: str = Query(default="sponsor,selfpromo", max_length=160)):
         video_id(identifier)
-        allowed = {"sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "music_offtopic", "filler"}
+        allowed = {"sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "music_offtopic", "filler", "poi_highlight"}
         chosen = set(categories.split(","))
         if not chosen <= allowed:
             raise ServiceError("invalid_categories", "An unsupported SponsorBlock category was requested.", 400)
@@ -536,15 +537,26 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         segments = []
         try:
             reply = await app.state.http.get(f"https://sponsor.ajay.app/api/skipSegments/{prefix}",
-                                            params={"categories": json.dumps(sorted(chosen))}, timeout=5)
+                                            params={"categories": json.dumps(sorted(chosen)),
+                                                    "actionTypes": json.dumps(["skip", "poi"] if "poi_highlight" in chosen else ["skip"])}, timeout=5)
             if reply.status_code == 200 and len(reply.content) <= 1024 * 1024:
-                for result in reply.json():
-                    if result.get("videoID") == identifier:
-                        for s in result.get("segments", []):
+                payload = reply.json()
+                for result in payload if isinstance(payload, list) else []:
+                    if isinstance(result, dict) and result.get("videoID") == identifier:
+                        entries = result.get("segments", [])
+                        for s in entries if isinstance(entries, list) else []:
+                            if not isinstance(s, dict):
+                                continue
+                            if not isinstance(s.get("category"), str):
+                                continue
                             pair = s.get("segment", [])
-                            if (s.get("category") in chosen and s.get("actionType", "skip") == "skip"
-                                and len(pair) == 2 and all(type(n) in (int, float) for n in pair)
-                                and 0 <= pair[0] < pair[1] < 604800):
+                            point = s.get("category") == "poi_highlight"
+                            if (s.get("category") in chosen and s.get("actionType", "skip") == ("poi" if point else "skip")
+                                and isinstance(pair, list) and len(pair) == 2
+                                and all(type(n) in (int, float) for n in pair)
+                                and 0 <= pair[0] <= pair[1] < 604800
+                                and all(math.isfinite(n) for n in pair)
+                                and (pair[0] == pair[1] if point else pair[0] < pair[1])):
                                 segments.append({"start": pair[0], "end": pair[1], "category": s["category"]})
         except (httpx.HTTPError, ValueError, TypeError, KeyError):
             pass  # Optional service failures never become playback failures.

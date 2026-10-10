@@ -37,3 +37,57 @@ def apply_sponsor_overlay(replace, player):
             m_tubeSponsorPromptAt = NowMs(); toast("SPONSORBLOCK", prompt);
         }''')
     replace(player + 'core/include/evo/screens/PlayerScreen.hpp', '    bool m_showStatsForNerds', '    uint64_t m_tubeSponsorPromptAt = 0;\n    bool m_showStatsForNerds')
+    kit = player + 'ui_kit/src/evo_hui_osd.cpp'
+    replace(kit, '#include "evo_hui_osd.hpp"', '#include "evo_hui_osd.hpp"\n#include "tube_sponsor_draw.h"')
+    replace(kit, '        const float tx = track.x + track.w * f;', '''        // ProsperoTube SponsorBlock marker draw (also extracted by host tests).
+        tube_sponsor_marker_t markers[128];
+        int marker_count = tube_sponsor_markers(raw_.duration_sec, markers, 128);
+        for (int i = 0; i < marker_count; ++i) {
+            double left, size;
+            if (tube_sponsor_geometry(&markers[i], track.w, &left, &size))
+                list.rounded_rect({track.x + (float)left, track.y, (float)size, track.h},
+                                  1, Color::rgb(markers[i].rgb));
+        }
+        // End ProsperoTube SponsorBlock marker draw.
+        const float tx = track.x + track.w * f;''')
+    app = player + 'ui_rml/src/evo_rmlui_app.cpp'
+    replace(app, '#include "evo_rmlui_app.h"', '#include "evo_rmlui_app.h"\n#include "tube_sponsor_draw.h"')
+    replace(app, '''    ShowOnlyScreen(m_playback_doc);
+    if (m_nav_doc) m_nav_doc->Hide();''', '''    // ProsperoTube SponsorBlock marker RML (also extracted by host tests).
+    if (auto* el = m_playback_doc->GetElementById("sponsor-markers")) {
+        tube_sponsor_marker_t markers[128];
+        int marker_count = tube_sponsor_markers(m_last_state.duration_sec, markers, 128);
+        std::string markup;
+        for (int i = 0; i < marker_count; ++i) {
+            double left, size; char element[160];
+            if (!tube_sponsor_geometry(&markers[i], 1800, &left, &size)) continue;
+            std::snprintf(element, sizeof element,
+                "<div class=\\"sponsor-marker\\" style=\\"left:%.6f%%;width:%.6f%%;background-color:#%06x;\\"></div>",
+                left / 18.0, size / 18.0, markers[i].rgb & 0xffffff);
+            markup += element;
+        }
+        if (el->GetInnerRML() != markup) el->SetInnerRML(markup);
+    }
+    // End ProsperoTube SponsorBlock marker RML.
+    ShowOnlyScreen(m_playback_doc);
+    if (m_nav_doc) m_nav_doc->Hide();''')
+    replace(player + 'assets/rml/playback.rml', '''                <div id="progress-fill">
+                    <div id="progress-thumb"></div>
+                </div>''', '''                <div id="progress-fill">
+                    <div id="progress-thumb"></div>
+                </div>
+                <div id="sponsor-markers"></div>''')
+    replace(player + 'assets/rml/playback.rcss', '#progress-thumb {', '''#sponsor-markers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 8dp;
+}
+.sponsor-marker {
+    position: absolute;
+    top: 0;
+    height: 8dp;
+}
+#progress-thumb {
+    z-index: 2;''')

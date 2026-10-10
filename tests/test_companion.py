@@ -295,3 +295,30 @@ def test_sponsorblock_selected_category_and_invalid_timestamps(category):
 def test_post_body_limit():
     with TestClient(app()) as client:
         assert client.post("/v1/jobs", headers=AUTH, content=b"x" * 9000).status_code == 413
+
+
+def test_sponsorblock_highlight_points_and_malformed_entries():
+    observed = []
+    def handler(request):
+        observed.append(request)
+        return httpx.Response(200, json=[None, "invalid", {"videoID": ID, "segments": [
+            None, "invalid", {"category": "poi_highlight", "segment": [40, 40], "actionType": "poi"},
+            {"category": "poi_highlight", "segment": [2, 5], "actionType": "poi"},
+            {"category": "poi_highlight", "segment": [2, 2], "actionType": "skip"},
+            {"category": "poi_highlight", "segment": [True, True], "actionType": "poi"},
+            {"category": "poi_highlight", "segment": [10**1000, 10**1000], "actionType": "poi"},
+            {"category": [], "segment": [2, 5], "actionType": "skip"},
+            {"category": "sponsor", "segment": [2, 5], "actionType": "skip"}]}])
+    with TestClient(app(sponsorblock=True, handler=handler)) as client:
+        result = client.get("/v1/sponsor/" + ID, params={"categories": "poi_highlight,sponsor"}, headers=AUTH)
+        assert result.status_code == 200
+        assert result.json()["segments"] == [{"start": 40, "end": 40, "category": "poi_highlight"},
+                                             {"start": 2, "end": 5, "category": "sponsor"}]
+        assert json.loads(observed[0].url.params["actionTypes"]) == ["skip", "poi"]
+
+
+@pytest.mark.parametrize("payload", [None, {}, "invalid", [None, "invalid", {"videoID": ID, "segments": {}}]])
+def test_sponsorblock_malformed_payload_is_optional(payload):
+    with TestClient(app(sponsorblock=True, handler=lambda request: httpx.Response(200, json=payload))) as client:
+        result = client.get("/v1/sponsor/" + ID, headers=AUTH)
+        assert result.status_code == 200 and result.json()["segments"] == []
