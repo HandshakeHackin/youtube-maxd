@@ -19,14 +19,28 @@ is an empty terminal page; unsupported initial layouts remain errors. Evidence:
 
 Worker tests: 35 passed. Python library/API tests: 18 passed, including fixture
 section capabilities and the job path. Native section routing, row IDs,
-pagination and nested Music playback/queue origin passed ASan/UBSan. Console
-acceptance and personalized account coverage remain open.
+pagination and nested Music playback/queue origin passed ASan/UBSan. The console
+fixture gate is recorded below; personalized account coverage remains open.
 
 Final native section/Music/provider regression exited 0 (`.deps/topics-native.log`).
 Candidate `57766c09` passed PS5 build/freeze: 126 files, eboot prefix
 `82262e0635707fc7`, build `prosperotube-57766c09_1010-2053`. Evidence:
 `.deps/topics-{ps5-build,freeze}.{log,result}`, both exit 0. The companion worker
-was rebuilt; the currently running companion and consoles were not modified.
+was rebuilt. The regular companion remains unchanged.
+
+The frozen candidate subsequently passed a combined PS5 case using an isolated
+generated AVC/AAC companion. Music, Gaming and News each opened their shelf and
+video list. Music playback started at 1× and offered Restore 1.75×; opening the
+same video through ordinary search used the saved 1.75× preference. Sampled
+media/host ratios were 0.963 and 1.686 respectively, within the 0.15 tolerance
+for the once-per-second status samples. The saved global preference remained
+175. Playback published 2,680 frames with three late drops across both opens.
+Normal Stop, matching-build GPU park, exact process/video-owner/mount release,
+healthy services and restoration of the original absence of provider state
+passed. The owned fixture companion was stopped. Evidence:
+`.deps/console/topics-hardware/verified-result.json`; case and independent
+verifier exited 0. This accepts native section wiring and Music speed behavior
+with fixture data; physical picture/sound and real-account sections remain open.
 
 ## Music-origin speed behavior — 2026-10-10
 

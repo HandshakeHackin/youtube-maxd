@@ -601,8 +601,8 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | --- | --- | --- |
 | PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
 | Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
-| Search, browsing and local library | Search, profiles, local library; PS5 WebP decode/cache; Music/Gaming/News TV shelves, playlist navigation and pagination implemented with live Guest companion checks | Curated-section PS5 acceptance, personalized liked-Music row, physical artwork and broader reference coverage |
-| Recovery, timing and diagnostics | PS5 indexed resume and 1.25×/normal/last-speed toggle with paused reopen accepted; scoped speed memory and Music-origin normalization host-tested | Physical pitch/sync, other rates, scoped-memory/Music hardware coverage and wider recovery remain |
+| Search, browsing and local library | Search, profiles, local library; PS5 WebP decode/cache; Music/Gaming/News TV shelves, playlist navigation and pagination with live Guest companion checks; native section navigation accepted on PS5 fixture | Personalized liked-Music row, real-service section playback on PS5, physical artwork and broader reference coverage |
+| Recovery, timing and diagnostics | PS5 indexed resume, 1.25×/normal/last-speed toggle with paused reopen; Music-origin 1× and ordinary saved 1.75× accepted; scoped speed memory host-tested | Physical pitch/sync, other rates, scoped-memory hardware coverage and wider recovery remain |
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference timing/grouping/actions; persistent review, keep/skip/expiry accepted on PS5 with generated AVC/AAC | Real-service skip/highlight/notice and physical appearance acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
@@ -611,13 +611,20 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-Current batch: candidate `17455475` passed a bounded PS5 public-video speed case:
+Current batch: candidate `57766c09` passed a combined PS5 fixture case for
+Music/Gaming/News shelf navigation, Music 1× and ordinary search at saved 1.75×.
+Preference retention, Stop, clean GPU/process/title/mount release and restoration
+of the original absence of provider configuration passed. Real Guest TV endpoints
+were verified separately through the companion; physical picture/sound and
+real-service section playback on PS5 remain open. See the validation record.
+
+Previous speed batch: candidate `17455475` passed a bounded PS5 public-video speed case:
 1.25× playback, paused normal-speed toggle, last-speed restore, pause/resume,
 seek and saved speed. Original absence of provider configuration was restored
 after clean GPU/process/title/mount release. An earlier adapter pause check was
 inconclusive because UI and position timestamps differed; the same frozen bytes
 passed with fresh samples. Physical pitch/sync, additional rates, scoped-memory
-hardware coverage and Music-origin hardware behavior remain open. Host persistence and
+hardware coverage remain open. Host persistence and
 controller tests retain their earlier passes.
 Previous candidates:
 `2512c069` passed the in-player speed ownership/persistence tests and PS5
