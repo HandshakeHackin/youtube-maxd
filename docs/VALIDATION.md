@@ -22,6 +22,12 @@ cover the speed enumeration and persisted setter. Both passed ASan/UBSan:
 Console acceptance remains
 open; the previous busy-console results below still apply.
 
+Candidate `2512c069` passed the PS5 build (212 objects) and immutable freeze
+(126 files), build `prosperotube-2512c069_1010-1953`, eboot prefix
+`82fd27d8acbcf7a9`. Evidence:
+`.deps/speed-switch-{ps5-build,freeze}.{log,result}` (both exit 0).
+No console connection or installation was attempted for this candidate.
+
 ## Playback-speed player integration — 2026-10-10
 
 Decoded PCM and the resampler EOF tail now pass through the tempo stage before
