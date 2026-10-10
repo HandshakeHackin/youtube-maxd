@@ -54,3 +54,12 @@ threads before the helper's single-threaded credential precondition is met.
 The generated flush regression is `scripts/test_startup_log_gate.py` (run after
 `scripts/prepare_native.py`). Kernel boot breadcrumbs remain available while
 the durable logger is gated.
+
+Diagnostic helper builds can additionally set
+`PROSPEROTUBE_LAPY_STOP_DIAGNOSTICS=1` with the result-file option. This copies
+verified upstream sources into a separate build directory and adds only a
+record of already-captured target-stop snapshot fields. The upstream acceptance
+predicate, ptrace lifecycle and mutation paths are unchanged. The packaged
+manifest records both upstream and compiled daemon SHA-256 values. This option
+exists to distinguish the target-stop predicates rejected on the reserved
+console; it has not established successful app storage.

@@ -359,3 +359,11 @@ the host result does not establish console playback, motion or sound.
 Both owned locks were released. The settled control used the earlier committed
 installation and unchanged PR50 helper; the current `e52315dd` package remains
 undeployed. No startup, persistence, playback or teardown acceptance was added.
+
+- 2026-10-10 | reserved marker candidate | 58390ef6 | PS5 helper reports firmware 12700001 | failed: two full stored-byte verifications and registration passed, one launch reached main, helper target_stop error=16 before credential/root changes, startup stopped; no input/close/relaunch, owned lock released | .deps/marker-storage-reserved-console.log; .deps/console/storage-marker-58390ef6-fallback/klog.txt | inspect stop predicate with diagnostic-only candidate
+
+A separate idle-first read-only case retrieved the matching helper-stage log
+from the reserved fallback console. It reports roots_moved=0, cred_changed=0
+and detached=1. It does not expose which stop predicate failed. Storage,
+persistence, physical playback and clean teardown remain unaccepted. See
+VALIDATION.md for the log hash and diagnostic-only build option.

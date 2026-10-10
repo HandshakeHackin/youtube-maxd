@@ -12,6 +12,9 @@ lapy_options=()
 if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then
     lapy_options+=(--result-file "${PROSPEROTUBE_LAPY_RESULT_FILE}")
 fi
+if [[ "${PROSPEROTUBE_LAPY_STOP_DIAGNOSTICS:-0}" == 1 ]]; then
+    lapy_options+=(--target-stop-diagnostics)
+fi
 python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy" "${lapy_options[@]}"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8

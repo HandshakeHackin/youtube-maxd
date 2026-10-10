@@ -32,6 +32,43 @@ PS5LOG_URL = (
 PS5LOG_SHA256 = "394af67d0f8b60b3335deb53396e52855ea2daa50ca914a456ea7663f48900c6"
 PROTOCOL_SHA256 = "bb02c4aa814eaba7a7a423a31b29ff41f786212c2953678cf29434e85fa0f869"
 
+# Observe only snapshots already read while the target is ptrace-stopped.
+# Keep the pinned upstream checkout clean and its stop predicate unchanged.
+STOP_CHECK = "    return before->cred_refs == 2 && same_stop(before, stopped) ? 0 : EBUSY;"
+STOP_DIAGNOSTICS = '''    ps5log_printf(PS5LOG_MARK,
+                  "target_stop_state build=%s pid=%d fd_refs=%u fd_refs_after=%u cred_refs=%u cred_refs_after=%u threads=%u threads_after=%u suspended=%u suspended_after=%u proc_same=%d fd_same=%d cred_same=%d prison_same=%d root_same=%d jail_same=%d cwd_same=%d thread_list_same=%d stable=%d",
+                  LAPY_OWNED_ID, pid, before->fd_refs, stopped->fd_refs,
+                  before->cred_refs, stopped->cred_refs,
+                  before->count, stopped->count,
+                  before->suspended, stopped->suspended,
+                  before->proc == stopped->proc, before->fd == stopped->fd,
+                  before->ucred == stopped->ucred,
+                  before->prison == stopped->prison,
+                  before->root == stopped->root, before->jail == stopped->jail,
+                  before->cwd == stopped->cwd,
+                  before->count == stopped->count &&
+                  !memcmp(before->threads, stopped->threads,
+                          before->count * sizeof(before->threads[0])),
+                  same_stop(before, stopped));
+'''
+
+
+def diagnostic_source():
+    """Copy pinned inputs and add observations without changing stop policy."""
+    staging = CACHE / f"stop-diagnostics-{LAPY_COMMIT[:7]}"
+    staging.mkdir(parents=True, exist_ok=True)
+    for directory in ("source", "tools"):
+        shutil.copytree(LAPY / directory, staging / directory, dirs_exist_ok=True)
+    source = staging / "source/owned_root_daemon.c"
+    original = source.read_text()
+    if original.count(STOP_CHECK) != 1:
+        raise RuntimeError("Pinned target-stop check changed; refusing diagnostic overlay")
+    patched = original.replace(STOP_CHECK, STOP_DIAGNOSTICS + STOP_CHECK)
+    if patched.replace(STOP_DIAGNOSTICS, "", 1) != original:
+        raise RuntimeError("Diagnostic overlay changed upstream behavior")
+    source.write_text(patched)
+    return staging
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -128,22 +165,27 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--result-file", choices=["/data/prosperotube/lapy-helper.log"],
                         help="diagnostic build only; installer must create the app data directory")
+    parser.add_argument("--target-stop-diagnostics", action="store_true",
+                        help="log stopped snapshots without changing upstream acceptance checks")
     args = parser.parse_args()
     if not re.fullmatch(r"PPSA[0-9]{5}", args.title):
         parser.error("title must use PPSA followed by five digits")
+    if args.target_stop_diagnostics and not args.result_file:
+        parser.error("--target-stop-diagnostics requires --result-file")
 
     fetch_lapy()
     fetch_sdk()
     fetch_ps5log()
+    build_source = diagnostic_source() if args.target_stop_diagnostics else LAPY
     environment = os.environ.copy()
     environment.update(PS5_PAYLOAD_SDK=str(SDK), LOGGING_CLIENT=str(PS5LOG))
     command = ["python3", "tools/build_owned_daemon.py", "--sdk", str(SDK),
                "--logging-client", str(PS5LOG), "--elf-helper", "--title", args.title]
     if args.result_file:
         command += ["--result-file", args.result_file]
-    subprocess.run(command, cwd=LAPY, env=environment, check=True)
+    subprocess.run(command, cwd=build_source, env=environment, check=True)
 
-    source = LAPY / f"build/owned_root_helper-{args.title}"
+    source = build_source / f"build/owned_root_helper-{args.title}"
     elf = source / "lapy.elf"
     manifest_path = source / "lapy-manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -177,6 +219,9 @@ def main():
     shutil.copy2(elf, output / "lapy.elf")
     manifest["source_commit"] = LAPY_COMMIT
     manifest["result_file"] = args.result_file
+    manifest["target_stop_diagnostics"] = args.target_stop_diagnostics
+    manifest["upstream_daemon_sha256"] = digest(LAPY / "source/owned_root_daemon.c")
+    manifest["compiled_daemon_sha256"] = digest(build_source / "source/owned_root_daemon.c")
     (output / "lapy-manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     shutil.copy2(LAPY / "LICENSE", output / "Lapy-MIT.txt")
     print(f"Lapy helper verified: {manifest['build_id']} {manifest['elf_sha256']}")

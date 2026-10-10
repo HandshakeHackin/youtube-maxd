@@ -1,5 +1,48 @@
 # Offline validation record — 0.1.0
 
+## Reserved console startup and Lapy stop diagnosis — 2026-10-10
+
+Frozen `prosperotube-58390ef6_1010-0550` passed the initial idle check,
+126-file stored-byte upload/readback, 130-second settling, a second complete
+readback, registration and final idle check on `192.168.4.40`. One launch reached
+the matching build's `main()`. Lapy returned `apply_failed` (7), startup stopped
+at the required `/data/prosperotube` gate, and the system recorded user-process
+SIGSYS. The adapter stopped without input, close or relaunch and released its
+owned shared lock. Evidence: `.deps/marker-storage-reserved-console.log` and
+`.result` (1), `.deps/console/storage-marker-58390ef6-fallback/klog.txt`.
+
+A separate idle-first, read-only case retrieved the matching helper log and
+released its lock. Evidence: `.deps/console/marker-helper-readonly-58390ef6/`.
+The 2,331-byte log SHA-256 is
+`62501a31de0592c27689a4a66a82a59496148d7556f3cc0aa9b0253c6c70c944`.
+Helper build `2daddf913d859dd6358295c6cf46573e7196ef478ccd67d3acec730b0860b5d9`
+recorded firmware `12700001`, successful helper/root-layout initialization,
+then `stage=target_stop error=16 roots_moved=0 cred_changed=0 detached=1`.
+This establishes rejection before credential/root mutation. It does not identify
+which stop predicate failed: credential references, stable snapshot fields,
+private filedesc, and suspended thread counts are checked together. The log
+does not prove the app was multithreaded or that a particular preload caused it.
+
+The optional `PROSPEROTUBE_LAPY_STOP_DIAGNOSTICS=1` build adds a snapshot-field
+record at that check using only already-captured snapshots. It builds in a
+separate source copy, leaves the pinned checkout untouched, retains the exact
+upstream return predicate and records upstream/compiled daemon hashes in the
+packaged manifest. It requires the existing diagnostic result-file option.
+It changes no stop, credential, root-transfer or retry policy. Console acceptance
+of this new diagnostic variant remains pending.
+
+The diagnostic helper compiled with the pinned PS5 SDK and upstream `-Werror`
+flags: build `8d7cb08a28bac6d657bba735f959c0c1ca1cc1149da3055e83a9586f03a4ed6a`,
+ELF SHA-256 `d4a67ecfe222cff5972f3555e76a6046b6b908096a4fccc474bd8b50be39031b`.
+The verification case proved that removing the single inserted log block
+reconstructs the exact original source, that the original stop predicate remains
+once, that the pinned checkout is clean, and that packaged ELF/protocol/source
+hashes match. Evidence: `.deps/lapy-stop-diagnostic-build.log` and
+`.deps/lapy-stop-diagnostic-verify.result` (0). Python syntax and shell parsing
+checks passed. The initial shell wrapper's result capture was malformed; its
+exit status is not used as build evidence. The separately verified compiler
+artifact and manifest establish helper build success, not console acceptance.
+
 ## SponsorBlock timeline markers and playback lifetime — 2026-10-10
 
 Source `58390ef6` adds independent persisted timeline-color toggles for the nine
@@ -42,8 +85,9 @@ All 211 PS5 objects, linking, signed containers, package and immutable freeze
 passed: build `prosperotube-58390ef6_1010-0550`, 126 files, eboot prefix
 `23101bbd1b1a7f4d`. Evidence: `.deps/sponsor-marker-ps5-build.log` / `.result` (0)
 and `.deps/sponsor-marker-freeze.log` / `.result` (0). Bundled attribution matches
-the source bytes. This candidate has not been deployed or launched; physical
-marker rendering, controller behavior and playback remain unverified.
+the source bytes. Its subsequent reserved-console launch failed at storage
+initialization as recorded above; physical marker rendering, controller behavior
+and playback remain unverified.
 
 Separately, the prior `c758351c` candidate passed the first idle check on the
 primary console, full 126-file stored-byte upload/readback, 130-second settling,
