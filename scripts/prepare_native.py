@@ -73,7 +73,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -271,6 +271,10 @@ static const char* tube_dev_path(unsigned index) {
             'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."',
             'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."\n'
             'python3 "${REPO_ROOT}/scripts/patch_ffmpeg_dash_seek.py" "${SRC_DIR}/libavformat/dashdec.c"')
+    replace(player + "Makefile", "    addons/src/tube_provider.c", "    addons/src/tube_provider.c \\\n    addons/src/tube_audio_tempo.c")
+    replace(player + "Makefile", "    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavformat.a", "    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavfilter.a \\\n    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavformat.a")
+    replace("scripts/package-app.sh", "             libavformat libavcodec", "             libavfilter libavformat libavcodec")
+    replace("scripts/build-ffmpeg.sh", "        --enable-filter=anull", "        --enable-filter=anull\n        --enable-filter=atempo")
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()

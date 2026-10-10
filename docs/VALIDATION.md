@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Playback-speed audio stage — 2026-10-10
+
+`tube_audio_tempo` is a single-owner interleaved S16/48 kHz stage using the
+existing pinned FFmpeg 7.1.1 `atempo` filter. It supports the 30 reference speeds
+from 0.25× through 4×, cascading factors within 0.5–2 to avoid the filter's
+sample-skipping path above 2. Unity speed bypasses filtering byte-for-byte.
+Natural EOF drains once; callback cancellation is latched, and destroying a
+seek epoch discards its delayed samples. The graph uses one thread and bounded
+input chunks. Invalid channels/rates and missing filters fail closed.
+
+The real FFmpeg host test passed ASan/UBSan across all reference speeds and 1–8
+channels, varied chunk sizes, sine pitch/channel separation (1.5% tolerance),
+four-second input duration (100 ms output tolerance), unity bytes, empty/repeated
+EOF, cancellation and epoch disposal. Evidence: `.deps/tempo-native-final.log`.
+Run `PROSPEROTUBE_TEMPO_FFMPEG=<built-FFmpeg-source> bash scripts/test_audio_tempo.sh`
+or use installed `libavfilter`/`libavutil` development packages. The pinned host
+build was reconfigured to enable `atempo`; `.deps/tempo-host-build.log` records it.
+
+The native build now enables `atempo`, links `libavfilter`, compiles the adapter
+and invalidates older FFmpeg SDK stamps. PS5 cross-build is pending. This is the
+audio-stage foundation, not working player speed selection: queue media-clock
+accounting, video-only pacing, rate changes, persisted controls and hardware
+sound/sync acceptance still require integration. The stage is not yet called by
+the player's audio path; existing playback behavior is unchanged.
+
 ## Retained live-chat history — 2026-10-10
 
 The native reader requests `chat_history: true`, opening at the newest message

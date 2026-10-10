@@ -29,10 +29,12 @@ if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi
 ffmpeg_patch=$(sha256sum "${root}/scripts/patch_ffmpeg_dash_seek.py" | cut -d ' ' -f 1)
-ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-dash-${ffmpeg_patch}"
+ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-atempo-v1-dash-${ffmpeg_patch}"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
    [[ "$(cat "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG")" != "${ffmpeg_identity}" ]]; then
     bash "${work}/scripts/build-ffmpeg.sh" --install --jobs 8
+    [[ -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libavfilter.a" ]]
+    grep -q '^#define CONFIG_ATEMPO_FILTER 1$' "${work}/build/ffmpeg/7.1.1-minimal/config_components.h"
     printf '%s\n' "${ffmpeg_identity}" > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
 fi
 bash "${work}/scripts/package-app.sh" --zip "$@"
