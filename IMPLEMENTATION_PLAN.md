@@ -602,7 +602,7 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
 | Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
 | Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests; public WebP decode/cache passed on PS5 | Physical artwork appearance, broader console coverage and reference behavior inventory |
-| Recovery, timing and diagnostics | PS5 indexed resume accepted; tempo/clock integration, in-player reopen, profile-scoped channel/video speed memory and normal/last-speed toggle implemented | PS5 speed/sync and reopen acceptance, music-video normalization and wider recovery remain |
+| Recovery, timing and diagnostics | PS5 indexed resume accepted; tempo/clock integration, in-player reopen, profile-scoped channel/video speed memory and normal/last-speed toggle implemented | PS5 speed/sync and reopen acceptance, Music-group speed normalization and wider recovery remain |
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
@@ -611,13 +611,13 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-Current batch: playback-speed player integration using the existing PS5 FFmpeg
-stack: audio queue/media clocks, silent-video pacing, seek/EOF handling and
-persisted next-open speed selection. The real PCM stage passed host ASan/UBSan
-across all 30 reference speeds; generated audio and clock paths also passed.
-In-player R2 speed selection now reopens at the current position with pause,
-audio/subtitle selections and provider session preserved; hardware acceptance
-remains open. Previous candidates:
+Current batch: remembered speed modes (all/channel/video/session) and the
+normal/last-speed quick toggle. Provider persistence/scoping/capacity and
+generated controller tests passed ASan/UBSan. Candidate `17455475` passed the
+PS5 build/freeze (212 objects, 126 files); no console work was attempted.
+Audio/clock integration and R2 reopen preserve position, pause, tracks and
+provider session. Hardware speed/sync and Music-group behavior remain open.
+Previous candidates:
 `2512c069` passed the in-player speed ownership/persistence tests and PS5
 build/freeze (212 objects, 126 files); no console work was attempted.
 `3cb46c5e` compiled/froze successfully (212 objects, 126 files); its speed case

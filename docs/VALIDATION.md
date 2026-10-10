@@ -16,7 +16,9 @@ playback applies the chosen memory mode. Settings selecting a global speed
 explicitly enable all-videos mode. Successful in-player changes store against
 the copied source's video identity. The last non-normal rate persists; the R2
 picker focuses a normal/last-speed toggle when available. Live playback still
-uses 1×; automatic music-video normalization requires further metadata work.
+uses 1×. The reference's music exception uses `Video.belongsToMusic()` (the
+originating Music group), not title/category guessing; retaining that browsing
+context remains open.
 
 The actual provider passed ASan/UBSan for channel/video/session/global restore,
 profile isolation, reload, legacy migration, invalid stored values, last-speed
@@ -24,6 +26,10 @@ retention and capacity/eviction. The existing provider regression also passed
 (`.deps/speed-memory-provider.log`). Hardware behavior remains unaccepted.
 The generated controller handoff test also passed with an assertion on the
 video identity passed to memory storage (`.deps/speed-memory-switch.log`).
+PS5 candidate `17455475` passed build and immutable freeze: 212 objects, 126
+files, build `prosperotube-17455475_1010-2002`, eboot prefix `c89ff35e59e6ac5f`.
+Evidence: `.deps/speed-memory-{ps5-build,freeze}.{log,result}` (both exit 0).
+No console connection or deployment was attempted for this candidate.
 
 ## In-player speed changes — 2026-10-10
 
