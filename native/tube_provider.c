@@ -1886,8 +1886,15 @@ static int sponsor_playing_scope(void) {
 }
 static void highlight_observe(double position) {
     if (g_highlight_guard >= 0 && (g_highlight_guard >= g_segment_count ||
-        position >= g_segments[g_highlight_guard][0] - .25 || position < g_highlight_origin - .5))
+        position >= g_segments[g_highlight_guard][0] - .25 || position < g_highlight_origin - .5 ||
+        position > g_highlight_origin + .5))
         g_highlight_guard = -1;
+}
+void tube_highlight_seek_failed(double target) {
+    if (g_highlight_guard >= 0 && g_highlight_guard < g_segment_count &&
+        target == g_segments[g_highlight_guard][0]) {
+        g_highlight_guard = -1; g_sb_message = 0;
+    }
 }
 double tube_highlight_target(double position, double duration) {
     g_sb_message = 0;
@@ -1910,8 +1917,8 @@ double tube_highlight_target(double position, double duration) {
         return -1;
     }
     // Explicit intent ignores automatic minimum/repeat policy. Guard only the
-    // same request while its seek clock has not moved; observing arrival or a
-    // backward seek releases it, including while playback is paused.
+    // same request while its seek clock has not moved; observing movement or
+    // arrival releases it. A refused paused request is released explicitly.
     g_highlight_guard = index; g_highlight_origin = position;
     g_segment_seen[index] = 1; g_sb_message = action == 1;
     return target;
@@ -1966,6 +1973,7 @@ double tube_skip_target(double position) {
     }
     g_sb_last_position = position;
     if (tube_sponsor_prompt(position)) return -1;
+    if (g_highlight_guard >= 0) return -1; // Preserve the pending explicit seek.
     if (g_skip_guard >= 0 && position < g_skip_until + .25) return -1;
     for (int i = 0; i < g_segment_count; ++i) {
         int action = g_sb.actions[g_segment_categories[i]];

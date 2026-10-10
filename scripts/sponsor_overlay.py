@@ -4,7 +4,7 @@
 def apply_sponsor_overlay(replace, player):
     screen = player + 'core/src/screens/PlayerScreen.cpp'
     replace(screen, '    if (!ended && !playback->isPaused() && !playback->isScrubbing()) {',
-            '    if (!ended && !playback->isPaused() && !playback->isScrubbing() && !playback->isLiveSource() &&\n        !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && !pb_prebuffer_hold) {')
+            '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&\n        !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && !pb_prebuffer_hold) {')
     replace(screen, '    // Scrub hold update', '''    if (tube_sponsor_prompt(playback->getPositionSeconds()) &&
         (pressed & (PadButtons::Cross | PadButtons::Circle))) {
         const bool accept = (pressed & PadButtons::Cross) && !(pressed & PadButtons::Circle);
@@ -18,7 +18,11 @@ def apply_sponsor_overlay(replace, player):
             if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
             return true;
         }
-        if (target >= 0 && target < playback->getDurationSeconds()) playback->seekTo(target, evo_pb_is_paused() != 0);
+        if (target >= 0 && target < playback->getDurationSeconds() &&
+            !playback->seekTo(target, evo_pb_is_paused() != 0)) {
+            tube_highlight_seek_failed(target);
+            toast("SPONSORBLOCK", "Unable to seek");
+        }
         return true;
     }
 
@@ -29,8 +33,10 @@ def apply_sponsor_overlay(replace, player):
             evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold) return true;
         double target = tube_highlight_target(playback->getPositionSeconds(), playback->getDurationSeconds());
         if (target >= 0 && target < playback->getDurationSeconds()) {
-            playback->seekTo(target, evo_pb_is_paused() != 0);
-            if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Jumped to highlight");
+            if (!playback->seekTo(target, evo_pb_is_paused() != 0)) {
+                tube_highlight_seek_failed(target);
+                toast("SPONSORBLOCK", "Unable to jump to highlight");
+            } else if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Jumped to highlight");
         } else {
             const char *prompt = tube_sponsor_prompt(playback->getPositionSeconds());
             toast("SPONSORBLOCK", prompt ? prompt : "No available upcoming highlight");

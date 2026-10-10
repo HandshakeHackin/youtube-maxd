@@ -61,6 +61,7 @@ static int evo_pb_is_complete() { return 0; }
 static int evo_pb_is_paused() { return 0; }
 static int evo_demux_is_seeking() { return 0; }
 static double tube_highlight_target(double,double) { ++highlights; return 12; }
+static void tube_highlight_seek_failed(double) { assert(false); }
 static int tube_sponsor_show_message() { return 0; }
 static const char* tube_sponsor_prompt(double) { return nullptr; }
 struct Playback {
@@ -68,7 +69,7 @@ struct Playback {
     bool isScrubbing() { return false; }
     double getPositionSeconds() { return 1; }
     double getDurationSeconds() { return 100; }
-    void seekTo(double target,bool keepPaused) { assert(target==12 && !keepPaused); ++seeks; }
+    bool seekTo(double target,bool keepPaused) { assert(target==12 && !keepPaused); ++seeks; return true; }
 };
 static Playback state, *playback=&state;
 static bool playerInput(uint32_t pressed) {

@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Highlight retry and engine pause ownership — 2026-10-10
+
+Explicit highlight/review seeks now report whether the mailbox accepted the
+request. A refused point request releases only its matching guard, allowing a
+paused retry without moving the clock. An unrelated failure cannot release it.
+Automatic skips cannot overwrite a pending explicit point request; arrival or
+clock movement releases the guard. The automatic tick reads the engine pause
+state so a stale controller FSM cannot initiate a skip while the engine is paused.
+The legacy one-argument seek continues to resume scrubbing playback.
+
+The three actual native provider/recovery/SponsorBlock executables, extracted
+shipping player input/tick paths, combined global/provider/player dispatcher,
+and extracted seek overloads all passed ASan/UBSan. Tests cover refusal return
+values, paused retries, mismatched failure targets, competing automatic skips,
+engine/FSM pause disagreement and invalid requests. Evidence:
+`.deps/highlight-retry-{native,player,dispatch,seek-pause}.log` and matching
+`.result` files (all 0). PS5 package and console acceptance follow separately.
+
 ## Explicit highlight jumps and paused seek intent — 2026-10-10
 
 R3 in the player now selects the nearest future SponsorBlock highlight point

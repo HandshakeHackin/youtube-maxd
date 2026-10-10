@@ -26,7 +26,7 @@ class PlaybackController {
 public:
     bool isActive() { return active; }
     void seekTo(double target);
-    void seekTo(double target,bool keepPaused);
+    bool seekTo(double target,bool keepPaused);
 };
 '''
 checks = r'''
@@ -35,14 +35,14 @@ int main() {
     PlaybackController playback;
     reset(); playback.seekTo(12.25); assert(requests==1 && requested==12.25 && !pause_flag && !resumes);
     for (bool keepPaused:{false,true}) {
-        reset(); playback.seekTo(12.25,keepPaused);
+        reset(); assert(playback.seekTo(12.25,keepPaused));
         assert(requests==1 && requested==12.25 && pause_flag==int(keepPaused) && !resumes);
-        reset(); accepted=false; playback.seekTo(12.25,keepPaused);
+        reset(); accepted=false; assert(!playback.seekTo(12.25,keepPaused));
         assert(requests==1 && pause_flag==int(keepPaused) && resumes==int(!keepPaused));
         for (double target:{-1.0,double(NAN),double(INFINITY),1000001.0}) {
-            reset(); playback.seekTo(target,keepPaused); assert(!requests && !resumes);
+            reset(); assert(!playback.seekTo(target,keepPaused)); assert(!requests && !resumes);
         }
-        reset(); active=false; playback.seekTo(12.25,keepPaused); assert(!requests && !resumes);
+        reset(); active=false; assert(!playback.seekTo(12.25,keepPaused)); assert(!requests && !resumes);
     }
     return 0;
 }

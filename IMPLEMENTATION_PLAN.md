@@ -5,38 +5,25 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): `58390ef6` adds nine-category SponsorBlock timeline
-markers to the primary PS5 UI kit and RML fallback, including validated highlight
-points, persisted color toggles and playback data retained across browsing
-cancellation. Native/companion/render-path tests and the complete PS5 package
-passed. This candidate was installed, verified twice and launched once on the
-reserved fallback console. Startup failed at Lapy's target-stop check before
-credential/root changes; storage and playback are not accepted. The prior `c758351c` bytes
-were installed and verified twice on the primary console, but another title
-started before the final launch check. Next hardware acceptance remains Lapy
-startup/storage, then real YouTube playback. Next offline work covers highlight
-jump/action behavior, paid-content notices and remaining
-action/default equivalence. See [validation](docs/VALIDATION.md).
+Current milestone (2026-10-10): the native PS5 package has played the real public
+YouTube video "Me at the zoo" on `.40` using native AVC and the corrected Windows
+LAN companion. The captured scanout shows video and English captions; the player
+published 284 frames with zero late drops and reached EOF/completion. Guest
+pairing and watched history were saved under `/data/prosperotube`. Lapy's
+single-thread storage transition, resident decoder creation, GPU park and exact
+title release are established for native `b9b5c916` and companion `c7d6f35`.
+Native AAC initialized; physical sound remains unverified.
 
-The existing player already supplies the correct live-source OSD flag; physical
-live-UI acceptance remains pending. Diagnostic source `146945b5` subsequently
-established stable stopped snapshots with 92 threads and 92 credential
-references, incompatible with the helper's single-thread requirement. Startup
-now separates query-only video-library warmup from resident decoder and display
-creation. Its `b9b5c916` package now establishes Lapy storage, post-transition
-resident codec creation, UI/first frame, GPU park and exact-title close on `.40`.
-A separate idle-first read-only check confirms title release and reachable
-services. Real YouTube playback and configuration persistence are the next
-acceptance case. Global L3/R3 screenshot dispatch now preserves provider stick
-controls, with shipping-dispatch/binding ASan/UBSan coverage; physical controller
-and new-package acceptance remain pending.
-The corrected Windows companion `c7d6f35` now establishes the first real public
-YouTube playback on `.40`: native AVC, rendered English captions, 284 published
-frames without late drops, EOF/completion and durable Guest history. Native AAC
-initialized; physical sound, history reload, seeking and wider playback/control
-acceptance remain open. The original verifier's 0.10-second endpoint condition
-failed on the final 15-fps frame; its failure is retained alongside independent
-sample/capture and graceful-close evidence in `docs/VALIDATION.md`.
+Current offline work adds explicit R3 highlight jumps with
+silent/message/ask/disabled actions, pause-preserving seek intent and player
+input dispatch. Provider stick controls also survive global screenshot capture.
+The dispatch-only `d4d5b66d` package built successfully; both later hardware cases
+stopped at the first busy-title check without upload, launch or input. A new
+highlight package is being prepared. Console acceptance still needs saved
+pairing/history reload, pause/resume, accurate seek and highlight input before
+broader formats, live streams, accounts and long sessions. See
+[validation](docs/VALIDATION.md) and [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md)
+for exact revisions, retained verifier failures and evidence boundaries.
 
 ## 1. Objective and current conclusion
 

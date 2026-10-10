@@ -189,6 +189,19 @@ int main(void) {
     // Explicit point jumps remain separate from automatic intervals and their
     // duration/repeat policy. Unsorted points choose the nearest future point.
     provider->list_catalog("settings:sb:color:filler", 0, items_cb, NULL);
+    action("sponsor", 0); action("poi_highlight", 1); minimum(0);
+    segments("{\"segments\":[{\"start\":0,\"end\":20,\"category\":\"sponsor\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_highlight_target(10, 100) == 50);
+    assert(tube_skip_target(10) < 0); // Tick cannot overwrite the queued explicit intent.
+    tube_highlight_seek_failed(90); // Failure for a different target cannot release this owner.
+    assert(tube_highlight_target(10, 100) < 0 && tube_skip_target(10) < 0);
+    tube_highlight_seek_failed(50);
+    assert(!tube_sponsor_show_message() && tube_highlight_target(10, 100) == 50); // Paused retry.
+    assert(tube_skip_target(10) < 0);
+    assert(!tube_sponsor_prompt(50)); // Arrival releases the guard.
+    assert(tube_highlight_target(10, 100) == 50);
+    assert(tube_skip_target(10.6) == 20); // A failed running seek releases once its old clock moves.
     action("poi_highlight", 1);
     segments("{\"segments\":[{\"start\":90,\"end\":90,\"category\":\"poi_highlight\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"},{\"start\":100,\"end\":100,\"category\":\"poi_highlight\"},{\"start\":101,\"end\":101,\"category\":\"poi_highlight\"}]}");
     assert(tube_highlight_target(10, 100) < 0); // Resolve alone cannot seek.
