@@ -374,3 +374,9 @@ The separate diagnostic-log retrieval began with an idle title check and made
 no application changes. The subsequent startup-order overlay has host coverage
 only. A newly built candidate must establish storage proof, decoder availability,
 native UI, persistence and teardown before real YouTube playback acceptance.
+
+- 2026-10-10 | single-thread Lapy startup | b9b5c916 | reserved PS5 .40 | partial-pass: verified install, Lapy storage, four resident codecs, UI/first frame and GPU park; exact close sent after park; adapter result 1 because its expected ShadowMount phrase was absent | .deps/lapy-warmup-reserved-console.log | independently verify release
+- 2026-10-10 | title release read-only | b9b5c916 | PS5 .40 | pass: first check idle, no remaining title sandbox, FTP/klog/elfldr reachable; captured kernel log binds launched PID 106/app ID 0x4018 to kill, video-owner removal and completed app-mount teardown | .deps/console/warmup-release-readonly-b9b5c916/ | real public YouTube case
+
+The original adapter failure is retained. No second launch or preference change
+occurred, so this does not establish persistence across relaunch or playback.

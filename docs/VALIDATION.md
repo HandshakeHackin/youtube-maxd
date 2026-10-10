@@ -1,5 +1,35 @@
 # Offline validation record — 0.1.0
 
+## PS5 storage startup and first graceful close — 2026-10-10
+
+Source `b9b5c916` passed all 211 PS5 objects, linking, signed containers,
+packaging and immutable freeze: `prosperotube-b9b5c916_1010-1402`, 126 files,
+eboot SHA-256 prefix `91e48da19d2a2c14`. Build and freeze result files are 0.
+The reserved `.40` case verified all installed bytes twice before one launch.
+Lapy observed one stopped thread and two credential references, completed the
+credential/root transition and donor balance, and reported success. Required
+storage, resident AVC/HEVC/VP9/HEVC10 creation, native UI and first frame passed.
+
+The app reached `parked=1` before the exact-title close. The original adapter
+retains result 1 because it required a ShadowMount release phrase absent on this
+console. Captured kernel records instead bind PID 106/app ID `0x4018` to the
+title's kill, video-owner removal and completed `EndAppMount`. A separate fresh
+idle-first read-only case confirmed no title sandbox and reachable FTP, klog and
+elfldr. Evidence: `.deps/lapy-warmup-reserved-console.log`,
+`.deps/console/storage-lapy-warmup-b9b5c916-fallback/` and
+`.deps/console/warmup-release-readonly-b9b5c916/`.
+
+No preferences were changed; `youtube.json` was absent and a second launch was
+not attempted. Configuration persistence across relaunch, actual YouTube
+playback, physical sound/pacing and controller acceptance remain pending. The
+next case's release predicate requires all three matching kernel records and
+absence of the running title; positive/wrong-identity/missing-record offline
+checks passed, as did initial-FTP/SELF-mode ordering checks.
+
+Review also found that the application's screenshot handler consumes L3/R3
+before provider screen input. Standalone input tests do not prove those physical
+chat controls; dispatch integration remains to be corrected and tested.
+
 ## Native warmup before single-thread Lapy request — 2026-10-10
 
 The complete diagnostic app build/package/freeze passed for source `146945b5`:

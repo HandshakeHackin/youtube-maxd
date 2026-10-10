@@ -23,7 +23,11 @@ live-UI acceptance remains pending. Diagnostic source `146945b5` subsequently
 established stable stopped snapshots with 92 threads and 92 credential
 references, incompatible with the helper's single-thread requirement. Startup
 now separates query-only video-library warmup from resident decoder and display
-creation; console acceptance of this change remains pending.
+creation. Its `b9b5c916` package now establishes Lapy storage, post-transition
+resident codec creation, UI/first frame, GPU park and exact-title close on `.40`.
+A separate idle-first read-only check confirms title release and reachable
+services. Real YouTube playback and configuration persistence are the next
+acceptance case; global L3/R3 screenshot dispatch also needs integration work.
 
 ## 1. Objective and current conclusion
 
