@@ -143,3 +143,72 @@ def test_fixture_watch_progress_contract_and_profile_history(tmp_path):
         for i in range(1, 64):
             assert call(session=f"fixture-{i}").status_code == 200
         assert call(session="overflow").status_code == 429
+
+
+def test_fixture_chat_send_through_shipping_api_and_jobs(tmp_path):
+    app = create_demo_app(tmp_path, token="fixture-test-token")
+    with TestClient(app) as client:
+        def call(action, **kwargs):
+            return client.post("/v1/library", headers=AUTH, json={"action": action,
+                "profile": "fixture_one", "id": VIDEOS[2], **kwargs})
+        chat = call("live_chat").json()
+        request = {"action": "chat_send", "profile": "fixture_one", "id": VIDEOS[2],
+                   "cursor": chat["cursor"], "session": "fixture-send-1", "text": "<b>Literal</b> & café 日本語 😀"}
+        first = client.post("/v1/library", headers=AUTH, json=request).json()
+        assert first == {"api_version": 1, "success": True, "id": VIDEOS[2],
+                         "session": request["session"], "message_id": first["message_id"]}
+        assert client.post("/v1/library", headers=AUTH, json=request).json() == first
+        job = client.post("/v1/jobs", headers=AUTH, json={"action": "library", "library": request}).json()
+        for _ in range(100):
+            result = client.get("/v1/jobs/" + job["job"], headers=AUTH).json()
+            if result["state"] == "done": break
+            time.sleep(0.01)
+        assert result["state"] == "done" and result["result"] == first
+        rows = call("chat_poll", cursor=chat["cursor"]).json()["items"]
+        assert sum(row["id"] == first["message_id"] for row in rows) == 1
+        assert rows[-1]["content"] == request["text"]
+        assert rows[-1]["author"] == "Offline account one"
+        assert call("chat_send", **{k: v for k, v in request.items() if k not in {"action", "profile", "id"}}, profile="guest").status_code == 401
+        for changed in ({"text": "Changed"}, {"id": VIDEOS[0]}, {"cursor": "different"}):
+            response = client.post("/v1/library", headers=AUTH, json={**request, **changed})
+            assert response.status_code == 409 and response.json()["error"]["code"] == "chat_unconfirmed"
+        second = call("live_chat", profile="fixture_two").json()
+        assert call("chat_poll", profile="fixture_two", cursor=second["cursor"]).json()["items"] == second["items"]
+        assert call("chat_send", profile="fixture_two", cursor=chat["cursor"], session="foreign", text="No").status_code == 409
+        assert call("chat_close", cursor=chat["cursor"]).json()["success"]
+        assert client.post("/v1/library", headers=AUTH, json=request).json() == first
+        assert call("chat_send", cursor=chat["cursor"], session="after-close", text="No").status_code == 409
+
+
+def test_fixture_chat_send_limits_expiry_and_removal():
+    async def run():
+        clock = [0]
+        library = FixtureLibrary(FixtureExtractor(), clock=lambda: clock[0])
+        chat = await library.execute({"action": "live_chat", "profile": "fixture_one", "id": VIDEOS[2]})
+        request = {"action": "chat_send", "profile": "fixture_one", "id": VIDEOS[2],
+                   "cursor": chat["cursor"], "session": "one", "text": "😀" * 200}
+        first = await library.execute(request)
+        for i, text in enumerate(("", " \u2003", "x\n", "x\x7f", "\ud800", "😀" * 201)):
+            with pytest.raises(ServiceError) as error:
+                await library.execute({**request, "session": f"invalid-{i}", "text": text})
+            assert error.value.code == "invalid_message"
+        clock[0] = 3
+        rows = (await library.execute({"action": "chat_poll", "profile": "fixture_one", "cursor": chat["cursor"]}))["items"]
+        assert rows[-1]["id"] == first["message_id"] and rows[-1]["content"] == request["text"]
+        for i in range(1, 256):
+            await library.execute({**request, "session": f"bounded-{i}"})
+        assert len(library.chat_sends) == 256
+        with pytest.raises(ServiceError) as error:
+            await library.execute({**request, "session": "overflow"})
+        assert error.value.code == "chat_busy"
+        # Confirmed repeats survive chat closure until the intent expires.
+        clock[0] = 1801
+        with pytest.raises(ServiceError) as error:
+            await library.execute(request)
+        assert error.value.code == "cursor_expired"
+        assert len(library.chat_sends) == 256  # later intents still have three seconds
+        await library.execute({"action": "profile_remove", "profile": "fixture_one"})
+        assert not library.chat_sends and not library.chats
+        await library.close()
+        assert not library.references and not library.chat_sends
+    asyncio.run(run())

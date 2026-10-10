@@ -287,7 +287,7 @@ screen when its continuation expires.
 
 An uncertain timed-out change is not reported as success; inspect the account
 before repeating it. The worker rejects an unconfirmed upstream mutation.
-Library networking is disabled in explicit offline fixture mode.
+External library networking is disabled in explicit offline fixture mode.
 
 ## Offline account fixtures
 
@@ -302,6 +302,15 @@ bounded and expire after two minutes. All changes reset when the server restarts
 No Node worker, credentials or external networking are used. Real library/profile
 flags remain incompatible with fixture mode. These fixtures support repeatable
 UI acceptance; their success cannot prove YouTube account compatibility.
+
+The HLS fixture supports selected-account live-chat sending through the same
+library and asynchronous-job endpoints. Messages appear in that chat's rolling
+snapshot only after fixture confirmation. Identical confirmed intents return
+the same message ID; changed or unconfirmed intents cannot send again. Guest,
+foreign-profile, expired and closed chat contexts are rejected. Message limits
+match the production contract, with 256 intents retained for 30 minutes in RAM.
+Profile removal and shutdown clear them. This enables native compose/review/send
+acceptance without a Google account or external message posting.
 
 The full Python suite passed 44 tests after this fixture integration. The fixture
 cases exercise the real authenticated API and jobs, guest rejection, all account

@@ -1,5 +1,7 @@
 """In-memory account fixtures. No credentials, worker, or network connections."""
 import copy
+import hashlib
+import re
 import time
 from uuid import uuid4
 
@@ -10,7 +12,7 @@ CHANNEL = "UC" + "f" * 22
 PRIVATE = {"subscriptions", "history", "library", "playlists", "watch_later",
            "like", "dislike", "unrate", "subscribe", "unsubscribe", "playlist_create",
            "playlist_add", "playlist_remove", "playlist_rename", "playlist_delete",
-           "watch_later_add", "watch_later_remove", "watch_progress", "comment_rate"}
+           "watch_later_add", "watch_later_remove", "watch_progress", "comment_rate", "chat_send"}
 
 
 class FixtureLibrary:
@@ -28,6 +30,7 @@ class FixtureLibrary:
                 "watch_later": [], "ratings": {}, "subscriptions": set(), "history": {}, "comment_ratings": {}}
         self.watches = {}
         self.chats = {}
+        self.chat_sends = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -79,10 +82,13 @@ class FixtureLibrary:
             self.references = {k: v for k, v in self.references.items() if v["owner"] != owner}
             self.watches = {k: v for k, v in self.watches.items() if k[0] != owner}
             self.chats = {k: v for k, v in self.chats.items() if v["owner"] != owner}
+            self.chat_sends = {k: v for k, v in self.chat_sends.items() if k[0] != owner}
             self.on_profile_removed(owner)
             return {"api_version": 1, "success": True, "profile": owner}
         if action in PRIVATE and owner == "guest":
             raise ServiceError("account_required", "Select an offline account profile.", 401)
+        if action == "chat_send":
+            return self._send_chat(request, owner)
         if action in {"live_chat", "chat_poll", "chat_close"}:
             return self._chat(request, owner)
         if action == "comment_rate":
@@ -210,6 +216,48 @@ class FixtureLibrary:
             raise ServiceError("unknown_operation", "This library operation is unavailable.", 400)
         return {"api_version": 1, "success": True, "playlist_id": created}
 
+    def _send_chat(self, request, owner):
+        now = self.clock()
+        intent, cursor = request.get("session"), request.get("cursor")
+        text, video = request.get("text"), request.get("id")
+        if (not isinstance(intent, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", intent)
+                or not isinstance(cursor, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", cursor)
+                or not isinstance(video, str) or not re.fullmatch(r"[A-Za-z0-9_-]{11}", video)
+                or not isinstance(text, str) or not text.strip() or len(text) > 200
+                or any(ord(c) < 32 or ord(c) == 127 or 0xD800 <= ord(c) <= 0xDFFF for c in text)):
+            raise ServiceError("invalid_message", "Enter a message of 1 to 200 characters.", 400)
+        self.chat_sends = {k: v for k, v in self.chat_sends.items() if v["deadline"] > now}
+        identity = (cursor, video, hashlib.sha256(text.encode("utf-8")).hexdigest())
+        key = (owner, intent)
+        state = self.chat_sends.get(key)
+        if state:
+            if state["identity"] != identity or state["result"] is None:
+                raise ServiceError("chat_unconfirmed", "This message intent cannot be repeated.", 409)
+            return copy.deepcopy(state["result"])
+        if video != VIDEOS[2]:
+            raise ServiceError("chat_unavailable", "Select the HLS fixture for offline chat.", 404)
+        if len(self.chat_sends) >= 256:
+            raise ServiceError("chat_busy", "Too many message intents are retained.", 429)
+        state = {"identity": identity, "result": None, "deadline": now + 1800}
+        self.chat_sends[key] = state
+        ref = self.references.get(cursor)
+        context = self.chats.get(ref["items"]) if ref and ref["kind"] == "chat" else None
+        if (not context or ref["owner"] != owner or context["owner"] != owner
+                or ref["deadline"] <= now or context["deadline"] <= now
+                or context["id"] != video):
+            raise ServiceError("cursor_expired", "Reopen this chat to continue.", 409)
+        message = {"id": "fixture-sent-" + str(uuid4()), "author": self.profiles[owner],
+                   "content": text, "published": "Offline fixture", "type": "LiveChatTextMessage",
+                   "amount": "", "moderator": False, "verified": False, "art_url": ""}
+        context["sent"] = [*context["sent"], message][-256:]
+        # Include the confirmed fixture message in the next poll, including a
+        # poll before the normal two-second refresh interval. Do not alter a
+        # previously cached continuation response.
+        context["result"]["items"] = [*context["result"]["items"], message][-256:]
+        state["result"] = {"api_version": 1, "success": True, "id": video,
+                           "session": intent, "message_id": message["id"]}
+        return copy.deepcopy(state["result"])
+
     def _chat(self, request, owner):
         now = self.clock()
         self.chats = {k: v for k, v in self.chats.items() if v["deadline"] > now}
@@ -225,7 +273,7 @@ class FixtureLibrary:
                 raise ServiceError("chat_busy", "Close another chat before opening this one.", 429)
             identity = str(uuid4())
             context = {"owner": owner, "id": VIDEOS[2], "mode": mode, "step": 0, "next_poll": now,
-                       "deadline": now + 1800}
+                       "deadline": now + 1800, "sent": []}
             self.chats[identity] = context
         else:
             ref = self.references.get(request.get("cursor"))
@@ -254,7 +302,7 @@ class FixtureLibrary:
         cursor = self._reference(owner, "chat", identity)
         self.references[cursor]["deadline"] = now + 1800
         result = {"api_version": 1, "kind": "live_chat", "id": context["id"], "chat_mode": context["mode"],
-                  "items": rows, "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
+                  "items": [*rows, *copy.deepcopy(context["sent"])][-256:], "cursor": cursor, "has_more": False, "ended": False, "is_replay": False,
                   "poll_after_ms": 2000}
         context.update(next_poll=now + 2, deadline=now + 1800, result=result)
         if previous is not None:
@@ -266,3 +314,4 @@ class FixtureLibrary:
         self.references.clear()
         self.watches.clear()
         self.chats.clear()
+        self.chat_sends.clear()

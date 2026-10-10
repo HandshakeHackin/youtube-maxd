@@ -246,8 +246,11 @@ PYTHONPATH=companion .venv/bin/python -m prosperotube \
 Pair and search any term. Three labelled synthetic videos exercise AVC/AAC DASH,
 VP9/Opus DASH and finite HLS. Thumbnails/media are local. This mode does not
 contact YouTube or SponsorBlock and does not establish service compatibility.
-The HLS fixture also exposes generated rolling top/live chat through R3. This
-checks the reader and context lifecycle independently of public chat availability.
+The HLS fixture also exposes generated rolling top/live chat through R3. Select
+an offline account, then use L3 to compose, review the full message and press
+Cross to send. A confirmed message appears once in subsequent polls. This checks
+the reader, send intent and context lifecycle without posting to YouTube;
+physical PS5 keyboard/controller acceptance remains pending.
 
 Native chat checks run in sequence, sharing the prepared EVO tree:
 

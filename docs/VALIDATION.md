@@ -692,3 +692,19 @@ upload, launch, close, input or retry occurred. The owned lock was released.
 The frozen candidate remains undeployed; helper-stage, storage, persistence,
 teardown and playback acceptance remain pending. No fallback case was started
 after this transport failure.
+
+### Offline fixture chat sending (2026-10-09)
+
+Generated HLS chat now accepts selected offline-account messages through the
+shipping library and job endpoints. API tests confirm literal markup and Unicode
+content, a single polling copy, identical direct/job repeat confirmations, and
+rejection of Guest, foreign-profile, changed-intent and closed contexts. Injected
+clock tests cover 200-character limits, invalid controls/surrogates, rolling
+polls, 256 retained intents, expiry and profile-removal cleanup.
+
+Focused fixture suite: six passed. Full companion Python suite: 174 passed,
+with the existing Starlette TestClient deprecation warning. Evidence:
+`.deps/fixture-chat-send-focused.log` / `.result` and
+`.deps/fixture-chat-send-full.log` / `.result` (both 0). No console traffic or
+real YouTube posting occurred. Native source and the undeployed PR50 package
+remain unchanged; PS5 compose/review/send acceptance is still required.
