@@ -26,6 +26,17 @@ static void action(const char *category, int desired) {
     }
     assert(0);
 }
+static void minimum(double desired) {
+    for (int i = 0; i < 8; ++i) {
+        cJSON *root = read_store();
+        double current = cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
+            root, "sponsor_settings"), "minimum_seconds")->valuedouble;
+        cJSON_Delete(root);
+        if (current == desired) return;
+        provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL); assert(last_ok);
+    }
+    assert(0);
+}
 int main(void) {
     char temporary[] = "/tmp/tube-sponsor-XXXXXX";
     assert(mkdtemp(temporary) && setenv("EVO_DATA_DIR_OVERRIDE", temporary, 1) == 0);
@@ -175,9 +186,74 @@ int main(void) {
     assert(!tube_sponsor_markers(100, markers, 128));
     provider->list_catalog("library:profile:guest", 0, items_cb, NULL);
     assert(!tube_sponsor_markers(100, markers, 128)); // Switching back cannot revive the old instance.
+    // Explicit point jumps remain separate from automatic intervals and their
+    // duration/repeat policy. Unsorted points choose the nearest future point.
+    provider->list_catalog("settings:sb:color:filler", 0, items_cb, NULL);
+    action("poi_highlight", 1);
+    segments("{\"segments\":[{\"start\":90,\"end\":90,\"category\":\"poi_highlight\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"},{\"start\":100,\"end\":100,\"category\":\"poi_highlight\"},{\"start\":101,\"end\":101,\"category\":\"poi_highlight\"}]}");
+    assert(tube_highlight_target(10, 100) < 0); // Resolve alone cannot seek.
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(10) < 0); // No invented [0, highlight] interval.
+    assert(tube_highlight_target(10, 100) == 50 && tube_sponsor_show_message());
+    assert(tube_highlight_target(10, 100) < 0); // Same request before seek clock moves.
+    assert(!tube_sponsor_prompt(50));
+    assert(tube_highlight_target(50, 100) == 90);
+    assert(!tube_sponsor_prompt(90));
+    assert(tube_highlight_target(99, 100) < 0); // Endpoint/beyond-duration points cannot seek.
+    assert(tube_highlight_target(10, 100) == 50); // Explicit rewind/repeat is allowed.
+    action("poi_highlight", 0);
+    provider->list_catalog("settings:sb:color:poi_highlight", 0, items_cb, NULL);
+    minimum(60);
+    cJSON *minimum_store = read_store();
+    assert(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
+        minimum_store, "sponsor_settings"), "minimum_seconds")->valuedouble == 60);
+    cJSON_Delete(minimum_store);
+    assert(tube_highlight_target(48, 100) == 50 && !tube_sponsor_show_message()); // Only two seconds, color off.
+    assert(!tube_sponsor_finish(50, 100));
+    action("poi_highlight", 2);
+    assert(tube_highlight_target(10, 100) < 0 && tube_sponsor_prompt(10));
+    assert(tube_sponsor_prompt(20)); // Future-point review is not expired by interval-start rules.
+    assert(tube_sponsor_confirm(20, 0) < 0 && !tube_sponsor_prompt(20));
+    assert(tube_highlight_target(20, 100) < 0 && tube_sponsor_prompt(20));
+    assert(tube_sponsor_confirm(20, 1) == 50 && !tube_sponsor_finish(50, 100));
+    assert(tube_highlight_target(20, 100) < 0);
+    assert(!tube_sponsor_prompt(50));
+    assert(tube_highlight_target(50, 100) < 0 && tube_sponsor_prompt(50));
+    assert(!tube_sponsor_prompt(90)); // Review expires at its point.
+    action("poi_highlight", 3);
+    assert(tube_highlight_target(10, 100) < 0 && !tube_sponsor_prompt(10));
+    action("poi_highlight", 2); action("sponsor", 2);
+    minimum(0);
+    segments("{\"segments\":[{\"start\":20,\"end\":80,\"category\":\"sponsor\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_highlight_target(10, 100) < 0 && tube_sponsor_confirm(10, 1) == 50);
+    assert(tube_skip_target(25) < 0 && tube_sponsor_prompt(25)); // Point acknowledgement did not consume the overlapping interval.
+    assert(tube_highlight_target(25, 100) < 0 && tube_sponsor_prompt(25)); // Keep existing interval review.
+    assert(tube_sponsor_confirm(25, 1) == 80);
+    action("poi_highlight", 0);
+    assert(tube_highlight_target(NAN, 100) < 0 && tube_highlight_target(-1, 100) < 0);
+    assert(tube_highlight_target(10, NAN) < 0 && tube_highlight_target(10, 0) < 0);
+    assert(tube_highlight_target(99, 100) < 0 && tube_highlight_target(100, 100) < 0);
+    (void)tube_finish_drained_and_next(99);
+    assert(tube_highlight_target(10, 100) < 0); // Completed instance is no longer actionable.
+    provider->list_catalog("library:profile:another", 0, items_cb, NULL);
+    assert(tube_highlight_target(10, 100) < 0);
+    provider->list_catalog("library:profile:guest", 0, items_cb, NULL);
+    assert(tube_highlight_target(10, 100) < 0);
     provider->resolve("abcdefghijk", resolve_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"duration_sec\":0,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/live/a.m3u8\",\"video_codec\":\"h264\",\"audio_codec\":\"aac\",\"is_live\":true}]}}");
     assert(pending_count == 0 && tube_skip_target(12) < 0 && !tube_sponsor_prompt(12));
+    evo_stream_choice_t live_choice = {0}; live_choice.is_live = 1;
+    snprintf(live_choice.url, sizeof live_choice.url, "http://127.0.0.1:8765/media/live/a.m3u8");
+    provider->stream_chosen("abcdefghijk", &live_choice);
+    assert(tube_highlight_target(10, 100) < 0); // A live playing instance never seeks a cached point.
+    // A former live video resolving as VOD must refresh its live flag before
+    // optional metadata eligibility is decided, then invalidate on source change.
+    segments("{\"segments\":[{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_highlight_target(10, 100) == 50);
+    provider->set_source("http://localhost:8765"); assert(tube_highlight_target(10, 100) < 0);
+    provider->set_source("http://127.0.0.1:8765"); assert(tube_highlight_target(10, 100) < 0);
     provider->list_catalog("settings:sb:action:invalid", 0, items_cb, NULL); assert(!last_ok);
     assert(provider->list_catalog("settings:sb:exclusions", 1001, items_cb, NULL) < 0);
     puts("PASS: shipping SponsorBlock actions, confirmation, end skips, watched state, queue transitions, exclusions, persistence and stale replies");

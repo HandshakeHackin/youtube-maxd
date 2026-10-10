@@ -1,5 +1,42 @@
 # Offline validation record — 0.1.0
 
+## Explicit highlight jumps and paused seek intent — 2026-10-10
+
+R3 in the player now selects the nearest future SponsorBlock highlight point
+with silent/message/ask/disabled actions. Points remain zero-width markers;
+they never create automatic intervals from zero to the highlight. Manual intent
+ignores automatic minimum/repeat policy. Point review has its own start position,
+survives before the target, expires at the point, and does not consume overlapping
+interval review. Duplicate requests before seek clock movement are guarded;
+finished/stale/source/profile/live contexts and invalid or endpoint targets are
+rejected. Player R3 is routed through the global dispatcher; player L3 and
+both sticks on other screens retain capture. Keyboard/browser ownership is kept.
+
+An explicit pause flag now reaches the shipping controller's seek mailbox.
+Highlight jumps and accepted reviews preserve the engine's paused state, including
+request refusal; the one-argument scrub/legacy seek contract still resumes.
+Confirmation cannot submit a competing seek during scrub/seek/prebuffer ownership,
+while Circle can cancel review. Resolving a former live video as VOD now refreshes
+its live flag before optional metadata eligibility is decided.
+
+The final unchanged-source run passed the three shipping native provider,
+recovery and SponsorBlock ASan/UBSan executables; extracted shipping player paths;
+combined global dispatch/provider bindings/player highlight input; and both
+shipping controller seek overloads with mocked mailbox/engine functions.
+Coverage includes unsorted points, disabled colors, a two-second manual jump with
+60-second automatic minimum, confirmation/decline, overlap, duplicate requests,
+archive transition, source/profile invalidation, endpoint/non-finite input,
+playback gates, pause on success/refusal and unchanged legacy behavior.
+Evidence: `.deps/highlight-{native,player,dispatch,seek-pause}.log` and matching
+`.result` files (all 0). New-package/physical controller acceptance remains pending.
+
+Reference review used SmartTube `2c60453007dfc3775ff525c3837c2d1d4e95aab9`
+SponsorBlockController/SponsorBlockData and MediaServiceCore
+`4d9767733aa92269b9d24f24844a7fa1bb5196c1`
+[YouTubeSponsorSegment](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeSponsorSegment.java)
+and Segment. They preserve point coordinates; R3 is the explicit PS5 control
+mapping. This does not establish complete SmartTube SponsorBlock parity.
+
 ## Provider stick controls survive global dispatch — 2026-10-10
 
 The committed `d4d5b66d` PS5 candidate passed all 211 objects, linking, signed

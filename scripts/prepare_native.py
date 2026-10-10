@@ -55,6 +55,7 @@ def main():
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp",
+        "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",

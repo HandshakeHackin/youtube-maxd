@@ -17,6 +17,8 @@ int tube_toggle_queue(const char *id);
 int tube_toggle_subscription(const char *id);
 const char *tube_caption_media_path(void);
 double tube_skip_target(double position);
+/* Explicit point jump; highlights never become automatic skip intervals. */
+double tube_highlight_target(double position, double duration);
 const char *tube_sponsor_prompt(double position);
 double tube_sponsor_confirm(double position, int accept);
 int tube_sponsor_show_message(void);

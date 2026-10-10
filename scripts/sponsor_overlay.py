@@ -8,6 +8,8 @@ def apply_sponsor_overlay(replace, player):
     replace(screen, '    // Scrub hold update', '''    if (tube_sponsor_prompt(playback->getPositionSeconds()) &&
         (pressed & (PadButtons::Cross | PadButtons::Circle))) {
         const bool accept = (pressed & PadButtons::Cross) && !(pressed & PadButtons::Circle);
+        if (accept && (playback->isLiveSource() || playback->isScrubbing() || evo_pb_is_complete() ||
+            evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold)) return true;
         double target = tube_sponsor_confirm(playback->getPositionSeconds(), accept);
         m_tubeSponsorPromptAt = 0;
         toast("SPONSORBLOCK", accept ? "Skipping segment" : "Keeping this segment");
@@ -16,14 +18,33 @@ def apply_sponsor_overlay(replace, player):
             if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
             return true;
         }
-        if (target >= 0 && target < playback->getDurationSeconds()) playback->seekTo(target);
+        if (target >= 0 && target < playback->getDurationSeconds()) playback->seekTo(target, evo_pb_is_paused() != 0);
         return true;
     }
 
     // Scrub hold update''')
+    replace(screen, '    // Scrub hold update', '''    // ProsperoTube highlight input (extracted by host dispatch/player tests).
+    if (pressed & PadButtons::R3) {
+        if (playback->isLiveSource() || playback->isScrubbing() || evo_pb_is_complete() ||
+            evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold) return true;
+        double target = tube_highlight_target(playback->getPositionSeconds(), playback->getDurationSeconds());
+        if (target >= 0 && target < playback->getDurationSeconds()) {
+            playback->seekTo(target, evo_pb_is_paused() != 0);
+            if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Jumped to highlight");
+        } else {
+            const char *prompt = tube_sponsor_prompt(playback->getPositionSeconds());
+            toast("SPONSORBLOCK", prompt ? prompt : "No available upcoming highlight");
+        }
+        return true;
+    }
+    // End ProsperoTube highlight input.
+
+    // Scrub hold update''')
     replace(screen, '            playback->seekTo(target); toast("SPONSORBLOCK", "Skipped an optional segment");', '''            playback->seekTo(target);
             if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped an optional segment");''')
-    replace(screen, '        if (target >= 0 && target < playback->getDurationSeconds()) {', '''        if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
+    replace(screen, '''        double target = tube_skip_target(playback->getPositionSeconds());
+        if (target >= 0 && target < playback->getDurationSeconds()) {''', '''        double target = tube_skip_target(playback->getPositionSeconds());
+        if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
             if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped the final segment");
             playback->stopPlayback();
             if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();

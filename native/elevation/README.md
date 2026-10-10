@@ -42,12 +42,17 @@ Startup stops before app services if that proof fails; no render-loop retry or
 transient persistence fallback remains. Video module/library queries precede
 the transition, while resident video decoder and display resources follow
 storage proof. Audio, IME and browser preloads retain their earlier ordering.
-The split addresses the observed 92-thread request state; console acceptance
-must still establish the helper's single-thread precondition and decoder use.
+The split addresses the observed 92-thread request state. Native source
+`b9b5c916` established one stopped thread/two credential references, helper
+completion with balanced donor roots, storage proof and post-transition codec
+creation on the reserved PS5. A real public YouTube clip then used native AVC
+with visible video/captions, saved Guest history and graceful GPU park/close.
 
 Old sandbox fixture data is not automatically copied or merged into durable
 state. Console acceptance must verify a clean launch, exact app storage path,
-save/relaunch persistence, playback and clean teardown. It is pending.
+save/relaunch persistence, playback and clean teardown. The first playback and
+close have evidence; history reload, broader playback and physical audio/pad
+acceptance remain pending. See `docs/VALIDATION.md` in the project repository.
 
 ProsperoTube startup keeps the boot log buffered until
 `evo_jailbreak_is_open()` confirms both Lapy elevation and the application
@@ -65,4 +70,5 @@ record of already-captured target-stop snapshot fields. The upstream acceptance
 predicate, ptrace lifecycle and mutation paths are unchanged. The packaged
 manifest records both upstream and compiled daemon SHA-256 values. This option
 exists to distinguish the target-stop predicates rejected on the reserved
-console; it has not established successful app storage.
+console. The diagnostic build later recorded successful single-thread app
+storage after startup ordering was corrected; it does not relax the stop checks.

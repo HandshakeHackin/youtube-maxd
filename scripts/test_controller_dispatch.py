@@ -16,6 +16,10 @@ stick_start = host.index("        if ((pressed & PadButtons::L3)", input_start)
 start = host.rindex('    if (m_providerId == "youtube") {', input_start, stick_start)
 end = host.index("    if (pressed & PadButtons::Square)", start)
 bindings = host[start:end]
+screen = (player / "core/src/screens/PlayerScreen.cpp").read_text()
+start = screen.index("    // ProsperoTube highlight input (")
+end = screen.index("    // End ProsperoTube highlight input.", start)
+highlight = screen[start:end]
 
 scaffold = r'''
 #include <cassert>
@@ -50,12 +54,35 @@ static bool providerInput(uint32_t pressed) {
 scaffold += bindings + r'''
     return false;
 }
+static unsigned highlights, seeks;
+static bool pb_prebuffer_hold;
+static struct { bool seek_discarding=false; } g_pp_pb;
+static int evo_pb_is_complete() { return 0; }
+static int evo_pb_is_paused() { return 0; }
+static int evo_demux_is_seeking() { return 0; }
+static double tube_highlight_target(double,double) { ++highlights; return 12; }
+static int tube_sponsor_show_message() { return 0; }
+static const char* tube_sponsor_prompt(double) { return nullptr; }
+struct Playback {
+    bool isLiveSource() { return false; }
+    bool isScrubbing() { return false; }
+    double getPositionSeconds() { return 1; }
+    double getDurationSeconds() { return 100; }
+    void seekTo(double target,bool keepPaused) { assert(target==12 && !keepPaused); ++seeks; }
+};
+static Playback state, *playback=&state;
+static bool playerInput(uint32_t pressed) {
+'''
+scaffold += highlight + r'''
+    return false;
+}
 struct Manager {
     ScreenId id=ScreenId::EmbyBrowse;
     ScreenId getCurrentScreenId() { return id; }
     void handleInput(uint32_t pressed,uint32_t held,uint32_t released) {
         ++screen_calls; screen_pressed=pressed; screen_held=held; screen_released=released;
         if (id==ScreenId::EmbyBrowse) providerInput(pressed);
+        if (id==ScreenId::Player) playerInput(pressed);
     }
 };
 static Manager manager;
@@ -67,7 +94,7 @@ scaffold += dispatch + r'''
 }
 static void reset(ScreenId id=ScreenId::EmbyBrowse) {
     manager.id=id; keyboard=web=false; capture_ok=true;
-    captures=key_updates=key_calls=screen_calls=0;
+    captures=key_updates=key_calls=screen_calls=highlights=seeks=0;
     key_pressed=screen_pressed=screen_held=screen_released=0;
     discussion.clear(); m_providerId="youtube";
 }
@@ -91,9 +118,11 @@ int main() {
     for (auto id:{ScreenId::Player,ScreenId::Settings}) {
         for (auto bit:{PadButtons::L3,PadButtons::R3}) {
             reset(id); route(bit|PadButtons::Cross);
-            assert(captures==1 && screen_pressed==PadButtons::Cross);
+            const bool screenshot=id==ScreenId::Settings || bit==PadButtons::L3;
+            assert(captures==unsigned(screenshot) && screen_pressed==(screenshot ? PadButtons::Cross : bit|PadButtons::Cross));
+            assert(highlights==unsigned(!screenshot) && seeks==highlights);
             reset(id); capture_ok=false; route(bit|PadButtons::Cross);
-            assert(captures==1 && screen_pressed==PadButtons::Cross);
+            assert(captures==unsigned(screenshot) && screen_pressed==(screenshot ? PadButtons::Cross : bit|PadButtons::Cross));
             reset(id); keyboard=true; route(bit|PadButtons::Cross);
             assert(!captures && !screen_calls && key_updates==1 && key_calls==1);
             assert(key_pressed==(bit|PadButtons::Cross));
@@ -101,6 +130,8 @@ int main() {
             assert(!captures && !screen_calls && !key_calls);
         }
     }
+    reset(ScreenId::Player); route(PadButtons::L3|PadButtons::R3);
+    assert(captures==1 && screen_pressed==PadButtons::R3 && highlights==1 && seeks==1);
     reset(); keyboard=true; route(PadButtons::L3);
     assert(!captures && !screen_calls && key_pressed==PadButtons::L3);
     reset(); route(0); assert(!captures && !screen_calls && discussion.empty());

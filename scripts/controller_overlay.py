@@ -13,9 +13,14 @@ def apply_controller_overlay(replace, player):
              * bit this pad and firmware decide to send.
              */
             if (pressed & (PadButtons::L3 | PadButtons::R3)) {""", """            /* ProsperoTube controller routing: provider stick clicks belong
-             * to discussion/chat controls. Keyboard and browser input also
-             * keep their buttons. Other screens retain screenshot capture. */
+             * to discussion/chat controls; player R3 jumps to a highlight.
+             * Keyboard/browser input keeps its buttons. Player L3 and both
+             * sticks on other screens retain screenshot capture. */
             const bool providerSticks =
                 m_screenManager->getCurrentScreenId() == ScreenId::EmbyBrowse;
+            const uint32_t captureMask = m_screenManager->getCurrentScreenId() == ScreenId::Player ?
+                PadButtons::L3 : (PadButtons::L3 | PadButtons::R3);
             if (!providerSticks && !evo_keyboard_is_open() && !evo_webui_active() &&
-                (pressed & (PadButtons::L3 | PadButtons::R3))) {""")
+                (pressed & captureMask)) {""")
+    replace(app, "                pressed &= ~(PadButtons::L3 | PadButtons::R3);",
+            "                pressed &= ~captureMask;")

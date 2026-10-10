@@ -600,6 +600,14 @@ newly adopted dependencies at the time of implementation.
 
 ## 11. Immediate backlog
 
+The first real PS5 public-video milestone is recorded in `docs/VALIDATION.md`.
+The latest offline work adds explicit R3 highlight point jumps and pause-preserving
+seek requests, corrects stale live-to-archive metadata eligibility, and tests
+shipping provider/player/global-dispatch/controller paths under ASan/UBSan.
+Physical acceptance, pause/seek/history reload and wider SmartTube behaviors
+remain pending; both available consoles stopped at busy title checks for the
+preceding controller package. Continue offline without repeated hardware polling.
+
 - [ ] Confirm available console/firmware/display and reproducible test procedure.
 - [ ] Resolve reuse terms for the specific service/player subset before importing it.
 - [ ] Build and record the pinned EVO baseline in WSL.

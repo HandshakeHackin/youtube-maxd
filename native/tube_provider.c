@@ -78,7 +78,9 @@ static unsigned g_sb_serial, g_sb_active_serial;
 static char g_sb_source[512];
 static char g_sb_channel[25], g_sb_profile[33], g_sb_prompt_text[128];
 static int g_sb_prompt = -1, g_sb_message;
-static double g_sb_prompt_end, g_sb_last_position = -1, g_sb_finish_target = -1;
+static double g_sb_prompt_start, g_sb_prompt_end, g_sb_last_position = -1, g_sb_finish_target = -1;
+static int g_highlight_guard = -1;
+static double g_highlight_origin;
 static int g_segment_count, g_skip_guard = -1;
 static double g_skip_until;
 static double g_chapters[128];
@@ -87,6 +89,7 @@ static void sponsor_invalidate(void) {
     if (!++g_sb_serial) ++g_sb_serial;
     g_sb_active_serial = 0; g_sb_source[0] = 0; g_segment_count = 0;
     g_sb_prompt = -1; g_skip_guard = -1; g_sb_finish_target = -1;
+    g_highlight_guard = -1;
 }
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
@@ -898,9 +901,11 @@ static void resolved(Request *r, const cJSON *root) {
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
         cached->item.duration_sec = (int64_t)num(root, "duration_sec");
+        cached->item.is_live = r->choices[0].is_live;
     }
     g_caption_path[0] = 0; g_segment_count = 0; g_skip_guard = -1;
     g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0; g_sb_finish_target = -1;
+    g_highlight_guard = -1;
     if (!++g_sb_serial) ++g_sb_serial;
     copy(g_sb_source, sizeof g_sb_source, g_source);
     copy(g_sb_channel, sizeof g_sb_channel, cached ? cached->item.parent_id : "");
@@ -1469,11 +1474,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
-        else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_finish_target = -1; save(); }
+        else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); }
         else if (!strncmp(parent, "settings:sb:action:", 19)) {
             int category = tube_sb_category(parent + 19);
             if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
-            g_sb.actions[category] = (g_sb.actions[category] + 1) % 4; g_sb_prompt = -1; g_sb_finish_target = -1; save();
+            g_sb.actions[category] = (g_sb.actions[category] + 1) % 4; g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save();
         } else if (!strncmp(parent, "settings:sb:color:", 18)) {
             int category = tube_sb_category(parent + 18);
             if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
@@ -1496,7 +1501,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             } else if (g_sb.excluded_count < TUBE_SB_EXCLUSIONS) {
                 memcpy(g_sb.excluded[g_sb.excluded_count++], channel, 25);
             } else { tube_set_error("The excluded channel list is full."); cb(0, NULL, 0, 0, ud); return 1; }
-            g_sb_prompt = -1; g_sb_finish_target = -1; save();
+            g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save();
         }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
@@ -1548,9 +1553,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
         } else if (!strncmp(parent, "settings:sb", 11)) {
             for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) {
+                static const char *const point_actions[] = {"Jump silently", "Jump with message", "Ask before jumping", "Do nothing"};
                 char id[80], label[128]; snprintf(id, sizeof id, "settings:sb:action:%s", tube_sb_names[i]);
-                snprintf(label, sizeof label, "%s: %s", tube_sb_labels[i], tube_sb_actions[g_sb.actions[i]]);
-                folder(&out[n++], id, label, "Select to cycle the action; fetch new categories on the next video");
+                snprintf(label, sizeof label, "%s: %s", tube_sb_labels[i],
+                    i == 8 ? point_actions[g_sb.actions[i]] : tube_sb_actions[g_sb.actions[i]]);
+                folder(&out[n++], id, label, i == 8 ?
+                    "R3 jumps to the next highlight; select to cycle; new categories load on next video" :
+                    "Select to cycle the action; fetch new categories on the next video");
             }
             char label[96]; snprintf(label, sizeof label, "Minimum remaining skip: %.0f seconds", g_sb.minimum);
             folder(&out[n++], "settings:sb:minimum", label, "Cycle 0 / 1 / 3 / 5 / 10 / 15 / 30 / 60 seconds");
@@ -1870,13 +1879,48 @@ static int sponsor_scope(void) {
     return g_sponsor && *g_sb_source && !strcmp(g_sb_source, g_source) && !strcmp(g_sb_profile, g_library_profile) &&
         !tube_sb_excluded(&g_sb, g_sb_channel);
 }
+static int sponsor_playing_scope(void) {
+    return sponsor_scope() && !g_finished && g_sb_active_serial == g_sb_serial &&
+        !strcmp(g_active_id, g_resolved_id) && !strcmp(g_active_profile, g_sb_profile) &&
+        !g_recovery.choice.is_live;
+}
+static void highlight_observe(double position) {
+    if (g_highlight_guard >= 0 && (g_highlight_guard >= g_segment_count ||
+        position >= g_segments[g_highlight_guard][0] - .25 || position < g_highlight_origin - .5))
+        g_highlight_guard = -1;
+}
+double tube_highlight_target(double position, double duration) {
+    g_sb_message = 0;
+    if (!sponsor_playing_scope() || !isfinite(position) || position < 0 ||
+        !isfinite(duration) || duration <= 0 || duration > 1000000 || position >= duration)
+        return -1;
+    highlight_observe(position);
+    if (tube_sponsor_prompt(position)) return -1; // Keep an existing review intact.
+    int action = g_sb.actions[8], index = -1;
+    if (action == 3) return -1;
+    for (int i = 0; i < g_segment_count; ++i)
+        if (g_segment_categories[i] == 8 && g_segments[i][0] > position + .25 &&
+            g_segments[i][0] < duration && (index < 0 || g_segments[i][0] < g_segments[index][0])) index = i;
+    if (index < 0 || index == g_highlight_guard) return -1;
+    double target = g_segments[index][0];
+    g_sb_finish_target = -1; // A point cannot authorize end-of-video completion.
+    if (action == 2) {
+        g_sb_prompt = index; g_sb_prompt_start = position; g_sb_prompt_end = target;
+        snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Jump to highlight? Cross: jump   Circle: keep playing");
+        return -1;
+    }
+    // Explicit intent ignores automatic minimum/repeat policy. Guard only the
+    // same request while its seek clock has not moved; observing arrival or a
+    // backward seek releases it, including while playback is paused.
+    g_highlight_guard = index; g_highlight_origin = position;
+    g_segment_seen[index] = 1; g_sb_message = action == 1;
+    return target;
+}
 int tube_sponsor_markers(double duration, tube_sponsor_marker_t *markers, int capacity) {
     static const unsigned colors[TUBE_SB_CATEGORIES] = {
         0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0xffff00, 0xff9900, 0x2793e6, 0x7300ff, 0xff1684
     };
-    if (!markers || capacity <= 0 || !isfinite(duration) || duration <= 0 || !sponsor_scope() ||
-        g_finished || g_sb_active_serial != g_sb_serial || strcmp(g_active_id, g_resolved_id) ||
-        strcmp(g_active_profile, g_sb_profile) || g_recovery.choice.is_live) return 0;
+    if (!markers || capacity <= 0 || !isfinite(duration) || duration <= 0 || !sponsor_playing_scope()) return 0;
     int count = 0;
     for (int i = 0; i < g_segment_count && count < capacity; ++i) {
         int category = g_segment_categories[i];
@@ -1888,8 +1932,10 @@ int tube_sponsor_markers(double duration, tube_sponsor_marker_t *markers, int ca
     return count;
 }
 const char *tube_sponsor_prompt(double position) {
+    if (isfinite(position)) highlight_observe(position);
     if (!sponsor_scope() || !isfinite(position) || g_sb_prompt < 0 ||
-        position < g_segments[g_sb_prompt][0] - .5 || position >= g_sb_prompt_end - .25) {
+        (g_segment_categories[g_sb_prompt] == 8 && !sponsor_playing_scope()) ||
+        position < g_sb_prompt_start - .5 || position >= g_sb_prompt_end - .25) {
         g_sb_prompt = -1; return NULL;
     }
     return g_sb_prompt_text;
@@ -1897,8 +1943,14 @@ const char *tube_sponsor_prompt(double position) {
 double tube_sponsor_confirm(double position, int accept) {
     if (!tube_sponsor_prompt(position)) return -1;
     int index = g_sb_prompt; double end = g_sb_prompt_end; g_sb_prompt = -1;
+    if (g_segment_categories[index] == 8) {
+        g_segment_seen[index] = accept ? 1 : 2;
+        if (accept) { g_highlight_guard = index; g_highlight_origin = position; }
+        g_sb_finish_target = -1;
+        return accept ? end : -1;
+    }
     for (int i = 0; i < g_segment_count; ++i)
-        if (g_sb.actions[g_segment_categories[i]] == 2 && g_segments[i][0] <= end &&
+        if (g_segment_categories[i] != 8 && g_sb.actions[g_segment_categories[i]] == 2 && g_segments[i][0] <= end &&
             g_segments[i][1] >= position) g_segment_seen[i] = accept ? 1 : 2;
     g_skip_guard = index; g_skip_until = end;
     g_sb_finish_target = accept ? end : -1;
@@ -1933,7 +1985,7 @@ double tube_skip_target(double position) {
                 fmin(end, (double)media->item.duration_sec) : end;
             if (bounded_end - position < g_sb.minimum) continue;
             if (action == 2) {
-                g_sb_prompt = i; g_sb_prompt_end = end;
+                g_sb_prompt = i; g_sb_prompt_start = g_segments[i][0]; g_sb_prompt_end = end;
                 snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Skip %s? Cross: skip   Circle: keep", tube_sb_labels[g_segment_categories[i]]);
                 return -1;
             }

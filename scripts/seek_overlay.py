@@ -29,6 +29,27 @@ def apply_seek_overlay(replace, player):
     replace(controller, '    pp_playback_notify_seek_begin(&g_pp_pb, targetUs);', '''    /* The demux thread owns seek begin/end. Announcing begin here, after
      * publishing the request, can race a fast completed/failed demux seek and
      * re-arm its discard hold with no remaining request to clear it. */''')
+    replace(player + 'core/include/evo/interfaces/IPlaybackController.hpp',
+            '    virtual bool switchVideoVariant(int streamIndex) = 0;',
+            '''    virtual bool switchVideoVariant(int streamIndex) = 0;
+    /* Explicit seeks such as highlight jumps can retain the paused state.
+     * The one-argument scrub/legacy contract still resumes playback. */
+    virtual void seekTo(double targetSeconds, bool keepPaused) = 0;''')
+    replace(player + 'core/include/evo/services/PlaybackController.hpp',
+            '    void seekTo(double targetSeconds) override;',
+            '    void seekTo(double targetSeconds) override;\n    void seekTo(double targetSeconds, bool keepPaused) override;')
+    replace(controller, 'void PlaybackController::seekTo(double targetSeconds) {',
+            '''void PlaybackController::seekTo(double targetSeconds) {
+    seekTo(targetSeconds, false);
+}
+
+void PlaybackController::seekTo(double targetSeconds, bool keepPaused) {''')
+    replace(controller, '    if (!prospero_request_inplace_seek(targetSeconds, 0)) {',
+            '    if (!prospero_request_inplace_seek(targetSeconds, keepPaused ? 1 : 0)) {')
+    replace(controller, '''        evo_boot_log("seek: request to %.1fs refused - resuming", targetSeconds);
+        pp_playback_resume(&g_pp_pb);''', '''        evo_boot_log("seek: request to %.1fs refused - %s", targetSeconds,
+                     keepPaused ? "keeping paused" : "resuming");
+        if (!keepPaused) pp_playback_resume(&g_pp_pb);''')
     demux = player + 'media/src/evo_demux.c'
     replace(demux, '#include <stdatomic.h>', '#include <stdatomic.h>\n#include <math.h>')
     replace(demux, '''    if (
