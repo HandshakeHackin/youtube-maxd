@@ -19,6 +19,9 @@ continuations and empty-storefront reporting. Python library/API regression:
 18 passed, with all six section identities exercised through the shipping API.
 Native section/Music/provider ASan/UBSan regression exited 0
 (`.deps/extra-topics-native.{log,result}`); the worker bundle rebuilt successfully.
+Candidate `fb3bf1aa` passed PS5 build and immutable freeze (126 files; eboot prefix
+`178637c2e00add14`). Evidence: `.deps/extra-topics-{ps5-build,freeze}.{log,result}`,
+both exit 0. No console deployment was performed for this candidate.
 PS5 navigation/playback acceptance for these three new entries remains open.
 
 ## Personalized Music row — 2026-10-10
