@@ -7,17 +7,33 @@ YouTube video sources. The saved choice has a SELECTED badge; existing quality,
 audio and speed focus behavior is preserved. Live sources can show the controls;
 Music mode and other providers do not. A stale selection rechecks availability.
 The action changes chat state without reopening media. Hiding closes its player
-cursor, changing sides retains rows/context, and selecting a side after a
-terminal error explicitly retries. The preferences screen uses the same setter.
+cursor; the native setter retains rows/context on side changes and selecting a
+side after a terminal error explicitly retries. Leaving the player screen for
+Playback Options closes its existing context; returning restarts scoped chat
+without reopening media. The preferences screen uses the same setter.
 
 Provider/chat and speed-memory tests plus shipping HUD/menu extraction and
 controller speed-reopen tests passed ASan/UBSan
 (`.deps/player-chat-controls-tests.{log,result}`, exit 0), including invalid
 modes, saved selection, retained rows on side changes, same-side error retry,
-live/non-YouTube/Music gating and stale selection. A final check covers moving
-the chat rows ahead of the speed list. PS5 compilation and console acceptance
-for this control update are recorded separately when complete; replay remains
-unimplemented.
+live/non-YouTube/Music gating and stale selection. The final extracted HUD/menu check
+also passed after moving chat rows ahead of the speed list
+(`.deps/player-chat-controls-final.{log,result}`, exit 0). Committed candidate
+`88f28929` passed PS5 build/freeze: 126 files, build
+`prosperotube-88f28929_1010-2153`, eboot SHA-256 prefix `10cbdbd3ed118f8c`
+(`.deps/player-chat-controls-ps5-build.{log,result}` and
+`.deps/player-chat-controls-freeze.{log,result}`, both exit 0).
+
+Console acceptance remains unverified. The first primary case stopped at its
+fresh-state guard without changing saved state. The fallback case and subsequent
+primary case, adapted to preserve original state bytes, both detected a title
+starting during upload and stopped before binding the fixture or launching.
+Installations may contain a subset of the new files; a future case must verify
+all frozen bytes and settle before launch. Original provider state was not
+modified. The isolated fixture was stopped and the shared lock released.
+Evidence: `.deps/player-chat-controls-{hardware,fallback-hardware,preserved-hardware}`
+and the corresponding ignored case directories. These are deferred acceptance
+cases, not passes. Chat replay remains unimplemented.
 
 ## Player live-chat sidebar — 2026-10-10
 
