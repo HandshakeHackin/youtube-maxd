@@ -58,6 +58,14 @@ static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_active_profile[33], g_next_profile[33];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
+static int g_speed = 100;
+static const int tube_speeds[] = {25,50,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,175,180,200,225,250,275,300,325,350,375,400};
+static int valid_speed(double speed) {
+    for (unsigned i = 0; i < sizeof tube_speeds / sizeof *tube_speeds; ++i)
+        if (speed == tube_speeds[i]) return 1;
+    return 0;
+}
+int tube_playback_speed(void) { return g_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
 static int g_paid_notifications;
@@ -370,6 +378,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
     cJSON_AddNumberToObject(root, "max_height", g_height);
+    cJSON_AddNumberToObject(root, "speed_percent", g_speed);
     cJSON_AddNumberToObject(root, "codec", g_codec);
     cJSON_AddBoolToObject(root, "captions", g_captions);
     cJSON_AddBoolToObject(root, "automatic_captions", g_auto_captions);
@@ -492,6 +501,8 @@ static int init(void) {
     copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
     int height = (int)num(root, "max_height");
     if (height >= 144 && height <= 2160) g_height = height;
+    double speed = num(root, "speed_percent");
+    g_speed = valid_speed(speed) ? (int)speed : 100;
     int codec = (int)num(root, "codec"); if (codec <= 2) g_codec = codec;
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
@@ -1514,7 +1525,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (strcmp(g_library_profile, "guest"))
             folder(&out[n++], "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
-        if (!strcmp(parent, "settings:quality")) {
+        if (!strncmp(parent, "settings:speed:", 15)) {
+            char *end; long speed = strtol(parent + 15, &end, 10);
+            if (!*(parent + 15) || *end || !valid_speed((double)speed)) { cb(0, NULL, 0, 0, ud); return 1; }
+            g_speed = (int)speed; save();
+        } else if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
@@ -1568,7 +1583,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
-        if (!strncmp(parent, "settings:dearrow", 16)) {
+        if (!strcmp(parent, "settings:speed") || !strncmp(parent, "settings:speed:", 15)) {
+            const int total = (int)(sizeof tube_speeds / sizeof *tube_speeds);
+            int start = page >= 0 && page < (total + LOCAL_PAGE - 1) / LOCAL_PAGE ? page * LOCAL_PAGE : total;
+            for (int i = start; i < total && n < LOCAL_PAGE; ++i) {
+                char id[64], label[96];
+                snprintf(id, sizeof id, "settings:speed:%d", tube_speeds[i]);
+                snprintf(label, sizeof label, "%s%.3gx", g_speed == tube_speeds[i] ? "Selected: " : "", tube_speeds[i] / 100.0);
+                folder(&out[n++], id, label, "Apply when opening the next video; live streams play at normal speed");
+            }
+            cb(1, out, n, start + n < total, ud); return 1;
+        } else if (!strncmp(parent, "settings:dearrow", 16)) {
             folder(&out[n++], "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
             folder(&out[n++], "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
             folder(&out[n++], "settings:dearrow", "DeArrow community attribution", "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app");
@@ -1625,6 +1650,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else {
             char label[96]; snprintf(label, sizeof label, "Maximum quality: %dp", g_height);
             folder(&out[n++], "settings:quality", label, "Cycle 720 / 1080 / 1440 / 2160; console validation pending");
+            snprintf(label, sizeof label, "Playback speed: %.3gx", g_speed / 100.0);
+            folder(&out[n++], "settings:speed", label, "Choose the speed for the next video");
             snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : "Automatic");
             folder(&out[n++], "settings:codec", label, "Use supported SDR tracks; AV1 and HDR deferred");
             folder(&out[n++], "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");

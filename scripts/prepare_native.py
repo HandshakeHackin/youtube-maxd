@@ -65,6 +65,7 @@ def main():
         "media/src/evo_playback.c", "media/include/evo_playback.h",
         "media/src/evo_vdec_ffmpeg.c", "media/src/evo_vdec_native.c", "media/src/evo_vdec_native.h", "media/include/evo_vdec.h",
         "pp/src/pp_playback.c", "pp/include/pp_playback.h", "media/src/evo_agc_runtime.c", "media/include/evo_agc_runtime.h",
+        "pp/src/pp_clock.c", "pp/include/pp_clock.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -194,6 +195,9 @@ def main():
     apply_accurate_resume_overlay(replace, player, WORK)
     from sponsor_overlay import apply_sponsor_overlay
     apply_sponsor_overlay(replace, player)
+    from playback_rate_overlay import apply_playback_rate_overlay, apply_audio_rate_overlay
+    apply_playback_rate_overlay(replace, player)
+    apply_audio_rate_overlay(replace, player, WORK)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

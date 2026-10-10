@@ -311,6 +311,47 @@ static void seek_parks_a_queue_blocked_producer(void)
     audio_queue_count = 0; seeking = 0;
 }
 
+static void tempo_queue_clock_and_seek(void)
+{
+    const int rates[] = {25, 50, 125, 200, 400};
+    for (unsigned i=0;i<sizeof rates/sizeof *rates;++i) {
+        reset(); audio_decode_thread_running=audio_thread_running=0;
+        assert(evo_audio_set_rate(rates[i]));
+        audio_decode_thread_running=1;
+        assert(!evo_audio_set_rate(100)); /* Cannot retime a live queue. */
+        AVFrame *af=frame(4096,48000);
+        mix_audio_frame_to_queue(af);
+        uint64_t epoch=tube_audio_epoch(&tube_drain);
+        assert(tube_audio_flush_tail(af,epoch)==1);
+        assert(audio_samples_decoded>0 && audio_queue_count>0);
+        const long long physical_samples=audio_samples_decoded;
+        tube_audio_mark(&tube_drain,epoch,TUBE_AUDIO_DECODED);
+        stop_after=audio_queue_count+2;audio_thread_running=1;
+        audio_output_thread(NULL);
+        assert(evo_audio_is_drained() && audio_samples_played==physical_samples);
+        assert(fabs(audio_clock_seconds-physical_samples*(rates[i]/100.0)/48000)<1e-12);
+        av_frame_free(&af);
+    }
+    reset(); audio_decode_thread_running=audio_thread_running=0;assert(evo_audio_set_rate(25));
+    audio_decode_thread_running=1;
+    AVFrame *old=frame(128,48000);mix_audio_frame_to_queue(old);av_frame_free(&old);
+    assert(!audio_queue_count && !audio_accum_pos);
+    uint64_t previous=tube_tempo_epoch;
+    evo_audio_drain_reset();
+    AVFrame *fresh=frame(4096,48000);memset(fresh->data[0],0,4096*2*sizeof(int16_t));
+    mix_audio_frame_to_queue(fresh);
+    assert(tube_tempo_epoch!=previous && tube_tempo_epoch==tube_audio_epoch(&tube_drain));
+    assert(tube_audio_flush_tail(fresh,tube_audio_epoch(&tube_drain))==1);
+    assert(audio_queue_count>0);
+    for (int row=0;row<audio_queue_count;++row) {
+        int slot=(audio_queue_read+row)%AUDIO_QUEUE_BLOCKS;
+        for(int sample=0;sample<audio_queue_samples[slot]*2;++sample) assert(audio_queue[slot][sample]==0);
+    }
+    av_frame_free(&fresh);tube_tempo_dispose();
+    audio_decode_thread_running=audio_thread_running=0;assert(evo_audio_set_rate(100));
+    assert(!evo_audio_set_rate(24) && !evo_audio_set_rate(401));
+}
+
 int main(int argc, char **argv)
 {
     assert(argc == 2);
@@ -319,6 +360,7 @@ int main(int argc, char **argv)
     seek_parks_a_queue_blocked_producer();
     native_preroll_and_failure(); unreached_seek_is_not_drain();
     seek_after_known_audio_end(argv[1]);
+    tempo_queue_clock_and_seek();
     prospero_audio_resampler_destroy();
     puts("PASS: actual EVO native PCM decode/trim/output, invalid PCM failure, unreached seek EOF failure, resampler drain, AAC EOF and stale seek epochs");
     return 0;

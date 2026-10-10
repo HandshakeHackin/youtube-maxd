@@ -79,6 +79,26 @@ int main(void) {
     assert(mkdtemp(temporary)); assert(setenv("EVO_DATA_DIR_OVERRIDE", temporary, 1) == 0);
     const evo_provider_t *p = &evo_provider_youtube;
     assert(p->init() == 0);
+    assert(tube_playback_speed() == 100);
+    p->list_catalog("settings:speed", 0, items_cb, NULL);
+    assert(last_ok && last_count == 24 && last_more);
+    assert(!strcmp(last_items[0].id, "settings:speed:25"));
+    p->list_catalog("settings:speed", 1, items_cb, NULL);
+    assert(last_ok && last_count == 6 && !last_more);
+    assert(!strcmp(last_items[5].id, "settings:speed:400"));
+    assert(p->list_catalog("settings:speed", 2147483647, items_cb, NULL) < 0);
+    p->list_catalog("settings:speed", 1000, items_cb, NULL);
+    assert(last_ok && last_count == 0 && !last_more);
+    p->list_catalog("settings:speed:125", 0, items_cb, NULL);
+    assert(last_ok && tube_playback_speed() == 125);
+    assert(!strcmp(last_items[12].title, "Selected: 1.25x"));
+    assert(p->init() == 0 && tube_playback_speed() == 125);
+    p->list_catalog("settings:speed:126", 0, items_cb, NULL);
+    assert(!last_ok && tube_playback_speed() == 125);
+    p->list_catalog("settings:speed:125junk", 0, items_cb, NULL);
+    assert(!last_ok && tube_playback_speed() == 125);
+    p->list_catalog("settings:speed:100", 0, items_cb, NULL);
+    assert(last_ok && tube_playback_speed() == 100);
     assert(!tube_choose_stream_enabled());
     assert(!tube_playback_at_end(100, 0)); /* no known duration or active item */
     assert(evo_provider_mgr_init() == 1);

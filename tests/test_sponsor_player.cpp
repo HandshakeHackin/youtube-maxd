@@ -40,7 +40,8 @@ static int evo_pb_is_complete() { return complete; }
 static int evo_pb_is_paused() { return engine_paused || state.paused; }
 static int evo_demux_is_seeking() { return seeking; }
 static int tube_finish_drained_and_next(double) { return 0; }
-static double tube_skip_target(double) { ++skip_calls; return next_target; }
+static double evo_audio_rate() { return 1.75; }
+static double tube_skip_target_at_rate(double, double rate) { assert(rate == 1.75); ++skip_calls; return next_target; }
 static double tube_highlight_target(double, double) { ++highlight_calls; return next_target; }
 static void tube_highlight_seek_failed(double target) { assert(target == next_target); ++highlight_failures; }
 static void tube_highlight_retry_idle() { ++idle_retries; }

@@ -1,5 +1,34 @@
 # Offline validation record — 0.1.0
 
+## Playback-speed player integration — 2026-10-10
+
+Decoded PCM and the resampler EOF tail now pass through the tempo stage before
+the existing bounded audio queue. Each block records its rate and valid sample
+count; successful output advances the media clock by samples × rate / 48000.
+Seek epochs discard delayed tempo data. Rate changes are accepted only while
+both audio workers are stopped. Settings persist all 30 reference speeds and
+apply them on the next on-demand YouTube open; live and other sources use 1×.
+SponsorBlock receives the actual session rate.
+
+The shipping presentation clock preserves media position over pause, resume and
+rate changes, retains rate over reset/reanchor, converts media waits to host
+time, and follows an audio master without scaling it twice. Its fallback anchor
+tracks audio so a longer video tail can continue after audio drains.
+`scripts/test_rate_clock.sh` passed ASan/UBSan with mocked host/audio time.
+The actual generated audio path passed ASan/UBSan with pinned FFmpeg 7.1.1 at
+0.25, 0.5, 1.25, 2 and 4×: queue accounting, EOF, live-rate rejection and stale
+seek-data disposal. Evidence: `.deps/rate-clock-final.log` and
+`.deps/rate-audio-integrated.log`.
+
+All five native provider suites passed, including speed-page boundaries,
+persisted selection, exact labels and invalid choices, alongside recovery,
+SponsorBlock, paid-content and DeArrow regressions (`.deps/rate-provider.log`).
+The generated player tick/pad ASan/UBSan suite also passed, asserting that
+SponsorBlock receives the session rate (`.deps/rate-sponsor.log`).
+
+Hardware speed/pitch/sync acceptance and changing speed during an active video
+remain open; the earlier foundation section describes its historical state.
+
 ## Playback-speed audio stage — 2026-10-10
 
 `tube_audio_tempo` is a single-owner interleaved S16/48 kHz stage using the
