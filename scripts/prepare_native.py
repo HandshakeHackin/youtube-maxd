@@ -59,7 +59,7 @@ def main():
         "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
-        "ui_rml/include/evo_rmlui_provider.h",
+        "ui_rml/include/evo_rmlui_provider.h", "ui_rml/src/evo_rmlui_provider_art.cpp",
         "ui/src/evo_keyboard.c",
         "media/src/evo_audio_out.c", "media/include/evo_audio_out.h", "media/src/evo_demux.c", "media/include/evo_demux.h",
         "media/src/evo_playback.c", "media/include/evo_playback.h",
@@ -170,6 +170,8 @@ def main():
     replace(about, "ScreenId::Changelog", "ScreenId::EmbyBrowse")
     replace(about, "ScreenId::MainMenu", "ScreenId::EmbyBrowse")
     replace(host, "        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;", "        if (m_providerId == \"youtube\") {\n            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;")
+    from artwork_overlay import apply_artwork_overlay
+    apply_artwork_overlay(replace, player)
     from discussion_overlay import apply_discussion_overlay
     apply_discussion_overlay(replace, player, host)
     from device_auth_overlay import apply_device_auth_overlay

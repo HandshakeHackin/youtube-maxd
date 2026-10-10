@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Native WebP artwork — 2026-10-10
+
+The existing PS5 FFmpeg 7.1.1 build already enables WebP decoding and parsing;
+provider artwork was rejecting RIFF/WebP before reaching it. The overlay accepts
+both RIFF and WEBP signatures, writes `.webp` cache entries, and rediscovers those
+entries on subsequent launches. Cache writes now close their file even after a
+short write, preventing the existing failure-path descriptor leak.
+
+The generated shipping sniff/download/cache-request/decode functions passed host
+ASan/UBSan with real FFmpeg: lossy/lossless WebP, premultiplied alpha, 480-pixel
+scaling, persistent cache reuse without a second network request, PNG/JPEG,
+malformed input and injected write failure. Run `python3 scripts/test_artwork.py`;
+evidence is `.deps/artwork-native.log`. Native PS5 package/render acceptance is
+pending. No new decoder library or companion change is required.
+
 ## Indexed full-file DASH resume — 2026-10-10
 
 The captured PS5 initial-resume stall led to a controlled FFmpeg 7.1.1 comparison.
