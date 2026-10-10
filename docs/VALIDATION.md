@@ -20,6 +20,10 @@ malformed. The final Music/speed-memory/recovery run used a corrected wrapper
 and exited 0 (`.deps/music-context-final.{log,result}`), including source setup
 clearing the old navigation context. PS5 acceptance remains pending.
 
+Candidate `3b6f0e67` passed PS5 build and freeze (126 files; eboot prefix
+`6a6c8d693d02b739`). Evidence: `.deps/music-context-{ps5-build,freeze}.{log,result}`,
+both exit 0. No console deployment was performed for this candidate.
+
 ## SponsorBlock transparent review — 2026-10-10
 
 Both shipping HUD paths now show a persistent translucent skip/keep card outside
