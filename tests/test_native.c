@@ -113,10 +113,10 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"label\":\"1080p\",\"container\":\"dash\",\"height\":1080,\"video_codec\":\"h264\",\"audio_codec\":\"aac\"}],\"chapters\":[{\"start\":0},{\"start\":20},{\"start\":60}]}}");
     assert(resolve_calls == 1 && last_ok && pending_count == 1);
     reply(0, 1, 200, "{\"segments\":[{\"start\":10,\"end\":20},{\"start\":15,\"end\":30},{\"start\":29,\"end\":40}]}");
-    assert(tube_skip_target(12) == 40);
+    assert(tube_skip_target(12) == 20);
     assert(tube_skip_target(16) < 0); /* no repeated seeks during a pending skip */
     assert(tube_skip_target(5) < 0);  /* a deliberate rewind re-arms */
-    assert(tube_skip_target(12) == 40);
+    assert(tube_skip_target(12) == 20);
     assert(tube_chapter_target(21, 1) == 60);
     assert(tube_chapter_target(25, -1) == 20);
 

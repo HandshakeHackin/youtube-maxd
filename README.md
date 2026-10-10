@@ -59,7 +59,9 @@ Accounts & library > Remove selected account reviews a one-time removal of an
 app-signed-in account. It clears the companion's saved credentials and account
 requests/playback links, then returns to Guest. Local profile lists stay on the
 PS5; externally configured cookie profiles are managed in companion configuration.
-Casting, HDR selection, AV1 and standalone SABR/token
+Optional DeArrow title/thumbnail replacement now has independent native preferences,
+retains original metadata, and falls back to original images on service failure;
+PS5 acceptance remains pending. Casting, HDR selection, AV1 and standalone SABR/token
 execution remain unfinished.
 
 Selected primary-account profiles now route search and playback through separate

@@ -591,26 +591,26 @@ and [EVO licensing/provenance](https://github.com/sainsaji/EVO-PLAYER-PS5/blob/9
 Mutable reference links supplement the pinned source baseline. Verify and pin
 newly adopted dependencies at the time of implementation.
 
-## 11. Immediate backlog
+## 11. Section tracker
 
-The PS5 public-video slice now includes persisted Guest pairing/history reload,
-pause/resume, ten-second seek, completion and graceful teardown. Exact revisions,
-retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
+Update this table once per implementation batch. Detailed historical evidence stays
+in `docs/VALIDATION.md`; do not duplicate it for each small change. “Host-tested”
+is implementation evidence, not full PS5 or live-account acceptance.
 
-- [x] Build the pinned native PS5 foundation and establish title/data identity.
-- [x] Establish Lapy storage, native UI/video startup and graceful title release.
-- [x] Play a real public YouTube video with captions and saved Guest history.
-- [x] Reload pairing/history and verify pause/resume and native seek on PS5.
-- [x] Implement atomic diagnostic status with host partial-write and I/O-failure coverage; new-package acceptance follows separately.
-- [x] Implement idle retry after asynchronous failed highlights, with threaded ownership and real FFmpeg failure coverage; new-package hardware acceptance remains pending.
-- [x] Verify physical sound, smooth motion and A/V synchronization for the bounded public 1080p60 AVC/AAC case with user observation.
-- [x] Accept a bounded longer public adaptive clip at native 1080p60 AVC/AAC, with zero late drops and clean teardown.
-- [ ] Verify physical controller feel; broader codecs/audio, progressive playback, long sessions, initial resume and quality/caption changes on hardware.
-- [x] Implement optional YouTube paid-promotion notices: localized matching-video metadata, persisted off-by-default preference, once-only successful-start display and stale/recovery guards; host tests pass, hardware acceptance pending.
-- [ ] Finish remaining SponsorBlock reference timing/actions and hardware acceptance of point jumps and paid-content notices.
-- [ ] Accept real account/private-library flows and complete live/DVR/chat replay behavior.
-- [ ] Implement casting/remote integration, DeArrow and broader settings/localization; reconcile the full parity inventory.
-- [ ] Complete standalone service feasibility and compatibility work.
-- [ ] Polish the UI after broad YouTube playback/control acceptance.
+| Section | Current evidence | Remaining work / next gate |
+| --- | --- | --- |
+| PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
+| Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
+| Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests | Broader console acceptance and full reference behavior inventory |
+| Recovery, timing and diagnostics | Host-tested fractional resume, demux seek ownership, paused retry and atomic status | New-package recovery/initial-resume acceptance; playback-speed controls |
+| SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
+| DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 build and image/title acceptance |
+| Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
+| Comments, playlists and live chat | Reader, composition/review and basic operations host-tested | Live account acceptance, chat replay/scrollback and complete live/DVR behavior |
+| Casting and remote integration | Reference inventory only | Implement and accept |
+| Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
+| Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
-These milestones do not establish complete SmartTube feature or behavior parity.
+Current batch: DeArrow service/settings/persistence plus SponsorBlock timing.
+Consolidated gate: `.deps/parity-batch-*`. No new console session in this batch.
+The objective remains complete SmartTube feature and behavior parity.

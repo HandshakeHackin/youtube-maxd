@@ -25,6 +25,7 @@
 typedef struct {
     evo_provider_item_t item;
     char profile[33];
+    char dearrow_title[256], dearrow_art[EVO_PROVIDER_MAX_URL];
     int favorite, queued, subscribed;
     long long updated, queue_order;
 } Record;
@@ -59,6 +60,7 @@ static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
 static int g_paid_notifications;
+static int g_dearrow_titles, g_dearrow_thumbnails;
 static char g_paid_text[256];
 static int g_paid_shown;
 static char g_resolved_id[160], g_resolved_profile[33];
@@ -371,6 +373,8 @@ static void save(void) {
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
+    cJSON_AddBoolToObject(root, "dearrow_titles", g_dearrow_titles);
+    cJSON_AddBoolToObject(root, "dearrow_thumbnails", g_dearrow_thumbnails);
     tube_sb_save(&g_sb, root);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
@@ -381,6 +385,7 @@ static void save(void) {
         cJSON_AddStringToObject(o, "id", r->item.id);
         cJSON_AddStringToObject(o, "profile", r->profile);
         cJSON_AddStringToObject(o, "title", r->item.title);
+        cJSON_AddStringToObject(o, "dearrow_title", r->dearrow_title);
         cJSON_AddStringToObject(o, "subtitle", r->item.subtitle);
         cJSON_AddStringToObject(o, "overview", r->item.overview);
         cJSON_AddStringToObject(o, "art_url", r->item.art_url);
@@ -454,7 +459,7 @@ static int init(void) {
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
     memset(&g_auth, 0, sizeof g_auth);
     g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
-    g_paid_notifications = 0;
+    g_paid_notifications = 0; g_dearrow_titles = 0; g_dearrow_thumbnails = 0;
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -487,6 +492,8 @@ static int init(void) {
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
     g_paid_notifications = boolean(root, "paid_content_notifications");
+    g_dearrow_titles = boolean(root, "dearrow_titles");
+    g_dearrow_thumbnails = boolean(root, "dearrow_thumbnails");
     tube_sb_load(&g_sb, root);
     g_autoplay = boolean(root, "autoplay");
     g_ask_stream = boolean(root, "ask_stream");
@@ -505,6 +512,8 @@ static int init(void) {
         if (record_for(str(o, "id"), owner, 0)) continue;
         Record *r = record_for(str(o, "id"), owner, 1); if (!r) continue;
         parse_item(&r->item, o);
+        copy(r->dearrow_title, sizeof r->dearrow_title, str(o, "dearrow_title"));
+        r->dearrow_art[0] = 0; /* Expiring thumbnail capabilities are never persisted. */
         r->item.resume_pos_sec = (int64_t)num(o, "position");
         r->item.duration_sec = (int64_t)num(o, "duration");
         r->item.played = boolean(o, "played");
@@ -540,6 +549,7 @@ static int set_source(const char *value) {
     tube_cancel();
     watch_reset(1);
     sponsor_invalidate();
+    for (int i = 0; i < g_count; ++i) { g_records[i].dearrow_title[0] = 0; g_records[i].dearrow_art[0] = 0; }
     unsigned auth_serial = g_auth.serial + 1, auth_revision = g_auth.revision + 1;
     memset(&g_auth, 0, sizeof g_auth);
     g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
@@ -595,6 +605,12 @@ static int companion_url(const char *url) {
     return n && !strncmp(url, g_source, n) && url[n] == '/' && strlen(url) < EVO_PROVIDER_MAX_URL;
 }
 
+static void dearrow_item(evo_provider_item_t *item, const Record *cached) {
+    if (!cached || item->is_folder) return;
+    if (g_dearrow_titles && *cached->dearrow_title) copy(item->title, sizeof item->title, cached->dearrow_title);
+    if (g_dearrow_thumbnails && companion_url(cached->dearrow_art)) copy(item->art_url, sizeof item->art_url, cached->dearrow_art);
+}
+
 static void response(int ok, int status, const char *body, size_t size, void *ud);
 static void folder(evo_provider_item_t *out, const char *id, const char *title, const char *hint);
 
@@ -620,6 +636,15 @@ static int begin(Request *r) {
         copy(r->auth_token, sizeof r->auth_token, g_token);
     }
     if (r->kind == 10) { r->stage = 4; return send_request(r, "POST", "/v1/library", r->payload); }
+    if ((r->kind == 1 || r->kind == 3) && (g_dearrow_titles || g_dearrow_thumbnails)) {
+        cJSON *job = cJSON_Parse(r->payload);
+        if (!job) { complete(r, 0); return -1; }
+        cJSON_AddBoolToObject(job, "dearrow_titles", g_dearrow_titles);
+        cJSON_AddBoolToObject(job, "dearrow_thumbnails", g_dearrow_thumbnails);
+        char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
+        if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
+        copy(r->payload, sizeof r->payload, body); free(body);
+    }
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
 }
 
@@ -1137,6 +1162,10 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             items[n].resume_pos_sec = cached->item.resume_pos_sec;
             items[n].played = cached->item.played;
             cached->item = items[n];
+            copy(cached->dearrow_title, sizeof cached->dearrow_title, str(o, "dearrow_title"));
+            copy(cached->dearrow_art, sizeof cached->dearrow_art,
+                 companion_url(str(o, "dearrow_art_url")) ? str(o, "dearrow_art_url") : "");
+            dearrow_item(&items[n], cached);
         }
         ++n;
     }
@@ -1485,6 +1514,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); }
+        else if (!strcmp(parent, "settings:dearrow:titles")) { g_dearrow_titles = !g_dearrow_titles; save(); }
+        else if (!strcmp(parent, "settings:dearrow:thumbnails")) { g_dearrow_thumbnails = !g_dearrow_thumbnails; save(); }
         else if (!strcmp(parent, "settings:sb:paid")) { g_paid_notifications = !g_paid_notifications; save(); }
         else if (!strncmp(parent, "settings:sb:action:", 19)) {
             int category = tube_sb_category(parent + 19);
@@ -1531,7 +1562,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
-        if (!strcmp(parent, "settings:sb:exclusions") || !strncmp(parent, "settings:sb:exclude:", 20)) {
+        if (!strncmp(parent, "settings:dearrow", 16)) {
+            folder(&out[n++], "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
+            folder(&out[n++], "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
+            folder(&out[n++], "settings:dearrow", "DeArrow community attribution", "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app");
+        } else if (!strcmp(parent, "settings:sb:exclusions") || !strncmp(parent, "settings:sb:exclude:", 20)) {
             char channels[RECORDS + TUBE_SB_EXCLUSIONS + 1][25]; int count = 0;
             if (tube_sb_channel_valid(g_sb_channel)) memcpy(channels[count++], g_sb_channel, 25);
             for (int i = 0; i < g_sb.excluded_count; ++i) {
@@ -1593,6 +1628,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:audio-languages", label, "Prefer an alternate audio language when available");
             folder(&out[n++], "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
             folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
+            folder(&out[n++], "settings:dearrow", "DeArrow titles and thumbnails", "Optional community replacements; original metadata is retained");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
             folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
@@ -1626,7 +1662,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 if (duplicate) continue;
                 char id[160]; snprintf(id, sizeof id, "channel:%.24s", r->item.parent_id);
                 folder(&out[n++], id, r->item.subtitle, "Followed locally on this PS5");
-            } else out[n++] = r->item;
+            } else { out[n] = r->item; dearrow_item(&out[n], r); ++n; }
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
     } else return 0;
@@ -1979,56 +2015,59 @@ double tube_sponsor_confirm(double position, int accept) {
         g_sb_finish_target = -1;
         return accept ? end : -1;
     }
-    for (int i = 0; i < g_segment_count; ++i)
-        if (g_segment_categories[i] != 8 && g_sb.actions[g_segment_categories[i]] == 2 && g_segments[i][0] <= end &&
-            g_segments[i][1] >= position) g_segment_seen[i] = accept ? 1 : 2;
+    g_segment_seen[index] = accept ? 1 : 2;
     g_skip_guard = index; g_skip_until = end;
     g_sb_finish_target = accept ? end : -1;
     return accept ? end : -1;
 }
 int tube_sponsor_show_message(void) { return g_sb_message; }
-double tube_skip_target(double position) {
-    if (!sponsor_scope() || !isfinite(position) || position < 0) { g_sb_prompt = -1; g_sb_finish_target = -1; return -1; }
+static int sponsor_match(double position, int index, double rate) {
+    return g_segment_categories[index] != 8 && position >= g_segments[index][0] &&
+        position <= fmin(g_segments[index][0] + 2.0 * rate, g_segments[index][1]);
+}
+double tube_skip_target_at_rate(double position, double rate) {
+    if (!sponsor_scope() || !isfinite(position) || position < 0 || !isfinite(rate) || rate <= 0) {
+        g_sb_prompt = -1; g_sb_finish_target = -1; return -1;
+    }
     if (g_sb_last_position >= 0 && position < g_sb_last_position - .5) {
         g_skip_guard = -1; g_sb_prompt = -1; g_sb_finish_target = -1;
-        for (int i = 0; i < g_segment_count; ++i)
-            if (!g_sb.no_repeat || g_segment_seen[i] == 2) g_segment_seen[i] = 0;
+        if (!g_sb.no_repeat) memset(g_segment_seen, 0, sizeof g_segment_seen);
     }
     g_sb_last_position = position;
     if (tube_sponsor_prompt(position)) return -1;
-    if (g_highlight_guard >= 0) return -1; // Preserve the pending explicit seek.
+    if (g_highlight_guard >= 0) return -1;
     if (g_skip_guard >= 0 && position < g_skip_until + .25) return -1;
+    int selected[SEGMENTS], count = 0, last = -1;
     for (int i = 0; i < g_segment_count; ++i) {
         int action = g_sb.actions[g_segment_categories[i]];
-        if (action != 3 && g_segment_seen[i] != 2 && !(g_sb.no_repeat && g_segment_seen[i]) &&
-            i != g_skip_guard && position >= g_segments[i][0] && position < g_segments[i][1] - .25) {
-            double end = g_segments[i][1];
-            for (int pass = 0; pass < g_segment_count; ++pass) {
-                double previous = end;
-                for (int j = 0; j < g_segment_count; ++j)
-                    if (g_sb.actions[g_segment_categories[j]] == action &&
-                        !(g_sb.no_repeat && g_segment_seen[j]) && g_segment_seen[j] != 2 &&
-                        g_segments[j][0] <= end && g_segments[j][1] > end) end = g_segments[j][1];
-                if (end == previous) break;
-            }
-            const Record *media = record_for(g_resolved_id, g_sb_profile, 0);
-            double bounded_end = media && media->item.duration_sec > 0 ?
-                fmin(end, (double)media->item.duration_sec) : end;
-            if (bounded_end - position < g_sb.minimum) continue;
-            if (action == 2) {
-                g_sb_prompt = i; g_sb_prompt_start = g_segments[i][0]; g_sb_prompt_end = end;
-                snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Skip %s? Cross: skip   Circle: keep", tube_sb_labels[g_segment_categories[i]]);
-                return -1;
-            }
-            for (int j = 0; j < g_segment_count; ++j)
-                if (g_sb.actions[g_segment_categories[j]] == action && g_segments[j][0] <= end &&
-                    g_segments[j][1] >= position) g_segment_seen[j] = 1;
-            g_sb_message = action == 1;
-            g_skip_guard = i; g_skip_until = end; g_sb_finish_target = end; return end;
+        if (action == 3 || g_segment_seen[i] == 2 || (g_sb.no_repeat && g_segment_seen[i])) continue;
+        if (!count) {
+            if (i == g_skip_guard || !sponsor_match(position, i, rate)) continue;
+            selected[count++] = i; last = i;
+            if (action == 2) break; /* Reference dialogs apply to one segment. */
+        } else if (action < 2 && sponsor_match(g_segments[last][1] + 3.0, i, rate)) {
+            selected[count++] = i; last = i;
         }
     }
-    return -1;
+    if (!count) return -1;
+    double end = g_segments[last][1];
+    int action = g_sb.actions[g_segment_categories[last]];
+    if (g_sb.no_repeat) for (int i = 0; i < count; ++i) g_segment_seen[selected[i]] = 1;
+    const Record *media = record_for(g_resolved_id, g_sb_profile, 0);
+    double bounded_end = media && media->item.duration_sec > 0 ? fmin(end, (double)media->item.duration_sec) : end;
+    if (bounded_end - position < g_sb.minimum) return -1;
+    if (action == 2) {
+        g_sb_prompt = last; g_sb_prompt_start = g_segments[last][0]; g_sb_prompt_end = end;
+        snprintf(g_sb_prompt_text, sizeof g_sb_prompt_text, "Skip %s? Cross: skip   Circle: keep", tube_sb_labels[g_segment_categories[last]]);
+        return -1;
+    }
+    for (int i = 0; i < count; ++i) g_segment_seen[selected[i]] = 1;
+    g_sb_message = action == 1;
+    g_skip_guard = selected[0]; g_skip_until = end; g_sb_finish_target = end;
+    return end;
 }
+/* The current PS5 engine plays at 1x; future rate controls must pass the actual rate. */
+double tube_skip_target(double position) { return tube_skip_target_at_rate(position, 1.0); }
 
 double tube_chapter_target(double position, int direction) {
     if (!isfinite(position) || !g_chapter_count) return -1;
@@ -2093,7 +2132,7 @@ int tube_take_next(evo_provider_item_t *item) {
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
     if (!r || !item) return 0;
-    *item = r->item; return 1;
+    *item = r->item; dearrow_item(item, r); return 1;
 }
 
 int tube_choose_stream_enabled(void) { return g_ask_stream; }
@@ -2113,7 +2152,7 @@ int tube_take_recovery(evo_provider_item_t *item, double *position, int *subtitl
     if (!item || !position || !subtitles || !recovery_scope()) { tube_recovery_finish(); return 0; }
     Record *r = record_for(g_recovery.id, g_recovery.profile, 0);
     if (!r) { tube_recovery_finish(); return 0; }
-    *item = r->item; item->is_live = g_recovery.choice.is_live;
+    *item = r->item; dearrow_item(item, r); item->is_live = g_recovery.choice.is_live;
     *position = g_recovery.position; *subtitles = g_recovery.subtitles;
     g_recovery.phase = 2; return 1;
 }

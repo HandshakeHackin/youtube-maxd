@@ -168,3 +168,14 @@ leaving the browser invalidate pending recovery. A changed context after open
 stops the newly opened player before navigation. Open failure returns control
 to the browser; selecting the video again starts a new retry budget. Console
 restart, audio/position/format continuity and controller acceptance remain pending.
+
+Optional catalog branding: search/catalog GETs and jobs accept independent
+`dearrow_titles` / `dearrow_thumbnails` booleans (default false). Canonical item
+`title` / `art_url` remain unchanged; optional `dearrow_title` / `dearrow_art_url`
+carry replacements. Library video rows use the same job path. Metadata queries
+use four-character SHA-256 prefixes; a matching video ID and trusted first non-original submission
+are required. Service timeouts/invalid data retain originals. Generated image
+capabilities use `/art/dearrow/{token}`, with bounded HTTPS image reads and original
+YouTube-image fallback. Credentials never accompany these third-party requests.
+Native preferences and original/title metadata persist; expiring image capabilities
+do not survive a restart. DeArrow cache keys contain public video hashes only.

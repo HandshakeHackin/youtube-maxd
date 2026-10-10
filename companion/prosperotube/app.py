@@ -26,6 +26,7 @@ from .hls import rewrite as hls_rewrite
 from .hls_buffer import HLSBuffer
 from .models import ResolveRequest, ServiceError, safe_remote, video_id
 from .sessions import Sessions
+from .dearrow import DeArrow
 from .media_refresh import expired as expired_media, observe as observe_media, renew as renew_media
 
 
@@ -73,6 +74,8 @@ class DeviceJobRequest(BaseModel):
 
 
 class JobRequest(BaseModel):
+    dearrow_titles: bool = False
+    dearrow_thumbnails: bool = False
     action: str = Field(pattern="^(search|catalog|resolve|details|library|auth)$")
     query: str = Field(default="", max_length=200)
     parent: str = Field(default="", max_length=160)
@@ -109,6 +112,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.sessions = Sessions()
     app.state.hls_buffer = HLSBuffer(app.state.sessions)
     app.state.http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(20, connect=5), follow_redirects=False)
+    app.state.dearrow = DeArrow(app.state.http)
     app.state.public_base = public_base.rstrip("/") if public_base else None
     app.state.pair_attempts = defaultdict(list)
     app.state.sponsorblock = sponsorblock
@@ -178,7 +182,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
-                "features": ["search", "channels", "playlists", "dash", "relay", "captions"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []),
+                "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []),
                 "sponsorblock": app.state.sponsorblock}
 
     @app.post("/v1/library")
@@ -221,15 +225,26 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise ServiceError("pair_denied", "The pairing code did not match.", 403)
         return {"api_version": 1, "token": app.state.token}
 
+    @app.get("/art/dearrow/{key}")
+    async def dearrow_art(key: str):
+        if not re.fullmatch(r"[A-Za-z0-9_-]{32}", key):
+            return Response(status_code=404)
+        image = await app.state.dearrow.thumbnail(key)
+        return Response(image[0], media_type=image[1], headers={"Cache-Control": "private, max-age=300"}) if image else Response(status_code=404)
+
     @app.get("/v1/search")
     async def search(q: str = Query(min_length=1, max_length=200), page: int = Query(default=0, ge=0, le=1000),
-                     profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
-        return await page_for(resolver(profile), query=q, page=page)
+                     profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$"),
+                     dearrow_titles: bool = False, dearrow_thumbnails: bool = False, request: Request = None):
+        result = await page_for(resolver(profile), query=q, page=page)
+        return await app.state.dearrow.decorate(result, dearrow_titles, dearrow_thumbnails, base(request))
 
     @app.get("/v1/catalog")
     async def catalog(parent: str = Query(min_length=1, max_length=160), page: int = Query(default=0, ge=0, le=1000),
-                      profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
-        return await page_for(resolver(profile), parent=parent, page=page)
+                      profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$"),
+                      dearrow_titles: bool = False, dearrow_thumbnails: bool = False, request: Request = None):
+        result = await page_for(resolver(profile), parent=parent, page=page)
+        return await app.state.dearrow.decorate(result, dearrow_titles, dearrow_thumbnails, base(request))
 
     @app.get("/v1/video/{identifier}")
     async def details(identifier: str, profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
@@ -316,6 +331,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                     identifier = video_id(payload.id)
                     info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
                     result = {"item": item(info).model_dump(), "chapters": info.get("chapters") or []}
+                if payload.action in ("search", "catalog", "details", "library"):
+                    result = await app.state.dearrow.decorate(result, payload.dearrow_titles, payload.dearrow_thumbnails, base(request))
                 if payload.action == "auth" and isinstance(result, dict) and result.get("state") == "authorized":
                     asyncio.current_task().profile = result.get("profile", {}).get("id", "guest")
                 return {"state": "done", "result": result.model_dump() if hasattr(result, "model_dump") else result}

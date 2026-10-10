@@ -36,6 +36,12 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   https://github.com/ajayyy/SponsorBlock/wiki/Database-and-API-License.
   No database snapshot is bundled. The client filters fetched segment metadata
   into playback intervals; no automated submissions or votes are implemented.
+* Optional DeArrow title/thumbnail metadata comes from Ajay Ramachandran and
+  community contributors: https://dearrow.ajay.app/ and
+  https://wiki.sponsor.ajay.app/w/API_Docs/DeArrow. The same CC BY-NC-SA 4.0
+  API/database license applies. Titles are normalized for display and thumbnail
+  timestamps request the community image service; originals remain available.
+  No database snapshot, automated submissions or votes are bundled.
 
 Matching source consists of this repository, recursive submodules, pinned
 dependencies and build overlay. Keep these notices with binary distributions

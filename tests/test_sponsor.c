@@ -48,14 +48,38 @@ int main(void) {
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     provider->list_catalog("settings:captions", 0, items_cb, NULL);
     provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 14);
-    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"},{\"start\":35,\"end\":50,\"category\":\"filler\"}]}");
+    /* Pinned reference: two-second start window, scaled by actual rate;
+       grouping probes previous end + three seconds and uses final action. */
+    action("sponsor", 0); action("intro", 1);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":22,\"end\":40,\"category\":\"intro\"}]}");
     assert(tube_skip_target(12) == 40 && tube_sponsor_show_message());
-    assert(tube_skip_target(60) < 0 && tube_skip_target(38) < 0); // Remaining skip is shorter than default five seconds.
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":24,\"end\":40,\"category\":\"intro\"}]}");
+    assert(tube_skip_target(12) == 20 && !tube_sponsor_show_message());
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":20,\"end\":40,\"category\":\"intro\"}]}");
+    assert(tube_skip_target_at_rate(12, 2) == 40);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    assert(tube_skip_target(12.001) < 0 && tube_skip_target_at_rate(13, 2) == 20);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    assert(tube_skip_target_at_rate(11.001, .5) < 0 && tube_skip_target_at_rate(11, .5) == 20);
+    assert(tube_skip_target_at_rate(10, NAN) < 0 && tube_skip_target_at_rate(10, 0) < 0);
+    action("sponsor", 2);
+    provider->list_catalog("settings:sb:repeat", 0, items_cb, NULL);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    assert(tube_skip_target(10) < 0 && tube_sponsor_confirm(10, 0) < 0);
+    assert(tube_skip_target(0) < 0 && tube_skip_target(10) < 0 && !tube_sponsor_prompt(10));
+    action("sponsor", 1); minimum(10);
+    segments("{\"segments\":[{\"start\":10,\"end\":15,\"category\":\"sponsor\"}]}");
+    assert(tube_skip_target(10) < 0); minimum(0);
+    assert(tube_skip_target(10) < 0); /* ignored short match remains consumed with no-repeat */
+    provider->list_catalog("settings:sb:repeat", 0, items_cb, NULL); minimum(5);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"},{\"start\":35,\"end\":50,\"category\":\"filler\"}]}");
+    assert(tube_skip_target(12) == 20 && tube_sponsor_show_message());
+    assert(tube_skip_target(60) < 0 && tube_skip_target(38) < 0); // A late position outside the start window does not trigger a skip.
     for (int i = 0; i < 5; ++i) provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
     action("sponsor", 0);
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"}]}");
     assert(tube_skip_target(12) == 20 && !tube_sponsor_show_message());
-    assert(tube_skip_target(21) == 40 && tube_sponsor_show_message());
+    assert(tube_skip_target(21) < 0); // The overlapping intro start window has already passed.
     action("sponsor", 2);
     action("intro", 2);
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":30,\"category\":\"intro\"}]}");
@@ -63,7 +87,7 @@ int main(void) {
     assert(tube_sponsor_confirm(12, 0) < 0 && !tube_sponsor_prompt(12));
     assert(tube_skip_target(16) < 0 && !tube_sponsor_prompt(16));
     assert(tube_skip_target(40) < 0 && tube_skip_target(12) < 0 && tube_sponsor_prompt(12));
-    assert(tube_sponsor_confirm(12, 1) == 30 && tube_sponsor_confirm(12, 1) < 0);
+    assert(tube_sponsor_confirm(12, 1) == 20 && tube_sponsor_confirm(12, 1) < 0);
     assert(!tube_sponsor_prompt(31));
     action("sponsor", 0);
     provider->list_catalog("settings:sb:repeat", 0, items_cb, NULL);
@@ -139,11 +163,13 @@ int main(void) {
     provider->list_catalog("settings:sb:exclude:UCaaaaaaaaaaaaaaaaaaaaaa", 0, items_cb, NULL);
     assert(!tube_sponsor_finish(100, 100));
     provider->list_catalog("settings:sb:exclude:UCaaaaaaaaaaaaaaaaaaaaaa", 0, items_cb, NULL);
-    // Minimum skip duration is the playable remainder, even if metadata overruns.
-    for (int i = 0; i < 3; ++i) provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
-    segments("{\"segments\":[{\"start\":80,\"end\":105,\"category\":\"sponsor\"}]}");
+    // Minimum remainder is independent of the new start-window gate.
+    minimum(5);
+    segments("{\"segments\":[{\"start\":97,\"end\":105,\"category\":\"sponsor\"}]}");
     provider->stream_chosen("abcdefghijk", &selected);
     assert(tube_skip_target(97) < 0); // Three playable seconds, not eight.
+    segments("{\"segments\":[{\"start\":90,\"end\":105,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
     assert(tube_skip_target(90) == 105);
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     assert(!tube_sponsor_finish(105, 100));
@@ -190,7 +216,7 @@ int main(void) {
     // duration/repeat policy. Unsorted points choose the nearest future point.
     provider->list_catalog("settings:sb:color:filler", 0, items_cb, NULL);
     action("sponsor", 0); action("poi_highlight", 1); minimum(0);
-    segments("{\"segments\":[{\"start\":0,\"end\":20,\"category\":\"sponsor\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
     provider->stream_chosen("abcdefghijk", &selected);
     assert(tube_highlight_target(10, 100) == 50);
     assert(tube_skip_target(10) < 0); // Tick cannot overwrite the queued explicit intent.
@@ -242,9 +268,9 @@ int main(void) {
     segments("{\"segments\":[{\"start\":20,\"end\":80,\"category\":\"sponsor\"},{\"start\":50,\"end\":50,\"category\":\"poi_highlight\"}]}");
     provider->stream_chosen("abcdefghijk", &selected);
     assert(tube_highlight_target(10, 100) < 0 && tube_sponsor_confirm(10, 1) == 50);
-    assert(tube_skip_target(25) < 0 && tube_sponsor_prompt(25)); // Point acknowledgement did not consume the overlapping interval.
-    assert(tube_highlight_target(25, 100) < 0 && tube_sponsor_prompt(25)); // Keep existing interval review.
-    assert(tube_sponsor_confirm(25, 1) == 80);
+    assert(tube_skip_target(21) < 0 && tube_sponsor_prompt(21)); // Point acknowledgement did not consume the overlapping interval.
+    assert(tube_highlight_target(21, 100) < 0 && tube_sponsor_prompt(21)); // Keep existing interval review.
+    assert(tube_sponsor_confirm(21, 1) == 80);
     action("poi_highlight", 0);
     assert(tube_highlight_target(NAN, 100) < 0 && tube_highlight_target(-1, 100) < 0);
     assert(tube_highlight_target(10, NAN) < 0 && tube_highlight_target(10, 0) < 0);

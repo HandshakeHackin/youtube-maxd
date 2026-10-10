@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## DeArrow / SponsorBlock / section tracking batch — 2026-10-10
+
+- Implemented independent DeArrow titles/thumbnails, original metadata persistence,
+  profile/source isolation, queue/recovery presentation, bounded hash-prefix API
+  cache and image capabilities with original-image fallback. Pinned MediaServiceCore
+  `DeArrowService` selects the first non-original submission; API trust checks apply.
+- SponsorBlock now uses the reference 2-second × rate start window, end+3-second
+  grouping across skip/message actions, final grouped action, ungrouped prompts,
+  and no-repeat consumption of ignored/declined matches. The current engine stays
+  at 1x; actual playback-speed controls remain a separate gap.
+- 71 companion tests passed (`.deps/parity-batch-service`); all five native
+  executables and generated player tick/pad paths passed ASan/UBSan
+  (`.deps/parity-batch-native-combined`, `.deps/parity-batch-player`). Earlier
+  late-position fixtures failed under the new reference window and were corrected
+  while preserving minimum-duration and competing-highlight assertions.
+- Live public DeArrow lookup matched Big Buck Bunny and returned a replacement
+  title (`.deps/dearrow-public-bunny-smoke.json`). PS5 rendering remains unverified.
+  Shared native code now compiles once per suite; the plan tracks all sections in
+  one table. Packaging follows as one candidate; no console connection was made.
+
 ## Optional paid-promotion notices — 2026-10-10
 
 The companion captures YouTube's `paidContentOverlayRenderer.text` from player
