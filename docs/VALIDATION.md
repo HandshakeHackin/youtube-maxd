@@ -33,8 +33,12 @@ trigger the choice; profile changes and network errors are not treated as comman
 ASan/UBSan tests cover default continuation, opted-in stop, queue retirement,
 unrelated media and preference restart persistence (`.deps/phone-disconnect-tests.*`,
 exit 0). This adapts SmartTube's optional finish-on-disconnect behavior to stopping
-PS5 playback; automatic app exit is not implemented. New package/runtime acceptance
-remains pending.
+PS5 playback; automatic app exit is not implemented. All nine native provider
+regressions passed (`.deps/phone-disconnect-native-regression.*`, exit 0).
+Candidate `0b02a137` built/froze successfully: 126 files, build
+`prosperotube-0b02a137_1010-2349`, eboot prefix `94333ca3a1e86586`
+(`.deps/phone-disconnect-{ps5-build,freeze}.*`, exit 0). Runtime acceptance remains
+pending; neither corrected candidate has been installed or launched.
 
 ## Phone player and ephemeral queue adapter — 2026-10-10
 

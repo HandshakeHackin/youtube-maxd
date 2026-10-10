@@ -105,8 +105,11 @@ retain the sender's global index and click-tracking parameters.
 Volume scales the final S16 output with an atomic main/audio-thread gain; mute
 does not change the media clock or retirement accounting. Unknown caption
 languages and voice capture are not silently acknowledged. Voice capture/search,
-caption-language switching, disconnect preferences and playlist continuation
-beyond the supplied 128-ID window still need implementation. Real phone and PS5
+caption-language switching and playlist continuation beyond the supplied 128-ID
+window still need implementation. The saved disconnect choice defaults to keeping
+playback running; opt-in stop applies only to the current phone-owned video and
+clears its ephemeral queue. It returns to the browser without exiting the PS5 app.
+Real phone and PS5
 acceptance remains open.
 The receiver advertises playback and D-pad capabilities. Microphone capability
 is withheld until native capture and speech search are connected.
