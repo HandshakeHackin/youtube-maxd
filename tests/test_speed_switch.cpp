@@ -34,6 +34,7 @@ struct PlaybackController {
     std::string m_currentFilePath="signed-url";
     int m_requestedAudioStream=-1,m_tubeRequestedSpeed=-1;
     bool scrubbing=false,paused=false,open_ok=true;
+    bool music=false;
     double position=83.125;
     double m_durationSeconds=200;
     int opens=0,pauses=0,observed_audio=-1,observed_sub=-1,observed_rate=-1;
@@ -41,6 +42,7 @@ struct PlaybackController {
     PlaybackSource observed_source;
     bool isScrubbing() const { return scrubbing; }
     bool isPaused() const { return paused; }
+    bool isMusicMode() const { return music; }
     double getPositionSeconds() const { return position; }
     void setPaused(bool value) { paused=value; ++pauses; }
     void reportStop() {
@@ -60,6 +62,7 @@ struct PlaybackController {
         return open_ok;
     }
     bool canChangePlaybackSpeed() const;
+    bool canShowLiveChat() const;
     int playbackSpeedPercent() const;
     bool changePlaybackSpeed(int);
 };
@@ -73,6 +76,12 @@ static void reset() {
     prospero_embedded_subtitle_stream_index=4;prospero_subtitle_requested_stream=-2;
 }
 int main() {
+    PlaybackController chat;
+    assert(chat.canShowLiveChat());
+    chat.m_source.is_live=true;assert(chat.canShowLiveChat());
+    chat.music=true;assert(!chat.canShowLiveChat());chat.music=false;
+    chat.m_source.provider="file";assert(!chat.canShowLiveChat());
+    chat.m_source.provider="youtube";chat.m_source.url.clear();assert(!chat.canShowLiveChat());
     for(bool paused:{false,true}) for(bool external:{false,true}) {
         reset();PlaybackController c;c.paused=paused;prospero_subtitle_use_external=external;
         assert(c.changePlaybackSpeed(125));

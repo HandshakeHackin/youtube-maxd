@@ -7,3 +7,6 @@ python3 "${root}/scripts/extract_player_chat_test.py" "${work}/projects/evoplaye
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"${destination}" "${root}/tests/test_player_chat_overlay.cpp" -o "${destination}/test"
 ASAN_OPTIONS=detect_leaks=1 "${destination}/test"
+g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
+    -I"${destination}" "${root}/tests/test_player_chat_options.cpp" -o "${destination}/options-test"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/options-test"

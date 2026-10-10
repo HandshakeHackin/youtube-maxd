@@ -943,6 +943,14 @@ static void player_chat_result(int ok, const evo_provider_item_t *items, int cou
 }
 
 int tube_player_chat_mode(void) { return g_chat.player ? g_player_chat_mode : 0; }
+int tube_player_chat_preference(void) { return g_player_chat_mode; }
+int tube_player_chat_set_mode(int mode) {
+    if (mode < 0 || mode > 2) return 0;
+    g_player_chat_mode = mode;
+    if (g_chat.player && (!mode || g_chat.state < 0)) tube_chat_stop();
+    save();
+    return 1;
+}
 int tube_player_chat_rows(const tube_player_chat_row_t **rows) {
     if (rows) *rows = g_player_chat_rows;
     return g_chat.player ? g_player_chat_count : 0;
@@ -1791,9 +1799,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
         else if (!strcmp(parent, "settings:player-chat")) {
-            g_player_chat_mode = (g_player_chat_mode + 1) % 3;
-            if (!g_player_chat_mode && g_chat.player) tube_chat_stop();
-            save();
+            tube_player_chat_set_mode((g_player_chat_mode + 1) % 3);
         }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
         else if (!strcmp(parent, "settings:history-sync")) {

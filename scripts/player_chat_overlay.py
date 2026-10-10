@@ -2,6 +2,44 @@
 
 
 def apply_player_chat_overlay(replace, player):
+    interface = player + 'core/include/evo/interfaces/IPlaybackController.hpp'
+    header = player + 'core/include/evo/services/PlaybackController.hpp'
+    controller = player + 'core/src/services/PlaybackController.cpp'
+    replace(interface, '    virtual bool canChangePlaybackSpeed() const = 0;',
+            '    virtual bool canChangePlaybackSpeed() const = 0;\n    virtual bool canShowLiveChat() const = 0;')
+    replace(header, '    bool canChangePlaybackSpeed() const override;',
+            '    bool canChangePlaybackSpeed() const override;\n    bool canShowLiveChat() const override;')
+    replace(controller, 'bool PlaybackController::canChangePlaybackSpeed() const {', '''bool PlaybackController::canShowLiveChat() const {
+    return m_source.provider == "youtube" && !m_source.item_id.empty() &&
+        !m_source.url.empty() && !isMusicMode();
+}
+bool PlaybackController::canChangePlaybackSpeed() const {''')
+    picker = player + 'core/src/screens/AudioTrackPickerScreen.cpp'
+    replace(player + 'core/include/evo/screens/AudioTrackPickerScreen.hpp',
+            'KindAudio, KindSpeed };', 'KindAudio, KindSpeed, KindChat };')
+    replace(picker, '    if (playback->canChangePlaybackSpeed()) {', '''
+    // ProsperoTube chat option rows (extracted by host tests).
+    if (playback->canShowLiveChat()) {
+        const char* labels[] = {"Hide live chat", "Live chat: left", "Live chat: right"};
+        for (int mode = 0; mode < 3; ++mode) {
+            Entry e; e.kind = KindChat; e.streamIndex = mode;
+            e.label = labels[mode];
+            e.detail = "Show top chat beside video; select again to retry unavailable chat";
+            e.badge = tube_player_chat_preference() == mode ? "SELECTED" : "";
+            m_tracks.push_back(std::move(e));
+        }
+    }
+    // End ProsperoTube chat option rows.
+    if (playback->canChangePlaybackSpeed()) {''')
+    replace(picker, '    if (e.kind == KindSpeed) {', '''    if (e.kind == KindChat) {
+        // ProsperoTube chat option selection (extracted by host tests).
+        if (playback->canShowLiveChat() && tube_player_chat_set_mode(e.streamIndex))
+            toast("CHAT", e.label.c_str());
+        else toast("CHAT", "Chat is unavailable for this playback");
+        // End ProsperoTube chat option selection.
+    } else if (e.kind == KindSpeed) {''')
+    replace(picker, 'Select quality, audio or playback speed',
+            'Select quality, audio, playback speed or live chat')
     screen = player + 'core/src/screens/PlayerScreen.cpp'
     replace(screen, 'void PlayerScreen::onExit() {',
             'void PlayerScreen::onExit() {\n    tube_player_chat_tick(0);')

@@ -12,3 +12,8 @@ for relative, tag, name in (
     start = source.index('// ProsperoTube player chat ' + tag)
     end = source.index('// End ProsperoTube player chat ' + tag, start)
     (output / name).write_text(source[start:end])
+source = (root / 'core/src/screens/AudioTrackPickerScreen.cpp').read_text()
+for tag, name in (('rows', 'options.inc'), ('selection', 'selection.inc')):
+    start = source.index('// ProsperoTube chat option ' + tag)
+    end = source.index('// End ProsperoTube chat option ' + tag, start)
+    (output / name).write_text(source[start:end])

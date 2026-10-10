@@ -19,7 +19,11 @@ Real-account acceptance remains unverified.
 ### Live-chat service reader
 
 The native player can show a live top-chat sidebar beside video. In YouTube
-preferences, select **Live chat sidebar** to cycle Off / Left / Right. It shows
+preferences, select **Live chat sidebar** to cycle Off / Left / Right. During
+YouTube video playback, press **R2** and select **Hide live chat**, **Live chat:
+left** or **Live chat: right** in Playback Options. The selected preference is
+marked; these actions preserve playback position and audio without reopening the
+video. Selecting a side again retries a failed chat. The sidebar shows
 six recent previews; the browser reader retains full message text and history.
 Updates are request-driven, scoped to the playing video/profile, and stop when
 the player leaves or the chat ends/fails. The sidebar hides during stats,

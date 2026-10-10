@@ -60,6 +60,8 @@ void tube_chat_stop(void);
 typedef struct { char author[128], message[1024]; } tube_player_chat_row_t;
 void tube_player_chat_tick(int visible);
 int tube_player_chat_mode(void); /* active sidebar: 0 off, 1 left, 2 right */
+int tube_player_chat_preference(void);
+int tube_player_chat_set_mode(int mode);
 int tube_player_chat_rows(const tube_player_chat_row_t **rows);
 const char *tube_player_chat_status(void);
 typedef struct { unsigned ticket; char label[64], initial[601]; } tube_playlist_prompt_t;

@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## In-player live-chat controls — 2026-10-10
+
+R2 Playback Options now offers Hide / Left / Right before the speed list for
+YouTube video sources. The saved choice has a SELECTED badge; existing quality,
+audio and speed focus behavior is preserved. Live sources can show the controls;
+Music mode and other providers do not. A stale selection rechecks availability.
+The action changes chat state without reopening media. Hiding closes its player
+cursor, changing sides retains rows/context, and selecting a side after a
+terminal error explicitly retries. The preferences screen uses the same setter.
+
+Provider/chat and speed-memory tests plus shipping HUD/menu extraction and
+controller speed-reopen tests passed ASan/UBSan
+(`.deps/player-chat-controls-tests.{log,result}`, exit 0), including invalid
+modes, saved selection, retained rows on side changes, same-side error retry,
+live/non-YouTube/Music gating and stale selection. A final check covers moving
+the chat rows ahead of the speed list. PS5 compilation and console acceptance
+for this control update are recorded separately when complete; replay remains
+unimplemented.
+
 ## Player live-chat sidebar — 2026-10-10
 
 The pinned SmartTube `ChatController` places live chat beside playing video.

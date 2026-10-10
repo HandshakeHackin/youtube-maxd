@@ -19,6 +19,11 @@ int main(void) {
     const tube_player_chat_row_t *rows=NULL;
     assert(tube_player_chat_mode()==1 && tube_player_chat_rows(&rows)==1 && rows);
     assert(!strcmp(rows[0].author,"Viewer") && !strcmp(rows[0].message,"Hello <world> & all"));
+    assert(tube_player_chat_preference()==1);
+    assert(!tube_player_chat_set_mode(-1) && !tube_player_chat_set_mode(3));
+    assert(tube_player_chat_set_mode(2) && tube_player_chat_preference()==2);
+    assert(tube_player_chat_mode()==2 && tube_player_chat_rows(&rows)==1 && !pending_count);
+    assert(tube_player_chat_set_mode(1) && tube_player_chat_mode()==1 && !pending_count);
     tube_player_chat_tick(1);assert(!pending_count); /* no background/early polling */
     usleep(1100000);tube_player_chat_tick(1);
     assert(pending_count==1 && strstr(pending[0].body,"\"action\":\"chat_poll\""));
@@ -53,7 +58,8 @@ int main(void) {
     reply(0,1,503,"{\"error\":{\"code\":\"chat_unavailable\",\"message\":\"No chat\"}}");
     assert(tube_player_chat_mode()==2 && !tube_player_chat_rows(&rows) && strstr(tube_player_chat_status(),"unavailable"));
     tube_player_chat_tick(1);assert(!pending_count); /* terminal failure never spins */
-    tube_player_chat_tick(0);tube_player_chat_tick(1);assert(pending_count==1);
+    assert(tube_player_chat_set_mode(2)); /* selecting the same side explicitly retries */
+    assert(!tube_player_chat_mode());tube_player_chat_tick(1);assert(pending_count==1);
     tube_player_chat_tick(0);
     reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":false,\"has_more\":false,\"ended\":false,\"poll_after_ms\":1000,\"cursor\":\"late-cursor\",\"items\":[]}");
     assert(!tube_player_chat_mode() && !tube_player_chat_rows(&rows));
