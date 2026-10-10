@@ -389,3 +389,10 @@ occurred, so this does not establish persistence across relaunch or playback.
 
 - 2026-10-10 | history/pause/seek candidate | d4d5b66d | reserved PS5 .40 | no-run: first title check busy; no other probes/uploads/launch/input/close, lock released | .deps/history-pause-seek-reserved-console.log | authorized primary fallback
 - 2026-10-10 | fallback idle/config read-only | none | PS5 .30 | pass: minimal title-only case idle; separate first-check-idle configuration read found no provider file; no app changes | .deps/console/controller-primary-idle-only/; .deps/console/controller-primary-config-readonly/ | fresh primary pairing/playback-control case
+- 2026-10-10 | primary playback controls | d4d5b66d | PS5 .30 | no-run: console became busy before case's first title check; no other probes/uploads/launch/input/close, lock released | .deps/public-pause-seek-primary-console.log | continue offline; no repeated hardware polling
+
+The separately owned primary companion on port 8766 was stopped after the
+no-run. The previously paired `.40` companion on port 8765 remains available;
+it was not interrupted. The `d4d5b66d` controller package is frozen but has not
+been deployed. Saved-history reload, pause/seek and physical pad/audio acceptance
+remain open; the preceding `b9b5c916` real-video result remains valid.
