@@ -13,6 +13,11 @@ Passed ASan/UBSan: `test_native.sh sponsor`, `test_sponsor_player.sh`, and
 fallback DOM blocks and checks visibility, expiry, suppression, stable DOM
 updates and text escaping. This is offline evidence, not console acceptance.
 
+Source `e8486d38` passed the PS5 build and immutable freeze (126 files;
+eboot prefix `c14090d6f9e367ef`; build `prosperotube-e8486d38_1010-2024`).
+Evidence: `.deps/sponsor-review-{ps5-build,freeze}.{log,result}`, both exit 0.
+No console deployment was performed for this candidate.
+
 ## PS5 speed controls acceptance — 2026-10-10
 
 Frozen `17455475` passed a bounded public Big Buck Bunny case on the fallback
