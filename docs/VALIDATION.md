@@ -426,3 +426,8 @@ ordinary read failure, allocation failure, reset, and clean EOF are covered.
 Evidence: `.deps/input-failure-test.log`, exit result 0. This proves host
 classification and completion behavior; controlled native restart and PS5
 network interruption, queue/watch-state and sound acceptance remain pending.
+
+- 2026-10-09 | retry exhaustion | 0f961373 | PS5 build | pass: 211 objects, linking, native containers, PFS/ZIP; frozen 126 files, eboot 3edf184947505bd1 | .deps/input-failure-ps5-build.log; .deps/input-failure-freeze.log | controlled restart, PS5 acceptance
+
+Clean build ID: `prosperotube-0f961373_1010-0043`. Both build and freeze returned
+0; the candidate remains undeployed. No console connections were made.
