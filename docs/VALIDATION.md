@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Provider stick controls survive global dispatch — 2026-10-10
+
+The generated application now reserves L3/R3 for the provider screen rather
+than consuming them for screenshot capture. Keyboard and system-browser input
+also retain their buttons. Screenshot capture remains available on other
+screens, including the player.
+
+`scripts/test_controller_dispatch.py` extracts and compiles the shipping global
+dispatch block together with the shipping YouTube provider stick bindings.
+ASan/UBSan passed L3 composition, R3 discussion, Touchpad comments, L2/R2,
+simultaneous-stick precedence, unchanged press/hold/release forwarding, screenshot
+success/failure on player/settings, other-provider forwarding, keyboard/browser
+ownership and idle input. The screen manager, capture and discussion callbacks
+are mocked; physical pad/chat behavior and the new package remain unaccepted.
+Evidence: `.deps/controller-prepare.log`, `.deps/controller-dispatch.log` and
+`.deps/controller-dispatch.result` (0).
+
 ## First actual YouTube playback on PS5 — 2026-10-10
 
 The fresh reserved `.40` case used unchanged native build

@@ -27,7 +27,9 @@ creation. Its `b9b5c916` package now establishes Lapy storage, post-transition
 resident codec creation, UI/first frame, GPU park and exact-title close on `.40`.
 A separate idle-first read-only check confirms title release and reachable
 services. Real YouTube playback and configuration persistence are the next
-acceptance case; global L3/R3 screenshot dispatch also needs integration work.
+acceptance case. Global L3/R3 screenshot dispatch now preserves provider stick
+controls, with shipping-dispatch/binding ASan/UBSan coverage; physical controller
+and new-package acceptance remain pending.
 The corrected Windows companion `c7d6f35` now establishes the first real public
 YouTube playback on `.40`: native AVC, rendered English captions, 284 published
 frames without late drops, EOF/completion and durable Guest history. Native AAC

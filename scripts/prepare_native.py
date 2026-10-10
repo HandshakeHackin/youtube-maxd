@@ -177,6 +177,8 @@ def main():
     apply_live_chat_overlay(replace, player)
     from chat_compose_overlay import apply_chat_compose_overlay
     apply_chat_compose_overlay(replace, player, host)
+    from controller_overlay import apply_controller_overlay
+    apply_controller_overlay(replace, player)
     from audio_drain_overlay import apply_audio_drain_overlay
     apply_audio_drain_overlay(replace, player)
     from video_drain_overlay import apply_video_drain_overlay

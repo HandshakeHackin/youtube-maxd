@@ -14,11 +14,13 @@ The active [goal](GOAL.md) is full SmartTube equivalence on **PS5**. This
 prototype does not yet satisfy it. The player uses the pinned EVO PS5 foundation;
 ProsperoLight and ProsperoTV are integration references.
 
-Hardware status: an earlier PS5 baseline played a synthetic video; real YouTube
-decoding has passed on the PC companion. End-to-end YouTube playback on PS5 is
-still unverified. Earlier builds stopped at Lapy storage initialization, and
-the newer PR50 builds have not launched: bounded console cases stopped on busy
-title checks or an installed-byte mismatch. See [validation](docs/VALIDATION.md).
+Hardware status: the PS5 build has played the real public video "Me at the zoo"
+through the LAN companion, with native AVC, rendered English captions and
+saved Guest history. Lapy PR50 storage access and graceful GPU park/close passed.
+Native AAC initialized; physical audible sound, pause/seek, history reload,
+broader formats and long sessions still need acceptance. See
+[validation](docs/VALIDATION.md) for the captured frame and retained verifier
+failure caused by a too-strict final-frame threshold.
 
 Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
@@ -65,7 +67,7 @@ Existing global state migrates to Guest. Player preferences remain console-wide.
 behavior. A bounded PS5 run passed native browser startup, pairing/search,
 hardware AVC playback of an eight-second DASH fixture, an inspected scanout,
 and graceful GPU shutdown. Broader format support, pacing, audio synchronization,
-caption activation and live YouTube behavior still need the
+broader caption behavior and live YouTube playback still need the
 [hardware checklist](docs/HARDWARE_ACCEPTANCE.md).
 Format support is not a claim that arbitrary current YouTube videos or every
 resolution will play on a PS5.
