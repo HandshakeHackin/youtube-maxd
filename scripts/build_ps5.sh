@@ -8,7 +8,11 @@ mkdir -p "${root}/.deps"
 exec 9>"${root}/.deps/native-build.lock"
 flock -n 9 || { echo 'Another ProsperoTube native build is already running.' >&2; exit 2; }
 work="$(python3 "${root}/scripts/prepare_native.py")"
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy"
+lapy_options=()
+if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then
+    lapy_options+=(--result-file "${PROSPEROTUBE_LAPY_RESULT_FILE}")
+fi
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy" "${lapy_options[@]}"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi

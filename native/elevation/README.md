@@ -7,10 +7,28 @@ ProsperoLight's existing/resident/helper regression and ProsperoTV's mounted
 `/data` listing regression are retained and extended in `tests/test_elevation*`.
 
 `scripts/build_lapy_helper.py` builds the upstream MIT helper at
-`c3bdfe3a399366d8eacfc580f20b19fd03b16ca3`, for `PPSA99142` only. Source,
+`57fcc19b7f57e46c823d6f2a6c6233ebf3288079`, the inspected head of
+[upstream PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50),
+for `PPSA99142` only. Source,
 SDK archive, logging header and protocol are pinned and verified. The helper
 allows one request, installs no service, and ships with its manifest/license.
 Its own manifest explicitly does not claim console validation.
+
+This revision stops the target before raw target snapshots, binds its title
+before and after the stop, and requires the post-donor two-reference balance
+before detach. The wire protocol remains the previously pinned ELV1 protocol.
+The prior helper revision remains in its separate ignored cache and frozen
+candidates; it is not overwritten by this update.
+
+Diagnostic builds may set
+`PROSPEROTUBE_LAPY_RESULT_FILE=/data/prosperotube/lapy-helper.log`.
+The upstream helper then mirrors its stage records through an owned file without
+changing shared ps5log configuration. The test installer must create
+`/data/prosperotube` before launch; otherwise the helper refuses to start. Normal
+builds omit this option and require no pre-existing data directory. The packaged
+manifest records the source revision and optional result path; the full upstream
+manifest is checked to reject any test-only snapshot delay. This update has not
+yet established ProsperoTube storage or playback acceptance on a console.
 
 The client checks actual write/read and directory access, gives a resident
 service a bounded chance, cancels an unclaimed marker before helper fallback,

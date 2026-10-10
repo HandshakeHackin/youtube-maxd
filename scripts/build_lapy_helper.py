@@ -19,7 +19,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".deps/lapy"
-LAPY_COMMIT = "c3bdfe3a399366d8eacfc580f20b19fd03b16ca3"
+LAPY_COMMIT = "57fcc19b7f57e46c823d6f2a6c6233ebf3288079"
 LAPY = CACHE / f"PS5-Lapy-JB-Daemon-{LAPY_COMMIT[:7]}"
 SDK = CACHE / "ps5-payload-sdk-v0.42"
 SDK_URL = "https://github.com/ps5-payload-dev/sdk/releases/download/v0.42/ps5-payload-sdk.zip"
@@ -126,6 +126,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("title")
     parser.add_argument("output", type=Path)
+    parser.add_argument("--result-file", choices=["/data/prosperotube/lapy-helper.log"],
+                        help="diagnostic build only; installer must create the app data directory")
     args = parser.parse_args()
     if not re.fullmatch(r"PPSA[0-9]{5}", args.title):
         parser.error("title must use PPSA followed by five digits")
@@ -135,13 +137,20 @@ def main():
     fetch_ps5log()
     environment = os.environ.copy()
     environment.update(PS5_PAYLOAD_SDK=str(SDK), LOGGING_CLIENT=str(PS5LOG))
-    subprocess.run(["make", "owned-helper", f"TARGET_TITLE={args.title}"], cwd=LAPY,
-                   env=environment, check=True)
+    command = ["python3", "tools/build_owned_daemon.py", "--sdk", str(SDK),
+               "--logging-client", str(PS5LOG), "--elf-helper", "--title", args.title]
+    if args.result_file:
+        command += ["--result-file", args.result_file]
+    subprocess.run(command, cwd=LAPY, env=environment, check=True)
 
     source = LAPY / f"build/owned_root_helper-{args.title}"
     elf = source / "lapy.elf"
     manifest_path = source / "lapy-manifest.json"
     manifest = json.loads(manifest_path.read_text())
+    full_manifest = json.loads((source / "manifest.json").read_text())
+    if (full_manifest.get("result_file") != args.result_file or
+            full_manifest.get("target_snapshot_delay_us") is not None):
+        raise RuntimeError("Unexpected helper logging path or test-only snapshot delay")
     expected = {
         "schema": "lapy-owned-build/1",
         "target_title": args.title,
@@ -166,7 +175,9 @@ def main():
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     shutil.copy2(elf, output / "lapy.elf")
-    shutil.copy2(manifest_path, output / "lapy-manifest.json")
+    manifest["source_commit"] = LAPY_COMMIT
+    manifest["result_file"] = args.result_file
+    (output / "lapy-manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     shutil.copy2(LAPY / "LICENSE", output / "Lapy-MIT.txt")
     print(f"Lapy helper verified: {manifest['build_id']} {manifest['elf_sha256']}")
 

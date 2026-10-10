@@ -646,3 +646,36 @@ configuration was changed. The helper's stage logs still were not captured;
 the next diagnostic must expose them without disturbing shared configuration.
 Evidence: `.deps/lapy-log-discovery.json` and `.deps/lapy-log-discovery.result`
 (0). Do not repeat this frozen candidate unchanged.
+
+### Lapy PR #50 integration (2026-10-09)
+
+Pinned `57fcc19b7f57e46c823d6f2a6c6233ebf3288079`, the GitHub API-verified head
+of https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50. The upstream fix
+stops targets before raw kernel-pointer snapshots, checks their title identity
+around the stop, and requires exact post-donor root-reference balance before
+detach. Its unmodified ELV1 protocol still matches the client hash. The prior
+pin and failed frozen candidates remain separate comparison artifacts.
+
+Upstream six native ASan/UBSan cases and 53 Python tests passed; both existing
+ProsperoTube elevation client regression cases passed. Evidence:
+`.deps/lapy-pr50-native.log`, `.deps/lapy-pr50-python.log`,
+`.deps/lapy-pr50-client.log` and corresponding `.result` files (all 0).
+
+Both exact-title PS5 helper builds passed `-Wall -Wextra -Werror` and manifest,
+protocol and ELF validation. Default helper SHA-256:
+`3f26c687c0cc3a7d5047f2a0b7f0d80886e92ac49c59c301d03eeed8488e1640`.
+Diagnostic helper SHA-256:
+`bf1d7b1017a6c078b81c5267152dfc985389f4836d288c34351243de98a2b0e1`.
+Diagnostic records use the upstream result-file option at
+`/data/prosperotube/lapy-helper.log`; normal builds omit it. The full upstream
+manifest is checked for the exact optional path and absence of a test-only
+snapshot delay. The packaged manifest records the source and logging path.
+Evidence: `.deps/lapy-pr50-default-build.log` / `.result` (0),
+`.deps/lapy-pr50-diagnostic-build.json` and upstream helper build logs/manifests.
+
+This is offline helper integration evidence. No console traffic occurred during
+this update. A new complete PS5 build/freeze and guarded application case are
+still required; PR #50 does not itself prove the cause or resolution of our
+captured status 7 failures. Diagnostic installation must create the app data
+directory before launch and retain helper logs. Shared logging settings remain
+unchanged. No custom logging adapter is incorporated.

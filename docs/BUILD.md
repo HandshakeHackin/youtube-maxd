@@ -62,6 +62,16 @@ title and shared USB filenames and must not be invoked against ProsperoTube.
 Add EVO's `--virtual-keyboard` option for scripted app text-entry cases; the
 development input commands cannot type into the PS5 system IME.
 
+For a bounded Lapy diagnostic candidate, set
+`PROSPEROTUBE_LAPY_RESULT_FILE=/data/prosperotube/lapy-helper.log` when running
+`build_ps5.sh`. This selects the pinned upstream helper's file-mirror option;
+the diagnostic installer must create `/data/prosperotube` before launch and
+record that preparation. The helper refuses to start if it cannot open this
+file. Normal builds omit the variable and do not require an existing directory.
+The helper manifest records the exact source revision and optional result path.
+No shared ps5log configuration is changed. See `native/elevation/README.md` for
+the PR #50 revision and hardware acceptance limits.
+
 `package_release.py` packages companion/documentation bytes from the committed
 Git revision and only named generated media fixtures. Local account files,
 dependency directories and generated library bundles are excluded. Install the

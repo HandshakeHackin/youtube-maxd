@@ -10,7 +10,8 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
 * cJSON 1.7.19: MIT, complete vendored source/license/provenance in
   `native/vendor/cJSON`. Replaces EVO's unsafe slim JSON printer in the build.
 * Lapy exact-title helper: PS5-Lapy-JB-Daemon
-  `c3bdfe3a399366d8eacfc580f20b19fd03b16ca3` (MIT), built from verified pinned
+  `57fcc19b7f57e46c823d6f2a6c6233ebf3288079` (MIT), the inspected head of
+  [upstream PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50), built from verified pinned
   source by `scripts/build_lapy_helper.py`; the helper's manifest and complete
   MIT license ship with the app. Its GPL-3.0-or-later cooperative client and
   build recipe are adapted from ProsperoTV
