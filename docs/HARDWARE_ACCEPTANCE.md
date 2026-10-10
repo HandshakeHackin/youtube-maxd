@@ -240,3 +240,5 @@ changes, all three retry attempts, and that recovery leaves the queue entry
 unconsumed. Missing/ambiguous formats and failed reopen must return control
 without opening another video or replaying account mutations. All of these
 remain hardware acceptance requirements.
+
+- 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 6.02 | no-run: first title check busy; no probes/upload/launch/close/input; owned lock released | .deps/recovery-console.log | continue offline, await idle console

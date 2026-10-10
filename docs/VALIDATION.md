@@ -470,4 +470,12 @@ All 211 PS5 objects, linking, native container inspection and PFS/ZIP packaging
 passed. Clean build ID `prosperotube-17f1b904_1010-0100`; immutable candidate
 contains 126 files with eboot SHA-256 prefix `e0c8e041e3dc43c4`. Build and freeze
 both returned 0. The exact-title Lapy helper is packaged and verified; no console
-connections occurred. Host handoff evidence: `.deps/recovery-handoff.log`.
+connections occurred during the offline build/test. Host handoff evidence:
+`.deps/recovery-handoff.log`, `.deps/recovery-handoff-promoted.log` (both exit 0).
+
+- 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 | no-run: first title check busy | .deps/recovery-console.log | continue offline
+
+The bounded storage/startup case stopped at its first console operation, the
+minimal read-only FTP running-title check. No further service probes, upload,
+launch, close or input occurred. Its owned lock was released. The candidate
+remains undeployed; PS5 recovery and storage acceptance remain pending.
