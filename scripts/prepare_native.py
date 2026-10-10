@@ -196,6 +196,8 @@ def main():
     apply_accurate_resume_overlay(replace, player, WORK)
     from sponsor_overlay import apply_sponsor_overlay
     apply_sponsor_overlay(replace, player)
+    from sponsor_review_overlay import apply_sponsor_review_overlay
+    apply_sponsor_review_overlay(replace, player)
     from playback_rate_overlay import apply_playback_rate_overlay, apply_audio_rate_overlay
     apply_playback_rate_overlay(replace, player)
     apply_audio_rate_overlay(replace, player, WORK)

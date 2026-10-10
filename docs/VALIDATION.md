@@ -1,5 +1,18 @@
 # Offline validation record — 0.1.0
 
+## SponsorBlock transparent review — 2026-10-10
+
+Both shipping HUD paths now show a persistent translucent skip/keep card outside
+the playback controls' fade group. Pending review keeps rendering active with
+the actual media position after the ordinary controls disappear. Scrubbing and
+diagnostics retain their Cross/Circle input; live/music states suppress the card.
+The repeated review toast has been removed. Existing skip and error feedback stays.
+
+Passed ASan/UBSan: `test_native.sh sponsor`, `test_sponsor_player.sh`, and
+`test_sponsor_review.sh`. The latter extracts the shipping HUI draw/focus and
+fallback DOM blocks and checks visibility, expiry, suppression, stable DOM
+updates and text escaping. This is offline evidence, not console acceptance.
+
 ## PS5 speed controls acceptance — 2026-10-10
 
 Frozen `17455475` passed a bounded public Big Buck Bunny case on the fallback

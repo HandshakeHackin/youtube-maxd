@@ -33,8 +33,7 @@ static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, hi
 static bool finish_allowed, show_message, accepted;
 static double next_target;
 static const char* prompt;
-static uint64_t m_tubeSponsorPromptAt;
-static uint64_t NowMs() { return 10000; }
+static bool m_showStatsForNerds;
 static void toast(const char*, const char*) { ++notices; }
 static int evo_pb_is_complete() { return complete; }
 static int evo_pb_is_paused() { return engine_paused || state.paused; }
@@ -67,7 +66,7 @@ static void reset() {
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
-    next_target = -1; prompt = nullptr; m_tubeSponsorPromptAt = 0;
+    next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
     // Automatic skips cannot compete with pause, scrub, live or seek ownership.
@@ -143,10 +142,17 @@ int main() {
         }
         assert(input(PadButtons::R3) && !highlight_calls && !state.seeks && !state.stops && !idle_retries);
         prompt = "Jump to highlight?";
+        if (state.scrubbing) {
+            assert(!input(PadButtons::Cross) && !input(PadButtons::Circle));
+            assert(!confirm_calls && prompt);
+            continue;
+        }
         assert(input(PadButtons::Cross) && !confirm_calls && !state.seeks && prompt);
         assert(input(PadButtons::Circle) && confirm_calls == 1 && !state.seeks && !prompt);
     }
     reset(); assert(input(PadButtons::R3) && !state.seeks && notices == 1);
+    reset(); m_showStatsForNerds = true; prompt = "Skip sponsor?";
+    assert(!input(PadButtons::Cross) && !input(PadButtons::Circle) && !confirm_calls && prompt);
     reset(); next_target = 100; assert(input(PadButtons::R3) && !state.seeks && !state.stops);
     puts("PASS: shipping PS5 SponsorBlock tick/pad paths, skip/end decisions, navigation, silent/message actions and competing playback gates");
 }

@@ -11,7 +11,6 @@ def apply_sponsor_overlay(replace, player):
         if (accept && (playback->isLiveSource() || playback->isScrubbing() || evo_pb_is_complete() ||
             evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold)) return true;
         double target = tube_sponsor_confirm(playback->getPositionSeconds(), accept);
-        m_tubeSponsorPromptAt = 0;
         toast("SPONSORBLOCK", accept ? "Skipping segment" : "Keeping this segment");
         if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
             playback->stopPlayback();
@@ -60,13 +59,6 @@ def apply_sponsor_overlay(replace, player):
             return;
         }
         if (target >= 0 && target < playback->getDurationSeconds()) {''')
-    replace(screen, '        double target = tube_skip_target(playback->getPositionSeconds());', '''        double target = tube_skip_target(playback->getPositionSeconds());
-        const char *prompt = tube_sponsor_prompt(playback->getPositionSeconds());
-        if (!prompt) m_tubeSponsorPromptAt = 0;
-        if (prompt && (!m_tubeSponsorPromptAt || NowMs() - m_tubeSponsorPromptAt >= 2000)) {
-            m_tubeSponsorPromptAt = NowMs(); toast("SPONSORBLOCK", prompt);
-        }''')
-    replace(player + 'core/include/evo/screens/PlayerScreen.hpp', '    bool m_showStatsForNerds', '    uint64_t m_tubeSponsorPromptAt = 0;\n    bool m_showStatsForNerds')
     kit = player + 'ui_kit/src/evo_hui_osd.cpp'
     replace(kit, '#include "evo_hui_osd.hpp"', '#include "evo_hui_osd.hpp"\n#include "tube_sponsor_draw.h"')
     replace(kit, '        const float tx = track.x + track.w * f;', '''        // ProsperoTube SponsorBlock marker draw (also extracted by host tests).
