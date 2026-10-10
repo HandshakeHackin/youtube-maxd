@@ -4,6 +4,15 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK:-${HOME}/.cache/prosperotube/sdk}"
 export PATH="${PS5_PAYLOAD_SDK}/bin:${PATH}"
+# Resolve the SDK's preferred LLVM once; repeated PATH searches across WSL's
+# Windows mounts otherwise dominate configure and per-object tool invocations.
+# Keep an explicit caller selection intact.
+if [[ -z "${LLVM_CONFIG:-}" ]]; then
+    llvm_bindir=$("${PS5_PAYLOAD_SDK}/bin/prospero-llvm-config" --bindir)
+    if [[ -x "${llvm_bindir}/llvm-config" ]]; then
+        export LLVM_CONFIG="${llvm_bindir}/llvm-config"
+    fi
+fi
 mkdir -p "${root}/.deps"
 exec 9>"${root}/.deps/native-build.lock"
 flock -n 9 || { echo 'Another ProsperoTube native build is already running.' >&2; exit 2; }

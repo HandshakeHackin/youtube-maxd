@@ -601,8 +601,8 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | --- | --- | --- |
 | PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
 | Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
-| Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests | Broader console acceptance and full reference behavior inventory |
-| Recovery, timing and diagnostics | Host-tested fractional resume, demux seek ownership, paused retry and atomic status | Host-proven FFmpeg indexed-seek fix for ~66-second PS5 initial resume; PS5 library rebuild/timed acceptance, recovery and playback speed remain |
+| Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests | WebP artwork support (observed unsupported RIFF thumbnail), broader console acceptance and reference behavior inventory |
+| Recovery, timing and diagnostics | Host-tested fractional resume, demux seek ownership, paused retry and atomic status | PS5 indexed resume accepted: 5.367 s to target frame, bidirectional seek; wider recovery acceptance and playback speed remain |
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |

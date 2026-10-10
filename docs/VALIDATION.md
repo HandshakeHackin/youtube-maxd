@@ -16,7 +16,34 @@ The PS5 build applies it after extracting the pinned FFmpeg source and includes
 its SHA-256 in the installed-library marker, forcing stale libraries to rebuild.
 Initial minimal host configurations exposed an FFmpeg H.264/HEVC film-grain link
 dependency; the successful comparison uses the same corrected build on both sides.
-PS5 rebuild and timed saved-position acceptance remain pending.
+PS5 build/freeze passed: `prosperotube-1e523316_1010-1834`, 126 files,
+eboot prefix `f2561db427571559`. Automated hardware acceptance passed after
+correcting an evidence assertion: the initial resume increments the seek counter,
+so resume plus forward/backward controls requires `seek_req=3 ok=3 fail=0`, not 2.
+The original runner exit 1 and logs remain; an offline verifier checked the same
+captured run, exact PID/app release and GPU park without another console launch.
+
+Selection-to-first-frame at the saved 161-second position was **5.367 s**; the
+native initial-seek interval fell from 65.734 s to **0.338 s**. The initial active
+state arrived in 3.010 s, before preroll completed, and is not used as first-picture
+evidence. Playback published 2,042 frames (7 late drops), both controller seeks
+resumed advancing, and clean title/mount release and service health passed.
+Physical sound/motion were not assessed. Evidence:
+`.deps/console/dash-index-resume/verified-result.json`, `.deps/dash-index-console.log`.
+The same run also exposed unsupported WebP thumbnail data in the existing artwork
+loader; browsing-image support is the next distinct fix.
+
+An additional WebM/VP9 fixture passed: 15 decoded frames and audio packet delivery,
+813,382 bytes transferred from 10,249,991 total (`.deps/dash-seek-patched-webm.json`).
+A transport deliberately ignoring byte ranges failed in both original and patched
+builds; this remains an existing unsupported seek case (`.deps/dash-seek-*-no-range.json`).
+
+The first PS5 library build was intentionally stopped after measuring repeated
+LLVM discovery at 0.568 s versus 0.029 s for the same resolved LLVM 18 executable.
+Restarting with explicit `LLVM_CONFIG` completed; the build script now resolves
+that path once unless the caller supplies one. No SDK files or compiler version
+were changed. Cancellation evidence: `.deps/dash-index-cancelled-slow-discovery.json`;
+build/freeze logs: `.deps/dash-index-*`.
 
 ## DeArrow / SponsorBlock / section tracking batch — 2026-10-10
 

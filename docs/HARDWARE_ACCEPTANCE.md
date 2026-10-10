@@ -1,14 +1,18 @@
-# Hardware acceptance — pending
+# Hardware acceptance — in progress
 
-Current installed candidate `4a840c58` passed all 211 PS5 objects and immutable
-126-file package freeze (`prosperotube-4a840c58_1010-1756`, eboot prefix
-`cf9dbbc6a68230b1`). Verified installation, settling, startup and public resolution
-passed. Initial saved-position playback exceeded the 60-second acceptance deadline;
-it subsequently advanced from 124 to 159.46 seconds without a decoder fatal.
-Exact owned-process cleanup passed GPU park, title/mount release and service health.
-Slow resume remains open; the new feature behavior and motion/audio are unaccepted.
-The earlier `5cc941f0` control retains user-confirmed smooth 1080p60 sound/video.
-See [validation](VALIDATION.md) and the [section tracker](../IMPLEMENTATION_PLAN.md).
+Installed `1e523316` (`prosperotube-1e523316_1010-1834`, 126 files,
+eboot prefix `f2561db427571559`) passed verified installation, initial resume,
+public playback and forward/backward seeking on the reserved console. The first
+frame at the saved 161-second position arrived 5.367 s after selection; the native
+seek interval was 0.338 s. Three seeks succeeded including initial resume; none
+failed. GPU park, exact title/mount release and service health passed.
+The raw adapter expected two seeks; the corrected offline verifier validates the
+same captured run, preserving the original exit 1. No relaunch was needed.
+Physical sound/motion for this build remain unassessed. The earlier `5cc941f0`
+control retains user-confirmed smooth 1080p60 sound/video. DeArrow/SponsorBlock,
+broader codecs and full parity remain open. See [validation](VALIDATION.md).
+
+- 2026-10-10 | G1 | 1e523316 | reserved console | pass: 5.367s resume, bidirectional seek, clean teardown; corrected counter assertion | .deps/console/dash-index-resume/verified-result.json | WebP artwork and broader playback
 
 - 2026-10-10 | G1 | 4a840c58 | reserved console | failed: initial-resume deadline; later playback observed; clean owned teardown | .deps/parity-batch-console.log | diagnose slow resume
 
