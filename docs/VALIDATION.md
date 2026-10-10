@@ -624,3 +624,25 @@ listing regressions passed; wrapper result 0. Evidence:
 `.deps/startup-log-test.log`, `.deps/startup-log-elevation.log` and
 `.deps/startup-log.result`. This is host evidence. A new PS5 build and an
 idle-first console case with helper-stage capture remain required.
+
+- 2026-10-09 | startup log gate / PS5 build | bb5672a0 | pass: 211 objects, link, package and immutable freeze; 126 files, eboot prefix f9aca772ad4cf6e9 | .deps/startup-gate-ps5-build.log; .deps/startup-gate-freeze.log | storage acceptance
+- 2026-10-09 | primary storage/startup | bb5672a0 | PS5, firmware unreported in this case | failed: helper apply_failed (7), startup stopped, exit(1) followed by SIGSYS | .deps/startup-gate-console.log; .deps/console/storage-startup-gate-bb5672a-primary/klog.txt | helper-stage diagnostics offline
+
+Exact build `prosperotube-bb5672a0_1010-0206` reached main, 3840x2160 display,
+IME and browser preloads, then returned helper status 7. The logging gate alone
+does not resolve startup. Full upload/readback, the 130-second settle with a
+second full readback, exact registration and a fresh idle check passed before
+one launch. The harness stopped on the matching storage-failure breadcrumb;
+no input, close payload, second launch or subsequent console connection was
+sent. Case result 1; process terminal; owned lock absent. No storage-ready,
+persistence, graceful teardown, post-failure service-health or playback claim.
+The case metadata retained the earlier storage-integration wording; the source
+change being tested here is the boot-logger gate. Cross-console comparison does
+not isolate a root cause.
+
+An earlier separate idle-first read-only discovery found the primary idle and
+its existing global ps5log endpoint configured for console loopback. No logging
+configuration was changed. The helper's stage logs still were not captured;
+the next diagnostic must expose them without disturbing shared configuration.
+Evidence: `.deps/lapy-log-discovery.json` and `.deps/lapy-log-discovery.result`
+(0). Do not repeat this frozen candidate unchanged.

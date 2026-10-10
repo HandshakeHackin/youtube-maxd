@@ -270,3 +270,12 @@ the owned lock was released. Writable app storage, persistence and post-failure
 service health were not accepted. Do not retry these identical bytes. Diagnose
 the helper apply failure and startup-failure lifecycle before another bounded
 case; the fallback's firmware has not been established.
+
+- 2026-10-09 | primary storage/startup with log gate | bb5672a0 | PS5, firmware unreported in this case | failed: exact build reached main/display/IME, helper apply_failed (7), startup stopped, exit(1) then SIGSYS; no input/close/relaunch, owned lock released | .deps/startup-gate-console.log; .deps/console/storage-startup-gate-bb5672a-primary/klog.txt | expose helper-stage logs offline before a changed candidate
+
+The log gate has host regression and PS5 build coverage, but it did not restore
+startup in this bounded primary-console case. Both complete byte readbacks,
+registration and idle checks passed before one launch. The case stopped on the
+matching storage-failure breadcrumb. Storage/persistence, graceful teardown,
+post-failure service health and YouTube playback remain unverified. No identical
+candidate retry. See VALIDATION.md for hashes and logging-discovery limits.
