@@ -174,12 +174,13 @@ int evo_audio_decode_is_parked(void);
     }
     if ((video_thread_running && !video_decode_parked) ||
         (audio_decode_thread_running && !evo_audio_decode_is_parked())) {
-        prospero_seek_in_progress = 0; video_decode_hold = 0;
+        video_decode_hold = 0;
         pp_playback_notify_seek_end(&g_pp_pb, 0, 0, 0);
         if (!restore_paused) pp_playback_resume(&g_pp_pb);
         player_paused = restore_paused ? 1 : 0;
         controls_last_used_ms = now_ms();
         toast("SEEK", "Decoder is busy; seek was not applied");
+        prospero_seek_in_progress = 0;
         return 0;
     }
     video_decode_done = 0;

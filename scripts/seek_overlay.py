@@ -54,6 +54,17 @@ bool PlaybackController::seekTo(double targetSeconds, bool keepPaused) {''')
         if (!keepPaused) pp_playback_resume(&g_pp_pb);
         return false;''')
     demux = player + 'media/src/evo_demux.c'
+    replace(demux, 'static volatile int prospero_seek_pending = 0;', 'static _Atomic int prospero_seek_pending = 0;')
+    replace(demux, 'static volatile int prospero_seek_in_progress = 0;', 'static _Atomic int prospero_seek_in_progress = 0;')
+    replace(demux, 'int evo_demux_is_seeking(void) { return prospero_seek_pending || prospero_seek_in_progress; }', '''int evo_demux_is_seeking(void) {
+    /* Pending -> in-progress changes while holding this same mutex. Readers
+     * must not observe the intermediate clear and submit a competing request.
+     * Completion can clear in-progress outside the mutex, hence atomic flags. */
+    pthread_mutex_lock(&prospero_seek_mutex);
+    const int busy = prospero_seek_pending || prospero_seek_in_progress;
+    pthread_mutex_unlock(&prospero_seek_mutex);
+    return busy;
+}''')
     replace(demux, '#include <stdatomic.h>', '#include <stdatomic.h>\n#include <math.h>')
     replace(demux, '''    if (
         !play_fmt ||
@@ -71,15 +82,19 @@ bool PlaybackController::seekTo(double targetSeconds, bool keepPaused) {''')
     int64_t absolute_target_us, seek_timestamp;
     if (!tube_seek_times(play_fmt, seek_stream, target_seconds,
                          &absolute_target_us, &seek_timestamp)) {
-        prospero_seek_in_progress = 0;
         if (!restore_paused) pp_playback_resume(&g_pp_pb);
         player_paused = restore_paused ? 1 : 0;
         controls_last_used_ms = now_ms();
+        prospero_seek_in_progress = 0;
         return 0;
     }
     pp_playback_notify_seek_begin(&g_pp_pb, absolute_target_us);''')
     replace(demux, '''    double decoder_seek_seconds =
         target_seconds;''', '')
+    replace(demux, '    prospero_seek_in_progress = 0;\n    video_decode_hold = 0;', '    video_decode_hold = 0;')
+    replace(demux, '    return result >= 0;', '''    /* Release ownership only after hold/clock/pause restoration is complete. */
+    prospero_seek_in_progress = 0;
+    return result >= 0;''')
     replace(demux, '''    int seek_stream =
         video_stream_index >= 0
             ? video_stream_index

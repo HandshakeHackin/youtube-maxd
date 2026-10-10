@@ -1,5 +1,37 @@
 # Offline validation record — 0.1.0
 
+## Idle retry after asynchronous paused-seek failure — 2026-10-10
+
+A new R3 intent can release an old point-request guard once seek, discard and
+prebuffer work are idle, permitting a retry when an accepted seek failed later
+without moving a paused clock. Busy gates preserve the previous request. Provider
+scope still rejects finished/stale/source/profile/live contexts; no automatic
+retry or worker-thread provider mutation was added.
+
+The demux seek flags are atomic. The getter observes pending/in-progress under
+the same mutex that transfers a request, preventing an intermediate clear from
+appearing idle. Success, failed seek, invalid timeline conversion and worker-busy
+refusal release ownership only after hold/clock/pause restoration finishes.
+
+Actual native provider/recovery/SponsorBlock executables, extracted shipping
+player/global-dispatch/seek-overload paths and a threaded getter test passed
+ASan/UBSan. The player test also queues a paused jump, rejects additional input
+during seek/discard/prebuffer and permits a paused retry after those states clear.
+Evidence: `.deps/highlight-idle-retry-{native,player,dispatch,seek-pause,ownership}`
+logs/results (all 0), plus `.deps/highlight-idle-retry-player-final` (0).
+
+The existing seek-handoff suite now extracts both actual controller overloads.
+All four executables passed: request/clock ownership, resume timeline, decoded
+audio acceptance and actual FFmpeg demux seeks with real playback hold/clock
+functions. Cases cover paused failed seeks for audio-only and A/V sources, invalid
+timebase, unparked worker refusal, clock-base retention and release ordering.
+The first new paused-clock assertion failed because its fixture clock had never
+started; that result (134) is retained. The corrected fixture asserts that pause
+was established before submitting the request. Final evidence:
+`.deps/highlight-idle-seek-handoff-final.{log,result}` (0) and
+`.deps/highlight-idle-seek-ownership-final.{log,result}` (0).
+PS5 packaging and hardware acceptance follow separately.
+
 ## Atomic diagnostic status publication — 2026-10-10
 
 The status publisher now stages `dev_status.tmp` under the same Lapy-backed app

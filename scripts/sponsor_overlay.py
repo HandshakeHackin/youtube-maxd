@@ -31,6 +31,9 @@ def apply_sponsor_overlay(replace, player):
     if (pressed & PadButtons::R3) {
         if (playback->isLiveSource() || playback->isScrubbing() || evo_pb_is_complete() ||
             evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold) return true;
+        // A new intent may retry an asynchronously failed paused seek. The
+        // queue getter observes pending/in-progress together under its mutex.
+        tube_highlight_retry_idle();
         double target = tube_highlight_target(playback->getPositionSeconds(), playback->getDurationSeconds());
         if (target >= 0 && target < playback->getDurationSeconds()) {
             if (!playback->seekTo(target, evo_pb_is_paused() != 0)) {

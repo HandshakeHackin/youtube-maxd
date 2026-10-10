@@ -19,7 +19,7 @@ static int g_pp_pb, begins, resumes, request_calls;
 static bool hold, complete_before_return;
 static void pp_playback_notify_seek_begin(int *, int64_t) { ++begins; hold = true; }
 static void pp_playback_resume(int *) { ++resumes; }
-static void evo_boot_log(const char *, double) {}
+static void evo_boot_log(const char *, ...) {}
 
 #define prospero_request_inplace_seek shipping_request
 #include "seek_request.inc"
@@ -43,6 +43,7 @@ public:
     double m_resumeBaseOffset = 11.5;
     bool isActive() const { return active; }
     void seekTo(double);
+    bool seekTo(double, bool);
 };
 #include "seek_ui.inc"
 

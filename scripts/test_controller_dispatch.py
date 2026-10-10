@@ -62,6 +62,7 @@ static int evo_pb_is_paused() { return 0; }
 static int evo_demux_is_seeking() { return 0; }
 static double tube_highlight_target(double,double) { ++highlights; return 12; }
 static void tube_highlight_seek_failed(double) { assert(false); }
+static void tube_highlight_retry_idle() {}
 static int tube_sponsor_show_message() { return 0; }
 static const char* tube_sponsor_prompt(double) { return nullptr; }
 struct Playback {

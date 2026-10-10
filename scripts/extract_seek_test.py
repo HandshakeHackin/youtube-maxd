@@ -19,7 +19,9 @@ def block(source, signature):
 controller = Path(sys.argv[1]).read_text()
 demux = Path(sys.argv[2]).read_text()
 dest = Path(sys.argv[3]); dest.mkdir(parents=True, exist_ok=True)
-dest.joinpath('seek_ui.inc').write_text(block(controller, 'void PlaybackController::seekTo(double targetSeconds)'))
+dest.joinpath('seek_ui.inc').write_text(
+    block(controller, 'void PlaybackController::seekTo(double targetSeconds)') +
+    block(controller, 'bool PlaybackController::seekTo(double targetSeconds, bool keepPaused)'))
 dest.joinpath('seek_request.inc').write_text(block(demux, 'int prospero_request_inplace_seek('))
 dest.joinpath('seek_process.inc').write_text(block(demux, 'static int prospero_process_seek_request(void)'))
 dest.joinpath('resume_seek.inc').write_text('int64_t tube_resume_target_us = 0;\nbool tube_resume_armed = false;\n' + block(controller, '    if (wantResume) {') + block(controller, '    if (tube_resume_armed) {'))

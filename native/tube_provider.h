@@ -20,6 +20,8 @@ double tube_skip_target(double position);
 /* Explicit point jump; highlights never become automatic skip intervals. */
 double tube_highlight_target(double position, double duration);
 void tube_highlight_seek_failed(double target);
+/* New explicit intent after the caller verifies idle seek/discard/prebuffer state. */
+void tube_highlight_retry_idle(void);
 const char *tube_sponsor_prompt(double position);
 double tube_sponsor_confirm(double position, int accept);
 int tube_sponsor_show_message(void);

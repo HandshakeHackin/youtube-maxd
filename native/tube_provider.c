@@ -1896,6 +1896,9 @@ void tube_highlight_seek_failed(double target) {
         g_highlight_guard = -1; g_sb_message = 0;
     }
 }
+void tube_highlight_retry_idle(void) {
+    if (sponsor_playing_scope()) { g_highlight_guard = -1; g_sb_message = 0; }
+}
 double tube_highlight_target(double position, double duration) {
     g_sb_message = 0;
     if (!sponsor_playing_scope() || !isfinite(position) || position < 0 ||

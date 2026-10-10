@@ -199,6 +199,8 @@ int main(void) {
     tube_highlight_seek_failed(50);
     assert(!tube_sponsor_show_message() && tube_highlight_target(10, 100) == 50); // Paused retry.
     assert(tube_skip_target(10) < 0);
+    tube_highlight_retry_idle(); // Failed queued seek settled without moving a paused clock.
+    assert(tube_highlight_target(10, 100) == 50 && tube_skip_target(10) < 0);
     assert(!tube_sponsor_prompt(50)); // Arrival releases the guard.
     assert(tube_highlight_target(10, 100) == 50);
     assert(tube_skip_target(10.6) == 20); // A failed running seek releases once its old clock moves.

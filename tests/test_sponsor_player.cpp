@@ -29,7 +29,7 @@ struct Application {
 namespace PadButtons { constexpr unsigned Cross = 1, Circle = 2, R3 = 4; }
 static bool complete, seeking, pb_prebuffer_hold, engine_paused;
 static struct { bool seek_discarding; } g_pp_pb;
-static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures;
+static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures, idle_retries;
 static bool finish_allowed, show_message, accepted;
 static double next_target;
 static const char* prompt;
@@ -43,6 +43,7 @@ static int tube_finish_drained_and_next(double) { return 0; }
 static double tube_skip_target(double) { ++skip_calls; return next_target; }
 static double tube_highlight_target(double, double) { ++highlight_calls; return next_target; }
 static void tube_highlight_seek_failed(double target) { assert(target == next_target); ++highlight_failures; }
+static void tube_highlight_retry_idle() { ++idle_retries; }
 static const char* tube_sponsor_prompt(double) { return prompt; }
 static double tube_sponsor_confirm(double, int accept) {
     ++confirm_calls; accepted = accept; prompt = nullptr;
@@ -63,7 +64,7 @@ static bool input(unsigned pressed) {
 static void reset() {
     state = Playback{}; manager.returns = 0;
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
-    skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = 0;
+    skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
     next_target = -1; prompt = nullptr; m_tubeSponsorPromptAt = 0;
 }
@@ -114,11 +115,21 @@ int main() {
     reset(); next_target = 90; show_message = true;
     assert(input(PadButtons::R3) && state.seeks == 1 && notices == 1);
     reset(); engine_paused = true; next_target = 90;
-    assert(input(PadButtons::R3) && state.seeks == 1 && state.paused);
+    assert(input(PadButtons::R3) && state.seeks == 1 && state.paused && idle_retries == 1);
     reset(); engine_paused = true; state.seek_accepts = false; next_target = 90;
     assert(input(PadButtons::R3) && !state.seeks && engine_paused && highlight_failures == 1 && notices == 1);
     reset(); engine_paused = true; state.seek_accepts = false; next_target = 90; prompt = "Jump to highlight?";
     assert(input(PadButtons::Cross) && !state.seeks && engine_paused && highlight_failures == 1);
+    reset(); state.paused = true; next_target = 90;
+    assert(input(PadButtons::R3) && state.seeks == 1 && idle_retries == 1);
+    seeking = true;
+    assert(input(PadButtons::R3) && state.seeks == 1 && idle_retries == 1);
+    seeking = false; g_pp_pb.seek_discarding = true;
+    assert(input(PadButtons::R3) && state.seeks == 1 && idle_retries == 1);
+    g_pp_pb.seek_discarding = false; pb_prebuffer_hold = true;
+    assert(input(PadButtons::R3) && state.seeks == 1 && idle_retries == 1);
+    pb_prebuffer_hold = false; // Asynchronous failure settled at the paused position.
+    assert(input(PadButtons::R3) && state.seeks == 2 && idle_retries == 2 && state.paused);
     for (int gate = 0; gate < 6; ++gate) {
         reset(); next_target = 90;
         switch (gate) {
@@ -129,7 +140,7 @@ int main() {
             case 4: g_pp_pb.seek_discarding = true; break;
             case 5: pb_prebuffer_hold = true; break;
         }
-        assert(input(PadButtons::R3) && !highlight_calls && !state.seeks && !state.stops);
+        assert(input(PadButtons::R3) && !highlight_calls && !state.seeks && !state.stops && !idle_retries);
         prompt = "Jump to highlight?";
         assert(input(PadButtons::Cross) && !confirm_calls && !state.seeks && prompt);
         assert(input(PadButtons::Circle) && confirm_calls == 1 && !state.seeks && !prompt);

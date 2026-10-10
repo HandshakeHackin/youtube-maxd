@@ -597,7 +597,7 @@ retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
 - [x] Play a real public YouTube video with captions and saved Guest history.
 - [x] Reload pairing/history and verify pause/resume and native seek on PS5.
 - [x] Implement atomic diagnostic status with host partial-write and I/O-failure coverage; new-package acceptance follows separately.
-- [ ] Cover asynchronous failed highlight retry.
+- [x] Implement idle retry after asynchronous failed highlights, with threaded ownership and real FFmpeg failure coverage; new-package hardware acceptance remains pending.
 - [ ] Verify physical sound, A/V synchronization and controller feel.
 - [ ] Accept longer adaptive/progressive clips, alternate formats/audio, initial resume and quality/caption changes on hardware.
 - [ ] Finish SponsorBlock reference behavior, paid-content notices and hardware actions/point jumps.
