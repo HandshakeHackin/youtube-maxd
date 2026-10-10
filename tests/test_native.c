@@ -80,6 +80,11 @@ int main(void) {
     const evo_provider_t *p = &evo_provider_youtube;
     assert(p->init() == 0);
     assert(tube_playback_speed() == 100);
+    assert(tube_speed_count() == 30 && tube_speed_at(0) == 25 && tube_speed_at(29) == 400);
+    assert(tube_speed_at(-1) == 0 && tube_speed_at(30) == 0);
+    assert(!tube_set_playback_speed(126) && tube_playback_speed() == 100);
+    assert(tube_set_playback_speed(125) && p->init() == 0 && tube_playback_speed() == 125);
+    assert(tube_set_playback_speed(100));
     p->list_catalog("settings:speed", 0, items_cb, NULL);
     assert(last_ok && last_count == 24 && last_more);
     assert(!strcmp(last_items[0].id, "settings:speed:25"));

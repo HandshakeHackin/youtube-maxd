@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## In-player speed changes — 2026-10-10
+
+R2 playback options now offer all 30 reference speeds for a ready on-demand
+YouTube session. Selection reopens the copied source at its displayed fractional
+position, preserving pause and audio/subtitle choices. A scoped override applies
+the new rate only after workers stop. Success saves the preference; failure
+clears all temporary intents without saving it. Live/unknown-duration sources,
+EOF, scrubbing, seeking, discard and prebuffer work reject a competing change.
+Selecting the active speed is a no-op.
+
+The internal reopen suppresses the provider's terminal STOP report so history
+sync survives. A failed reopen reports one terminal stop using the saved source
+and position; a subsequent user Stop after success reports normally. The host
+test extracts both the actual generated controller methods and stop-report
+branch, with an instrumented open boundary. It covers source identity,
+fractional position, pause, external/embedded captions, audio selection,
+successful/no-op/failed changes and competing-work gates. Provider tests also
+cover the speed enumeration and persisted setter. Both passed ASan/UBSan:
+`.deps/speed-switch-final.log` and `.deps/speed-switch-provider.log`.
+Console acceptance remains
+open; the previous busy-console results below still apply.
+
 ## Playback-speed player integration — 2026-10-10
 
 Decoded PCM and the resampler EOF tail now pass through the tempo stage before

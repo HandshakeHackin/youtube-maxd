@@ -602,7 +602,7 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | PS5 foundation, packaging, storage | Native builds; Lapy `/data/prosperotube`; clean GPU/title/mount release on hardware | Accept each new frozen candidate; cross-firmware coverage |
 | Public playback and controls | User-confirmed 1080p60 AVC/AAC sound/motion/sync; captions, pause/resume, seek, EOF and saved history on PS5 | Wider codecs/HDR/AV1, progressive/live streams, controller feel and long sessions |
 | Search, browsing and local library | Search, profiles, favorites, follows, queue and resume implemented; native/companion tests; public WebP decode/cache passed on PS5 | Physical artwork appearance, broader console coverage and reference behavior inventory |
-| Recovery, timing and diagnostics | PS5 indexed resume accepted; tempo integrated with counted queue/media clock, silent-video pacing and persisted next-open speed selection | Active-session speed controls, PS5 speed/sync acceptance and wider recovery remain |
+| Recovery, timing and diagnostics | PS5 indexed resume accepted; tempo integrated with counted queue/media clock, silent-video pacing, saved speed and in-player speed reopen | PS5 speed/sync and reopen acceptance, channel-specific speed preferences and wider recovery remain |
 | SponsorBlock and disclosures | Category actions/markers/highlights, paid notices; host-tested reference start-window, nearby grouping, final-action and no-repeat behavior | Finish transparent review behavior; hardware skip/highlight/notice acceptance |
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
@@ -615,7 +615,9 @@ Current batch: playback-speed player integration using the existing PS5 FFmpeg
 stack: audio queue/media clocks, silent-video pacing, seek/EOF handling and
 persisted next-open speed selection. The real PCM stage passed host ASan/UBSan
 across all 30 reference speeds; generated audio and clock paths also passed.
-Active-session controls and hardware acceptance remain open. Previous candidates:
+In-player R2 speed selection now reopens at the current position with pause,
+audio/subtitle selections and provider session preserved; hardware acceptance
+remains open. Previous candidates:
 `3cb46c5e` compiled/froze successfully (212 objects, 126 files); its speed case
 did not launch because both consoles were busy. The primary upload stopped
 partway and requires complete verification before a later launch.

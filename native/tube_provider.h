@@ -10,6 +10,9 @@ extern const evo_provider_t evo_provider_youtube;
 void tube_poll(void);
 /* Selected on-demand video speed in percent; main/UI thread only. */
 int tube_playback_speed(void);
+int tube_speed_count(void);
+int tube_speed_at(int index);
+int tube_set_playback_speed(int percent);
 void tube_cancel(void);
 void tube_auth_cancel(void);
 unsigned tube_auth_revision(void);

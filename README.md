@@ -160,7 +160,8 @@ Names are entered with the keyboard and reviewed before submission. L2/R2 scroll
 the confirmation details; Circle returns without submitting.
 
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
-Up toggles captions, Down opens the caption picker, R2 opens audio tracks,
+Up toggles captions, Down opens the caption picker, R2 opens playback options
+(quality, audio tracks and 0.25×–4× speed for on-demand YouTube videos),
 L2 / touchpad halves adjusts caption timing, Triangle changes aspect ratio,
 Square shows media information, Options toggles stats, and Circle confirms stop.
 Choose an audio/caption language before opening a video; this version resolves

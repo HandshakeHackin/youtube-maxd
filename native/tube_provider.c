@@ -66,6 +66,13 @@ static int valid_speed(double speed) {
     return 0;
 }
 int tube_playback_speed(void) { return g_speed; }
+int tube_speed_count(void) { return (int)(sizeof tube_speeds / sizeof *tube_speeds); }
+int tube_speed_at(int index) { return index >= 0 && index < tube_speed_count() ? tube_speeds[index] : 0; }
+static void save(void);
+int tube_set_playback_speed(int percent) {
+    if (!valid_speed(percent)) return 0;
+    g_speed = percent; save(); return 1;
+}
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
 static int g_paid_notifications;

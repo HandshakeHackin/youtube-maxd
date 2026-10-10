@@ -55,6 +55,7 @@ def main():
         "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp",
+        "core/src/screens/AudioTrackPickerScreen.cpp", "core/include/evo/screens/AudioTrackPickerScreen.hpp",
         "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
@@ -198,6 +199,8 @@ def main():
     from playback_rate_overlay import apply_playback_rate_overlay, apply_audio_rate_overlay
     apply_playback_rate_overlay(replace, player)
     apply_audio_rate_overlay(replace, player, WORK)
+    from speed_controls_overlay import apply_speed_controls_overlay
+    apply_speed_controls_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
