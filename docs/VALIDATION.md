@@ -10,7 +10,8 @@
   grouping across skip/message actions, final grouped action, ungrouped prompts,
   and no-repeat consumption of ignored/declined matches. The current engine stays
   at 1x; actual playback-speed controls remain a separate gap.
-- 71 companion tests passed (`.deps/parity-batch-service`); all five native
+- All 224 companion tests passed (`.deps/parity-batch-full-python`), including
+  the 71 targeted cases (`.deps/parity-batch-service`); all five native
   executables and generated player tick/pad paths passed ASan/UBSan
   (`.deps/parity-batch-native-combined`, `.deps/parity-batch-player`). Earlier
   late-position fixtures failed under the new reference window and were corrected
@@ -18,7 +19,21 @@
 - Live public DeArrow lookup matched Big Buck Bunny and returned a replacement
   title (`.deps/dearrow-public-bunny-smoke.json`). PS5 rendering remains unverified.
   Shared native code now compiles once per suite; the plan tracks all sections in
-  one table. Packaging follows as one candidate; no console connection was made.
+  one table. Candidate `4a840c58` passed all 211 PS5 objects, packaging and
+  immutable freeze: `prosperotube-4a840c58_1010-1756`, 126 files, eboot
+  `cf9dbbc6a68230b1` (`.deps/parity-batch-ps5-build`, `.deps/parity-batch-freeze`).
+
+- Hardware regression: all 126 files verified before/after settling; matching
+  startup, native UI and public resolution passed. Saved-position startup exceeded
+  the 60-second test deadline: the log isolates a 65.734-second interval between
+  native audio initialization and initial seek flush. The same owned process later
+  played from 124 to 159.46 seconds with `active=1`, `fatal=0`; decoded frames and
+  presentation were observed, but smooth motion/audio were not assessed. The failed
+  timed criterion remains recorded (`.deps/parity-batch-console`). Cleanup verified
+  the same PID/app/build, parked the GPU, confirmed exact title/mount release and
+  healthy services, and released the lock (`.deps/parity-batch-cleanup`). No relaunch.
+  Slow initial resume is the next playback investigation; DeArrow and SponsorBlock
+  hardware behavior remains pending.
 
 ## Optional paid-promotion notices — 2026-10-10
 

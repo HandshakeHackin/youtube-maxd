@@ -1,14 +1,16 @@
 # Hardware acceptance — pending
 
-Latest offline candidate `4a0b4572` passed all 211 PS5 objects, package and
-immutable freeze: `prosperotube-4a0b4572_1010-1624`, 126 files, eboot prefix
-`d9e42d51fb458b80`. Its optional paid-promotion notices, asynchronous paused-highlight retry, coherent seek
-ownership and atomic diagnostic publication have host coverage and remain
-undeployed. Installed `5cc941f0` has accepted public-video, persistence,
-pause/resume/seek and teardown cases. The user confirmed smooth native 1080p60
-video with synchronized sound in the bounded Big Buck Bunny case below.
-Physical highlight controls, broader formats, live/accounts and full parity
-remain open. See [validation](VALIDATION.md).
+Current installed candidate `4a840c58` passed all 211 PS5 objects and immutable
+126-file package freeze (`prosperotube-4a840c58_1010-1756`, eboot prefix
+`cf9dbbc6a68230b1`). Verified installation, settling, startup and public resolution
+passed. Initial saved-position playback exceeded the 60-second acceptance deadline;
+it subsequently advanced from 124 to 159.46 seconds without a decoder fatal.
+Exact owned-process cleanup passed GPU park, title/mount release and service health.
+Slow resume remains open; the new feature behavior and motion/audio are unaccepted.
+The earlier `5cc941f0` control retains user-confirmed smooth 1080p60 sound/video.
+See [validation](VALIDATION.md) and the [section tracker](../IMPLEMENTATION_PLAN.md).
+
+- 2026-10-10 | G1 | 4a840c58 | reserved console | failed: initial-resume deadline; later playback observed; clean owned teardown | .deps/parity-batch-console.log | diagnose slow resume
 
 - 2026-10-10 | G1 | 5cc941f0 | reserved console | pass: public 1080p60 AVC/AAC, user-confirmed motion/sound/sync, clean teardown | .deps/public-bunny-watch-console.log | broader acceptance
 
