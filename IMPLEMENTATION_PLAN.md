@@ -23,7 +23,12 @@ single column, and a strict status guard rejected an unretained read. The same
 owned process completed the corrected checks; no second title launch occurred.
 The new R3 highlight actions have ASan/UBSan coverage but remain unaccepted on
 hardware. Physical sound/controller feel, broader formats, live streams,
-accounts and long sessions are next acceptance work. See
+accounts and long sessions are next acceptance work. A subsequent unchanged-build
+case played public Big Buck Bunny at native AVC 1080p60/AAC for over two minutes:
+the user confirmed smooth video and synchronized sound, 7457 frames published
+with zero late drops, and clean GPU/title/mount teardown passed. Current source
+`86ed6e62` also passes the complete PS5 build and immutable freeze (211 objects,
+126 files); its new idle-retry and atomic-status changes remain undeployed. See
 [validation](docs/VALIDATION.md) and [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md).
 
 ## 1. Objective and current conclusion

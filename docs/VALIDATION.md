@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Public 1080p60 viewing acceptance — 2026-10-10
+
+The user watched public Blender video `aqz-KE-bpKQ` (635 seconds) through the
+unchanged validated native `5cc941f0` and existing Windows companion. The console
+was idle at the first title check; all 126 installed files matched the immutable
+candidate, registration and final idle checks passed, and exactly one launch was
+sent. No installation, settings, pairing or companion change was made.
+
+Native `sceVideodec2` opened AVC at 1920x1080/60 fps; native `sceAudiodec` opened
+AAC stereo at 44100 Hz. Playback advanced from 1.07 seconds through the bounded
+120-second observation. The shipping sweep recorded 7457 decoded/published frames,
+zero late/seek drops and zero decoder fatal, with realtime verdict. The user
+reported: "Video and sound work smoothly and stay in sync". This establishes
+physical sound, motion and synchronization for this clip and bounded session.
+It does not establish all codecs, HDR, controller feel, long sessions or parity.
+
+Stop confirmation returned to the provider, Guest history persisted, matching
+GPU park was established, and the exact launched PID/app released its title,
+video ownership and mount. Declared services remained reachable; the owned lock
+was removed. The adapter's final classification was partial-pass pending human
+observation; the retained user observation completes this case's acceptance.
+Evidence: `.deps/public-bunny-watch-console.{log,result}` (0),
+`.deps/console/public-bunny-5cc941f0-watch/` including physical observation,
+shipping sweep, saved provider state, parked checkpoint and title release.
+
 ## Idle retry after asynchronous paused-seek failure — 2026-10-10
 
 A new R3 intent can release an old point-request guard once seek, discard and
@@ -30,7 +55,11 @@ started; that result (134) is retained. The corrected fixture asserts that pause
 was established before submitting the request. Final evidence:
 `.deps/highlight-idle-seek-handoff-final.{log,result}` (0) and
 `.deps/highlight-idle-seek-ownership-final.{log,result}` (0).
-PS5 packaging and hardware acceptance follow separately.
+The complete PS5 build passed all 211 objects, linking, packaging and immutable
+freeze: `prosperotube-86ed6e62_1010-1607`, 126 files, eboot SHA prefix
+`eca1964984193b69`. Evidence: `.deps/seek-idle-retry-ps5-build.{log,result}`
+and `.deps/seek-idle-retry-freeze.{log,result}` (all 0). This candidate remains
+undeployed; hardware acceptance of the new retry/status paths is pending.
 
 ## Atomic diagnostic status publication — 2026-10-10
 

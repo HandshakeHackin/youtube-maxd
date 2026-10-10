@@ -1,10 +1,16 @@
 # Hardware acceptance — pending
 
-Latest offline candidate `58390ef6` passed the PS5 package and immutable freeze:
-build `prosperotube-58390ef6_1010-0550`, 126 files, eboot prefix
-`23101bbd1b1a7f4d`. Provider/companion and extracted UI-kit/RML marker rendering
-tests passed; this candidate is undeployed/unlaunched. Physical marker rendering,
-controller behavior, Lapy startup/storage and real YouTube playback remain open.
+Latest offline candidate `86ed6e62` passed all 211 PS5 objects, package and
+immutable freeze: `prosperotube-86ed6e62_1010-1607`, 126 files, eboot prefix
+`eca1964984193b69`. Its asynchronous paused-highlight retry, coherent seek
+ownership and atomic diagnostic publication have host coverage and remain
+undeployed. Installed `5cc941f0` has accepted public-video, persistence,
+pause/resume/seek and teardown cases. The user confirmed smooth native 1080p60
+video with synchronized sound in the bounded Big Buck Bunny case below.
+Physical highlight controls, broader formats, live/accounts and full parity
+remain open. See [validation](VALIDATION.md).
+
+- 2026-10-10 | G1 | 5cc941f0 | reserved console | pass: public 1080p60 AVC/AAC, user-confirmed motion/sound/sync, clean teardown | .deps/public-bunny-watch-console.log | broader acceptance
 
 - 2026-10-10 | verified installation of known-end skip candidate | c758351c | primary console, firmware unreported | no-run: idle initially; all 126 bytes verified before/after 130-second settle and registration confirmed; another title running before launch; no launch/input/close; owned lock released | .deps/sponsor-end-storage-primary-console.log | Lapy startup/storage, then public YouTube acceptance
 
