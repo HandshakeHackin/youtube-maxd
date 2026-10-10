@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Music-origin speed behavior — 2026-10-10
+
+The explicit Music section has its own navigation identity. New playback from
+that section starts at 1×, following pinned SmartTube `Video.belongsToMusic()` /
+`VideoStateController.restoreSpeedAndPositionIfNeeded`. Ordinary searches for
+"music" and history/favorites do not acquire this exception. Resolve captures
+the origin before asynchronous work; queue insertion persists it per profile,
+including manual queue playback and autoplay. Explicit speed changes remain
+available and recovery keeps the selected session speed. Saved global/channel/
+video preferences remain intact. The Music catalog is still search-backed;
+SmartTube's curated Music feed is not implemented by this change.
+
+The real-provider Music-context ASan/UBSan test passed normalization, explicit
+speed changes, recovery, canceled async results, queue reload/autoplay and
+profile isolation. All seven provider suites reported passes in
+`.deps/music-context-provider.log`; the outer command's exit-code capture was
+malformed. The final Music/speed-memory/recovery run used a corrected wrapper
+and exited 0 (`.deps/music-context-final.{log,result}`), including source setup
+clearing the old navigation context. PS5 acceptance remains pending.
+
 ## SponsorBlock transparent review — 2026-10-10
 
 Both shipping HUD paths now show a persistent translucent skip/keep card outside

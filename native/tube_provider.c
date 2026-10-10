@@ -27,7 +27,7 @@ typedef struct {
     evo_provider_item_t item;
     char profile[33];
     char dearrow_title[256], dearrow_art[EVO_PROVIDER_MAX_URL];
-    int favorite, queued, subscribed;
+    int favorite, queued, subscribed, queued_music;
     long long updated, queue_order;
 } Record;
 
@@ -41,7 +41,7 @@ typedef struct Request {
     void *ud;
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
-    int page;
+    int page, music_origin;
     unsigned intent;
     char parent[160];
     char profile[33];
@@ -57,6 +57,10 @@ static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_active_profile[33], g_next_profile[33];
+/* Navigation origin, not a content classifier. Resolve snapshots the origin
+ * before asynchronous work; queue entries retain the origin of their insertion. */
+static int g_browse_music, g_browse_queue, g_resolved_music;
+static struct { char id[160], profile[33]; int music; } g_launch_origin;
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_speed = 100;
 /* Modes: all videos, per channel, per video, this session only. */
@@ -99,7 +103,11 @@ static void watch_reset(int clear_resolution) {
     memset(&g_watch, 0, sizeof g_watch);
     if (!++g_watch_serial) ++g_watch_serial;
     g_watch.serial = g_watch_serial;
-    if (clear_resolution) { g_resolved_id[0] = 0; g_resolved_profile[0] = 0; }
+    if (clear_resolution) {
+        g_resolved_id[0] = 0; g_resolved_profile[0] = 0; g_resolved_music = 0;
+        g_browse_music = g_browse_queue = 0;
+        memset(&g_launch_origin, 0, sizeof g_launch_origin);
+    }
 }
 static char g_language[16] = "en", g_audio_language[16];
 static double g_segments[SEGMENTS][2];
@@ -523,6 +531,7 @@ static void save(void) {
         cJSON_AddNumberToObject(o, "queue_order", (double)r->queue_order);
         cJSON_AddBoolToObject(o, "favorite", r->favorite);
         cJSON_AddBoolToObject(o, "queued", r->queued);
+        cJSON_AddBoolToObject(o, "queued_music", r->queued && r->queued_music);
         cJSON_AddBoolToObject(o, "subscribed", r->subscribed);
         cJSON_AddBoolToObject(o, "played", r->item.played);
         cJSON_AddBoolToObject(o, "is_live", r->item.is_live);
@@ -589,6 +598,7 @@ static int init(void) {
     g_paid_notifications = 0; g_dearrow_titles = 0; g_dearrow_thumbnails = 0;
     g_speed = g_last_speed = 100; g_speed_mode = 1; g_speed_count = 0;
     g_speed_session_id[0] = g_speed_session_profile[0] = 0;
+    g_browse_music = g_browse_queue = 0;
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -653,6 +663,7 @@ static int init(void) {
         r->queue_order = (long long)num(o, "queue_order");
         if (r->queue_order > g_queue_order) g_queue_order = r->queue_order;
         r->favorite = boolean(o, "favorite"); r->queued = boolean(o, "queued");
+        r->queued_music = r->queued && boolean(o, "queued_music");
         r->subscribed = boolean(o, "subscribed");
     }
     cJSON_Delete(root); if (version == 1) save(); return 0;
@@ -1065,6 +1076,7 @@ static void resolved(Request *r, const cJSON *root) {
     }
     copy(g_resolved_id, sizeof g_resolved_id, r->parent);
     copy(g_resolved_profile, sizeof g_resolved_profile, r->profile);
+    g_resolved_music = r->music_origin;
     Record *cached = record(str(root, "id"), 1);
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
@@ -1613,7 +1625,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         folder(&out[n++], "search:science", "Science", "Explore science videos");
         folder(&out[n++], "search:technology", "Technology", "Explore technology videos");
         folder(&out[n++], "search:gaming", "Gaming", "Explore gaming videos");
-        folder(&out[n++], "search:music", "Music", "Explore music videos");
+        folder(&out[n++], "section:music", "Music", "Explore music videos");
         folder(&out[n++], "search:documentary", "Documentaries", "Explore documentaries");
         folder(&out[n++], "search:education", "Learning", "Explore educational videos");
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
@@ -1836,6 +1848,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    g_browse_music = parent && !strcmp(parent, "section:music");
+    g_browse_queue = parent && !strcmp(parent, "queue");
+    memset(&g_launch_origin, 0, sizeof g_launch_origin);
     if (parent && !strncmp(parent, "auth:", 5)) {
         if (page || (strcmp(parent, "auth:start") && strcmp(parent, "auth:session") &&
             strcmp(parent, "auth:cancel") && strncmp(parent, "auth:info", 9))) {
@@ -1989,10 +2004,10 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     Request *r = request_new(1, ud); if (!r) return -1;
     r->items_cb = cb;
     cJSON *o = cJSON_CreateObject();
-    int search = parent && !strncmp(parent, "search:", 7);
+    int search = g_browse_music || (parent && !strncmp(parent, "search:", 7));
     cJSON_AddStringToObject(o, "action", search ? "search" : "catalog");
     cJSON_AddStringToObject(o, "profile", g_library_profile);
-    cJSON_AddStringToObject(o, search ? "query" : "parent", search ? parent + 7 : parent);
+    cJSON_AddStringToObject(o, search ? "query" : "parent", g_browse_music ? "music" : search ? parent + 7 : parent);
     cJSON_AddNumberToObject(o, "page", page);
     char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
     if (!body) { memset(r, 0, sizeof *r); return -1; }
@@ -2013,6 +2028,11 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
+    const Record *origin_record = record(id, 0);
+    r->music_origin = g_browse_music || (g_browse_queue && origin_record && origin_record->queued_music);
+    if (!strcmp(g_launch_origin.id, id) && !strcmp(g_launch_origin.profile, g_library_profile))
+        r->music_origin = g_launch_origin.music;
+    memset(&g_launch_origin, 0, sizeof g_launch_origin);
     snprintf(r->payload, sizeof r->payload,
         "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
         id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
@@ -2048,7 +2068,8 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
     if (!recovering || strcmp(g_speed_session_id, id) || strcmp(g_speed_session_profile, g_active_profile)) {
-        g_speed_session = speed_lookup(id, g_active_profile);
+        g_speed_session = !strcmp(id, g_resolved_id) && !strcmp(g_active_profile, g_resolved_profile) && g_resolved_music
+            ? 100 : speed_lookup(id, g_active_profile);
         copy(g_speed_session_id, sizeof g_speed_session_id, id);
         copy(g_speed_session_profile, sizeof g_speed_session_profile, g_active_profile);
     }
@@ -2075,7 +2096,9 @@ int tube_toggle_favorite(const char *id) {
 
 int tube_toggle_queue(const char *id) {
     Record *r = record(id, 1); if (!r) return -1;
-    r->queued = !r->queued; if (r->queued) r->queue_order = ++g_queue_order;
+    r->queued = !r->queued;
+    if (r->queued) { r->queue_order = ++g_queue_order; r->queued_music = g_browse_music; }
+    else r->queued_music = 0;
     save(); return r->queued;
 }
 
@@ -2302,6 +2325,9 @@ int tube_take_next(evo_provider_item_t *item) {
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
     if (!r || !item) return 0;
+    copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
+    copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
+    g_launch_origin.music = r->queued_music;
     *item = r->item; dearrow_item(item, r); return 1;
 }
 
