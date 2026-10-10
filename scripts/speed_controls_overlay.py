@@ -16,7 +16,7 @@ def apply_speed_controls_overlay(replace, player):
     replace(header, '    int m_requestedAudioStream = -1;', '''    int m_requestedAudioStream = -1;
     int m_tubeRequestedSpeed = -1; /* scoped to an owner-thread speed reopen */''')
     replace(controller, 'source.provider == "youtube" && !source.is_live ? tube_playback_speed() : 100',
-            'source.provider == "youtube" && !source.is_live ? (m_tubeRequestedSpeed > 0 ? m_tubeRequestedSpeed : tube_playback_speed()) : 100')
+            'source.provider == "youtube" && !source.is_live ? (m_tubeRequestedSpeed > 0 ? m_tubeRequestedSpeed : tube_playback_speed_for(source.item_id.c_str())) : 100')
     replace(controller, '''    if (m_source.isProvider()) {
         const evo_provider_t* prov = evo_provider_find(m_source.provider.c_str());
         if (prov && (prov->caps & EVO_PROVIDER_CAP_PROGRESS) && prov->report_progress)
@@ -75,7 +75,7 @@ bool PlaybackController::changePlaybackSpeed(int percent) {
     prospero_subtitle_use_external = savedSubUseExt;
     if (!savedSubUseExt && savedSubStream >= 0) prospero_embedded_subtitle_stream_index = savedSubStream;
     if (wasPaused) setPaused(true);
-    tube_set_playback_speed(percent);
+    tube_remember_playback_speed(savedSource.item_id.c_str(), percent);
     return true;
 }
 // End ProsperoTube speed reopen.
@@ -88,6 +88,15 @@ bool PlaybackController::switchAudioTrack(int streamIndex) {''')
             'enum Kind { KindAuto = 0, KindVideo, KindAudio, KindSpeed };')
     replace(picker, '\n}\n\nvoid AudioTrackPickerScreen::navigate(int delta)', '''
     if (playback->canChangePlaybackSpeed()) {
+        const int current = playback->playbackSpeedPercent();
+        const int target = current == 100 ? tube_last_playback_speed() : 100;
+        int toggleIndex = -1;
+        if (target != current) {
+            Entry e; e.kind = KindSpeed; e.streamIndex = target;
+            char label[48]; std::snprintf(label, sizeof label, "Restore %.3gx", target / 100.0);
+            e.label = target == 100 ? "Normal speed" : label; e.detail = "Toggle normal and your last selected speed";
+            toggleIndex = static_cast<int>(m_tracks.size()); m_tracks.push_back(std::move(e));
+        }
         for (int i = 0; i < tube_speed_count(); ++i) {
             Entry e; e.kind = KindSpeed; e.streamIndex = tube_speed_at(i);
             char label[48]; std::snprintf(label, sizeof label, "Speed: %.3gx", e.streamIndex / 100.0);
@@ -97,6 +106,7 @@ bool PlaybackController::switchAudioTrack(int streamIndex) {''')
             }
             m_tracks.push_back(std::move(e));
         }
+        if (toggleIndex >= 0) m_activeIndex = toggleIndex;
     }
 }
 
@@ -110,3 +120,5 @@ void AudioTrackPickerScreen::navigate(int delta)''')
     replace(picker, '''    params.subtitle = m_hasQuality ? "Pick the video quality and the audio track"
                                    : "Select the audio stream for this file";''',
             '    params.subtitle = "Select quality, audio or playback speed";')
+    replace(player + 'ui_rml/src/evo_rmlui_provider.cpp', 'id != "settings:speed"',
+            'id != "settings:speed" && id != "settings:speed-mode"')

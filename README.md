@@ -164,6 +164,10 @@ Up toggles captions, Down opens the caption picker, R2 opens playback options
 (quality, audio tracks and 0.25×–4× speed for on-demand YouTube videos),
 L2 / touchpad halves adjusts caption timing, Triangle changes aspect ratio,
 Square shows media information, Options toggles stats, and Circle confirms stop.
+Settings can remember speed for all videos, each channel, each video, or only
+the current playback. Channel/video memories are separate for each profile.
+R2 focuses a normal/last-speed toggle when one is available; Cross applies it.
+The remembered-speed list retains the 1,024 most recently changed overrides.
 Choose an audio/caption language before opening a video; this version resolves
 one selected audio track and downloads one preferred caption sidecar.
 Live sources have no seekable timeline. Soft close releases resources and parks

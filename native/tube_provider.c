@@ -59,6 +59,13 @@ static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_active_profile[33], g_next_profile[33];
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_speed = 100;
+/* Modes: all videos, per channel, per video, this session only. */
+static int g_speed_mode = 1, g_last_speed = 100;
+#define SPEED_MEMORIES 1024
+static struct { char profile[33], key[25]; int mode, percent; } g_speeds[SPEED_MEMORIES];
+static int g_speed_count;
+static char g_speed_session_id[160], g_speed_session_profile[33];
+static int g_speed_session = 100;
 static const int tube_speeds[] = {25,50,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,160,175,180,200,225,250,275,300,325,350,375,400};
 static int valid_speed(double speed) {
     for (unsigned i = 0; i < sizeof tube_speeds / sizeof *tube_speeds; ++i)
@@ -71,8 +78,11 @@ int tube_speed_at(int index) { return index >= 0 && index < tube_speed_count() ?
 static void save(void);
 int tube_set_playback_speed(int percent) {
     if (!valid_speed(percent)) return 0;
+    if (percent != 100) g_last_speed = percent;
+    else if (g_speed != 100) g_last_speed = g_speed;
     g_speed = percent; save(); return 1;
 }
+int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_history_sync = 1;
 static int g_paid_notifications;
@@ -367,6 +377,91 @@ static Record *record_for(const char *id, const char *profile, int create) {
 static Record *record(const char *id, int create) { return record_for(id, g_library_profile, create); }
 static int current_record(const Record *r) { return !strcmp(r->profile, g_library_profile); }
 
+static const char *speed_profile(const char *id) {
+    return id && !strcmp(id, g_active_id) && valid_profile(g_active_profile) ? g_active_profile : g_library_profile;
+}
+static const char *speed_key(const char *id, const char *profile) {
+    if (!valid_id(id)) return "";
+    if (g_speed_mode == 2) return id;
+    const Record *r = record_for(id, profile, 0);
+    /* Channel identity is public video metadata; memory remains profile-keyed. */
+    if (!r) for (int i = 0; i < g_count; ++i)
+        if (!strcmp(g_records[i].item.id, id)) { r = &g_records[i]; break; }
+    return r && tube_sb_channel_valid(r->item.parent_id) ? r->item.parent_id : "";
+}
+static int speed_lookup(const char *id, const char *profile) {
+    if (g_speed_mode == 0) return g_speed;
+    if (g_speed_mode == 3) return 100;
+    const char *key = speed_key(id, profile);
+    for (int i = 0; *key && i < g_speed_count; ++i)
+        if (g_speeds[i].mode == g_speed_mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key))
+            return g_speeds[i].percent;
+    return 100;
+}
+int tube_playback_speed_for(const char *id) {
+    if (!id || !valid_id(id)) return 100;
+    const char *profile = speed_profile(id);
+    if (!strcmp(id, g_speed_session_id) && !strcmp(profile, g_speed_session_profile)) return g_speed_session;
+    return speed_lookup(id, profile);
+}
+int tube_remember_playback_speed(const char *id, int percent) {
+    if (!valid_id(id) || !valid_speed(percent)) return 0;
+    const int previous = tube_playback_speed_for(id);
+    const char *profile = speed_profile(id);
+    const char *key = speed_key(id, profile);
+    if ((g_speed_mode == 1 || g_speed_mode == 2) && *key) {
+        int slot = -1;
+        for (int i = 0; i < g_speed_count; ++i)
+            if (g_speeds[i].mode == g_speed_mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key)) { slot = i; break; }
+        /* Normal speed removes an override. The bounded list retains the most
+         * recently changed entries and never evicts library/favorite records. */
+        if (slot >= 0) {
+            memmove(&g_speeds[slot], &g_speeds[slot + 1], (size_t)(g_speed_count - slot - 1) * sizeof g_speeds[0]);
+            --g_speed_count;
+        }
+        if (percent != 100) {
+            if (g_speed_count == SPEED_MEMORIES) {
+                memmove(g_speeds, g_speeds + 1, (SPEED_MEMORIES - 1) * sizeof g_speeds[0]); --g_speed_count;
+            }
+            slot = g_speed_count++;
+            copy(g_speeds[slot].profile, sizeof g_speeds[slot].profile, profile);
+            copy(g_speeds[slot].key, sizeof g_speeds[slot].key, key);
+            g_speeds[slot].mode = g_speed_mode; g_speeds[slot].percent = percent;
+        }
+    }
+    copy(g_speed_session_id, sizeof g_speed_session_id, id);
+    copy(g_speed_session_profile, sizeof g_speed_session_profile, profile);
+    g_speed_session = percent;
+    g_speed = previous;
+    return tube_set_playback_speed(percent);
+}
+
+static void speed_load(const cJSON *root) {
+    g_speed_count = 0; g_speed_session_id[0] = g_speed_session_profile[0] = 0;
+    double last = num(root, "last_speed_percent"), mode = num(root, "speed_memory_mode");
+    g_last_speed = valid_speed(last) ? (int)last : (g_speed != 100 ? g_speed : 100);
+    const cJSON *setting = cJSON_GetObjectItemCaseSensitive(root, "speed_memory_mode");
+    g_speed_mode = setting && cJSON_IsNumber(setting) && mode >= 0 && mode <= 3 && mode == (int)mode ? (int)mode :
+        cJSON_HasObjectItem(root, "speed_percent") ? 0 : 1;
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root, "speed_memories"), *row;
+    if (!cJSON_IsArray(rows)) return;
+    cJSON_ArrayForEach(row, rows) {
+        const char *profile = str(row, "profile"), *key = str(row, "key");
+        double kind = num(row, "mode"), percent = num(row, "percent");
+        if (!valid_profile(profile) || !valid_speed(percent) || percent == 100 ||
+            !((kind == 1 && tube_sb_channel_valid(key)) || (kind == 2 && valid_id(key)))) continue;
+        int duplicate = 0;
+        for (int i = 0; i < g_speed_count; ++i)
+            if (g_speeds[i].mode == kind && !strcmp(g_speeds[i].key, key) && !strcmp(g_speeds[i].profile, profile)) duplicate = 1;
+        if (duplicate) continue;
+        if (g_speed_count == SPEED_MEMORIES) break;
+        int i = g_speed_count++;
+        copy(g_speeds[i].profile, sizeof g_speeds[i].profile, profile);
+        copy(g_speeds[i].key, sizeof g_speeds[i].key, key);
+        g_speeds[i].mode = (int)kind; g_speeds[i].percent = (int)percent;
+    }
+}
+
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
     char clean[256]; copy(clean, sizeof clean, message);
@@ -386,6 +481,17 @@ static void save(void) {
     cJSON_AddStringToObject(root, "token", g_token);
     cJSON_AddNumberToObject(root, "max_height", g_height);
     cJSON_AddNumberToObject(root, "speed_percent", g_speed);
+    cJSON_AddNumberToObject(root, "last_speed_percent", g_last_speed);
+    cJSON_AddNumberToObject(root, "speed_memory_mode", g_speed_mode);
+    cJSON *speeds = cJSON_AddArrayToObject(root, "speed_memories");
+    for (int i = 0; speeds && i < g_speed_count; ++i) {
+        cJSON *row = cJSON_CreateObject(); if (!row) break;
+        cJSON_AddStringToObject(row, "profile", g_speeds[i].profile);
+        cJSON_AddStringToObject(row, "key", g_speeds[i].key);
+        cJSON_AddNumberToObject(row, "mode", g_speeds[i].mode);
+        cJSON_AddNumberToObject(row, "percent", g_speeds[i].percent);
+        cJSON_AddItemToArray(speeds, row);
+    }
     cJSON_AddNumberToObject(root, "codec", g_codec);
     cJSON_AddBoolToObject(root, "captions", g_captions);
     cJSON_AddBoolToObject(root, "automatic_captions", g_auto_captions);
@@ -481,6 +587,8 @@ static int init(void) {
     memset(&g_auth, 0, sizeof g_auth);
     g_auth.serial = auth_serial ? auth_serial : 1; g_auth.revision = auth_revision;
     g_paid_notifications = 0; g_dearrow_titles = 0; g_dearrow_thumbnails = 0;
+    g_speed = g_last_speed = 100; g_speed_mode = 1; g_speed_count = 0;
+    g_speed_session_id[0] = g_speed_session_profile[0] = 0;
     g_store_writable = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -510,6 +618,7 @@ static int init(void) {
     if (height >= 144 && height <= 2160) g_height = height;
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
+    speed_load(root);
     int codec = (int)num(root, "codec"); if (codec <= 2) g_codec = codec;
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
@@ -1532,10 +1641,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (strcmp(g_library_profile, "guest"))
             folder(&out[n++], "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
-        if (!strncmp(parent, "settings:speed:", 15)) {
+        if (!strncmp(parent, "settings:speed-mode:", 20)) {
+            const char *modes[] = {"all", "channel", "video", "none"}; int mode = -1;
+            for (int i = 0; i < 4; ++i) if (!strcmp(parent + 20, modes[i])) mode = i;
+            if (mode < 0) { cb(0, NULL, 0, 0, ud); return 1; }
+            g_speed_mode = mode; g_speed_session_id[0] = 0; save();
+        } else if (!strncmp(parent, "settings:speed:", 15)) {
             char *end; long speed = strtol(parent + 15, &end, 10);
             if (!*(parent + 15) || *end || !valid_speed((double)speed)) { cb(0, NULL, 0, 0, ud); return 1; }
-            g_speed = (int)speed; save();
+            g_speed_mode = 0; g_speed_session_id[0] = 0; tube_set_playback_speed((int)speed);
         } else if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }
@@ -1590,14 +1704,22 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
-        if (!strcmp(parent, "settings:speed") || !strncmp(parent, "settings:speed:", 15)) {
+        if (!strcmp(parent, "settings:speed-mode") || !strncmp(parent, "settings:speed-mode:", 20)) {
+            const char *modes[] = {"all", "channel", "video", "none"};
+            const char *labels[] = {"All videos", "Each channel", "Each video", "This playback only"};
+            for (int i = 0; i < 4; ++i) {
+                char id[64], label[96]; snprintf(id, sizeof id, "settings:speed-mode:%s", modes[i]);
+                snprintf(label, sizeof label, "%s%s", i == g_speed_mode ? "Selected: " : "", labels[i]);
+                folder(&out[n++], id, label, "Choose where a speed selected during playback is remembered");
+            }
+        } else if (!strcmp(parent, "settings:speed") || !strncmp(parent, "settings:speed:", 15)) {
             const int total = (int)(sizeof tube_speeds / sizeof *tube_speeds);
             int start = page >= 0 && page < (total + LOCAL_PAGE - 1) / LOCAL_PAGE ? page * LOCAL_PAGE : total;
             for (int i = start; i < total && n < LOCAL_PAGE; ++i) {
                 char id[64], label[96];
                 snprintf(id, sizeof id, "settings:speed:%d", tube_speeds[i]);
                 snprintf(label, sizeof label, "%s%.3gx", g_speed == tube_speeds[i] ? "Selected: " : "", tube_speeds[i] / 100.0);
-                folder(&out[n++], id, label, "Apply when opening the next video; live streams play at normal speed");
+                folder(&out[n++], id, label, "Use this speed for all on-demand videos; live streams play at normal speed");
             }
             cb(1, out, n, start + n < total, ud); return 1;
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
@@ -1657,8 +1779,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else {
             char label[96]; snprintf(label, sizeof label, "Maximum quality: %dp", g_height);
             folder(&out[n++], "settings:quality", label, "Cycle 720 / 1080 / 1440 / 2160; console validation pending");
-            snprintf(label, sizeof label, "Playback speed: %.3gx", g_speed / 100.0);
-            folder(&out[n++], "settings:speed", label, "Choose the speed for the next video");
+            snprintf(label, sizeof label, "Speed for all videos: %.3gx", g_speed / 100.0);
+            folder(&out[n++], "settings:speed", g_speed_mode == 0 ? label : "Choose a speed for all videos", "Select a speed and enable all-videos memory");
+            const char *speed_modes[] = {"all videos", "each channel", "each video", "this playback only"};
+            snprintf(label, sizeof label, "Remember speed: %s", speed_modes[g_speed_mode]);
+            folder(&out[n++], "settings:speed-mode", label, "Video and channel memories are separate for each profile");
             snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : "Automatic");
             folder(&out[n++], "settings:codec", label, "Use supported SDR tracks; AV1 and HDR deferred");
             folder(&out[n++], "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");
@@ -1922,6 +2047,11 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
+    if (!recovering || strcmp(g_speed_session_id, id) || strcmp(g_speed_session_profile, g_active_profile)) {
+        g_speed_session = speed_lookup(id, g_active_profile);
+        copy(g_speed_session_id, sizeof g_speed_session_id, id);
+        copy(g_speed_session_profile, sizeof g_speed_session_profile, g_active_profile);
+    }
     if (!recovering) memset(&g_recovery, 0, sizeof g_recovery);
     if (choice) {
         g_recovery.choice = *choice;

@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Remembered speed and quick toggle — 2026-10-10
+
+Reference: SmartTube `2c60453007df`, `PlayerData` and `VideoStateController`.
+Four mutually exclusive memory modes now cover all videos, each channel, each
+video and the current playback only. New stores default to channel memory;
+legacy stores with a saved global speed retain all-videos mode. Unknown channels
+or videos use 1×. Normal speed removes a scoped override. Channel/video entries
+are keyed by profile and retained independently of mode switching. The bounded
+list keeps the 1,024 most recently changed overrides without evicting favorites
+or library records. Invalid and duplicate persisted entries are rejected.
+
+The selected session rate survives track/speed reopen and recovery, while a new
+playback applies the chosen memory mode. Settings selecting a global speed
+explicitly enable all-videos mode. Successful in-player changes store against
+the copied source's video identity. The last non-normal rate persists; the R2
+picker focuses a normal/last-speed toggle when available. Live playback still
+uses 1×; automatic music-video normalization requires further metadata work.
+
+The actual provider passed ASan/UBSan for channel/video/session/global restore,
+profile isolation, reload, legacy migration, invalid stored values, last-speed
+retention and capacity/eviction. The existing provider regression also passed
+(`.deps/speed-memory-provider.log`). Hardware behavior remains unaccepted.
+The generated controller handoff test also passed with an assertion on the
+video identity passed to memory storage (`.deps/speed-memory-switch.log`).
+
 ## In-player speed changes — 2026-10-10
 
 R2 playback options now offer all 30 reference speeds for a ready on-demand
