@@ -6,6 +6,12 @@ a live temporary-receiver check. **The PS5 pairing screen and native command
 execution are not integrated yet. This does not enable phone-to-PS5 playback.**
 The existing PS5 playback candidate remains `9ac95e69`.
 
+The native `tube_remote` driver is now included in generated PS5 build inputs.
+It has passed ASan/UBSan command/scope/feedback tests and a PS5 SDK object compile.
+It provides opt-in asynchronous registration/pair/poll/report/stop, typed commands,
+owner-tagged acknowledgments and stable device/screen identity getters. It is not
+yet called by the provider or player, so the pairing/control UI remains unavailable.
+
 This is original Python implementation based on the pinned SmartTube service
 [Lounge interface](https://github.com/yuliskov/MediaServiceCore/blob/4d9767733aa92269b9d24f24844a7fa1bb5196c1/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/lounge/LoungeService.java)
 and its command models. Application framing follows
@@ -68,3 +74,13 @@ callbacks to the current provider/profile/generation, and execute player/queue
 commands with acknowledged results and state reporting. Voice capture/search and
 disconnect preferences still need implementation. Native reset must stop the
 receiver and forget its saved IDs. Real phone and PS5 acceptance remains open.
+
+The driver keeps receiving/renewing the lease while commands wait for application.
+It validates an entire response before changing its command queue. If local
+execution advances acknowledgment during an in-flight poll, the returned applied
+prefix is discarded and the outstanding prefix must remain identical. A command
+owner changes with the provider/profile/identity scope, so a delayed launch result
+cannot acknowledge a same-number command from a new receiver. Late successful
+registration after scope change is closed through its original source/token;
+new registration waits for owned cleanup callbacks to complete. Pairing identity
+and code revisions can be used by the provider's persistence/UI integration.

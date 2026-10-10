@@ -1,5 +1,29 @@
 # Offline validation record — 0.1.0
 
+## Native Lounge driver foundation — 2026-10-10
+
+`tube_remote.c` now implements asynchronous native registration, code requests,
+polling, typed command delivery, explicit owner-tagged acknowledgments, player
+state reports, failure/retry and shutdown. Whole responses are validated before
+queue commit. Receiving continues while commands wait; in-flight poll responses
+cannot replay already-applied commands, alter the outstanding prefix or cross a
+provider/profile/identity scope. Late registration is closed using its captured
+source/token before the next receiver starts. No protocol strings are logged.
+
+`scripts/test_remote_native.sh` passed ASan/UBSan with the shipping C driver and
+cJSON: all incoming command types, UTF-8 phone name, pending-command lease poll,
+applied-prefix removal, state payload, source snapshots, late-start cleanup,
+same-sequence/different-owner rejection, malformed/gapped command batches and
+shutdown. Generated native overlay preparation passed and included the new source
+in the PS5 Makefile. Its `addons/src/tube_remote.o` target compiled with the pinned
+PS5 SDK (exit 0; `.deps/remote-native-ps5-object.{log,result}`); the only warnings
+are the SDK math header's qualified `_Generic` associations for `isfinite`.
+
+This is driver and object evidence, not a new full package or PS5 execution.
+The provider does not call the driver yet, and pairing settings, Lapy identity
+persistence and player/queue command execution remain open. No console traffic
+occurred and the last frozen native candidate remains unchanged.
+
 ## YouTube Lounge receiver backend — 2026-10-10
 
 Original companion transport now registers a Lounge screen, generates the phone
