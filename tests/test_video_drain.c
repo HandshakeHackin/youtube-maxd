@@ -23,13 +23,16 @@ volatile int audio_queue_count;
 PacketQueue video_packet_queue;
 static AVPacket *packets[1024];
 static unsigned packet_count, packet_read;
-static int natural_eof = 1, audio_drained = 1, seeking;
+static int audio_drained = 1, seeking;
+int pb_rebuffer_enabled = 1;
+static int64_t demux_last_vdts = AV_NOPTS_VALUE;
+static int demux_recover_tries;
+#include "tube_demux_input.inc"
 
 AVPacket *packet_queue_pop(PacketQueue *q) {
     assert(q == &video_packet_queue);
     return packet_read < packet_count ? packets[packet_read++] : NULL;
 }
-int evo_demux_natural_eof(void) { return natural_eof; }
 int evo_demux_is_seeking(void) { return seeking; }
 int evo_audio_is_drained(void) { return audio_drained; }
 long long now_ms(void) { return 0; }
@@ -46,6 +49,8 @@ void *evo_direct_mem_alloc(size_t bytes) { (void)bytes; assert(0); return NULL; 
 void evo_direct_mem_free(void *ptr) { (void)ptr; assert(0); }
 
 static void load(const char *path) {
+    evo_demux_reset_eof();
+    tube_demux_terminal_input(AVERROR_EOF, 0, 0);
     assert(avformat_open_input(&play_fmt, path, NULL, NULL) == 0);
     assert(avformat_find_stream_info(play_fmt, NULL) >= 0);
     video_stream_index = av_find_best_stream(play_fmt, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
@@ -100,7 +105,30 @@ static void run(const char *path) {
     assert(!evo_pb_is_complete()); // Retired final frame still needs its display interval.
     usleep((useconds_t)(1000000.0 / video_fps) + 10000);
     assert(evo_pb_is_complete()); // media_duration_sec remains 0: unknown duration works.
-    natural_eof = 0; assert(!evo_pb_is_complete()); natural_eof = 1;
+    /* Actual demux classification feeds the actual decoder/render completion
+     * gate: even fully drained/retired media cannot complete on failed input. */
+    demux_last_vdts = play_fmt->streams[video_stream_index]->start_time;
+    if (demux_last_vdts == AV_NOPTS_VALUE) demux_last_vdts = 0;
+    media_duration_sec = 100;
+    for (demux_recover_tries = 0; demux_recover_tries < DEMUX_RECOVER_TRIES; ++demux_recover_tries)
+        assert(!demux_read_is_final(AVERROR_EOF));
+    assert(demux_read_is_final(AVERROR_EOF));
+    tube_demux_terminal_input(AVERROR_EOF, AVERROR_EOF, demux_recover_tries >= DEMUX_RECOVER_TRIES);
+    assert(evo_demux_input_failed() && !evo_demux_natural_eof() && !evo_pb_is_complete());
+    tube_demux_terminal_input(AVERROR_EOF, 0, 1);
+    assert(evo_demux_input_failed() && !evo_pb_is_complete());
+    tube_demux_terminal_input(AVERROR(EIO), 0, 0);
+    assert(evo_demux_input_failed() && !evo_pb_is_complete());
+    tube_demux_terminal_input(AVERROR_EOF, AVERROR(EIO), 0);
+    assert(evo_demux_input_failed() && !evo_pb_is_complete());
+    tube_demux_terminal_input(AVERROR(ENOMEM), 0, 0);
+    assert(evo_demux_input_failed() && !evo_pb_is_complete());
+    evo_demux_reset_eof();
+    assert(!evo_demux_input_failed() && !evo_demux_natural_eof() && !evo_pb_is_complete());
+    tube_demux_terminal_input(AVERROR_EOF, AVERROR_EOF, 0);
+    assert(!evo_demux_input_failed() && evo_pb_is_complete());
+    media_duration_sec = 0;
+    demux_recover_tries = 0;
     audio_stream_index = 0; audio_drained = 0; assert(!evo_pb_is_complete());
     audio_drained = 1; assert(evo_pb_is_complete()); audio_stream_index = -1;
     player_paused = 1; assert(!evo_pb_is_complete()); player_paused = 0;

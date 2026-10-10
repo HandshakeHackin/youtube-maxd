@@ -187,18 +187,28 @@ int evo_audio_decode_is_parked(void);
     demux = player + "media/src/evo_demux.c"
     replace(demux, '#include "evo_demux.h"', '#include "evo_demux.h"\n#include <stdatomic.h>')
     replace(demux, "static volatile int prospero_seek_in_progress = 0;", """static volatile int prospero_seek_in_progress = 0;
-static _Atomic int tube_input_eof;
-int evo_demux_natural_eof(void) { return atomic_load_explicit(&tube_input_eof, memory_order_acquire); }
-void evo_demux_reset_eof(void) { atomic_store_explicit(&tube_input_eof, 0, memory_order_release); }""")
+/* One atomic snapshot: active=0, natural EOF=1, terminal failure=2.
+ * Retry exhaustion must never become EOF merely because FFmpeg returns EOF
+ * again after a failed/expired stream has latched it. */
+static _Atomic int tube_input_state;
+int evo_demux_natural_eof(void) { return atomic_load_explicit(&tube_input_state, memory_order_acquire) == 1; }
+int evo_demux_input_failed(void) { return atomic_load_explicit(&tube_input_state, memory_order_acquire) == 2; }
+void evo_demux_reset_eof(void) { atomic_store_explicit(&tube_input_state, 0, memory_order_release); }
+static void tube_demux_terminal_input(int read_result, int io_error, int exhausted)
+{
+    const int natural = !exhausted && read_result == AVERROR_EOF &&
+        (io_error == 0 || io_error == AVERROR_EOF);
+    atomic_store_explicit(&tube_input_state, natural ? 1 : 2, memory_order_release);
+}""")
     replace(demux, "            video_decode_done = 1;\n            prebuffer_check", """            const int io_error = play_fmt->pb ? play_fmt->pb->error : 0;
-            atomic_store_explicit(&tube_input_eof,
-                read_result == AVERROR_EOF && (io_error == 0 || io_error == AVERROR_EOF),
-                memory_order_release);
+            tube_demux_terminal_input(read_result, io_error,
+                demux_recover_tries >= DEMUX_RECOVER_TRIES);
             video_decode_done = 1;
             prebuffer_check""")
     replace(demux, "        video_decode_done = 0;\n        prebuffer_check", "        evo_demux_reset_eof();\n        video_decode_done = 0;\n        prebuffer_check")
     replace(demux, "        evo_audio_drain_reset();", "        evo_audio_drain_reset();\n        evo_demux_reset_eof();")
-    replace(player + "media/include/evo_demux.h", "int evo_demux_is_seeking(void);", "int evo_demux_is_seeking(void);\nint evo_demux_natural_eof(void);\nvoid evo_demux_reset_eof(void);")
+    replace(demux, "        pb_prebuffer_hold = 0;\n        return NULL;", "        tube_demux_terminal_input(AVERROR(ENOMEM), 0, 0);\n        pb_prebuffer_hold = 0;\n        return NULL;")
+    replace(player + "media/include/evo_demux.h", "int evo_demux_is_seeking(void);", "int evo_demux_is_seeking(void);\nint evo_demux_natural_eof(void);\nint evo_demux_input_failed(void); /* read failure, never completion */\nvoid evo_demux_reset_eof(void);")
     replace(player + "core/src/services/PlaybackController.cpp", "    evo_pb_reset_decode_fatal();", "    evo_pb_reset_decode_fatal();\n    evo_demux_reset_eof();")
     playback = player + "media/src/evo_playback.c"
     replace(playback, "int evo_pb_is_eof(void)            { return video_decode_done; }", """int evo_pb_is_eof(void)            { return video_decode_done; }

@@ -407,3 +407,22 @@ the simulated expiry. These are host proofs with real YouTube media; naturally
 expired links, uninterrupted mid-playback continuity, OAuth media and PS5 recovery
 still need acceptance. Live HLS renewal and controlled native restart remain
 unfinished. No native source/build or console traffic changed in this stage.
+
+### Native retry exhaustion classification (2026-10-09)
+
+Repeated premature EOF responses could previously pass the natural-EOF check
+after the demuxer's ten read-recovery attempts. The generated engine now
+publishes one atomic input state (active, natural EOF, terminal failure).
+Exhausted retries, other terminal read errors, and demux packet-allocation
+failure cannot authorize completion. Open/seek and newly received packets reset
+the input state through the existing reset path.
+
+`scripts/test_video_drain.sh` passed ASan/UBSan checks. The AVC and VP9 tests
+extract the exact generated demux classifier and retry-finality function,
+exercise premature EOF through the retry limit, and feed their classification
+to the real decode/render completion gate after final-frame retirement.
+EOF with a latched I/O error, exhausted EOF with and without a latched error,
+ordinary read failure, allocation failure, reset, and clean EOF are covered.
+Evidence: `.deps/input-failure-test.log`, exit result 0. This proves host
+classification and completion behavior; controlled native restart and PS5
+network interruption, queue/watch-state and sound acceptance remain pending.

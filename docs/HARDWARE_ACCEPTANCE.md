@@ -223,3 +223,10 @@ the same bounded injection through PS5, then naturally expired links during a
 long session. Check audio/video continuity, seeking and graceful failure when
 identity changes. Live HLS, expired idle capabilities, missing validators and
 controlled native restart remain unfinished recovery paths.
+
+The native input classifier distinguishes retry exhaustion and read/allocation
+failures from natural EOF. Repeated premature `AVERROR_EOF` replies after the
+demux retry budget must leave the video unwatched and the queue unchanged, even
+after buffered audio and video have drained. Test this on PS5 with an interrupted
+VOD and live stream, followed by stop/reopen and a clean natural ending. Host
+classification and renderer tests cannot establish console recovery or sound.
