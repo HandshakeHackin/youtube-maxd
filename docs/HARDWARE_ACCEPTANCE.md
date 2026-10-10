@@ -1,8 +1,8 @@
 # Hardware acceptance — pending
 
-Latest offline candidate `86ed6e62` passed all 211 PS5 objects, package and
-immutable freeze: `prosperotube-86ed6e62_1010-1607`, 126 files, eboot prefix
-`eca1964984193b69`. Its asynchronous paused-highlight retry, coherent seek
+Latest offline candidate `4a0b4572` passed all 211 PS5 objects, package and
+immutable freeze: `prosperotube-4a0b4572_1010-1624`, 126 files, eboot prefix
+`d9e42d51fb458b80`. Its optional paid-promotion notices, asynchronous paused-highlight retry, coherent seek
 ownership and atomic diagnostic publication have host coverage and remain
 undeployed. Installed `5cc941f0` has accepted public-video, persistence,
 pause/resume/seek and teardown cases. The user confirmed smooth native 1080p60

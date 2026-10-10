@@ -27,8 +27,8 @@ accounts and long sessions are next acceptance work. A subsequent unchanged-buil
 case played public Big Buck Bunny at native AVC 1080p60/AAC for over two minutes:
 the user confirmed smooth video and synchronized sound, 7457 frames published
 with zero late drops, and clean GPU/title/mount teardown passed. Current source
-`86ed6e62` also passes the complete PS5 build and immutable freeze (211 objects,
-126 files); its new idle-retry and atomic-status changes remain undeployed. See
+`4a0b4572` also passes the complete PS5 build and immutable freeze (211 objects,
+126 files); its paid-notice, idle-retry and atomic-status changes remain undeployed. See
 [validation](docs/VALIDATION.md) and [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md).
 
 ## 1. Objective and current conclusion

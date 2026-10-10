@@ -29,8 +29,14 @@ provider, recovery, SponsorBlock and paid-notice executables passed ASan/UBSan,
 including default off, persistence, once-only start, recovery and stale scopes:
 `.deps/paid-content-native.{log,result}` (0). The generated shipping successful-start
 UI block also passed ASan/UBSan: `.deps/paid-content-ui.{log,result}` (0).
-Account/extractor regression, PS5 packaging and hardware acceptance are recorded
-separately below when completed. The installed validated build remains unchanged.
+The affected guest/account/extractor/HLS regression passed all 34 tests:
+`.deps/paid-content-extractor-regression.{log,result}` (0). Complete PS5 build,
+linking, packaging and immutable freeze passed: `prosperotube-4a0b4572_1010-1624`,
+211 objects, 126 files, eboot SHA prefix `d9e42d51fb458b80`. Evidence:
+`.deps/paid-content-ps5-build.{log,result}` and
+`.deps/paid-content-freeze.{log,result}` (all 0). The candidate is undeployed;
+paid-notice hardware acceptance remains pending. The installed validated build
+remains unchanged.
 
 ## Public 1080p60 viewing acceptance — 2026-10-10
 
