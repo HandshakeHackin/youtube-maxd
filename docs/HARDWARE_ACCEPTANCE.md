@@ -396,3 +396,11 @@ no-run. The previously paired `.40` companion on port 8765 remains available;
 it was not interrupted. The `d4d5b66d` controller package is frozen but has not
 been deployed. Saved-history reload, pause/seek and physical pad/audio acceptance
 remain open; the preceding `b9b5c916` real-video result remains valid.
+
+- 2026-10-10 | saved-history playback controls | 5cc941f0 | PS5 | pass: one title launch, verified install/storage, Guest pairing/history reload, pause/resume, native seek success, EOF, park/exact release/healthy services | .deps/history-pause-seek-highlight-replay.log | physical sound, broader playback, SponsorBlock hardware acceptance
+
+The original root-navigation and strict-status adapters retain result 1. Their
+same owned process completed the corrected replay scenario; no second launch
+occurred. The rejected status bytes were not retained, so its exact cause is
+unproven. New R3 highlights remain offline-tested; physical sound/controller feel,
+long sessions, wider formats and full SmartTube equivalence remain open.

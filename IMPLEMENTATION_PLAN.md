@@ -14,16 +14,17 @@ single-thread storage transition, resident decoder creation, GPU park and exact
 title release are established for native `b9b5c916` and companion `c7d6f35`.
 Native AAC initialized; physical sound remains unverified.
 
-Current offline work adds explicit R3 highlight jumps with
-silent/message/ask/disabled actions, pause-preserving seek intent and player
-input dispatch. Provider stick controls also survive global screenshot capture.
-The dispatch-only `d4d5b66d` package built successfully; both later hardware cases
-stopped at the first busy-title check without upload, launch or input. A new
-highlight package is being prepared. Console acceptance still needs saved
-pairing/history reload, pause/resume, accurate seek and highlight input before
-broader formats, live streams, accounts and long sessions. See
-[validation](docs/VALIDATION.md) and [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md)
-for exact revisions, retained verifier failures and evidence boundaries.
+Current native `5cc941f0` builds and freezes successfully. Its one-launch console
+case now also establishes saved Guest history/pairing reload, actual public video
+replay, pause held for two seconds, resume, a successful ten-second seek,
+EOF/completion, Stop confirmation, durable watched state and graceful title
+release. Two adapter failures are retained: root-menu navigation assumed a
+single column, and a strict status guard rejected an unretained read. The same
+owned process completed the corrected checks; no second title launch occurred.
+The new R3 highlight actions have ASan/UBSan coverage but remain unaccepted on
+hardware. Physical sound/controller feel, broader formats, live streams,
+accounts and long sessions are next acceptance work. See
+[validation](docs/VALIDATION.md) and [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md).
 
 ## 1. Objective and current conclusion
 
@@ -587,25 +588,21 @@ newly adopted dependencies at the time of implementation.
 
 ## 11. Immediate backlog
 
-The first real PS5 public-video milestone is recorded in `docs/VALIDATION.md`.
-The latest offline work adds explicit R3 highlight point jumps and pause-preserving
-seek requests, corrects stale live-to-archive metadata eligibility, and tests
-shipping provider/player/global-dispatch/controller paths under ASan/UBSan.
-Physical acceptance, pause/seek/history reload and wider SmartTube behaviors
-remain pending; both available consoles stopped at busy title checks for the
-preceding controller package. Continue offline without repeated hardware polling.
+The PS5 public-video slice now includes persisted Guest pairing/history reload,
+pause/resume, ten-second seek, completion and graceful teardown. Exact revisions,
+retained adapter failures and evidence limits are in `docs/VALIDATION.md`.
 
-- [ ] Confirm available console/firmware/display and reproducible test procedure.
-- [ ] Resolve reuse terms for the specific service/player subset before importing it.
-- [ ] Build and record the pinned EVO baseline in WSL.
-- [ ] Generate AVC/AAC and VP9/Opus adaptive fixtures with known timing.
-- [ ] Prove separate-track DASH with audio, seeking, and teardown on PS5.
-- [ ] Map the service subset's Android/WebView/JS dependencies.
-- [ ] Validate current public-video formats and transport requirements.
-- [ ] Record the standalone-versus-companion feasibility decision.
-- [ ] Choose one application foundation and a unique title/data identity.
-- [ ] Implement the search-to-play vertical slice, then resume and captions.
+- [x] Build the pinned native PS5 foundation and establish title/data identity.
+- [x] Establish Lapy storage, native UI/video startup and graceful title release.
+- [x] Play a real public YouTube video with captions and saved Guest history.
+- [x] Reload pairing/history and verify pause/resume and native seek on PS5.
+- [ ] Publish diagnostic status atomically and cover asynchronous failed highlight retry.
+- [ ] Verify physical sound, A/V synchronization and controller feel.
+- [ ] Accept longer adaptive/progressive clips, alternate formats/audio, initial resume and quality/caption changes on hardware.
+- [ ] Finish SponsorBlock reference behavior, paid-content notices and hardware actions/point jumps.
+- [ ] Accept real account/private-library flows and complete live/DVR/chat replay behavior.
+- [ ] Implement casting/remote integration, DeArrow and broader settings/localization; reconcile the full parity inventory.
+- [ ] Complete standalone service feasibility and compatibility work.
+- [ ] Polish the UI after broad YouTube playback/control acceptance.
 
-No checkbox above is complete merely because this plan or its source references
-exist. The next implementation milestone is the adaptive playback spike, followed
-by current-service feasibility before building the full interface.
+These milestones do not establish complete SmartTube feature or behavior parity.

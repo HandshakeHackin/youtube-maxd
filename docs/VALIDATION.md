@@ -1,5 +1,45 @@
 # Offline validation record — 0.1.0
 
+## Current PS5 package: history, pairing, pause and seek — 2026-10-10
+
+Native `5cc941f0` built all 211 objects, linked and packaged successfully, then
+froze 126 files: `prosperotube-5cc941f0_1010-1529`, eboot SHA-256 prefix
+`f5a6b083d7e0d59c`. Build/freeze evidence:
+`.deps/highlight-retry-ps5-build.{log,result}` and
+`.deps/highlight-retry-freeze.{log,result}` (both results 0).
+
+The reserved-console case passed both initial idle checks, all installed-byte
+checks before and after settling, registration and final idle check, then
+launched exactly once. Matching startup, Lapy storage, UI and first frame passed.
+The first adapter stopped because Down selected Followed channels in the
+four-column root instead of History. A same-process continuation verified the
+launched PID/app identity, corrected navigation and reloaded saved Guest history.
+It then stopped on a strict status guard; the rejected bytes were not retained.
+A read-only inspection of the same owned process established real public video
+completion (`18.87/19`, 15 fps, fatal=0, EOF=1, complete=1). The status writer
+currently truncates its file in place, making an empty read plausible; this is
+not proof of the rejected read's exact contents. Both original results remain 1.
+
+A bounded replay continuation in that same title process passed:
+
+- Saved Guest history and stored pairing, without re-pairing.
+- Actual YouTube AVC playback and native AAC initialization.
+- Cross pause at 2.39 seconds, position held for two seconds, and resumed progress.
+- Right seek from 3.58 seconds toward 13.58; sampled presentation reached 14.48.
+  The matching engine recorded `seek_req=1 ok=1 fail=0`, first frame after seek
+  551 ms, 133 published frames, zero late drops and 46 seek-discarded frames.
+- EOF/completion at 18.90/19, Stop confirmation and return to History.
+- Saved version-2 Guest record (`played=true`, position=0, duration=19).
+- Matching GPU park, exact-title close, PID/app-bound kill/video-owner/mount
+  release and reachable FTP/klog/elf-loader services; the owned lock was removed.
+
+Evidence: `.deps/history-pause-seek-highlight-replay.{log,result}` (result 0) and
+`.deps/console/history-pause-seek-5cc941f0-replay-continuation/`. Earlier failed
+adapters and read-only inspection remain in the adjacent source-specific folders.
+No second title launch, source rebuild or companion change occurred. Physical
+sound/controller feel, broader formats/long sessions and SponsorBlock R3 point
+actions on hardware remain unverified. Full SmartTube equivalence remains open.
+
 ## Highlight retry and engine pause ownership — 2026-10-10
 
 Explicit highlight/review seeks now report whether the mailbox accepted the

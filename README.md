@@ -17,7 +17,9 @@ ProsperoLight and ProsperoTV are integration references.
 Hardware status: the PS5 build has played the real public video "Me at the zoo"
 through the LAN companion, with native AVC, rendered English captions and
 saved Guest history. Lapy PR50 storage access and graceful GPU park/close passed.
-Native AAC initialized; physical audible sound, pause/seek, history reload,
+The current package also reloaded Guest history and pairing, paused/resumed,
+and completed a ten-second seek with the native engine reporting success.
+Native AAC initialized; physical audible sound, controller feel,
 broader formats and long sessions still need acceptance. See
 [validation](docs/VALIDATION.md) for the captured frame and retained verifier
 failure caused by a too-strict final-frame threshold.

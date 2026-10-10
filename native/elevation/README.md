@@ -27,8 +27,10 @@ changing shared ps5log configuration. The test installer must create
 `/data/prosperotube` before launch; otherwise the helper refuses to start. Normal
 builds omit this option and require no pre-existing data directory. The packaged
 manifest records the source revision and optional result path; the full upstream
-manifest is checked to reject any test-only snapshot delay. This update has not
-yet established ProsperoTube storage or playback acceptance on a console.
+manifest is checked to reject any test-only snapshot delay. The packaged helper
+established storage during the `b9b5c916` and `5cc941f0` console milestones;
+the latter also passed real YouTube history reload, pause/resume and seek.
+See `docs/VALIDATION.md` for the exact package and acceptance boundaries.
 
 The client checks actual write/read and directory access, gives a resident
 service a bounded chance, cancels an unclaimed marker before helper fallback,
