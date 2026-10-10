@@ -159,8 +159,10 @@ trigger up to three fresh resolutions/reopens per explicit video selection,
 preserving the profile, format, fractional VOD position and caption visibility;
 live playback restarts at the live edge. Paused playback waits until resumed.
 Changed/ambiguous formats or an exhausted budget require selecting the video
-again. This controlled restart still needs PS5 acceptance. Transparent live HLS
-URL renewal remains unfinished.
+again. This controlled restart still needs PS5 acceptance. Live HLS playlist
+roots now renew together under the same profile, preserving relay URLs and
+checking the audio-group pairing. Expired segments, keys and initialization
+objects still use controlled live-edge restart; full DVR recovery is pending.
 Access logs are disabled and native diagnostics redact
 capabilities. See [protocol/security notes](docs/PROTOCOL.md).
 

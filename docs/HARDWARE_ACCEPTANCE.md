@@ -221,8 +221,9 @@ The host AVC/AAC and VP9/AAC probes use real public media with one local injecte
 403, fresh same-profile resolution, byte-identity checks, decode and seek. Test
 the same bounded injection through PS5, then naturally expired links during a
 long session. Check audio/video continuity, seeking and graceful failure when
-identity changes. Live HLS, expired idle capabilities, missing validators and
-controlled native restart remain unfinished recovery paths.
+identity changes. Live HLS paired-root renewal and controlled native restart
+are implemented but require PS5 acceptance. Expired idle capabilities and
+missing validators use the controlled reopen path rather than byte renewal.
 
 The native input classifier distinguishes retry exhaustion and read/allocation
 failures from natural EOF. Repeated premature `AVERROR_EOF` replies after the
@@ -242,3 +243,9 @@ without opening another video or replaying account mutations. All of these
 remain hardware acceptance requirements.
 
 - 2026-10-09 | recovery / Lapy startup | 17f1b904 | PS5 6.02 | no-run: first title check busy; no probes/upload/launch/close/input; owned lock released | .deps/recovery-console.log | continue offline, await idle console
+
+Live HLS paired-root renewal passed a real public host decode after one locally
+injected root expiry. Validate unchanged relay manifests, both audio and video,
+and continuity on PS5 separately. Expired segments/keys/init objects require
+controlled live-edge restart; full DVR and naturally expired long-session
+playback remain unverified. No console traffic occurred for the host case.

@@ -140,6 +140,13 @@ at its live edge. Its result reports `live_edge_decode`; it does not perform or
 claim a VOD seek for live media. DVR seek, long-duration playback, reconnect and
 PS5 decoding/audio remain separate checks.
 
+Add `--simulate-hls-expiry` to that live HLS case to inject one local 403 for
+the selected video playlist root after a real ffprobe. The probe requires one
+fresh resolution and audio/video live-edge decode through the unchanged local
+manifest. The result labels `live_hls_root` and reports injection/resolution
+counts. This proves host root renewal with real media, not naturally expired
+links, child-resource/DVR renewal, long-session continuity or PS5 playback.
+
 After building the library worker, an explicit anonymous chat-service probe is:
 
 ```sh

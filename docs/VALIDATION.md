@@ -479,3 +479,30 @@ The bounded storage/startup case stopped at its first console operation, the
 minimal read-only FTP running-title check. No further service probes, upload,
 launch, close or input occurred. Its owned lock was released. The candidate
 remains undeployed; PS5 recovery and storage acceptance remain pending.
+
+### Paired live HLS root renewal (2026-10-09)
+
+The shipping relay now renews expired live playlist roots under the owning
+profile, retaining local manifest/capability URLs. Exact unique format identity
+and the refreshed audio-group/master pairing are checked before atomic root
+replacement. Segments, keys and initialization objects are not silently
+remapped. Dynamic roots omit byte ranges and immutable VOD validators. Late
+responses cannot restore the previous root URL.
+
+Full Python suite: 160 passed, one known Starlette deprecation warning; result
+0 in `.deps/live-refresh-python-final.result`, log
+`.deps/live-refresh-python-final.log`. Tests exercise shipping GET/HEAD relay,
+fresh scoped headers, stable manifests, concurrent failures, cooldown, changed
+formats/pairing, late responses, cancellation and removed-session rejection.
+
+Real public YouTube NASA stream `awQzjn72bI0`, AVC/AAC split live HLS at 240p,
+passed pairing, resolution, ffprobe and two-second audio/video live-edge decode
+after one locally injected root 403 and exactly one fresh resolution through
+the unchanged local relay manifest. Evidence: `.deps/live-refresh-public.json`,
+`.deps/live-refresh-public.log`, `.deps/live-refresh-public.result` (0).
+Reproduce with `scripts/probe_youtube.py --transport hls --expect-live
+--simulate-hls-expiry` and the required video/runtime options in BUILD.md.
+No account profile or console traffic was used. This is host renewal evidence;
+natural expiry, long-session continuity, child-resource/DVR recovery, audible
+audio and PS5 playback remain separate acceptance requirements. Native sources
+are unchanged; the frozen recovery candidate remains undeployed.

@@ -1,4 +1,4 @@
-"""Single-flight renewal of VOD media, preserving byte-range representation identity."""
+"""Single-flight renewal of VOD representations and paired live HLS roots."""
 import asyncio
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
@@ -27,10 +27,11 @@ def media_headers(headers, fmt):
             and '\r' not in str(v) and '\n' not in str(v)}
 
 
-def binding(fmt):
+def binding(fmt, *, live=False):
     if not isinstance(fmt, dict) or not isinstance(fmt.get('format_id'), str) or not 1 <= len(fmt['format_id']) <= 128:
         return None
-    if fmt.get('protocol') not in ('http', 'https') or fmt.get('has_drm'):
+    protocols = ('m3u8', 'm3u8_native') if live else ('http', 'https')
+    if fmt.get('protocol') not in protocols or fmt.get('has_drm'):
         return None
     value = tuple(fmt.get(k) for k in ('format_id', 'protocol', 'ext', 'vcodec', 'acodec',
                                      'width', 'height', 'fps', 'language', 'asr', 'audio_channels', 'dynamic_range'))
@@ -109,7 +110,9 @@ async def renew(sessions, session, key, failed, resolver):
                 raise expired()
             return current
         state = failed.representation
-        if session.is_live or failed.binding is None or state.observed and state.validator is None:
+        live = session.is_live and failed.live_binding is not None
+        if (session.is_live and not live or not live and
+                (failed.binding is None or state.observed and state.validator is None)):
             raise expired()
         if time.monotonic() < session.refresh_after:
             raise expired()
@@ -118,23 +121,37 @@ async def renew(sessions, session, key, failed, resolver):
             info = await resolver(session.profile).extract(
                 f'https://www.youtube.com/watch?v={session.video_id}', fresh=True)
         resolver(session.profile)  # Removal may have occurred during extraction.
-        if sessions.get(session.token) is not session or info.get('id') != session.video_id or info.get('is_live') is True:
+        if sessions.get(session.token) is not session or info.get('id') != session.video_id or (info.get('is_live') is True) != live:
             raise expired()
-        if abs(number(info.get('duration')) - session.duration) > 0.1:
+        if not live and abs(number(info.get('duration')) - session.duration) > 0.1:
             raise expired()
         replacements = {}
         formats = info.get('formats')
         if not isinstance(formats, list) or len(formats) > 4096:
             raise expired()
+        mapped = {}
         for name, old in session.tracks.items():
-            if old.binding is None:
+            identity = old.live_binding if live else old.binding
+            if identity is None:
                 continue
-            matches = [f for f in formats if binding(f) == old.binding]
+            matches = [f for f in formats if binding(f, live=live) == identity]
             if len(matches) != 1:
                 raise expired()
             fmt = matches[0]
+            if not isinstance(fmt.get('url'), str) or len(fmt['url']) > 8192:
+                raise expired()
+            mapped[name] = fmt
             replacements[name] = type(old)(safe_remote(fmt.get('url', '')),
                 media_headers(info.get('http_headers') or {}, fmt), old.mime,
-                old.binding, old.representation)
-        session.tracks.update(replacements)  # Atomic: no partially renewed DASH pair.
+                old.binding, old.representation, old.live_binding)
+        if live:
+            for video_key, audio_key in session.hls_pairs.items():
+                video, audio = mapped.get(video_key), mapped.get(audio_key)
+                if (not video or not audio or not isinstance(video.get('hls_audio_urls'), list) or
+                    audio['url'] not in video['hls_audio_urls'] or
+                    not isinstance(video.get('manifest_url'), str) or not video['manifest_url'] or
+                    video['manifest_url'] != audio.get('manifest_url')):
+                    raise expired()
+                safe_remote(video['manifest_url'])
+        session.tracks.update(replacements)  # Atomic: no partially renewed audio/video pair.
         return session.tracks[key]

@@ -17,6 +17,7 @@ class Remote:
     mime: str
     binding: tuple | None = None
     representation: Representation = field(default_factory=Representation)
+    live_binding: tuple | None = None
 
 
 @dataclass
@@ -34,6 +35,7 @@ class Session:
     is_live: bool = False
     refresh_lock: object = None
     refresh_after: float = 0
+    hls_pairs: dict[str, str] = field(default_factory=dict)
 
 
 def codec_name(raw):
@@ -112,7 +114,8 @@ class Sessions:
         def remote(key, fmt, mime):
             url = safe_remote(fmt["url"])
             allowed = media_headers(headers, fmt)
-            session.tracks[key] = Remote(url, allowed, mime, binding=None if live else binding(fmt))
+            session.tracks[key] = Remote(url, allowed, mime, binding=None if live else binding(fmt),
+                                        live_binding=binding(fmt, live=True) if live else None)
             return f"{prefix}/{key}"
 
         def eligible(fmt):
@@ -158,6 +161,7 @@ class Sessions:
                 stem = f'h{len(choices)}'
                 vu = remote(stem + 'v.m3u8', fmt, 'application/vnd.apple.mpegurl')
                 au = remote(stem + 'a.m3u8', audio, 'application/vnd.apple.mpegurl')
+                session.hls_pairs[stem + 'v.m3u8'] = stem + 'a.m3u8'
                 bandwidth = max(1, int((number(fmt.get('tbr')) + number(audio.get('tbr'))) * 1000))
                 session.hls_manifests[stem + '.m3u8'] = (
                     '#EXTM3U\n#EXT-X-VERSION:3\n'

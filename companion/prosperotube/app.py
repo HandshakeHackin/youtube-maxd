@@ -406,7 +406,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 raise ServiceError("invalid_range", "Only a single byte range is supported.", 416)
         async def fetch(resource, renewed=False):
             headers = {**resource.headers, "Accept-Encoding": "identity"}
-            if byte_range:
+            if byte_range and resource.live_binding is None:
                 headers["Range"] = byte_range
                 if renewed and resource.representation.validator:
                     headers["If-Range"] = resource.representation.validator[1].encode('latin-1')
@@ -425,7 +425,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 relay_profile(session)
                 if reply.status_code not in (200, 206):
                     raise expired_media()
-                observe_media(remote, reply, byte_range, renewed=True)
+                if remote.live_binding is None:
+                    observe_media(remote, reply, byte_range, renewed=True)
             except (ServiceError, httpx.HTTPError, TimeoutError):
                 await reply.aclose()
                 app.state.sessions.sessions.pop(session_token, None)

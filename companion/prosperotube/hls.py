@@ -15,7 +15,11 @@ def rewrite(content, origin_url, session, request_base, playlist_key, source, *,
     references = set()
     # A concurrent refresh can retire an in-flight child playlist. Restore only
     # this known fetched capability, keeping it classified as a dynamic resource.
-    tracks[playlist_key] = source
+    # A successful old root response may arrive after atomic link renewal.
+    # Rewrite that fetched playlist, but never put its expired root URL back.
+    current = tracks.get(playlist_key)
+    if not (source.live_binding is not None and current is not None and current is not source):
+        tracks[playlist_key] = source
     if playlist_key.startswith("hls-"):
         resources.pop(playlist_key, None)
         resources[playlist_key] = True

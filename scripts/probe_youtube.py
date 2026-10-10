@@ -68,7 +68,9 @@ def main():
     parser.add_argument("--height", type=int, choices=(144, 240, 360, 480, 720, 1080), default=720)
     parser.add_argument("--transport", choices=("any", "hls", "dash"), default="any", help="Require a specific returned transport")
     parser.add_argument("--expect-live", action="store_true", help="Fail unless the selected stream is currently live")
-    parser.add_argument("--simulate-vod-expiry", action="store_true", help="Inject one local expired-link response after real ffprobe, then require fresh resolution and decode")
+    simulation = parser.add_mutually_exclusive_group()
+    simulation.add_argument("--simulate-vod-expiry", action="store_true", help="Inject one local expired-link response after real ffprobe, then require fresh resolution and decode")
+    simulation.add_argument("--simulate-hls-expiry", action="store_true", help="Inject one local live-root expiry after real ffprobe, then require fresh paired roots and live-edge decode")
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), required=True)
     parser.add_argument("--js-runtime-path")
     parser.add_argument("--profile", help="Explicit authorized OAuth profile ID; never falls back to Guest")
@@ -86,7 +88,7 @@ def main():
         parser.error(str(error))
     expiry = None
     fresh_resolutions = [0]
-    if args.simulate_vod_expiry:
+    if args.simulate_vod_expiry or args.simulate_hls_expiry:
         asyncio.run(app.state.http.aclose())  # Unused client; no transport was opened.
         expiry = ExpireOnceTransport()
         app.state.http = httpx.AsyncClient(transport=expiry, timeout=httpx.Timeout(20, connect=5), follow_redirects=False)
@@ -107,7 +109,8 @@ def main():
               "scope": ("OAuth TV YouTube" if args.profile else "public YouTube") +
                        " -> authenticated companion -> relay -> host FFmpeg",
               "account_profile_selected": bool(args.profile), "console_traffic": False,
-              "simulated_media_expiry": args.simulate_vod_expiry,
+              "simulated_media_expiry": args.simulate_vod_expiry or args.simulate_hls_expiry,
+              "simulated_expiry_kind": 'live_hls_root' if args.simulate_hls_expiry else 'vod' if args.simulate_vod_expiry else None,
               "result": "failed"}
     stage = "startup"
     token = ""
@@ -151,15 +154,26 @@ def main():
                              for stream in streams]
         if expiry is not None:
             stage = 'simulate_expiry'
-            if live:
-                raise RuntimeError('vod_required_for_expiry_probe')
             token_part = choice['url'].split('/media/', 1)[1].split('/', 1)[0]
             session = app.state.sessions.get(token_part)
-            resources = [r for r in session.tracks.values() if r.binding and r.binding[3] != 'none'
-                         and r.representation.observed]
-            if not resources or resources[0].representation.validator is None:
-                result['code'] = 'media_identity_missing'
-                raise RuntimeError('media_identity_missing')
+            if args.simulate_hls_expiry:
+                if not live or choice['container'] != 'hls':
+                    raise RuntimeError('live_hls_required_for_expiry_probe')
+                root = choice['url'].split('/media/', 1)[1].split('/', 1)[1]
+                paired_video = root.removesuffix('.m3u8') + 'v.m3u8'
+                if paired_video in session.hls_pairs:
+                    root = paired_video
+                resources = [session.tracks[root]] if root in session.tracks and session.tracks[root].live_binding else []
+                if not resources:
+                    raise RuntimeError('live_root_identity_missing')
+            else:
+                if live:
+                    raise RuntimeError('vod_required_for_expiry_probe')
+                resources = [r for r in session.tracks.values() if r.binding and r.binding[3] != 'none'
+                             and r.representation.observed]
+                if not resources or resources[0].representation.validator is None:
+                    result['code'] = 'media_identity_missing'
+                    raise RuntimeError('media_identity_missing')
             expiry.fail_url = resources[0].url
         offsets = (0,) if live else (0, min(4, max(0, playback.get("duration_sec", 0) - 2)))
         for offset in offsets:

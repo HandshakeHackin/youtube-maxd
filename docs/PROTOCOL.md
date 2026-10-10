@@ -60,9 +60,17 @@ identity checks.
 
 Renewal is single-flight per session, with a 30-second minimum between attempts
 and a 60-second resolution bound in addition to the resolver's own deadline.
-Removal/idle expiry cannot resurrect a session. Live HLS roots/segments, captions,
-unverifiable byte identity and native re-open recovery remain separate work;
-their expired access still requires reselecting the video ID. Network failures
+Removal/idle expiry cannot resurrect a session. Live HLS playlist roots also
+renew on 401/403/410 under the same profile, with exact unique format identities
+and verified audio-group/master pairing. All registered roots update together;
+changed formats or pairing fail without a partial replacement. Root requests
+fetch complete dynamic playlists without Range/If-Range or VOD byte validators.
+An older in-flight playlist response cannot restore an expired root URL.
+Segments, keys, initialization objects and captions are not aliased to new
+resources. Their expiry, unverifiable VOD identity and removed capabilities end
+the relay session; the native controlled recovery path can reopen the selected
+format at the VOD resume position or live edge, within its retry budget.
+PS5 recovery acceptance and full DVR renewal remain pending. Network failures
 and other upstream statuses do not enter this expired-link retry path.
 
 This is a trusted-LAN service. HTTP is plaintext; pairing does not replace TLS.
