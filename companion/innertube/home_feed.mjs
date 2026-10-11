@@ -1,5 +1,17 @@
 // SmartTube VideoGroup.isWatchedSuggestion policy for the primary Home grid.
 // SPDX-License-Identifier: GPL-3.0-or-later
+import {YT} from 'youtubei.js';
+
+function homeRows(feed) {
+  if(feed?.contents?.contents!==undefined)return feed.contents.contents;
+  // The pinned Feed.page_contents getter dereferences an absent first Tab.
+  // Read the parsed response lists directly for tabless filter responses.
+  const page=feed?.page;
+  const updates=[...(page?.on_response_received_actions ?? []),...(page?.on_response_received_endpoints ?? []),
+    ...(page?.on_response_received_commands ?? [])].filter(node=>
+      ['AppendContinuationItemsAction','reloadContinuationItemsCommand'].includes(node?.type) && Array.isArray(node.contents));
+  return updates.length===1?updates[0].contents:[];
+}
 export function watchPercent(node) {
   if(node?.is_watched===true)return 100;
   for(const overlay of node?.thumbnail_overlays ?? []) {
@@ -22,7 +34,7 @@ export function watchedSuggestion(node) {
 export function filterHomeFeed(feed) {
   // Only direct RichItem videos belong to the primary Home group. Shelf items
   // remain eligible; a layout without this evidence is left intact.
-  const primary=new Set(Array.from(feed?.contents?.contents ?? []).filter(node=>node?.type==='RichItem').map(node=>node.content));
+  const primary=new Set(Array.from(homeRows(feed)).filter(node=>node?.type==='RichItem').map(node=>node.content));
   return {videos:Array.from(feed?.videos ?? []).filter(node=>!primary.has(node) || !watchedSuggestion(node)),
     playlists:feed?.playlists ?? [],has_continuation:!!feed?.has_continuation,
     ...(typeof feed?.getContinuation==='function'?{async getContinuation(){return filterHomeFeed(await feed.getContinuation());}}:{})};
@@ -70,16 +82,28 @@ export class HomeCatalog {
     return {folders,nested};
   }
   root(owner,feed,client,withFilters=true) {
-    const rows=feed?.contents?.contents ?? [];
+    const rows=homeRows(feed);
     const {folders,nested}=this.folders(owner,rows,client,0);
     if(withFilters && typeof feed.applyFilter==='function') {
       const chips=feed.filter_nodes?.primary_filters ?? [];
       if(!Array.isArray(chips) || chips.length>64)throw new this.ErrorType('upstream_limit','Too many Home filters.',502);
       for(const chip of chips) {
-        if(!['ChipCloudChip','ChipView','ListItemView'].includes(chip?.type) || chip.is_selected || chip.selected)continue;
+        if(!['ChipCloudChip','ChipView','ListItemView'].includes(chip?.type) || chip.is_disabled || chip.is_selected || chip.selected)continue;
         const title=String(chip.text ?? chip.title ?? '').replaceAll('\0','').slice(0,192);
         if(title)folders.push(this.references.register(owner,title,'Home filter',async()=>
           this.root(owner,await feed.applyFilter(chip),client)));
+      }
+      const secondary=feed.filter_nodes?.secondary_filters ?? [];
+      if(!Array.isArray(secondary) || secondary.length>64)throw new this.ErrorType('upstream_limit','Too many secondary Home filters.',502);
+      const selected=chips.filter(chip=>['ChipCloudChip','ChipView','ListItemView'].includes(chip?.type) &&
+        !chip.is_disabled && (chip.is_selected || chip.selected));
+      if(selected.length===1 && typeof feed.getFilteredFeed==='function')for(const chip of secondary) {
+        if(chip?.type!=='ChipView' || chip.selected || typeof chip.tap_command?.call!=='function')continue;
+        const title=String(chip.text ?? '').replaceAll('\0','').slice(0,192);
+        if(title)folders.push(this.references.register(owner,title,'Home secondary filter',async()=>{
+          const filtered=await feed.getFilteredFeed(selected[0],chip);
+          return this.root(owner,new YT.HomeFeed(feed.actions,filtered.page,true),client);
+        }));
       }
     }
     const filtered=filterHomeFeed(feed);

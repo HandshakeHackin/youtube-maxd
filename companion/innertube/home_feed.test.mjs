@@ -158,3 +158,46 @@ test('actual pinned HomeFeed filter responses retain primary watched filtering',
   assert.deepEqual(filtered.items.map(row=>row.id),['bcdefghijkl']);
   assert.equal(filtered.items[0].watch_percent,45);assert.equal(root.items[1].id,id);
 });
+
+test('secondary Home filters keep the selected primary and parse endpoint reloads and continuations',async()=>{
+  const feed=new YT.HomeFeed({}, {data:{contents:{richGridRenderer:{contents:[homeVideo(id,0)]}}}});
+  const primary=new YTNodes.ChipView({text:'All',selected:true,tapCommand:{browseEndpoint:{browseId:'FEwhat_to_watch'}}});
+  primary.tap_command.call=async()=>assert.fail('selected primary must not be fetched again');
+  const secondary=new YTNodes.ChipView({text:'Recently uploaded',selected:false,tapCommand:{browseEndpoint:{browseId:'FEwhat_to_watch'}}});
+  Object.defineProperty(feed,'filter_nodes',{value:{primary_filters:[primary],secondary_filters:[secondary]}});
+  let calls=0,continuations=0;
+  secondary.tap_command.call=async()=>{
+    calls++;
+    const response=Parser.parseResponse({onResponseReceivedEndpoints:[{reloadContinuationItemsCommand:{targetId:'browse-feed',continuationItems:[
+      homeVideo(id,100),homeVideo('bcdefghijkl',45),{continuationItemRenderer:{continuationEndpoint:{continuationCommand:{token:'secondary-next'}}}}
+    ]}}]});
+    response.on_response_received_endpoints[0].contents.at(-1).endpoint.call=async()=>{
+      continuations++;return Parser.parseResponse({onResponseReceivedActions:[{appendContinuationItemsAction:{continuationItems:[homeVideo(id,100),homeVideo('cdefghijklm',20)]}}]});
+    };
+    return response;
+  };
+  const library=new Library(async()=>({getHomeFeed:async()=>feed}));
+  const root=await library.execute({action:'home'});
+  assert.equal(root.items[0].title,'Recently uploaded');assert.equal(root.items.length,2);
+  const input={action:'suggestions_filter',id:root.items[0].id.slice(15)};
+  const [filtered,retry]=await Promise.all([library.execute(input),library.execute(input)]);
+  assert.equal(calls,1);assert.deepEqual(filtered,retry);
+  assert.deepEqual(filtered.items.map(row=>row.id),['bcdefghijkl']);assert(filtered.has_more);
+  const page=await library.execute({action:'continue',cursor:filtered.cursor});
+  assert.equal(continuations,1);assert.deepEqual(page.items.map(row=>row.id),['cdefghijklm']);
+  assert.equal(page.items[0].playback_context.index,1);assert.equal(feed.videos[0].id,id);
+});
+
+test('disabled primary and ambiguously scoped secondary Home controls are not offered',async()=>{
+  const primary=new YTNodes.ChipView({text:'All',selected:false,tapCommand:{browseEndpoint:{browseId:'FEwhat_to_watch'}}});
+  const disabled=new YTNodes.ListItemView({title:{content:'Unavailable'},isDisabled:true});
+  const secondary=new YTNodes.ChipView({text:'Newest',selected:false,tapCommand:{browseEndpoint:{browseId:'FEwhat_to_watch'}}});
+  const feed={videos:[video(0)],contents:{contents:[]},has_continuation:false,
+    filter_nodes:{primary_filters:[disabled,primary],secondary_filters:[secondary]},applyFilter:async()=>assert.fail('no request expected'),
+    getFilteredFeed:async()=>assert.fail('no request expected')};
+  const library=new Library(async()=>({getHomeFeed:async()=>feed}));
+  const root=await library.execute({action:'home'});
+  assert.deepEqual(root.items.filter(row=>row.is_folder).map(row=>row.title),['All']);
+  feed.filter_nodes.secondary_filters=Array(65).fill(secondary);
+  await assert.rejects(library.execute({action:'home'}),{code:'upstream_limit'});
+});

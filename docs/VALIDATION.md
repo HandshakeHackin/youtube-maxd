@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Secondary Home filters and tabless reloads — 2026-10-11
+
+Secondary ChipView controls now use the pinned two-filter API while retaining the
+single explicitly selected primary control. Selected/disabled controls are omitted,
+ambiguous primary state does not invent a selection, and each control list is bounded.
+The returned feed retains independent source ordering, watched filtering and pagination.
+
+All 142 worker tests and the bundle build pass. Parsed ChipView nodes exercise the
+actual HomeFeed/getFilteredFeed path, ensuring the selected primary is not fetched
+again, concurrent opens share a page, and endpoint reloads plus subsequent append
+pages filter watched primary cards while preserving occurrence indices.
+
+The first integration run exposed the pinned Feed.page_contents accessor's missing-
+Tab dereference. The adapter now reads a single parsed reload/append response directly;
+the corrected integration and full worker suite pass. No dependency fork was needed.
+Only companion code changed; no native/API schema, final package or console test ran.
+Broader layouts and real-service/PS5 acceptance remain open.
+
 ## Home rows, primary filters and source ordering — 2026-10-11
 
 Supported RichShelf and Shelf rows now remain separate profile-owned Home folders,
