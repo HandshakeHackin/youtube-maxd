@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from build_video_transform_shaders import verify
+from build_video_transform_shaders import verify, digest
+from install_video_transform_shaders import install, EVO, PIN
+from unittest.mock import patch
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
@@ -19,6 +21,7 @@ class TransformArtifactTests(unittest.TestCase):
         (self.root/"metadata").mkdir()
         self.expected = {"sources": {"evo_revision": "fixture",
             "pipes": {"video_fixture.pipe": sha(b"source")}}}
+        self.expected["packager_sha256"]=digest(EVO/"tools/build_agc_pipes.py")
         self.header = b"fixture header, not a compiled shader"
         self.meta = {"target":"gfx1013", "gfxip":"10.1.3", "pipeline_type":"Ngg",
                      "no_relocations":True, "source_sha256":sha(b"source")}
@@ -35,6 +38,45 @@ class TransformArtifactTests(unittest.TestCase):
 
     def save_manifest(self):
         (self.root/"manifest.json").write_text(json.dumps(self.manifest))
+
+    def native_tree(self):
+        native=self.root/"native"
+        native.mkdir()
+        (native/".prosperotube-source").write_text(PIN)
+        target=native/"projects/evoplayer/shaders/agc"
+        target.mkdir(parents=True)
+        (target/"video_fixture_pipe.h").write_bytes(b"old")
+        (target/"ui_fixture_pipe.h").write_bytes(b"unrelated UI")
+        return native,target
+
+    def test_install_preserves_unrelated_headers(self):
+        native,target=self.native_tree()
+        with patch("install_video_transform_shaders.current_sources",return_value=self.expected["sources"]):
+            install(self.root,native)
+        self.assertEqual((target/"video_fixture_pipe.h").read_bytes(),self.header)
+        self.assertEqual((target/"ui_fixture_pipe.h").read_bytes(),b"unrelated UI")
+
+    def test_install_corruption_changes_nothing(self):
+        native,target=self.native_tree()
+        (self.root/"headers/video_fixture_pipe.h").write_bytes(b"corrupt")
+        with patch("install_video_transform_shaders.current_sources",return_value=self.expected["sources"]):
+            with self.assertRaises(ValueError): install(self.root,native)
+        self.assertEqual((target/"video_fixture_pipe.h").read_bytes(),b"old")
+
+    def test_install_stale_source_changes_nothing(self):
+        native,target=self.native_tree()
+        with patch("install_video_transform_shaders.current_sources",return_value={}):
+            with self.assertRaises(ValueError): install(self.root,native)
+        self.assertEqual((target/"video_fixture_pipe.h").read_bytes(),b"old")
+
+    def test_install_wrong_destination_pin(self):
+        native,target=self.native_tree()
+        (native/".prosperotube-source").write_text("wrong")
+        with self.assertRaises(ValueError): install(self.root,native)
+        self.assertEqual((target/"video_fixture_pipe.h").read_bytes(),b"old")
+
+    def test_install_cannot_modify_pinned_evo(self):
+        with self.assertRaises(ValueError): install(self.root,EVO)
 
     def test_complete_integrity_fixture(self):
         self.assertEqual(verify(self.root,self.expected),self.root)

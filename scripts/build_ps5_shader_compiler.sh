@@ -55,14 +55,15 @@ export LD_LIBRARY_PATH="$dxc_root/lib:${LD_LIBRARY_PATH:-}"
 cmake -G Ninja -S "$cache/src/drivers/xgl" -B "$cache/build" \
   -DCMAKE_BUILD_TYPE=Release -DDXC_PATH="$dxc_root/bin/dxc" -DVKI_BUILD_TOOLS=ON -DVKI_RAY_TRACING=OFF -DLLPC_RAY_TRACING=OFF \
   -DLLVM_PARALLEL_COMPILE_JOBS="$jobs" -DLLVM_PARALLEL_LINK_JOBS=1
-cmake --build "$cache/build" --target amdllpc -j"$jobs"
+cmake --build "$cache/build" --target amdllpc spvgen -j"$jobs"
 compiler="$(find "$cache/build" -type f -name amdllpc -executable -print -quit)"
 [[ -n "$compiler" ]] || { echo "No compiled amdllpc" >&2; exit 1; }
-spvgen="$(find "$cache/build" -type f -name 'libspvgen.so*' -print -quit)"
+spvgen="$(find "$cache/build" -type f -name 'spvgen.so' -print -quit)"
 [[ -n "$spvgen" ]] || { echo "No compiled spvgen" >&2; exit 1; }
 mkdir -p "$cache/bin" "$cache/lib"
 install -m755 "$compiler" "$cache/bin/amdllpc"
 install -m755 "$spvgen" "$cache/lib/libspvgen.so"
+install -m755 "$spvgen" "$cache/lib/spvgen.so"
 export LD_LIBRARY_PATH="$cache/lib:$LD_LIBRARY_PATH"
 "$cache/bin/amdllpc" --version
 # Exercise the actual PS5 target and metadata/header packaging, not --version alone.

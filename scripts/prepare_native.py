@@ -28,6 +28,10 @@ def replace(path, old, new, count=1):
 
 
 def main():
+    transform_artifact = os.environ.get("PROSPEROTUBE_TRANSFORM_ARTIFACT")
+    if transform_artifact:
+        from install_video_transform_shaders import validate
+        validate(transform_artifact)  # Reject bad inputs before touching native outputs.
     actual = subprocess.check_output(["git", "-C", str(EVO), "rev-parse", "HEAD"], text=True).strip()
     if actual != PIN:
         raise RuntimeError(f"EVO pin mismatch: {actual}")
@@ -49,6 +53,8 @@ def main():
         stamp.write_text(PIN)
     elif stamp.read_text().strip() != PIN:
         raise RuntimeError("Native work directory has a different upstream pin.")
+    transform_stamp = WORK / ".prosperotube-video-transform.json"
+    transform_stamp.unlink(missing_ok=True)  # Only successful preparation can publish this stamp.
     player = "projects/evoplayer/"
     overlay_files = [player + name for name in (
         "Makefile", "addons/src/evo_provider_mgr.c", "addons/include/evo_provider.h", "src/evo_data_path.c", "include/evo_data_path.h",
@@ -70,14 +76,16 @@ def main():
         "pp/src/pp_playback.c", "pp/include/pp_playback.h", "media/src/evo_agc_runtime.c", "media/include/evo_agc_runtime.h",
         "pp/src/pp_clock.c", "pp/include/pp_clock.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
-    overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh"]
+    overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh", player+"shaders/agc"]
+    # Restore all shader headers too: disabling a transform build must never
+    # leave 48-byte shaders paired with the original 16/32-byte runtime.
     # Always start each overlay from its pinned sources. Build outputs remain
     # intact, and edits to generated files are never the project's source.
     archive = ROOT / ".deps/evo-overlay-base.tar"
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -231,6 +239,12 @@ def main():
     apply_time_display_overlay(replace, player)
     from video_geometry_overlay import apply_video_geometry_overlay
     apply_video_geometry_overlay(replace, player)
+    transform_manifest = None
+    if transform_artifact:
+        from install_video_transform_shaders import install
+        from video_transform_overlay import apply_video_transform_overlay
+        transform_manifest = install(transform_artifact, WORK)
+        apply_video_transform_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     from secondary_captions_overlay import apply_secondary_captions_overlay
@@ -329,6 +343,10 @@ static const char* tube_dev_path(unsigned index) {
     app = (WORK / player / "core/src/Application.cpp").read_text()
     if '"/mnt/usb0/evo_shot_' in app or '"/mnt/usb0/evo_%s_%s.bmp"' in app:
         raise RuntimeError("Screenshot output must use ProsperoTube storage")
+    if transform_manifest is None:
+        transform_stamp.unlink(missing_ok=True)
+    else:
+        transform_stamp.write_text(json.dumps(transform_manifest, indent=2, sort_keys=True)+"\n")
     print(WORK)
 
 

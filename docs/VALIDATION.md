@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Verified transform activation and ABI reset — 2026-10-11
+
+Native preparation can now activate the staged renderer only with an explicitly
+selected shader artifact. Preflight matches freshly generated sources and the
+packager, then checks all headers and metadata before changing native outputs.
+The installer preserves unrelated UI shaders and refuses pinned EVO or a
+different generated source pin. An activation stamp is written only after
+successful complete preparation.
+
+Fourteen synthetic artifact/install cases pass. Real preparation in a dedicated
+cache also passes rejection-before-mutation and disabled-reset checks: a bad
+artifact preserves the existing shader/stamp, while a successful disabled run
+restores the pinned NV12 header, original runtime ABI and removes the stamp.
+Evidence: `.deps/transform-prepare.log`, result 0. These tests do not constitute
+real transformed-shader activation or GPU acceptance.
+
+Source inspection found that spvgen's shared library has a separate build target
+and the name spvgen.so. The bootstrap recipe is corrected, with shell syntax
+checked. The live older bootstrap continues compiling LLVM; its cached follow-up
+and the full transformed shader build/probe remain pending. No console traffic.
+
+
 ## Rotation and mirror preferences — 2026-10-11
 
 SmartTube's four rotation angles (0/90/180/270) and horizontal mirror now have

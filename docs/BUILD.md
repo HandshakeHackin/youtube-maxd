@@ -440,7 +440,28 @@ and quad positions together. Pass constants preserve UV/interpolation fields
 and reserve 48 bytes; direct video uses the existing 32-byte block.
 `bash scripts/test_video_transform_runtime.sh` applies this overlay to an
 isolated copy of already prepared native sources and compiles it with the PS5
-SDK. This compile passes, but the overlay is not yet enabled by
-`prepare_native.py`; complete shader compilation and application activation remain. Profile-owned
+SDK. This compile passes. Activation is opt-in through
+`PROSPEROTUBE_TRANSFORM_ARTIFACT=<compiled-artifact-directory>` when running
+`prepare_native.py`. Complete real shader compilation/activation is still pending. Profile-owned
 rotation/mirror settings and both menu controls now pass native, actual UI and
 PS5 object checks; they have not yet been accepted end to end.
+
+
+The activation preflight regenerates expected sources and verifies the complete
+artifact before touching native outputs. Installation preserves unrelated UI
+shaders and rejects pinned EVO or a mismatched generated destination. Preparation
+always restores pinned shader headers first, so disabling transforms cannot
+pair extended shaders with the original constant-buffer layout. An activation
+stamp is published only after every overlay and final check succeeds.
+`PYTHONPATH=scripts python3 tests/test_transform_artifact.py` passes 14 synthetic
+integrity/installation cases. `python3 tests/test_transform_prepare.py` exercises
+real preparation in a dedicated cache: rejected artifacts leave prior outputs
+intact, and a subsequent disabled preparation restores original shaders/runtime
+and removes the old activation stamp. Serialize preparation tests with other
+native preparation commands.
+
+The bootstrap recipe now requests both `amdllpc` and the separate `spvgen`
+shared target. Upstream names the latter `spvgen.so` without a lib prefix; the
+installer retains that name and a compatibility alias. The already-running
+bootstrap retains its original script and will need a cached follow-up run
+after it terminates; the LLVM compilation is not being restarted.
