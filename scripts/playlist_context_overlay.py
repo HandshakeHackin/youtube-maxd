@@ -1,5 +1,7 @@
 """Carry playlist occurrence metadata through actual provider rows and launch staging."""
 def apply_playlist_context_overlay(replace, player, host):
+    replace(player+'ui_rml/src/evo_rmlui_provider.cpp', 'id != "settings:video-rotate"',
+        'id != "settings:video-rotate" && id != "settings:playback-mode"')
     replace(host, 'if (!tube_recovery_pending() && rp &&',
         'if (!tube_recovery_pending() && !tube_playlist_eof_pending() && rp &&')
     replace(host, '        sel.is_live = queued.is_live; sel.resume_sec = queued.resume_pos_sec;', '''        sel.is_live = queued.is_live; sel.resume_sec = queued.resume_pos_sec;

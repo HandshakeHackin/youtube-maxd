@@ -127,6 +127,54 @@ int main(void) {
     assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==20 && next.playback_scope==scope);
     assert(!next.resume_pos_sec && !strcmp(next.playback_playlist,"PLabcdefghijk"));
     assert(!tube_take_next(&next) && !tube_playlist_eof_pending());
+    assert(tube_set_playback_mode(TUBE_MODE_REVERSE));
+    assert(tube_toggle_queue("bcdefghijkl"));
+    p->stream_chosen("abcdefghijk",&choice);
+    assert(!tube_finish_drained_and_next(100));result(window());
+    assert(tube_finish_drained_and_next(100) && tube_take_next(&next));
+    assert(!strcmp(next.id,"abcdefghijk") && next.playback_index==3);
+    assert(!tube_toggle_queue("bcdefghijkl")); // reverse playlist precedes explicit queue
+    p->stream_chosen("abcdefghijk",&choice);
+    assert(!tube_finish_drained_and_next(100));
+    cJSON *reverse_edge=window();
+    cJSON_DeleteItemFromArray(cJSON_GetObjectItem(reverse_edge,"video_ids"),0);
+    cJSON_DeleteItemFromArray(cJSON_GetObjectItem(reverse_edge,"video_indices"),0);
+    cJSON_ReplaceItemInObject(reverse_edge,"window_start",cJSON_CreateNumber(9));result(reverse_edge);
+    assert(!tube_finish_drained_and_next(100) && strstr(pending[0].body,"\"index\":8"));
+    result(cJSON_Parse("{\"api_version\":1,\"playlist\":\"PLabcdefghijk\",\"video_id\":\"bcdefghijkl\",\"index\":8,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\"]}"));
+    assert(tube_finish_drained_and_next(100) && tube_take_next(&next) && next.playback_index==8);
+    for(int pass=0;pass<2;++pass) {
+        assert(tube_select_playlist_context("abcdefghijk","PLabcdefghijk",pass?9:0,scope));
+        assert(!p->resolve("abcdefghijk",selected,NULL));
+        poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/cap/d0.mpd\",\"container\":\"dash\",\"video_codec\":\"avc\",\"audio_codec\":\"aac\"}]}}");
+        p->stream_chosen("abcdefghijk",&choice);
+        if(!pass) {
+            assert(tube_toggle_queue("bcdefghijkl"));
+            assert(!tube_finish_drained_and_next(100) && !pending_count && !tube_take_next(&next));
+            assert(!tube_toggle_queue("bcdefghijkl"));
+        }
+    }
+    for(int fallback=0;fallback<3;++fallback) {
+        assert(tube_set_playback_mode(TUBE_MODE_SHUFFLE));p->stream_chosen("abcdefghijk",&choice);
+        assert(!tube_finish_drained_and_next(100));
+        cJSON *shuffle=window();cJSON_AddNumberToObject(shuffle,"playlist_size",fallback==2?30:120);result(shuffle);
+        if(fallback==2) {
+            assert(tube_finish_drained_and_next(100) && tube_take_next(&next) && next.playback_index==20);
+            continue;
+        }
+        assert(!tube_finish_drained_and_next(100) && pending_count==1);
+        cJSON *request=cJSON_Parse(pending[0].body);
+        int random_index=cJSON_GetObjectItem(cJSON_GetObjectItem(request,"library"),"index")->valueint;
+        cJSON_Delete(request);assert(random_index>=0 && random_index<120 && random_index!=9);
+        if(fallback) poll_job("{\"state\":\"failed\",\"error\":{\"code\":\"remote_playlist_unavailable\",\"message\":\"Fixture unavailable target\"}}");
+        else {
+            cJSON *target_row=cJSON_Parse("{\"api_version\":1,\"playlist\":\"PLabcdefghijk\",\"video_id\":\"bcdefghijkl\",\"video_ids\":[\"bcdefghijkl\"]}");
+            cJSON_AddNumberToObject(target_row,"index",random_index);cJSON_AddNumberToObject(target_row,"window_start",random_index);result(target_row);
+        }
+        assert(tube_finish_drained_and_next(100) && tube_take_next(&next));
+        assert(next.playback_index==(fallback?20:random_index) && next.playback_scope==scope && !pending_count);
+    }
+    assert(tube_set_playback_mode(TUBE_MODE_ALL));
     p->stream_chosen("abcdefghijk",&choice);
     assert(!tube_finish_drained_and_next(100));
     cJSON *last=window();

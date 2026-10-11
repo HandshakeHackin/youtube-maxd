@@ -35,8 +35,8 @@ endpoint/selected-row positions. The native provider now exposes scoped
 begin/status/cancel operations for these windows, validates their contents and
 discards retired responses. With queue/playlist autoplay enabled, natural EOF
 consumes the next returned occurrence after giving explicit queues priority.
-Any controller press cancels the window wait. The full seven-mode policy,
-whole-playlist shuffle remain open. At an exhausted window edge, autoplay makes
+Any controller press cancels the window wait. The full seven-mode policy
+remains incomplete. At an exhausted window edge, autoplay makes
 one indexed lookup for the immediately following occurrence and stages it only
 if confirmed. Traversal across unavailable target slots and radio continuations
 remain incomplete.
@@ -49,6 +49,14 @@ Validated finite `playlist_size` metadata is retained separately from the loaded
 window size. Missing or inconsistent counts remain unknown. A confirmed final
 occurrence stops autoplay without probing past the playlist; other window edges
 continue through indexed lookup. Infinite/radio queues do not supply finite sizes.
+
+The profile-owned playback-mode chooser offers continuous, shuffle, playlist-only,
+reverse and stop-at-end. Reverse prioritizes the preceding playlist occurrence
+over the explicit queue and stops at index zero. Shuffle requires a validated
+size greater than 30 and chooses another index; failed lookups fall back to normal
+continuation. Small/unknown sizes continue normally. Repeat, close, queue exception
+preferences and in-player controls remain pending. Continuous and playlist-only
+currently share queue/playlist behavior; recommendation context is still missing.
 
 
 ### Live-chat service reader

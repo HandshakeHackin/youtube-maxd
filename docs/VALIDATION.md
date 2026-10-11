@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Playlist modes and profile preferences — 2026-10-11
+
+The browser settings chooser now persists continuous, shuffle, playlist-only,
+reverse and stop-at-end modes per profile. Legacy autoplay settings migrate to
+continuous or stop. Reverse follows the preceding playlist occurrence before
+the explicit queue, looks up a previous window edge, and stops at index zero.
+Shuffle uses validated finite sizes greater than 30, excludes the current
+occurrence, and falls back to normal continuation after a failed indexed lookup.
+Unknown/small sizes retain normal continuation. Mode changes retire pending work.
+
+Native window, profile-settings, queue-failure and music-context sanitizer tests
+passed, including migration, profile isolation, reverse boundaries and shuffle
+fallback. Actual RmlUi chooser navigation and native phone-provider tests passed.
+PS5 provider and RmlUi provider objects compiled with existing SDK warnings.
+Logs: `.deps/playback-modes-{native,ui,phone,sdk}.log`.
+
+This remains partial mode parity: repeat, close, queue exceptions/preferences,
+in-player selection and channel/recommendation context are still open. Continuous
+and playlist-only currently share the implemented queue/playlist behavior.
+SponsorBlock completion, unavailable slots and radio continuation also need
+integration. No console connections occurred; no new full package was frozen.
+
 ## Finite playlist size — 2026-10-11
 
 WatchNext windows now optionally expose validated `playlist_size` separately

@@ -160,6 +160,7 @@ int main(int argc,char**argv) {
     }
     for (const auto& chooser : std::vector<std::pair<std::string,std::string>>{
             {"settings:player-ok","settings:player-ok:2"},
+            {"settings:playback-mode","settings:playback-mode:4"},
             {"settings:player-hide","settings:player-hide:0"},
             {"settings:player-seek","settings:player-seek:2"},
             {"settings:seek-interval","settings:seek-interval:7"},
@@ -175,6 +176,11 @@ int main(int argc,char**argv) {
         const auto depth=host.m_stack.size();
         auto entry=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),
             [&](const EvoProviderRow& r) { return r.id==chooser.first.c_str(); });
+        for(int page=1;entry==host.m_all_rows.end() && host.m_has_more && page<3;++page) {
+            host.RequestPage("settings",page);pump();
+            entry=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),
+                [&](const EvoProviderRow& r) { return r.id==chooser.first.c_str(); });
+        }
         assert(entry!=host.m_all_rows.end());
         const auto index=static_cast<size_t>(entry-host.m_all_rows.begin());
         host.SetPageOffset((index/EVO_PROVIDER_PAGE_SIZE)*EVO_PROVIDER_PAGE_SIZE,

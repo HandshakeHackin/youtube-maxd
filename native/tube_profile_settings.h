@@ -3,6 +3,7 @@
 typedef struct {
     int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_sync, paid_notifications, dearrow_titles, dearrow_thumbnails;
     int speed, last_speed, speed_mode;
+    int playback_mode;
     char language[16], audio_language[16];
     tube_sb_policy sb;
 } ProfileSettings;
@@ -23,6 +24,7 @@ static ProfileSettings profile_settings_capture(void) {
     p.auto_captions = g_auto_captions;
     p.sponsor = g_sponsor;
     p.autoplay = g_autoplay;
+    p.playback_mode=g_playback_mode;
     p.ask_stream = g_ask_stream;
     p.player_chat_mode = g_player_chat_mode;
     p.sleep_minutes = g_sleep_minutes;
@@ -42,6 +44,7 @@ static void profile_settings_apply(const ProfileSettings *p) {
     g_auto_captions = p->auto_captions;
     g_sponsor = p->sponsor;
     g_autoplay = p->autoplay;
+    g_playback_mode=p->playback_mode; g_autoplay=g_playback_mode!=TUBE_MODE_PAUSE;
     g_ask_stream = p->ask_stream;
     g_player_chat_mode = p->player_chat_mode;
     g_sleep_minutes = p->sleep_minutes;
@@ -90,6 +93,9 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"automatic_captions"))) p->auto_captions = boolean(root,"automatic_captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"sponsorblock"))) p->sponsor = boolean(root,"sponsorblock");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"autoplay"))) p->autoplay = boolean(root,"autoplay");
+    p->playback_mode=settings_integer(root,"playback_mode",0,6,p->autoplay?TUBE_MODE_ALL:TUBE_MODE_PAUSE);
+    if (!playback_mode_valid(p->playback_mode)) p->playback_mode=p->autoplay?TUBE_MODE_ALL:TUBE_MODE_PAUSE;
+    p->autoplay=p->playback_mode!=TUBE_MODE_PAUSE;
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"ask_stream"))) p->ask_stream = boolean(root,"ask_stream");
     p->player_chat_mode = settings_integer(root,"player_chat_mode",0,2,0);
     p->sleep_minutes = settings_integer(root,"sleep_timer_minutes",0,600,0);
@@ -142,6 +148,7 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddBoolToObject(row,"automatic_captions",p->auto_captions);
         cJSON_AddBoolToObject(row,"sponsorblock",p->sponsor);
         cJSON_AddBoolToObject(row,"autoplay",p->autoplay);
+        cJSON_AddNumberToObject(row,"playback_mode",p->playback_mode);
         cJSON_AddBoolToObject(row,"ask_stream",p->ask_stream);
         cJSON_AddNumberToObject(row,"player_chat_mode",p->player_chat_mode);
         cJSON_AddNumberToObject(row,"sleep_timer_minutes",p->sleep_minutes);
