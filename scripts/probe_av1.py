@@ -19,11 +19,13 @@ def run(*args):
     return subprocess.run(args, check=True, capture_output=True, text=True, timeout=90)
 
 
-def main(codec="av1"):
-    destination = Path(sys.argv[1] if len(sys.argv) > 1 else f'.deps/{codec}-host')
+def main(codec="av1", destination=None, *, generate_media=True):
+    destination = Path(destination if destination is not None else
+                       sys.argv[1] if len(sys.argv) > 1 else f'.deps/{codec}-host')
     assert codec in {'av1', 'hevc'}
     decoder = 'libdav1d' if codec == 'av1' else 'hevc'
-    generate(destination)
+    if generate_media:
+        generate(destination)
     listener = socket.socket()
     listener.bind(('127.0.0.1', 0))
     base = f'http://127.0.0.1:{listener.getsockname()[1]}'

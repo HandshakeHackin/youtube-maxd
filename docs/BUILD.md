@@ -403,10 +403,10 @@ When invoking the resulting compiler outside this script, prepend the cache's
 `lib` directory to `LD_LIBRARY_PATH` so its spvgen library is available.
 A resumed run reuses fetched revisions and Ninja outputs. Success requires
 compiling the shipping NV12 shader for gfx1013 and passing EVO's ELF, relocation,
-symbol extent and resource-mapping checks. CMake configuration/generation passes after resolving the pinned llvm-dialects
-submodule and DXC archive layout. Compiler compilation is in progress; the
-shader probe remains pending. Rotation/mirroring controls and runtime integration
-are implemented offline; compiled-shader activation and hardware validation remain.
+symbol extent and resource-mapping checks. The native compiler build and NV12
+gfx1013 probe pass. The complete set of 75 transform pipelines also passes
+compilation and metadata checks; verified activation and the connected PS5
+runtime compile pass. Hardware presentation remains unverified.
 
 
 Staged display-transform shaders can be generated independently with
@@ -424,8 +424,9 @@ and quad together; quarter-turns use a swapped logical canvas.
 `spirv-tools`. It compares generated fragment/metadata sections with pinned EVO,
 executes the staged GLSL transform with labeled-image golden results under
 ASan/UBSan, compiles all three vertex families, validates SPIR-V and checks
-uniform offsets. These are preparation checks; the PS5 compiler probe, runtime
-wiring, controls, package and hardware acceptance remain required.
+uniform offsets. These are host checks. Real PS5 shader compilation and runtime
+activation are separately verified below; final packaging and hardware acceptance
+remain required.
 
 
 `python3 scripts/build_video_transform_shaders.py` compiles the complete staged
@@ -449,9 +450,11 @@ the overlay twice. Direct `prepare_native.py` runs opt in through
 `PROSPEROTUBE_TRANSFORM_ARTIFACT=<compiled-artifact-directory>`. Application
 packaging through `build_ps5.sh` always requires these shaders: without an explicit
 artifact it compiles or reuses the complete verified set before native preparation.
-Build the shader compiler first; missing tools or failed pipelines stop packaging. Complete real shader compilation/activation is still pending. Profile-owned
-rotation/mirror settings and both menu controls now pass native, actual UI and
-PS5 object checks; they have not yet been accepted end to end.
+Build the shader compiler first; missing tools or failed pipelines stop packaging.
+All 75 compiled headers have been activated with matching source/metadata and
+renderer state. The active geometry regression and shipping AGC SDK object pass.
+Profile-owned rotation/mirror settings and both menu controls also pass native
+and actual UI checks. Console presentation and final packaging remain open.
 
 
 The activation preflight regenerates expected sources and verifies the complete
@@ -469,9 +472,9 @@ native preparation commands.
 
 The bootstrap recipe now requests both `amdllpc` and the separate `spvgen`
 shared target. Upstream names the latter `spvgen.so` without a lib prefix; the
-installer retains that name and a compatibility alias. The already-running
-bootstrap retains its original script and will need a cached follow-up run
-after it terminates; the LLVM compilation is not being restarted.
+installer retains that name and a compatibility alias. The completed bootstrap
+reused cached LLVM objects with four compile workers after checking available
+memory; the recipe defaults to two for smaller environments.
 
 
 `bash scripts/test_video_geometry.sh` now exercises the current geometry path
@@ -484,3 +487,9 @@ artifacts are activated, the same checks use the generated active runtime.
 The companion fixture archive includes AVC, VP9, AV1, HEVC, HLS, audio and
 captions. Its catalog-to-archive regression checks every advertised demo URL;
 only allowlisted generated assets and committed companion source are distributed.
+
+Run `.venv/bin/python scripts/probe_companion_package.py` to generate the demo
+media, construct an isolated companion archive from committed source, unpack it
+to a fresh temporary directory, and decode/seek both AV1 and HEVC through that
+packaged companion. It records the source revision and archive checksum. This
+probe does not build or deploy a native candidate.

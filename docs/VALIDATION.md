@@ -1,5 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Compiled display transforms and packaged codec probes — 2026-10-11
+
+The native AMDVLK/LLPC build completed and its shipping NV12 gfx1013 probe passed.
+The complete 75-pipeline rotation/mirror set compiled with EVO's packager and
+passed target, relocation, resource-layout and metadata checks. Immutable artifact
+key: `307cf282cfc0dd60168bbf883cb18fdd7408b17f7ce44cb999aa57761b2962d2`.
+
+Native preparation activated every header and the matching runtime; post-install
+hashes and activation metadata matched. The actual activated source passed all
+2,640 orientation/aspect/pixel/resize combinations, every zoom and frame-snapshot
+consistency under ASan/UBSan. The isolated runtime compile and shipping
+`media/src/evo_agc_runtime.o` compile both passed with the PS5 SDK. Evidence:
+`.deps/shader-compiler-build.log`, `.deps/video-transform-compile.log`, and
+`.deps/transform-active*.log`; all corresponding result files are 0. This is
+compiled and connected offline evidence, not GPU presentation acceptance or a
+final native package. No console connection occurred.
+
+The reusable `scripts/probe_companion_package.py` also passed using committed
+companion source `30e106ae02c18335f809f2de9d55ab4a812d8582` and real archived
+media in a fresh extraction directory. AV1/libdav1d and HEVC each decoded 240
+video frames with audio, sought to four seconds for 59 frames, and matched the
+original's first sought-frame hash. No regeneration occurs during those probes.
+Evidence: `.deps/companion-package-smoke.log`, result 0. The parity inventory now
+records the existing offline sizing/time/pixel evidence and explicitly retains
+the missing seven-mode EOF/playlist/queue behavior.
+
+
 ## Packaging completeness — 2026-10-11
 
 The companion fixture allowlist now includes AV1 and HEVC media. Three release

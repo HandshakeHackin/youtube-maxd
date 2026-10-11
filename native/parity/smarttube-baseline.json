@@ -880,7 +880,18 @@
       "line": 143,
       "labels": {},
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_provider.c: five resize modes and all 55 upstream zoom percentages, profile persistence and both settings surfaces",
+        "scripts/video_geometry_overlay.py: actual PS5 quad sizing and playback controls",
+        "tests/test_video_geometry.c",
+        "tests/test_video_geometry_render.cpp",
+        "tests/test_live_chat_ui.cpp",
+        "docs/VALIDATION.md: sizing, aspect/pixel and active-path geometry batches"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "Final native package and PS5 presentation/controller acceptance across modes, zooms and source dimensions"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendAudioLanguageCategory",
@@ -1019,7 +1030,18 @@
         "player_show_remaining_time": "Show remaining time in controls bar"
       },
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_time_display.h: total, remaining and finish-time calculation",
+        "scripts/time_display_overlay.py: both actual HUDs, live speed and paused clock refresh",
+        "tests/test_time_display.cpp",
+        "tests/test_player_preferences.c",
+        "tests/test_live_chat_ui.cpp",
+        "docs/VALIDATION.md: time-display batch"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "PS5 clock/time-zone, live playback, speed and physical HUD/controller acceptance"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendPixelRatioCategory",
@@ -1029,7 +1051,18 @@
         "player_pixel_ratio": "Pixel ratio"
       },
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_video_geometry.h: six exact upstream display correction ratios",
+        "native/tube_provider.c: device-wide persisted pixel ratio and profile-independent render updates",
+        "tests/test_video_geometry.c",
+        "tests/test_video_geometry_render.cpp",
+        "tests/test_live_chat_ui.cpp",
+        "docs/VALIDATION.md: aspect/pixel batch"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "Final native package and PS5 display correction acceptance across aspect, zoom and orientation settings"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendPlaybackModeCategory",
@@ -1037,7 +1070,17 @@
       "line": 321,
       "labels": {},
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_provider.c: queued-video autoplay, natural presentation-drain completion and bounded unavailable-video continuation",
+        "tests/test_queue_failure.c",
+        "SmartTube baseline VideoLoaderController.applyPlaybackMode and AppDialogUtil.createPlaybackModeCategory define the remaining seven-mode policy"
+      ],
+      "offline_status": "partial",
+      "remaining": [
+        "Implement continuous, repeat-one, playlist shuffle, playlist-only, reverse-playlist, pause and close modes with source playlist/channel context",
+        "Preserve explicit queue exceptions and the queue-respects-playback-mode preference",
+        "Integrate native and phone EOF ownership, both selectors, persistence and PS5 acceptance"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendNetworkEngineCategory",
