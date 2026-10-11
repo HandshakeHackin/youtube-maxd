@@ -375,3 +375,31 @@ intermediate command order. `bash scripts/test_phone_queue_failure_host.sh`
 executes the shipping host's typed-error gate, wait and any-button cancellation.
 Generic network/auth errors retain their existing failure path. Hardware
 acceptance is separate; serialize scripts that prepare native sources.
+
+
+### PS5 shader compiler for display transforms
+
+`bash scripts/build_ps5_shader_compiler.sh` builds EVO's open-source LLPC
+toolchain natively on Linux/WSL, using the exact AMDVLK v-2025.Q2.1 project
+revisions and EVO's existing gfx1013 patch. It downloads the pinned DXC archive
+with a SHA-256 check. All sources, tools and probe outputs stay under
+`~/.cache/prosperotube/shader-tools`; the probe uses an isolated copy of EVO's
+header generator so it cannot replace the application's shader headers.
+
+Install the dependencies from EVO's `Dockerfile.amdllpc` first: build-essential,
+cmake, ninja-build, git, curl, pkg-config, libssl-dev, zlib1g-dev, Python YAML,
+Jinja2 and ruamel.yaml, multilib GCC/G++, and the listed Wayland/X11/XCB/DRM
+development packages. LLVM 18 readelf/objcopy must be on PATH. The WSL setup
+used for ProsperoTube already has these after the 2026-10-11 bootstrap.
+
+The default is two compile jobs and one link job for the current 8 GiB WSL
+environment. Override `PROSPEROTUBE_SHADER_JOBS` or
+`PROSPEROTUBE_SHADER_TOOLS` when needed. A cache lock prevents concurrent builds.
+When invoking the resulting compiler outside this script, prepend the cache's
+`lib` directory to `LD_LIBRARY_PATH` so its spvgen library is available.
+A resumed run reuses fetched revisions and Ninja outputs. Success requires
+compiling the shipping NV12 shader for gfx1013 and passing EVO's ELF, relocation,
+symbol extent and resource-mapping checks. CMake configuration/generation passes after resolving the pinned llvm-dialects
+submodule and DXC archive layout. Compiler compilation is in progress; the
+shader probe remains pending. Rotation/mirroring are not yet implemented or
+hardware-validated.
