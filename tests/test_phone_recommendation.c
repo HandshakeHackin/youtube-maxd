@@ -7,17 +7,44 @@
 static tube_remote_player snapshot_value;
 static int snapshot_active;
 static int snapshot(void *ctx,tube_remote_player *out) {(void)ctx;*out=snapshot_value;return snapshot_active;}
-static int callback(void *ctx,unsigned owner,unsigned selection,const char *id,const char *playlist,int index,char next[12]) {
+static int callback(void *ctx,unsigned owner,unsigned selection,const char *id,const char *playlist,int index,tube_phone_next_t *next) {
     (void)ctx;return tube_phone_recommendation(owner,selection,id,playlist,index,next);
 }
 static void cancel_callback(void *ctx) {(void)ctx;tube_phone_recommendation_cancel();}
 static unsigned owner,selection;
-static char next_video[12];
-static int lookup(void) {return tube_phone_recommendation(owner,selection,"abcdefghijk","",7,next_video);}
+static tube_phone_next_t next_result;
+#define next_video next_result.video
+static const char *lookup_list="";
+static int lookup(void) {return tube_phone_recommendation(owner,selection,"abcdefghijk",lookup_list,7,&next_result);}
 static void begin_lookup(void) {
     evo_stream_choice_t choice={0};evo_provider_youtube.stream_chosen("abcdefghijk",&choice);
     selection=tube_phone_selection();assert(lookup()==0 && pending_count==1);
     assert(strstr(pending[0].body,"\"remote_origin\":true") && strstr(pending[0].body,"\"require_name\":true"));
+}
+/* Returned playlist occurrences survive; only a distinct one may repeat the ID. */
+static void occurrence_cases(void) {
+    static const struct { const char *sent,*next,*context; int result,index; const char *list; } cases[]={
+        {"","bcdefghijkl",",\"playback_context\":{\"playlist\":\"PLnext56789\",\"index\":3}",1,3,"PLnext56789"},
+        {"PLsame56789","abcdefghijk",",\"playback_context\":{\"playlist\":\"PLsame56789\",\"index\":9}",1,9,"PLsame56789"},
+        {"","abcdefghijk",",\"playback_context\":{\"playlist\":\"PLother6789\",\"index\":7}",1,7,"PLother6789"},
+        {"PLsame56789","abcdefghijk",",\"playback_context\":{\"playlist\":\"PLsame56789\",\"index\":7}",-1,0,""},
+        {"","abcdefghijk","",-1,0,""},
+        {"","bcdefghijkl",",\"playback_context\":{\"playlist\":\"PLnext56789\",\"index\":-1}",-1,0,""},
+        {"","bcdefghijkl",",\"playback_context\":{\"playlist\":\"bad list!\",\"index\":1}",-1,0,""},
+        /* Catalog group keys are never exposed as a phone playlist. */
+        {"","bcdefghijkl",",\"playback_context\":{\"channel\":\"UCbbbbbbbbbbbbbbbbbbbbbb\",\"index\":2}",1,0,""},
+        {"","abcdefghijk",",\"playback_context\":{\"channel\":\"UCbbbbbbbbbbbbbbbbbbbbbb\",\"index\":2}",-1,0,""},
+    };
+    for(size_t i=0;i<sizeof cases/sizeof *cases;++i) {
+        lookup_list=cases[i].sent;begin_lookup();char body[700];snprintf(body,sizeof body,
+            "{\"state\":\"done\",\"result\":{\"api_version\":1,\"video_id\":\"abcdefghijk\",\"next_video_id\":\"%s\",\"next_channel_id\":\"UCbbbbbbbbbbbbbbbbbbbbbb\",\"next_channel_name\":\"Allowed\"%s}}",
+            cases[i].next,cases[i].context);
+        poll_job(body);assert(lookup()==cases[i].result);
+        if(cases[i].result==1)assert(!strcmp(next_video,cases[i].next) && !strcmp(next_result.playlist,cases[i].list) && next_result.index==cases[i].index);
+        else assert(!*next_video && !*next_result.playlist);
+        assert(!pending_count);tube_phone_recommendation_cancel();
+    }
+    lookup_list="";
 }
 static const char *discovery="{\"state\":\"done\",\"result\":{\"api_version\":1,\"video_id\":\"abcdefghijk\",\"next_video_id\":null,\"fallback_context\":{\"group\":\"12345678-1234-1234-1234-123456789abc\",\"index\":0},\"fallback_count\":2}}";
 static const char *window="{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"group:12345678-1234-1234-1234-123456789abc\",\"video_id\":\"bcdefghijkl\",\"index\":1,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":0,\"window_start\":0,\"video_ids\":[\"abcdefghijk\",\"bcdefghijkl\",\"cdefghijklm\"],\"video_indices\":[0,1,2],\"video_channels\":[\"UCbbbbbbbbbbbbbbbbbbbbbb\",\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"UCbbbbbbbbbbbbbbbbbbbbbb\"],\"video_channel_names\":[\"Anchor\",\"Blocked\",\"Allowed\"],\"playlist_size\":3}}";
@@ -36,6 +63,7 @@ int main(void) {
         poll_job(body);assert(lookup()==(i?-1:1));if(!i)assert(!strcmp(next_video,"bcdefghijkl"));
         assert(!pending_count);tube_phone_recommendation_cancel();
     }
+    occurrence_cases();
     /* Blocked primary suggestion advances inside its verified fallback group. */
     begin_lookup();poll_job(discovery);assert(lookup()==0 && pending_count==1);
     assert(strstr(pending[0].body,"\"action\":\"group_window\"") && strstr(pending[0].body,"\"target\":1"));
@@ -99,5 +127,5 @@ int main(void) {
     assert(!strcmp(before,after));free(before);free(after);tube_phone_clear();
     p->shutdown();while(pending_count)reply(0,1,200,"{\"api_version\":1,\"state\":\"stopped\"}");
     unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
-    puts("PASS: remote next metadata, verified fallback groups, block policy and retired requests");
+    puts("PASS: remote next metadata, playlist occurrences, verified fallback groups, block policy and retired requests");
 }

@@ -19,8 +19,13 @@ int tube_phone_close_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
 unsigned tube_phone_selection(void);
+#ifndef TUBE_PHONE_NEXT_T
+#define TUBE_PHONE_NEXT_T
+/* Next video with its optional YouTube playlist occurrence (empty = none). */
+typedef struct { char video[12], playlist[101]; int index; } tube_phone_next_t;
+#endif
 /* Remote-only asynchronous next metadata and verified suggestion traversal. */
-int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,char next[12]);
+int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,tube_phone_next_t *next);
 void tube_phone_recommendation_cancel(void);
 const char *tube_phone_caption_language(void);
 /* Ephemeral tracks for the active source/profile/video. Main thread only. */

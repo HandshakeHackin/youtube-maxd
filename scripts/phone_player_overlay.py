@@ -71,7 +71,7 @@ void ProviderHostScreen::startSelected()''')
         if (!ProviderHostScreen::playbackStartupBusy()) {
             tube_phone_controls phone{};
             phone.context = this;
-            phone.recommendation = [](void*, unsigned owner, unsigned selection, const char* video, const char* playlist, int index, char next[12]) -> int {
+            phone.recommendation = [](void*, unsigned owner, unsigned selection, const char* video, const char* playlist, int index, tube_phone_next_t* next) -> int {
                 return tube_phone_recommendation(owner, selection, video, playlist, index, next);
             };
             phone.recommendation_cancel = [](void*) { tube_phone_recommendation_cancel(); };

@@ -17,7 +17,7 @@ static PhoneQueue fallback;
 static int64_t fallback_deadline;
 static double fallback_position, fallback_duration;
 static void *fallback_context;
-static int (*fallback_lookup)(void *,unsigned,unsigned,const char *,const char *,int,char [12]);
+static int (*fallback_lookup)(void *,unsigned,unsigned,const char *,const char *,int,tube_phone_next_t *);
 static void (*fallback_cancel)(void *);
 static int fallback_started;
 static void retire_fallback(void) {
@@ -239,17 +239,32 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
     if(fallback.owner && have_command && c.action!=TUBE_REMOTE_QUERY && c.action!=TUBE_REMOTE_VOLUME &&
        c.action!=TUBE_REMOTE_CONNECTED && c.action!=TUBE_REMOTE_DEVICES && c.action!=TUBE_REMOTE_QUEUE)clear_queue();
     if(fallback.owner && !have_command) {
-        char next[12]={0};fallback_started=1;
+        static const char id_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+        tube_phone_next_t next;memset(&next,0,sizeof next);fallback_started=1;
+        int anchor_index=fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor];
         int result=fallback_lookup(fallback_context,fallback.owner,fallback.selection,fallback.video,fallback.playlist,
-            fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor],next);
+            anchor_index,&next);
         if(result) {
             unsigned owner=fallback.owner;
-            int valid=result==1 && next[11]==0 && strlen(next)==11 && strcmp(next,fallback.video) &&
-                strspn(next,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-")==11;
+            size_t list=strnlen(next.playlist,sizeof next.playlist);
+            int context=list>=2 && list<sizeof next.playlist && strspn(next.playlist,id_chars)==list &&
+                next.index>=0 && next.index<=100000;
+            /* Only a different playlist occurrence may repeat the ended video ID. */
+            int distinct=context && (strcmp(next.playlist,fallback.playlist) || next.index!=anchor_index);
+            int valid=result==1 && next.video[11]==0 && strlen(next.video)==11 && strspn(next.video,id_chars)==11 &&
+                (!list || context) && (strcmp(next.video,fallback.video) || distinct);
+            int same_list=context && !strcmp(next.playlist,fallback.playlist);
+            char ctt[sizeof fallback.ctt];memcpy(ctt,fallback.ctt,sizeof ctt);
             retire_fallback();
             if(valid && tube_remote_owner_current(owner) && !tube_remote_launch_interrupted(owner,0)) {
                 PhoneQueue q;memset(&q,0,sizeof q);q.owner=owner;q.count=1;q.cursor=0;
-                memcpy(q.video,next,12);memcpy(q.videos[0],next,12);
+                memcpy(q.video,next.video,12);memcpy(q.videos[0],next.video,12);
+                if(context) {
+                    /* Report and refill from the returned occurrence; a click-tracking
+                     * token belongs to the sender's original playlist only. */
+                    memcpy(q.playlist,next.playlist,sizeof q.playlist);q.base=q.indices[0]=next.index;
+                    if(same_list)memcpy(q.ctt,ctt,sizeof q.ctt);
+                }
                 tube_remote_command c;memset(&c,0,sizeof c);c.owner=owner;
                 begin(&c,&q,0);interruptible_launch=1;
                 if(ctl->browser)ctl->browser(ctl->context);

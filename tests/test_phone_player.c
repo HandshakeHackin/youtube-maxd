@@ -501,13 +501,15 @@ static void test_eof_interruption(void) {
 
 static int lookup_calls, lookup_cancels, lookup_result, lookup_index;
 static unsigned lookup_selection;
-static char lookup_video[12], lookup_playlist[101], lookup_next[12];
-static int recommendation(void *ctx,unsigned owner,unsigned selection,const char *video,const char *list,int index,char next[12]) {
+static char lookup_video[12], lookup_playlist[101], lookup_next[12], lookup_next_playlist[101];
+static int lookup_next_index;
+static int recommendation(void *ctx,unsigned owner,unsigned selection,const char *video,const char *list,int index,tube_phone_next_t *next) {
     (void)ctx;assert(tube_remote_owner_current(owner));assert(selection==engine.selection);
     ++lookup_calls;lookup_selection=selection;lookup_index=index;
     snprintf(lookup_video,sizeof lookup_video,"%s",video);
     snprintf(lookup_playlist,sizeof lookup_playlist,"%s",list);
-    memcpy(next,lookup_next,12);return lookup_result;
+    memcpy(next->video,lookup_next,12);memcpy(next->playlist,lookup_next_playlist,sizeof next->playlist);
+    next->index=lookup_next_index;return lookup_result;
 }
 static void recommendation_cancel(void *ctx) { (void)ctx;++lookup_cancels; }
 static void fallback_start(const char *list,int with_queue) {
@@ -515,7 +517,7 @@ static void fallback_start(const char *list,int with_queue) {
         "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":%s,\"playlist\":\"%s\",\"index\":7,\"position_sec\":0,\"ctt\":\"click\"}]",
         with_queue?"[\"abcdefghijk\"]":"[]",list);
     feed(commands);lookup_calls=lookup_cancels=lookup_result=0;
-    strcpy(lookup_next,"zyxwvutsrqp");
+    strcpy(lookup_next,"zyxwvutsrqp");memset(lookup_next_playlist,0,sizeof lookup_next_playlist);lookup_next_index=0;
     controls.recommendation=recommendation;controls.recommendation_cancel=recommendation_cancel;
     tube_phone_tick_at(&controls,test_clock);started_video(take_start("abcdefghijk",0),"abcdefghijk");
     engine.position=engine.duration=300;engine.state=0;tube_phone_tick_at(&controls,test_clock);
@@ -546,6 +548,27 @@ static void test_recommendation_lifecycle(void) {
         if(mode==3)memset(lookup_next,'x',sizeof lookup_next);
         tube_phone_tick_at(&controls,test_clock);
         assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    }
+    /* Returned occurrences: distinct same-ID successor, new playlist feedback and
+     * rejection of the ended occurrence, malformed lists and bad positions. */
+    for(int mode=0;mode<6;++mode) {
+        fallback_start("PLfallback",0);
+        deliver_after_start("[{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLfallback\",\"index\":7,\"position_sec\":300,\"ctt\":\"click\"}]");
+        tube_phone_tick_at(&controls,test_clock);assert(tube_phone_retry_waiting());
+        lookup_result=1;strcpy(lookup_next,mode==1?"zyxwvutsrqp":"abcdefghijk");
+        strcpy(lookup_next_playlist,mode==1?"PLanother1":mode==4?"bad list!":"PLfallback");
+        lookup_next_index=mode==2?7:mode==3?-1:mode==5?100001:9;
+        tube_phone_tick_at(&controls,test_clock);
+        assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting());
+        if(mode>1) { assert(!tube_phone_launch_pending()); continue; }
+        ++selection_serial;unsigned ticket=take_start(lookup_next,0);started_video(ticket,lookup_next);
+        engine.state=1;tube_phone_tick_at(&controls,test_clock+1);assert(tube_phone_owns_media());
+        tube_remote_tick(test_clock+3000);cJSON *r=request("update"),*p=cJSON_GetObjectItem(r,"player");
+        assert(!strcmp(cJSON_GetObjectItem(p,"playlist")->valuestring,lookup_next_playlist));
+        assert(cJSON_GetObjectItem(p,"index")->valueint==9);
+        /* Click tracking stays with the sender's own playlist only. */
+        assert(!strcmp(cJSON_GetObjectItem(p,"ctt")->valuestring,mode?"":"click"));
+        cJSON_Delete(r);reply(0,200,accepted);
     }
     /* Deadline, replay, same-ID new selection, profile loss and callback removal. */
     for(int mode=0;mode<8;++mode) {

@@ -138,6 +138,7 @@ static struct {
     int state,index,target,total; /* 0=request pending, 1=ready, 2=next group window */
     unsigned serial,owner,selection,scope,blocks;
     char id[12],next[12],playlist[101],group[43];
+    char next_playlist[101];int next_index; /* returned YouTube playlist occurrence */
 } g_phone_next={.state=-1};
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
@@ -1476,8 +1477,8 @@ static int phone_next_request(void) {
     }
     g_phone_next.state=0;begin(r);return 1;
 }
-int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,char next[12]) {
-    if(next)next[0]=0;
+int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,tube_phone_next_t *next) {
+    if(next)memset(next,0,sizeof *next);
     if(!next || !video || !playlist || !valid_id(video) || (*playlist && !valid_playlist(playlist)) ||
         index<0 || index>100000 || !selection || selection!=g_selection_serial ||
         !tube_remote_owner_current(owner) || !recovery_scope() || strcmp(video,g_active_id) || !*g_token)return -1;
@@ -1490,7 +1491,10 @@ int tube_phone_recommendation(unsigned owner,unsigned selection,const char *vide
     }
     if(!phone_next_current())return -1;
     if(g_phone_next.state==2)phone_next_request();
-    if(g_phone_next.state==1)copy(next,12,g_phone_next.next);
+    if(g_phone_next.state==1) {
+        copy(next->video,sizeof next->video,g_phone_next.next);
+        copy(next->playlist,sizeof next->playlist,g_phone_next.next_playlist);next->index=g_phone_next.next_index;
+    }
     return g_phone_next.state;
 }
 static void phone_next_result(Request *r,const cJSON *root) {
@@ -1501,11 +1505,23 @@ static void phone_next_result(Request *r,const cJSON *root) {
         if(cJSON_IsString(next)) {
             const cJSON *channel=cJSON_GetObjectItemCaseSensitive(root,"next_channel_id");
             const cJSON *name=cJSON_GetObjectItemCaseSensitive(root,"next_channel_name");
-            if(!valid_id(next->valuestring) || !strcmp(next->valuestring,g_phone_next.id) ||
+            /* Catalog group keys never reach the phone; only real playlist occurrences do. */
+            evo_provider_item_t item={0};copy(item.id,sizeof item.id,next->valuestring);
+            parse_playlist_context(&item,root,"");
+            int listed=item.playback_scope && valid_playlist(item.playback_playlist);
+            int distinct=listed && (strcmp(item.playback_playlist,g_phone_next.playlist) || item.playback_index!=g_phone_next.index);
+            if(!valid_id(next->valuestring) || (!strcmp(next->valuestring,g_phone_next.id) && !distinct) ||
+                (cJSON_GetObjectItemCaseSensitive(root,"playback_context") && !item.playback_scope) ||
                 (channel && !cJSON_IsString(channel)) || (name && !cJSON_IsString(name)) ||
                 !phone_next_identity(str(root,"next_channel_id"),str(root,"next_channel_name"))) {complete(r,0);return;}
             g_phone_next.state=blocked_identity(str(root,"next_channel_id"),str(root,"next_channel_name"))>=0?-1:1;
-            if(g_phone_next.state==1)copy(g_phone_next.next,12,next->valuestring);
+            if(g_phone_next.state==1) {
+                copy(g_phone_next.next,12,next->valuestring);
+                if(listed) {
+                    copy(g_phone_next.next_playlist,sizeof g_phone_next.next_playlist,item.playback_playlist);
+                    g_phone_next.next_index=item.playback_index;
+                }
+            }
         } else if(cJSON_IsNull(next)) {
             const cJSON *context=cJSON_GetObjectItemCaseSensitive(root,"fallback_context");
             if(!context){g_phone_next.state=-1;complete(r,1);return;}

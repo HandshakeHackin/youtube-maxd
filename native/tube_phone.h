@@ -5,6 +5,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifndef TUBE_PHONE_NEXT_T
+#define TUBE_PHONE_NEXT_T
+/* Next video with its optional YouTube playlist occurrence (empty = none). */
+typedef struct { char video[12], playlist[101]; int index; } tube_phone_next_t;
+#endif
 typedef struct {
     void *context;
     /* snapshot returns true only for the selected provider/profile/source. */
@@ -27,9 +32,10 @@ typedef struct {
     int (*close_app)(void *);
     void (*activity)(void *);
     /* Optional owner/selection-scoped asynchronous next lookup.
-     * 0=pending, 1=verified video in next, -1=terminal/error. */
+     * 0=pending, 1=verified video in next, -1=terminal/error. A returned playlist
+     * occurrence may repeat the ended video ID at a different position. */
     int (*recommendation)(void *, unsigned owner, unsigned selection,
-                          const char *video, const char *playlist, int index, char next[12]);
+                          const char *video, const char *playlist, int index, tube_phone_next_t *next);
     void (*recommendation_cancel)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
