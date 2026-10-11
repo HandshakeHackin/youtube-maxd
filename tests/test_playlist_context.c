@@ -66,14 +66,40 @@ int main(void) {
     assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p);
     assert(tube_playback_playlist_context(list,sizeof list,&index) && index==9);
     assert(!strcmp(list,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
-    /* Channel groups cannot accidentally reach playlist-only network APIs. */
-    assert(!tube_playlist_window_begin() && !tube_playlist_window_at(10));
+    assert(tube_playlist_window_begin());
+    assert(pending_count==1 && strstr(pending[0].body,"channel_window") && strstr(pending[0].body,"UCaaaaaaaaaaaaaaaaaaaaaa"));
+    poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":9,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":9,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\",\"abcdefghijk\",\"cdefghijklm\"],\"video_indices\":[8,9,10],\"playlist_size\":11}}");
+    tube_playlist_window_t window;
+    assert(tube_playlist_window_status(&window)==1 && window.current==1 && window.playlist_size==11);
+    assert(tube_playlist_window_at(10));
+    /* A target response cannot silently rebase the original channel anchor. */
+    poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"cdefghijklm\",\"index\":10,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":8,\"window_start\":10,\"video_ids\":[\"cdefghijklm\"],\"video_indices\":[10]}}");
+    assert(tube_playlist_window_status(NULL)==-1);
     assert(tube_queue_recovery(12,0,1));
     assert(tube_take_recovery(&item,&position,&subtitles));
     assert(tube_select_playlist_context("abcdefghijk","",0,0));
     assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p); tube_recovery_finish();
     assert(tube_playback_playlist_context(list,sizeof list,&index) && index==9);
     assert(!strcmp(list,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
+    for(int reverse=0;reverse<2;++reverse) {
+        assert(tube_set_playback_mode(reverse?TUBE_MODE_REVERSE:TUBE_MODE_ALL));
+        p->stream_chosen("abcdefghijk",&choice);
+        assert(!tube_finish_drained_and_next(100) && tube_playlist_eof_pending());
+        assert(pending_count==1 && strstr(pending[0].body,"channel_window"));
+        poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":9,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":9,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\",\"abcdefghijk\",\"cdefghijklm\"],\"video_indices\":[8,9,10],\"playlist_size\":11}}");
+        assert(tube_finish_drained_and_next(100) && tube_take_next(&item));
+        assert(item.playback_index==(reverse?8:10) && item.playback_scope==scope);
+        assert(!strcmp(item.playback_playlist,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
+    }
+    assert(tube_set_playback_mode(TUBE_MODE_ALL));
+    assert(tube_select_playlist_context("abcdefghijk","channel:UCaaaaaaaaaaaaaaaaaaaaaa",10,scope));
+    assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p);
+    assert(!tube_finish_drained_and_next(100));
+    poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":10,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":10,\"window_start\":10,\"video_ids\":[\"abcdefghijk\"],\"video_indices\":[10],\"playlist_size\":11}}");
+    assert(!tube_finish_drained_and_next(100));
+    assert(pending_count==1 && strstr(pending[0].body,"playback_next") && !strstr(pending[0].body,"\"playlist\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"video_id\":\"abcdefghijk\",\"next_video_id\":null}}");
+    assert(!tube_finish_drained_and_next(100) && !tube_take_next(&item));
     p->list_catalog("history",0,items_cb,NULL);
     for(int i=0;i<last_count;++i) assert(!last_items[i].playback_scope);
     p->shutdown(); assert(!p->init());

@@ -8,6 +8,33 @@ REQUEST = dict(action="playback_queue", profile="account", id="abcdefghijk",
                playlist="PLabcdefghijk", index=42)
 AUTH = {"Authorization": "Bearer playback-window-fixture"}
 
+def test_channel_window_transport_retains_anchor_and_target_and_rejects_ambiguous_requests():
+    class ChannelLibrary:
+        def __init__(self): self.calls=[]
+        async def execute(self,request):
+            self.calls.append(request)
+            return dict(api_version=1,anchor_video_id=request['id'],anchor_index=request['index'],
+                        index=request['target'],playlist='channel:'+request['channel'])
+        async def close(self): pass
+    library=ChannelLibrary()
+    request=dict(action='channel_window',profile='account',channel='UC'+'a'*22,id='abcdefghijk',index=9,target=10,direction=1)
+    with TestClient(create_app(library=library,token='playback-window-fixture')) as client:
+        assert client.post('/v1/library',json=request).status_code==401
+        direct=client.post('/v1/library',json=request,headers=AUTH)
+        assert direct.status_code==200
+        job=client.post('/v1/jobs',json=dict(action='library',library=request),headers=AUTH).json()['job']
+        for _ in range(100):
+            result=client.get('/v1/jobs/'+job,headers=AUTH).json()
+            if result['state']!='pending':break
+            time.sleep(.001)
+        assert result['state']=='done' and result['result']==direct.json()
+        assert len(library.calls)==2
+        assert all(all(call[key]==value for key,value in request.items()) for call in library.calls)
+        for patch in [dict(channel='bad'),dict(id='bad'),dict(index=None),dict(index=True),dict(target=-1),
+                      dict(target=True),dict(direction=2),dict(playlist='PLabcdefghijk'),dict(action='playback_next')]:
+            assert client.post('/v1/library',json={**request,**patch},headers=AUTH).status_code==422
+        assert len(library.calls)==2
+
 class Library:
     def __init__(self): self.calls = []
     async def execute(self, request):

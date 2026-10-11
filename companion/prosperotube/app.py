@@ -61,11 +61,13 @@ class LibraryRequest(BaseModel):
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
-                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next"]
+                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
+    channel: str = Field(default="", max_length=24)
+    target: int | None = Field(default=None, ge=0, le=100000, strict=True)
     index: int | None = Field(default=None, ge=0, le=100000, strict=True)
     direction: int = Field(default=0, ge=-1, le=1, strict=True)
     title: str = Field(default="", max_length=150)
@@ -83,11 +85,17 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
+        if self.action == "channel_window":
+            if (not re.fullmatch(r"UC[A-Za-z0-9_-]{22}",self.channel)
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id) or self.index is None or self.playlist):
+                raise ValueError("Channel navigation requires a channel and anchored video occurrence.")
+        elif self.channel or self.target is not None:
+            raise ValueError("Channel positions require channel_window.")
         if self.action == "playback_next" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or (not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})",self.playlist) or self.index is None
                     if self.playlist else self.index is not None)):
             raise ValueError("Next-video requests require a video ID and optional playlist occurrence.")
-        if self.direction and self.action != "playback_at":
+        if self.direction and self.action not in {"playback_at", "channel_window"}:
             raise ValueError("Directional navigation requires playback_at.")
         if self.action in {"playback_queue", "playback_at"} and (
             (not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id) if self.action == "playback_queue" else self.id != "")

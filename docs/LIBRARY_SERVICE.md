@@ -651,3 +651,25 @@ Replay snapshots use an explicit selected time, support L1/R1 minute navigation,
 remain stationary between seeks and reject composition. Native/provider and
 actual generated reader tests pass. This is retained-window timeline browsing;
 unlimited historical-message pagination and hardware acceptance remain open.
+
+## Channel playback windows
+
+`channel_window` accepts `profile`, source `channel` (`UC` ID), current video
+`id` and source `index`, plus optional destination `target` and `direction`
+(-1, 0, 1). It follows the channel Videos feed in order and verifies the original
+video at its source position before returning a target. Changed anchors fail
+with `channel_changed`; they are never silently moved to another occurrence.
+Forward/backward requests can skip unavailable or upcoming slots within 4095
+positions; exact requests require the requested position to be playable.
+
+The response uses the existing bounded window format (at most 128 video IDs
+and explicit source indices), an internal `channel:UC…` group key, and mandatory
+`anchor_video_id`/`anchor_index`. A finite size is reported only after reaching
+the feed end. Raw positions and repeated IDs survive pagination. The operation
+uses the selected profile and the existing worker timeout; deep channel scans
+may time out and report failure. It never synthesizes an uploads playlist ID.
+
+The native provider uses these windows for forward/reverse completion and
+indexed group navigation, retaining selection/profile cancellation ownership.
+Continuous mode can request next-video metadata after a confirmed channel end.
+Real channel navigation and timing acceptance on PS5 remain pending.

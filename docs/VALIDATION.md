@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Anchored channel navigation — 2026-10-11
+
+Dedicated channel-window requests now fetch the Videos feed using the selected
+worker profile, verify the original video/index, and return bounded neighboring
+or indexed occurrences. They preserve source holes and duplicate IDs, skip
+upcoming/unavailable slots for directed requests and report finite size only
+after feed exhaustion. Native results must echo the original channel anchor;
+changed anchors are rejected before navigation. Forward and reverse completion
+use the window, and continuous mode can request next metadata at a known end
+without treating the channel key as a YouTube playlist ID.
+
+Offline evidence: 84 worker tests and 63 Python context/transport tests pass;
+native context, window and recommendation suites cover forward/reverse channel
+completion, changed anchors, request serialization and finite-end fallback.
+The final provider object compiles with the PS5 SDK, with the existing 253
+qualified math-header warnings. The worker bundle was rebuilt successfully.
+Deep scans remain subject to worker timeout. Physical channel browsing and
+playback, large live feeds and manual navigation acceptance remain pending.
+
 ## Native channel occurrence handoff — 2026-10-11
 
 Channel/index metadata now travels through the native occurrence handoff using

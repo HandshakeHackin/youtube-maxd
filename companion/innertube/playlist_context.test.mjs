@@ -5,6 +5,22 @@ import {YTNodes} from 'youtubei.js';
 import {Library, normalizeVideo} from './library.mjs';
 const playlist = 'PLabcdefghijk', id = 'abcdefghijk';
 const channel = 'UC'+'a'.repeat(22);
+test('channel navigation dispatch uses the selected profile and real video normalization',async()=>{
+  const owners=[];
+  const library=new Library(async profile=>{
+    owners.push(profile.id);
+    return {async getChannel(key){assert.equal(key,channel);return {async getVideos(){
+      return {videos:[node(0),node(1),node(2)],has_continuation:false};
+    }};}};
+  },[{id:'signed',cookie:'synthetic'}]);
+  for(const profile of ['guest','signed']) {
+    const result=await library.execute({action:'channel_window',profile,channel,id,index:1,target:2});
+    assert.equal(result.anchor_index,1);assert.equal(result.index,2);
+    assert.deepEqual(result.video_indices,[0,1,2]);assert.equal(result.playlist_size,3);
+  }
+  assert.deepEqual(owners,['guest','signed']);
+  await assert.rejects(library.execute({action:'channel_window',profile:'missing',channel,id,index:1}),{code:'unknown_profile'});
+});
 function node(index, list = playlist) {
   return new YTNodes.PlaylistVideo({videoId:id,index:{simpleText:String(index+1)},
     title:{simpleText:'Repeated video',accessibility:{accessibilityData:{label:'Repeated video'}}},
