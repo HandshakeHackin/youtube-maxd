@@ -110,6 +110,15 @@ and renders the shipping interface with EVO's CPU renderer, checking card bounds
 focus and selection. PNGs: `output/preview`; media evidence: `output/validation`.
 Fixtures and outputs are generated, not tracked.
 
+`bash scripts/test_all.sh` runs every offline host check in one pass: fixture
+generation when files are missing, the library worker build and Node tests, the
+full pytest, `scripts/test_native.sh`, every other `scripts/test_*.sh` and every
+`scripts/test_*.py`, serially. It prints one `PASS`/`FAIL` line per step, keeps
+going after a failure, writes logs to `build/test-logs/` and exits non-zero when
+anything failed. It honours `PROSPEROTUBE_NATIVE_WORK` and `PT_PY` (the pytest
+interpreter, default `.venv/bin/python`), needs no root, and fetches the pinned
+RmlUi on first use. Arguments select steps by name, e.g. `test_all.sh seek`.
+
 `bash scripts/test_device_auth_native.sh` exercises the shipping native sign-in
 state machine with sanitizers, a deterministic clock and queued HTTP responses.
 It checks initiation, poll intervals/single-flight, cancellation, late original-
