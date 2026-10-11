@@ -776,3 +776,28 @@ The native provider uses these windows for forward/reverse completion and
 indexed group navigation, retaining selection/profile cancellation ownership.
 Continuous mode can request next-video metadata after a confirmed channel end.
 Real channel navigation and timing acceptance on PS5 remain pending.
+
+
+## Retained browsing groups (service integration)
+
+Ordinary worker catalog pages now carry `playback_context: {group, index}`.
+The opaque group reference belongs to the selected profile and preserves repeated
+video occurrences through local pages and upstream continuations. Playlist and
+channel contexts retain their existing contracts. Upcoming entries remain visible
+but are ineligible for next/previous selection, following the pinned SmartTube
+`SuggestionsController.findNextSectionVideo` and `getPreviousFromGroup` behavior.
+
+`group_window` accepts the group reference, anchored `id`/`index`, optional
+`target`/`direction`, and the channel/name verification flags. Responses use
+`group:<reference>` in the existing window shape. Forward selection attempts at
+most one upstream continuation before reporting no eligible item. Concurrent
+browser and playback requests share the upstream continuation and append its
+positions once. A failed fetch can be retried. Foreign, expired and mismatched
+anchors fail without returning another group's data.
+
+Retention is bounded to 32 groups, 4096 records each, with six hours of inactivity
+expiry. Browsing starts a new group after capacity/eviction; navigation beyond a
+retained group's capacity reports failure. These bounds and long-session behavior
+still require acceptance. Native recognition/selection of these references and
+Guest extractor catalogs remain pending; this service step alone does not enable
+source-group navigation on PS5.

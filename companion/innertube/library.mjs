@@ -6,6 +6,7 @@ import { TopicCatalog } from './topic_catalog.mjs';
 import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow } from './channel_window.mjs';
+import { PlaybackGroups } from './playback_groups.mjs';
 import { HistoryActions } from './history_actions.mjs';
 
 export class LibraryError extends Error {
@@ -87,7 +88,7 @@ export function normalizeVideo(node, playlist = '') {
     art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
     channel_id: channelId(author.id) ? author.id : '',
     duration_sec: cardDuration(node),
-    is_folder: false, is_live: !!node.is_live, played: !!node.is_watched,
+    is_folder: false, is_upcoming: !!node.is_upcoming, is_live: !!node.is_live, played: !!node.is_watched,
     ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {
@@ -123,6 +124,7 @@ export class Library {
     }
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
     this.commentRatings = new Map();
+    this.groups = new PlaybackGroups(LibraryError, feed => feed.catalog_items ?? [...Array.from(feed.videos ?? []).map(node=>normalizeVideo(node)), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean), clock);
     this.historyActions = new HistoryActions(LibraryError,clock);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
@@ -161,15 +163,18 @@ export class Library {
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
     return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '');
   }
-  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0, history = false) {
+  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0, history = false, group = '') {
     const comments = kind === 'comments';
-    const items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
+    let items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
       [...Array.from(feed.videos ?? []).map((node, offset) => {
         const item=normalizeVideo(node,playlist);
         if(item && channel && channelIndex+offset<=100000)
           item.playback_context={channel,index:channelIndex+offset};
         return item;
       }), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
+    if(!comments && !playlist && !channel && !pending) {
+      const attached=this.groups.attach(owner,feed,items,group,true);group=attached.key;items=attached.items;
+    }
     const nextChannelIndex=channel && !pending ? channelIndex+Array.from(feed.videos ?? []).length : channelIndex;
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
@@ -209,13 +214,14 @@ export class Library {
     if (remaining.length || feed.has_continuation) {
       if (this.cursors.size >= 64) this.cursors.delete(this.cursors.keys().next().value);
       cursor = randomUUID();
-      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, history, deadline: this.clock() + 120000 });
+      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, history, group, deadline: this.clock() + 120000 });
     }
     return { api_version: 1, kind, items: output, cursor, has_more: !!cursor };
   }
   async execute(input) {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
+    if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner));
     if (input.action === 'channel_window') return channelWindow(await this.client(owner),input,normalizeVideo,LibraryError);
     if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError);
     if (['remote_playlist', 'playback_queue', 'playback_at'].includes(input.action))
@@ -238,8 +244,8 @@ export class Library {
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
         throw new LibraryError('cursor_expired', 'Reload this page to continue.', 409);
       if (entry.result) return entry.result;
-      const feed = entry.remaining.length ? entry.feed : await entry.feed.getContinuation();
-      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history);
+      const feed = entry.remaining.length ? entry.feed : await this.groups.continuation(entry.feed);
+      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history, entry.group);
       entry.result = result;
       return result;
     }

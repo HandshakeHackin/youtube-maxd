@@ -75,3 +75,9 @@ def test_name_verification_flags(action):
     for patch in [dict(require_channel=False),dict(require_name=1),dict(require_name='true')]:
         with pytest.raises(ValidationError):
             LibraryRequest.model_validate(request|patch)
+
+
+def test_retained_group_navigation_transport():
+    test_direct_and_job_removal_preserve_account_video_and_reference(dict(
+        action='group_window',id='abcdefghijk',group='12345678-1234-1234-1234-123456789abc',
+        index=0,target=1,direction=1,require_channel=True,require_name=True))

@@ -18,7 +18,9 @@ selection independently of EOF mode. Broader SmartTube group/suggestion
 semantics and hardware acceptance remain open. Profile-owned channel-name blocks
 now also apply to verified uncached playlist/channel entries and autoplay targets.
 See the latest entries in `docs/VALIDATION.md`; these changes are newer than the
-last fully frozen candidate.
+last fully frozen candidate. The worker now retains ordinary browsing-group
+positions and exposes scoped group windows; native selection and Guest catalog
+propagation are the next integration steps. See the service validation entry.
 
 Latest accepted caption package: `879b1281` rendered French and English together
 on PS5, retained them across a paused 1.25x decoder reopen, and cleared French

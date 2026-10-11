@@ -61,12 +61,13 @@ class LibraryRequest(BaseModel):
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate", "mark_watched",
-                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "history_remove"]
+                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "group_window", "history_remove"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
     channel: str = Field(default="", max_length=24)
+    group: str = Field(default="", pattern="^(|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$")
     target: int | None = Field(default=None, ge=0, le=100000, strict=True)
     index: int | None = Field(default=None, ge=0, le=100000, strict=True)
     direction: int = Field(default=0, ge=-1, le=1, strict=True)
@@ -89,7 +90,7 @@ class LibraryRequest(BaseModel):
     def playback_occurrence(self):
         if self.require_name and not self.require_channel:
             raise ValueError("Channel-name verification requires channel verification.")
-        if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at", "channel_window"}:
+        if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at", "channel_window", "group_window"}:
             raise ValueError("Channel verification requires a playback navigation request.")
         if self.action == "mark_watched" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.session)):
@@ -97,17 +98,22 @@ class LibraryRequest(BaseModel):
         if self.action == "history_remove" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.cursor)):
             raise ValueError("History removal requires a video and its retained history reference.")
+        if self.action == "group_window":
+            if not self.group or not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id) or self.index is None or self.index>4095 or (self.target is not None and self.target>4095) or self.playlist or self.channel:
+                raise ValueError("Group navigation requires a retained source occurrence.")
+        elif self.group:
+            raise ValueError("Group references require group_window.")
         if self.action == "channel_window":
             if (not re.fullmatch(r"UC[A-Za-z0-9_-]{22}",self.channel)
                     or not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id) or self.index is None or self.playlist):
                 raise ValueError("Channel navigation requires a channel and anchored video occurrence.")
-        elif self.channel or self.target is not None:
+        elif self.channel or (self.target is not None and self.action != "group_window"):
             raise ValueError("Channel positions require channel_window.")
         if self.action == "playback_next" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or (not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})",self.playlist) or self.index is None
                     if self.playlist else self.index is not None)):
             raise ValueError("Next-video requests require a video ID and optional playlist occurrence.")
-        if self.direction and self.action not in {"playback_at", "channel_window"}:
+        if self.direction and self.action not in {"playback_at", "channel_window", "group_window"}:
             raise ValueError("Directional navigation requires playback_at.")
         if self.action in {"playback_queue", "playback_at"} and (
             (not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id) if self.action == "playback_queue" else self.id != "")

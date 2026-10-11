@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Browsing-group service groundwork — 2026-10-11
+
+The pinned SmartTube source selects explicit queue entries first, then applicable
+Mix continuation, then a following eligible item in the current browsing group,
+then next-video metadata. Previous selects an eligible preceding group item before
+the retained queue. This establishes source-group navigation as the next gap;
+picking an arbitrary WatchNext card would not implement that behavior.
+
+Worker catalog groups and `group_window` now retain occurrence positions and
+share continuation work. The worker suite and rebuilt bundle pass 105 tests;
+35 focused API/library tests pass. Cases exercise repeated IDs, upcoming/folder
+skips, concurrent continuation reuse, failed-fetch retry, owner/anchor rejection,
+expiry/eviction, and continued browsing after the retention bound. Native group
+handoff, Guest extractor propagation and hardware acceptance remain pending.
+No console connection or PS5 package build was performed in this service batch.
+
 ## Verified playback channel names — 2026-10-11
 
 Playlist/channel windows and autoplay targets now provide verified author names

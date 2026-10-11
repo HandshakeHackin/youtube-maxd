@@ -87,7 +87,7 @@ test('duplicates and sparse source positions survive local pages and upstream co
   assert.equal(a.items.length,24);assert.ok(a.items.every(item=>item.id===id));
   assert.deepEqual(a.items.map(item=>item.playback_context.index),Array.from({length:24},(_,i)=>i));
   await assert.rejects(library.execute({action:'continue',cursor:a.cursor,profile:'two'}),{code:'cursor_expired'});
-  const home=await library.execute({action:'home'});assert.ok(home.items.every(item=>!item.playback_context));
+  const home=await library.execute({action:'home'});assert.ok(home.items.every(item=>item.playback_context?.group && !item.playback_context.playlist));
   const b=await library.execute({action:'continue',cursor:a.cursor});
   assert.deepEqual(b.items.map(item=>item.playback_context.index),[24,25,26,27,28,29]);assert.equal(calls,0);
   assert.strictEqual(await library.execute({action:'continue',cursor:a.cursor}),b);
