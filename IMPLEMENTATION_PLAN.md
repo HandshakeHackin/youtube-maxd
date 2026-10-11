@@ -17,6 +17,11 @@ captions, then stopped at an incorrect toast observation gate after French
 selection. Exact release and original state restoration passed. The corrected
 offline observer reads native PRIMARY/SECONDARY tags; secondary hardware
 acceptance remains open, and no relaunch followed.
+The corrected `63d45c23` case also stopped after French selection. Offline
+tracing identified the loader's incompatible legacy-filesystem-path requirement
+for provider playback. It now uses validated selection ownership; actual empty-
+path engine/application tests pass. Clean teardown/restoration passed; hardware
+dual captions and speed reopens remain open.
 
 Earlier implementation batch: availability-gated native voice capture, local ASR
 and provider search are connected and packaged (`0b06bc66`, 216 objects, 126

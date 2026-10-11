@@ -2438,6 +2438,7 @@ const char *tube_caption_track_language(int i) { return i >= 0 && i < tube_capti
 const char *tube_caption_track_name(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].name : ""; }
 int tube_caption_track_automatic(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].automatic; }
 unsigned tube_caption_revision(void) { return g_caption_revision; }
+unsigned tube_caption_selection(void) { return caption_scope() ? g_selection_serial : 0; }
 void tube_caption_switch_cancel(void) {
     if (!++g_caption_serial) ++g_caption_serial;
     memset(&g_caption_switch, 0, sizeof g_caption_switch);

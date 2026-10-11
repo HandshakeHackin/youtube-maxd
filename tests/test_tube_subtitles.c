@@ -13,6 +13,7 @@ int tube_caption_switch_secondary(void) { return switch_secondary; }
 const char *tube_caption_switch_language(void) { return "fr"; }
 const char *tube_caption_secondary_language(void) { return ""; }
 const char *tube_caption_secondary_media_path(void) { return secondary_media; }
+unsigned tube_caption_selection(void) { return 22; }
 
 int main(int argc, char **argv) {
     if (evo_dualsub_main(argc, argv)) return 1;
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
     CHECK(audio_clock_seconds==42.125 && player_paused==1 && prospero_subtitle_delay_ms==250 && prospero_subtitle_time_scale==1.25,"failed switch preserves playback and timing");
     /* Exercise the actual apply bridge for a second independent caption line. */
     play_fmt=avformat_alloc_context(); CHECK(play_fmt!=NULL,"secondary playback context allocated");
-    snprintf(current_media_path,sizeof current_media_path,"%s",good_media);
+    current_media_path[0]=0; /* Provider sources intentionally clear this legacy path. */
     strcpy(switch_media,media); switch_secondary=1; switch_state=1;
     prospero_secondary_delay_ms=100;
     CHECK(tube_caption_apply_ready()==1 && switch_applied,"second language applied by actual bridge");

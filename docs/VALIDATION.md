@@ -1,5 +1,31 @@
 # Offline validation record — 0.1.0
 
+## Provider selection ownership for secondary captions — 2026-10-10
+
+The corrected `63d45c23` console case also stopped after French selection: the
+engine-derived SECONDARY tag never appeared. Startup/pairing and paused native
+playback passed; secondary application and the speed-reopen scenario remain
+unaccepted. Exact owned teardown, healthy services and original provider/sidecar
+restoration passed; the fixture stopped, the lock was released and no relaunch
+followed. Evidence: `.deps/console/secondary-caption-63d45c23-hardware/`,
+`.deps/secondary-corrected-hardware.result` (exit 1).
+
+Offline tracing found a concrete incompatibility: PlaybackController deliberately
+clears the legacy filesystem path for provider URLs, while the new secondary
+loader required that path. Host tests had populated a local path and missed this.
+The buffer now binds to a validated source/profile/video selection serial for
+YouTube, retaining path ownership for local media. Empty unscoped media, retired
+profiles and same-ID new selections cannot inherit that buffer. No signed media
+URL is copied into the legacy filesystem state.
+
+Actual engine tests now reproduce the empty provider path and pass 110 checks;
+the 98-check application/startup bridge also uses an empty provider path, and
+provider scope/staging tests pass. Full packaging and hardware acceptance of this
+fix remain open.
+Connected PS5 provider, Application, picker and subtitle-engine objects also
+compile (`.deps/secondary-batch.result`, exit 0; engine/provider logs now include
+the selection-owned fix). No new console run followed the failed case.
+
 ## Secondary-caption console observation gate — 2026-10-10
 
 Candidate `225b5858` passed full installed-byte verification, 130-second settling
@@ -34,6 +60,10 @@ now covers 98 checks (`.deps/secondary-reopen-{speed,engine}.log`). The provider
 staging tests and connected PS5 provider/PlaybackController compilation also pass
 (`.deps/secondary-reopen.result`, exit 0). Full packaging and PS5 reopen
 acceptance of this follow-up remain open.
+The combined reopen/snapshot candidate `63d45c23` completed the full PS5 build
+and immutable freeze: 216 objects, 126 files, build
+`prosperotube-63d45c23_1011-0235`, eboot SHA-256 prefix `1b315b42e399a9d8`
+(`.deps/secondary-reopen-{ps5-build,freeze}.*`, exit 0).
 
 ## Independent secondary YouTube captions — 2026-10-10
 

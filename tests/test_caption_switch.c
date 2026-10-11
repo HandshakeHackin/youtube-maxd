@@ -25,6 +25,7 @@ int main(void) {
     assert(seed); write_store(seed); cJSON_Delete(seed); assert(!evo_provider_youtube.init());
     assert(!tube_caption_track_count() && !tube_caption_switch_begin("fr",0,0));
     resolved_tracks(); assert(last_ok && tube_caption_track_count()==3);
+    assert(tube_caption_selection()==tube_phone_selection() && tube_caption_selection()!=0);
     assert(!strcmp(tube_caption_track_name(1),"French") && tube_caption_track_automatic(1));
     assert(!*tube_caption_track_language(-1) && !*tube_caption_track_language(3));
     assert(!tube_caption_switch_begin("missing",0,0) && !tube_caption_switch_begin("fr",123,1));
@@ -80,6 +81,7 @@ int main(void) {
     assert(tube_caption_switch_begin("de",0,0)==2); Pending retired=pending[0]; pending_count=0;
     evo_provider_youtube.list_catalog("library:profile:other",0,items_cb,NULL);
     assert(!tube_caption_track_count() && tube_caption_switch_status(&media)==-1);
+    assert(!tube_caption_selection());
     retired.cb(1,200,cue,strlen(cue),retired.ud);
     assert(tube_caption_switch_status(&media)==-1);
     evo_provider_youtube.list_catalog("library:profile:guest",0,items_cb,NULL);

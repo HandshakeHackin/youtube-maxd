@@ -26,6 +26,8 @@ const char *tube_caption_track_language(int index);
 const char *tube_caption_track_name(int index);
 int tube_caption_track_automatic(int index);
 unsigned tube_caption_revision(void);
+/* Current validated source/profile/video selection; zero after scope retirement. */
+unsigned tube_caption_selection(void);
 /* 2=pending, 0=rejected. owner/sequence=0 for a local picker operation. */
 int tube_caption_switch_begin(const char *language, unsigned owner, int sequence);
 int tube_caption_secondary_begin(const char *language);

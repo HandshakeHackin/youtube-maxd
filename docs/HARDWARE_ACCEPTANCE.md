@@ -1,5 +1,14 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | secondary captions | 63d45c23 | PS5 | failed: SECONDARY tag absent; clean release/restore | .deps/console/secondary-caption-63d45c23-hardware/ | fix provider-path ownership
+
+The corrected observer still did not see secondary application after French
+selection. Offline tracing found that provider playback intentionally empties
+the legacy filesystem path required by the new loader. The fix uses validated
+playback-selection ownership and now has empty-path host coverage. The console
+case closed and restored the original data cleanly; no relaunch followed. Dual
+rendering and the speed-reopen scenario remain unaccepted.
+
 - 2026-10-10 | secondary captions | 225b5858 | PS5 | failed observation: expected toast absent; primary visible, clean release/restore | .deps/console/secondary-caption-225b5858-hardware/ | native tag gate
 
 The single launch established paused native playback, the English primary

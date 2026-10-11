@@ -3,6 +3,8 @@
 #include "../third_party/evo/tools/dualsub_host.c"
 #undef main
 #include <math.h>
+static unsigned caption_selection;
+unsigned tube_caption_selection(void) { return caption_selection; }
 
 int main(int argc, char **argv) {
     if (evo_dualsub_main(argc, argv)) return 1;
@@ -46,6 +48,18 @@ int main(int argc, char **argv) {
     CHECK(!prospero_secondary_subtitle_text_at(NAN,text,sizeof text),"nonfinite clock rejected");
     CHECK(!prospero_secondary_subtitle_text_at(50,text,sizeof text),"forward seek outside cues produces no stale text");
     CHECK(prospero_secondary_subtitle_text_at(4,text,sizeof text),"rewind returns the appropriate cue");
+    /* Actual provider playback intentionally has no legacy filesystem path. */
+    tube_secondary_subtitle_clear();current_media_path[0]=0;
+    CHECK(!tube_secondary_subtitle_load(secondary),"unscoped empty-path media cannot load a bank");
+    f=fopen(sidecar,"wb");if(f){fputs("1\n00:00:01,000 --> 00:00:03,000\nProvider caption\n\n",f);fclose(f);}
+    caption_selection=77;
+    CHECK(tube_secondary_subtitle_load(secondary)==1,"validated provider selection loads with empty legacy path");
+    CHECK(prospero_secondary_subtitle_text_at(2,text,sizeof text) && !strcmp(text,"Provider caption"),"provider caption renders without persisting a signed URL");
+    caption_selection=78;CHECK(!prospero_secondary_subtitle_active(),"same-ID manual reopen cannot inherit the previous bank");
+    caption_selection=0;CHECK(!prospero_secondary_subtitle_active(),"source/profile retirement hides the old provider bank");
+    tube_secondary_subtitle_clear();caption_selection=0;
+    snprintf(current_media_path,sizeof current_media_path,"%s",primary);
+    CHECK(tube_secondary_subtitle_load(secondary)==1,"local-path fallback still works");
     strcpy(current_media_path,"other.mp4");
     CHECK(!prospero_secondary_subtitle_active(),"different media cannot inherit second line");
     prospero_embedded_subtitle_close();
