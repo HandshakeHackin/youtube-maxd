@@ -74,7 +74,7 @@ typedef struct Request {
     int choice_count;
     ResolveQuality quality;
     PlaylistContext playlist;
-    int page, music_origin, queue_origin;
+    int page, music_origin, queue_origin, incognito;
     unsigned intent;
     char parent[160];
     char profile[33];
@@ -162,7 +162,44 @@ static void remote_configure(void);
 static tube_player_chat_row_t g_player_chat_rows[6];
 static int g_player_chat_count;
 static double g_player_chat_position = -1;
-static int g_history_sync = 1;
+/* SmartTube GeneralData history states. Disabled also stops local history and resume. */
+enum { TUBE_HISTORY_AUTO=0, TUBE_HISTORY_ENABLED=1, TUBE_HISTORY_DISABLED=2 };
+static int g_history_state;
+static int g_search_history = 1;
+/* Device-owned, like the other phone and startup preferences. */
+static int g_remote_no_history, g_select_account_on_boot;
+/* Root sections a profile may open at startup; "" keeps the main menu. */
+static const struct { const char *id, *label; } g_boot_sections[] = {
+    {"", "Main menu"}, {"library:home", "Home"}, {"library:subscriptions", "Subscriptions"},
+    {"library:history", "YouTube history"}, {"library:playlists", "Playlists"}, {"library:watch_later", "Watch later"},
+    {"section:gaming", "Gaming"}, {"section:news", "News"}, {"section:music", "Music"},
+    {"section:sports", "Sports"}, {"section:live", "Live"}, {"section:movies", "Movies"},
+    {"history", "Continue watching & history"}, {"favorites", "Favorites"}, {"queue", "Play queue"},
+    {"subscriptions", "Followed channels"}, {"discover", "Discover"}
+};
+#define BOOT_SECTIONS ((int)(sizeof g_boot_sections / sizeof *g_boot_sections))
+static char g_boot_section[24];
+static int boot_section_index(const char *id) {
+    for (int i = 1; id && i < BOOT_SECTIONS; ++i) if (!strcmp(id, g_boot_sections[i].id)) return i;
+    return 0;
+}
+const char *tube_boot_section(void) { return g_boot_section; }
+int tube_select_account_on_boot(void) { return g_select_account_on_boot; }
+/* One-shot private playback: armed by its video action, bound by the next
+ * resolve of that video, retired by any other navigation or scope change. */
+static struct { char id[12], profile[33]; unsigned scope; } g_incognito;
+static int g_resolved_incognito, g_active_incognito;
+/* Play from start applies once per menu visit: reloading its screen after the
+ * playback it started must not erase the newly saved position. */
+static struct { char id[12]; unsigned scope, selection; } g_restart;
+/* Caption, chat and sign-in host tests link the provider without the phone adapter. */
+int tube_phone_owns_media(void) __attribute__((weak));
+/* SmartTube VideoStateController.updateHistory: incognito, disabled history and
+ * opted-out phone playback write neither local history nor account reports. */
+static int history_suppressed(void) {
+    return g_active_incognito || g_history_state == TUBE_HISTORY_DISABLED ||
+        (g_remote_no_history && tube_phone_owns_media && tube_phone_owns_media());
+}
 static int g_paid_notifications;
 static int g_dearrow_titles, g_dearrow_thumbnails;
 static char g_paid_text[256];
@@ -186,6 +223,8 @@ static void watch_reset(int clear_resolution) {
         g_resolved_id[0] = 0; g_resolved_profile[0] = 0; g_resolved_music = 0;
         g_browse_music = g_browse_queue = 0;
         memset(&g_launch_origin, 0, sizeof g_launch_origin);
+        memset(&g_incognito, 0, sizeof g_incognito); g_resolved_incognito = 0;
+        memset(&g_restart, 0, sizeof g_restart);
     }
 }
 static char g_language[16] = "en", g_audio_language[16];
@@ -807,6 +846,89 @@ static int change_channel_block(const char *channel,const char *name,int block) 
     save();return 1;
 }
 
+/* Recent searches are profile-owned, most recent first. The shared bound drops
+ * the oldest entry overall; serials name rows without exposing long queries. */
+#define SEARCH_HISTORY 50
+#define SEARCHES 256
+static struct { char profile[33], query[801]; unsigned serial; } g_searches[SEARCHES];
+static int g_search_count;
+static unsigned g_search_serial;
+static int search_same(const char *a, const char *b) {
+    for (; *a && *b; ++a, ++b) if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) return 0;
+    return *a == *b;
+}
+static void search_history_drop(int index) {
+    memmove(&g_searches[index],&g_searches[index+1],(size_t)(g_search_count-index-1)*sizeof g_searches[0]);--g_search_count;
+}
+/* front=0 loads saved order (first occurrence wins); front=1 records a new search. */
+static int search_history_put(const char *profile, const char *query, int front) {
+    if (!valid_profile(profile) || !tube_search_query_valid(query) || strlen(query) >= sizeof g_searches[0].query) return 0;
+    char text[sizeof g_searches[0].query]; copy(text,sizeof text,query); /* query may alias a moved row */
+    int owned = 0, oldest = -1, index = 0;
+    unsigned serial = 0; /* a repeated query keeps its row name, so its result pages stay reachable */
+    for (int i = 0; i < g_search_count; ++i) if (!strcmp(g_searches[i].profile,profile)) {
+        if (search_same(g_searches[i].query,text)) { if (!front) return 0; serial = g_searches[i].serial; search_history_drop(i--); continue; }
+        ++owned; oldest = i;
+    }
+    if (!front) {
+        if (owned >= SEARCH_HISTORY || g_search_count == SEARCHES) return 0;
+        index = g_search_count++;
+    } else {
+        if (owned >= SEARCH_HISTORY) search_history_drop(oldest);
+        if (g_search_count == SEARCHES) --g_search_count;
+        memmove(&g_searches[1],&g_searches[0],(size_t)g_search_count*sizeof g_searches[0]); ++g_search_count;
+    }
+    copy(g_searches[index].profile,sizeof g_searches[index].profile,profile);
+    copy(g_searches[index].query,sizeof g_searches[index].query,text);
+    if (!serial) { if (!++g_search_serial) ++g_search_serial; serial = g_search_serial; }
+    g_searches[index].serial = serial; return 1;
+}
+static void search_history_add(const char *query) {
+    if (g_search_history && search_history_put(g_library_profile,query,1)) save();
+}
+static int search_history_count(void) {
+    int count = 0;
+    for (int i = 0; i < g_search_count; ++i) if (!strcmp(g_searches[i].profile,g_library_profile)) ++count;
+    return count;
+}
+static int search_history_find(const char *serial) {
+    char *end = NULL; unsigned long value = isdigit((unsigned char)*serial) ? strtoul(serial,&end,10) : 0;
+    if (!value || *end) return -1;
+    for (int i = 0; i < g_search_count; ++i)
+        if (g_searches[i].serial == value && !strcmp(g_searches[i].profile,g_library_profile)) return i;
+    return -1;
+}
+/* Last playlist occurrence seen for a video in browser pages; never persisted
+ * and retired with the browsing scope. Feeds Open playlist and Share link only. */
+static struct { char id[12], playlist[101]; unsigned scope; int account; } g_occurrences[64];
+static unsigned g_occurrence_cursor;
+static int video_occurrence(const char *id) {
+    for (int i = 0; i < 64; ++i)
+        if (g_occurrences[i].scope && g_occurrences[i].scope == g_playlist_scope && !strcmp(g_occurrences[i].id,id)) return i;
+    return -1;
+}
+static void video_occurrence_note(const char *id, const char *playlist, int account) {
+    int i = video_occurrence(id);
+    if (i < 0) i = (int)(g_occurrence_cursor++ % 64);
+    copy(g_occurrences[i].id,sizeof g_occurrences[i].id,id);
+    copy(g_occurrences[i].playlist,sizeof g_occurrences[i].playlist,playlist);
+    g_occurrences[i].scope = g_playlist_scope; g_occurrences[i].account = account;
+}
+/* 1=stored as requested, 0=the exclusion list is full. */
+static int sponsor_exclude(const char *channel, int exclude) {
+    int found = -1;
+    for (int i = 0; i < g_sb.excluded_count; ++i) if (!strcmp(channel, g_sb.excluded[i])) found = i;
+    if ((found >= 0) == !!exclude) return 1;
+    if (found >= 0) {
+        if (found + 1 < g_sb.excluded_count)
+            memmove(g_sb.excluded[found], g_sb.excluded[found + 1],
+                (size_t)(g_sb.excluded_count - found - 1) * sizeof g_sb.excluded[0]);
+        --g_sb.excluded_count;
+    } else if (g_sb.excluded_count < TUBE_SB_EXCLUSIONS) {
+        memcpy(g_sb.excluded[g_sb.excluded_count++], channel, 25);
+    } else { tube_set_error("The excluded channel list is full."); return 0; }
+    g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); return 1;
+}
 
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
@@ -951,6 +1073,13 @@ static void save(void) {
         cJSON_AddStringToObject(row,"name",g_blocked[i].name);
         cJSON_AddItemToArray(blocked,row);
     }
+    cJSON *searches=cJSON_AddArrayToObject(root,"search_history");
+    for(int i=0;searches && i<g_search_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_searches[i].profile);
+        cJSON_AddStringToObject(row,"query",g_searches[i].query);
+        cJSON_AddItemToArray(searches,row);
+    }
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
@@ -999,6 +1128,8 @@ static void save(void) {
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
     cJSON_AddBoolToObject(root, "remote_stop_on_disconnect", g_remote_stop_on_disconnect);
     cJSON_AddBoolToObject(root, "remote_close_on_disconnect", g_remote_close_on_disconnect);
+    cJSON_AddBoolToObject(root, "remote_disable_history", g_remote_no_history);
+    cJSON_AddBoolToObject(root, "select_account_on_boot", g_select_account_on_boot);
     cJSON_AddStringToObject(root, "remote_device", g_remote_device);
     cJSON_AddStringToObject(root, "remote_screen", g_remote_screen);
     cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
@@ -1009,7 +1140,8 @@ static void save(void) {
     cJSON_AddNumberToObject(root,"playback_mode",g_playback_mode);
     cJSON_AddBoolToObject(root,"queue_respects_playback_mode",g_queue_respects_mode);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
-    cJSON_AddBoolToObject(root, "history_sync", g_history_sync);
+    cJSON_AddNumberToObject(root, "history_state", g_history_state);
+    cJSON_AddBoolToObject(root, "history_sync", g_history_state != TUBE_HISTORY_DISABLED);
     for (int i = 0; i < g_count; ++i) {
         Record *r = &g_records[i];
         cJSON *o = cJSON_CreateObject();
@@ -1131,12 +1263,14 @@ static int init(void) {
     ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
     copy(g_library_profile,sizeof g_library_profile,"guest");
     g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;g_blocked_count=0;
+    g_search_count = 0; memset(g_occurrences,0,sizeof g_occurrences); memset(&g_restart,0,sizeof g_restart);
     g_caption_path[0] = g_caption_language[0] = 0;
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
     g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     g_remote_stop_on_disconnect = 0;
     g_remote_close_on_disconnect = 0;
+    g_remote_no_history = g_select_account_on_boot = g_active_incognito = 0;
     tube_sb_defaults(&g_sb);
     sponsor_invalidate(); g_sb_last_position = -1;
     tube_chat_stop();
@@ -1199,6 +1333,8 @@ static int init(void) {
     g_remote_stop_on_disconnect = boolean(root, "remote_stop_on_disconnect");
     g_remote_close_on_disconnect = boolean(root, "remote_close_on_disconnect");
     if (g_remote_close_on_disconnect) g_remote_stop_on_disconnect = 0;
+    g_remote_no_history = boolean(root, "remote_disable_history");
+    g_select_account_on_boot = boolean(root, "select_account_on_boot");
     if (tube_remote_identity_valid(remote_device) && strlen(remote_screen) < sizeof g_remote_screen &&
         strspn(remote_screen, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(remote_screen)) {
         copy(g_remote_device, sizeof g_remote_device, remote_device);
@@ -1215,8 +1351,7 @@ static int init(void) {
     g_autoplay=playback_mode_continues(g_playback_mode);
     g_queue_respects_mode=boolean(root,"queue_respects_playback_mode");
     g_ask_stream = boolean(root, "ask_stream");
-    const cJSON *history_sync = cJSON_GetObjectItemCaseSensitive(root, "history_sync");
-    g_history_sync = !cJSON_IsBool(history_sync) || cJSON_IsTrue(history_sync);
+    g_history_state = history_state_read(root);
     const char *language = str(root, "language"), *audio = str(root, "audio_language");
     const char *valid = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
     if (*language && strlen(language) < sizeof g_language && strspn(language, valid) == strlen(language))
@@ -1238,6 +1373,8 @@ static int init(void) {
         copy(g_blocked[g_blocked_count].channel,sizeof g_blocked[0].channel,channel);
         copy(g_blocked[g_blocked_count].name,sizeof g_blocked[0].name,*str(o,"name")?str(o,"name"):channel);++g_blocked_count;
     }
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"search_history"))
+        search_history_put(str(o,"profile"),str(o,"query"),0);
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
         const char *owner = version == 1 ? "guest" : str(o, "profile");
         if (record_for(str(o, "id"), owner, 0)) continue;
@@ -2027,7 +2164,7 @@ static void auth_result(Request *r, const cJSON *result) {
 }
 
 static void watch_flush(int terminal_flush) {
-    if (!g_history_sync || !*g_token || !g_watch.dirty || g_watch.failed ||
+    if (g_history_state == TUBE_HISTORY_DISABLED || !*g_token || !g_watch.dirty || g_watch.failed ||
         !valid_id(g_watch.id) || !valid_profile(g_watch.profile) || !strcmp(g_watch.profile, "guest")) return;
     if (g_watch.position <= 0 && !g_watch.sent) { g_watch.dirty = 0; return; }
     int free_slot = 0;
@@ -2131,6 +2268,7 @@ static void resolved(Request *r, const cJSON *root) {
     g_resolved_music = r->music_origin;
     g_resolved_quality = r->quality;
     g_resolved_playlist = r->playlist;
+    g_resolved_incognito = r->incognito;
     Record *cached = record(str(root, "id"), 1);
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
@@ -2440,6 +2578,8 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             copy(items[n].subtitle, sizeof items[n].subtitle, "Select this playlist, then confirm the change");
             ++n; continue;
         }
+        if(items[n].playback_scope && valid_playlist(items[n].playback_playlist))
+            video_occurrence_note(items[n].id,items[n].playback_playlist,!strncmp(r->parent,"library:",8));
         Record *cached = record(items[n].id, 1);
         if (cached) {
             if(r->kind==3 && !strcmp(r->parent,"library:history")) {
@@ -2587,12 +2727,50 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         cb(1,out,n,total>(page+1)*LOCAL_PAGE,ud);return 1;
     }
+    if(parent && !strncmp(parent,"search-history",14)) {
+        /* Rows are named by profile-checked serials: a stale or foreign row never
+         * changes another list, and reloading a finished action cannot repeat it. */
+        char clear[48];snprintf(clear,sizeof clear,"search-history:clear:%u",g_playlist_scope);
+        int removing=!strcmp(parent,"search-history:remove");
+        if(!strncmp(parent,"search-history:forget:",22)) {
+            int index=search_history_find(parent+22);
+            if(!page && index<0) {
+                tube_set_error("Reopen recent searches for the current profile.");cb(0,NULL,0,0,ud);return 1;
+            }
+            if(!page) {search_history_drop(index);save();}
+            removing=1;
+        } else if(!strncmp(parent,"search-history:clear:",21)) {
+            if(page || strcmp(parent,clear)) {
+                tube_set_error("Reopen recent searches for the current profile.");cb(0,NULL,0,0,ud);return 1;
+            }
+            for(int i=g_search_count-1;i>=0;--i)if(!strcmp(g_searches[i].profile,g_library_profile))search_history_drop(i);
+            save();
+        } else if(strcmp(parent,"search-history") && !removing) {
+            tube_set_error("Reopen recent searches for the current profile.");cb(0,NULL,0,0,ud);return 1;
+        }
+        if(!g_search_history)CATALOG_FOLDER("account:notice","Search history is off","Turn it on in YouTube preferences for this profile");
+        else if(!search_history_count())CATALOG_FOLDER("account:notice","No recent searches","Square searches; queries are saved for the selected profile");
+        else {
+            if(!removing) {
+                CATALOG_FOLDER("search-history:remove","Remove a recent search","Choose one query to forget");
+                CATALOG_FOLDER(clear,"Clear recent searches","Forget every query saved for the selected profile");
+            }
+            for(int i=0;i<g_search_count;++i)if(!strcmp(g_searches[i].profile,g_library_profile)) {
+                char id[64];snprintf(id,sizeof id,"search-history:%s:%u",removing?"forget":"run",g_searches[i].serial);
+                CATALOG_FOLDER(id,g_searches[i].query,removing?"Cross forgets this query":"Cross searches again");
+            }
+        }
+        int offset=page*LOCAL_PAGE,count=offset<n?n-offset:0;
+        if(count>LOCAL_PAGE)count=LOCAL_PAGE;
+        cb(1,count?out+offset:NULL,count,offset+count<n,ud);return 1;
+    }
     if(parent && !strncmp(parent,"local:video:",12)) {
         const char *id=strrchr(parent,':');id=id?id+1:"";
-        const char *actions[]={"next","watched","forget","block","unblock"};
-        const char *messages[]={"Video will play next","Marked as watched on this PS5","Removed from local history","Channel blocked","Channel unblocked"};
+        const char *actions[]={"next","watched","forget","block","unblock","restart","incognito","share","sbexclude","sbinclude"};
+        const char *messages[]={"Video will play next","Marked as watched on this PS5","Removed from local history","Channel blocked","Channel unblocked",
+            "","","","SponsorBlock is off for this channel","SponsorBlock is on for this channel"};
         int action=-1;
-        for(int i=0;valid_id(id) && i<5;++i) {
+        for(int i=0;valid_id(id) && i<10;++i) {
             char expected[100];snprintf(expected,sizeof expected,"local:video:%u:%s:%s",g_playlist_scope,actions[i],id);
             if(!strcmp(parent,expected))action=i;
         }
@@ -2600,7 +2778,45 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             tube_set_error("Reopen video actions for the current profile.");cb(0,NULL,0,0,ud);return 1;
         }
         Record *video=record(id,0);
+        if(action==5 || action==6) {
+            /* The offer is a playable row: Cross starts it from this screen. */
+            int replayed=0;
+            if(action==5) {
+                replayed=!strcmp(g_restart.id,id) && g_restart.scope==g_playlist_scope && g_restart.selection!=g_selection_serial;
+                if(!replayed) {
+                    video->item.resume_pos_sec=0;save();
+                    copy(g_restart.id,sizeof g_restart.id,id);g_restart.scope=g_playlist_scope;g_restart.selection=g_selection_serial;
+                }
+            } else {
+                copy(g_incognito.id,sizeof g_incognito.id,id);
+                copy(g_incognito.profile,sizeof g_incognito.profile,g_library_profile);g_incognito.scope=g_playlist_scope;
+            }
+            out[n]=video->item;dearrow_item(&out[n],video);
+            copy(out[n].subtitle,sizeof out[n].subtitle,action==6?"Cross plays without history or account reports":
+                replayed?"Cross resumes this video":"Cross plays from the start");
+            ++n;cb(1,out,n,0,ud);return 1;
+        }
+        if(action==7) {
+            char link[192];int occurrence=video_occurrence(id);
+            snprintf(link,sizeof link,"https://youtu.be/%s",id);
+            CATALOG_FOLDER("account:notice:video",link,"Video link");
+            snprintf(link,sizeof link,"https://www.youtube.com/embed/%s",id);
+            CATALOG_FOLDER("account:notice:embed",link,"Embed link");
+            if(tube_sb_channel_valid(video->item.parent_id)) {
+                snprintf(link,sizeof link,"https://www.youtube.com/channel/%.24s",video->item.parent_id);
+                CATALOG_FOLDER("account:notice:channel",link,"Channel link");
+            }
+            if(occurrence>=0) {
+                snprintf(link,sizeof link,"https://www.youtube.com/playlist?list=%s",g_occurrences[occurrence].playlist);
+                CATALOG_FOLDER("account:notice:playlist",link,"Playlist link");
+            }
+            cb(1,out,n,0,ud);return 1;
+        }
+        if(action>=8 && !tube_sb_channel_valid(video->item.parent_id)) {
+            tube_set_error("This video has no channel identity to exclude.");cb(0,NULL,0,0,ud);return 1;
+        }
         int ok=action==0?tube_queue_play_next(id):action==1?tube_mark_watched(id):action==2?tube_remove_history(id):
+            action>=8?sponsor_exclude(video->item.parent_id,action==8):
             change_channel_block(video->item.parent_id,video->item.subtitle,action==3);
         if(action>=3 && !ok){cb(0,NULL,0,0,ud);return 1;}
         CATALOG_FOLDER("account:notice",ok>0?messages[action]:"This video is already playing","Circle returns to video actions");
@@ -2803,6 +3019,31 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"unblock":"block",parent+13);
                 CATALOG_FOLDER(id,blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"Unblock channel":"Block channel","Hide this channel in catalogs for the selected profile");
             }
+            memset(&g_restart,0,sizeof g_restart);
+            char extra[128];snprintf(extra,sizeof extra,"local:video:%u:restart:%s",g_playlist_scope,parent+13);
+            CATALOG_FOLDER(extra,"Play from start","Forget the resume position; keep the watched marker");
+            snprintf(extra,sizeof extra,"local:video:%u:incognito:%s",g_playlist_scope,parent+13);
+            CATALOG_FOLDER(extra,"Play incognito","No local history, resume position or account report for this playback");
+            const int channel=video && tube_sb_channel_valid(video->item.parent_id);
+            if(channel) {
+                snprintf(extra,sizeof extra,"channel:%.24s",video->item.parent_id);
+                CATALOG_FOLDER(extra,"Open channel",*video->item.subtitle?video->item.subtitle:"Browse this channel's videos");
+            }
+            int occurrence=video_occurrence(parent+13);
+            if(occurrence>=0) {
+                const char *list=g_occurrences[occurrence].playlist;
+                const int account=g_occurrences[occurrence].account && strcmp(g_library_profile,"guest");
+                snprintf(extra,sizeof extra,"%s%s",account?"library:playlist:":"playlist:",list);
+                if(account || strlen(list)>=10)CATALOG_FOLDER(extra,"Open playlist","Browse the playlist this video was listed in");
+            }
+            snprintf(extra,sizeof extra,"local:video:%u:share:%s",g_playlist_scope,parent+13);
+            CATALOG_FOLDER(extra,"Share link","Show the video, embed, channel and playlist links");
+            if(channel) {
+                const int excluded=tube_sb_excluded(&g_sb,video->item.parent_id);
+                snprintf(extra,sizeof extra,"local:video:%u:%s:%s",g_playlist_scope,excluded?"sbinclude":"sbexclude",parent+13);
+                CATALOG_FOLDER(extra,excluded?"Use SponsorBlock on this channel":"Exclude channel from SponsorBlock",
+                    excluded?"Skip segments again in this channel's videos":"Never skip segments in this channel's videos");
+            }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
             int found = -1;
@@ -2850,13 +3091,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "account:notice", g_account_intent.state == 2 ? "YouTube account updated" :
                 g_account_intent.state == 1 ? "Account change pending" : "Account change not confirmed",
                 g_account_intent.state == 1 ? "Wait for the companion response" : "Check your account before repeating an unconfirmed change");
-        } else if (!strcmp(parent, "account:notice")) {
+        } else if (!strncmp(parent, "account:notice", 14)) {
             CATALOG_FOLDER( "account:notice", "Circle to return", "No account operation submitted");
         } else { tube_set_error("The selected account action was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
         cb(1, out, n, 0, ud); return 1;
     }
     if (!parent || !*parent) {
         CATALOG_FOLDER( "discover", "Discover", "Search public videos by topic");
+        if(g_search_history && search_history_count())CATALOG_FOLDER("search-history","Recent searches","Repeat or forget queries saved for the selected profile");
         CATALOG_FOLDER( "history", "Continue watching & history", "Stored on this PS5");
         CATALOG_FOLDER( "favorites", "Favorites", "Your local saved videos");
         CATALOG_FOLDER( "queue", "Play queue", "R2 on a video to add or remove");
@@ -2943,25 +3185,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             int category = tube_sb_category(parent + 18);
             if (category < 0) { cb(0, NULL, 0, 0, ud); return 1; }
             g_sb.colors[category] = !g_sb.colors[category]; save();
-        } else if (!strcmp(parent, "settings:sb:minimum")) {
-            g_sb.minimum = g_sb.minimum < 1 ? 1 : g_sb.minimum < 3 ? 3 : g_sb.minimum < 5 ? 5 :
-                g_sb.minimum < 10 ? 10 : g_sb.minimum < 15 ? 15 : g_sb.minimum < 30 ? 30 :
-                g_sb.minimum < 60 ? 60 : 0; g_sb_finish_target = -1; save();
+        } else if (!strncmp(parent, "settings:sb:minimum:", 20)) {
+            const char *value = parent + 20; char *end = NULL; long ms = strtol(value,&end,10);
+            if (!isdigit((unsigned char)*value) || *end || ms > 20000 || ms % 500) { cb(0, NULL, 0, 0, ud); return 1; }
+            g_sb.minimum = ms / 1000.0; g_sb_finish_target = -1; save();
         } else if (!strcmp(parent, "settings:sb:repeat")) { g_sb.no_repeat = !g_sb.no_repeat; save(); }
         else if (!strncmp(parent, "settings:sb:exclude:", 20)) {
             const char *channel = parent + 20;
-            if (!tube_sb_channel_valid(channel)) { cb(0, NULL, 0, 0, ud); return 1; }
-            int found = -1;
-            for (int i = 0; i < g_sb.excluded_count; ++i) if (!strcmp(channel, g_sb.excluded[i])) found = i;
-            if (found >= 0) {
-                if (found + 1 < g_sb.excluded_count)
-                    memmove(g_sb.excluded[found], g_sb.excluded[found + 1],
-                        (size_t)(g_sb.excluded_count - found - 1) * sizeof g_sb.excluded[0]);
-                --g_sb.excluded_count;
-            } else if (g_sb.excluded_count < TUBE_SB_EXCLUSIONS) {
-                memcpy(g_sb.excluded[g_sb.excluded_count++], channel, 25);
-            } else { tube_set_error("The excluded channel list is full."); cb(0, NULL, 0, 0, ud); return 1; }
-            g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save();
+            if (!tube_sb_channel_valid(channel) || !sponsor_exclude(channel, !tube_sb_excluded(&g_sb, channel))) { cb(0, NULL, 0, 0, ud); return 1; }
         }
         else if (!strcmp(parent, "settings:autoplay")) {
             tube_set_playback_mode(g_autoplay?TUBE_MODE_PAUSE:TUBE_MODE_ALL);
@@ -3056,16 +3287,26 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             else g_remote_stop_on_disconnect = 1;
             save();
         }
+        else if (!strcmp(parent, "settings:remote:history")) { g_remote_no_history = !g_remote_no_history; save(); }
         else if (!strcmp(parent, "settings:remote:reset")) {
             tube_remote_shutdown(); g_remote_enabled = g_remote_entropy_failed = 0;
             g_remote_device[0] = g_remote_screen[0] = 0; g_remote_identity_saved = 0;
             save(); remote_configure();
         }
         else if (!strcmp(parent, "settings:ask-stream")) { g_ask_stream = !g_ask_stream; save(); }
-        else if (!strcmp(parent, "settings:history-sync")) {
-            g_history_sync = !g_history_sync;
-            if (!g_history_sync) g_watch.dirty = 0;
+        else if (!strncmp(parent, "settings:history:", 17)) {
+            const char *value = parent + 17; char *end = NULL; long state = strtol(value,&end,10);
+            if (!isdigit((unsigned char)*value) || *end || state > TUBE_HISTORY_DISABLED) { cb(0,NULL,0,0,ud); return 1; }
+            g_history_state = (int)state;
+            if (g_history_state == TUBE_HISTORY_DISABLED) g_watch.dirty = 0;
             save();
+        }
+        else if (!strcmp(parent, "settings:search-history")) { g_search_history = !g_search_history; save(); }
+        else if (!strcmp(parent, "settings:account-on-boot")) { g_select_account_on_boot = !g_select_account_on_boot; save(); }
+        else if (!strncmp(parent, "settings:boot-section:", 22)) {
+            const char *value = parent + 22; char *end = NULL; long section = strtol(value,&end,10);
+            if (!isdigit((unsigned char)*value) || *end || section >= BOOT_SECTIONS) { cb(0,NULL,0,0,ud); return 1; }
+            copy(g_boot_section, sizeof g_boot_section, g_boot_sections[section].id); save();
         }
         else if (!strncmp(parent, "settings:lang:", 14)) { copy(g_language, sizeof g_language, parent + 14); save(); }
         else if (!strncmp(parent, "settings:audio:", 15)) { copy(g_audio_language, sizeof g_audio_language, parent + 15); save(); }
@@ -3117,10 +3358,26 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:remote:disconnect", g_remote_close_on_disconnect ? "When phone disconnects: close the app" : g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
                 g_remote_close_on_disconnect ? "Close ProsperoTube when a linked phone disconnects, including while browsing" :
                 "Stop applies to phone-started playback; disconnections may happen when the phone sleeps");
+            CATALOG_FOLDER( "settings:remote:history", g_remote_no_history ? "History for phone playback: off" : "History for phone playback: on",
+                "Off records no local history and sends no account reports for videos started from the phone");
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
             CATALOG_FOLDER( "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
             CATALOG_FOLDER( "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
             CATALOG_FOLDER( "settings:dearrow", "DeArrow community attribution", "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app");
+        } else if (!strcmp(parent, "settings:sb:minimum") || !strncmp(parent, "settings:sb:minimum:", 20)) {
+            /* SmartTube's list: disabled, then 0.5 to 20 seconds. A value saved by
+             * an earlier version stays listed until another one replaces it. */
+            const long stored = lround(g_sb.minimum * 1000);
+            if (stored > 20000 || stored % 500) {
+                char label[96]; snprintf(label, sizeof label, "%g seconds", g_sb.minimum);
+                CATALOG_FOLDER( "settings:sb:minimum", label, "Selected; saved by an earlier version");
+            }
+            for (long ms = 0; ms <= 20000; ms += 500) {
+                char id[64], label[96]; snprintf(id, sizeof id, "settings:sb:minimum:%ld", ms);
+                if (!ms) copy(label, sizeof label, "Disabled");
+                else snprintf(label, sizeof label, "%g second%s", ms / 1000.0, ms == 1000 ? "" : "s");
+                CATALOG_FOLDER( id, label, ms == stored ? "Selected" : "Ignore a skip when less than this remains of the segment");
+            }
         } else if (!strcmp(parent, "settings:sb:exclusions") || !strncmp(parent, "settings:sb:exclude:", 20)) {
             char channels[RECORDS + TUBE_SB_EXCLUSIONS + 1][25]; int count = 0;
             if (tube_sb_channel_valid(g_sb_channel)) memcpy(channels[count++], g_sb_channel, 25);
@@ -3162,12 +3419,26 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     "R3 jumps to the next highlight; select to cycle; new categories load on next video" :
                     "Select to cycle the action; fetch new categories on the next video");
             }
-            char label[96]; snprintf(label, sizeof label, "Minimum remaining skip: %.0f seconds", g_sb.minimum);
-            CATALOG_FOLDER( "settings:sb:minimum", label, "Cycle 0 / 1 / 3 / 5 / 10 / 15 / 30 / 60 seconds");
+            char label[96]; snprintf(label, sizeof label, "Ignore short segments: %g second%s", g_sb.minimum, g_sb.minimum == 1 ? "" : "s");
+            CATALOG_FOLDER( "settings:sb:minimum", g_sb.minimum > 0 ? label : "Ignore short segments: disabled", "Choose 0.5 to 20 seconds, or disable");
             CATALOG_FOLDER( "settings:sb:repeat", g_sb.no_repeat ? "Don't skip again: on" : "Don't skip again: off", "Keep skipped segments when rewinding this video");
             CATALOG_FOLDER( "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             CATALOG_FOLDER( "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             CATALOG_FOLDER( "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+        } else if (!strcmp(parent,"settings:history") || !strncmp(parent,"settings:history:",17)) {
+            const char *labels[]={"Automatic","Enabled","Disabled"};
+            const char *details[]={"Record on this PS5; the account's own YouTube setting decides what it keeps",
+                "Record on this PS5 and report watched videos to the selected account",
+                "No local history or resume positions and no account reports"};
+            for(int i=0;i<3;++i) {
+                char id[64];snprintf(id,sizeof id,"settings:history:%d",i);
+                CATALOG_FOLDER(id,labels[i],g_history_state==i?"Selected":details[i]);
+            }
+        } else if (!strcmp(parent,"settings:boot-section") || !strncmp(parent,"settings:boot-section:",22)) {
+            for(int i=0;i<BOOT_SECTIONS;++i) {
+                char id[64];snprintf(id,sizeof id,"settings:boot-section:%d",i);
+                CATALOG_FOLDER(id,g_boot_sections[i].label,boot_section_index(g_boot_section)==i?"Selected":"Open this section when ProsperoTube starts; saved for this profile");
+            }
         } else if (!strcmp(parent,"settings:quality")) {
             const int heights[] = {144,240,360,480,720,1080,1440,2160};
             for (int i=0;i<8;++i) {
@@ -3306,10 +3577,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER("settings:playback-mode","Playback mode","Choose continuation, stop or close behavior at the end of a video");
             CATALOG_FOLDER("settings:queue-respects-mode",g_queue_respects_mode?"Queue respects playback mode: on":"Queue respects playback mode: off","Off continues explicit queued videos in stop and close modes");
             CATALOG_FOLDER( "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
-            CATALOG_FOLDER( "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
+            const char *history_labels[] = {"History: automatic", "History: enabled", "History: disabled"};
+            CATALOG_FOLDER( "settings:history", history_labels[g_history_state],
                 g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
                 g_watch.status == 1 ? "History report pending" : g_watch.status == 2 ? "Last history report confirmed" :
-                "Report watched videos and positions for the selected account");
+                "Local history, resume positions and reports for the selected account");
+            CATALOG_FOLDER( "settings:search-history", g_search_history ? "Search history: on" : "Search history: off", "Remember recent searches for this profile");
+            snprintf(label, sizeof label, "Start in: %s", g_boot_sections[boot_section_index(g_boot_section)].label);
+            CATALOG_FOLDER( "settings:boot-section", label, "Choose the section this profile opens at startup");
+            CATALOG_FOLDER( "settings:account-on-boot", g_select_account_on_boot ? "Choose account at startup: on" : "Choose account at startup: off",
+                "Show the profile list each time ProsperoTube starts; applies to all profiles");
             CATALOG_FOLDER( "settings:clear-history", "Clear local history", "Remove resume positions and watched markers for this profile");
             CATALOG_FOLDER( "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
         }
@@ -3350,11 +3627,20 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    char rerun[816];
+    if (parent && !strncmp(parent,"search-history:run:",19)) {
+        int index = search_history_find(parent+19);
+        if (index < 0) { tube_set_error("Reopen recent searches for the current profile."); cb(0,NULL,0,0,ud); return 0; }
+        snprintf(rerun,sizeof rerun,"search:%s",g_searches[index].query);
+        if (!page) search_history_add(rerun+7);
+        parent = rerun;
+    }
     const char *section = topic_section(parent);
     if(!parent || (strncmp(parent,"account:menu:",13) && strncmp(parent,"local:video:",12)))
         g_browse_music = section && !strcmp(section, "music");
     g_browse_queue = parent && !strcmp(parent, "queue");
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
+    memset(&g_incognito, 0, sizeof g_incognito); /* only its own action screen re-arms it */
     if (parent && !strncmp(parent, "auth:", 5)) {
         if (page || (strcmp(parent, "auth:start") && strcmp(parent, "auth:session") &&
             strcmp(parent, "auth:cancel") && strncmp(parent, "auth:info", 9))) {
@@ -3563,6 +3849,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
 static int search(const char *query, int page, evo_provider_items_cb cb, void *ud) {
     if (!tube_search_query_valid(query) || !cb) return -1;
     tube_queue_retry_cancel();
+    if (!page) search_history_add(query);
     char parent[808]; snprintf(parent, sizeof parent, "search:%s", query);
     return catalog(parent, page, cb, ud);
 }
@@ -3577,11 +3864,14 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     else if (!strcmp(g_selected_playlist.id,id) && g_selected_playlist.value.scope == g_playlist_scope)
         playlist=g_selected_playlist.value;
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
+    int incognito = recovering ? g_active_incognito : !strcmp(g_incognito.id,id) &&
+        !strcmp(g_incognito.profile,g_library_profile) && g_incognito.scope == g_playlist_scope;
+    memset(&g_incognito,0,sizeof g_incognito);
     if (!automatic && !recovering) g_queue_failed_count = 0;
     if (recovering) cancel_requests(0); else { g_paid_text[0] = 0; g_paid_shown = 0; tube_cancel(); }
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
-    r->playlist = playlist;
+    r->playlist = playlist; r->incognito = incognito;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
     const Record *origin_record = record(id, 0);
     r->queue_origin = automatic || (g_browse_queue && origin_record && origin_record->queued);
@@ -3599,8 +3889,14 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
 static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play_state_t state) {
     if (*g_active_id && strcmp(id, g_active_id)) return;
     const char *profile = *g_active_profile ? g_active_profile : g_library_profile;
-    Record *r = record_for(id, profile, 1); if (!r) return;
-    if (dur > 0) r->item.duration_sec = dur;
+    const int silent = history_suppressed();
+    Record *r = record_for(id, profile, !silent);
+    if (r && dur > 0) r->item.duration_sec = dur;
+    if (silent) { /* Duration is metadata; position, watched marker and reports are history. */
+        if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; g_completion_action=g_completion_consumed=0; g_sponsor_completed=g_sponsor_seek_pending=0; }
+        g_watch.dirty = 0; return;
+    }
+    if (!r) return;
     if (g_finished && state != EVO_PROVIDER_PLAY_START && !strcmp(id, g_active_id)) {
         /* Explicit SponsorBlock completion stops before the old clock reaches
          * the end. Its final stop report must not restore an outro resume. */
@@ -3651,7 +3947,9 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     }
     if (g_watch.stopped && g_watch.dirty) watch_flush(1);
     watch_reset(0);
-    if (valid_id(id) && valid_profile(profile) && strcmp(profile, "guest")) {
+    if (!recovering) g_active_incognito = g_resolved_incognito && !strcmp(id,g_resolved_id) && !strcmp(g_active_profile,g_resolved_profile);
+    g_resolved_incognito = 0;
+    if (valid_id(id) && valid_profile(profile) && strcmp(profile, "guest") && !g_active_incognito) {
         copy(g_watch.id, sizeof g_watch.id, id); copy(g_watch.profile, sizeof g_watch.profile, profile);
         snprintf(g_watch.session, sizeof g_watch.session, "%llx-%lx-%u", (unsigned long long)time(NULL), (unsigned long)getpid(), g_watch.serial);
     }
@@ -4189,7 +4487,11 @@ static int finish_and_next(int playlist) {
     if (!*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
-    if (r) { if(g_playback_mode!=TUBE_MODE_ONE) r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
+    if (r) {
+        if(g_playback_mode!=TUBE_MODE_ONE) r->queued = 0;
+        if (!history_suppressed()) { r->item.played = 1; r->item.resume_pos_sec = 0; }
+        save();
+    }
     if (strcmp(g_active_profile, g_library_profile)) return 0;
     g_completion_scope=g_playlist_scope;
     if (g_playback_mode==TUBE_MODE_ONE) {

@@ -1,17 +1,17 @@
 /* Profile-owned preferences. Companion pairing and remote identity are device-owned. */
 #define SETTINGS_PROFILES 128
 typedef struct {
-    int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_sync, paid_notifications, dearrow_titles, dearrow_thumbnails;
+    int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_state, search_history, paid_notifications, dearrow_titles, dearrow_thumbnails;
     int speed, last_speed, speed_mode;
     int playback_mode;
     int queue_respects_mode;
-    char language[16], audio_language[16];
+    char language[16], audio_language[16], boot_section[24];
     tube_sb_policy sb;
 } ProfileSettings;
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
-    ProfileSettings p = {0}; p.height = 1080; p.captions = p.history_sync = 1;
+    ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = 1;
     p.speed = p.last_speed = 100; p.speed_mode = 1;
     copy(p.language,sizeof p.language,"en"); tube_sb_defaults(&p.sb); return p;
 }
@@ -30,7 +30,9 @@ static ProfileSettings profile_settings_capture(void) {
     p.ask_stream = g_ask_stream;
     p.player_chat_mode = g_player_chat_mode;
     p.sleep_minutes = g_sleep_minutes;
-    p.history_sync = g_history_sync;
+    p.history_state = g_history_state;
+    p.search_history = g_search_history;
+    copy(p.boot_section,sizeof p.boot_section,g_boot_section);
     p.paid_notifications = g_paid_notifications;
     p.dearrow_titles = g_dearrow_titles;
     p.dearrow_thumbnails = g_dearrow_thumbnails;
@@ -51,7 +53,9 @@ static void profile_settings_apply(const ProfileSettings *p) {
     g_ask_stream = p->ask_stream;
     g_player_chat_mode = p->player_chat_mode;
     g_sleep_minutes = p->sleep_minutes;
-    g_history_sync = p->history_sync;
+    g_history_state = p->history_state;
+    g_search_history = p->search_history;
+    copy(g_boot_section,sizeof g_boot_section,p->boot_section);
     g_paid_notifications = p->paid_notifications;
     g_dearrow_titles = p->dearrow_titles;
     g_dearrow_thumbnails = p->dearrow_thumbnails;
@@ -83,6 +87,11 @@ static int settings_integer(const cJSON *root, const char *key, int lo, int hi, 
     return cJSON_IsNumber(v) && isfinite(v->valuedouble) && v->valuedouble >= lo &&
         v->valuedouble <= hi && floor(v->valuedouble) == v->valuedouble ? (int)v->valuedouble : fallback;
 }
+/* history_state supersedes the history_sync boolean; a saved "off" becomes Disabled. */
+static int history_state_read(const cJSON *root) {
+    return settings_integer(root,"history_state",TUBE_HISTORY_AUTO,TUBE_HISTORY_DISABLED,
+        cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(root,"history_sync")) ? TUBE_HISTORY_DISABLED : TUBE_HISTORY_AUTO);
+}
 static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     *p = profile_settings_defaults();
     double speed = num(root,"speed_percent"), last = num(root,"last_speed_percent");
@@ -103,7 +112,9 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"ask_stream"))) p->ask_stream = boolean(root,"ask_stream");
     p->player_chat_mode = settings_integer(root,"player_chat_mode",0,2,0);
     p->sleep_minutes = settings_integer(root,"sleep_timer_minutes",0,600,0);
-    if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"history_sync"))) p->history_sync = boolean(root,"history_sync");
+    p->history_state = history_state_read(root);
+    if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"search_history"))) p->search_history = boolean(root,"search_history");
+    copy(p->boot_section,sizeof p->boot_section,g_boot_sections[boot_section_index(str(root,"boot_section"))].id);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"paid_content_notifications"))) p->paid_notifications = boolean(root,"paid_content_notifications");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"dearrow_titles"))) p->dearrow_titles = boolean(root,"dearrow_titles");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"dearrow_thumbnails"))) p->dearrow_thumbnails = boolean(root,"dearrow_thumbnails");
@@ -157,7 +168,10 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddBoolToObject(row,"ask_stream",p->ask_stream);
         cJSON_AddNumberToObject(row,"player_chat_mode",p->player_chat_mode);
         cJSON_AddNumberToObject(row,"sleep_timer_minutes",p->sleep_minutes);
-        cJSON_AddBoolToObject(row,"history_sync",p->history_sync);
+        cJSON_AddNumberToObject(row,"history_state",p->history_state);
+        cJSON_AddBoolToObject(row,"history_sync",p->history_state!=TUBE_HISTORY_DISABLED);
+        cJSON_AddBoolToObject(row,"search_history",p->search_history);
+        cJSON_AddStringToObject(row,"boot_section",p->boot_section);
         cJSON_AddBoolToObject(row,"paid_content_notifications",p->paid_notifications);
         cJSON_AddBoolToObject(row,"dearrow_titles",p->dearrow_titles);
         cJSON_AddBoolToObject(row,"dearrow_thumbnails",p->dearrow_thumbnails);

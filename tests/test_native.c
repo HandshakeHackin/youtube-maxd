@@ -242,7 +242,7 @@ int main(void) {
     assert(!last_ok);
     /* Account actions require a deliberate confirmation and submit only once. */
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 6 && strstr(last_items[0].title, "profile first"));
+    assert(last_ok && last_count == 11 && strstr(last_items[0].title, "profile first"));
     assert(!pending_count);
     p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
     /* Displayed comment capabilities are profile-bound and require review. */
@@ -281,7 +281,7 @@ int main(void) {
     p->search("account fixture", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 16 && !pending_count);
+    assert(last_ok && last_count == 21 && !pending_count);
     char account_choices[7][160];
     for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
     const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};
@@ -451,16 +451,16 @@ int main(void) {
     p->list_catalog("queue", 0, items_cb, NULL);
     assert(last_count == 0); /* drained completion removed the final queued item */
     /* History reports bind to a resolved account and never block browsing. */
-    p->list_catalog("settings:history-sync", 0, items_cb, NULL); /* default on -> off */
+    p->list_catalog("settings:history:2", 0, items_cb, NULL); /* default automatic -> disabled */
     assert(p->init() == 0);
     int history_row=-1,history_page=0;
     for(;;++history_page) {
         p->list_catalog("settings",history_page,items_cb,NULL);assert(last_ok);
-        for(int i=0;i<last_count;++i)if(!strcmp(last_items[i].id,"settings:history-sync"))history_row=i;
+        for(int i=0;i<last_count;++i)if(!strcmp(last_items[i].id,"settings:history"))history_row=i;
         if(history_row>=0 || !last_more)break;
     }
-    assert(history_row >= 0 && strstr(last_items[history_row].title, "off"));
-    p->list_catalog("settings:history-sync", 0, items_cb, NULL);
+    assert(history_row >= 0 && strstr(last_items[history_row].title, "disabled"));
+    p->list_catalog("settings:history:1", 0, items_cb, NULL);
     p->list_catalog("settings:sponsor", 0, items_cb, NULL); /* disable extra sponsor request */
     p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
     assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
@@ -522,10 +522,11 @@ int main(void) {
     reply(0, 1, 200, "{\"success\":true,\"position_sec\":6}");
     p->report_progress("abcdefghijk", 1, 100, EVO_PROVIDER_PLAY_UPDATE);
     assert(pending_count == 1);
-    p->list_catalog("settings:history-sync", 0, items_cb, NULL);
+    p->list_catalog("settings:history:2", 0, items_cb, NULL);
     reply(0, 1, 200, "{\"success\":true,\"position_sec\":1}");
     p->report_progress("abcdefghijk", 8, 100, EVO_PROVIDER_PLAY_STOP);
-    assert(!pending_count); /* disabling sync prevents future reports */
+    assert(!pending_count); /* disabling history prevents future reports */
+    p->list_catalog("settings:history:0", 0, items_cb, NULL);
     /* Local state is keyed by profile as well as the stable video identity. */
     assert(p->search("local-profiles", 0, items_cb, NULL) == 0);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Profile video\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"subtitle\":\"Profile channel\",\"duration_sec\":100}],\"has_more\":false}}");

@@ -15,6 +15,10 @@ void tube_phone_sync_scope(void);
 int tube_voice_scope(char *source, size_t source_capacity, char *token,
                      size_t token_capacity, char *profile, size_t profile_capacity);
 int tube_phone_stop_on_disconnect(void);
+/* Startup preferences for the UI host; main thread, after provider init.
+ * Section: a catalog id to open instead of the main menu ("" = main menu). */
+int tube_select_account_on_boot(void);
+const char *tube_boot_section(void);
 int tube_phone_close_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);

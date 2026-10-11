@@ -37,7 +37,7 @@ int main(void) {
     action("settings:autoplay"); action("settings:player-chat"); action("settings:sleep:60");
     action("settings:lang:fr"); action("settings:audio:de"); action("settings:codec"); action("settings:codec"); action("settings:codec"); action("settings:codec");
     action("settings:automatic"); action("settings:sb:paid"); action("settings:dearrow:titles");
-    action("settings:dearrow:thumbnails"); action("settings:ask-stream"); action("settings:history-sync");
+    action("settings:dearrow:thumbnails"); action("settings:ask-stream"); action("settings:history:2");
     action("settings:sb:exclude:UCabcdefghijklmnopqrstuv");
     check(1440,0,1,1,1,60,"fr");
     action("library:profile:alice"); check(1080,1,0,0,0,0,"en");
@@ -115,7 +115,43 @@ int main(void) {
     cJSON_DeleteItemFromObject(root,"playback_mode");
     cJSON *mode_row; cJSON_ArrayForEach(mode_row,cJSON_GetObjectItem(root,"profile_settings"))cJSON_DeleteItemFromObject(mode_row,"playback_mode");
     write_store(root);cJSON_Delete(root);assert(!p->init());assert(tube_playback_mode()==TUBE_MODE_ALL);
+    /* Startup: the section is profile-owned, the account chooser is device-owned. */
+    assert(!*tube_boot_section() && !tube_select_account_on_boot());
+    action("settings:boot-section");assert(last_count==17 && !strcmp(last_items[0].subtitle,"Selected"));
+    action("settings:boot-section:8");
+    assert(!strcmp(tube_boot_section(),"section:music") && !strcmp(last_items[8].subtitle,"Selected") && strcmp(last_items[0].subtitle,"Selected"));
+    action("settings:account-on-boot");assert(tube_select_account_on_boot());
+    int boot_row=-1,account_row=-1;
+    for(int page=0;boot_row<0 || account_row<0;++page) {
+        p->list_catalog("settings",page,items_cb,NULL);assert(last_ok);
+        for(int i=0;i<last_count;++i) {
+            if(!strcmp(last_items[i].id,"settings:boot-section")){boot_row=i;assert(!strcmp(last_items[i].title,"Start in: Music"));}
+            if(!strcmp(last_items[i].id,"settings:account-on-boot")){account_row=i;assert(!strcmp(last_items[i].title,"Choose account at startup: on"));}
+        }
+        assert(last_more || (boot_row>=0 && account_row>=0));
+    }
+    action("library:profile:boot");assert(!*tube_boot_section() && tube_select_account_on_boot());
+    action("settings:boot-section:12");assert(!strcmp(tube_boot_section(),"history"));
+    const char *bad_boot[]={"settings:boot-section:","settings:boot-section:17","settings:boot-section:1x","settings:boot-section:-1","settings:boot-section:99999999999999999999"};
+    for(unsigned i=0;i<sizeof bad_boot/sizeof *bad_boot;++i){p->list_catalog(bad_boot[i],0,items_cb,NULL);assert(!last_ok);}
+    assert(!strcmp(tube_boot_section(),"history"));
+    p->shutdown();assert(!p->init());assert(!strcmp(tube_boot_section(),"history") && tube_select_account_on_boot());
+    action("library:profile:guest");assert(!strcmp(tube_boot_section(),"section:music"));
+    action("settings:boot-section:0");assert(!*tube_boot_section());
+    action("settings:boot-section:8");action("settings:account-on-boot");action("settings:account-on-boot");
+    assert(!p->set_source("http://127.0.0.1:8766"));assert(!strcmp(tube_boot_section(),"section:music") && tube_select_account_on_boot());
+    p->shutdown();root=read_store();
+    assert(cJSON_IsTrue(cJSON_GetObjectItem(root,"select_account_on_boot")));
+    cJSON_ReplaceItemInObject(root,"select_account_on_boot",cJSON_CreateString("yes"));
+    cJSON_ArrayForEach(mode_row,cJSON_GetObjectItem(root,"profile_settings")) {
+        int guest_row=!strcmp(cJSON_GetObjectItem(mode_row,"profile")->valuestring,"guest");
+        if(guest_row)assert(!strcmp(cJSON_GetObjectItem(mode_row,"boot_section")->valuestring,"section:music"));
+        cJSON_ReplaceItemInObject(mode_row,"boot_section",guest_row?cJSON_CreateString("settings:clear-history"):cJSON_CreateNumber(12));
+    }
+    write_store(root);cJSON_Delete(root);assert(!p->init());
+    assert(!*tube_boot_section() && !tube_select_account_on_boot());
+    action("library:profile:boot");assert(!*tube_boot_section());
     p->shutdown(); unlink(evo_data_path("youtube.json")); assert(!rmdir(dir));
-    puts("PASS: profile settings isolation, legacy migration, reload, source reset and corrupt rows");
+    puts("PASS: profile settings isolation, startup preferences, legacy migration, reload, source reset and corrupt rows");
     return 0;
 }

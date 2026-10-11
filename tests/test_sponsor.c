@@ -27,15 +27,12 @@ static void action(const char *category, int desired) {
     assert(0);
 }
 static void minimum(double desired) {
-    for (int i = 0; i < 8; ++i) {
-        cJSON *root = read_store();
-        double current = cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
-            root, "sponsor_settings"), "minimum_seconds")->valuedouble;
-        cJSON_Delete(root);
-        if (current == desired) return;
-        provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL); assert(last_ok);
-    }
-    assert(0);
+    char id[64]; snprintf(id, sizeof id, "settings:sb:minimum:%d", (int)(desired * 1000));
+    provider->list_catalog(id, 0, items_cb, NULL); assert(last_ok);
+    cJSON *root = read_store();
+    assert(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
+        root, "sponsor_settings"), "minimum_seconds")->valuedouble == desired);
+    cJSON_Delete(root);
 }
 int main(void) {
     char temporary[] = "/tmp/tube-sponsor-XXXXXX";
@@ -75,7 +72,7 @@ int main(void) {
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"},{\"start\":35,\"end\":50,\"category\":\"filler\"}]}");
     assert(tube_skip_target(12) == 20 && tube_sponsor_show_message());
     assert(tube_skip_target(60) < 0 && tube_skip_target(38) < 0); // A late position outside the start window does not trigger a skip.
-    for (int i = 0; i < 5; ++i) provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
+    minimum(0);
     action("sponsor", 0);
     segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"},{\"start\":15,\"end\":40,\"category\":\"intro\"}]}");
     assert(tube_skip_target(12) == 20 && !tube_sponsor_show_message());
@@ -268,10 +265,10 @@ int main(void) {
     assert(tube_highlight_target(10, 100) == 50); // Explicit rewind/repeat is allowed.
     action("poi_highlight", 0);
     provider->list_catalog("settings:sb:color:poi_highlight", 0, items_cb, NULL);
-    minimum(60);
+    minimum(20);
     cJSON *minimum_store = read_store();
     assert(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(
-        minimum_store, "sponsor_settings"), "minimum_seconds")->valuedouble == 60);
+        minimum_store, "sponsor_settings"), "minimum_seconds")->valuedouble == 20);
     cJSON_Delete(minimum_store);
     assert(tube_highlight_target(48, 100) == 50 && !tube_sponsor_show_message()); // Only two seconds, color off.
     assert(!tube_sponsor_finish(50, 100));
@@ -321,6 +318,37 @@ int main(void) {
     provider->set_source("http://127.0.0.1:8765"); assert(tube_highlight_target(10, 100) < 0);
     provider->list_catalog("settings:sb:action:invalid", 0, items_cb, NULL); assert(!last_ok);
     assert(provider->list_catalog("settings:sb:exclusions", 1001, items_cb, NULL) < 0);
+    /* Ignore short segments: SmartTube's 0-20 s list in half-second steps. */
+    provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
+    assert(last_ok && last_count == 24 && last_more && !strcmp(last_items[0].title, "Disabled"));
+    assert(!strcmp(last_items[1].id, "settings:sb:minimum:500") && !strcmp(last_items[1].title, "0.5 seconds"));
+    assert(!strcmp(last_items[2].title, "1 second") && !strcmp(last_items[0].subtitle, "Selected"));
+    provider->list_catalog("settings:sb:minimum", 1, items_cb, NULL);
+    assert(last_ok && last_count == 17 && !last_more && !strcmp(last_items[16].id, "settings:sb:minimum:20000"));
+    minimum(7.5);
+    provider->list_catalog("settings:sb:minimum:12000", 1, items_cb, NULL); /* a later page never repeats the action */
+    cJSON *list_store = read_store();
+    assert(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(list_store, "sponsor_settings"), "minimum_seconds")->valuedouble == 7.5);
+    cJSON_Delete(list_store);
+    const char *rejected[] = {"settings:sb:minimum:", "settings:sb:minimum:250", "settings:sb:minimum:20500", "settings:sb:minimum:500x",
+        "settings:sb:minimum:-500", "settings:sb:minimum: 500", "settings:sb:minimum:99999999999999999999"};
+    for (unsigned i = 0; i < sizeof rejected / sizeof *rejected; ++i) {
+        provider->list_catalog(rejected[i], 0, items_cb, NULL); assert(!last_ok);
+    }
+    provider->list_catalog("settings:sb", 0, items_cb, NULL);
+    assert(last_ok && last_count == 14 && !strcmp(last_items[9].title, "Ignore short segments: 7.5 seconds"));
+    /* A value saved by the earlier 0-60 s cycle stays valid and listed until replaced. */
+    provider->shutdown(); list_store = read_store(); cJSON *legacy_row;
+    cJSON_ArrayForEach(legacy_row, cJSON_GetObjectItemCaseSensitive(list_store, "profile_settings"))
+        cJSON_ReplaceItemInObject(cJSON_GetObjectItemCaseSensitive(legacy_row, "sponsor_settings"), "minimum_seconds", cJSON_CreateNumber(30));
+    write_store(list_store); cJSON_Delete(list_store); assert(provider->init() == 0);
+    provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
+    assert(last_ok && !strcmp(last_items[0].title, "30 seconds") && strstr(last_items[0].subtitle, "Selected") && !strcmp(last_items[1].title, "Disabled"));
+    provider->list_catalog("settings:sb:minimum", 1, items_cb, NULL); assert(last_ok && last_count == 18);
+    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(!strcmp(last_items[9].title, "Ignore short segments: 30 seconds"));
+    minimum(0); provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
+    assert(!strcmp(last_items[0].title, "Disabled") && !strcmp(last_items[0].subtitle, "Selected"));
+    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(!strcmp(last_items[9].title, "Ignore short segments: disabled"));
     puts("PASS: shipping SponsorBlock actions, confirmation, end skips, watched state, queue transitions, exclusions, persistence and stale replies");
     return 0;
 }

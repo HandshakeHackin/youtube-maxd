@@ -242,6 +242,24 @@ Touchpad click on a video opens video actions for Guest and account profiles.
 profile's PS5 history; favorites and queue membership remain intact. These local
 history actions do not update YouTube account history.
 
+The same menu has **Play from start** (forgets the resume position, keeps the
+watched marker) and **Play incognito** (that playback writes no local history or
+resume position and sends no account report); each shows the video as a row and
+Cross starts it. **Open channel** and **Open playlist** browse the video's
+channel and the playlist it was listed in. **Share link** shows the video, embed,
+channel and playlist links as text. **Exclude channel from SponsorBlock** toggles
+the channel in this profile's exclusion list.
+
+Searches are remembered per profile (the 50 most recent, repeats ignoring letter
+case). **Recent searches** in the main menu repeats a query, removes one, or
+clears them all; **Search history** in YouTube preferences turns it off.
+YouTube preferences also hold **History** (Automatic, Enabled, or Disabled, which
+also stops local history and resume positions), **Start in** (the section this
+profile opens at startup), **Choose account at startup**, the SponsorBlock
+**Ignore short segments** list (0.5 to 20 seconds), and, under Phone pairing,
+**History for phone playback**. The two startup preferences are stored now and
+take effect once the browser reads them at launch.
+
 With an account profile selected, the same menu includes video ratings, YouTube
 Watch later, and channel subscribe/unsubscribe controls. Each change shows a
 confirmation for that profile. Reopening an operation screen does not submit it
