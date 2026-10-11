@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { randomUUID } from 'node:crypto';
 
-const sections = new Set(['music', 'gaming', 'news', 'sports', 'live', 'movies']);
+const sections = new Map(['music', 'gaming', 'news', 'sports', 'live', 'movies'].map(name => [name, `FEtopics_${name}`]));
+// SmartTube's TV Trending, Shorts and own-uploads browse feeds. These may be
+// a shelf list or one flat grid; the account feed is never requested for Guest.
+const flatSections = new Map([['trending', 'FEtrending'], ['shorts', 'FEshorts'], ['my_videos', 'FEmy_videos']]);
+for (const [name, browseId] of flatSections) sections.set(name, browseId);
 // MediaServiceCore 4d9767733aa9 BrowseApiHelper.getLikedMusicContinuation.
 const likedMusicContinuation = '4qmFsgIWEhRGRW11c2ljX2xpa2VkX3ZpZGVvcw%3D%3D';
 const text = value => typeof value === 'string' ? value.slice(0, 192) :
@@ -58,8 +62,10 @@ export class TopicCatalog {
     return response.data;
   }
   async root(owner, section, client, authenticated = false) {
-    if (!sections.has(section)) throw new this.Error('invalid_catalog', 'Choose an available section.');
-    const feed = this.feed(owner, section, client, await this.request(client, { browseId: `FEtopics_${section}` }), true);
+    if (typeof section !== 'string' || !sections.has(section)) throw new this.Error('invalid_catalog', 'Choose an available section.');
+    if (section === 'my_videos' && !authenticated)
+      throw new this.Error('account_required', 'Sign in to the selected account first.', 401);
+    const feed = this.feed(owner, section, client, await this.request(client, { browseId: sections.get(section) }), true);
     if (section === 'music' && authenticated) {
       const liked = await this.likedMusic(owner, client);
       if (liked) feed.catalog_items.unshift(liked);
@@ -105,8 +111,8 @@ export class TopicCatalog {
       return this.folder(owner, section, client, title, image,
         { endpoint: { browseId: endpoint.browseId, ...(endpoint.params ? { params: endpoint.params } : {}) },
           root: endpoint.browseId === 'FEstorefront' || endpoint.browseId.startsWith('UC') });
-    if (tile.contentType !== 'TILE_CONTENT_TYPE_VIDEO') return null;
-    const id = tile.onSelectCommand?.watchEndpoint?.videoId ?? tile.contentId;
+    if (!['TILE_CONTENT_TYPE_VIDEO', 'TILE_CONTENT_TYPE_SHORTS'].includes(tile.contentType)) return null;
+    const id = tile.onSelectCommand?.watchEndpoint?.videoId ?? tile.onSelectCommand?.reelWatchEndpoint?.videoId ?? tile.contentId;
     const lines = metadata?.lines ?? metadata?.bylines ?? [];
     const byline = lines[0]?.lineRenderer?.items ?? [];
     const author = byline.map(part => text(part.lineItemRenderer?.text)).filter(Boolean).join(' ');
@@ -143,10 +149,15 @@ export class TopicCatalog {
       thumbnails: video.thumbnail?.thumbnails ?? [], ...this.videoState(video,video.thumbnailOverlays ?? []) });
   }
   feed(owner, section, client, raw, root, continuationResponse = false, clientType = 'TV') {
-    let node = root ? find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation') :
-      find(raw, 'horizontalListRenderer') ?? find(raw, 'horizontalListContinuation') ??
+    const flat = () => find(raw, 'horizontalListRenderer') ?? find(raw, 'horizontalListContinuation') ??
       find(raw, 'playlistVideoListRenderer') ?? find(raw, 'playlistVideoListContinuation') ??
       find(raw, 'gridRenderer') ?? find(raw, 'gridContinuation');
+    let node = root ? find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation') : flat();
+    if (root && flatSections.has(section) && !(node?.contents ?? []).some(value => value?.shelfRenderer)) {
+      // A shelf-less Trending/Shorts/uploads page is one grid of videos.
+      const grid = flat();
+      if (grid) { node = grid; root = false; }
+    }
     if (!node && clientType === 'WEB' && continuationResponse) {
       const update = find(raw, 'appendContinuationItemsAction') ?? find(raw, 'reloadContinuationItemsCommand');
       if (update) node = { items: update.continuationItems };
