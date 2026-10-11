@@ -62,13 +62,37 @@ int main(void){
     menu("library:profile:guest",0);assert(tube_player_aspect_mode()==2 && tube_player_pixel_mode()==3);
     p->stream_chosen("abcdefghijk",&choice);tube_video_geometry_enable(1);
     assert(tube_player_video_geometry()==((200u<<4)|(2u<<13)|(3u<<17)|1u));
+    menu("settings:video-rotate",0);assert(last_count==4 && !last_more);
+    for(int i=0;i<4;++i){char id[64];snprintf(id,sizeof id,"settings:rotate:%d",i*90);assert(!strcmp(last_items[i].id,id));}
+    for(int degrees=0;degrees<=270;degrees+=90){
+        char id[64];snprintf(id,sizeof id,"settings:rotate:%d",degrees);menu(id,0);assert(tube_player_rotation_degrees()==degrees);
+    }
+    for(int invalid=-1;invalid<=361;++invalid)if(invalid<0 || invalid>270 || invalid%90)assert(!tube_player_set_rotation_degrees(invalid));
+    assert(!tube_player_set_mirror_enabled(-1) && !tube_player_set_mirror_enabled(2));
+    const char* bad_rotation[]={"settings:rotate:90junk","settings:rotate:90.5","settings:rotate:360"};
+    for(unsigned i=0;i<sizeof bad_rotation/sizeof *bad_rotation;++i){p->list_catalog(bad_rotation[i],0,items_cb,NULL);assert(!last_ok);}
+    assert(tube_player_set_rotation_degrees(90));
+    menu("settings:video-mirror",0);assert(tube_player_mirror_enabled());
+    menu("settings:video-mirror",1);assert(tube_player_mirror_enabled()); /* Paging cannot toggle twice. */
+    picture=(200u<<4)|(2u<<13)|(3u<<17)|(5u<<20)|1u;
+    assert(tube_player_video_geometry()==picture);
+    menu("library:profile:other",0);assert(!tube_player_rotation_degrees() && !tube_player_mirror_enabled());
+    assert(tube_player_set_rotation_degrees(270) && tube_player_video_geometry()==picture);
+    assert(tube_player_set_pixel_mode(5));picture=(picture&~TUBE_PIXEL_MASK)|(5u<<17);
+    assert(tube_player_video_geometry()==picture);
+    p->shutdown();assert(!p->init());assert(tube_player_rotation_degrees()==270 && !tube_player_mirror_enabled());
+    menu("library:profile:guest",0);assert(tube_player_rotation_degrees()==90 && tube_player_mirror_enabled());
+    assert(tube_player_set_resize_mode(2) && tube_player_rotation_degrees()==90 && tube_player_mirror_enabled());
+    assert(tube_player_set_zoom_percent(200) && tube_player_rotation_degrees()==90 && tube_player_mirror_enabled());
     p->shutdown();cJSON* root=read_store();cJSON* rows=cJSON_GetObjectItem(root,"player_preferences");
     cJSON* guest=cJSON_GetArrayItem(rows,0);assert(!strcmp(cJSON_GetObjectItem(guest,"profile")->valuestring,"guest"));
     cJSON_ReplaceItemInObject(guest,"resize_mode",cJSON_CreateNumber(7));cJSON_ReplaceItemInObject(guest,"zoom_percent",cJSON_CreateNumber(105.5));
     cJSON_ReplaceItemInObject(guest,"aspect_mode",cJSON_CreateNumber(10.5));
     cJSON_ReplaceItemInObject(root,"pixel_ratio_mode",cJSON_CreateNumber(6));
+    cJSON_ReplaceItemInObject(guest,"rotation_degrees",cJSON_CreateNumber(90.5));
+    cJSON_ReplaceItemInObject(guest,"mirror_enabled",cJSON_CreateNumber(2));
     write_store(root);cJSON_Delete(root);assert(!p->init());assert(!tube_player_resize_mode() && !tube_player_zoom_percent());
-    assert(!tube_player_aspect_mode() && !tube_player_pixel_mode());
+    assert(!tube_player_aspect_mode() && !tube_player_pixel_mode() && !tube_player_rotation_degrees() && !tube_player_mirror_enabled());
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
-    puts("PASS: 60 sizing + 11 aspect + 6 display options, persistence, corrupt defaults and active-profile isolation");
+    puts("PASS: 60 sizing + 11 aspect + 6 display + rotation/mirror options, persistence, corrupt defaults and active-profile isolation");
 }

@@ -156,6 +156,19 @@ int main(int argc,char**argv) {
     host.RequestPage("settings",1);pump();assert(!host.m_has_more);
     assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
         [](const EvoProviderRow& row){return row.id=="settings:clear-queue";}));
+    for(int enabled=1;enabled>=0;--enabled) {
+        host.RequestPage("settings",0);pump();
+        const auto depth=host.m_stack.size();
+        auto mirror=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),
+            [](const EvoProviderRow& row){return row.id=="settings:video-mirror";});
+        assert(mirror!=host.m_all_rows.end());
+        auto index=static_cast<size_t>(mirror-host.m_all_rows.begin());
+        host.SetPageOffset((index/EVO_PROVIDER_PAGE_SIZE)*EVO_PROVIDER_PAGE_SIZE,
+                           static_cast<int>(index%EVO_PROVIDER_PAGE_SIZE));pump();
+        host.m_pending_activation="settings:video-mirror";host.ApplyPendingActivation();pump();
+        assert(tube_player_mirror_enabled()==enabled && host.m_stack.size()==depth);
+        host.RequestPage("settings",1);pump();assert(tube_player_mirror_enabled()==enabled);
+    }
     for (const auto& chooser : std::vector<std::pair<std::string,std::string>>{
             {"settings:player-ok","settings:player-ok:2"},
             {"settings:player-hide","settings:player-hide:0"},
@@ -166,6 +179,7 @@ int main(int argc,char**argv) {
             {"settings:time-display","settings:time-display:2"},
             {"settings:video-zoom","settings:zoom:100"},
             {"settings:video-aspect","settings:aspect:10"},
+            {"settings:video-rotate","settings:rotate:270"},
             {"settings:pixel-ratio","settings:pixel:5"},
             {"settings:sleep-timer","settings:sleep:30"}}) {
         host.RequestPage("settings",0); pump();
@@ -190,7 +204,7 @@ int main(int argc,char**argv) {
     }
     assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
     assert(tube_player_seek_mode()==2 && tube_player_seek_seconds()==7);
-    assert(tube_player_zoom_percent()==100 && tube_player_aspect_mode()==10 && tube_player_pixel_mode()==5);
+    assert(tube_player_zoom_percent()==100 && tube_player_aspect_mode()==10 && tube_player_pixel_mode()==5 && tube_player_rotation_degrees()==270);
     host.RequestPage("settings:video-zoom",0);pump();assert(host.m_has_more);
     host.RequestPage("settings:video-zoom",1);pump();assert(host.m_has_more);
     host.RequestPage("settings:video-zoom",2);pump();assert(!host.m_has_more);

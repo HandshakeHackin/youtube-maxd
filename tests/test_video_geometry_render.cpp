@@ -17,7 +17,11 @@ struct {int view_mode=0;}state;
 static void rml(){
 #include "rml.inc"
 }
-static int mode,zoom,aspect,pixel;
+static int mode,zoom,aspect,pixel,rotation,mirror;
+static int tube_player_rotation_degrees(){return rotation;}
+static int tube_player_mirror_enabled(){return mirror;}
+static int tube_player_set_rotation_degrees(int value){rotation=value;return 1;}
+static int tube_player_set_mirror_enabled(int value){mirror=value;return 1;}
 static int tube_player_aspect_mode(){return aspect;}
 static int tube_player_pixel_mode(){return pixel;}
 static int tube_player_set_aspect_mode(int value){aspect=value;return 1;}
@@ -33,7 +37,7 @@ struct PlaybackController {
     void cycleViewMode();void setViewMode(ViewMode value);void applyViewMode(){++applies;}
 };
 #include "controller.inc"
-enum {KindResize,KindZoom,KindAspect,KindPixel};
+enum {KindResize,KindZoom,KindAspect,KindPixel,KindRotate,KindMirror};
 struct Entry {int kind=0,streamIndex=0;std::string label,detail,badge;};
 static std::vector<Entry> m_tracks;
 static std::string message;
@@ -60,7 +64,7 @@ int main(){
     config=150u<<4|1;rml();assert(element.text=="ASPECT: Zoom 150%");int writes=element.writes;m_frame_dirty=false;
     rml();assert(writes==element.writes && !m_frame_dirty);config=7;rml();assert(element.text=="ASPECT: Fit width" && m_frame_dirty);
     config=0;state.view_mode=2;rml();assert(element.text=="ASPECT: Stretch");
-    rows();assert(m_tracks.size()==77 && m_tracks[0].badge=="SELECTED" && m_tracks[59].streamIndex==300);
+    rows();assert(m_tracks.size()==82 && m_tracks[0].badge=="SELECTED" && m_tracks[59].streamIndex==300);
     select(m_tracks[59]);assert(zoom==300 && mode==0);rows();assert(m_tracks[59].badge=="SELECTED");
     select(m_tracks[1]);assert(mode==3 && !zoom && message=="Fit width");
     PlaybackController playback;mode=1;zoom=0;playback.cycleViewMode();
@@ -88,5 +92,10 @@ int main(){
     config=1u|(6u<<13)|(1u<<17)|(150u<<4);rml();assert(element.text=="ASPECT: Zoom 150% / 21:9 / PAR 1.11111");
     rows();select(m_tracks[70]);select(m_tracks[76]);assert(aspect==10 && pixel==5);
     rows();assert(m_tracks[70].badge=="SELECTED" && m_tracks[76].badge=="SELECTED");
-    puts("PASS: shipping AGC geometry, all aspect/pixel combinations, all zoom levels, paused sizing labels, picker and Triangle controller");
+    for(int i=0;i<4;++i){select(m_tracks[77+i]);assert(rotation==i*90);}
+    select(m_tracks[81]);assert(mirror==1 && message=="Mirror video: on");
+    select(m_tracks[81]);assert(mirror==0 && message=="Mirror video: off");
+    config=1u|(6u<<13)|(1u<<17)|(150u<<4)|(7u<<20);rml();
+    assert(element.text=="ASPECT: Zoom 150% / 21:9 / PAR 1.11111 / 270 deg / Mirror");
+    puts("PASS: shipping rotation/mirror preferences and labels, AGC geometry, all aspect/pixel combinations, all zoom levels, paused sizing labels, picker and Triangle controller");
 }

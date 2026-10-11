@@ -13,7 +13,7 @@ static inline int tube_zoom_valid(int percent) {
     return (percent>=50 && percent<=95 && percent%5==0) ||
         (percent>=96 && percent<=100) || (percent>=105 && percent<=300 && percent%5==0);
 }
-/* Bit 0 enables the YouTube transform; bits 1..3 resize, 4..12 zoom, 13..16 aspect, 17..19 pixel ratio. */
+/* Bit 0 enables the YouTube transform; bits 1..3 resize, 4..12 zoom, 13..16 aspect, 17..19 pixel ratio, 20..21 rotation, 22 mirror. */
 static inline void tube_video_geometry_scale(unsigned config,int vw,int vh,int sw,int sh,float* sx,float* sy) {
     if(!(config&1) || !sx || !sy || vw<=0 || vh<=0 || sw<=0 || sh<=0 ||
        vw>16384 || vh>16384 || sw>16384 || sh>16384)return;
@@ -38,5 +38,10 @@ static inline void tube_video_geometry_label(unsigned config,int fallback,char* 
     if(aspect>0 && aspect<=10 && used<size)snprintf(out+used,size-used," / %s",tube_aspect_labels[aspect]);
     used=strlen(out);
     if(pixel>0 && pixel<=5 && used<size)snprintf(out+used,size-used," / PAR %s",tube_pixel_short[pixel]);
+    int rotation=(config&1)?(int)((config>>20)&3):0,mirror=(config&1)?(int)((config>>22)&1):0;
+    used=strlen(out);
+    if(rotation && used<size)snprintf(out+used,size-used," / %d deg",rotation*90);
+    used=strlen(out);
+    if(mirror && used<size)snprintf(out+used,size-used," / Mirror");
 }
 #endif

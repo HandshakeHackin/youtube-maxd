@@ -441,4 +441,6 @@ and reserve 48 bytes; direct video uses the existing 32-byte block.
 `bash scripts/test_video_transform_runtime.sh` applies this overlay to an
 isolated copy of already prepared native sources and compiles it with the PS5
 SDK. This compile passes, but the overlay is not yet enabled by
-`prepare_native.py`; complete shader compilation and profile/UI wiring remain.
+`prepare_native.py`; complete shader compilation and application activation remain. Profile-owned
+rotation/mirror settings and both menu controls now pass native, actual UI and
+PS5 object checks; they have not yet been accepted end to end.

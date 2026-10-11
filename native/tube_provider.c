@@ -162,7 +162,7 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode, resize_mode, zoom_percent, aspect_mode; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode, resize_mode, zoom_percent, aspect_mode, rotation_degrees, mirror_enabled; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
 static _Atomic unsigned g_video_requested, g_video_geometry;
 static int g_pixel_mode;
@@ -400,6 +400,12 @@ int tube_player_resize_mode(void) {
 int tube_player_zoom_percent(void) {
     int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].zoom_percent;
 }
+int tube_player_rotation_degrees(void) {
+    int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].rotation_degrees;
+}
+int tube_player_mirror_enabled(void) {
+    int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].mirror_enabled;
+}
 int tube_player_aspect_mode(void) {
     int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].aspect_mode;
 }
@@ -410,13 +416,24 @@ void tube_video_geometry_enable(int enabled) {
 }
 static void video_geometry_publish(void) {
     unsigned value=((unsigned)tube_player_resize_mode()<<1)|((unsigned)tube_player_zoom_percent()<<4)|
-        ((unsigned)tube_player_aspect_mode()<<13)|((unsigned)g_pixel_mode<<17);
+        ((unsigned)tube_player_aspect_mode()<<13)|((unsigned)g_pixel_mode<<17)|
+        ((unsigned)(tube_player_rotation_degrees()/90)<<20)|((unsigned)tube_player_mirror_enabled()<<22);
     atomic_store(&g_video_requested,value);
     /* Editing another profile affects its next video, not the current picture. */
     if(!strcmp(g_library_profile,g_active_profile)) {
         unsigned old=atomic_load(&g_video_geometry);
         while((old&1) && !atomic_compare_exchange_weak(&g_video_geometry,&old,value|1u)) {}
     }
+}
+int tube_player_set_rotation_degrees(int degrees) {
+    if(degrees<0 || degrees>270 || degrees%90)return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].rotation_degrees=degrees;video_geometry_publish();save();return 1;
+}
+int tube_player_set_mirror_enabled(int enabled) {
+    if(enabled<0 || enabled>1)return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].mirror_enabled=enabled;video_geometry_publish();save();return 1;
 }
 int tube_player_set_aspect_mode(int mode) {
     if(mode<0 || mode>10)return 0;
@@ -470,6 +487,12 @@ static void player_preferences_load(const cJSON *root) {
         double seek_mode = num(row,"seek_mode");
         if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
             g_player_preferences[i].seek_mode = (int)seek_mode;
+        double degrees=num(row,"rotation_degrees"),mirror=num(row,"mirror_enabled");
+        if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(row,"rotation_degrees")) &&
+           degrees>=0 && degrees<=270 && fmod(degrees,90)==0)
+            g_player_preferences[i].rotation_degrees=(int)degrees;
+        if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(row,"mirror_enabled")) && (mirror==0 || mirror==1))
+            g_player_preferences[i].mirror_enabled=(int)mirror;
         double aspect=num(row,"aspect_mode");
         if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(row,"aspect_mode")) && aspect>=0 && aspect<=10 && floor(aspect)==aspect)
             g_player_preferences[i].aspect_mode=(int)aspect;
@@ -801,6 +824,8 @@ static void save(void) {
         cJSON_AddNumberToObject(preference,"resize_mode",g_player_preferences[i].resize_mode);
         cJSON_AddNumberToObject(preference,"zoom_percent",g_player_preferences[i].zoom_percent);
         cJSON_AddNumberToObject(preference,"aspect_mode",g_player_preferences[i].aspect_mode);
+        cJSON_AddNumberToObject(preference,"rotation_degrees",g_player_preferences[i].rotation_degrees);
+        cJSON_AddNumberToObject(preference,"mirror_enabled",g_player_preferences[i].mirror_enabled);
         cJSON_AddItemToArray(player_preferences,preference);
     }
     cJSON_AddNumberToObject(root,"pixel_ratio_mode",g_pixel_mode);
@@ -2314,6 +2339,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:rotate:",16)) {
+            const char* value=parent+16;char* end=NULL;long degrees=strtol(value,&end,10);
+            if(!*value || *end || degrees<0 || degrees>270 || !tube_player_set_rotation_degrees((int)degrees)) {
+                tube_set_error("Select a valid rotation.");cb(0,NULL,0,0,ud);return 1;
+            }
+        }
+        else if (!strcmp(parent,"settings:video-mirror")) {
+            if(!tube_player_set_mirror_enabled(!tube_player_mirror_enabled())) {
+                tube_set_error("Unable to save mirror setting.");cb(0,NULL,0,0,ud);return 1;
+            }
+        }
         else if (!strncmp(parent,"settings:aspect:",16) || !strncmp(parent,"settings:pixel:",15)) {
             int aspect=!strncmp(parent,"settings:aspect:",16);
             const char* value=parent+(aspect?16:15);char* end=NULL;long choice=strtol(value,&end,10);
@@ -2487,6 +2523,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id,sizeof id,"settings:frame-rate:%d",rates[i]);
                 CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
             }
+        } else if (!strcmp(parent,"settings:video-rotate") || !strncmp(parent,"settings:rotate:",16)) {
+            for(int degrees=0;degrees<=270;degrees+=90) {
+                char id[64],label[64];snprintf(id,sizeof id,"settings:rotate:%d",degrees);
+                snprintf(label,sizeof label,"Rotate %d degrees",degrees);
+                CATALOG_FOLDER(id,label,tube_player_rotation_degrees()==degrees?"Selected":"Clockwise rotation; saved for this profile");
+            }
         } else if (!strcmp(parent,"settings:video-aspect") || !strncmp(parent,"settings:aspect:",16)) {
             for(int i=0;i<11;++i) {
                 char id[64];snprintf(id,sizeof id,"settings:aspect:%d",i);
@@ -2555,6 +2597,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
+            CATALOG_FOLDER("settings:video-rotate","Video rotation","0, 90, 180 or 270 degrees clockwise");
+            CATALOG_FOLDER("settings:video-mirror",tube_player_mirror_enabled()?"Mirror video: on":"Mirror video: off","Horizontal mirror before rotation; saved for this profile");
             CATALOG_FOLDER("settings:video-aspect","Video aspect ratio","Original or an aspect override; independent of zoom");
             CATALOG_FOLDER("settings:pixel-ratio","Display pixel ratio","Display correction shared by all profiles");
             CATALOG_FOLDER("settings:video-zoom","Video sizing and zoom","Fit, width, height, fill, stretch and 50% to 300% zoom");

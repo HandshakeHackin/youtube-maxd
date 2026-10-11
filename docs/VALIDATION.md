@@ -1,5 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Rotation and mirror preferences — 2026-10-11
+
+SmartTube's four rotation angles (0/90/180/270) and horizontal mirror now have
+profile-owned native state, bounded persistence, settings-browser controls,
+in-player options and HUD labels. They compose with existing resize, zoom,
+aspect and device-wide pixel correction. Editing another profile preserves
+the current video's packed orientation; device correction changes only its
+pixel-ratio bits. Mirror actions execute only on page zero.
+
+All sixteen native sanitizer regressions pass, including invalid/corrupt values,
+full preference tables, profile reload/isolation, all four choices and action
+pagination. Extracted picker and paused-label checks pass, including the
+post-toggle mirror label. Actual RmlUi navigation reaches the rotation submenu.
+Evidence is in `.deps/rotation-{native,render,ui}.log`.
+The final actual-RmlUi check also toggles mirroring on/off, preserves the menu
+stack and confirms paging cannot toggle it again (`.deps/rotation-ui-toggle.log`,
+result 0). Provider, controller, both HUDs, browser and picker PS5 objects
+compile, as does the staged transform runtime
+(`.deps/rotation-{sdk,runtime}.log`). The complete orchestration exited 0;
+existing SDK math/RmlUi fixture warnings remain.
+
+End-to-end rotation remains unfinished: the PS5 shader compiler is still
+building, the full transformed shader set is queued, and the staged runtime
+has not been activated in the application. No package or console test is
+claimed for these controls.
+
+
 ## Display-transform runtime and packaging preparation — 2026-10-11
 
 The staged AGC overlay now captures one atomic geometry snapshot per frame and
