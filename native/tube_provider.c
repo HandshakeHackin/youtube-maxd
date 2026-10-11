@@ -123,7 +123,12 @@ static int valid_speed(double speed) {
 static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
-static int playback_mode_valid(int mode) { return mode==0 || mode==2 || mode==4 || mode==5 || mode==6; }
+static int g_queue_respects_mode;
+static int queue_mode_allows_advance(void) {
+    return g_autoplay || ((g_playback_mode==TUBE_MODE_PAUSE || g_playback_mode==TUBE_MODE_CLOSE) && !g_queue_respects_mode);
+}
+static int playback_mode_valid(int mode) { return mode>=0 && mode<=6 && mode!=TUBE_MODE_ONE; }
+static int playback_mode_continues(int mode) { return mode!=TUBE_MODE_PAUSE && mode!=TUBE_MODE_CLOSE; }
 static int g_player_chat_mode;
 static int g_sleep_minutes, g_sleep_armed, g_sleep_fired;
 static long long g_sleep_activity_ms;
@@ -896,6 +901,7 @@ static void save(void) {
     tube_sb_save(&g_sb, root);
     cJSON_AddBoolToObject(root, "autoplay", g_autoplay);
     cJSON_AddNumberToObject(root,"playback_mode",g_playback_mode);
+    cJSON_AddBoolToObject(root,"queue_respects_playback_mode",g_queue_respects_mode);
     cJSON_AddBoolToObject(root, "ask_stream", g_ask_stream);
     cJSON_AddBoolToObject(root, "history_sync", g_history_sync);
     for (int i = 0; i < g_count; ++i) {
@@ -1094,7 +1100,8 @@ static int init(void) {
     g_autoplay = boolean(root, "autoplay");
     g_playback_mode=settings_integer(root,"playback_mode",0,6,g_autoplay?TUBE_MODE_ALL:TUBE_MODE_PAUSE);
     if (!playback_mode_valid(g_playback_mode)) g_playback_mode=g_autoplay?TUBE_MODE_ALL:TUBE_MODE_PAUSE;
-    g_autoplay=g_playback_mode!=TUBE_MODE_PAUSE;
+    g_autoplay=playback_mode_continues(g_playback_mode);
+    g_queue_respects_mode=boolean(root,"queue_respects_playback_mode");
     g_ask_stream = boolean(root, "ask_stream");
     const cJSON *history_sync = cJSON_GetObjectItemCaseSensitive(root, "history_sync");
     g_history_sync = !cJSON_IsBool(history_sync) || cJSON_IsTrue(history_sync);
@@ -2480,6 +2487,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:autoplay")) {
             tube_set_playback_mode(g_autoplay?TUBE_MODE_PAUSE:TUBE_MODE_ALL);
         }
+        else if (!strcmp(parent,"settings:queue-respects-mode")) {
+            tube_queue_retry_cancel();
+            g_queue_respects_mode=!g_queue_respects_mode; save();
+        }
         else if (!strncmp(parent,"settings:playback-mode:",23)) {
             const char *value=parent+23; char *end=NULL; long mode=strtol(value,&end,10);
             if (!*value || *end || mode<0 || mode>6 || !tube_set_playback_mode((int)mode)) {
@@ -2690,9 +2701,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
             }
         } else if (!strcmp(parent,"settings:playback-mode") || !strncmp(parent,"settings:playback-mode:",23)) {
-            const int modes[]={2,4,5,6,0};
-            const char *labels[]={"Continuous playback","Shuffle playlist","Playlist only","Reverse playlist","Stop at end"};
-            for(int i=0;i<5;++i) {
+            const int modes[]={2,4,5,6,0,1};
+            const char *labels[]={"Continuous playback","Shuffle playlist","Playlist only","Reverse playlist","Stop at end","Close at end"};
+            for(int i=0;i<6;++i) {
                 char id[64];snprintf(id,sizeof id,"settings:playback-mode:%d",modes[i]);
                 CATALOG_FOLDER(id,labels[i],g_playback_mode==modes[i]?"Selected":"Saved for this profile");
             }
@@ -2811,7 +2822,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER("settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
             CATALOG_FOLDER( "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             CATALOG_FOLDER( "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
-            CATALOG_FOLDER("settings:playback-mode","Playback mode","Continuous, shuffle, playlist only, reverse or stop at end");
+            CATALOG_FOLDER("settings:playback-mode","Playback mode","Choose continuation, stop or close behavior at the end of a video");
+            CATALOG_FOLDER("settings:queue-respects-mode",g_queue_respects_mode?"Queue respects playback mode: on":"Queue respects playback mode: off","Off continues explicit queued videos in stop and close modes");
             CATALOG_FOLDER( "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
             CATALOG_FOLDER( "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
                 g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
@@ -3287,10 +3299,11 @@ const char *tube_take_paid_content_notice(void) {
 }
 int tube_autoplay_enabled(void) { return g_autoplay; }
 int tube_playback_mode(void) { return g_playback_mode; }
+int tube_queue_respects_playback_mode(void) { return g_queue_respects_mode; }
 int tube_set_playback_mode(int mode) {
     if (!playback_mode_valid(mode)) return 0;
     tube_playlist_eof_cancel(); tube_queue_retry_cancel();
-    g_playback_mode=mode; g_autoplay=mode!=TUBE_MODE_PAUSE; save(); return 1;
+    g_playback_mode=mode; g_autoplay=playback_mode_continues(mode); save(); return 1;
 }
 
 static int sponsor_scope(void) {
@@ -3454,7 +3467,7 @@ int tube_playback_at_end(double position, double duration) {
 
 int tube_queue_retry_pending(void) {
     Record *r = record_for(g_next_id,g_next_profile,0);
-    return g_autoplay && r && r->queued && !strcmp(g_next_profile,g_library_profile);
+    return queue_mode_allows_advance() && r && r->queued && !strcmp(g_next_profile,g_library_profile);
 }
 void tube_queue_retry_cancel(void) {
     g_next_id[0] = g_next_profile[0] = 0; g_queue_failed_count = 0;
@@ -3475,7 +3488,7 @@ static int queue_next(void) {
     copy(g_next_profile,sizeof g_next_profile,next->profile); return 1;
 }
 int tube_queue_skip_unavailable(const char *id) {
-    if (!g_autoplay || !tube_resolve_unavailable(id) || !g_resolve_failure.queue_origin) return 0;
+    if (!queue_mode_allows_advance() || !tube_resolve_unavailable(id) || !g_resolve_failure.queue_origin) return 0;
     Record *failed = record_for(id,g_library_profile,0);
     if (!failed || !failed->queued || queue_failed(id) || g_queue_failed_count == RECORDS) return 0;
     copy(g_queue_failed[g_queue_failed_count++],sizeof g_queue_failed[0],id);
@@ -3554,7 +3567,11 @@ static int finish_and_next(int playlist) {
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
-    if (!g_autoplay || strcmp(g_active_profile, g_library_profile)) return 0;
+    if (strcmp(g_active_profile, g_library_profile)) return 0;
+    if (!g_autoplay) {
+        if (queue_mode_allows_advance() && queue_next()) return 1;
+        return g_playback_mode==TUBE_MODE_CLOSE;
+    }
     if(playlist && g_playback_mode==TUBE_MODE_REVERSE && *g_active_playlist.playlist &&
        g_active_playlist.scope==g_playlist_scope) {
         if(g_active_playlist.index>0 && tube_playlist_window_begin()) g_playlist_eof_wait=1;

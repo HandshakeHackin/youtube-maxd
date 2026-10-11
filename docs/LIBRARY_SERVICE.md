@@ -51,11 +51,15 @@ occurrence stops autoplay without probing past the playlist; other window edges
 continue through indexed lookup. Infinite/radio queues do not supply finite sizes.
 
 The profile-owned playback-mode chooser offers continuous, shuffle, playlist-only,
-reverse and stop-at-end. Reverse prioritizes the preceding playlist occurrence
+reverse, stop-at-end and close-at-end. Reverse prioritizes the preceding playlist occurrence
 over the explicit queue and stops at index zero. Shuffle requires a validated
 size greater than 30 and chooses another index; failed lookups fall back to normal
-continuation. Small/unknown sizes continue normally. Repeat, close, queue exception
-preferences and in-player controls remain pending. Continuous and playlist-only
+continuation. Small/unknown sizes continue normally. The profile-owned "Queue
+respects playback mode" preference defaults off, matching the reference: explicit
+queues continue in stop-at-end and close-at-end modes unless enabled. Otherwise
+close-at-end returns to the browser after natural drain. The preference also
+controls automatic unavailable-video skips, and changing it cancels a staged
+queue retry. Repeat and in-player controls remain pending. Continuous and playlist-only
 currently share queue/playlist behavior; recommendation context is still missing.
 
 

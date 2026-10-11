@@ -1,5 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Explicit queue mode preference and close-at-end — 2026-10-11
+
+The profile-owned "Queue respects playback mode" setting defaults off, as in
+the pinned SmartTube PlayerTweaksData. Stop-at-end then continues an explicit
+queue, including bounded unavailable-video skips; enabling the preference stops
+that continuation. Changing the preference cancels a staged queue retry. Playlist
+continuation remains disabled in stop-at-end mode. Close-at-end uses the same
+queue exception; otherwise the existing drained-completion player path stops
+playback and returns to the browser without staging a next video. Its choice is
+persisted per profile and the close request is emitted once per completion.
+
+Native provider, playlist-window, profile-settings, queue-failure and SponsorBlock
+sanitizer suites passed. Cases cover preference reload/isolation, explicit queue
+handoff without playlist scope, both stop policies and cancellation during an
+unavailable-video retry. Actual RmlUi navigation also passed. Logs:
+`.deps/queue-mode-native.log` and `.deps/queue-mode-ui.log`.
+The initial preference batch also compiled the PS5 provider object successfully
+with existing SDK warnings (`.deps/queue-mode-sdk.log`).
+After adding close-at-end, the window, profile, queue-failure and SponsorBlock
+sanitizer suites and actual RmlUi tests passed again. Close cases cover queue
+override, respecting the mode with queued items retained, no queued items,
+one-shot close and persisted selection (`.deps/queue-close-{native,ui}.log`).
+The updated PS5 provider object also compiled successfully, with the same SDK
+warnings (`.deps/queue-close-sdk.log`).
+Repeat-one, explicit engine pause and in-player mode controls remain unfinished.
+No console connections occurred.
+
 ## Playlist modes and profile preferences — 2026-10-11
 
 The browser settings chooser now persists continuous, shuffle, playlist-only,

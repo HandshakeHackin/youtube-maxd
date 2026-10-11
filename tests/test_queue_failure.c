@@ -26,6 +26,7 @@ int main(void) {
         "{\"id\":\"abcdefghijk\",\"profile\":\"guest\",\"queued\":true,\"queue_order\":1,\"position\":9},"
         "{\"id\":\"12345678901\",\"profile\":\"guest\",\"queued\":true,\"queue_order\":2,\"position\":9},"
         "{\"id\":\"ABCDEFGHIJK\",\"profile\":\"guest\",\"queued\":true,\"queue_order\":3,\"position\":9}]}");
+    cJSON_AddBoolToObject(root,"queue_respects_playback_mode",1);
     write_store(root); cJSON_Delete(root); assert(!provider->init()); action("queue");
     const char *codes[]={"authentication_required","youtube_challenge","youtube_rate_limited","resolver_network","extraction_failed","unknown","video_unavailable extra"};
     for (unsigned i=0;i<sizeof codes/sizeof *codes;++i) {
@@ -74,6 +75,12 @@ int main(void) {
     poll_job("{\"state\":\"failed\",\"error\":{\"code\":\"video_unavailable\",\"message\":\"Unavailable\"}}");
     assert(tube_resolve_unavailable("12345678901") && !tube_resolve_unavailable("abcdefghijk"));
     assert(tube_queue_skip_unavailable("12345678901"));
+    action("settings:queue-respects-mode");assert(!tube_queue_respects_playback_mode());
+    assert(tube_set_playback_mode(TUBE_MODE_PAUSE));action("queue");
+    fail("abcdefghijk","video_unavailable","failed");
+    assert(tube_queue_skip_unavailable("abcdefghijk") && tube_queue_retry_pending());
+    action("settings:queue-respects-mode");
+    assert(!tube_queue_retry_pending() && !tube_take_next(&next));
     assert(!provider->set_source("http://127.0.0.1:8766")); assert(!tube_queue_retry_pending() && !tube_take_next(&next));
     assert(!provider->set_source("http://127.0.0.1:8766#123456")); action("queue");
     assert(!provider->resolve("abcdefghijk",resolve_cb,NULL)); assert(strstr(pending[0].url,"/v1/pair"));

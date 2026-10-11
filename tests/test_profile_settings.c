@@ -94,16 +94,23 @@ int main(void) {
     check(1440,1,0,0,0,0,"en"); root=read_store();
     assert(!strcmp(cJSON_GetObjectItem(root,"library_profile")->valuestring,"guest"));
     assert(!*cJSON_GetObjectItem(root,"source")->valuestring); cJSON_Delete(root);
-    action("settings:playback-mode");assert(last_count==5);
+    action("settings:playback-mode");assert(last_count==6);
     action("settings:playback-mode:4");assert(tube_playback_mode()==TUBE_MODE_SHUFFLE);
+    assert(!tube_queue_respects_playback_mode());
+    action("settings:queue-respects-mode");assert(tube_queue_respects_playback_mode());
     action("library:profile:modes");assert(tube_playback_mode()==TUBE_MODE_PAUSE);
+    assert(!tube_queue_respects_playback_mode());
     action("settings:playback-mode:6");p->shutdown();assert(!p->init());
     assert(tube_playback_mode()==TUBE_MODE_REVERSE);
     action("library:profile:guest");assert(tube_playback_mode()==TUBE_MODE_SHUFFLE);
+    assert(tube_queue_respects_playback_mode());
     for(int mode=0;mode<8;++mode) {
-        if(mode==1 || mode==3 || mode==7)assert(!tube_set_playback_mode(mode));
+        if(mode==3 || mode==7)assert(!tube_set_playback_mode(mode));
     }
     assert(tube_playback_mode()==TUBE_MODE_SHUFFLE);
+    action("settings:playback-mode:1");assert(!tube_autoplay_enabled());
+    p->shutdown();assert(!p->init());assert(tube_playback_mode()==TUBE_MODE_CLOSE && !tube_autoplay_enabled());
+    action("settings:playback-mode:4");
     p->shutdown();root=read_store();
     cJSON_DeleteItemFromObject(root,"playback_mode");
     cJSON *mode_row; cJSON_ArrayForEach(mode_row,cJSON_GetObjectItem(root,"profile_settings"))cJSON_DeleteItemFromObject(mode_row,"playback_mode");
