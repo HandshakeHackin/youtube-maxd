@@ -37,6 +37,10 @@ typedef struct {
 } Record;
 
 typedef struct { int height, max_fps, codec; } ResolveQuality;
+typedef struct { char playlist[101]; int index; unsigned scope; } PlaylistContext;
+static unsigned g_playlist_scope = 1;
+static PlaylistContext g_resolved_playlist, g_active_playlist;
+static struct { char id[12]; PlaylistContext value; } g_selected_playlist;
 
 typedef struct Request {
     int used, kind, stage, inflight;
@@ -49,6 +53,7 @@ typedef struct Request {
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
     ResolveQuality quality;
+    PlaylistContext playlist;
     int page, music_origin, queue_origin;
     unsigned intent;
     char parent[160];
@@ -132,6 +137,10 @@ static void watch_reset(int clear_resolution) {
     if (!++g_watch_serial) ++g_watch_serial;
     g_watch.serial = g_watch_serial;
     if (clear_resolution) {
+        if (!++g_playlist_scope) ++g_playlist_scope;
+        memset(&g_selected_playlist,0,sizeof g_selected_playlist);
+        memset(&g_resolved_playlist,0,sizeof g_resolved_playlist);
+        memset(&g_active_playlist,0,sizeof g_active_playlist);
         g_resolved_id[0] = 0; g_resolved_profile[0] = 0; g_resolved_music = 0;
         g_browse_music = g_browse_queue = 0;
         memset(&g_launch_origin, 0, sizeof g_launch_origin);
@@ -540,6 +549,38 @@ static int valid_catalog_id(const char *id) {
 static int valid_playlist(const char *id) {
     char parent[128]; snprintf(parent, sizeof parent, "library:playlist:%s", id ? id : "");
     return valid_catalog_id(parent);
+}
+
+int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope) {
+    memset(&g_selected_playlist,0,sizeof g_selected_playlist);
+    if (!valid_id(id)) return 0;
+    if (!playlist || !*playlist) return 1;
+    if (!scope || scope != g_playlist_scope || !valid_playlist(playlist) || index < 0 || index > 100000) return 0;
+    copy(g_selected_playlist.id,sizeof g_selected_playlist.id,id);
+    copy(g_selected_playlist.value.playlist,sizeof g_selected_playlist.value.playlist,playlist);
+    g_selected_playlist.value.index=index; g_selected_playlist.value.scope=scope;
+    return 1;
+}
+int tube_playback_playlist_context(char *playlist, size_t capacity, int *index) {
+    if (playlist && capacity) playlist[0]=0;
+    if (index) *index=-1;
+    if (!playlist || !index || !capacity || !recovery_scope() ||
+        g_active_playlist.scope != g_playlist_scope || !*g_active_playlist.playlist ||
+        strlen(g_active_playlist.playlist) >= capacity) return 0;
+    copy(playlist,capacity,g_active_playlist.playlist); *index=g_active_playlist.index; return 1;
+}
+static void parse_playlist_context(evo_provider_item_t *item, const cJSON *root, const char *parent) {
+    const cJSON *context=cJSON_GetObjectItemCaseSensitive(root,"playback_context");
+    const char *playlist=str(context,"playlist");
+    const cJSON *index=cJSON_GetObjectItemCaseSensitive(context,"index");
+    const char *expected=!strncmp(parent,"library:playlist:",17) ? parent+17 :
+        !strncmp(parent,"playlist:",9) ? parent+9 : !strcmp(parent,"library:watch_later") ? "WL" : NULL;
+    if (!valid_id(item->id) || item->is_folder || !valid_playlist(playlist) ||
+        (expected && strcmp(expected,playlist)) || !cJSON_IsNumber(index) ||
+        !isfinite(index->valuedouble) || index->valuedouble < 0 || index->valuedouble > 100000 ||
+        floor(index->valuedouble) != index->valuedouble) return;
+    copy(item->playback_playlist,sizeof item->playback_playlist,playlist);
+    item->playback_index=(int)index->valuedouble; item->playback_scope=g_playlist_scope;
 }
 
 static unsigned account_intent(const char *action, const char *identity, const char *playlist, const char *title) {
@@ -1603,6 +1644,7 @@ static void resolved(Request *r, const cJSON *root) {
     copy(g_resolved_profile, sizeof g_resolved_profile, r->profile);
     g_resolved_music = r->music_origin;
     g_resolved_quality = r->quality;
+    g_resolved_playlist = r->playlist;
     Record *cached = record(str(root, "id"), 1);
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
@@ -1866,9 +1908,13 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
         if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
-        for (int i = 0; i < n; ++i) if (!strcmp(items[i].id, str(o, "id"))) duplicate = 1;
-        if (duplicate) continue;
         parse_item(&items[n], o);
+        parse_playlist_context(&items[n], o, r->parent);
+        for (int i = 0; i < n; ++i)
+            if (!strcmp(items[i].id,items[n].id) &&
+                !strcmp(items[i].playback_playlist,items[n].playback_playlist) &&
+                items[i].playback_index == items[n].playback_index) duplicate = 1;
+        if (duplicate) continue;
         if (r->kind == 7) {
             if (strncmp(items[n].id, "library:playlist:", 17)) continue;
             const char *video = strrchr(r->parent, ':');
@@ -1887,6 +1933,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             items[n].resume_pos_sec = cached->item.resume_pos_sec;
             items[n].played = cached->item.played;
             cached->item = items[n];
+            /* Occurrences belong to browser selections, not shared video history. */
+            cached->item.playback_playlist[0]=0;
+            cached->item.playback_index=0; cached->item.playback_scope=0;
             copy(cached->dearrow_title, sizeof cached->dearrow_title, str(o, "dearrow_title"));
             copy(cached->dearrow_art, sizeof cached->dearrow_art,
                  companion_url(str(o, "dearrow_art_url")) ? str(o, "dearrow_art_url") : "");
@@ -1949,6 +1998,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     if (!preserve_chat) tube_chat_stop();
     tube_auth_cancel();
     ++g_generation; memset(&g_resolve_failure,0,sizeof g_resolve_failure);
@@ -2886,10 +2936,16 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
     int automatic = g_launch_origin.automatic && !strcmp(g_launch_origin.id,id) &&
         !strcmp(g_launch_origin.profile,g_library_profile);
+    PlaylistContext playlist={0};
+    if (recovering) playlist=g_active_playlist;
+    else if (!strcmp(g_selected_playlist.id,id) && g_selected_playlist.value.scope == g_playlist_scope)
+        playlist=g_selected_playlist.value;
+    memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     if (!automatic && !recovering) g_queue_failed_count = 0;
     if (recovering) cancel_requests(0); else { g_paid_text[0] = 0; g_paid_shown = 0; tube_cancel(); }
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
+    r->playlist = playlist;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
     const Record *origin_record = record(id, 0);
     r->queue_origin = automatic || (g_browse_queue && origin_record && origin_record->queued);
@@ -2934,6 +2990,11 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
+    if (!recovering) {
+        memset(&g_active_playlist,0,sizeof g_active_playlist);
+        if (choice && !strcmp(id,g_resolved_id) && !strcmp(g_active_profile,g_resolved_profile) &&
+            g_resolved_playlist.scope == g_playlist_scope) g_active_playlist=g_resolved_playlist;
+    }
     if (!recovering || strcmp(g_speed_session_id, id) || strcmp(g_speed_session_profile, g_active_profile)) {
         g_speed_session = !strcmp(id, g_resolved_id) && !strcmp(g_active_profile, g_resolved_profile) && g_resolved_music
             ? 100 : speed_lookup(id, g_active_profile);

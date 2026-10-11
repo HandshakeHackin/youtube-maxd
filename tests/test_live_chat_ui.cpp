@@ -63,19 +63,8 @@ int main(int argc,char**argv) {
     assert(Rml::LoadFontFace((fonts/"Lato-Regular.ttf").string())); assert(Rml::LoadFontFace((fonts/"Lato-Bold.ttf").string()));
     EvoRmlProviderHost host; host.m_context=Rml::CreateContext("chat-ui",{1920,1080}); assert(host.m_context);
     host.m_provider_id="youtube"; host.m_provider=&evo_provider_youtube;
-    auto constructor=host.m_context->CreateDataModel("youtube"); auto row=constructor.RegisterStruct<EvoProviderRow>();
-#define ROW(name) row.RegisterMember(#name,&EvoProviderRow::name)
-    ROW(id);ROW(title);ROW(subtitle);ROW(art);ROW(initial);ROW(duration);ROW(is_folder);ROW(is_live);ROW(progress);ROW(progress_w);ROW(played);
-#undef ROW
-    constructor.RegisterArray<std::vector<EvoProviderRow>>(); auto& model=host.m_model;
-#define BIND(name) constructor.Bind(#name,&model.name)
-    BIND(provider_name);BIND(breadcrumb);BIND(page_info);BIND(status);BIND(has_error);BIND(loading);BIND(empty);BIND(rows);
-    BIND(has_selected);BIND(selected_title);BIND(selected_subtitle);BIND(selected_resume);BIND(selected_overview);
-    BIND(discussion);BIND(chat);BIND(review);BIND(auth);BIND(count);BIND(in_folder);BIND(is_folder_level);BIND(has_multiple_pages);
-#undef BIND
-    constructor.BindEventCallback("activate",[](Rml::DataModelHandle,Rml::Event&,const Rml::VariantList&){});
-    constructor.BindEventCallback("setup_url",[](Rml::DataModelHandle,Rml::Event&,const Rml::VariantList&){});
-    host.m_model_handle=constructor.GetModelHandle(); host.m_doc=host.m_context->LoadDocument((source/"youtube.rml").string()); assert(host.m_doc); host.m_doc->Show();
+    host.m_model_name="youtube";assert(host.RegisterDataModel());auto& model=host.m_model;
+    host.m_doc=host.m_context->LoadDocument((source/"youtube.rml").string()); assert(host.m_doc); host.m_doc->Show();
     host.m_stack.push_back("chat:top:abcdefghijk");host.m_crumbs.push_back("Top chat"); host.RequestPage(host.m_stack.back().c_str(),0);
     reply("{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}"); frame(0,"top","ui-cap-one");
     auto pump=[&] {
@@ -210,6 +199,24 @@ int main(int argc,char**argv) {
     host.RequestPage("settings:video-zoom",2);pump();assert(!host.m_has_more);
     assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
         [](const EvoProviderRow& row){return row.id=="settings:zoom:300";}));
+    assert(pending.empty());
+    host.RequestPage("library:playlist:PLabcdefghijk",0);
+    reply("{\"job\":\"playlist-ui\",\"state\":\"pending\"}");
+    clock_ms+=300;tube_poll();
+    reply("{\"state\":\"done\",\"result\":{\"items\":["
+          "{\"id\":\"abcdefghijk\",\"title\":\"First occurrence\",\"playback_context\":{\"playlist\":\"PLabcdefghijk\",\"index\":0}},"
+          "{\"id\":\"abcdefghijk\",\"title\":\"Repeated occurrence\",\"playback_context\":{\"playlist\":\"PLabcdefghijk\",\"index\":9}}]}}");
+    pump();assert(host.m_all_rows.size()==2);
+    assert(model.rows[0].id==model.rows[1].id && model.rows[0].selection_key!=model.rows[1].selection_key);
+    assert(host.FocusPublishedRow(1));pump();
+    assert(host.GetFocusedRow() && host.GetFocusedRow()->playback_index==9);
+    auto card=host.m_context->GetFocusElement();assert(card);
+    card->DispatchEvent("click",Rml::Dictionary{});
+    assert(host.m_pending_activation==model.rows[1].selection_key);
+    host.ApplyPendingActivation();
+    evo_provider_selection_t selection{};assert(evo_rmlui_provider_take_selection(&selection));
+    assert(!strcmp(selection.item_id,"abcdefghijk") && selection.playback_index==9 && selection.playback_scope);
+    assert(!strcmp(selection.playback_playlist,"PLabcdefghijk"));
     assert(pending.empty());
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);

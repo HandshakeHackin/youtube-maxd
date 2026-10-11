@@ -17,7 +17,7 @@
             <button id="tv-card-setup-url" class="tv-setup-card" data-if="!discussion" data-event-click="setup_url()">PAIR COMPANION</button>
         </div>
         <div id="tube-grid" data-if="!empty" data-class-discussion="discussion || review">
-            <div class="tube-card" data-for="row : rows" data-attr-rowid="row.id"
+            <div class="tube-card" data-for="row : rows" data-attr-rowid="row.id" data-attr-rowkey="row.selection_key"
                  data-event-click="activate()" data-class-folder="row.is_folder">
                 <div class="tube-image" data-if="!discussion &amp;&amp; !review">
                     <img data-if="row.art != ''" data-attr-src="row.art"/>

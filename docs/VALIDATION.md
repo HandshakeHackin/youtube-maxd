@@ -14,8 +14,22 @@ passed with the complete 17-case context suite (79 distinct Python cases across
 the batch). All 62 worker tests passed and the production worker rebuilt.
 Commands: pytest for `test_playlist_context`, `test_companion`,
 `test_oauth_playback`, `test_library`; Node `companion/innertube/test.mjs` and
-`build.mjs`. Native selection/context and the full seven-mode EOF behavior are
-still pending. No console access occurred.
+`build.mjs`.
+
+Native rows now carry occurrence identity through Rml focus/click, the selection
+mailbox, pending playback and an immutable resolution snapshot. Repeated IDs
+use distinct UI keys. Recovery retains the occurrence; cancellation consumes
+staged selection and a new source/profile epoch invalidates old selections.
+Canonical history/queue records remain free of incidental browsing context.
+All 18 native ASan/UBSan suites passed, including the new occurrence regression;
+the actual shipping RML/production callback test selected the second repeated
+video and returned its original index. Full seven-mode EOF behavior, channel
+context and console acceptance remain pending. No console access occurred.
+Generated recovery and phone-failure host checks and the native phone-provider
+suite also passed. PS5 SDK compilation passed for `tube_provider.o`,
+`evo_rmlui_provider.o` and `ProviderHostScreen.o`; SDK qualified-math warnings
+remain. Logs are `.deps/playlist-{native,ui,recovery,phone-host,phone-provider,sdk}.log`.
+This batch has not been built into a complete frozen application package.
 
 
 ## Compiled display transforms and packaged codec probes — 2026-10-11

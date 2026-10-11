@@ -77,6 +77,9 @@ int tube_playback_at_end(double position, double duration);
 int tube_finish_drained_and_next(double position);
 int tube_finish_and_next(double position, double duration);
 int tube_take_next(evo_provider_item_t *item);
+/* Browser occurrence is one-shot and scoped to the current source/profile epoch. */
+int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope);
+int tube_playback_playlist_context(char *playlist, size_t capacity, int *index);
 int tube_autoplay_enabled(void);
 int tube_choose_stream_enabled(void);
 int tube_queue_recovery(double position, int live, int subtitles);

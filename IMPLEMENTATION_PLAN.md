@@ -3,6 +3,9 @@
 Current work is offline only, at the user's request. Complete all remaining
 offline implementation, validation and final-candidate packaging before connecting
 to either console; intermediate builds do not satisfy this gate. See GOAL.md.
+Console `192.168.4.40` is shared with another agent. Once the final candidate is
+ready, inspect the shared lock and running titles before testing, and leave a
+busy console untouched; earlier availability is not a continuing reservation.
 
 Latest accepted caption package: `879b1281` rendered French and English together
 on PS5, retained them across a paused 1.25x decoder reopen, and cleared French

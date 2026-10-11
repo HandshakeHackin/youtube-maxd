@@ -1075,11 +1075,12 @@
         "tests/test_queue_failure.c",
         "SmartTube baseline VideoLoaderController.applyPlaybackMode and AppDialogUtil.createPlaybackModeCategory define the remaining seven-mode policy",
         "companion/innertube/library.mjs and companion/prosperotube/catalog.py: playlist occurrence context through pagination and guest/OAuth catalogs",
-        "companion/innertube/playlist_context.test.mjs and tests/test_playlist_context.py: duplicates, sparse indices, profiles and HTTP/job serialization"
+        "companion/innertube/playlist_context.test.mjs and tests/test_playlist_context.py: duplicates, sparse indices, profiles and HTTP/job serialization",
+        "native/tube_provider.c and scripts/playlist_context_overlay.py: occurrence identity through browser focus/click, launch staging, resolution snapshots and recovery",
+        "tests/test_playlist_context.c and tests/test_live_chat_ui.cpp: repeated occurrence selection, request isolation, recovery and stale scope"
       ],
       "offline_status": "partial",
       "remaining": [
-        "Carry playlist occurrence context through native browser rows, selection and playback ownership",
         "Implement continuous, repeat-one, playlist shuffle, playlist-only, reverse-playlist, pause and close modes with source playlist/channel context",
         "Preserve explicit queue exceptions and the queue-respects-playback-mode preference",
         "Integrate native and phone EOF ownership, both selectors, persistence and PS5 acceptance"
