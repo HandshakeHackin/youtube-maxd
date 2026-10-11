@@ -52,6 +52,7 @@ static void profile_settings_apply(const ProfileSettings *p) {
     copy(g_language,sizeof g_language,p->language);
     copy(g_audio_language,sizeof g_audio_language,p->audio_language); g_sb = p->sb;
     g_sleep_armed = g_sleep_fired = 0;
+    video_geometry_publish();
 }
 static int profile_settings_slot(const char *profile, int create) {
     for (int i = 0; i < g_profile_settings_count; ++i)

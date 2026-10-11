@@ -141,6 +141,13 @@ opening the next video. Stream labels show frame rate when available. Automatic
 recovery keeps the playing video's original quality preferences and frame rate;
 new settings take effect on the next video.
 
+Video sizing is saved per profile: Fit, Fit width, Fit height, Fill or Stretch,
+plus SmartTube's 55 zoom levels from 50% to 300%. Percentage zoom is centered
+relative to Fit. Choose it in settings or the in-player options menu; changes
+apply to the active video when it belongs to that profile. Triangle cycles the
+three basic modes and returns percentage/fixed-axis sizing to Fit. Both HUDs
+show the active sizing mode. PS5 presentation acceptance remains pending.
+
 Time display is saved per profile. Choose total duration, remaining time (the
 default), or estimated finish time in settings or the in-player options menu.
 Remaining/finish estimates use the actual playback speed and seek-preview

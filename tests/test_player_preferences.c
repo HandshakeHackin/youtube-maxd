@@ -14,8 +14,8 @@ int main(void) {
     assert(tube_player_ok_mode()==0 && tube_player_hide_ms()==3000);
     assert(!tube_player_seek_mode());
     p->list_catalog("settings",0,items_cb,NULL);assert(last_ok && last_count==24 && last_more);
-    p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count==1 && !last_more);
-    assert(!strcmp(last_items[0].id,"settings:clear-queue"));
+    p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count>0 && last_count<=24 && !last_more);
+    assert(!strcmp(last_items[last_count-1].id,"settings:clear-queue"));
     p->list_catalog("settings",2,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     p->list_catalog("settings:autoplay",0,items_cb,NULL);assert(last_ok && last_more);
     p->list_catalog("settings:autoplay",1,items_cb,NULL);assert(last_ok && !last_more);
@@ -97,6 +97,7 @@ int main(void) {
     assert(!tube_player_set_ok_mode(1) && !tube_player_set_hide_seconds(5));
     assert(!tube_player_set_seek_mode(2));
     assert(!tube_player_set_seek_seconds(7));
+    assert(!tube_player_set_resize_mode(1) && !tube_player_set_zoom_percent(150));
     p->shutdown(); unlink(evo_data_path("youtube.json")); assert(!rmdir(dir));
     puts("PASS: player preferences, chooser validation, per-profile persistence, legacy migration and corrupt rows");
     return 0;

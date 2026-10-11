@@ -164,6 +164,7 @@ int main(int argc,char**argv) {
             {"settings:quality","settings:quality:240"},
             {"settings:frame-rate","settings:frame-rate:30"},
             {"settings:time-display","settings:time-display:2"},
+            {"settings:video-zoom","settings:zoom:100"},
             {"settings:sleep-timer","settings:sleep:30"}}) {
         host.RequestPage("settings",0); pump();
         const auto depth=host.m_stack.size();
@@ -175,12 +176,24 @@ int main(int argc,char**argv) {
                            static_cast<int>(index%EVO_PROVIDER_PAGE_SIZE)); pump();
         host.m_pending_activation=chooser.first; host.ApplyPendingActivation(); pump();
         assert(host.m_stack.size()==depth+1 && host.m_stack.back()==chooser.first);
+        auto child=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),
+            [&](const EvoProviderRow& r){return r.id==chooser.second.c_str();});
+        assert(child!=host.m_all_rows.end());
+        const auto child_index=static_cast<size_t>(child-host.m_all_rows.begin());
+        host.SetPageOffset((child_index/EVO_PROVIDER_PAGE_SIZE)*EVO_PROVIDER_PAGE_SIZE,
+                           static_cast<int>(child_index%EVO_PROVIDER_PAGE_SIZE));pump();
         host.m_pending_activation=chooser.second; host.ApplyPendingActivation(); pump();
         assert(host.m_stack.size()==depth+1 && host.m_stack.back()==chooser.first);
         host.m_stack.pop_back(); host.m_crumbs.pop_back(); host.m_pos_stack.pop_back();
     }
     assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
     assert(tube_player_seek_mode()==2 && tube_player_seek_seconds()==7);
+    assert(tube_player_zoom_percent()==100);
+    host.RequestPage("settings:video-zoom",0);pump();assert(host.m_has_more);
+    host.RequestPage("settings:video-zoom",1);pump();assert(host.m_has_more);
+    host.RequestPage("settings:video-zoom",2);pump();assert(!host.m_has_more);
+    assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
+        [](const EvoProviderRow& row){return row.id=="settings:zoom:300";}));
     assert(pending.empty());
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);

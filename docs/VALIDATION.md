@@ -1,5 +1,46 @@
 # Offline validation record — 0.1.0
 
+## Video sizing and percentage zoom — 2026-10-11
+
+The pinned SmartTube `createVideoZoomCategory` defines five resize modes and 55
+percentages (50–95 by 5, 96–100 by 1, 105–300 by 5). All sixty choices now exist
+in profile-owned settings and the in-player picker. Fit width/height, Fit,
+Fill and Stretch feed the existing PS5 AGC video-quad transform; percentage
+zoom scales Fit around the center. This shared blitter serves native and
+FFmpeg frames. Upscaling/interpolation receive the resulting scale through
+their existing path; no CPU frame rescale or PS4 dependency was introduced.
+
+An atomic packed geometry snapshot separates render-thread reads from mutable
+profile preferences. Start/stop activate/retire the transform; another profile's
+settings do not change the active picture. Saved sizing returns on subsequent
+playback. Both HUDs label the active transform, including paused RmlUi updates.
+Triangle uses the saved basic mode and returns percentage/fixed-axis sizing to
+Fit before resuming its Fit/Fill/Stretch cycle.
+
+Validation:
+- All sixteen native ASan/UBSan regressions pass, including all sixty menu
+  choices, three-page traversal, invalid values, profile reload, full preference
+  table handling and active-picture isolation across profile changes.
+- A final native run compares every paged percentage ID to an independent
+  literal list from the pinned SmartTube ranges; it passes
+  (`.deps/video-geometry-native-options-final.log`).
+- The extracted shipping AGC function passes all percentage scales with
+  portrait/wide sources, concrete fixed-axis/crop/stretch cases and invalid
+  inputs. Extracted paused-label, picker and actual controller methods pass;
+  the previous time-display regression also passes.
+- Actual RmlUi selection scrolls to the chosen row and reaches 300% through
+  all three pages. The original test attempted to activate a non-visible row;
+  its corrected interaction follows the real viewport behavior.
+- PS5 compilation passes for provider, AGC runtime, playback controller, both
+  HUDs, provider UI and audio/options picker. Existing SDK math and fixture RmlUi
+  width warnings remain. Ignored evidence is in `.deps/video-geometry-native.log`
+  and `.deps/video-geometry-{render,time,ui,sdk}-final.log`; the final orchestration
+  result is `.deps/video-geometry-final.result` (`0`).
+
+No full package freeze or console connection was made. GPU presentation,
+upscaling/interpolation interactions and long-session acceptance await the final
+candidate. Aspect-ratio overrides and rotation remain separate parity work.
+
 ## Playback time display and bounded settings pages — 2026-10-11
 
 The pinned SmartTube `appendEndingTimeCategory` offers disabled extra timing,

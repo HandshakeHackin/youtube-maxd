@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <stdatomic.h>
+#include "tube_video_geometry.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,8 +162,9 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode, resize_mode, zoom_percent; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
+static _Atomic unsigned g_video_requested, g_video_geometry;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
     evo_stream_choice_t choice; ResolveQuality quality; } g_recovery;
@@ -390,6 +393,37 @@ int tube_player_set_time_mode(int mode) {
     int i=player_preference(g_library_profile,1);if(i<0)return 0;
     g_player_preferences[i].time_mode=mode;save();return 1;
 }
+int tube_player_resize_mode(void) {
+    int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].resize_mode;
+}
+int tube_player_zoom_percent(void) {
+    int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].zoom_percent;
+}
+unsigned tube_player_video_geometry(void) {return atomic_load(&g_video_geometry);}
+void tube_video_geometry_enable(int enabled) {
+    atomic_store(&g_video_geometry,enabled?(atomic_load(&g_video_requested)|1u):0);
+}
+static void video_geometry_publish(void) {
+    unsigned value=((unsigned)tube_player_resize_mode()<<1)|((unsigned)tube_player_zoom_percent()<<4);
+    atomic_store(&g_video_requested,value);
+    /* Editing another profile affects its next video, not the current picture. */
+    if(!strcmp(g_library_profile,g_active_profile)) {
+        unsigned old=atomic_load(&g_video_geometry);
+        while((old&1) && !atomic_compare_exchange_weak(&g_video_geometry,&old,value|1u)) {}
+    }
+}
+int tube_player_set_resize_mode(int mode) {
+    if(mode<0 || mode>4)return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].resize_mode=mode;g_player_preferences[i].zoom_percent=0;
+    video_geometry_publish();save();return 1;
+}
+int tube_player_set_zoom_percent(int percent) {
+    if(!tube_zoom_valid(percent))return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].resize_mode=0;g_player_preferences[i].zoom_percent=percent;
+    video_geometry_publish();save();return 1;
+}
 static void player_preferences_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"player_preferences"), *row;
     if (!rows) {
@@ -416,6 +450,14 @@ static void player_preferences_load(const cJSON *root) {
         double seek_mode = num(row,"seek_mode");
         if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
             g_player_preferences[i].seek_mode = (int)seek_mode;
+        const cJSON *resize=cJSON_GetObjectItemCaseSensitive(row,"resize_mode");
+        double resize_mode=num(row,"resize_mode"),zoom=num(row,"zoom_percent");
+        if(cJSON_IsNumber(resize) && resize_mode>=0 && resize_mode<=4 && floor(resize_mode)==resize_mode)
+            g_player_preferences[i].resize_mode=(int)resize_mode;
+        if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(row,"zoom_percent")) &&
+            zoom>=50 && zoom<=300 && floor(zoom)==zoom && tube_zoom_valid((int)zoom)) {
+            g_player_preferences[i].resize_mode=0;g_player_preferences[i].zoom_percent=(int)zoom;
+        }
         const cJSON *time=cJSON_GetObjectItemCaseSensitive(row,"time_mode");
         double time_mode=num(row,"time_mode");
         if(cJSON_IsNumber(time) && time_mode>=0 && time_mode<=2 && floor(time_mode)==time_mode)
@@ -733,6 +775,8 @@ static void save(void) {
         cJSON_AddNumberToObject(preference,"seek_mode",g_player_preferences[i].seek_mode);
         cJSON_AddNumberToObject(preference,"seek_seconds",g_player_preferences[i].seek_seconds);
         cJSON_AddNumberToObject(preference,"time_mode",g_player_preferences[i].time_mode);
+        cJSON_AddNumberToObject(preference,"resize_mode",g_player_preferences[i].resize_mode);
+        cJSON_AddNumberToObject(preference,"zoom_percent",g_player_preferences[i].zoom_percent);
         cJSON_AddItemToArray(player_preferences,preference);
     }
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
@@ -882,6 +926,7 @@ static int init(void) {
     g_store_writable = 0;
     g_sleep_minutes = g_sleep_armed = g_sleep_fired = 0;
     g_player_preferences_count = 0; memset(g_player_preferences,0,sizeof g_player_preferences);
+    atomic_store(&g_video_requested,0);atomic_store(&g_video_geometry,0);
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_recovery, 0, sizeof g_recovery);
@@ -2241,6 +2286,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:resize:",16) || !strncmp(parent,"settings:zoom:",14)) {
+            int resize=!strncmp(parent,"settings:resize:",16);
+            const char* value=parent+(resize?16:14);char* end=NULL;long choice=strtol(value,&end,10);
+            if(!*value || *end || choice<0 || choice>300 ||
+                !(resize?tube_player_set_resize_mode((int)choice):tube_player_set_zoom_percent((int)choice))) {
+                tube_set_error("Select a valid video sizing option.");cb(0,NULL,0,0,ud);return 1;
+            }
+        }
         else if (!strncmp(parent,"settings:time-display:",22)) {
             const char *value=parent+22;char *end=NULL;long mode=strtol(value,&end,10);
             if(!*value || *end || mode<0 || mode>2 || !tube_player_set_time_mode((int)mode)) {
@@ -2398,6 +2451,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id,sizeof id,"settings:frame-rate:%d",rates[i]);
                 CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
             }
+        } else if (!strcmp(parent,"settings:video-zoom") || !strncmp(parent,"settings:resize:",16) || !strncmp(parent,"settings:zoom:",14)) {
+            const int modes[]={0,3,4,1,2};const char* labels[]={"Fit","Fit width","Fit height","Fill","Stretch"};
+            for(int i=0;i<5;++i) {
+                char id[64];snprintf(id,sizeof id,"settings:resize:%d",modes[i]);
+                CATALOG_FOLDER(id,labels[i],!tube_player_zoom_percent() && tube_player_resize_mode()==modes[i]?"Selected":"Saved for this profile; clears percentage zoom");
+            }
+            for(int zoom=50;zoom<=300;++zoom)if(tube_zoom_valid(zoom)) {
+                char id[64],label[64];snprintf(id,sizeof id,"settings:zoom:%d",zoom);snprintf(label,sizeof label,"Zoom %d%%",zoom);
+                CATALOG_FOLDER(id,label,tube_player_zoom_percent()==zoom?"Selected":"Centered zoom relative to Fit; saved for this profile");
+            }
         } else if (!strcmp(parent,"settings:time-display")) {
             const char *labels[]={"Total duration","Time remaining","Estimated finish time"};
             for(int mode=0;mode<3;++mode) {
@@ -2446,6 +2509,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
+            CATALOG_FOLDER("settings:video-zoom","Video sizing and zoom","Fit, width, height, fill, stretch and 50% to 300% zoom");
             const char *time_labels[]={"Time display: total duration","Time display: remaining","Time display: estimated finish"};
             CATALOG_FOLDER("settings:time-display",time_labels[tube_player_time_mode()],"Choose the playback time display for this profile");
             snprintf(label, sizeof label, "Speed for all videos: %.3gx", g_speed / 100.0);
@@ -3219,7 +3283,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save(); }
+static void tube_shutdown(void) { tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
     .caps = EVO_PROVIDER_CAP_CATALOG | EVO_PROVIDER_CAP_SEARCH | EVO_PROVIDER_CAP_RESOLVE |
