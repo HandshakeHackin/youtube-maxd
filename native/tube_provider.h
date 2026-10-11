@@ -19,6 +19,14 @@ int tube_phone_stop_on_disconnect(void);
  * Section: a catalog id to open instead of the main menu ("" = main menu). */
 int tube_select_account_on_boot(void);
 const char *tube_boot_section(void);
+const char *tube_boot_section_title(void);
+/* Touchpad on a folder row: the catalog id of its section menu, "" for none.
+ * The title names a channel or playlist the menu may pin. Main thread only;
+ * the result is valid until the next call. */
+const char *tube_folder_menu(const char *id, const char *title);
+/* Catalog id that lists the last typed search again with the current options,
+ * "" when this profile has not searched in the current browsing scope. */
+const char *tube_search_folder(void);
 int tube_phone_close_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);

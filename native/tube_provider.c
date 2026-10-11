@@ -39,6 +39,9 @@ typedef struct {
     char history_remove_cursor[65];
     unsigned history_scope;
     long long history_deadline;
+    char feedback_cursor[65];
+    unsigned feedback_scope, feedback_options; /* 1 = not interested, 2 = channel */
+    long long feedback_deadline;
 } Record;
 
 typedef struct { int height, max_fps, codec; } ResolveQuality;
@@ -75,6 +78,7 @@ typedef struct Request {
     ResolveQuality quality;
     PlaylistContext playlist;
     int page, music_origin, queue_origin, incognito;
+    int search_rows, library_search, aggregate;
     unsigned intent;
     char parent[160];
     char profile[33];
@@ -175,7 +179,9 @@ static const struct { const char *id, *label; } g_boot_sections[] = {
     {"section:gaming", "Gaming"}, {"section:news", "News"}, {"section:music", "Music"},
     {"section:sports", "Sports"}, {"section:live", "Live"}, {"section:movies", "Movies"},
     {"history", "Continue watching & history"}, {"favorites", "Favorites"}, {"queue", "Play queue"},
-    {"subscriptions", "Followed channels"}, {"discover", "Discover"}
+    {"subscriptions", "Followed channels"}, {"discover", "Discover"},
+    {"section:trending", "Trending"}, {"section:shorts", "Shorts"}, {"library:channels", "Subscribed channels"},
+    {"library:notifications", "Notifications"}, {"section:my_videos", "My videos"}
 };
 #define BOOT_SECTIONS ((int)(sizeof g_boot_sections / sizeof *g_boot_sections))
 static char g_boot_section[24];
@@ -184,7 +190,88 @@ static int boot_section_index(const char *id) {
     return 0;
 }
 const char *tube_boot_section(void) { return g_boot_section; }
+const char *tube_boot_section_title(void) { return g_boot_sections[boot_section_index(g_boot_section)].label; }
 int tube_select_account_on_boot(void) { return g_select_account_on_boot; }
+/* Main-menu and Discover rows a profile may hide or reorder. The table index is
+ * the row's saved identity; settings, player settings and close stay fixed. */
+enum { SECTION_ROOT, SECTION_DISCOVER };
+static const struct { const char *id, *label, *detail; int group; } g_sections[] = {
+    {"discover", "Discover", "Search public videos by topic", SECTION_ROOT},
+    {"search-history", "Recent searches", "Repeat or forget queries saved for the selected profile", SECTION_ROOT},
+    {"history", "Continue watching & history", "Stored on this PS5", SECTION_ROOT},
+    {"favorites", "Favorites", "Your local saved videos", SECTION_ROOT},
+    {"queue", "Play queue", "R2 on a video to add or remove", SECTION_ROOT},
+    {"subscriptions", "Followed channels", "Local follows, independent of Google accounts", SECTION_ROOT},
+    {"blocked-channels", "Blocked channels", "Manage channel blocks for the selected profile", SECTION_ROOT},
+    {"library:home", "Home recommendations", "From the companion library service", SECTION_DISCOVER},
+    {"library", "Accounts & library", "Profiles, subscriptions, history and playlists", SECTION_DISCOVER},
+    {"search:science", "Science", "Explore science videos", SECTION_DISCOVER},
+    {"search:technology", "Technology", "Explore technology videos", SECTION_DISCOVER},
+    {"section:gaming", "Gaming", "YouTube gaming shelves", SECTION_DISCOVER},
+    {"section:news", "News", "YouTube news shelves", SECTION_DISCOVER},
+    {"section:music", "Music", "YouTube music shelves", SECTION_DISCOVER},
+    {"search:documentary", "Documentaries", "Explore documentaries", SECTION_DISCOVER},
+    {"search:education", "Learning", "Explore educational videos", SECTION_DISCOVER},
+    {"section:sports", "Sports", "YouTube sports shelves", SECTION_DISCOVER},
+    {"section:live", "Live", "YouTube live shelves", SECTION_DISCOVER},
+    {"section:movies", "Movies", "YouTube movies and shows", SECTION_DISCOVER},
+    {"section:trending", "Trending", "Videos trending on YouTube", SECTION_DISCOVER},
+    {"section:shorts", "Shorts", "Short videos from YouTube", SECTION_DISCOVER}
+};
+#define SECTIONS ((int)(sizeof g_sections / sizeof *g_sections))
+#define SECTION_SLOTS 32
+_Static_assert(sizeof g_sections / sizeof *g_sections <= SECTION_SLOTS, "section flags are one unsigned");
+static unsigned char g_section_order[SECTION_SLOTS];
+static unsigned g_section_hidden;
+static int section_index(const char *id) {
+    for (int i = 0; id && i < SECTIONS; ++i) if (!strcmp(id, g_sections[i].id)) return i;
+    return -1;
+}
+/* Channels and playlists pinned to the main menu, in pin order for each profile. */
+#define PINS 256
+#define PROFILE_PINS 24
+static struct { char profile[33], id[119], title[EVO_PROVIDER_MAX_TITLE]; } g_pins[PINS];
+static int g_pin_count;
+static int pin_find(const char *profile, const char *id);
+/* Folder a section menu was opened on; supplies the title of a new pin. */
+static struct { char id[119], title[EVO_PROVIDER_MAX_TITLE], profile[33]; unsigned scope; } g_menu_target;
+/* SmartTube keeps search filters for one search session; they are never saved.
+ * Mixed channel and playlist results are a saved choice of the profile. */
+static const char *const g_search_dates[] = {"any", "today", "week", "month", "year"};
+static const char *const g_search_date_labels[] = {"Any time", "Today", "This week", "This month", "This year"};
+static const char *const g_search_durations[] = {"any", "short", "medium", "long"};
+static const char *const g_search_duration_labels[] = {"Any duration", "Under 3 minutes", "3 to 20 minutes", "Over 20 minutes"};
+static const char *const g_search_types[] = {"all", "video", "channel", "playlist", "movie", "shorts"};
+static const char *const g_search_type_labels[] = {"All types", "Videos", "Channels", "Playlists", "Movies", "Shorts"};
+static const char *const g_search_orders[] = {"relevance", "view_count"};
+static const char *const g_search_order_labels[] = {"Relevance", "View count"};
+static const char *const g_search_features[] = {"live", "4k", "hdr", "hd", "subtitles", "creative_commons", "360", "vr180", "3d", "location", "purchased"};
+static const char *const g_search_feature_labels[] = {"Live", "4K", "HDR", "HD", "Subtitles", "Creative Commons", "360 degrees", "VR180", "3D", "Location", "Purchased"};
+#define SEARCH_FEATURES 11
+static struct { char profile[33]; int date, duration, type, order; unsigned features; } g_search_options;
+static int g_search_cards, g_search_typed;
+/* The typed query that Search options, Suggestions and Search again refer to. */
+static struct { char query[801], profile[33]; unsigned scope; } g_last_search;
+static struct { char text[15][801], profile[33]; unsigned scope; int count; } g_suggestions;
+/* Filtered results come from one retained companion feed: later pages continue
+ * it by cursor, so they keep the options of the first page. */
+static struct { char parent[808], key[32], profile[33]; unsigned scope, serial, unavailable; } g_search_feed;
+/* Subscribed channels: 0 = the account's order, 1 = by name. Sorting needs the
+ * whole list, which is then served from memory. */
+static int g_channel_sort;
+#define CHANNEL_ROWS 480
+typedef struct { char id[33], title[EVO_PROVIDER_MAX_TITLE], subtitle[65], art[EVO_PROVIDER_MAX_ART_URL]; } ChannelRow;
+static ChannelRow g_channel_rows[CHANNEL_ROWS];
+static struct { int count, complete; unsigned scope; char profile[33]; } g_channel_list;
+/* Full description shown by the long-text reader; owned by one browsing scope. */
+static struct { char id[40], content[60004], profile[33]; unsigned scope; } g_description;
+/* Home cards the profile dismissed in this session; an entry with a channel
+ * hides that channel's other Home cards too. */
+static struct { char id[12], channel[25], profile[33]; unsigned scope; } g_dismissed[64];
+static unsigned g_dismissed_cursor;
+/* Play from start and Play incognito start their video from the action itself:
+ * the host takes it once; reloading the action screen afterwards only offers it. */
+static struct { char id[12], profile[33], offered[12]; unsigned scope; int offered_action; } g_menu_launch;
 /* One-shot private playback: armed by its video action, bound by the next
  * resolve of that video, retired by any other navigation or scope change. */
 static struct { char id[12], profile[33]; unsigned scope; } g_incognito;
@@ -302,14 +389,15 @@ static struct {
     char action[32], identity[101], profile[33], playlist[101], title[601], history_cursor[65];
 } g_account_intent;
 static struct { tube_playlist_prompt_t prompt; int pending, active, create;
-    char identity[101], profile[33]; } g_playlist_prompt;
+    char identity[101], profile[33], pin[119]; } g_playlist_prompt;
 static const struct { const char *action, *title; int channel; } g_account_actions[] = {
     {"like", "Like video", 0}, {"dislike", "Dislike video", 0}, {"unrate", "Remove video rating", 0},
     {"watch_later_add", "Add to YouTube Watch later", 0},
     {"watch_later_remove", "Remove from YouTube Watch later", 0},
     {"subscribe", "Subscribe on YouTube", 1}, {"unsubscribe", "Unsubscribe on YouTube", 1},
     {"history_remove", "Remove from YouTube history", 0},
-    {"mark_watched", "Mark as watched on YouTube", 0}
+    {"mark_watched", "Mark as watched on YouTube", 0},
+    {"not_interested", "Not interested", 0}, {"dont_recommend_channel", "Don't recommend channel", 0}
 };
 
 static int valid_cursor(const char *value) {
@@ -318,6 +406,8 @@ static int valid_cursor(const char *value) {
 }
 
 const char *tube_comment_text(const char *id) {
+    if (id && *g_description.id && !strcmp(id, g_description.id) && g_description.scope == g_playlist_scope &&
+        !strcmp(g_description.profile, g_library_profile)) return g_description.content;
     if (id) for (int i = 0; i < CHAT_HISTORY; ++i)
         if (*g_chat_messages[i].id && !strcmp(id, g_chat_messages[i].id)) return g_chat_messages[i].content;
     if (id) for (int i = 0; i <= LOCAL_PAGE; ++i)
@@ -608,7 +698,7 @@ static void player_preferences_load(const cJSON *root) {
 }
 
 static const char *topic_section(const char *id) {
-    static const char *const names[] = {"music", "gaming", "news", "sports", "live", "movies"};
+    static const char *const names[] = {"music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"};
     if (!id || strncmp(id, "section:", 8)) return NULL;
     for (unsigned i = 0; i < sizeof names / sizeof *names; ++i) {
         size_t n = strlen(names[i]);
@@ -738,6 +828,12 @@ int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, s
         i += n;
     }
     char title[601]; memcpy(title, text, length); title[length] = 0;
+    if (*g_playlist_prompt.pin) { /* a local name: applied at once, nothing to confirm */
+        int index = pin_find(g_library_profile, g_playlist_prompt.pin);
+        if (index < 0) return -1;
+        copy(g_pins[index].title, sizeof g_pins[index].title, title); g_playlist_prompt.active = 0; save();
+        snprintf(parent, capacity, "settings:pin:renamed"); return 0;
+    }
     unsigned serial = account_intent(g_playlist_prompt.create ? "playlist_create" : "playlist_rename",
         g_playlist_prompt.create ? g_playlist_prompt.identity : "",
         g_playlist_prompt.create ? "" : g_playlist_prompt.identity, title);
@@ -929,6 +1025,163 @@ static int sponsor_exclude(const char *channel, int exclude) {
     } else { tube_set_error("The excluded channel list is full."); return 0; }
     g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); return 1;
 }
+static void sections_default(unsigned char *order) {
+    for (int i = 0; i < SECTION_SLOTS; ++i) order[i] = (unsigned char)i;
+}
+/* Rows that exist only with content (recent searches, blocked channels) and
+ * hidden rows are not on screen. */
+static int section_listed(int section) {
+    if (g_section_hidden >> section & 1) return 0;
+    if (!strcmp(g_sections[section].id, "search-history")) return g_search_history && search_history_count();
+    if (!strcmp(g_sections[section].id, "blocked-channels")) return channel_blocks_active();
+    return 1;
+}
+/* Move within the row's own menu, past rows that are not on screen, so that
+ * one press changes what the profile sees. */
+static int section_move(int section, int direction) {
+    int at = -1, moved = 0;
+    for (int i = 0; i < SECTIONS; ++i) if (g_section_order[i] == section) at = i;
+    for (int i = at + direction; at >= 0 && i >= 0 && i < SECTIONS; i += direction) {
+        const int other = g_section_order[i];
+        if (g_sections[other].group != g_sections[section].group) continue;
+        g_section_order[at] = (unsigned char)other; g_section_order[i] = (unsigned char)section; at = i; moved = 1;
+        if (section_listed(other) || !section_listed(section)) break;
+    }
+    return moved;
+}
+static int pin_valid(const char *id) {
+    return id && strlen(id) < sizeof g_pins[0].id && valid_catalog_id(id) &&
+        (!strncmp(id, "channel:", 8) || !strncmp(id, "playlist:", 9) || !strncmp(id, "library:playlist:", 17));
+}
+static int pin_find(const char *profile, const char *id) {
+    for (int i = 0; i < g_pin_count; ++i)
+        if (!strcmp(g_pins[i].profile, profile) && !strcmp(g_pins[i].id, id)) return i;
+    return -1;
+}
+/* 1=stored, 0=already pinned, invalid or full (full reports through the error text). */
+static int pin_put(const char *profile, const char *id, const char *title) {
+    int owned = 0;
+    if (!valid_profile(profile) || !pin_valid(id) || pin_find(profile, id) >= 0) return 0;
+    for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, profile)) ++owned;
+    if (owned >= PROFILE_PINS || g_pin_count == PINS) return 0;
+    copy(g_pins[g_pin_count].profile, sizeof g_pins[0].profile, profile);
+    copy(g_pins[g_pin_count].id, sizeof g_pins[0].id, id);
+    copy(g_pins[g_pin_count].title, sizeof g_pins[0].title, title && *title ? title : strrchr(id, ':') + 1);
+    ++g_pin_count; return 1;
+}
+static int pin_move(int index, int direction) {
+    for (int i = index + direction; i >= 0 && i < g_pin_count; i += direction)
+        if (!strcmp(g_pins[i].profile, g_pins[index].profile)) {
+            char id[sizeof g_pins[0].id], title[sizeof g_pins[0].title];
+            memcpy(id, g_pins[i].id, sizeof id); memcpy(title, g_pins[i].title, sizeof title);
+            memcpy(g_pins[i].id, g_pins[index].id, sizeof id); memcpy(g_pins[i].title, g_pins[index].title, sizeof title);
+            memcpy(g_pins[index].id, id, sizeof id); memcpy(g_pins[index].title, title, sizeof title); return 1;
+        }
+    return 0;
+}
+/* Menu a folder row opens with the Touchpad ("" = none). Playlists of the
+ * account keep their own menu, which offers the pin through the noted folder. */
+const char *tube_folder_menu(const char *id, const char *title) {
+    static char menu[160];
+    menu[0] = 0; memset(&g_menu_target, 0, sizeof g_menu_target);
+    if (section_index(id) >= 0) snprintf(menu, sizeof menu, "settings:section:%d", section_index(id));
+    else if (pin_valid(id)) {
+        copy(g_menu_target.id, sizeof g_menu_target.id, id); copy(g_menu_target.title, sizeof g_menu_target.title, title);
+        copy(g_menu_target.profile, sizeof g_menu_target.profile, g_library_profile); g_menu_target.scope = g_playlist_scope;
+        if (strncmp(id, "library:playlist:", 17)) snprintf(menu, sizeof menu, "settings:pin:%s", id);
+    }
+    return menu;
+}
+/* "verb:id", a bare id (the pin's menu) or "renamed" (the pin just renamed). */
+static const char *pin_target(const char *value, int *verb) {
+    static const char *const verbs[] = {"add:", "remove:", "up:", "down:", "rename:"};
+    *verb = -1;
+    if (!strcmp(value, "renamed"))
+        return *g_playlist_prompt.pin && !strcmp(g_playlist_prompt.profile, g_library_profile) ? g_playlist_prompt.pin : NULL;
+    for (int i = 0; i < 5; ++i) if (!strncmp(value, verbs[i], strlen(verbs[i]))) { *verb = i; value += strlen(verbs[i]); break; }
+    return pin_valid(value) ? value : NULL;
+}
+/* Repeating an action is harmless: a pinned folder is not pinned twice. */
+static int pin_action(const char *value) {
+    int verb; const char *id = pin_target(value, &verb);
+    if (!id) { tube_set_error("Select a channel or playlist to pin."); return 0; }
+    const int index = pin_find(g_library_profile, id);
+    if (verb == 0 && index < 0) {
+        const int known = !strcmp(g_menu_target.id, id) && g_menu_target.scope == g_playlist_scope &&
+            !strcmp(g_menu_target.profile, g_library_profile);
+        if (!pin_put(g_library_profile, id, known ? g_menu_target.title : "")) {
+            tube_set_error("The pinned section list is full. Unpin a section first."); return 0;
+        }
+        save();
+    } else if (verb == 1 && index >= 0) {
+        memmove(&g_pins[index], &g_pins[index + 1], (size_t)(g_pin_count - index - 1) * sizeof g_pins[0]); --g_pin_count; save();
+    } else if ((verb == 2 || verb == 3) && index >= 0) {
+        if (pin_move(index, verb == 2 ? -1 : 1)) save();
+    } else if (verb == 4) {
+        if (index < 0) { tube_set_error("Pin this section before renaming it."); return 0; }
+        char pin[sizeof g_playlist_prompt.pin]; copy(pin, sizeof pin, id);
+        memset(&g_account_intent, 0, sizeof g_account_intent); memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
+        if (!++g_account_serial) ++g_account_serial;
+        g_playlist_prompt.prompt.ticket = g_account_serial;
+        copy(g_playlist_prompt.prompt.label, sizeof g_playlist_prompt.prompt.label, "Pinned section name");
+        copy(g_playlist_prompt.prompt.initial, sizeof g_playlist_prompt.prompt.initial, g_pins[index].title);
+        copy(g_playlist_prompt.pin, sizeof g_playlist_prompt.pin, pin);
+        copy(g_playlist_prompt.profile, sizeof g_playlist_prompt.profile, g_library_profile);
+        g_playlist_prompt.pending = g_playlist_prompt.active = 1;
+    }
+    return 1;
+}
+static void search_options_reset(void) {
+    memset(&g_search_options, 0, sizeof g_search_options);
+    copy(g_search_options.profile, sizeof g_search_options.profile, g_library_profile);
+}
+/* Filters chosen under another profile never apply to this one. */
+static int search_filters(void) {
+    if (strcmp(g_search_options.profile, g_library_profile)) search_options_reset();
+    return g_search_options.date || g_search_options.duration || g_search_options.type ||
+        g_search_options.order || g_search_options.features;
+}
+static void search_summary(char *out, size_t capacity) {
+    char text[256] = ""; size_t used = 0;
+    const char *parts[4 + SEARCH_FEATURES]; int count = 0;
+    search_filters();
+    if (g_search_options.date) parts[count++] = g_search_date_labels[g_search_options.date];
+    if (g_search_options.duration) parts[count++] = g_search_duration_labels[g_search_options.duration];
+    if (g_search_options.type) parts[count++] = g_search_type_labels[g_search_options.type];
+    for (int i = 0; i < SEARCH_FEATURES; ++i) if (g_search_options.features >> i & 1) parts[count++] = g_search_feature_labels[i];
+    if (g_search_options.order) parts[count++] = g_search_order_labels[g_search_options.order];
+    for (int i = 0; i < count && used < sizeof text; ++i)
+        used += (size_t)snprintf(text + used, sizeof text - used, "%s%s", i ? ", " : "", parts[i]);
+    if (g_search_feed.unavailable == g_playlist_scope && (count || g_search_cards))
+        copy(out, capacity, "Options ignored: the companion library worker is off");
+    else if (count) copy(out, capacity, text);
+    else copy(out, capacity, g_search_cards ? "No filters; channels and playlists included" : "No filters; videos only");
+}
+static int last_search_current(void) {
+    return *g_last_search.query && g_last_search.scope == g_playlist_scope && !strcmp(g_last_search.profile, g_library_profile);
+}
+/* The last typed search as a folder the host can stack above ("" = none). */
+const char *tube_search_folder(void) {
+    static char folder[32];
+    folder[0] = 0;
+    if (last_search_current()) snprintf(folder, sizeof folder, "search-again:%u", g_playlist_scope);
+    return folder;
+}
+static int dismissed(const char *id, const char *channel) {
+    for (int i = 0; i < 64; ++i) if (g_dismissed[i].scope == g_playlist_scope && !strcmp(g_dismissed[i].profile, g_library_profile) &&
+        (!strcmp(g_dismissed[i].id, id) || (*g_dismissed[i].channel && !strcmp(g_dismissed[i].channel, channel)))) return 1;
+    return 0;
+}
+static int home_parent(const char *parent) {
+    return !strcmp(parent, "library:home") || !strncmp(parent, "library:filter:", 15);
+}
+static unsigned feedback_option(const char *action) {
+    return !strcmp(action, "not_interested") ? 1u : !strcmp(action, "dont_recommend_channel") ? 2u : 0u;
+}
+static int feedback_current(const Record *r, unsigned option) {
+    return r && r->feedback_scope == g_playlist_scope && r->feedback_deadline > now_ms() &&
+        valid_cursor(r->feedback_cursor) && (r->feedback_options & option);
+}
 
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
@@ -1079,6 +1332,14 @@ static void save(void) {
         cJSON_AddStringToObject(row,"profile",g_searches[i].profile);
         cJSON_AddStringToObject(row,"query",g_searches[i].query);
         cJSON_AddItemToArray(searches,row);
+    }
+    cJSON *pins=cJSON_AddArrayToObject(root,"pinned_sections");
+    for(int i=0;pins && i<g_pin_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_pins[i].profile);
+        cJSON_AddStringToObject(row,"id",g_pins[i].id);
+        cJSON_AddStringToObject(row,"title",g_pins[i].title);
+        cJSON_AddItemToArray(pins,row);
     }
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
@@ -1264,6 +1525,11 @@ static int init(void) {
     copy(g_library_profile,sizeof g_library_profile,"guest");
     g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;g_blocked_count=0;
     g_search_count = 0; memset(g_occurrences,0,sizeof g_occurrences); memset(&g_restart,0,sizeof g_restart);
+    g_pin_count = 0; memset(&g_menu_target,0,sizeof g_menu_target); memset(&g_menu_launch,0,sizeof g_menu_launch);
+    memset(&g_search_options,0,sizeof g_search_options); memset(&g_last_search,0,sizeof g_last_search);
+    memset(&g_suggestions,0,sizeof g_suggestions); memset(&g_search_feed,0,sizeof g_search_feed);
+    memset(&g_channel_list,0,sizeof g_channel_list); memset(&g_description,0,sizeof g_description);
+    memset(g_dismissed,0,sizeof g_dismissed); g_search_typed = 0;
     g_caption_path[0] = g_caption_language[0] = 0;
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
@@ -1375,6 +1641,8 @@ static int init(void) {
     }
     cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"search_history"))
         search_history_put(str(o,"profile"),str(o,"query"),0);
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"pinned_sections"))
+        pin_put(str(o,"profile"),str(o,"id"),str(o,"title"));
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
         const char *owner = version == 1 ? "guest" : str(o, "profile");
         if (record_for(str(o, "id"), owner, 0)) continue;
@@ -1427,7 +1695,7 @@ static int set_source(const char *value) {
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
-    if (strcmp(normalized, g_source)) profile_settings_select("guest");
+    if (strcmp(normalized, g_source)) { profile_settings_select("guest"); search_options_reset(); }
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
     tube_queue_retry_cancel();
@@ -2364,6 +2632,128 @@ int tube_resolve_unavailable(const char *id) {
         !strcmp(id,g_resolve_failure.id) && !strcmp(g_resolve_failure.profile,g_library_profile);
 }
 
+/* A companion without the library worker, or the offline fixture, cannot
+ * filter: the same request continues as the plain video search, and later
+ * searches skip the attempt until an option changes. */
+static int search_fallback(Request *r, const char *code) {
+    if (!r->library_search || r->page || strcmp(r->parent, g_search_feed.key) ||
+        (strcmp(code, "library_unavailable") && strcmp(code, "unknown_operation"))) return 0;
+    cJSON *o = cJSON_CreateObject(); if (!o) return 0;
+    cJSON_AddStringToObject(o, "action", "search"); cJSON_AddStringToObject(o, "profile", g_library_profile);
+    cJSON_AddStringToObject(o, "query", g_search_feed.parent + 7); cJSON_AddNumberToObject(o, "page", 0);
+    char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
+    if (!body || strlen(body) >= sizeof r->payload) { free(body); return 0; }
+    copy(r->payload, sizeof r->payload, body); free(body);
+    copy(r->parent, sizeof r->parent, g_search_feed.parent);
+    g_search_feed.key[0] = 0; g_search_feed.unavailable = g_playlist_scope;
+    r->kind = 1; r->library_search = 0; r->job[0] = 0; r->deadline = now_ms() + 65000;
+    begin(r); return 1;
+}
+/* The first page of a typed search leads with its two folders. */
+static int search_rows(evo_provider_item_t *items) {
+    char summary[160]; search_summary(summary, sizeof summary);
+    folder(&items[0], "settings:search", "Search options", summary);
+    folder(&items[1], "search-suggest", "Suggestions", "Completions for this search");
+    return 2;
+}
+static void suggestions_result(Request *r, const cJSON *result) {
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(result, "suggestions"), *row;
+    if (strcmp(str(result, "kind"), "search_suggestions") || !cJSON_IsArray(rows)) {
+        tube_set_error("The suggestion response was invalid."); complete(r, 0); return;
+    }
+    evo_provider_item_t *items = calloc(15, sizeof *items); int n = 0;
+    if (!items) { complete(r, 0); return; }
+    memset(&g_suggestions, 0, sizeof g_suggestions);
+    copy(g_suggestions.profile, sizeof g_suggestions.profile, g_library_profile); g_suggestions.scope = g_playlist_scope;
+    cJSON_ArrayForEach(row, rows) {
+        int duplicate = 0;
+        if (n >= 15 || !cJSON_IsString(row) || !tube_search_query_valid(row->valuestring) ||
+            strlen(row->valuestring) >= sizeof g_suggestions.text[0]) continue;
+        for (int i = 0; i < n; ++i) if (search_same(g_suggestions.text[i], row->valuestring)) duplicate = 1;
+        if (duplicate) continue;
+        char id[64]; snprintf(id, sizeof id, "search-suggest:run:%u:%d", g_playlist_scope, n);
+        folder(&items[n], id, row->valuestring, "Cross searches for this");
+        copy(g_suggestions.text[n++], sizeof g_suggestions.text[0], row->valuestring);
+    }
+    g_suggestions.count = n;
+    if (!n) folder(&items[n++], "account:notice", "No suggestions", "Circle returns to the search");
+    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
+    free(items);
+}
+/* The first row carries the whole text for the reader; the others are its header. */
+static void description_result(Request *r, const cJSON *result) {
+    const char *id = r->parent + 12, *channel = str(result, "channel_id"), *views = str(result, "views");
+    const cJSON *text = cJSON_GetObjectItemCaseSensitive(result, "description");
+    char catalog[40], label[96] = ""; snprintf(catalog, sizeof catalog, "channel:%s", channel);
+    if (strcmp(str(result, "kind"), "description") || strcmp(str(result, "id"), id) || !cJSON_IsString(text) ||
+        strlen(text->valuestring) >= sizeof g_description.content || strlen(views) > 20 || strspn(views, "0123456789") != strlen(views)) {
+        tube_set_error("The description response was invalid."); complete(r, 0); return;
+    }
+    evo_provider_item_t items[4]; int n = 0;
+    memset(&g_description, 0, sizeof g_description);
+    snprintf(g_description.id, sizeof g_description.id, "description:text:%u", r->generation);
+    copy(g_description.content, sizeof g_description.content, *text->valuestring ? text->valuestring : "This video has no description.");
+    copy(g_description.profile, sizeof g_description.profile, g_library_profile); g_description.scope = g_playlist_scope;
+    folder(&items[n], g_description.id, *str(result, "title") ? str(result, "title") : "Description",
+        boolean(result, "truncated") ? "Description, shortened by the companion; L2 / R2 scroll" : "Description; L2 / R2 scroll");
+    copy(items[n].overview, sizeof items[n].overview, g_description.content); ++n;
+    if (*str(result, "channel")) {
+        if (valid_channel_group(catalog)) folder(&items[n++], catalog, str(result, "channel"), "Channel; Cross opens it");
+        else folder(&items[n++], "account:notice:channel", str(result, "channel"), "Channel");
+    }
+    if (*str(result, "published")) folder(&items[n++], "account:notice:published", str(result, "published"), "Published");
+    if (*views) { /* group the digits in threes */
+        size_t length = strlen(views), used = 0;
+        for (size_t i = 0; i < length; ++i) {
+            if (i && !((length - i) % 3)) label[used++] = ',';
+            label[used++] = views[i];
+        }
+        snprintf(label + used, sizeof label - used, " view%s", strcmp(views, "1") ? "s" : "");
+        folder(&items[n++], "account:notice:views", label, "Views");
+    }
+    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
+}
+static int channel_compare(const void *a, const void *b) {
+    const ChannelRow *x = a, *y = b; const unsigned char *s = (const unsigned char *)x->title, *t = (const unsigned char *)y->title;
+    for (; *s && *t; ++s, ++t) if (tolower(*s) != tolower(*t)) return tolower(*s) < tolower(*t) ? -1 : 1;
+    return *s ? 1 : *t ? -1 : strcmp(x->id, y->id);
+}
+static void channel_page(int page, evo_provider_items_cb cb, void *ud) {
+    evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items); int n = 0;
+    if (!items) { cb(0, NULL, 0, 0, ud); return; }
+    for (int i = page * LOCAL_PAGE; i < g_channel_list.count && n < LOCAL_PAGE; ++i, ++n) {
+        folder(&items[n], g_channel_rows[i].id, g_channel_rows[i].title, g_channel_rows[i].subtitle);
+        copy(items[n].art_url, sizeof items[n].art_url, g_channel_rows[i].art);
+        copy(items[n].parent_id, sizeof items[n].parent_id, g_channel_rows[i].id + 8);
+    }
+    cb(1, items, n, (page + 1) * LOCAL_PAGE < g_channel_list.count, ud); free(items);
+}
+/* Sorting by name: follow the list to its end, bounded, before showing a page. */
+static void channels_result(Request *r, const cJSON *result) {
+    const char *cursor = str(result, "cursor"); int more = boolean(result, "has_more"); const cJSON *o;
+    if (more && !valid_cursor(cursor)) { tube_set_error("The library pagination response was invalid."); complete(r, 0); return; }
+    cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
+        const char *id = str(o, "id"); int duplicate = 0;
+        if (g_channel_list.count >= CHANNEL_ROWS || !valid_channel_group(id) || blocked_channel(id + 8) >= 0) continue;
+        for (int i = 0; i < g_channel_list.count; ++i) if (!strcmp(g_channel_rows[i].id, id)) duplicate = 1;
+        if (duplicate) continue;
+        ChannelRow *row = &g_channel_rows[g_channel_list.count++];
+        copy(row->id, sizeof row->id, id); copy(row->title, sizeof row->title, *str(o, "title") ? str(o, "title") : id + 8);
+        copy(row->subtitle, sizeof row->subtitle, str(o, "subtitle")); copy(row->art, sizeof row->art, str(o, "art_url"));
+    }
+    if (more && g_channel_list.count < CHANNEL_ROWS && ++r->aggregate <= 40) {
+        snprintf(r->payload, sizeof r->payload, "{\"action\":\"library\",\"library\":{\"action\":\"continue\",\"profile\":\"%s\",\"cursor\":\"%s\"}}",
+            g_library_profile, cursor);
+        r->job[0] = 0; r->deadline = now_ms() + 65000; begin(r); return;
+    }
+    qsort(g_channel_rows, (size_t)g_channel_list.count, sizeof g_channel_rows[0], channel_compare);
+    g_channel_list.complete = 1;
+    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r); if (cb) channel_page(0, cb, data);
+}
+
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
@@ -2419,6 +2809,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     if (strcmp(state, "done")) {
         const cJSON *error = cJSON_GetObjectItemCaseSensitive(root, "error");
+        if (!strcmp(state,"failed") && search_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
         if (!strcmp(state,"failed")) resolve_failure(r,error);
         tube_set_error(*str(error, "message") ? str(error, "message") : "The request was cancelled or could not be completed.");
         cJSON_Delete(root); complete(r, 0); return;
@@ -2429,6 +2820,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
     if (r->kind == 12) { playlist_window_result(r,result); cJSON_Delete(root); return; }
+    if (r->kind == 15) { description_result(r,result); cJSON_Delete(root); return; }
+    if (r->kind == 16) { suggestions_result(r,result); cJSON_Delete(root); return; }
+    if (r->kind == 3 && r->aggregate) { channels_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 11) {
         if (r->intent != g_message.ticket || !message_scope() || !boolean(result, "success") ||
             num(result, "api_version") != 1 || strcmp(str(result, "id"), g_message.video) ||
@@ -2464,6 +2858,20 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             }
             tube_remove_history(g_account_intent.identity);
         }
+        if(!strcmp(g_account_intent.action,"not_interested") || !strcmp(g_account_intent.action,"dont_recommend_channel")) {
+            if(num(result,"api_version")!=1 || strcmp(str(result,"video_id"),g_account_intent.identity) ||
+               strcmp(str(result,"feedback"),g_account_intent.action)) {
+                cJSON_Delete(root);tube_set_error("The companion did not confirm this feedback.");complete(r,0);return;
+            }
+            /* The card leaves Home lists at once; YouTube's own lists follow later. */
+            Record *card=record(g_account_intent.identity,0);
+            int slot=(int)(g_dismissed_cursor++%64);
+            memset(&g_dismissed[slot],0,sizeof g_dismissed[slot]);
+            copy(g_dismissed[slot].id,sizeof g_dismissed[slot].id,g_account_intent.identity);
+            if(card && !strcmp(g_account_intent.action,"dont_recommend_channel") && tube_sb_channel_valid(card->item.parent_id))
+                copy(g_dismissed[slot].channel,sizeof g_dismissed[slot].channel,card->item.parent_id);
+            copy(g_dismissed[slot].profile,sizeof g_dismissed[slot].profile,g_library_profile);g_dismissed[slot].scope=g_playlist_scope;
+        }
         if (!strcmp(g_account_intent.action, "comment_rate") && strcmp(str(result, "rating"), g_account_intent.identity)) {
             cJSON_Delete(root); tube_set_error("The comment rating was not confirmed."); complete(r, 0); return;
         }
@@ -2485,9 +2893,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         memset(r, 0, sizeof *r); if (cb) cb(1, &item, 1, 0, data);
         cJSON_Delete(root); return;
     }
-    evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items);
+    evo_provider_item_t *items = calloc(LOCAL_PAGE + 2, sizeof *items);
     if (!items) { cJSON_Delete(root); complete(r, 0); return; }
-    int n = 0; cJSON *o;
+    int n = 0, lead = 0; cJSON *o;
     if (r->kind == 4) {
         const cJSON *profiles = cJSON_GetObjectItemCaseSensitive(result, "profiles");
         if (!cJSON_IsArray(profiles)) {
@@ -2554,11 +2962,20 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (cb) cb(1, items, n, more, data);
         free(items); cJSON_Delete(root); return;
     }
+    const int home = r->kind == 3 && home_parent(r->parent), notifications = r->kind == 3 && !strcmp(r->parent, "library:notifications");
+    if (r->search_rows) n = lead = search_rows(items);
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
-        if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
+        if (n >= LOCAL_PAGE + lead || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         parse_item(&items[n], o);
         if(!items[n].is_folder && blocked_identity(items[n].parent_id,items[n].subtitle)>=0)continue;
+        if(items[n].is_folder && valid_channel_group(items[n].id) && blocked_channel(items[n].id+8)>=0)continue;
+        if(home && !items[n].is_folder && dismissed(items[n].id,items[n].parent_id))continue;
+        if(notifications && boolean(o,"unread")) {
+            char sent[EVO_PROVIDER_MAX_SUBTITLE+16];
+            snprintf(sent,sizeof sent,"Unread%s%s",*items[n].subtitle?" | ":"",items[n].subtitle);
+            copy(items[n].subtitle,sizeof items[n].subtitle,sent);
+        }
         parse_playlist_context(&items[n], o, r->parent);
         for (int i = 0; i < n; ++i)
             if (!strcmp(items[i].id,items[n].id) &&
@@ -2587,6 +3004,15 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
                 copy(cached->history_remove_cursor,sizeof cached->history_remove_cursor,valid_cursor(cursor)?cursor:"");
                 cached->history_scope=g_playlist_scope;cached->history_deadline=now_ms()+110000;
             }
+            /* A feedback reference belongs to the Home card last listed; any other
+             * listing of the video retires it. The worker keeps it for 30 minutes. */
+            const char *feedback=home?str(o,"feedback_cursor"):"";
+            copy(cached->feedback_cursor,sizeof cached->feedback_cursor,valid_cursor(feedback)?feedback:"");
+            cached->feedback_options=(boolean(o,"feedback_not_interested")?1u:0u)|(boolean(o,"feedback_channel")?2u:0u);
+            cached->feedback_scope=g_playlist_scope;cached->feedback_deadline=now_ms()+1740000;
+            char known_title[EVO_PROVIDER_MAX_TITLE],known_channel[EVO_PROVIDER_MAX_SUBTITLE],known_parent[25];
+            copy(known_title,sizeof known_title,cached->item.title);copy(known_channel,sizeof known_channel,cached->item.subtitle);
+            copy(known_parent,sizeof known_parent,cached->item.parent_id);
             const cJSON *watched=cJSON_GetObjectItemCaseSensitive(o,"watch_percent");
             int remote=cJSON_IsNumber(watched) && isfinite(watched->valuedouble) && watched->valuedouble>=0 && watched->valuedouble<=100;
             if(!remote || (watched->valuedouble==100 && cached->updated>0)) {
@@ -2598,6 +3024,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             cached->item = items[n];
             if(remote && watched->valuedouble<100 && cached->updated>0) {
                 cached->item.resume_pos_sec=local_position;cached->item.played=local_played;
+            }
+            if(notifications) { /* the row shows the message and its time; the record keeps the video's own names */
+                copy(cached->item.subtitle,sizeof cached->item.subtitle,known_channel);
+                if(*known_title)copy(cached->item.title,sizeof cached->item.title,known_title);
+                if(!*cached->item.parent_id)copy(cached->item.parent_id,sizeof cached->item.parent_id,known_parent);
             }
             /* Occurrences belong to browser selections, not shared video history. */
             cached->item.playback_playlist[0]=0;
@@ -2727,6 +3158,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         cb(1,out,n,total>(page+1)*LOCAL_PAGE,ud);return 1;
     }
+    if(parent && !strncmp(parent,"description:text:",17)) {
+        CATALOG_FOLDER("account:notice","Circle to return","L2 / R2 scroll the description");
+        cb(1,out,n,0,ud);return 1;
+    }
     if(parent && !strncmp(parent,"search-history",14)) {
         /* Rows are named by profile-checked serials: a stale or foreign row never
          * changes another list, and reloading a finished action cannot repeat it. */
@@ -2779,8 +3214,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         Record *video=record(id,0);
         if(action==5 || action==6) {
-            /* The offer is a playable row: Cross starts it from this screen. */
+            /* The action starts its video once per menu visit, through the host's
+             * next-video poll. Reloading this screen after that playback only
+             * offers the playable row: Cross starts it again. */
             int replayed=0;
+            const int first=strcmp(g_menu_launch.offered,id) || g_menu_launch.offered_action!=action;
+            copy(g_menu_launch.offered,sizeof g_menu_launch.offered,id);g_menu_launch.offered_action=action;
+            if(first) {
+                copy(g_menu_launch.id,sizeof g_menu_launch.id,id);
+                copy(g_menu_launch.profile,sizeof g_menu_launch.profile,g_library_profile);g_menu_launch.scope=g_playlist_scope;
+            }
             if(action==5) {
                 replayed=!strcmp(g_restart.id,id) && g_restart.scope==g_playlist_scope && g_restart.selection!=g_selection_serial;
                 if(!replayed) {
@@ -2964,6 +3407,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_account_intent.title, g_account_intent.playlist, g_account_intent.identity);
             copy(out[0].overview, sizeof out[0].overview, g_comments[0].content);
         } else { tube_set_error("The playlist screen was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
+        if (!strncmp(parent, "playlist:menu:", 14)) {
+            char id[160]; snprintf(id, sizeof id, "settings:pin:library:playlist:%.100s", parent + 14);
+            CATALOG_FOLDER( id, pin_find(g_library_profile, id + 13) >= 0 ? "Pinned section actions" : "Pin to main menu",
+                "Keep this playlist on the main menu of the selected profile");
+        }
         cb(1, out, n, 0, ud); return 1;
     }
     if (parent && !strncmp(parent, "account:", 8)) {
@@ -2990,6 +3438,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 for (size_t i = 0; i < sizeof g_account_actions / sizeof g_account_actions[0]; ++i) {
                     if(!strcmp(g_account_actions[i].action,"history_remove") &&
                        (!r || r->history_scope!=g_playlist_scope || r->history_deadline<=now_ms() || !valid_cursor(r->history_remove_cursor)))continue;
+                    if(feedback_option(g_account_actions[i].action) && !feedback_current(r,feedback_option(g_account_actions[i].action)))continue;
                     const char *identity = g_account_actions[i].channel ? r ? r->item.parent_id : "" : parent + 13;
                     if (!*identity) continue;
                     char id[160], hint[160];
@@ -3019,8 +3468,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"unblock":"block",parent+13);
                 CATALOG_FOLDER(id,blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"Unblock channel":"Block channel","Hide this channel in catalogs for the selected profile");
             }
-            memset(&g_restart,0,sizeof g_restart);
-            char extra[128];snprintf(extra,sizeof extra,"local:video:%u:restart:%s",g_playlist_scope,parent+13);
+            memset(&g_restart,0,sizeof g_restart);g_menu_launch.offered[0]=0;
+            char extra[128];snprintf(extra,sizeof extra,"description:%s",parent+13);
+            CATALOG_FOLDER(extra,"Open description","Read the full description of this video");
+            snprintf(extra,sizeof extra,"local:video:%u:restart:%s",g_playlist_scope,parent+13);
             CATALOG_FOLDER(extra,"Play from start","Forget the resume position; keep the watched marker");
             snprintf(extra,sizeof extra,"local:video:%u:incognito:%s",g_playlist_scope,parent+13);
             CATALOG_FOLDER(extra,"Play incognito","No local history, resume position or account report for this playback");
@@ -3044,6 +3495,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER(extra,excluded?"Use SponsorBlock on this channel":"Exclude channel from SponsorBlock",
                     excluded?"Skip segments again in this channel's videos":"Never skip segments in this channel's videos");
             }
+            CATALOG_FOLDER("settings:refresh","Refresh section","Reload the list this video was shown in");
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
             int found = -1;
@@ -3068,6 +3520,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     tube_set_error("Reload YouTube history before removing this video.");cb(0,NULL,0,0,ud);return 1;
                 }
                 copy(g_account_intent.history_cursor,sizeof g_account_intent.history_cursor,history->history_remove_cursor);
+            }
+            if(feedback_option(g_account_intent.action)) {
+                Record *card=record(colon+1,0);
+                if(!feedback_current(card,feedback_option(g_account_intent.action))) {
+                    memset(&g_account_intent,0,sizeof g_account_intent);
+                    tube_set_error("Reload Home before sending feedback for this video.");cb(0,NULL,0,0,ud);return 1;
+                }
+                copy(g_account_intent.history_cursor,sizeof g_account_intent.history_cursor,card->feedback_cursor);
             }
             char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
             snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
@@ -3094,32 +3554,25 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "account:notice", 14)) {
             CATALOG_FOLDER( "account:notice", "Circle to return", "No account operation submitted");
         } else { tube_set_error("The selected account action was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
-        cb(1, out, n, 0, ud); return 1;
+        int offset=page*LOCAL_PAGE,count=offset<n?n-offset:0; /* only the video menu reaches a second page */
+        if(count>LOCAL_PAGE)count=LOCAL_PAGE;
+        cb(1,count?out+offset:NULL,count,offset+count<n,ud);return 1;
     }
-    if (!parent || !*parent) {
-        CATALOG_FOLDER( "discover", "Discover", "Search public videos by topic");
-        if(g_search_history && search_history_count())CATALOG_FOLDER("search-history","Recent searches","Repeat or forget queries saved for the selected profile");
-        CATALOG_FOLDER( "history", "Continue watching & history", "Stored on this PS5");
-        CATALOG_FOLDER( "favorites", "Favorites", "Your local saved videos");
-        CATALOG_FOLDER( "queue", "Play queue", "R2 on a video to add or remove");
-        CATALOG_FOLDER( "subscriptions", "Followed channels", "Local follows, independent of Google accounts");
-        if(channel_blocks_active())CATALOG_FOLDER("blocked-channels","Blocked channels","Manage channel blocks for the selected profile");
-        CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
-        CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
-        CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
-    } else if (!strcmp(parent, "discover")) {
-        CATALOG_FOLDER( "library:home", "Home recommendations", "From the companion library service");
-        CATALOG_FOLDER( "library", "Accounts & library", "Profiles, subscriptions, history and playlists");
-        CATALOG_FOLDER( "search:science", "Science", "Explore science videos");
-        CATALOG_FOLDER( "search:technology", "Technology", "Explore technology videos");
-        CATALOG_FOLDER( "section:gaming", "Gaming", "YouTube gaming shelves");
-        CATALOG_FOLDER( "section:news", "News", "YouTube news shelves");
-        CATALOG_FOLDER( "section:music", "Music", "YouTube music shelves");
-        CATALOG_FOLDER( "search:documentary", "Documentaries", "Explore documentaries");
-        CATALOG_FOLDER( "search:education", "Learning", "Explore educational videos");
-        CATALOG_FOLDER( "section:sports", "Sports", "YouTube sports shelves");
-        CATALOG_FOLDER( "section:live", "Live", "YouTube live shelves");
-        CATALOG_FOLDER( "section:movies", "Movies", "YouTube movies and shows");
+    if (!parent || !*parent || !strcmp(parent, "discover")) {
+        /* The profile's order, without the rows it hides; pins follow the main menu. */
+        const int group = parent && *parent ? SECTION_DISCOVER : SECTION_ROOT;
+        for (int k = 0; k < SECTIONS; ++k) {
+            const int s = g_section_order[k];
+            if (g_sections[s].group != group || !section_listed(s)) continue;
+            CATALOG_FOLDER( g_sections[s].id, g_sections[s].label, g_sections[s].detail);
+        }
+        if (group == SECTION_ROOT) {
+            for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, g_library_profile))
+                CATALOG_FOLDER( g_pins[i].id, g_pins[i].title, !strncmp(g_pins[i].id, "channel:", 8) ? "Pinned channel; Touchpad for actions" : "Pinned playlist; Touchpad for actions");
+            CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
+            CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
+            CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
+        }
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
         if (!strncmp(parent, "library:profile:", 16)) {
             tube_recovery_finish();
@@ -3142,6 +3595,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER( "library:history", "YouTube history", "History from the selected account");
         CATALOG_FOLDER( "library:watch_later", "Watch later", "Videos saved to your account");
         CATALOG_FOLDER( "library:playlists", "Your playlists", "Playlists from the selected account");
+        CATALOG_FOLDER( "library:channels", "Subscribed channels", g_channel_sort ? "Channels you subscribe to, by name" : "Channels you subscribe to");
+        CATALOG_FOLDER( "library:notifications", "Notifications", "Videos your account was notified about");
+        CATALOG_FOLDER( "section:my_videos", "My videos", "Uploads of the selected account");
         CATALOG_FOLDER( "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
         CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
         if (strcmp(g_library_profile, "guest"))
@@ -3308,6 +3764,32 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (!isdigit((unsigned char)*value) || *end || section >= BOOT_SECTIONS) { cb(0,NULL,0,0,ud); return 1; }
             copy(g_boot_section, sizeof g_boot_section, g_boot_sections[section].id); save();
         }
+        else if (!strcmp(parent, "settings:search:cards")) { g_search_cards = !g_search_cards; g_search_feed.unavailable = 0; save(); }
+        else if (!strncmp(parent, "settings:search:", 16)) {
+            const char *value = parent + 16; int feature = -1;
+            search_filters();
+            for (int i = 0; i < SEARCH_FEATURES; ++i)
+                if (!strncmp(value, "feature:", 8) && !strcmp(value + 8, g_search_features[i])) feature = i;
+            if (!strcmp(value, "date")) g_search_options.date = (g_search_options.date + 1) % 5;
+            else if (!strcmp(value, "duration")) g_search_options.duration = (g_search_options.duration + 1) % 4;
+            else if (!strcmp(value, "type")) g_search_options.type = (g_search_options.type + 1) % 6;
+            else if (!strcmp(value, "order")) g_search_options.order = !g_search_options.order;
+            else if (feature >= 0) g_search_options.features ^= 1u << feature;
+            else if (!strcmp(value, "reset")) search_options_reset();
+            else { cb(0,NULL,0,0,ud); return 1; }
+            g_search_feed.unavailable = 0; /* a changed option asks the companion again */
+        }
+        else if (!strcmp(parent, "settings:channel-sort")) { g_channel_sort = !g_channel_sort; g_channel_list.complete = 0; save(); }
+        else if (!strncmp(parent, "settings:section:", 17)) {
+            char *end = NULL; long section = isdigit((unsigned char)parent[17]) ? strtol(parent + 17, &end, 10) : -1;
+            if (section < 0 || section >= SECTIONS || (*end && strcmp(end, ":up") && strcmp(end, ":down") && strcmp(end, ":toggle"))) {
+                tube_set_error("Select a section of the main menu or Discover."); cb(0,NULL,0,0,ud); return 1;
+            }
+            if (!strcmp(end, ":toggle")) g_section_hidden ^= 1u << section;
+            else if (*end) section_move((int)section, !strcmp(end, ":up") ? -1 : 1);
+            if (*end) save();
+        }
+        else if (!strncmp(parent, "settings:pin:", 13)) { if (!pin_action(parent + 13)) { cb(0,NULL,0,0,ud); return 1; } }
         else if (!strncmp(parent, "settings:lang:", 14)) { copy(g_language, sizeof g_language, parent + 14); save(); }
         else if (!strncmp(parent, "settings:audio:", 15)) { copy(g_audio_language, sizeof g_audio_language, parent + 15); save(); }
         else if (!strcmp(parent, "settings:clear-history")) {
@@ -3425,6 +3907,91 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             CATALOG_FOLDER( "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             CATALOG_FOLDER( "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+        } else if (!strcmp(parent, "settings:search") || !strncmp(parent, "settings:search:", 16)) {
+            char label[256], id[64], clipped[121];
+            const int filtered = search_filters();
+            if (last_search_current()) {
+                copy(clipped, sizeof clipped, g_last_search.query);
+                snprintf(label, sizeof label, "Search again: %s", clipped);
+                snprintf(id, sizeof id, "search-again:%u", g_playlist_scope);
+                CATALOG_FOLDER( id, label, "Run the last search with these options");
+                CATALOG_FOLDER( "search-suggest", "Suggestions", "Completions for the last search");
+            }
+            snprintf(label, sizeof label, "Upload date: %s", g_search_date_labels[g_search_options.date]);
+            CATALOG_FOLDER( "settings:search:date", label, "Select to cycle; filters last until ProsperoTube closes");
+            snprintf(label, sizeof label, "Duration: %s", g_search_duration_labels[g_search_options.duration]);
+            CATALOG_FOLDER( "settings:search:duration", label, "Select to cycle");
+            snprintf(label, sizeof label, "Type: %s", g_search_type_labels[g_search_options.type]);
+            CATALOG_FOLDER( "settings:search:type", label, "Select to cycle; channels and playlists open as folders");
+            snprintf(label, sizeof label, "Sort by: %s", g_search_order_labels[g_search_options.order]);
+            CATALOG_FOLDER( "settings:search:order", label, "Select to switch");
+            for (int i = 0; i < SEARCH_FEATURES; ++i) {
+                snprintf(id, sizeof id, "settings:search:feature:%s", g_search_features[i]);
+                snprintf(label, sizeof label, "%s: %s", g_search_feature_labels[i], g_search_options.features >> i & 1 ? "required" : "any");
+                CATALOG_FOLDER( id, label, "Select to toggle this feature filter");
+            }
+            CATALOG_FOLDER( "settings:search:cards", g_search_cards ? "Channels and playlists in results: on" : "Channels and playlists in results: off",
+                "Saved for this profile; off lists videos only when no filter is set");
+            CATALOG_FOLDER( "settings:search:reset", "Reset search filters",
+                g_search_feed.unavailable == g_playlist_scope ? "The companion library worker is off: searches ignore these options" :
+                filtered ? "Filters are set" : "No filter is set");
+        } else if (!strcmp(parent, "settings:sections")) {
+            for (int group = SECTION_ROOT; group <= SECTION_DISCOVER; ++group) for (int k = 0; k < SECTIONS; ++k) {
+                const int s = g_section_order[k]; char id[64], label[256];
+                if (g_sections[s].group != group) continue;
+                snprintf(id, sizeof id, "settings:section:%d", s);
+                snprintf(label, sizeof label, "%s: %s", group ? "Discover" : "Main menu", g_sections[s].label);
+                CATALOG_FOLDER( id, label, g_section_hidden >> s & 1 ? "Hidden; select to show or move" : "Shown; select to hide or move");
+            }
+            for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, g_library_profile)) {
+                char id[160], label[256]; snprintf(id, sizeof id, "settings:pin:%s", g_pins[i].id);
+                snprintf(label, sizeof label, "Pinned: %s", g_pins[i].title);
+                CATALOG_FOLDER( id, label, "Select to unpin, rename or move");
+            }
+        } else if (!strncmp(parent, "settings:section:", 17)) {
+            char *end = NULL; long s = isdigit((unsigned char)parent[17]) ? strtol(parent + 17, &end, 10) : -1;
+            if (s < 0 || s >= SECTIONS) { cb(0,NULL,0,0,ud); return 1; }
+            int first = 1, last = 1, seen = 0; char id[64], label[256];
+            for (int k = 0; k < SECTIONS; ++k) if (g_sections[g_section_order[k]].group == g_sections[s].group) {
+                if (g_section_order[k] == s) seen = 1; else if (seen) last = 0; else first = 0;
+            }
+            const int hidden = g_section_hidden >> s & 1;
+            snprintf(id, sizeof id, "settings:section:%ld", s);
+            snprintf(label, sizeof label, "%s: %s", g_sections[s].label, hidden ? "hidden" : "shown");
+            CATALOG_FOLDER( id, label, g_sections[s].group ? "Discover section of the selected profile" : "Main menu section of the selected profile");
+            snprintf(id, sizeof id, "settings:section:%ld:up", s);
+            if (!first) CATALOG_FOLDER( id, "Move up", "Earlier in its menu");
+            snprintf(id, sizeof id, "settings:section:%ld:down", s);
+            if (!last) CATALOG_FOLDER( id, "Move down", "Later in its menu");
+            snprintf(id, sizeof id, "settings:section:%ld:toggle", s);
+            CATALOG_FOLDER( id, hidden ? "Show section" : "Hide section", hidden ? "Return it to its menu" : "Remove it from its menu; YouTube preferences can show it again");
+            CATALOG_FOLDER( "settings:sections", "All sections", "Show, hide and order every section and pin");
+            CATALOG_FOLDER( "settings:refresh", "Refresh section", "Reload the list this section was shown in");
+        } else if (!strncmp(parent, "settings:pin:", 13)) {
+            int verb; const char *target = pin_target(parent + 13, &verb);
+            if (!target) { tube_set_error("Select a channel or playlist to pin."); cb(0,NULL,0,0,ud); return 1; }
+            const int index = pin_find(g_library_profile, target);
+            char id[160], label[256];
+            if (verb == 4 && g_playlist_prompt.active && !strcmp(g_playlist_prompt.pin, target)) {
+                CATALOG_FOLDER( "account:notice", "Enter a section name", "Circle returns without renaming it");
+            } else if (index < 0) {
+                snprintf(id, sizeof id, "settings:pin:add:%s", target);
+                CATALOG_FOLDER( id, "Pin to main menu", "Keep this folder on the main menu of the selected profile");
+            } else {
+                int first = 1, last = 1;
+                for (int i = 0; i < g_pin_count; ++i) if (i != index && !strcmp(g_pins[i].profile, g_library_profile)) { if (i < index) first = 0; else last = 0; }
+                snprintf(id, sizeof id, "settings:pin:%s", target); snprintf(label, sizeof label, "Pinned: %s", g_pins[index].title);
+                CATALOG_FOLDER( id, label, "On the main menu of the selected profile");
+                snprintf(id, sizeof id, "settings:pin:remove:%s", target);
+                CATALOG_FOLDER( id, "Unpin from main menu", "Remove this pinned section; nothing else changes");
+                snprintf(id, sizeof id, "settings:pin:rename:%s", target);
+                CATALOG_FOLDER( id, "Rename pinned section", "Enter the name shown on the main menu");
+                snprintf(id, sizeof id, "settings:pin:up:%s", target);
+                if (!first) CATALOG_FOLDER( id, "Move up", "Earlier among the pinned sections");
+                snprintf(id, sizeof id, "settings:pin:down:%s", target);
+                if (!last) CATALOG_FOLDER( id, "Move down", "Later among the pinned sections");
+            }
+            CATALOG_FOLDER( "settings:refresh", "Refresh section", "Reload the list this folder was shown in");
         } else if (!strcmp(parent,"settings:history") || !strncmp(parent,"settings:history:",17)) {
             const char *labels[]={"Automatic","Enabled","Disabled"};
             const char *details[]={"Record on this PS5; the account's own YouTube setting decides what it keeps",
@@ -3583,6 +4150,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_watch.status == 1 ? "History report pending" : g_watch.status == 2 ? "Last history report confirmed" :
                 "Local history, resume positions and reports for the selected account");
             CATALOG_FOLDER( "settings:search-history", g_search_history ? "Search history: on" : "Search history: off", "Remember recent searches for this profile");
+            CATALOG_FOLDER( "settings:search", "Search options", "Upload date, duration, type, features, sorting and result cards");
+            CATALOG_FOLDER( "settings:sections", "Menu sections", "Show, hide and order the main menu, Discover and pinned sections");
+            CATALOG_FOLDER( "settings:channel-sort", g_channel_sort ? "Subscribed channels: by name" : "Subscribed channels: account order",
+                "Order of the Subscribed channels list for this profile");
             snprintf(label, sizeof label, "Start in: %s", g_boot_sections[boot_section_index(g_boot_section)].label);
             CATALOG_FOLDER( "settings:boot-section", label, "Choose the section this profile opens at startup");
             CATALOG_FOLDER( "settings:account-on-boot", g_select_account_on_boot ? "Choose account at startup: on" : "Choose account at startup: off",
@@ -3625,15 +4196,89 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 
 #undef CATALOG_FOLDER
 
+/* Takes the operation; a request that cannot be sent completes as failed. */
+static int library_job(Request *r, cJSON *operation) {
+    cJSON *job = cJSON_CreateObject();
+    if (!job || !operation) { cJSON_Delete(job); cJSON_Delete(operation); complete(r, 0); return -1; }
+    cJSON_AddStringToObject(job, "action", "library"); cJSON_AddItemToObject(job, "library", operation);
+    char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
+    if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
+    copy(r->payload, sizeof r->payload, body); free(body);
+    begin(r); return 0;
+}
+static int account_notice(evo_provider_items_cb cb, void *ud) {
+    evo_provider_item_t item;
+    folder(&item, "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
+    cb(1, &item, 1, 0, ud); return 0;
+}
+/* Filters or mixed result cards need the companion's library search. Its first
+ * page opens a retained feed; later pages continue that feed by cursor. */
+static int search_feed_current(const char *parent) {
+    return *g_search_feed.key && !strcmp(g_search_feed.parent, parent) && g_search_feed.scope == g_playlist_scope &&
+        !strcmp(g_search_feed.profile, g_library_profile);
+}
+static int library_search(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
+    if (page && (page >= LIBRARY_PAGES || strcmp(g_library_parent, g_search_feed.key) || !*g_library_cursors[page])) {
+        tube_set_error("Search again to continue browsing these results."); cb(0, NULL, 0, 0, ud); return 0;
+    }
+    if (!page) {
+        memset(&g_search_feed, 0, sizeof g_search_feed);
+        static unsigned serial; if (!++serial) ++serial;
+        g_search_feed.serial = serial; snprintf(g_search_feed.key, sizeof g_search_feed.key, "search-feed:%u", serial);
+        copy(g_search_feed.parent, sizeof g_search_feed.parent, parent);
+        copy(g_search_feed.profile, sizeof g_search_feed.profile, g_library_profile); g_search_feed.scope = g_playlist_scope;
+        copy(g_library_parent, sizeof g_library_parent, g_search_feed.key); memset(g_library_cursors, 0, sizeof g_library_cursors);
+    }
+    Request *r = request_new(3, ud); if (!r) return -1;
+    r->items_cb = cb; r->page = page; r->library_search = 1; r->search_rows = !page;
+    copy(r->parent, sizeof r->parent, g_search_feed.key);
+    cJSON *operation = cJSON_CreateObject(), *features = page ? NULL : cJSON_CreateArray();
+    cJSON_AddStringToObject(operation, "action", page ? "continue" : "search");
+    cJSON_AddStringToObject(operation, "profile", g_library_profile);
+    if (page) cJSON_AddStringToObject(operation, "cursor", g_library_cursors[page]);
+    else {
+        cJSON_AddStringToObject(operation, "query", parent + 7);
+        cJSON_AddStringToObject(operation, "upload_date", g_search_dates[g_search_options.date]);
+        cJSON_AddStringToObject(operation, "duration", g_search_durations[g_search_options.duration]);
+        cJSON_AddStringToObject(operation, "type", g_search_types[g_search_options.type]);
+        for (int i = 0; i < SEARCH_FEATURES; ++i)
+            if (g_search_options.features >> i & 1) cJSON_AddItemToArray(features, cJSON_CreateString(g_search_features[i]));
+        cJSON_AddItemToObject(operation, "features", features);
+        cJSON_AddStringToObject(operation, "order", g_search_orders[g_search_options.order]);
+    }
+    return library_job(r, operation);
+}
+
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
     char rerun[816];
+    int typed = g_search_typed && parent && !strncmp(parent,"search:",7);
+    g_search_typed = 0;
     if (parent && !strncmp(parent,"search-history:run:",19)) {
         int index = search_history_find(parent+19);
         if (index < 0) { tube_set_error("Reopen recent searches for the current profile."); cb(0,NULL,0,0,ud); return 0; }
         snprintf(rerun,sizeof rerun,"search:%s",g_searches[index].query);
         if (!page) search_history_add(rerun+7);
-        parent = rerun;
+        parent = rerun; typed = 1;
+    } else if (parent && (!strncmp(parent,"search-suggest:run:",19) || !strncmp(parent,"search-again:",13))) {
+        /* Both rows are named by the browsing scope: a stale or foreign row searches nothing. */
+        const int again = parent[7] == 'a';
+        char expected[64]; int index = -1;
+        for (int i = 0; !again && i < g_suggestions.count; ++i) {
+            snprintf(expected,sizeof expected,"search-suggest:run:%u:%d",g_playlist_scope,i);
+            if (!strcmp(parent,expected) && g_suggestions.scope == g_playlist_scope && !strcmp(g_suggestions.profile,g_library_profile)) index = i;
+        }
+        snprintf(expected,sizeof expected,"search-again:%u",g_playlist_scope);
+        if (again ? strcmp(parent,expected) || !last_search_current() : index < 0) {
+            tube_set_error("Search again for the current profile."); cb(0,NULL,0,0,ud); return 0;
+        }
+        snprintf(rerun,sizeof rerun,"search:%s",again ? g_last_search.query : g_suggestions.text[index]);
+        if (!page) search_history_add(rerun+7);
+        parent = rerun; typed = 1;
+    }
+    if (typed && !page) {
+        copy(g_last_search.query,sizeof g_last_search.query,parent+7);
+        copy(g_last_search.profile,sizeof g_last_search.profile,g_library_profile); g_last_search.scope = g_playlist_scope;
     }
     const char *section = topic_section(parent);
     if(!parent || (strncmp(parent,"account:menu:",13) && strncmp(parent,"local:video:",12)))
@@ -3641,6 +4286,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     g_browse_queue = parent && !strcmp(parent, "queue");
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     memset(&g_incognito, 0, sizeof g_incognito); /* only its own action screen re-arms it */
+    g_menu_launch.id[0] = 0;
     if (parent && !strncmp(parent, "auth:", 5)) {
         if (page || (strcmp(parent, "auth:start") && strcmp(parent, "auth:session") &&
             strcmp(parent, "auth:cancel") && strncmp(parent, "auth:info", 9))) {
@@ -3659,7 +4305,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         copy(r->payload, sizeof r->payload, "{\"action\":\"auth\",\"auth\":{\"action\":\"start\"}}");
         return begin(r);
     }
-    if (parent && (!strncmp(parent, "account:", 8) ||
+    /* The video menu itself may exceed one page; its action screens never do. */
+    if (parent && ((!strncmp(parent, "account:", 8) && strncmp(parent, "account:menu:", 13)) ||
         (!strncmp(parent, "playlist:", 9) && strchr(parent + 9, ':') && strncmp(parent, "playlist:pick:", 14))) && page != 0) {
         tube_set_error("Account action screens do not have additional pages."); cb(0, NULL, 0, 0, ud); return 0;
     }
@@ -3721,11 +4368,28 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     }
     tube_cancel();
     if (local_catalog(parent, page, cb, ud)) return 0;
+    if (parent && (!strcmp(parent, "search-suggest") || !strncmp(parent, "description:", 12))) {
+        const int suggest = parent[0] == 's';
+        if (page || (!suggest && !valid_id(parent + 12))) {
+            tube_set_error(suggest ? "Suggestions do not have additional pages." : "Select a video to read its description.");
+            cb(0, NULL, 0, 0, ud); return 0;
+        }
+        Request *r = request_new(suggest ? 16 : 15, ud); if (!r) return -1;
+        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent);
+        cJSON *operation = cJSON_CreateObject();
+        cJSON_AddStringToObject(operation, "action", suggest ? "search_suggestions" : "description");
+        cJSON_AddStringToObject(operation, "profile", g_library_profile);
+        /* Without a search in this session the service lists its default completions. */
+        if (suggest) cJSON_AddStringToObject(operation, "query", last_search_current() ? g_last_search.query : "");
+        else cJSON_AddStringToObject(operation, "id", parent + 12);
+        return library_job(r, operation);
+    }
     if (parent && !strncmp(parent, "section:", 8)) {
         if (!section || page >= LIBRARY_PAGES ||
             (page && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload this section to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
         }
+        if (!strcmp(section, "my_videos") && !strcmp(g_library_profile, "guest")) return account_notice(cb, ud);
         if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
         const char *key = parent + 8 + strlen(section);
         Request *r = request_new(3, ud); if (!r) return -1;
@@ -3743,9 +4407,20 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         cJSON *job = cJSON_CreateObject(), *operation = cJSON_CreateObject();
         if (!job || !operation) { cJSON_Delete(job); cJSON_Delete(operation); complete(r, 0); return -1; }
         cJSON_AddStringToObject(job, "action", "library"); cJSON_AddItemToObject(job, "library", operation);
-        cJSON_AddStringToObject(operation, "action", g_account_intent.action);
+        const unsigned feedback = feedback_option(g_account_intent.action);
+        cJSON_AddStringToObject(operation, "action", feedback ? "feedback" : g_account_intent.action);
         cJSON_AddStringToObject(operation, "profile", g_account_intent.profile);
         cJSON_AddStringToObject(operation, "id", g_account_intent.identity);
+        if(feedback) { /* the reference is spent by this one submission */
+            Record *card=record(g_account_intent.identity,0);
+            if(!feedback_current(card,feedback) || strcmp(card->feedback_cursor,g_account_intent.history_cursor)) {
+                tube_set_error("Reload Home before sending feedback for this video.");
+                cJSON_Delete(job);complete(r,0);return 0;
+            }
+            cJSON_AddStringToObject(operation,"cursor",g_account_intent.history_cursor);
+            cJSON_AddStringToObject(operation,"feedback",g_account_intent.action);
+            card->feedback_cursor[0]=0;
+        }
         cJSON_AddStringToObject(operation, "playlist", g_account_intent.playlist);
         cJSON_AddStringToObject(operation, "title", g_account_intent.title);
         if(!strcmp(g_account_intent.action,"mark_watched")) {
@@ -3815,9 +4490,17 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         int playlist = !strncmp(action, "playlist:", 9) && valid_catalog_id(parent);
         int suggestions = !strncmp(action, "suggestions:", 12) && valid_id(action+12);
         int filter = !strncmp(action,"filter:",7) && strlen(action+7)==36 && valid_cursor(action+7);
-        if (strcmp(action, "home") && strcmp(action, "subscriptions") && strcmp(action, "history") &&
+        int channels = !strcmp(action, "channels"), sorted = channels && g_channel_sort;
+        if (strcmp(action, "home") && strcmp(action, "subscriptions") && strcmp(action, "history") && !channels && strcmp(action, "notifications") &&
             strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist && !suggestions && !filter) {
             tube_set_error("The selected library screen is unavailable."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        if ((channels || !strcmp(action, "notifications")) && !strcmp(g_library_profile, "guest")) return account_notice(cb, ud);
+        if (sorted && page) { /* later pages of the sorted list are already in memory */
+            if (!g_channel_list.complete || g_channel_list.scope != g_playlist_scope || strcmp(g_channel_list.profile, g_library_profile)) {
+                tube_set_error("Reload this library screen to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
+            }
+            channel_page(page, cb, ud); return 0;
         }
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload this library screen to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
@@ -3825,14 +4508,24 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
         Request *r = request_new(!strcmp(action, "profiles") ? 4 : 3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        if (sorted) {
+            memset(&g_channel_list, 0, sizeof g_channel_list); g_channel_list.scope = g_playlist_scope;
+            copy(g_channel_list.profile, sizeof g_channel_list.profile, g_library_profile); r->aggregate = 1;
+        }
         snprintf(r->payload, sizeof r->payload,
             "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"id\":\"%s\"}}",
             page ? "continue" : playlist ? "playlist" : suggestions ? "suggestions" : filter ? "suggestions_filter" : action, g_library_profile,
             page ? g_library_cursors[page] : "", playlist ? action + 9 : suggestions ? action+12 : filter ? action+7 : "");
         begin(r); return 0;
     }
+    if (typed) {
+        const int feed = page && search_feed_current(parent);
+        if (feed || (!page && (search_filters() || g_search_cards) && g_search_feed.unavailable != g_playlist_scope))
+            return library_search(parent, page, cb, ud);
+        if (!page) g_search_feed.key[0] = 0; /* plain results: later pages go by number */
+    }
     Request *r = request_new(1, ud); if (!r) return -1;
-    r->items_cb = cb;
+    r->items_cb = cb; r->search_rows = typed && !page;
     copy(r->parent,sizeof r->parent,parent);
     cJSON *o = cJSON_CreateObject();
     int search = parent && !strncmp(parent, "search:", 7);
@@ -3851,7 +4544,9 @@ static int search(const char *query, int page, evo_provider_items_cb cb, void *u
     tube_queue_retry_cancel();
     if (!page) search_history_add(query);
     char parent[808]; snprintf(parent, sizeof parent, "search:%s", query);
-    return catalog(parent, page, cb, ud);
+    g_search_typed = 1; /* a typed query, unlike a Discover topic, leads with its options */
+    int result = catalog(parent, page, cb, ud);
+    g_search_typed = 0; return result;
 }
 
 static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
@@ -3866,7 +4561,7 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     int incognito = recovering ? g_active_incognito : !strcmp(g_incognito.id,id) &&
         !strcmp(g_incognito.profile,g_library_profile) && g_incognito.scope == g_playlist_scope;
-    memset(&g_incognito,0,sizeof g_incognito);
+    memset(&g_incognito,0,sizeof g_incognito); g_menu_launch.id[0] = 0;
     if (!automatic && !recovering) g_queue_failed_count = 0;
     if (recovering) cancel_requests(0); else { g_paid_text[0] = 0; g_paid_shown = 0; tube_cancel(); }
     Request *r = request_new(2, ud); if (!r) return -1;
@@ -4579,6 +5274,11 @@ void tube_completion_playback_state(int ended,int busy) {
 }
 
 int tube_take_next(evo_provider_item_t *item) {
+    if(*g_menu_launch.id) { /* Play from start or Play incognito, taken once */
+        Record *r=g_menu_launch.scope==g_playlist_scope && !strcmp(g_menu_launch.profile,g_library_profile)?record(g_menu_launch.id,0):NULL;
+        g_menu_launch.id[0]=0;
+        if(r && item) {*item=r->item;dearrow_item(item,r);return 1;}
+    }
     if(g_manual_direction && tube_manual_navigation_status()!=1)return 0;
     if(g_recommendation.state==1) {
         int current=recommendation_current();g_recommendation.state=-1;

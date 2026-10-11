@@ -228,7 +228,10 @@ int main(int argc,char**argv) {
     host.Search("block fixture");
     const char* block_page="{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Block this\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"},{\"id\":\"bcdefghijkl\",\"title\":\"Keep this\",\"channel_id\":\"UCbbbbbbbbbbbbbbbbbbbbbb\"}]}}";
     reply("{\"job\":\"block-ui\",\"state\":\"pending\"}");clock_ms+=300;tube_poll();reply(block_page);pump();
-    assert(host.FocusPublishedRow(0));pump();assert(host.DiscussionKey(4));pump();
+    /* A typed search leads with Search options and Suggestions; the videos follow. */
+    assert(host.m_all_rows.size()==4 && host.m_all_rows[0].id=="settings:search" && host.m_all_rows[1].id=="search-suggest");
+    assert(host.FocusPublishedRow(0));pump();assert(!host.DiscussionKey(4));
+    assert(host.FocusPublishedRow(2));pump();assert(host.DiscussionKey(4));pump();
     auto block_action=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),[](const EvoProviderRow& row){return row.title=="Block channel";});
     assert(block_action!=host.m_all_rows.end());const std::string block_id=block_action->id.c_str();
     size_t block_index=block_action-host.m_all_rows.begin();
@@ -237,7 +240,7 @@ int main(int argc,char**argv) {
     assert(host.m_stack.size()==1 && host.m_stack.back()=="favorites" && host.m_model.query=="block fixture");
     assert(pending.size()==1 && pending[0].body.find("block fixture")!=std::string::npos);
     reply("{\"job\":\"block-ui-refresh\",\"state\":\"pending\"}");clock_ms+=300;tube_poll();reply(block_page);pump();
-    assert(host.m_all_rows.size()==1 && host.m_all_rows[0].id=="bcdefghijkl" && host.GetFocusedRow());
+    assert(host.m_all_rows.size()==3 && host.m_all_rows[2].id=="bcdefghijkl" && host.GetFocusedRow());
     host.m_model.query="";host.m_stack={"blocked-channels"};host.m_crumbs={"Blocked channels"};host.m_pos_stack.clear();
     host.RequestPage("blocked-channels",0);pump();assert(host.m_all_rows.size()==1);
     host.m_pending_activation=host.m_all_rows[0].id;host.ApplyPendingActivation();pump();

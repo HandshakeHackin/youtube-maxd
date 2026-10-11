@@ -6,6 +6,8 @@ typedef struct {
     int playback_mode;
     int queue_respects_mode;
     char language[16], audio_language[16], boot_section[24];
+    int search_cards, channel_sort;
+    unsigned char section_order[SECTION_SLOTS]; unsigned section_hidden;
     tube_sb_policy sb;
 } ProfileSettings;
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
@@ -13,6 +15,7 @@ static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
     ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = 1;
     p.speed = p.last_speed = 100; p.speed_mode = 1;
+    sections_default(p.section_order);
     copy(p.language,sizeof p.language,"en"); tube_sb_defaults(&p.sb); return p;
 }
 static ProfileSettings profile_settings_capture(void) {
@@ -33,6 +36,8 @@ static ProfileSettings profile_settings_capture(void) {
     p.history_state = g_history_state;
     p.search_history = g_search_history;
     copy(p.boot_section,sizeof p.boot_section,g_boot_section);
+    p.search_cards = g_search_cards; p.channel_sort = g_channel_sort;
+    memcpy(p.section_order,g_section_order,sizeof p.section_order); p.section_hidden = g_section_hidden;
     p.paid_notifications = g_paid_notifications;
     p.dearrow_titles = g_dearrow_titles;
     p.dearrow_thumbnails = g_dearrow_thumbnails;
@@ -56,6 +61,8 @@ static void profile_settings_apply(const ProfileSettings *p) {
     g_history_state = p->history_state;
     g_search_history = p->search_history;
     copy(g_boot_section,sizeof g_boot_section,p->boot_section);
+    g_search_cards = p->search_cards; g_channel_sort = p->channel_sort;
+    memcpy(g_section_order,p->section_order,sizeof g_section_order); g_section_hidden = p->section_hidden;
     g_paid_notifications = p->paid_notifications;
     g_dearrow_titles = p->dearrow_titles;
     g_dearrow_thumbnails = p->dearrow_thumbnails;
@@ -92,6 +99,18 @@ static int history_state_read(const cJSON *root) {
     return settings_integer(root,"history_state",TUBE_HISTORY_AUTO,TUBE_HISTORY_DISABLED,
         cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(root,"history_sync")) ? TUBE_HISTORY_DISABLED : TUBE_HISTORY_AUTO);
 }
+/* Saved order first, then any section it does not name, in the built-in order.
+ * Unknown, repeated and malformed rows are skipped one by one. */
+static void sections_read(ProfileSettings *p, const cJSON *root) {
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"sections"), *row;
+    unsigned seen = 0; int n = 0;
+    if (cJSON_IsArray(rows)) cJSON_ArrayForEach(row,rows) {
+        int s = section_index(str(row,"id")); if (s < 0 || (seen >> s & 1)) continue;
+        seen |= 1u << s; p->section_order[n++] = (unsigned char)s;
+        if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(row,"hidden"))) p->section_hidden |= 1u << s;
+    }
+    for (int s = 0; s < SECTIONS; ++s) if (!(seen >> s & 1)) p->section_order[n++] = (unsigned char)s;
+}
 static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     *p = profile_settings_defaults();
     double speed = num(root,"speed_percent"), last = num(root,"last_speed_percent");
@@ -115,6 +134,9 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->history_state = history_state_read(root);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"search_history"))) p->search_history = boolean(root,"search_history");
     copy(p->boot_section,sizeof p->boot_section,g_boot_sections[boot_section_index(str(root,"boot_section"))].id);
+    p->search_cards = boolean(root,"search_channels_playlists");
+    p->channel_sort = settings_integer(root,"channel_sort",0,1,0);
+    sections_read(p,root);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"paid_content_notifications"))) p->paid_notifications = boolean(root,"paid_content_notifications");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"dearrow_titles"))) p->dearrow_titles = boolean(root,"dearrow_titles");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"dearrow_thumbnails"))) p->dearrow_thumbnails = boolean(root,"dearrow_thumbnails");
@@ -172,6 +194,15 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddBoolToObject(row,"history_sync",p->history_state!=TUBE_HISTORY_DISABLED);
         cJSON_AddBoolToObject(row,"search_history",p->search_history);
         cJSON_AddStringToObject(row,"boot_section",p->boot_section);
+        cJSON_AddBoolToObject(row,"search_channels_playlists",p->search_cards);
+        cJSON_AddNumberToObject(row,"channel_sort",p->channel_sort);
+        cJSON *sections = cJSON_AddArrayToObject(row,"sections");
+        for (int k = 0; sections && k < SECTIONS; ++k) {
+            cJSON *section = cJSON_CreateObject(); if (!section) break;
+            cJSON_AddStringToObject(section,"id",g_sections[p->section_order[k]].id);
+            cJSON_AddBoolToObject(section,"hidden",p->section_hidden >> p->section_order[k] & 1);
+            cJSON_AddItemToArray(sections,section);
+        }
         cJSON_AddBoolToObject(row,"paid_content_notifications",p->paid_notifications);
         cJSON_AddBoolToObject(row,"dearrow_titles",p->dearrow_titles);
         cJSON_AddBoolToObject(row,"dearrow_thumbnails",p->dearrow_thumbnails);

@@ -15,8 +15,8 @@
 typedef struct { char method[16], url[2048], body[2048]; evo_net_cb cb; void *ud; } Pending;
 static Pending pending[32];
 static int pending_count, item_calls, resolve_calls, last_ok;
-static evo_provider_item_t last_items[24];
-static int last_count;
+static evo_provider_item_t last_items[24], lead_items[2];
+static int last_count, search_lead;
 static char error_text[256];
 static int last_more;
 
@@ -44,6 +44,11 @@ static void reply(int index, int ok, int status, const char *body) {
 
 static void items_cb(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
     (void)ud; ++item_calls; last_ok = ok; last_count = count; last_more = more;
+    assert(count <= 26);
+    /* A typed search leads with its Search options and Suggestions folders;
+     * they are recorded apart so result assertions keep counting videos. */
+    search_lead = count >= 2 && !strcmp(items[0].id, "settings:search") && !strcmp(items[1].id, "search-suggest") ? 2 : 0;
+    if (search_lead) { memcpy(lead_items, items, sizeof lead_items); items += 2; last_count = count -= 2; }
     assert(count <= 24);
     if (items) memcpy(last_items, items, (size_t)count * sizeof *items);
 }
@@ -164,7 +169,8 @@ int main(void) {
     assert(!strstr(error_text, "secret"));
     /* Remote library navigation is asynchronous and retains only opaque cursors. */
     p->list_catalog("discover", 0, items_cb, NULL);
-    assert(last_count == 12 && !strcmp(last_items[0].id, "library:home"));
+    assert(last_count == 14 && !strcmp(last_items[0].id, "library:home"));
+    assert(!strcmp(last_items[12].id, "section:trending") && !strcmp(last_items[13].id, "section:shorts"));
     assert(!strcmp(last_items[4].id, "section:gaming") && !strcmp(last_items[5].id, "section:news") &&
            !strcmp(last_items[6].id, "section:music"));
     assert(!strcmp(last_items[9].id, "section:sports") && !strcmp(last_items[10].id, "section:live") &&
@@ -174,8 +180,8 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\"},{\"id\":\"fixture\",\"name\":\"Fixture\",\"account_configured\":true},{\"id\":\"../../bad\"}]}}");
     assert(last_ok && last_count == 2 && !strcmp(last_items[1].id, "library:profile:fixture"));
     p->list_catalog(last_items[1].id, 0, items_cb, NULL);
-    assert(last_ok && last_count == 9 && strstr(last_items[0].title, "fixture"));
-    assert(!strcmp(last_items[8].id, "account:remove"));
+    assert(last_ok && last_count == 12 && strstr(last_items[0].title, "fixture"));
+    assert(!strcmp(last_items[11].id, "account:remove"));
     p->list_catalog("settings:captions",0,items_cb,NULL); /* this fixture excludes sidecar downloads */
     p->list_catalog("library:playlists", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
@@ -242,7 +248,7 @@ int main(void) {
     assert(!last_ok);
     /* Account actions require a deliberate confirmation and submit only once. */
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 11 && strstr(last_items[0].title, "profile first"));
+    assert(last_ok && last_count == 13 && strstr(last_items[0].title, "profile first"));
     assert(!pending_count);
     p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
     /* Displayed comment capabilities are profile-bound and require review. */
@@ -281,7 +287,7 @@ int main(void) {
     p->search("account fixture", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 21 && !pending_count);
+    assert(last_ok && last_count == 23 && !pending_count);
     char account_choices[7][160];
     for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
     const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};
@@ -352,7 +358,7 @@ int main(void) {
         p->list_catalog(account_apply, 0, items_cb, NULL); assert(!pending_count);
     }
     p->list_catalog("playlist:menu:PLabcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 2 && strstr(last_items[0].id, "rename"));
+    assert(last_ok && last_count == 3 && strstr(last_items[0].id, "rename") && !strcmp(last_items[2].title, "Pin to main menu"));
     p->list_catalog("playlist:prompt:rename:PLabcdefghijk", 0, items_cb, NULL);
     tube_playlist_prompt_t prompt;
     assert(tube_take_playlist_prompt(&prompt) && strstr(prompt.label, "name"));

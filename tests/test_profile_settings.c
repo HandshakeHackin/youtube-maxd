@@ -117,7 +117,7 @@ int main(void) {
     write_store(root);cJSON_Delete(root);assert(!p->init());assert(tube_playback_mode()==TUBE_MODE_ALL);
     /* Startup: the section is profile-owned, the account chooser is device-owned. */
     assert(!*tube_boot_section() && !tube_select_account_on_boot());
-    action("settings:boot-section");assert(last_count==17 && !strcmp(last_items[0].subtitle,"Selected"));
+    action("settings:boot-section");assert(last_count==22 && !strcmp(last_items[0].subtitle,"Selected"));
     action("settings:boot-section:8");
     assert(!strcmp(tube_boot_section(),"section:music") && !strcmp(last_items[8].subtitle,"Selected") && strcmp(last_items[0].subtitle,"Selected"));
     action("settings:account-on-boot");assert(tube_select_account_on_boot());
@@ -132,7 +132,7 @@ int main(void) {
     }
     action("library:profile:boot");assert(!*tube_boot_section() && tube_select_account_on_boot());
     action("settings:boot-section:12");assert(!strcmp(tube_boot_section(),"history"));
-    const char *bad_boot[]={"settings:boot-section:","settings:boot-section:17","settings:boot-section:1x","settings:boot-section:-1","settings:boot-section:99999999999999999999"};
+    const char *bad_boot[]={"settings:boot-section:","settings:boot-section:22","settings:boot-section:1x","settings:boot-section:-1","settings:boot-section:99999999999999999999"};
     for(unsigned i=0;i<sizeof bad_boot/sizeof *bad_boot;++i){p->list_catalog(bad_boot[i],0,items_cb,NULL);assert(!last_ok);}
     assert(!strcmp(tube_boot_section(),"history"));
     p->shutdown();assert(!p->init());assert(!strcmp(tube_boot_section(),"history") && tube_select_account_on_boot());
