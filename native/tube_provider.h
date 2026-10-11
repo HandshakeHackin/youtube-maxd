@@ -80,6 +80,17 @@ int tube_take_next(evo_provider_item_t *item);
 /* Browser occurrence is one-shot and scoped to the current source/profile epoch. */
 int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope);
 int tube_playback_playlist_context(char *playlist, size_t capacity, int *index);
+/* Bounded WatchNext window for the active occurrence. Main thread only.
+ * begin: 1=started, 0=unavailable/busy. status: 0=pending, 1=ready, -1=retired/failed.
+ * A window edge does not establish the end of the upstream playlist. */
+typedef struct {
+    char playlist[101], ids[128][12];
+    int indices[128], count, current;
+    unsigned scope, selection;
+} tube_playlist_window_t;
+int tube_playlist_window_begin(void);
+int tube_playlist_window_status(tube_playlist_window_t *out);
+void tube_playlist_window_cancel(void);
 int tube_autoplay_enabled(void);
 int tube_choose_stream_enabled(void);
 int tube_queue_recovery(double position, int live, int subtitles);

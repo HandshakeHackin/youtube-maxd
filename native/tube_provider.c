@@ -41,6 +41,13 @@ typedef struct { char playlist[101]; int index; unsigned scope; } PlaylistContex
 static unsigned g_playlist_scope = 1;
 static PlaylistContext g_resolved_playlist, g_active_playlist;
 static struct { char id[12]; PlaylistContext value; } g_selected_playlist;
+static struct {
+    unsigned serial, selection;
+    int state;
+    PlaylistContext context;
+    char id[12];
+    tube_playlist_window_t value;
+} g_playlist_window;
 
 typedef struct Request {
     int used, kind, stage, inflight;
@@ -1147,6 +1154,8 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if (r->kind == 12 && r->intent == g_playlist_window.serial && !ok)
+        g_playlist_window.state = -1;
     if (r->kind == 11 && r->intent == g_message.ticket && g_message.phase == 3) g_message.phase = -1;
     if (r->kind == 10 && !ok) {
         chat_cleanup_request(r, NULL);
@@ -1229,6 +1238,72 @@ static int begin(Request *r) {
         copy(r->payload, sizeof r->payload, body); free(body);
     }
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
+}
+
+static int playlist_window_current(void) {
+    return g_playlist_window.selection && g_playlist_window.selection == g_selection_serial &&
+        recovery_scope() && g_playlist_window.context.scope == g_playlist_scope &&
+        !strcmp(g_playlist_window.id,g_active_id) &&
+        !strcmp(g_playlist_window.context.playlist,g_active_playlist.playlist) &&
+        g_playlist_window.context.index == g_active_playlist.index;
+}
+void tube_playlist_window_cancel(void) {
+    if (!++g_playlist_window.serial) ++g_playlist_window.serial;
+    g_playlist_window.state = -1;
+    g_playlist_window.selection = 0;
+    memset(&g_playlist_window.value,0,sizeof g_playlist_window.value);
+}
+int tube_playlist_window_status(tube_playlist_window_t *out) {
+    if (!playlist_window_current()) return -1;
+    if (g_playlist_window.state == 1 && out) *out=g_playlist_window.value;
+    return g_playlist_window.state;
+}
+int tube_playlist_window_begin(void) {
+    char playlist[101]; int index;
+    if (!tube_playback_playlist_context(playlist,sizeof playlist,&index)) return 0;
+    if (playlist_window_current() && g_playlist_window.state == 0) return 0;
+    tube_playlist_window_cancel();
+    Request *r=request_new(12,NULL); if (!r) return 0;
+    g_playlist_window.selection=g_selection_serial;
+    g_playlist_window.context=g_active_playlist;
+    copy(g_playlist_window.id,sizeof g_playlist_window.id,g_active_id);
+    g_playlist_window.state=0;
+    r->intent=g_playlist_window.serial;
+    snprintf(r->payload,sizeof r->payload,
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
+        g_active_profile,g_active_id,playlist,index);
+    begin(r); return 1;
+}
+static int playlist_index(const cJSON *value) {
+    return cJSON_IsNumber(value) && value->valuedouble >= 0 && value->valuedouble <= 100000 &&
+        value->valuedouble == (double)value->valueint ? value->valueint : -1;
+}
+static void playlist_window_result(Request *r,const cJSON *root) {
+    tube_playlist_window_t value={0};
+    const cJSON *ids=cJSON_GetObjectItemCaseSensitive(root,"video_ids");
+    const cJSON *indices=cJSON_GetObjectItemCaseSensitive(root,"video_indices");
+    const int start=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"window_start"));
+    value.count=cJSON_GetArraySize(ids); value.current=-1;
+    int valid=r->intent == g_playlist_window.serial && playlist_window_current() &&
+        num(root,"api_version") == 1 && !strcmp(str(root,"playlist"),g_playlist_window.context.playlist) &&
+        !strcmp(str(root,"video_id"),g_playlist_window.id) &&
+        playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index")) == g_playlist_window.context.index &&
+        cJSON_IsArray(ids) && value.count > 0 && value.count <= 128 && start >= 0 &&
+        (!indices || (cJSON_IsArray(indices) && cJSON_GetArraySize(indices) == value.count));
+    for (int i=0; valid && i<value.count; ++i) {
+        const cJSON *id=cJSON_GetArrayItem(ids,i);
+        int position=indices ? playlist_index(cJSON_GetArrayItem(indices,i)) : start+i;
+        valid=cJSON_IsString(id) && valid_id(id->valuestring) && position >= 0 && position <= 100000 &&
+            (!i ? position == start : position > value.indices[i-1]);
+        if (!valid) break;
+        copy(value.ids[i],sizeof value.ids[i],id->valuestring); value.indices[i]=position;
+        if (position == g_playlist_window.context.index && !strcmp(id->valuestring,g_playlist_window.id)) value.current=i;
+    }
+    if (!valid || value.current < 0) { complete(r,0); return; }
+    copy(value.playlist,sizeof value.playlist,g_playlist_window.context.playlist);
+    value.scope=g_playlist_window.context.scope; value.selection=g_playlist_window.selection;
+    g_playlist_window.value=value; g_playlist_window.state=1;
+    complete(r,1);
 }
 
 static int auth_session_valid(const char *value) {
@@ -1797,6 +1872,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
     if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
+    if (r->kind == 12) { playlist_window_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 11) {
         if (r->intent != g_message.ticket || !message_scope() || !boolean(result, "success") ||
             num(result, "api_version") != 1 || strcmp(str(result, "id"), g_message.video) ||
@@ -1998,6 +2074,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    tube_playlist_window_cancel();
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     if (!preserve_chat) tube_chat_stop();
     tube_auth_cancel();

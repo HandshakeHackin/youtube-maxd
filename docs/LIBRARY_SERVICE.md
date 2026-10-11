@@ -31,8 +31,10 @@ policy, channel context and console acceptance remain pending.
 The authenticated `playback_queue` operation exposes the existing WatchNext
 window adapter through both direct and asynchronous library requests. It
 retains profile ownership, sparse indices and repeats, and rejects contradictory
-endpoint/selected-row positions. Native EOF consumption of these windows and
-whole-playlist shuffle remain to be implemented.
+endpoint/selected-row positions. The native provider now exposes scoped
+begin/status/cancel operations for these windows, validates their contents and
+discards retired responses. Native EOF consumption and whole-playlist shuffle
+remain to be implemented.
 
 
 ### Live-chat service reader

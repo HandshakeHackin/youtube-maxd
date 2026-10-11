@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Native playlist window transport — 2026-10-11
+
+The native provider can request and retain a bounded WatchNext window for the
+active occurrence. Requests use the existing asynchronous jobs/polling path;
+responses require matching playlist, video, occurrence, selection and source/
+profile scope. Validation rejects oversized/empty windows, invalid IDs, missing
+anchors, malformed sparse positions, index coercion and inconsistent starts.
+Dense and sparse windows retain repeats. Cancellation retires retained data;
+late retired completions cannot replace a newer ready window.
+
+The playlist-window, playlist-context, recovery and queue-failure ASan/UBSan
+suites passed, along with the native phone-provider suite. The expanded window
+fixture additionally passed the late-old-response/new-ready-window ordering and
+128-entry boundary. Logs: `.deps/native-playlist-window.log` and
+`.deps/native-playlist-window-phone.log`. Native EOF policy has not yet been
+connected to this transport. No console connections occurred.
+The PS5 SDK provider object compiled successfully
+(`.deps/native-playlist-window-sdk.log`), with existing SDK qualified-math
+warnings. This change is not yet a complete frozen application candidate.
+
 ## Playback window service — 2026-10-11
 
 Added authenticated direct and asynchronous `playback_queue` requests using the

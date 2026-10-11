@@ -1078,7 +1078,8 @@
         "companion/innertube/playlist_context.test.mjs and tests/test_playlist_context.py: duplicates, sparse indices, profiles and HTTP/job serialization",
         "native/tube_provider.c and scripts/playlist_context_overlay.py: occurrence identity through browser focus/click, launch staging, resolution snapshots and recovery",
         "tests/test_playlist_context.c and tests/test_live_chat_ui.cpp: repeated occurrence selection, request isolation, recovery and stale scope",
-        "companion/prosperotube/app.py and companion/innertube/remote_playlist.mjs: authenticated playback_queue jobs expose profile-owned sparse WatchNext windows; tests/test_playback_queue.py and remote_playlist.test.mjs verify bounds, occurrence identity and contradictory-position rejection"
+        "companion/prosperotube/app.py and companion/innertube/remote_playlist.mjs: authenticated playback_queue jobs expose profile-owned sparse WatchNext windows; tests/test_playback_queue.py and remote_playlist.test.mjs verify bounds, occurrence identity and contradictory-position rejection",
+        "native/tube_provider.c and tests/test_playlist_window.c: asynchronous native window transport validates dense/sparse occurrence maps and rejects retired selection/profile/cancellation responses"
       ],
       "offline_status": "partial",
       "remaining": [
