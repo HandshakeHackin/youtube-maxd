@@ -666,9 +666,13 @@ feed; upstream continuation pages receive their own feed-owned references.
 Removal calls the pinned history page's `removeVideo(id, 1)` and requires its
 processed-feedback confirmation. Confirmed retries return the cached result;
 failed or in-flight attempts cannot be repeated through the same reference.
-Expired, foreign and mismatched references fail before submission. The PS5
-confirmation/menu wiring is still pending, as are real-account and localized
-history-layout acceptance. Existing PS5 history actions remain local only.
+Expired, foreign and mismatched references fail before submission. The PS5 video
+menu offers removal for a freshly loaded account-history item and confirms the
+selected profile before submission. References remain in memory, expire, and are
+retired by profile/source changes or submission. A matching confirmed video ID
+is required before clearing local history; favorites and queue membership remain.
+The separate local-history action does not submit an account change. Real-account
+and localized history-layout acceptance remain pending.
 
 ## Channel playback windows
 

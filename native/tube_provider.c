@@ -35,6 +35,9 @@ typedef struct {
     char dearrow_title[256], dearrow_art[EVO_PROVIDER_MAX_URL];
     int favorite, queued, subscribed, queued_music;
     long long updated, queue_order;
+    char history_remove_cursor[65];
+    unsigned history_scope;
+    long long history_deadline;
 } Record;
 
 typedef struct { int height, max_fps, codec; } ResolveQuality;
@@ -247,7 +250,7 @@ static int message_scope(void) {
 static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
-    char action[32], identity[101], profile[33], playlist[101], title[601];
+    char action[32], identity[101], profile[33], playlist[101], title[601], history_cursor[65];
 } g_account_intent;
 static struct { tube_playlist_prompt_t prompt; int pending, active, create;
     char identity[101], profile[33]; } g_playlist_prompt;
@@ -255,7 +258,8 @@ static const struct { const char *action, *title; int channel; } g_account_actio
     {"like", "Like video", 0}, {"dislike", "Dislike video", 0}, {"unrate", "Remove video rating", 0},
     {"watch_later_add", "Add to YouTube Watch later", 0},
     {"watch_later_remove", "Remove from YouTube Watch later", 0},
-    {"subscribe", "Subscribe on YouTube", 1}, {"unsubscribe", "Unsubscribe on YouTube", 1}
+    {"subscribe", "Subscribe on YouTube", 1}, {"unsubscribe", "Unsubscribe on YouTube", 1},
+    {"history_remove", "Remove from YouTube history", 0}
 };
 
 static int valid_cursor(const char *value) {
@@ -2036,10 +2040,19 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); complete(r, 1); return;
     }
     if (r->kind == 6) {
+        if(r->intent!=g_account_intent.serial || strcmp(g_account_intent.profile,g_library_profile)) {
+            cJSON_Delete(root);complete(r,0);return;
+        }
         if (!boolean(result, "success")) {
             cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
         }
         int removing = !strcmp(g_account_intent.action, "profile_remove");
+        if(!strcmp(g_account_intent.action,"history_remove")) {
+            if(num(result,"api_version")!=1 || strcmp(str(result,"video_id"),g_account_intent.identity)) {
+                cJSON_Delete(root);tube_set_error("The companion did not confirm removal of this video.");complete(r,0);return;
+            }
+            tube_remove_history(g_account_intent.identity);
+        }
         if (!strcmp(g_account_intent.action, "comment_rate") && strcmp(str(result, "rating"), g_account_intent.identity)) {
             cJSON_Delete(root); tube_set_error("The comment rating was not confirmed."); complete(r, 0); return;
         }
@@ -2155,6 +2168,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         }
         Record *cached = record(items[n].id, 1);
         if (cached) {
+            if(r->kind==3 && !strcmp(r->parent,"library:history")) {
+                const char *cursor=str(o,"history_remove_cursor");
+                copy(cached->history_remove_cursor,sizeof cached->history_remove_cursor,valid_cursor(cursor)?cursor:"");
+                cached->history_scope=g_playlist_scope;cached->history_deadline=now_ms()+110000;
+            }
             items[n].resume_pos_sec = cached->item.resume_pos_sec;
             items[n].played = cached->item.played;
             cached->item = items[n];
@@ -2446,6 +2464,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             } else {
                 Record *r = record(parent + 13, 0);
                 for (size_t i = 0; i < sizeof g_account_actions / sizeof g_account_actions[0]; ++i) {
+                    if(!strcmp(g_account_actions[i].action,"history_remove") &&
+                       (!r || r->history_scope!=g_playlist_scope || r->history_deadline<=now_ms() || !valid_cursor(r->history_remove_cursor)))continue;
                     const char *identity = g_account_actions[i].channel ? r ? r->item.parent_id : "" : parent + 13;
                     if (!*identity) continue;
                     char id[160], hint[160];
@@ -2483,6 +2503,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             copy(g_account_intent.action, sizeof g_account_intent.action, g_account_actions[found].action);
             copy(g_account_intent.identity, sizeof g_account_intent.identity, colon + 1);
             copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
+            if(!strcmp(g_account_intent.action,"history_remove")) {
+                Record *history=record(colon+1,0);
+                if(!history || history->history_scope!=g_playlist_scope || history->history_deadline<=now_ms() || !valid_cursor(history->history_remove_cursor)) {
+                    memset(&g_account_intent,0,sizeof g_account_intent);
+                    tube_set_error("Reload YouTube history before removing this video.");cb(0,NULL,0,0,ud);return 1;
+                }
+                copy(g_account_intent.history_cursor,sizeof g_account_intent.history_cursor,history->history_remove_cursor);
+            }
             char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
             snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
             CATALOG_FOLDER( id, g_account_actions[found].title, hint);
@@ -3116,6 +3144,16 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         cJSON_AddStringToObject(operation, "id", g_account_intent.identity);
         cJSON_AddStringToObject(operation, "playlist", g_account_intent.playlist);
         cJSON_AddStringToObject(operation, "title", g_account_intent.title);
+        if(!strcmp(g_account_intent.action,"history_remove")) {
+            Record *history=record(g_account_intent.identity,0);
+            if(!history || history->history_scope!=g_playlist_scope || history->history_deadline<=now_ms() ||
+               strcmp(history->history_remove_cursor,g_account_intent.history_cursor) || !valid_cursor(g_account_intent.history_cursor)) {
+                tube_set_error("Reload YouTube history before removing this video.");
+                cJSON_Delete(job);complete(r,0);return 0;
+            }
+            cJSON_AddStringToObject(operation,"cursor",g_account_intent.history_cursor);
+            history->history_remove_cursor[0]=0;
+        }
         if (!strcmp(g_account_intent.action, "comment_rate")) {
             cJSON_AddStringToObject(operation, "cursor", g_account_intent.playlist);
             cJSON_AddStringToObject(operation, "rating", g_account_intent.identity);
