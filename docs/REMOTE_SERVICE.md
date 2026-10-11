@@ -180,3 +180,24 @@ Absent maps retain the contiguous-window contract. The companion validates and
 forwards the map; native next/previous and EOF use compact playable entries while
 feedback preserves original indices, including duplicate video IDs. Unknown or
 ambiguous rows still reject expansion and preserve the supplied phone queue.
+
+## Remote recommendation fallback discovery (service only)
+
+`playback_next` accepts the strict boolean `remote_origin` only for this operation.
+When true and the autoplay endpoint is absent, the worker examines the primary
+parsed WatchNext video group. Existing, self-referencing and invalid autoplay
+endpoints retain their existing handling. Arbitrary shelves, ads and next-button
+endpoints are not used as substitutes.
+
+An available group returns `fallback_context: {group, index: 0}` and
+`fallback_count`, while `next_video_id` remains null. Index zero is a synthetic
+anchor for the current video. The consumer must request a `group_window` starting
+at target one, verify channel IDs/names when blocks are active, and apply normal
+blocked-occurrence traversal. The capability belongs to the selected profile;
+video occurrences remain distinct. Empty groups return no capability.
+
+This is discovery support, not completed phone autoplay. The native phone queue
+still needs an asynchronous, owner/selection-scoped handoff for both no-playlist
+EOF and a confirmed terminal playlist refill. That handoff must preserve the
+saved local queue, honor interruption and reject stale results. Console acceptance
+is deferred until the final candidate.

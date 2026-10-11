@@ -62,3 +62,47 @@ test('name-filtered recommendations verify author metadata and reject missing na
   for(const patch of [{require_channel:false},{require_name:1}])
     await assert.rejects(library.execute({...request,...patch}),{code:'invalid_request'});
 });
+
+test('remote-only missing-next fallback retains a profile-owned anchored suggestion group',async()=>{
+  let details=0;
+  const video=key=>({videoRenderer:{videoId:key,title:{simpleText:key},thumbnail:{thumbnails:[]}}});
+  const response={success:true,data:{contents:{twoColumnWatchNextResults:{secondaryResults:{secondaryResults:{results:[
+    {itemSectionRenderer:{contents:[video(next),video(id),video(next),{shelfRenderer:{title:{simpleText:'Unrelated shelf'},content:{horizontalListRenderer:{items:[video('cdefghijklm')]}}}}]}}
+  ]}}}}}};
+  const library=new Library(async profile=>({actions:{execute:async()=>response},getBasicInfo:async key=>{
+    assert.equal(profile.id,'account');details++;return {basic_info:{id:key,channel_id:'UC'+'a'.repeat(22),author:'Verified channel'}};
+  }}),[{id:'account',cookie:'synthetic'}]);
+  const request={action:'playback_next',id,profile:'account'};
+  const normal=await library.execute(request);assert.equal(normal.next_video_id,null);assert.equal(normal.fallback_context,undefined);
+  const result=await library.execute({...request,remote_origin:true});
+  assert.equal(result.next_video_id,null);assert.equal(result.fallback_count,2);assert.equal(result.fallback_context.index,0);
+  assert.equal(details,0);
+  const group=result.fallback_context.group;
+  await assert.rejects(library.execute({action:'group_window',group,id,index:0,target:1,direction:1}),{code:'group_expired'});
+  const selected=await library.execute({action:'group_window',profile:'account',group,id,index:0,target:1,direction:1,require_channel:true,require_name:true});
+  assert.equal(selected.video_id,next);assert.equal(selected.index,1);assert.deepEqual(selected.video_ids,[id,next,next]);
+  assert.deepEqual(selected.video_channel_names,['Verified channel','Verified channel','Verified channel']);assert.equal(details,2);
+});
+
+test('remote origin never replaces an existing or invalid autoplay endpoint',async()=>{
+  let endpoint={videoId:next};
+  const library=new Library(async()=>({actions:{execute:async()=>({success:true,data:{contents:{twoColumnWatchNextResults:{
+    autoplay:{autoplay:{sets:[{autoplayVideo:{watchEndpoint:endpoint}}]}},
+    secondaryResults:{secondaryResults:{results:'invalid fallback should not be read'}}
+  }}}})}}));
+  const request={action:'playback_next',id,remote_origin:true};
+  const normal=await library.execute(request);assert.equal(normal.next_video_id,next);assert.equal(normal.fallback_context,undefined);
+  endpoint={videoId:id};assert.equal((await library.execute(request)).fallback_context,undefined);
+  endpoint={videoId:'invalid'};await assert.rejects(library.execute(request),{code:'playback_next_unavailable'});
+  await assert.rejects(library.execute({...request,remote_origin:'true'}),{code:'invalid_request'});
+});
+
+test('remote missing-next discovery rejects malformed groups and reports empty groups without a capability',async()=>{
+  let results=[];
+  const library=new Library(async()=>({actions:{execute:async()=>({success:true,data:{contents:{twoColumnWatchNextResults:{secondaryResults:{secondaryResults:{results}}}}}})}}));
+  const request={action:'playback_next',id,remote_origin:true};
+  assert.equal((await library.execute(request)).fallback_context,undefined);
+  for(const bad of ['bad',Array(4096).fill({})]) {
+    results=bad;await assert.rejects(library.execute(request),{code:'playback_next_unavailable'});
+  }
+});

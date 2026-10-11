@@ -3,8 +3,10 @@ import {validChannelName} from './video_channels.mjs';
 const videoId=value=>typeof value==='string' && /^[A-Za-z0-9_-]{11}$/.test(value);
 const playlistId=value=>typeof value==='string' && /^(WL|LL|[A-Za-z0-9_-]{10,100})$/.test(value);
 const index=value=>Number.isInteger(value) && value>=0 && value<=100000;
-export async function playbackNext(client,input,ErrorType) {
+export async function playbackNext(client,input,ErrorType,remoteFallback) {
   const playlist=input.playlist ?? '';
+  if(input.remote_origin!==undefined && typeof input.remote_origin!=='boolean')
+    throw new ErrorType('invalid_request','Remote playback origin must be a boolean.');
   if(input.require_channel!==undefined && typeof input.require_channel!=='boolean')
     throw new ErrorType('invalid_request','Channel metadata selection must be a boolean.');
   if(input.require_name!==undefined && (typeof input.require_name!=='boolean' || (input.require_name && !input.require_channel)))
@@ -21,6 +23,10 @@ export async function playbackNext(client,input,ErrorType) {
   const endpoint=Array.isArray(sets)?sets[0]?.autoplayVideo?.watchEndpoint:undefined;
   if(endpoint && !videoId(endpoint.videoId))
     throw new ErrorType('playback_next_unavailable','YouTube returned an invalid next-video endpoint.',502);
+  if(!endpoint && input.remote_origin===true) {
+    if(typeof remoteFallback!=='function')throw new ErrorType('playback_next_unavailable','Remote fallback is unavailable.',502);
+    return {api_version:1,video_id:input.id,next_video_id:null,...remoteFallback(response.data)};
+  }
   const nextIndex=endpoint?.index ?? endpoint?.playlistIndex;
   const context=playlistId(endpoint?.playlistId) && index(nextIndex) &&
     !(endpoint.index!==undefined && endpoint.playlistIndex!==undefined && endpoint.index!==endpoint.playlistIndex)

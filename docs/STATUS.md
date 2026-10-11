@@ -23,7 +23,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Earlier PS5 packages played public YouTube with captions/history; the user confirmed smooth, synchronized 1080p60 AVC/AAC Big Buck Bunny playback.
 - Scoped PS5 cases cover local unavailable-video queue advancement and paused dual-caption selection/rendering/clear with speed-reopen retention. Moving timing after that reopen remains unverified.
 - At `09873cd`, the complete Python suite passed 518 tests and five subtests, with one existing dependency deprecation warning.
-- Latest worker baseline: 142 tests and bundle build passed, including secondary Home filtering, tabless reload responses, independent paging and primary watched-state behavior. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
+- Latest worker baseline: 145 tests and bundle build passed, including remote-only fallback discovery and verified channel-name replacement. The targeted Python request/library/occurrence suite passes 55 tests. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
 - After resuming, all 31 default native ASan/UBSan cases passed, including groups, progress, queues and channel-name blocks. The following related-video/filter batches passed four scoped native suites, PS5 provider compilation and expanded actual RmlUi folder/video selection; the full baseline predates that batch. Transient empty-row and empty-width warnings remain in the UI log.
 - Recent browsing-group/filter/progress changes have no console acceptance. No console was contacted during this offline phase.
 
@@ -32,7 +32,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Standalone/on-console service and SABR/proof-token integration; companion dependence remains.
 - Remaining SmartTube settings/localization, other Home/suggestion layouts and controls, group/recommendation semantics and remote-playback fallback selection. The pinned baseline only substitutes a suggestion when a remote video's next metadata is absent; generic replacement of blocked autoplay is not established by that source.
 - Secondary-account/brand-channel context and broad real-account/history/localized-layout validation.
-- Real phone, microphone and physical-controller acceptance.
+- Native consumption of the new remote-only fallback discovery group, including EOF/refill ownership, cancellation and saved-queue isolation; real phone, microphone and physical-controller acceptance.
 - Broader codec/HDR/live/DVR, recovery/timing, GPU transform presentation and long-session acceptance.
 - Remaining integrated/candidate checks, a rebuilt and frozen final package, then bounded PS5 acceptance. The last fully frozen package is `c9721611`; subsequent scoped checks do not refresh that package.
 - UI polish after YouTube functionality is accepted.

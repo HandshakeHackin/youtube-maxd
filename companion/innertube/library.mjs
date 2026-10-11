@@ -10,6 +10,7 @@ import { PlaybackGroups } from './playback_groups.mjs';
 import { HomeCatalog, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
 import { SuggestionFilters } from './suggestions.mjs';
+import { remoteRecommendationGroup } from './remote_recommendations.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -250,7 +251,8 @@ export class Library {
     }
     if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner));
     if (input.action === 'channel_window') return channelWindow(await this.client(owner),input,normalizeVideo,LibraryError);
-    if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError);
+    if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError,
+      data=>remoteRecommendationGroup(data,input,owner,this.groups,node=>normalizeVideo(node),LibraryError));
     if (['remote_playlist', 'playback_queue', 'playback_at'].includes(input.action))
       return remotePlaylist(await this.client(owner), input, LibraryError);
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>

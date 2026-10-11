@@ -31,5 +31,7 @@ export async function hydrateWindowChannels(client,window,ErrorType,requireName=
       throw new ErrorType('channel_unverified','The video channel metadata changed.',502);
   }
   return {...window,video_channels:window.video_ids.map((id,i)=>channels[i] || found.get(id).channel),
-    ...(requireName?{video_channel_names:window.video_ids.map((id,i)=>validChannelName(names[i])?names[i]:found.get(id)?.name)}:{})};
+    // Once a missing identity requires verification, keep the verified name
+    // with that identity instead of retaining a parser placeholder/stale label.
+    ...(requireName?{video_channel_names:window.video_ids.map((id,i)=>found.get(id)?.name ?? names[i])}:{})};
 }

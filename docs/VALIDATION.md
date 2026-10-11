@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## Remote-only fallback discovery — 2026-10-11
+
+The service now accepts an explicit remote-origin flag for next metadata. Only an
+absent autoplay endpoint permits a primary WatchNext suggestion group to become a
+profile-owned anchored capability. Existing endpoints stay authoritative. The
+consumer can use the existing group-window verification/block traversal; no native
+phone consumer is implemented yet, so this is not end-to-end remote fallback.
+
+All 145 worker tests and the bundle build pass. Cases cover normal versus remote
+origin, duplicate occurrences, profile ownership, exclusion of unrelated shelves,
+current-video anchoring, malformed/empty groups, existing/invalid endpoints and
+subsequent verified channel/name windows. The new path exposed parser-placeholder
+names surviving a missing-channel verification; hydrated names now come from the
+same verified metadata as the hydrated channel identity. The full worker suite
+passes after this correction. All 55 targeted Python request/library/occurrence
+checks pass with the existing dependency warning.
+
+No native bytes changed, no final package was built and no console was contacted.
+Next integration must handle no-playlist EOF and confirmed terminal refill without
+retiring remote ownership early or touching the saved local queue.
+
 ## Secondary Home filters and tabless reloads — 2026-10-11
 
 Secondary ChipView controls now use the pinned two-filter API while retaining the

@@ -73,6 +73,7 @@ class LibraryRequest(BaseModel):
     direction: int = Field(default=0, ge=-1, le=1, strict=True)
     require_channel: bool = Field(default=False, strict=True)
     require_name: bool = Field(default=False, strict=True)
+    remote_origin: bool = Field(default=False, strict=True)
     title: str = Field(default="", max_length=150)
     sort: Literal["top", "newest"] = "top"
     rating: Literal["like", "dislike", "none"] = "none"
@@ -88,6 +89,8 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
+        if self.remote_origin and self.action != "playback_next":
+            raise ValueError("Remote fallback requires playback_next.")
         if self.action == "suggestions_filter" and not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", self.id):
             raise ValueError("Select an available suggestions filter.")
         if self.action == "suggestions" and not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id):
