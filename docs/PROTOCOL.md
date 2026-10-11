@@ -29,6 +29,17 @@ metadata yields an empty string; it does not change stream selection.
 Each adaptive choice pairs one video/audio track; the client uses the preferred
 first choice. Preferences apply to the next opened video.
 
+`POST /v1/library` accepts `action: "playback_queue"`, `profile`, `id`,
+`playlist` and a required integer `index` (0–100000). The same request can be
+nested under `library` in an asynchronous `action: "library"` job. It uses the
+profile's WatchNext client and returns `playlist`, `video_id`, `index`,
+`window_start`, `video_ids` (at most 128), optional sparse `video_indices`, and
+`radio_rebased`. Without `video_indices`, positions are consecutive from
+`window_start`. Repeated video IDs represent distinct occurrences. Contradictory
+selected rows or endpoint indices fail instead of changing the requested
+occurrence. This is a bounded window, not proof of the complete playlist or its
+end; consumers must retain occurrence identity when requesting further windows.
+
 `/media/{random-session}/{resource}` is an expiring capability for FFmpeg and
 captions, requiring no bearer header. The relay preserves single byte ranges,
 scopes sensitive headers to origins, limits redirects and restricts resolver

@@ -39,7 +39,9 @@ export async function remotePlaylist(client, input, ErrorType) {
       if (!row || (!unavailable && (!videoId(row.videoId) || endpoint?.videoId !== row.videoId)) ||
           (endpoint?.playlistId !== undefined && endpoint.playlistId !== input.playlist)) { invalid = true; break; }
       const global = endpoint?.index ?? endpoint?.playlistIndex;
-      if (global !== undefined && !index(global)) { invalid = true; break; }
+      if ((global !== undefined && !index(global)) ||
+          (endpoint?.index !== undefined && endpoint?.playlistIndex !== undefined &&
+           endpoint.index !== endpoint.playlistIndex)) { invalid = true; break; }
       rows.push({ id: unavailable ? null : row.videoId, index: global, selected: row.selected === true });
     }
     if (invalid || !rows.length) continue;
@@ -60,6 +62,7 @@ export async function remotePlaylist(client, input, ErrorType) {
     if (positioned.some((row, offset) => !index(row.index) ||
         (offset > 0 && row.index <= positioned[offset - 1].index)) ||
         (!explicit && rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset))) continue;
+    if (selected >= 0 && (positioned[selected].id !== input.id || positioned[selected].index !== input.index)) continue;
     const playable = positioned.filter(row => row.id !== null);
     const selectedPlayable = playable.findIndex(row => row.index === input.index && row.id === input.id);
     if (selectedPlayable < 0) continue;

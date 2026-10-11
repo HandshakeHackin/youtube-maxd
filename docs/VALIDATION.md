@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Playback window service — 2026-10-11
+
+Added authenticated direct and asynchronous `playback_queue` requests using the
+existing profile-owned WatchNext adapter. HTTP validation requires an exact
+video/playlist/occurrence, rejecting missing, boolean, fractional, string and
+out-of-range indices before invoking the worker. The shared adapter now rejects
+conflicting endpoint indices and conflicting selected occurrences for both
+native and phone consumers. Bounded windows retain duplicate IDs and sparse
+positions; they do not imply a full playlist or terminal boundary.
+
+The 39-case Python library/context/window selection and all 64 worker tests
+passed; the production worker rebuilt. Logs: `.deps/playback-window-python.log`
+and `.deps/playback-window-worker.log`. Native EOF consumption, seven playback
+modes and final-candidate/hardware acceptance remain incomplete. No console
+connections were made.
+The additional companion, OAuth playback and Lounge regression selection passed
+99 tests (`.deps/playback-window-regression.log`).
+
 ## Playlist occurrence context — 2026-10-11
 
 Playlist browsing preserves repeated video IDs and original sparse positions.

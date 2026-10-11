@@ -203,7 +203,8 @@ export class Library {
   async execute(input) {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
-    if (input.action === 'remote_playlist') return remotePlaylist(await this.client(owner), input, LibraryError);
+    if (input.action === 'remote_playlist' || input.action === 'playback_queue')
+      return remotePlaylist(await this.client(owner), input, LibraryError);
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>
       ({ id: p.id, name: p.name, account_configured: !!(p.cookie || p.oauth) })) };
     if (input.action === 'replies') {

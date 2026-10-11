@@ -6,6 +6,33 @@ const playlist = 'PLsyntheticqueue';
 const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{videoId:id, selected,
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
+
+test('Native playback windows use the selected profile and preserve repeated sparse occurrences',async()=>{
+  const profiles=[];
+  const library=new Library(async profile=>{profiles.push(profile.id);return {actions:{execute:async()=>
+    response([row(3,false,video(9)),row(9,true,video(9)),row(20,false,video(9))],{currentIndex:9})}}},
+    [{id:'account',name:'Account',cookie:'synthetic'}]);
+  const input={action:'playback_queue',profile:'account',id:video(9),playlist,index:9};
+  const result=await library.execute(input);
+  assert.deepEqual(profiles,['account']);assert.deepEqual(result.video_indices,[3,9,20]);
+  assert.deepEqual(result.video_ids,[video(9),video(9),video(9)]);
+  assert.equal(result.index,9);
+  await assert.rejects(library.execute({...input,profile:'missing'}),{code:'unknown_profile'});
+  await assert.rejects(library.execute({...input,index:8}),{code:'remote_playlist_unavailable'});
+});
+
+test('Both queue consumers reject contradictory endpoint indices and selected occurrences',async()=>{
+  for(const action of ['playback_queue','remote_playlist']) {
+    for(const corrupt of [
+      rows=>{rows[0].playlistPanelVideoRenderer.navigationEndpoint.watchEndpoint.playlistIndex=7;},
+      rows=>{rows[0].playlistPanelVideoRenderer.selected=false;rows[1].playlistPanelVideoRenderer.selected=true;}
+    ]) {
+      const rows=[row(0,true),row(1)];corrupt(rows);
+      const library=new Library(async()=>({actions:{execute:async()=>response(rows)}}));
+      await assert.rejects(library.execute({action,id:video(0),playlist,index:0}),{code:'remote_playlist_unavailable'});
+    }
+  }
+});
 test('WatchNext preserves global indices, repeats and bounded windows in the selected profile',async()=>{
   const calls=[]; const profiles=[];
   const library=new Library(async profile=>{profiles.push(profile.id);return {actions:{execute:async(path,args)=>{

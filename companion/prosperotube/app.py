@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from . import __version__
 from .catalog import item, page_for
@@ -61,11 +61,12 @@ class LibraryRequest(BaseModel):
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
-                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open"]
+                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
+    index: int | None = Field(default=None, ge=0, le=100000, strict=True)
     title: str = Field(default="", max_length=150)
     sort: Literal["top", "newest"] = "top"
     rating: Literal["like", "dislike", "none"] = "none"
@@ -78,6 +79,16 @@ class LibraryRequest(BaseModel):
     text: str = Field(default="", max_length=200)
     position_sec: float = Field(default=0, ge=0, le=1_000_000, allow_inf_nan=False)
     state: Literal["playing", "stopped"] = "playing"
+
+    @model_validator(mode="after")
+    def playback_occurrence(self):
+        if self.action == "playback_queue" and (
+            not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id)
+            or not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})", self.playlist)
+            or self.index is None
+        ):
+            raise ValueError("Playback queues require a video, playlist and occurrence index.")
+        return self
 
 
 class DeviceJobRequest(BaseModel):
