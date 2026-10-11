@@ -2815,7 +2815,7 @@ SmartTube objective and remaining offline work are still active.
 
 ### Offline profile settings (2026-10-11)
 
-Quality/codec, caption/audio language and caption choices, speed policy/all-video
+Quality/codec, caption/audio language and caption enable/automatic preferences, speed policy/all-video
 speed/last-speed toggle, SponsorBlock policy and exclusions, DeArrow/paid-content
 notifications, autoplay/stream prompt/history sync, chat and sleep timer are now
 persisted independently for up to 128 profiles. Existing known profiles migrate
@@ -2836,3 +2836,12 @@ account defaults instead of relying on inherited console-wide settings. SDK
 compilation emitted 208 qualified-math warnings, without errors. Earlier failed
 fixtures/results are retained as diagnostic evidence; the final result supersedes
 them. No console connection, deployment or hardware acceptance occurred.
+
+
+Source `8d660737` completed all 216 PS5 objects, link/container conversion and
+folder/PFS/ZIP packaging, then immutable freeze: build
+`prosperotube-8d660737_1011-0425`, 126 files, eboot SHA-256 prefix
+`dc47bbd694039d72`. Candidate:
+`/home/denis/.cache/prosperotube/candidates/8d660737-offline-profile-settings/PPSA99142`.
+Both `.deps/offline-profile-settings-{ps5-build,freeze}.result` files are 0.
+Full SmartTube parity and remaining offline work are still active.
