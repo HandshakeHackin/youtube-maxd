@@ -2892,3 +2892,26 @@ folder/PFS/ZIP packaging, then immutable freeze: build
 `.deps/offline-local-queue-failures-{ps5-build,freeze}.result` files are 0.
 This records offline packaging; hardware acceptance is separate. The user
 subsequently renewed exclusive console testing authorization.
+
+
+### PS5 local queue acceptance (2026-10-11)
+
+Frozen `73c7b869` passed full installed readback and settling. The first observer
+missed a countdown notice absent from the UI snapshot; it captured automatic
+next playback, then verified clean exact-title release and original-state/sidecar
+restoration. That case is inconclusive for cancellation, not product acceptance.
+
+The corrected observer records served typed failed jobs and passed an offline
+HTTP check before the separate case. On PS5, a button cancelled the first pending
+advance: no next-video resolve occurred during the following six seconds. A
+fresh unavailable attempt then resolved the next queued item 5.959 seconds after
+the failing extraction. Native playback time advanced from 1.41 to 3.41 seconds,
+without a decoder fatal. The failed item remained queued, unwatched and at its
+original nine-second resume position. Exact owned GPU/process/video/mount
+release, healthy services and byte-for-byte original provider/sidecar restoration
+passed. `.deps/local-queue-hardware-observer2.result` is 0; evidence is in
+`.deps/console/local-queue-73c7b869-hardware-observer2/`.
+
+This generated-media case establishes local queue behavior and native playback
+progress, not public-service availability, physical motion/audio, phone playlist
+failure advance or hardware acceptance of the other recent preferences.

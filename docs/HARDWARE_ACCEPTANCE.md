@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-11 | local queue | 73c7b869 | PS5 | pass: unavailable delay/cancel, next playback, retained failed record, clean release/restore | .deps/console/local-queue-73c7b869-hardware-observer2/ | phone failure advance
+
 - 2026-10-11 | local queue | 73c7b869 | PS5 | inconclusive: countdown observer missed notice; automatic next/start and clean release/restore established | .deps/console/local-queue-73c7b869-hardware/ | corrected observer
 
 - 2026-10-10 | secondary captions | 879b1281 | PS5 | pass for paused caption selection/render/clear and speed-reopen retention; clean release/restore | .deps/console/secondary-caption-879b1281-hardware/ | moving playback and real-language timing
