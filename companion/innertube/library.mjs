@@ -12,7 +12,13 @@ import { HistoryActions } from './history_actions.mjs';
 import { SuggestionFilters } from './suggestions.mjs';
 import { remoteRecommendationGroup } from './remote_recommendations.mjs';
 import { normalizeChannel, searchFeed, searchFilters, searchQuery, searchSuggestions } from './search_catalog.mjs';
-import { videoDescription } from './video_description.mjs';
+import { videoDescription, videoDetails } from './video_description.mjs';
+import { KidsCatalog } from './kids.mjs';
+import { StreamReminders } from './stream_reminder.mjs';
+import { PlaylistOrders } from './playlist_order.mjs';
+import { CommentPosts, commentHeader, commentState } from './comment_posts.mjs';
+import { channelMarks } from './channel_marks.mjs';
+import { accepted } from './intents.mjs';
 import { channelsFeed, notificationsFeed } from './account_sections.mjs';
 import { FeedbackActions } from './feedback_actions.mjs';
 import { requestLocale } from './locale.mjs';
@@ -115,6 +121,7 @@ export function normalizeVideo(node, playlist = '') {
     is_folder: false, is_upcoming: !!node.is_upcoming, is_live: cardLive(node), played: !!node.is_watched, watch_percent: watchPercent(node),
     ...(Number.isFinite(scheduled) && scheduled>0?{upcoming_start_ms:scheduled}:{}),
     ...(isShort(node)?{is_short:true}:{}),
+    ...(typeof node.is_reminder_set==='boolean'?{reminder_set:node.is_reminder_set}:{}),
     ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {
@@ -130,7 +137,7 @@ function normalizeComment(thread) {
   return { id: text(node.comment_id, 160), author: text(node.author?.name),
     content: text(node.content, 4096), published: text(node.published_time),
     likes: text(node.like_count, 32), replies: text(node.reply_count, 32),
-    pinned: !!node.is_pinned, owner: !!node.author_is_channel_owner,
+    pinned: !!node.is_pinned, owner: !!node.author_is_channel_owner, ...commentState(node),
     art_url: imageUrl(node.author?.thumbnails?.[0]?.url) };
 }
 
@@ -164,6 +171,10 @@ export class Library {
     this.account = new AccountActions(LibraryError,clock);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
+    this.kids = new KidsCatalog(LibraryError, node => normalizeVideo(node), clock);
+    this.reminders = new StreamReminders(LibraryError, clock);
+    this.playlistOrders = new PlaylistOrders(LibraryError, clock);
+    this.commentPosts = new CommentPosts(LibraryError, clock);
   }
   // One client per profile and content locale: a retained feed, cursor or
   // section keeps the session that opened it, so locales never mix.
@@ -242,6 +253,7 @@ export class Library {
       item.rating_cursor = ''; item.rating_like = item.rating_dislike = item.rating_remove = false;
       const node = thread.comment ?? thread;
       const profile = this.profiles.get(owner);
+      item.respond_cursor = profile?.cookie || profile?.oauth ? this.commentPosts.register(owner, node) : '';
       if (profile?.cookie || profile?.oauth) {
         const methods = {
           like: !node.is_liked && node.like_command && typeof node.like === 'function' ? 'like' : '',
@@ -336,15 +348,25 @@ export class Library {
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched',
-      'channels', 'notifications', 'feedback', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear']);
+      'channels', 'notifications', 'feedback', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear',
+      'subscribe_notifications', 'playlist_order', 'comment_post', 'comment_reply']);
+    // Reading a reminder is public; changing it belongs to an account.
+    if (input.action === 'stream_reminder' && input.reminder !== 'status') privateActions.add('stream_reminder');
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description', 'channel', 'channel_search'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description', 'channel', 'channel_search', 'video_details', 'stream_reminder'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
     if (['channel', 'channel_search'].includes(input.action)) requireId(input.channel, channelId);
-    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched', 'description', 'feedback'].includes(input.action))
+    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched', 'description', 'feedback',
+      'video_details', 'stream_reminder', 'comment_post', 'comment_reply'].includes(input.action))
       requireId(input.id, videoId);
-    if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
+    if (['subscribe', 'unsubscribe', 'subscribe_notifications'].includes(input.action)) requireId(input.id, channelId);
+    const level = input.notifications ?? '';
+    if ((level !== '' && (!['all', 'personalized', 'none'].includes(level) || !['subscribe', 'subscribe_notifications'].includes(input.action))) ||
+        (level === '' && input.action === 'subscribe_notifications'))
+      throw new LibraryError('invalid_request', 'Select all, personalized or none for a subscription.');
+    if (![undefined, false].includes(input.first_playable) && (input.first_playable !== true || input.action !== 'search'))
+      throw new LibraryError('invalid_search', 'Only a search can return its first playable video.');
     if (input.action === 'playlist') requireId(input.id, playlistId);
     if (input.action === 'suggestions') requireId(input.id, videoId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
@@ -367,10 +389,16 @@ export class Library {
     }
     if (input.action === 'search_suggestions') return searchSuggestions(client, input, LibraryError);
     if (input.action === 'description') return videoDescription(client, input, LibraryError);
+    if (input.action === 'video_details') return videoDetails(client, input, LibraryError, imageUrl);
+    if (input.action === 'stream_reminder') return this.reminders.run(owner, client, input);
+    if (input.action === 'playlist_order') return this.playlistOrders.run(owner, client, input);
+    if (['comment_post', 'comment_reply'].includes(input.action)) return this.commentPosts.run(owner, client, input);
     if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
     if(input.action==='mark_watched')return this.historyActions.markWatched(owner,client,input);
     if (input.action === 'topics' || input.action === 'topic_open') {
-      const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client,
+      const feed = input.section === 'kids' ?
+        (input.action === 'topics' ? await this.kids.root(owner, client) : await this.kids.open(owner, input.id)) :
+        input.action === 'topics' ? await this.topics.root(owner, input.section, client,
         authenticated && client.session?.logged_in === true) :
         await this.topics.open(owner, input.section, input.id);
       return this.page(owner, 'catalog', feed, null, '', '', 0, false, '', extra);
@@ -436,7 +464,14 @@ export class Library {
       }
       case 'search': feed = searchFeed(await client.search(query, filters), node=>normalizeVideo(node), normalizePlaylist,
         node=>normalizeChannel(node, imageUrl), LibraryError); break;
-      case 'channels': feed = channelsFeed(await client.getChannelsFeed(), node=>normalizeChannel(node, imageUrl), LibraryError); break;
+      case 'channels': {
+        // The marker needs one extra guide request, so it is opt-in.
+        const marks = input.new_content === true ? await channelMarks(client) : null;
+        feed = channelsFeed(await client.getChannelsFeed(), node => {
+          const item = normalizeChannel(node, imageUrl);
+          return item && marks?.has(item.channel_id) ? { ...item, has_new: marks.get(item.channel_id) } : item;
+        }, LibraryError); break;
+      }
       case 'notifications': feed = notificationsFeed(await client.getNotifications(), node=>normalizeVideo(node), LibraryError); break;
       // Subscriptions cards keep their private hide token behind a feedback reference.
       case 'subscriptions': feed = await client.getSubscriptionsFeed();
@@ -449,8 +484,15 @@ export class Library {
       case 'comments':
         if (!['top', 'newest', undefined].includes(input.sort)) throw new LibraryError('invalid_sort', 'Select top or newest comments.');
         feed = await client.getComments(requireId(input.id, videoId), input.sort === 'newest' ? 'NEWEST_FIRST' : 'TOP_COMMENTS');
-        return this.page(owner, 'comments', feed);
+        return { ...this.page(owner, 'comments', feed), ...commentHeader(feed, authenticated && client.session?.logged_in === true) };
       default: break;
+    }
+    if (feed && input.first_playable === true) {
+      // Voice and phone "play ..." requests: the first video of the first page.
+      const page = this.page(owner, 'catalog', feed, null, '', '', 0, false, '', extra);
+      if (page.cursor) this.cursors.delete(page.cursor);
+      const item = page.items.find(row => row.kind === 'video' && !row.is_folder && !row.is_upcoming) ?? null;
+      return { api_version: 1, kind: 'search_first', query, found: !!item, item };
     }
     if (feed) {
       const page = this.page(owner, 'catalog', feed, null,
@@ -465,6 +507,9 @@ export class Library {
       case 'unrate': response = await client.interact.removeRating(requireId(input.id, videoId)); break;
       case 'subscribe': response = await client.interact.subscribe(requireId(input.id, channelId)); break;
       case 'unsubscribe': response = await client.interact.unsubscribe(requireId(input.id, channelId)); break;
+      case 'subscribe_notifications':
+        if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+        response = await client.interact.setNotificationPreferences(requireId(input.id, channelId), level.toUpperCase()); break;
       case 'playlist_create': {
         const title = playlistTitle(input.title);
         if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
@@ -489,6 +534,13 @@ export class Library {
     if (!response || response.success === false || response.status_code >= 400 ||
         ('action_result' in response && (!Array.isArray(response.action_result) || !response.action_result.length)))
       throw new LibraryError('operation_failed', 'YouTube did not confirm the requested change.', 502);
-    return { api_version: 1, success: true, playlist_id: playlistId(response.playlist_id) ? response.playlist_id : '' };
+    const done = { api_version: 1, success: true, playlist_id: playlistId(response.playlist_id) ? response.playlist_id : '' };
+    if (input.action === 'subscribe_notifications') return { ...done, notifications: level };
+    if (input.action !== 'subscribe' || !level) return done;
+    // The subscription stands even when the level could not be confirmed.
+    let applied = false;
+    try { applied = accepted(await client.interact.setNotificationPreferences(input.id, level.toUpperCase())); }
+    catch { /* Reported as an unset level. */ }
+    return { ...done, notifications: applied ? level : '' };
   }
 }

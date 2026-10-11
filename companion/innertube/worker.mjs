@@ -3,9 +3,18 @@ import { Innertube, Log } from 'youtubei.js';
 import { StringDecoder } from 'node:string_decoder';
 import { Library, LibraryError } from './library.mjs';
 import { DeviceAuthorization, createProfileClient } from './device_auth.mjs';
+import { proxyFetch, proxySettings } from './proxy_fetch.mjs';
 
 Log.setLevel(Log.Level.NONE);
 const allowed = ['youtube.com', 'google.com', 'googleapis.com', 'gstatic.com'];
+// A proxy configured by the host carries every request. A malformed setting
+// stops the worker instead of connecting directly.
+let viaProxy = null;
+if (process.env.PROSPEROTUBE_PROXY) {
+  try { viaProxy = proxyFetch(proxySettings(process.env.PROSPEROTUBE_PROXY), LibraryError); }
+  catch { process.exit(3); }
+  delete process.env.PROSPEROTUBE_PROXY;
+}
 async function scopedFetch(input, init = {}) {
   const request = new Request(input, init);
   const url = new URL(request.url);
@@ -15,7 +24,7 @@ async function scopedFetch(input, init = {}) {
   const signal = request.signal ? AbortSignal.any([request.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000);
   // Return redirects as errors instead of forwarding account headers to a new
   // origin. Ordinary InnerTube operations do not require a cross-origin redirect.
-  const response = await fetch(request, { signal, redirect: 'manual' });
+  const response = viaProxy ? await viaProxy(request, signal) : await fetch(request, { signal, redirect: 'manual' });
   if (response.status >= 300 && response.status < 400)
     throw new LibraryError('upstream_redirect', 'The service requested an unsupported redirect.', 502);
   if (!response.body) return response;

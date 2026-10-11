@@ -111,7 +111,7 @@ test('description returns the complete bounded text with pinned player metadata'
   const library=new Library(async()=>({getBasicInfo:async()=>info(text)}));
   assert.deepEqual(await library.execute({action:'description',id}),{api_version:1,kind:'description',id,
     title:'Fixture <b>title</b>',channel:'Fixture channel',channel_id:'UC'+'a'.repeat(22),published:'2024-05-06',
-    views:'1234567',description:text,truncated:false});
+    views:'1234567',like_count:'',description:text,truncated:false});
   text='a'.repeat(19999)+'😀'+'tail';
   const long=await library.execute({action:'description',id});
   assert.equal(long.description,'a'.repeat(19999));assert.equal(long.truncated,true);
@@ -122,5 +122,5 @@ test('description returns the complete bounded text with pinned player metadata'
   await assert.rejects(library.execute({action:'description',id:pad(1)}),{code:'upstream_format',status:502});
   const bare=new Library(async()=>({getBasicInfo:async()=>({basic_info:{id,view_count:NaN}})}));
   assert.deepEqual(await bare.execute({action:'description',id}),{api_version:1,kind:'description',id,title:'',channel:'',
-    channel_id:'',published:'',views:'',description:'',truncated:false});
+    channel_id:'',published:'',views:'',like_count:'',description:'',truncated:false});
 });
