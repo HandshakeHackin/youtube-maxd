@@ -89,6 +89,8 @@ typedef struct {
     unsigned scope, selection;
 } tube_playlist_window_t;
 int tube_playlist_window_begin(void);
+/* Locate a different occurrence while retaining the active playback owner. */
+int tube_playlist_window_at(int index);
 int tube_playlist_window_status(tube_playlist_window_t *out);
 void tube_playlist_window_cancel(void);
 int tube_playlist_eof_pending(void);

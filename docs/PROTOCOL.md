@@ -40,6 +40,13 @@ selected rows or endpoint indices fail instead of changing the requested
 occurrence. This is a bounded window, not proof of the complete playlist or its
 end; consumers must retain occurrence identity when requesting further windows.
 
+`playback_at` uses the same direct/job transport and window response, with
+`profile`, `playlist` and `index`, but no video ID. It looks up the selected
+occurrence by index. Exactly one playable selected row and an explicit matching
+endpoint or panel index must prove the result; ambiguous, unpositioned and
+infinite/radio results fail. This permits navigation outside the currently
+loaded window without guessing which video occupies a playlist position.
+
 `/media/{random-session}/{resource}` is an expiring capability for FFmpeg and
 captions, requiring no bearer header. The relay preserves single byte ranges,
 scopes sensitive headers to origins, limits redirects and restricts resolver

@@ -61,7 +61,7 @@ class LibraryRequest(BaseModel):
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
-                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue"]
+                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
@@ -82,12 +82,12 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
-        if self.action == "playback_queue" and (
-            not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id)
+        if self.action in {"playback_queue", "playback_at"} and (
+            (not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id) if self.action == "playback_queue" else self.id != "")
             or not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})", self.playlist)
             or self.index is None
         ):
-            raise ValueError("Playback queues require a video, playlist and occurrence index.")
+            raise ValueError("Playback requests require a playlist and occurrence index; only playback_queue accepts a video ID.")
         return self
 
 

@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Index-only playlist lookup — 2026-10-11
+
+The `playback_at` direct/job operation requests WatchNext with playlist and
+index, without inventing a video ID. Selected playable identity and explicit
+upstream index evidence are required; ambiguous selections, missing position
+proof, conflicting indices and infinite/radio panels fail. Native indexed
+requests retain the currently playing occurrence as owner while validating the
+different target. Existing natural-EOF autoplay rejects a retargeted window.
+
+The service library/context/window selection passed 50 Python tests and all 68
+worker tests passed; the production worker rebuilt. Logs:
+`.deps/playback-at-python.log` and `.deps/playback-at-worker.log`.
+This provides navigation needed by playback modes; it does not implement their
+selectors or shuffle policy. The pinned SmartTube `VideoLoaderController`
+shuffles when playlist size is greater than 30, requests a random index and
+normally excludes the current index (`Utils.getRandomIndex`). Reliable playlist
+size and full mode integration remain necessary. No console connections occurred.
+The native window/context and queue-failure sanitizer suites passed, including
+different-video target lookup, zero index, request bounds, mismatched target
+rejection and unchanged active occurrence. The PS5 provider object compiled
+successfully with existing SDK qualified-math warnings. Logs:
+`.deps/playback-at-native.log` and `.deps/playback-at-sdk.log`.
+
 ## Natural EOF playlist advancement — 2026-10-11
 
 The existing autoplay preference now advances to the next returned playlist

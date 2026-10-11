@@ -38,6 +38,20 @@ int main(void) {
     assert(tube_playlist_window_status(&out)==1 && out.count==3 && out.current==1);
     assert(out.indices[0]==3 && out.indices[2]==20 && !strcmp(out.ids[0],out.ids[1]));
     assert(out.scope==scope && out.selection==tube_phone_selection());
+    assert(!tube_playlist_window_at(-1) && !tube_playlist_window_at(100001) && !pending_count);
+    assert(tube_playlist_window_at(20));
+    assert(strstr(pending[0].body,"\"action\":\"playback_at\"") && !strstr(pending[0].body,"\"id\":"));
+    cJSON *target=window();cJSON_ReplaceItemInObject(target,"index",cJSON_CreateNumber(20));
+    cJSON_ReplaceItemInObject(target,"video_id",cJSON_CreateString("bcdefghijkl"));result(target);
+    assert(tube_playlist_window_status(&out)==1 && out.current==2 && !strcmp(out.ids[out.current],"bcdefghijkl"));
+    char active[101];int active_index;
+    assert(tube_playback_playlist_context(active,sizeof active,&active_index) && active_index==9);
+    assert(tube_playlist_window_at(20));result(window());assert(tube_playlist_window_status(NULL)==-1);
+    assert(tube_playlist_window_at(0));
+    target=window();cJSON_ReplaceItemInObject(target,"index",cJSON_CreateNumber(0));
+    cJSON_ReplaceItemInObject(target,"window_start",cJSON_CreateNumber(0));
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(target,"video_indices"),0,cJSON_CreateNumber(0));result(target);
+    assert(tube_playlist_window_status(&out)==1 && out.current==0 && out.indices[0]==0);
     for(int bad=0;bad<12;++bad) {
         cJSON *value=window();
         switch(bad) {

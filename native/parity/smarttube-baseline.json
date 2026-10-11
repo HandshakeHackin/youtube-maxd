@@ -1080,7 +1080,8 @@
         "tests/test_playlist_context.c and tests/test_live_chat_ui.cpp: repeated occurrence selection, request isolation, recovery and stale scope",
         "companion/prosperotube/app.py and companion/innertube/remote_playlist.mjs: authenticated playback_queue jobs expose profile-owned sparse WatchNext windows; tests/test_playback_queue.py and remote_playlist.test.mjs verify bounds, occurrence identity and contradictory-position rejection",
         "native/tube_provider.c and tests/test_playlist_window.c: asynchronous native window transport validates dense/sparse occurrence maps and rejects retired selection/profile/cancellation responses",
-        "Natural EOF autoplay consumes the next returned playlist occurrence after explicit queues; generated host preserves occurrence/reload ownership and player input cancels waiting; native window and generated player tests pass"
+        "Natural EOF autoplay consumes the next returned playlist occurrence after explicit queues; generated host preserves occurrence/reload ownership and player input cancels waiting; native window and generated player tests pass",
+        "playback_at service/native indexed lookup retains playback ownership and requires explicit selected occurrence proof; the pinned SmartTube shuffle rule requires known playlist size greater than 30 and random index lookup"
       ],
       "offline_status": "partial",
       "remaining": [

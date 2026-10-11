@@ -7,6 +7,46 @@ const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{vi
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
 
+test('Index-only navigation requests the exact occurrence without inventing a video ID',async()=>{
+  const calls=[];
+  const library=new Library(async()=>({actions:{execute:async(path,args)=>{
+    calls.push({path,args});return response([row(100,false,video(1)),row(103,true,video(1)),row(109)],{currentIndex:103});
+  }}}));
+  const result=await library.execute({action:'playback_at',playlist,index:103});
+  assert.equal(calls[0].path,'/next');assert.equal(calls[0].args.playlistIndex,103);
+  assert.equal(calls[0].args.playlistId,playlist);assert.ok(!Object.hasOwn(calls[0].args,'videoId'));
+  assert.equal(result.video_id,video(1));assert.equal(result.index,103);
+  assert.deepEqual(result.video_indices,[100,103,109]);
+});
+
+test('Index-only navigation requires a uniquely selected playable occurrence and explicit position proof',async()=>{
+  for(const change of [
+    (rows,panel)=>{delete rows[0].playlistPanelVideoRenderer.navigationEndpoint.watchEndpoint.index;delete panel.currentIndex;},
+    (rows)=>{rows[0].playlistPanelVideoRenderer.selected=false;},
+    (rows)=>{rows[1].playlistPanelVideoRenderer.selected=true;},
+    (rows)=>{rows[0].playlistPanelVideoRenderer.isPlayable=false;},
+    (rows,panel)=>{panel.currentIndex=4;},
+    (rows,panel)=>{panel.isInfinite=true;},
+  ]) {
+    const rows=[row(3,true),row(4)];const panel={playlistId:playlist,contents:rows,currentIndex:3};change(rows,panel);
+    const library=new Library(async()=>({actions:{execute:async()=>({success:true,data:{playlistPanelRenderer:panel}})}}));
+    await assert.rejects(library.execute({action:'playback_at',playlist,index:3}),{code:'remote_playlist_unavailable'});
+  }
+});
+
+test('Index-only navigation can use an explicit panel index when endpoints omit their indices',async()=>{
+  const rows=[row(0),row(1,true)];for(const entry of rows)delete entry.playlistPanelVideoRenderer.navigationEndpoint.watchEndpoint.index;
+  const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:21})}}));
+  const result=await library.execute({action:'playback_at',playlist,index:21});
+  assert.equal(result.video_id,video(1));assert.equal(result.window_start,20);
+});
+
+test('Index-only navigation rejects supplied video IDs and invalid indices before requesting upstream',async()=>{
+  const library=new Library(async()=>({actions:{execute:async()=>{assert.fail('must not request');}}}));
+  for(const patch of [{id:video(3)},{id:null},{id:false},{index:-1},{index:3.5},{index:'3'}])
+    await assert.rejects(library.execute({action:'playback_at',playlist,index:3,...patch}),{code:'invalid_request'});
+});
+
 test('Native playback windows use the selected profile and preserve repeated sparse occurrences',async()=>{
   const profiles=[];
   const library=new Library(async profile=>{profiles.push(profile.id);return {actions:{execute:async()=>

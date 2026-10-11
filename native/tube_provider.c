@@ -43,7 +43,7 @@ static PlaylistContext g_resolved_playlist, g_active_playlist;
 static struct { char id[12]; PlaylistContext value; } g_selected_playlist;
 static struct {
     unsigned serial, selection;
-    int state;
+    int state, lookup, target_index;
     PlaylistContext context;
     char id[12];
     tube_playlist_window_t value;
@@ -1260,7 +1260,7 @@ int tube_playlist_window_status(tube_playlist_window_t *out) {
     if (g_playlist_window.state == 1 && out) *out=g_playlist_window.value;
     return g_playlist_window.state;
 }
-int tube_playlist_window_begin(void) {
+static int playlist_window_begin_at(int target) {
     char playlist[101]; int index;
     if (!tube_playback_playlist_context(playlist,sizeof playlist,&index)) return 0;
     if (playlist_window_current() && g_playlist_window.state == 0) return 0;
@@ -1268,13 +1268,22 @@ int tube_playlist_window_begin(void) {
     Request *r=request_new(12,NULL); if (!r) return 0;
     g_playlist_window.selection=g_selection_serial;
     g_playlist_window.context=g_active_playlist;
+    g_playlist_window.lookup=target >= 0;
+    g_playlist_window.target_index=target >= 0 ? target : index;
     copy(g_playlist_window.id,sizeof g_playlist_window.id,g_active_id);
     g_playlist_window.state=0;
     r->intent=g_playlist_window.serial;
-    snprintf(r->payload,sizeof r->payload,
+    if (g_playlist_window.lookup) snprintf(r->payload,sizeof r->payload,
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
+        g_active_profile,playlist,target);
+    else snprintf(r->payload,sizeof r->payload,
         "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
         g_active_profile,g_active_id,playlist,index);
     begin(r); return 1;
+}
+int tube_playlist_window_begin(void) { return playlist_window_begin_at(-1); }
+int tube_playlist_window_at(int index) {
+    return index >= 0 && index <= 100000 ? playlist_window_begin_at(index) : 0;
 }
 static int playlist_index(const cJSON *value) {
     return cJSON_IsNumber(value) && value->valuedouble >= 0 && value->valuedouble <= 100000 &&
@@ -1285,11 +1294,12 @@ static void playlist_window_result(Request *r,const cJSON *root) {
     const cJSON *ids=cJSON_GetObjectItemCaseSensitive(root,"video_ids");
     const cJSON *indices=cJSON_GetObjectItemCaseSensitive(root,"video_indices");
     const int start=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"window_start"));
+    const char *selected_id=str(root,"video_id");
     value.count=cJSON_GetArraySize(ids); value.current=-1;
     int valid=r->intent == g_playlist_window.serial && playlist_window_current() &&
         num(root,"api_version") == 1 && !strcmp(str(root,"playlist"),g_playlist_window.context.playlist) &&
-        !strcmp(str(root,"video_id"),g_playlist_window.id) &&
-        playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index")) == g_playlist_window.context.index &&
+        valid_id(selected_id) && (g_playlist_window.lookup || !strcmp(selected_id,g_playlist_window.id)) &&
+        playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index")) == g_playlist_window.target_index &&
         cJSON_IsArray(ids) && value.count > 0 && value.count <= 128 && start >= 0 &&
         (!indices || (cJSON_IsArray(indices) && cJSON_GetArraySize(indices) == value.count));
     for (int i=0; valid && i<value.count; ++i) {
@@ -1299,7 +1309,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
             (!i ? position == start : position > value.indices[i-1]);
         if (!valid) break;
         copy(value.ids[i],sizeof value.ids[i],id->valuestring); value.indices[i]=position;
-        if (position == g_playlist_window.context.index && !strcmp(id->valuestring,g_playlist_window.id)) value.current=i;
+        if (position == g_playlist_window.target_index && !strcmp(id->valuestring,selected_id)) value.current=i;
     }
     if (!valid || value.current < 0) { complete(r,0); return; }
     copy(value.playlist,sizeof value.playlist,g_playlist_window.context.playlist);
@@ -3441,7 +3451,7 @@ void tube_playlist_eof_cancel(void) {
 int tube_playlist_eof_pending(void) { return g_playlist_eof_wait || g_playlist_next_ready; }
 static int playlist_eof_advance(void) {
     if (!g_playlist_eof_wait) return 0;
-    if (!g_autoplay || !playlist_window_current()) { tube_playlist_eof_cancel(); return 0; }
+    if (!g_autoplay || !playlist_window_current() || g_playlist_window.lookup) { tube_playlist_eof_cancel(); return 0; }
     int state=tube_playlist_window_status(NULL);
     if (!state) return 0;
     g_playlist_eof_wait=0;
