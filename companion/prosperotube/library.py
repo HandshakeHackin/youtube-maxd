@@ -78,6 +78,7 @@ class LibraryService:
         self.comment_states = {}
         self.chat_sends = {}
         self.watched_intents = {}
+        self.feedback_states = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -101,6 +102,7 @@ class LibraryService:
         self.comment_states = {k: v for k, v in self.comment_states.items() if k[0] != identity}
         self.chat_sends = {k: v for k, v in self.chat_sends.items() if k[0] != identity}
         self.watched_intents = {k: v for k, v in self.watched_intents.items() if k[0] != identity}
+        self.feedback_states = {k: v for k, v in self.feedback_states.items() if k[0] != identity}
         self.on_profile_removed(identity)
         await self._stop()  # retire all cached Node credentials/continuations
         if not confirmed:
@@ -284,6 +286,32 @@ class LibraryService:
             self.watched_intents[(owner, session)] = state
         return state
 
+    def _feedback_state(self, request, *, create=False):
+        if request.get('action') != 'feedback':
+            return None
+        owner, cursor = request.get('profile', 'guest'), request.get('cursor', '')
+        video, choice = request.get('id', ''), request.get('feedback')
+        if (not isinstance(owner, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', owner)
+                or not isinstance(cursor, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', cursor)
+                or not isinstance(video, str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', video)
+                or choice not in ('not_interested', 'dont_recommend_channel')):
+            raise ServiceError('invalid_feedback', 'Select an available feedback choice.', 400)
+        if owner == 'guest':
+            raise ServiceError('account_required', 'Select an account profile first.', 401)
+        if not self.has_profile(owner):
+            raise ServiceError('unknown_profile', 'Select an available profile.', 404)
+        now = time.monotonic()
+        self.feedback_states = {k: v for k, v in self.feedback_states.items() if v['deadline'] > now}
+        state = self.feedback_states.get((owner, cursor, choice))
+        if state and (state['id'] != video or state['result'] is None):
+            raise ServiceError('feedback_unconfirmed', 'Check Home before repeating this feedback.', 409)
+        if state is None and create:
+            if len(self.feedback_states) >= 256:
+                raise ServiceError('feedback_busy', 'Too many feedback intents are retained.', 429)
+            state = {'id': video, 'result': None, 'deadline': now + 1800}
+            self.feedback_states[(owner, cursor, choice)] = state
+        return state
+
     async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
@@ -311,7 +339,11 @@ class LibraryService:
                     watched_intent = self._watched_intent(request) if operation == 'execute' else None
                     if watched_intent is not None:
                         return dict(watched_intent['result'])
+                    feedback_state = self._feedback_state(request) if operation == 'execute' else None
+                    if feedback_state is not None:
+                        return dict(feedback_state['result'])
                     await self._start()
+                    feedback_state = self._feedback_state(request, create=True) if operation == 'execute' else None
                     watched_intent = self._watched_intent(request, create=True) if operation == 'execute' else None
                     chat_state = self._chat_send_state(request, create=True) if operation == 'execute' else None
                     comment_state = self._comment_state(request, create=True) if operation == "execute" else None
@@ -319,6 +351,12 @@ class LibraryService:
                     if watch_state is not None:
                         watch_state["blocked"] = True
                     result = await self._exchange({"operation": operation, "request": request})
+                    if feedback_state is not None:
+                        if (result.get('api_version') != 1 or result.get('success') is not True
+                                or result.get('video_id') != request['id'] or result.get('feedback') != request['feedback']):
+                            raise ServiceError('feedback_unconfirmed', 'YouTube did not confirm this feedback.', 502)
+                        feedback_state['result'] = {key: result[key] for key in ('api_version', 'success', 'video_id', 'feedback')}
+                        result = dict(feedback_state['result'])
                     if watched_intent is not None:
                         position = result.get('position_sec')
                         if (result.get('api_version') != 1 or result.get('success') is not True

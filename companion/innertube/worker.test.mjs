@@ -594,3 +594,6 @@ import './playback_groups.test.mjs';
 
 import './home_feed.test.mjs';
 import './suggestions.test.mjs';
+import './search_catalog.test.mjs';
+import './sections.test.mjs';
+import './feedback_actions.test.mjs';

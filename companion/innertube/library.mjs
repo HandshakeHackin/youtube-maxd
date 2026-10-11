@@ -11,6 +11,10 @@ import { HomeCatalog, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
 import { SuggestionFilters } from './suggestions.mjs';
 import { remoteRecommendationGroup } from './remote_recommendations.mjs';
+import { normalizeChannel, searchFeed, searchFilters, searchQuery, searchSuggestions } from './search_catalog.mjs';
+import { videoDescription } from './video_description.mjs';
+import { channelsFeed, notificationsFeed } from './account_sections.mjs';
+import { FeedbackActions } from './feedback_actions.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -146,7 +150,12 @@ export class Library {
     this.historyActions = new HistoryActions(LibraryError,clock);
     this.suggestionFilters = new SuggestionFilters(LibraryError,node=>normalizeVideo(node),clock);
     this.suggestionPages = new WeakMap();
-    this.homeCatalog = new HomeCatalog(LibraryError,node=>normalizeVideo(node),normalizePlaylist,this.suggestionFilters);
+    this.feedback = new FeedbackActions(LibraryError,clock);
+    // Only configured account profiles retain recommendation feedback references.
+    this.homeCatalog = new HomeCatalog(LibraryError,(node,owner)=>{
+      const profile=this.profiles.get(owner),item=normalizeVideo(node);
+      return profile?.cookie || profile?.oauth?this.feedback.decorate(owner,node,item):item;
+    },normalizePlaylist,this.suggestionFilters);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
@@ -303,19 +312,26 @@ export class Library {
     }
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
-      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched']);
+      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched',
+      'channels', 'notifications', 'feedback']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
-    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched'].includes(input.action))
+    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched', 'description', 'feedback'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
     if (input.action === 'playlist') requireId(input.id, playlistId);
     if (input.action === 'suggestions') requireId(input.id, videoId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
+    const query = input.action === 'search' ? searchQuery(input.query, LibraryError) : '';
+    const filters = input.action === 'search' ? searchFilters(input, LibraryError) : null;
+    if (input.action === 'search_suggestions') searchQuery(input.query ?? '', LibraryError, true);
     const client = await this.client(owner);
+    if (input.action === 'feedback') return this.feedback.submit(owner, client, input);
+    if (input.action === 'search_suggestions') return searchSuggestions(client, input, LibraryError);
+    if (input.action === 'description') return videoDescription(client, input, LibraryError);
     if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
     if(input.action==='mark_watched')return this.historyActions.markWatched(owner,client,input);
     if (input.action === 'topics' || input.action === 'topic_open') {
@@ -383,6 +399,10 @@ export class Library {
           throw new LibraryError('upstream_format','YouTube returned suggestions for a different video.',502);
         feed=this.suggestionFilters.root(owner,info,client);break;
       }
+      case 'search': feed = searchFeed(await client.search(query, filters), node=>normalizeVideo(node), normalizePlaylist,
+        node=>normalizeChannel(node, imageUrl), LibraryError); break;
+      case 'channels': feed = channelsFeed(await client.getChannelsFeed(), node=>normalizeChannel(node, imageUrl), LibraryError); break;
+      case 'notifications': feed = notificationsFeed(await client.getNotifications(), node=>normalizeVideo(node), LibraryError); break;
       case 'subscriptions': feed = await client.getSubscriptionsFeed(); break;
       case 'history': feed = await client.getHistory(); break;
       case 'library': feed = await client.getLibrary(); break;

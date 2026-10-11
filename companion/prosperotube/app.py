@@ -61,8 +61,9 @@ class LibraryRequest(BaseModel):
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate", "mark_watched",
-                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "group_window", "history_remove"]
-    section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
+                    "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "group_window", "history_remove",
+                    "search", "search_suggestions", "description", "channels", "notifications", "feedback"]
+    section: Literal["", "music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
@@ -86,6 +87,35 @@ class LibraryRequest(BaseModel):
     text: str = Field(default="", max_length=200)
     position_sec: float = Field(default=0, ge=0, le=1_000_000, allow_inf_nan=False)
     state: Literal["playing", "stopped"] = "playing"
+    query: str = Field(default="", max_length=200)
+    upload_date: Literal["any", "today", "week", "month", "year"] = "any"
+    duration: Literal["any", "short", "medium", "long"] = "any"
+    type: Literal["all", "video", "channel", "playlist", "movie", "shorts"] = "all"
+    features: list[Literal["hd", "subtitles", "creative_commons", "3d", "live", "purchased", "4k", "360", "location", "hdr", "vr180"]] = Field(default_factory=list, max_length=11)
+    order: Literal["relevance", "view_count"] = "relevance"
+    feedback: Literal["", "not_interested", "dont_recommend_channel"] = ""
+
+    @model_validator(mode="after")
+    def search_and_feedback(self):
+        options = (self.upload_date != "any" or self.duration != "any" or self.type != "all"
+                   or self.order != "relevance" or bool(self.features))
+        if options and self.action != "search":
+            raise ValueError("Search options require the search action.")
+        if len(set(self.features)) != len(self.features):
+            raise ValueError("Search features must be distinct.")
+        if self.query and self.action not in {"search", "search_suggestions"}:
+            raise ValueError("Query text requires a search action.")
+        if re.search(r"[\x00-\x1f\x7f]", self.query) or (self.action == "search" and not self.query.strip()):
+            raise ValueError("Enter search text without control characters.")
+        if self.action == "description" and not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id):
+            raise ValueError("A description requires a video identity.")
+        if self.action == "feedback":
+            if (not self.feedback or not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id)
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.cursor)):
+                raise ValueError("Feedback requires a video, its retained reference and a choice.")
+        elif self.feedback:
+            raise ValueError("Feedback choices require the feedback action.")
+        return self
 
     @model_validator(mode="after")
     def playback_occurrence(self):

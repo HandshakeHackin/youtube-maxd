@@ -109,8 +109,10 @@ class FixtureLibrary:
             return copy.deepcopy(ref["result"])
         if action in {"topics", "topic_open"}:
             section = request.get("section")
-            if section not in {"music", "gaming", "news", "sports", "live", "movies"}:
+            if section not in {"music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"}:
                 raise ServiceError("invalid_catalog", "Choose an available section.", 400)
+            if section == "my_videos" and owner == "guest":
+                raise ServiceError("account_required", "Select an offline account profile.", 401)
             if action == "topics":
                 key = self._reference(owner, "topic:" + section, [self._video(i) for i in VIDEOS])
                 return self._page(owner, "catalog", [{"id": f"section:{section}:{key}",
@@ -129,8 +131,20 @@ class FixtureLibrary:
             if ref["result"] is None:
                 ref["result"] = self._page(owner, "comments" if replies else ref["kind"], ref["items"])
             return copy.deepcopy(ref["result"])
+        if action == "search_suggestions":
+            query = str(request.get("query", "")).strip()[:160]
+            return {"api_version": 1, "kind": "search_suggestions", "query": query,
+                    "suggestions": [f"{query} offline suggestion {i + 1}".strip() for i in range(5)]}
         account = self.accounts[owner]
         identifier, playlist = request.get("id", ""), request.get("playlist", "")
+        if action == "description":
+            if identifier not in VIDEOS:
+                raise ServiceError("fixture_only", "Select a generated fixture video.", 404)
+            row = self._video(identifier)
+            text = "Generated description.\nLiteral <b>markup</b> & Unicode: caf\u00e9 \u65e5\u672c\u8a9e.\n" + "Full description scroll test. " * 200
+            return {"api_version": 1, "kind": "description", "id": identifier, "title": row["title"],
+                    "channel": row["subtitle"], "channel_id": row["channel_id"], "published": "2024-01-01",
+                    "views": "1234", "description": text[:20000], "truncated": False}
         if action in {"comments", "like", "dislike", "unrate", "playlist_add", "playlist_remove", "watch_later_add", "watch_later_remove", "watch_progress"} or (action == "playlist_create" and identifier):
             if identifier not in VIDEOS:
                 raise ServiceError("fixture_only", "Select a generated fixture video.", 404)
