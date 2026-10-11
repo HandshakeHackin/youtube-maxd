@@ -465,3 +465,11 @@ shared target. Upstream names the latter `spvgen.so` without a lib prefix; the
 installer retains that name and a compatibility alias. The already-running
 bootstrap retains its original script and will need a cached follow-up run
 after it terminates; the LLVM compilation is not being restarted.
+
+
+`bash scripts/test_video_geometry.sh` now exercises the current geometry path
+and, when the generated tree is not already activated, an in-memory application
+of the same transform overlay. It extracts the real capture/sizing statements,
+checks all orientation/aspect/pixel/resize combinations and zooms, and verifies
+that settings changed after capture cannot tear the frame. When real transform
+artifacts are activated, the same checks use the generated active runtime.

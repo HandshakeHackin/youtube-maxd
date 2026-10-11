@@ -1,14 +1,21 @@
 #include "tube_video_geometry.h"
+#include "tube_video_transform.h"
 #include <cassert>
 #include <cmath>
 #include <cstring>
 #include <string>
 #include <vector>
 static unsigned config;
-static unsigned tube_player_video_geometry(){return config;}
+static int geometry_reads;
+static unsigned tube_player_video_geometry(){++geometry_reads;return config;}
 struct {int width=1920,height=1080;}g_agc_dev;
+#include "snapshot-state.inc"
+static void snapshot(){
+#include "snapshot.inc"
+}
 #include "scale.inc"
-static void expect(unsigned value,int width,int height,float x,float y){config=value;float sx,sy;agc_video_scale(width,height,0,&sx,&sy);assert(std::fabs(sx-x)<.0001 && std::fabs(sy-y)<.0001);}
+static void scale(int w,int h,int mode,float* x,float* y){snapshot();agc_video_scale(w,h,mode,x,y);}
+static void expect(unsigned value,int width,int height,float x,float y){config=value;float sx,sy;scale(width,height,0,&sx,&sy);assert(std::fabs(sx-x)<.0001 && std::fabs(sy-y)<.0001);}
 struct Element {std::string text;int writes=0;std::string GetInnerRML(){return text;}void SetInnerRML(const std::string& value){text=value;++writes;}}element;
 struct Doc {Element* GetElementById(const char* id){assert(!strcmp(id,"label-aspect"));return &element;}}doc;
 static Doc* m_playback_doc=&doc;
@@ -54,8 +61,8 @@ int main(){
     expect((150u<<4)|1,640,480,1.125f,1.5f);expect((50u<<4)|1,1920,1080,.5f,.5f);
     expect((300u<<4)|1,1920,1080,3,3);
     for(int p=50;p<=300;++p)if(tube_zoom_valid(p))for(int w:{480,1920,3840}) {
-        float fitx,fity,sx,sy;config=1;agc_video_scale(w,1080,0,&fitx,&fity);
-        config=(unsigned)p<<4|1;agc_video_scale(w,1080,0,&sx,&sy);
+        float fitx,fity,sx,sy;config=1;scale(w,1080,0,&fitx,&fity);
+        config=(unsigned)p<<4|1;scale(w,1080,0,&sx,&sy);
         assert(std::fabs(sx/fitx-p/100.f)<.0001 && std::fabs(sy/fity-p/100.f)<.0001);
     }
     float sx=.5f,sy=.75f;tube_video_geometry_scale((101u<<4)|1,640,480,1920,1080,&sx,&sy);assert(sx==.5f && sy==.75f);
@@ -77,7 +84,7 @@ int main(){
     const float par[]={1,1.11111f,1.3333f,.75f,.7442f,.7407f};
     for(int a=0;a<11;++a)for(int p=0;p<6;++p)for(int m=0;m<5;++m) {
         config=1u|((unsigned)a<<13)|((unsigned)p<<17)|((unsigned)m<<1);
-        float x,y;agc_video_scale(640,480,0,&x,&y);
+        float x,y;scale(640,480,0,&x,&y);
         if(m==2){assert(x==1 && y==1);continue;}
         assert(std::fabs((x/y)*(1920.f/1080)-(a?ar[a]:4.f/3)*par[p])<.0001);
         if(m==0)assert(x<=1 && y<=1 && (x==1 || y==1));
@@ -97,5 +104,35 @@ int main(){
     select(m_tracks[81]);assert(mirror==0 && message=="Mirror video: off");
     config=1u|(6u<<13)|(1u<<17)|(150u<<4)|(7u<<20);rml();
     assert(element.text=="ASPECT: Zoom 150% / 21:9 / PAR 1.11111 / 270 deg / Mirror");
+#if TUBE_TEST_TRANSFORM_ACTIVE
+    for(unsigned orientation=0;orientation<8;++orientation)
+      for(int a=0;a<11;++a)for(int p=0;p<6;++p)for(int m=0;m<5;++m) {
+        config=1u|(orientation<<20)|((unsigned)a<<13)|((unsigned)p<<17)|((unsigned)m<<1);
+        float x,y;scale(640,480,0,&x,&y);
+        assert(g_tube_frame_geometry==config && g_tube_frame_transform==orientation);
+        assert(g_tube_canvas_w==((orientation&1)?1080:1920));
+        assert(g_tube_canvas_h==((orientation&1)?1920:1080));
+        float displayed=(orientation&1)?y/x*1920.f/1080:x/y*1920.f/1080;
+        float expected=(a?ar[a]:4.f/3)*par[p];
+        if(orientation&1)expected=1/expected;
+        if(m==2)expected=1920.f/1080;
+        assert(std::fabs(displayed-expected)<.0001);
+        if(m==0)assert(x<=1 && y<=1 && (x==1 || y==1));
+        if(m==1)assert(x>=1 && y>=1 && (x==1 || y==1));
+    }
+    for(unsigned orientation=0;orientation<8;++orientation)
+      for(int percent=50;percent<=300;++percent)if(tube_zoom_valid(percent)) {
+        config=1u|(orientation<<20);float fitx,fity,x,y;scale(640,480,0,&fitx,&fity);
+        config|=(unsigned)percent<<4;scale(640,480,0,&x,&y);
+        assert(std::fabs(x/fitx-percent/100.f)<.0001 && std::fabs(y/fity-percent/100.f)<.0001);
+    }
+    config=1u|(7u<<20);int reads=geometry_reads;snapshot();assert(geometry_reads==reads+1);
+    config=0;float x,y;agc_video_scale(640,480,0,&x,&y);
+    assert(g_tube_frame_transform==7 && std::fabs(x-1)<.0001 && std::fabs(y-.421875f)<.0001);
+    assert(geometry_reads==reads+1); // State changes cannot tear a captured frame.
+    snapshot();agc_video_scale(640,480,0,&x,&y);
+    assert(!g_tube_frame_transform && g_tube_canvas_w==1920 && std::fabs(x-.75f)<.0001 && y==1);
+    puts("PASS: activated frame snapshot, all 2640 orientation/aspect/pixel/resize combinations and all zooms");
+#endif
     puts("PASS: shipping rotation/mirror preferences and labels, AGC geometry, all aspect/pixel combinations, all zoom levels, paused sizing labels, picker and Triangle controller");
 }

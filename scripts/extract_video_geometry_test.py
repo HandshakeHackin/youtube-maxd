@@ -1,8 +1,28 @@
 """Extract the actual PS5 AGC sizing function and HUD/picker integration."""
 from pathlib import Path
 import sys
-root,output=map(Path,sys.argv[1:]);output.mkdir(parents=True,exist_ok=True)
+root,output=map(Path,sys.argv[1:3]);output.mkdir(parents=True,exist_ok=True)
 source=(root/'media/src/evo_agc_runtime.c').read_text()
+if len(sys.argv)>3 and sys.argv[3]=="staged" and "g_tube_frame_geometry" not in source:
+    from video_transform_overlay import apply_video_transform_overlay
+    def replace(path,old,new,count=1):
+        global source
+        assert path=="media/src/evo_agc_runtime.c"
+        assert source.count(old)==count,old
+        source=source.replace(old,new)
+    apply_video_transform_overlay(replace,"")
+active="g_tube_frame_geometry" in source
+state="#define TUBE_TEST_TRANSFORM_ACTIVE "+str(int(active))+"\n"
+snapshot=""
+if active:
+    begin=source.index("static unsigned g_tube_frame_geometry")
+    end=source.index(";",source.index("static int g_tube_canvas_w",begin))+1
+    state+=source[begin:end]+"\n"
+    begin=source.index("    g_tube_frame_geometry=tube_player_video_geometry();")
+    end=source.index("    float sx, sy;",begin)
+    snapshot=source[begin:end]
+output.joinpath("snapshot-state.inc").write_text(state)
+output.joinpath("snapshot.inc").write_text(snapshot)
 start=source.index('static void agc_video_scale(')
 end=source.index('\nint evo_agc_blit_yuv(',start)
 output.joinpath('scale.inc').write_text(source[start:end])

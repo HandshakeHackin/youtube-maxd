@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Activated-path geometry coverage — 2026-10-11
+
+The geometry regression now extracts both the current runtime and the staged
+transform runtime, including its actual per-frame snapshot statements. Both
+pass under ASan/UBSan. The transform path checks all 2,640 combinations of
+eight orientations, eleven aspects, six pixel corrections and five resize
+modes, plus every supported zoom for every orientation.
+
+A frame-consistency case changes provider state after capture and proves that
+sizing keeps the captured orientation without another provider read. The next
+capture retires the transform and returns to the physical display dimensions.
+The existing controller, picker and paused HUD-label cases also pass.
+Command: `bash scripts/test_video_geometry.sh`, exit 0.
+
+These are extracted host-code checks, not PS5 shader execution. The toolchain
+continues compiling; complete shader packaging and actual application activation
+remain pending. No console connection was made.
+
+
 ## Verified transform activation and ABI reset — 2026-10-11
 
 Native preparation can now activate the staged renderer only with an explicitly
