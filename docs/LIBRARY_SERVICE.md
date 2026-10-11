@@ -670,8 +670,15 @@ Queue completion, unavailable-item retries, and manual queue Previous/Next skip
 blocked channels without consuming their queued entries. A final handoff check
 also rejects a queue item blocked after selection.
 
+Playlist windows now carry optional position-aligned `video_channels`; channel
+windows carry their verified source channel for every entry. Native navigation
+skips known blocked channels in either direction, preserves occurrence indices,
+and requests the next window beyond a blocked boundary. A prepared playlist
+handoff is checked again before launch. Malformed or mismatched channel arrays
+are rejected rather than assigned to another occurrence.
+
 This currently matches stable channel IDs only. SmartTube's channel-name matching,
-blocking through playlist/recommendation autoplay windows and immediate refresh of existing UI rows
+unknown-channel metadata resolution, recommendation filtering and immediate refresh of existing UI rows
 remain unfinished. No YouTube account feedback or subscription is modified.
 
 ## Account history removal

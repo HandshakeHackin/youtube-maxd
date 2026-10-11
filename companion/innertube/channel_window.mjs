@@ -49,7 +49,7 @@ export async function channelWindow(client,input,normalize,ErrorType) {
   rows.sort((a,b)=>a.index-b.index);
   const response={api_version:1,playlist:'channel:'+input.channel,video_id:selected.id,index:selected.index,
     anchor_video_id:input.id,anchor_index:input.index,window_start:rows[0].index,
-    video_ids:rows.map(row=>row.id),video_indices:rows.map(row=>row.index)};
+    video_ids:rows.map(row=>row.id),video_indices:rows.map(row=>row.index),video_channels:rows.map(()=>input.channel)};
   if(ended && offset<=100001)response.playlist_size=offset;
   if(selected.index!==target)Object.assign(response,{requested_index:target,skipped_unavailable:Math.abs(selected.index-target)});
   return response;

@@ -18,6 +18,7 @@ test('channel windows preserve duplicate IDs and sparse positions across upstrea
   assert.ok(result.video_indices.includes(23)&&result.video_indices.includes(27));
   assert.ok(!result.video_indices.includes(24)&&!result.video_indices.includes(26));
   assert.ok(result.video_ids.every(value=>value===id));
+  assert.deepEqual(result.video_channels,result.video_ids.map(()=>channel));
 });
 test('indexed channel navigation validates the original anchor and skips only in the requested direction',async()=>{
   const rows=Array.from({length:50},()=>({id}));rows[30]={};rows[31]={};

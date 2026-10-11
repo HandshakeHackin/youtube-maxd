@@ -7,6 +7,17 @@ const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{vi
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
 
+test('playlist windows retain channel IDs at their exact duplicate-video occurrences',async()=>{
+  const rows=[row(0,true),row(1,false,video(0)),row(2)];
+  rows[0].playlistPanelVideoRenderer.shortBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:'UC'+'a'.repeat(22)}}}]};
+  rows[1].playlistPanelVideoRenderer.longBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:'UC'+'b'.repeat(22)}}}]};
+  rows[2].playlistPanelVideoRenderer.shortBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:'invalid'}}}]};
+  const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:0})}}));
+  const result=await library.execute({action:'playback_queue',playlist,index:0,id:video(0)});
+  assert.deepEqual(result.video_channels,['UC'+'a'.repeat(22),'UC'+'b'.repeat(22),'']);
+  assert.deepEqual(result.video_ids,[video(0),video(0),video(2)]);
+});
+
 test('Directional lookup skips only consecutive confirmed unavailable occurrences',async()=>{
   for(const direction of [-1,1]) {
     const rows=[row(1),row(2),row(3,true),row(4),row(5)];

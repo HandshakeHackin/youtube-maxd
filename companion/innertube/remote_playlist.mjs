@@ -46,7 +46,10 @@ export async function remotePlaylist(client, input, ErrorType) {
       if ((global !== undefined && !index(global)) ||
           (endpoint?.index !== undefined && endpoint?.playlistIndex !== undefined &&
            endpoint.index !== endpoint.playlistIndex)) { invalid = true; break; }
-      rows.push({ id: unavailable ? null : row.videoId, index: global, selected: row.selected === true });
+      const authors=(row.shortBylineText ?? row.longBylineText)?.runs;
+      const channel=Array.isArray(authors)?authors.map(run=>run.navigationEndpoint?.browseEndpoint?.browseId)
+        .find(value=>typeof value==='string' && /^UC[A-Za-z0-9_-]{22}$/.test(value)):undefined;
+      rows.push({ id: unavailable ? null : row.videoId, channel:channel ?? '', index: global, selected: row.selected === true });
     }
     if (invalid || !rows.length) continue;
     const selected = rows.findIndex(row => row.selected);
@@ -105,6 +108,7 @@ export async function remotePlaylist(client, input, ErrorType) {
     // Localized display text and the loaded row count are not playlist lengths.
     matches.push({ api_version: 1, playlist: input.playlist, index: targetIndex,
       video_id: targetId, window_start: window[0].index, video_ids: window.map(row => row.id),
+      ...(window.some(row=>row.channel)?{video_channels:window.map(row=>row.channel)}:{}),
       ...(direction ? {requested_index:input.index,skipped_unavailable:Math.abs(targetIndex-input.index)} : {}),
       ...(finiteSize ? {playlist_size: size} : {}), ...(panel.isInfinite === true ? {is_infinite: true} : {}),
       ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });

@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Channel-aware playback windows — 2026-10-11
+
+WatchNext playlist rows retain channel identities from author browse endpoints
+alongside their exact occurrences. Channel windows identify their verified source
+channel. Native parsing validates optional aligned channel arrays, and navigation
+skips known blocked entries in either direction, including across a window edge.
+Final playlist handoff rechecks the selected entry's channel.
+
+All 92 worker tests pass and the worker bundle rebuilt. Four native ASan/UBSan
+suites pass (blocked windows, playlist windows, manual navigation and next-video
+policy), with an additional reverse-block traversal run. Tests cover duplicate
+video/channel alignment, forward/reverse skips, boundary progress, malformed
+channel arrays and existing ownership/cancellation behavior. The PS5 provider
+object compiles with 262 SDK math-header qualifier warnings. Unknown-channel
+resolution, recommendation filtering, name matching, visible-row refresh and
+hardware acceptance remain pending.
+
 ## Blocked-channel queue navigation — 2026-10-11
 
 Queue EOF selection, unavailable-item retry eligibility and manual queue
