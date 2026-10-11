@@ -1613,7 +1613,7 @@
       ],
       "remaining": [
         "Validate account mark-as-watched tracking and real/localized account-history removal",
-        "Complete channel-name block matching, autoplay filtering and immediate visible-row refresh; stable-ID catalog filtering and persistent profile-owned block controls are implemented",
+        "Complete channel-name block matching, playlist/recommendation autoplay filtering and immediate visible-row refresh; stable-ID catalog and queue-navigation filtering with persistent profile-owned block controls are implemented",
         "Validate physical menu actions, queue order and persistence on PS5"
       ]
     },

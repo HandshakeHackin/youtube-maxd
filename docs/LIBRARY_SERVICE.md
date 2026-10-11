@@ -666,8 +666,12 @@ playlist occurrence indices are preserved. The bounded store holds 128 blocks
 across profiles. Repeated Block actions are idempotent and stale profile/source
 menu IDs fail.
 
+Queue completion, unavailable-item retries, and manual queue Previous/Next skip
+blocked channels without consuming their queued entries. A final handoff check
+also rejects a queue item blocked after selection.
+
 This currently matches stable channel IDs only. SmartTube's channel-name matching,
-blocking through autoplay windows and immediate refresh of existing UI rows
+blocking through playlist/recommendation autoplay windows and immediate refresh of existing UI rows
 remain unfinished. No YouTube account feedback or subscription is modified.
 
 ## Account history removal

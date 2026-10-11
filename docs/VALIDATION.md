@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Blocked-channel queue navigation — 2026-10-11
+
+Queue EOF selection, unavailable-item retry eligibility and manual queue
+Previous/Next now exclude stable-ID blocked channels. The final queue handoff
+also rejects an item blocked after it was selected. Entries remain queued, with
+their resume position and watched state intact, so unblocking restores them.
+
+Four ASan/UBSan suites pass: blocked queue navigation, channel-block persistence,
+queue failure recovery and manual navigation across all seven playback modes.
+The PS5 provider object compiles successfully with the existing SDK math-header
+qualifier warnings.
+This does not cover playlist/recommendation autoplay filtering or hardware
+acceptance; those remain pending.
+
 ## Channel block-list foundation — 2026-10-11
 
 Stable channel IDs can be blocked/unblocked from video actions and managed in a

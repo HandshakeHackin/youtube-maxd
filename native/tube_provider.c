@@ -3759,7 +3759,7 @@ int tube_playback_at_end(double position, double duration) {
 
 int tube_queue_retry_pending(void) {
     Record *r = record_for(g_next_id,g_next_profile,0);
-    return queue_mode_allows_advance() && r && r->queued && !strcmp(g_next_profile,g_library_profile);
+    return queue_mode_allows_advance() && r && r->queued && blocked_channel(r->item.parent_id)<0 && !strcmp(g_next_profile,g_library_profile);
 }
 void tube_queue_retry_cancel(void) {
     g_next_id[0] = g_next_profile[0] = 0; g_queue_failed_count = 0;
@@ -3773,7 +3773,7 @@ static int queue_failed(const char *id) {
 static int queue_next(void) {
     Record *next = NULL;
     for (int i = 0; i < g_count; ++i)
-        if (current_record(&g_records[i]) && g_records[i].queued && !queue_failed(g_records[i].item.id) &&
+        if (current_record(&g_records[i]) && g_records[i].queued && blocked_channel(g_records[i].item.parent_id)<0 && !queue_failed(g_records[i].item.id) &&
             (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
     if (!next) return 0;
     copy(g_next_id,sizeof g_next_id,next->item.id);
@@ -3880,7 +3880,7 @@ static int manual_queue(int direction) {
     if(direction<0 && (!current || !current->queue_order))return 0;
     for(int i=0;i<g_count;++i) {
         Record *r=&g_records[i];
-        if(!current_record(r) || (direction>0?!r->queued:!r->queue_order) || queue_failed(r->item.id) || !strcmp(r->item.id,g_active_id))continue;
+        if(!current_record(r) || blocked_channel(r->item.parent_id)>=0 || (direction>0?!r->queued:!r->queue_order) || queue_failed(r->item.id) || !strcmp(r->item.id,g_active_id))continue;
         if(direction<0 ? r->queue_order>=current->queue_order :
             (current && current->queued && r->queue_order<=current->queue_order))continue;
         if(!next || (direction<0?r->queue_order>next->queue_order:r->queue_order<next->queue_order))next=r;
@@ -4041,7 +4041,7 @@ int tube_take_next(evo_provider_item_t *item) {
     }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
-    if (!r || (!r->queued && g_manual_direction>=0) || !item) return 0;
+    if (!r || blocked_channel(r->item.parent_id)>=0 || (!r->queued && g_manual_direction>=0) || !item) return 0;
     copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
     copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
     g_launch_origin.music = r->queued_music; g_launch_origin.automatic = !g_manual_direction;
