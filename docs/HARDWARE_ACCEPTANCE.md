@@ -1,5 +1,14 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | secondary captions | 879b1281 | PS5 | pass for paused caption selection/render/clear and speed-reopen retention; clean release/restore | .deps/console/secondary-caption-879b1281-hardware/ | moving playback and real-language timing
+
+The immutable package passed full readback, 130-second settling and readback
+again. French became SECONDARY in the actual picker. Scanout after the 1.25x
+reopen shows French and English together; clearing French leaves English only.
+Paused media time remained stable. Captures include the loading overlay, so this
+case establishes caption rendering/retention, not resumed motion or audio at the
+new speed. Exact owned GPU/process/video/mount release, healthy services and
+original provider and all sidecar bytes were verified; the fixture stopped.
 - 2026-10-10 | secondary captions | 63d45c23 | PS5 | failed: SECONDARY tag absent; clean release/restore | .deps/console/secondary-caption-63d45c23-hardware/ | fix provider-path ownership
 
 The corrected observer still did not see secondary application after French

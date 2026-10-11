@@ -5,7 +5,9 @@ def apply_playback_recovery_overlay(replace, player, host):
     replace(host, "static double g_start_resume = 0.0;", """static double g_start_resume = 0.0;
 static bool g_tube_recovery_launch;
 static double g_tube_recovery_resume;
-static int g_tube_recovery_subtitles;""")
+static int g_tube_recovery_subtitles;
+static int g_tube_recovery_subtitle_delay, g_tube_recovery_secondary_delay;
+static double g_tube_recovery_subtitle_scale;""")
     replace(host, "    g_start_resume = src.is_live ? 0.0 : (double)g_pending.resume_sec;", """    g_start_resume = src.is_live ? 0.0 : g_tube_recovery_launch
         ? g_tube_recovery_resume : (double)g_pending.resume_sec;""")
     replace(host, """    if ((unsigned)(uintptr_t)ud == g_pick_gen)
@@ -29,6 +31,9 @@ static int g_tube_recovery_subtitles;""")
     if (tube_take_next(&queued)) {""", """    evo_provider_item_t queued;
     if (tube_take_recovery(&queued, &g_tube_recovery_resume, &g_tube_recovery_subtitles)) {
         g_tube_recovery_launch = true;
+        g_tube_recovery_subtitle_delay = prospero_subtitle_delay_ms;
+        g_tube_recovery_secondary_delay = prospero_secondary_delay_ms;
+        g_tube_recovery_subtitle_scale = prospero_subtitle_time_scale;
         std::memset(&sel, 0, sizeof sel);
         std::snprintf(sel.provider_id, sizeof sel.provider_id, "youtube");
         std::snprintf(sel.item_id, sizeof sel.item_id, "%s", queued.id);
@@ -45,7 +50,12 @@ static int g_tube_recovery_subtitles;""")
                 if (auto pb = Application::getInstance().getPlaybackController()) pb->stopPlayback();
                 g_start_success = false;
             }
-            if (g_start_success) prospero_subtitle_enabled = g_tube_recovery_subtitles;
+            if (g_start_success) {
+                prospero_subtitle_enabled = g_tube_recovery_subtitles;
+                prospero_subtitle_delay_ms = g_tube_recovery_subtitle_delay;
+                prospero_secondary_delay_ms = g_tube_recovery_secondary_delay;
+                prospero_subtitle_time_scale = g_tube_recovery_subtitle_scale;
+            }
             tube_recovery_finish(); g_tube_recovery_launch = false;
         }
         if (g_start_success) {""")

@@ -1,5 +1,14 @@
 # ProsperoTube implementation plan
 
+Current work is offline only, at the user's request. Do not connect to either
+console until testing is explicitly authorized again.
+
+Latest accepted caption package: `879b1281` rendered French and English together
+on PS5, retained them across a paused 1.25x decoder reopen, and cleared French
+independently. Exact release and original state/sidecar restoration passed.
+Moving playback after that reopen and real-language timing remain unassessed.
+Fresh-stream caption/timing recovery and occurrence-preserving sparse phone
+playlist windows are the current offline batch; see `docs/VALIDATION.md`.
 - Date: 2026-10-08 (America/New_York)
 - Status: full PS5 SmartTube parity is the active objective; implementation and console/live-service acceptance remain incomplete. See [current goal](GOAL.md).
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.

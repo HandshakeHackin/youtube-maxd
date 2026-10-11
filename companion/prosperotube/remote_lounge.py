@@ -513,6 +513,10 @@ class Lounge:
             receiver.playlist_task.cancel()
             receiver.playlist_task = None
 
+    @staticmethod
+    def playlist_indices(queue):
+        return queue.get('video_indices', list(range(queue['window_start'], queue['window_start'] + len(queue['video_ids']))))
+
     def schedule_playlist(self, receiver, player):
         anchor = receiver.playlist_anchor
         if (self.playlist_loader is None or not anchor or receiver.full_playlist or receiver.playlist_task or
@@ -520,7 +524,8 @@ class Lounge:
             not re.fullmatch(r'(WL|LL|[A-Za-z0-9_-]{10,100})', anchor['playlist']) or
             any(c['action'] in ('setPlaylist', 'updatePlaylist') for c in receiver.queue)):
             return
-        offset = player['index'] - anchor['window_start']
+        indices = self.playlist_indices(anchor)
+        offset = indices.index(player['index']) if player['index'] in indices else -1
         if (player['playlist'] != anchor['playlist'] or player['ctt'] != anchor['ctt'] or
             not 0 <= offset < len(anchor['video_ids']) or anchor['video_ids'][offset] != player['video_id']):
             return
@@ -539,12 +544,17 @@ class Lounge:
             result = await self.playlist_loader(dict(action='remote_playlist', profile=receiver.profile,
                 id=player['video_id'], playlist=player['playlist'], index=player['index']))
             ids, start = result.get('video_ids'), result.get('window_start')
+            indices = result.get('video_indices')
+            if 'video_indices' not in result and isinstance(ids, list) and type(start) is int:
+                indices = list(range(start, start + len(ids)))
             if (result.get('api_version') != 1 or result.get('playlist') != player['playlist'] or
                 result.get('index') != player['index'] or result.get('video_id') != player['video_id'] or
                 not isinstance(ids, list) or not 1 <= len(ids) <= 128 or
                 any(not isinstance(v, str) or not VIDEO_ID.fullmatch(v) for v in ids) or
-                type(start) is not int or not 0 <= start <= 100001-len(ids) or
-                not 0 <= player['index']-start < len(ids) or ids[player['index']-start] != player['video_id']):
+                type(start) is not int or not isinstance(indices, list) or len(indices) != len(ids) or
+                any(type(i) is not int or not 0 <= i <= 100000 for i in indices) or
+                any(a >= b for a, b in zip(indices, indices[1:])) or not indices or start != indices[0] or
+                player['index'] not in indices or ids[indices.index(player['index'])] != player['video_id']):
                 raise failure('remote_playlist_unavailable')
             async with receiver.lock:
                 current = receiver.last_player
@@ -553,16 +563,19 @@ class Lounge:
                     any(current[k] != player[k] for k in ('video_id','playlist','index','ctt')) or
                     any(c['action'] in ('setPlaylist','updatePlaylist') for c in receiver.queue)):
                     return
-                if ids == anchor['video_ids'] and start == anchor['window_start']:
+                if ids == anchor['video_ids'] and indices == self.playlist_indices(anchor):
                     anchor['expanded'] = True
                     anchor['checked_index'] = player['index']
                     return
                 if result.get('radio_rebased') is True and player['playlist'].startswith('RD') and anchor['window_start'] <= start <= player['index']:
-                    prefix = anchor['video_ids'][:start-anchor['window_start']][-32:]
-                    start -= len(prefix)
+                    old_indices = self.playlist_indices(anchor)
+                    before = [i for i, position in enumerate(old_indices) if position < start][-32:]
+                    prefix = [anchor['video_ids'][i] for i in before]
+                    indices = [old_indices[i] for i in before] + indices
                     combined = prefix + ids
-                    crop = max(0, min(player['index']-start-32, len(combined)-128))
-                    start += crop
+                    crop = max(0, min(indices.index(player['index'])-32, len(combined)-128))
+                    indices = indices[crop:crop+128]
+                    start = indices[0]
                     ids = combined[crop:crop+128]
                 if len(receiver.queue) >= MAX_QUEUE or receiver.sequence >= 2_147_483_647:
                     return
@@ -570,6 +583,8 @@ class Lounge:
                 update = dict(sequence=receiver.sequence, action='updatePlaylist', video_id=current['video_id'],
                     playlist=current['playlist'], ctt=current['ctt'], index=current['index'],
                     position_sec=current['position_sec'], video_ids=ids, window_start=start)
+                if indices != list(range(start, start + len(ids))):
+                    update['video_indices'] = indices
                 receiver.queue.append(update)
                 receiver.playlist_anchor = dict(update, expanded=True, checked_index=player['index'])
         except (ServiceError, ValueError, TypeError, AttributeError):

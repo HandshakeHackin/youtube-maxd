@@ -36,6 +36,15 @@ unsigned g_pick_gen=42;
 bool g_resolve_finished=false, g_tube_recovery_launch=true;
 double g_start_resume=0, g_tube_recovery_resume=37.625;
 int g_tube_recovery_subtitles=0, prospero_subtitle_enabled=1;
+int g_tube_recovery_subtitle_delay=450, g_tube_recovery_secondary_delay=-300;
+double g_tube_recovery_subtitle_scale=1.25;
+int prospero_subtitle_delay_ms=0, prospero_secondary_delay_ms=0;
+double prospero_subtitle_time_scale=1;
+unsigned g_phone_ticket=0;
+double g_phone_resume=0;
+extern "C" int tube_phone_launch_current(unsigned) { assert(false);return 0; }
+extern "C" int tube_phone_launch_finish(unsigned,int) { assert(false);return 0; }
+extern "C" void tube_phone_sync_scope(void) {}
 PlaybackSource g_start_src;
 pthread_t g_start_thread;
 std::atomic<bool> g_start_running{false}, g_start_done{false}, g_start_success{false};
@@ -92,6 +101,7 @@ int main() {
     assert(playback.position==37.625 && !playback.opened.is_live);
     assert(!strcmp(evo_stream_headers,choices[1].headers));
     complete_worker(); assert(g_start_success && !active && !g_tube_recovery_launch);
+    assert(prospero_subtitle_delay_ms==450 && prospero_secondary_delay_ms==-300 && prospero_subtitle_time_scale==1.25);
     assert(prospero_subtitle_enabled==0 && finish_count==1);
     prepare(); choices[1].is_live=1;
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();

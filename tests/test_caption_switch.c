@@ -62,8 +62,30 @@ int main(void) {
     assert(strstr(media,"caption-secondary-a.mp4")); tube_caption_switch_finish(1);
     assert(!strcmp(tube_caption_secondary_language(),"fr") && !strcmp(tube_phone_caption_language(),"en"));
     assert(strstr(tube_caption_secondary_media_path(),"caption-secondary-a.mp4"));
+    /* Fresh resolution of the same scoped recovery retains selected sidecars. */
+    char saved_primary[512], saved_secondary[512];
+    strcpy(saved_primary,tube_caption_media_path());strcpy(saved_secondary,tube_caption_secondary_media_path());
+    unsigned recovery_selection=tube_caption_selection();
+    assert(tube_queue_recovery(42.25,0,1));
+    evo_provider_item_t recovery_item;double recovery_position;int recovery_enabled;
+    assert(tube_take_recovery(&recovery_item,&recovery_position,&recovery_enabled));
+    assert(recovery_position==42.25 && recovery_enabled);
+    resolved_tracks();
+    assert(tube_caption_selection()==recovery_selection);
+    assert(!strcmp(tube_phone_caption_language(),"en") && !strcmp(tube_caption_secondary_language(),"fr"));
+    assert(!strcmp(tube_caption_media_path(),saved_primary) && !strcmp(tube_caption_secondary_media_path(),saved_secondary));
+    tube_recovery_finish();
+    /* A disappeared sidecar cannot be advertised after fresh recovery. */
+    FILE *empty=fopen(evo_data_path("caption-secondary-a.srt"),"wb"); assert(empty); assert(!fclose(empty));
+    assert(tube_queue_recovery(43.5,0,1));
+    assert(tube_take_recovery(&recovery_item,&recovery_position,&recovery_enabled));
+    resolved_tracks();
+    assert(!*tube_caption_secondary_language() && !*tube_caption_secondary_media_path());
+    assert(!strcmp(tube_phone_caption_language(),"en")); tube_recovery_finish();
+    assert(tube_caption_secondary_begin("fr")==2); reply(0,1,200,cue);
+    assert(tube_caption_switch_status(&media)==1); tube_caption_switch_finish(1);
     assert(tube_caption_secondary_begin("de")==2); reply(0,1,200,cue);
-    assert(tube_caption_switch_status(&media)==1 && strstr(media,"caption-secondary-b.mp4"));
+    assert(tube_caption_switch_status(&media)==1 && strstr(media,"caption-secondary-"));
     tube_caption_switch_finish(0); assert(!strcmp(tube_caption_secondary_language(),"fr"));
     assert(tube_caption_switch_begin("fr",0,0)==2); reply(0,1,200,cue);
     assert(tube_caption_switch_status(&media)==1); tube_caption_switch_finish(1);

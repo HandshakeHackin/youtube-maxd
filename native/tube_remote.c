@@ -81,7 +81,23 @@ static int command(const cJSON *root, tube_remote_command *out, int expected) {
             memcpy(out->videos[out->count++], row->valuestring, 12);
         }
         out->has_window = cJSON_HasObjectItem(root, "window_start");
-        if (out->has_window && (!integer(root, "window_start", 0, 100000, &out->window_start) ||
+        out->has_indices = cJSON_HasObjectItem(root, "video_indices");
+        if (out->has_indices) {
+            const cJSON *indices = cJSON_GetObjectItemCaseSensitive(root, "video_indices");
+            if (!out->has_window || !cJSON_IsArray(indices) || cJSON_GetArraySize(indices) != out->count || !out->count) return 0;
+            int i = 0, anchor = -1;
+            cJSON_ArrayForEach(row, indices) {
+                double value = row->valuedouble;
+                if (!cJSON_IsNumber(row) || !isfinite(value) || floor(value) != value || value < 0 || value > 100000 ||
+                    (i && value <= out->indices[i - 1])) return 0;
+                out->indices[i] = (int)value;
+                if (out->indices[i] == out->index && !strcmp(out->videos[i], out->video)) anchor = i;
+                ++i;
+            }
+            if (!integer(root, "window_start", 0, 100000, &out->window_start) ||
+                out->window_start != out->indices[0] || anchor < 0) return 0;
+        }
+        if (out->has_window && !out->has_indices && (!integer(root, "window_start", 0, 100000, &out->window_start) ||
             out->index < out->window_start || out->index - out->window_start >= out->count ||
             out->window_start > 100001 - out->count || !*out->video ||
             strcmp(out->videos[out->index - out->window_start], out->video))) return 0;

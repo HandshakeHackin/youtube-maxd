@@ -106,6 +106,9 @@ static void test_atomic_validation(void) {
         "[{\"sequence\":1,\"action\":\"voiceCommand\",\"status\":\"EXEC\"}]",
         "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLtest\",\"ctt\":\"\",\"index\":100,\"window_start\":101,\"position_sec\":0}]",
         "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"zyxwvutsrqp\"],\"playlist\":\"PLtest\",\"ctt\":\"\",\"index\":100,\"window_start\":100,\"position_sec\":0}]",
+        "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"video_indices\":[100,100],\"playlist\":\"PLtest\",\"ctt\":\"\",\"index\":100,\"window_start\":100,\"position_sec\":0}]",
+        "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"video_indices\":[true],\"playlist\":\"PLtest\",\"ctt\":\"\",\"index\":100,\"window_start\":100,\"position_sec\":0}]",
+        "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"video_indices\":[101],\"playlist\":\"PLtest\",\"ctt\":\"\",\"index\":100,\"window_start\":101,\"position_sec\":0}]",
         "[{\"sequence\":1,\"action\":\"play\"},{\"sequence\":2,\"action\":\"unknown\"}]"};
     for (unsigned i=0;i<sizeof bad/sizeof *bad;++i) {
         configure(1,"guest",identity,"screen-123"); tube_remote_retry(); remote_bind(5000+i*1000);

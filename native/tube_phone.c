@@ -7,6 +7,7 @@ typedef struct {
     unsigned owner;
     unsigned selection;
     int count, cursor, base;
+    int indices[128];
     char videos[128][12], video[12], playlist[101], ctt[513];
 } PhoneQueue;
 static PhoneQueue current, proposed;
@@ -50,10 +51,15 @@ static PhoneQueue playlist(const tube_remote_command *c, const char *playing) {
     /* Wire index may be global while the sender supplies a playlist window. */
     int anchor = *c->video ? find(&q, c->video) : q.cursor;
     if (c->has_window) anchor = c->index - c->window_start;
+    if (c->has_indices) {
+        anchor = -1;
+        for (int i = 0; i < q.count; ++i) if (c->indices[i] == c->index) anchor = i;
+    }
     const char *anchor_id = *c->video ? c->video : playing;
     if (!c->has_window && c->index < q.count && !strcmp(q.videos[c->index], anchor_id)) anchor = c->index;
     if (!strcmp(playing, anchor_id)) q.cursor = anchor;
     q.base = c->has_window ? c->window_start : anchor < 0 ? c->index : c->index >= anchor ? c->index - anchor : 0;
+    for (int i = 0; i < q.count; ++i) q.indices[i] = c->has_indices ? c->indices[i] : q.base + i;
     return q;
 }
 static void begin(const tube_remote_command *c, const PhoneQueue *q, double position) {
@@ -80,7 +86,7 @@ int tube_phone_launch_bind(unsigned value, unsigned selection) {
 }
 static int advance(const tube_remote_command *c, int direction) {
     int cursor = current.cursor + direction;
-    if (current.owner != c->owner || current.cursor < 0 || cursor < 0 || cursor >= current.count || current.base + cursor > 100000) return 0;
+    if (current.owner != c->owner || current.cursor < 0 || cursor < 0 || cursor >= current.count || current.indices[cursor] > 100000) return 0;
     PhoneQueue q = current; q.cursor = cursor; memcpy(q.video, q.videos[cursor], 12);
     begin(c, &q, 0); return 1;
 }
@@ -114,7 +120,7 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         current.selection = p.selection;
         memcpy(remote_video, p.video, sizeof remote_video); remote_selection = p.selection;
         memcpy(p.playlist, current.playlist, sizeof p.playlist); memcpy(p.ctt, current.ctt, sizeof p.ctt);
-        p.index = current.base + (current.cursor < 0 ? 0 : current.cursor);
+        p.index = current.cursor < 0 ? current.base : current.indices[current.cursor];
         if (p.index > 100000) p.index = 100000;
         p.previous = current.cursor > 0; p.next = current.cursor >= 0 && current.cursor + 1 < current.count;
     }

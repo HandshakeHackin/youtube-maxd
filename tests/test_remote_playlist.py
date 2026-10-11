@@ -99,3 +99,32 @@ def test_radio_refill_preserves_previous_items_while_accepting_new_future():
         assert update['video_ids']==['00000000000',VIDEO,'00000000002']
         await lounge.close();await lounge.http.aclose()
     asyncio.run(run())
+
+def test_sparse_expansion_preserves_occurrences_and_refills_from_sparse_anchor():
+    async def run():
+        calls=[]
+        async def load(request):
+            calls.append(request)
+            return {**window(), 'video_indices':[100,101,105]}
+        lounge=Lounge(httpx.AsyncClient(),playlist_loader=load);receiver=seed(lounge)
+        lounge.schedule_playlist(receiver,receiver.last_player);await receiver.playlist_task
+        update=receiver.queue[0]
+        assert update['video_indices']==[100,101,105] and update['index']==101
+        receiver.queue.clear();receiver.ack=2;receiver.playlist_retry=0
+        receiver.last_player.update(index=105,video_id='00000000002')
+        lounge.schedule_playlist(receiver,receiver.last_player)
+        assert receiver.playlist_task is not None
+        await receiver.playlist_task
+        assert calls[-1]['index']==105
+        await lounge.close();await lounge.http.aclose()
+    asyncio.run(run())
+
+@pytest.mark.parametrize('indices',[None,[100,101],[100,101,101],[100,True,105],[100,102,105],[99,101,105],[100,101,100001]])
+def test_invalid_sparse_indices_preserve_existing_queue(indices):
+    async def run():
+        async def load(request):return {**window(), 'video_indices':indices}
+        lounge=Lounge(httpx.AsyncClient(),playlist_loader=load);receiver=seed(lounge);anchor=receiver.playlist_anchor
+        lounge.schedule_playlist(receiver,receiver.last_player);await receiver.playlist_task
+        assert receiver.playlist_anchor is anchor and not receiver.queue and not receiver.error
+        await lounge.close();await lounge.http.aclose()
+    asyncio.run(run())

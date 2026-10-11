@@ -40,8 +40,17 @@ test('Infinite radio resets are rebased at the requested occurrence without chan
   const result=await library.execute({action:'remote_playlist',id:video(20),playlist:radio,index:20});
   assert.equal(result.window_start,20);assert.equal(result.radio_rebased,true);assert.deepEqual(result.video_ids,[video(20),video(21)]);
 });
-test('Malformed, sparse, conflicting and oversized queues fail without accepting arbitrary indices',async()=>{
-  for(const value of [response([row(1,true),row(3)]),response([row(1,true),row(2,true)]),response([row(1,true)],{currentIndex:2}),
+test('Sparse queues and unavailable rows preserve original occurrence indices',async()=>{
+  for (const contents of [[row(1,true),row(3)], [row(1,true),{playlistPanelVideoRenderer:{isPlayable:false}},row(3)]]) {
+    const library=new Library(async()=>({actions:{execute:async()=>response(contents)}}));
+    const result=await library.execute({action:'remote_playlist',id:video(1),playlist,index:1});
+    assert.deepEqual(result.video_ids,[video(1),video(3)]);
+    assert.deepEqual(result.video_indices,[1,3]);
+    assert.equal(result.window_start,1);
+  }
+});
+test('Malformed, conflicting and oversized queues fail without accepting arbitrary indices',async()=>{
+  for(const value of [response([row(1,true),row(1)]),response([row(1,true),row(2,true)]),response([row(1,true)],{currentIndex:2}),
     response([row(1,true),{unknownRenderer:{videoId:video(2)}}]),response(Array.from({length:4097},(_,i)=>row(i,i===1))),
     {success:false,data:{}}, {success:true,data:{a:{playlistId:playlist,contents:[row(1,true)]},b:{playlistId:playlist,contents:[row(1,true)]}}}]) {
     const library=new Library(async()=>({actions:{execute:async()=>value}}));

@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Caption recovery and sparse queue batch — 2026-10-10
+
+Candidate `879b1281` completed PS5 packaging (216 objects, 126 frozen files).
+Its bounded console case passed paused secondary selection/render/clear and
+retention across the 1.25x decoder reopen. The scanout includes the loading
+indicator; moving playback at that rate is outside this case. Exact teardown and
+original state restoration passed. See `HARDWARE_ACCEPTANCE.md`.
+
+Fresh-stream recovery now retains both chosen caption sidecars only for the same
+validated source/token/profile/video recovery. Missing, empty or no-longer-listed
+sidecars are discarded. The generated controller restores both delays and the
+primary timing ratio only after successful current-context startup. Provider
+caption and generated recovery handoff tests and PS5 provider/screen compilation
+passed; all 11 provider regression executables also reported passes. The missing-sidecar case also passes. Sparse queue validation passed six
+InnerTube adapter tests, 70 companion tests, actual receiver/player sanitizer
+checks (including invalid maps, duplicate occurrences, refill and EOF), and
+connected PS5 provider, receiver, phone adapter and provider-screen compilation
+(`.deps/sparse-native-batch.result` and `.deps/sparse-player-final.result`, exit 0).
+Full packaging is the remaining offline gate for this batch.
+
+No further console connection is authorized until the user reopens testing.
+Fresh-stream caption recovery and sparse queue hardware acceptance remain open.
 ## Provider selection ownership for secondary captions — 2026-10-10
 
 The corrected `63d45c23` console case also stopped after French selection: the

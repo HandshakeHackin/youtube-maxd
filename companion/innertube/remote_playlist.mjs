@@ -35,11 +35,12 @@ export async function remotePlaylist(client, input, ErrorType) {
       if (item.continuationItemRenderer) continue;
       const row = item.playlistPanelVideoRenderer ?? item.playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer;
       const endpoint = row?.navigationEndpoint?.watchEndpoint;
-      if (!row || !videoId(row.videoId) || endpoint?.videoId !== row.videoId ||
-          (endpoint.playlistId !== undefined && endpoint.playlistId !== input.playlist)) { invalid = true; break; }
-      const global = endpoint.index ?? endpoint.playlistIndex;
+      const unavailable = row?.isPlayable === false;
+      if (!row || (!unavailable && (!videoId(row.videoId) || endpoint?.videoId !== row.videoId)) ||
+          (endpoint?.playlistId !== undefined && endpoint.playlistId !== input.playlist)) { invalid = true; break; }
+      const global = endpoint?.index ?? endpoint?.playlistIndex;
       if (global !== undefined && !index(global)) { invalid = true; break; }
-      rows.push({ id: row.videoId, index: global, selected: row.selected === true });
+      rows.push({ id: unavailable ? null : row.videoId, index: global, selected: row.selected === true });
     }
     if (invalid || !rows.length) continue;
     const selected = rows.findIndex(row => row.selected);
@@ -53,11 +54,21 @@ export async function remotePlaylist(client, input, ErrorType) {
     const at = anchor >= 0 ? anchor : selected >= 0 && rows[selected].id === input.id ? selected : -1;
     if (at < 0) continue;
     const base = input.index - at;
-    if (!index(base) || base + rows.length - 1 > 100000 ||
-        rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset)) continue;
-    const start = Math.max(0, Math.min(at - 32, rows.length - 128));
+    if (!index(base)) continue;
+    const explicit = rows.every(row => row.index !== undefined);
+    const positioned = rows.map((row, offset) => ({...row, index: explicit ? row.index + shift : base + offset}));
+    if (positioned.some((row, offset) => !index(row.index) ||
+        (offset > 0 && row.index <= positioned[offset - 1].index)) ||
+        (!explicit && rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset))) continue;
+    const playable = positioned.filter(row => row.id !== null);
+    const selectedPlayable = playable.findIndex(row => row.index === input.index && row.id === input.id);
+    if (selectedPlayable < 0) continue;
+    const start = Math.max(0, Math.min(selectedPlayable - 32, playable.length - 128));
+    const window = playable.slice(start, start + 128);
+    const sparse = window.some((row, offset) => row.index !== window[0].index + offset);
     matches.push({ api_version: 1, playlist: input.playlist, index: input.index,
-      video_id: input.id, window_start: base + start, video_ids: rows.slice(start, start + 128).map(row => row.id), radio_rebased: shift !== 0 });
+      video_id: input.id, window_start: window[0].index, video_ids: window.map(row => row.id),
+      ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });
   }
   if (matches.length !== 1) fail();
   return matches[0];

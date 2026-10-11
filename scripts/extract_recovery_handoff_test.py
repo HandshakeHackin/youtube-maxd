@@ -26,5 +26,5 @@ dest.joinpath('recovery_handoff.inc').write_text('\n'.join(functions) + '\n')
 start = '\n        if (g_tube_recovery_launch) {'
 if source.count(start) != 1:
     raise RuntimeError('Worker completion boundary mismatch')
-completion = source.split(start, 1)[1].split('        if (g_start_success) {', 1)[0]
+completion = source.split(start, 1)[1].split('\n        if (g_start_success) {', 1)[0]
 dest.joinpath('recovery_complete.inc').write_text(start + completion)

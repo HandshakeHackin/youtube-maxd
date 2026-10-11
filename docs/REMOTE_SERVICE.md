@@ -171,3 +171,12 @@ cannot acknowledge a same-number command from a new receiver. Late successful
 registration after scope change is closed through its original source/token;
 new registration waits for owned cleanup callbacks to complete. Pairing identity
 and code revisions can be used by the provider's persistence/UI integration.
+
+Sparse WatchNext windows optionally include `video_indices`, one strictly
+increasing original global occurrence index per `video_ids` entry. The first
+index equals `window_start`, and the current video must match its exact index.
+Known unavailable rows are omitted without renumbering the surviving entries.
+Absent maps retain the contiguous-window contract. The companion validates and
+forwards the map; native next/previous and EOF use compact playable entries while
+feedback preserves original indices, including duplicate video IDs. Unknown or
+ambiguous rows still reject expansion and preserve the supplied phone queue.

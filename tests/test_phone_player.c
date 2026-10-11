@@ -211,7 +211,26 @@ static void test_windowed_duplicate_and_refresh(void) {
     tube_phone_tick(&controls); unsigned next = take_start("12345678901",0);
     started_video(next,"12345678901"); tube_phone_tick(&controls); feedback(103,1,0);
 }
+static void test_sparse_occurrences(void) {
+    feed("[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\",\"abcdefghijk\"],\"video_indices\":[100,105,110],\"playlist\":\"PLlarge\",\"index\":110,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":2,\"action\":\"previous\"},{\"sequence\":3,\"action\":\"next\"}]");
+    tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); unsigned previous = take_start("zyxwvutsrqp",0);
+    started_video(previous,"zyxwvutsrqp");
+    /* Reports the service occurrence, not the compact local array offset. */
+    tube_phone_tick(&controls); unsigned next = take_start("abcdefghijk",0);
+    feedback(105,1,1);
+    started_video(next,"abcdefghijk"); tube_phone_tick(&controls); feedback(110,1,0);
+    assert(tube_phone_finished()); char video[12]; double position;
+    assert(!tube_phone_take(video,&position));
+    feed("[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLlarge\",\"index\":100,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\",\"abcdefghijk\"],\"video_indices\":[100,105,110],\"playlist\":\"PLlarge\",\"index\":100,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"}]");
+    tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); assert(browsed==1); /* Sparse refill preserves playback. */
+    tube_phone_tick(&controls); feedback(100,0,1);
+    assert(tube_phone_finished()); started_video(take_start("zyxwvutsrqp",0),"zyxwvutsrqp");
+    tube_phone_tick(&controls); feedback(105,1,1);
+}
 int main(void) {
     remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
+    test_sparse_occurrences(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

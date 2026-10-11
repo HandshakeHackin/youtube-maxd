@@ -1227,6 +1227,8 @@ static void caption_response(int ok, int status, const char *body, size_t size, 
             if (success) {
                 copy(g_caption_path, sizeof g_caption_path, evo_data_path("active.mp4"));
                 copy(g_caption_language, sizeof g_caption_language, r->caption_language);
+                if (!strcmp(g_caption_language, g_secondary_caption_language))
+                    g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
             }
         }
     }
@@ -1257,6 +1259,17 @@ static void sponsor_response(int ok, int status, const char *body, size_t size, 
     cJSON_Delete(root);
 }
 
+static int caption_cached(const char *media, const char *language) {
+    int found = 0;
+    for (int i = 0; i < g_caption_track_count; ++i)
+        if (!strcmp(language, g_caption_tracks[i].language)) found = 1;
+    if (!found || !*media) return 0;
+    char sidecar[512]; copy(sidecar, sizeof sidecar, media);
+    size_t length = strlen(sidecar); if (length < 4) return 0;
+    memcpy(sidecar + length - 4, ".srt", 5);
+    FILE *file = fopen(sidecar, "rb"); if (!file) return 0;
+    int usable = fgetc(file) != EOF; fclose(file); return usable;
+}
 static void resolved(Request *r, const cJSON *root) {
     if (strcmp(str(root, "id"), r->parent)) {
         tube_set_error("The playback response belongs to another video."); complete(r, 0); return;
@@ -1290,6 +1303,17 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.duration_sec = (int64_t)num(root, "duration_sec");
         cached->item.is_live = r->choices[0].is_live;
     }
+    const int retain_captions = tube_recovery_active() && !strcmp(r->parent, g_caption_video) &&
+        !strcmp(r->profile, g_caption_profile) && !strcmp(g_source, g_caption_source) &&
+        !strcmp(g_token, g_caption_token);
+    char primary_path[512] = {0}, primary_language[33] = {0};
+    char secondary_path[512] = {0}, secondary_language[33] = {0};
+    if (retain_captions) {
+        copy(primary_path, sizeof primary_path, g_caption_path);
+        copy(primary_language, sizeof primary_language, g_caption_language);
+        copy(secondary_path, sizeof secondary_path, g_secondary_caption_path);
+        copy(secondary_language, sizeof secondary_language, g_secondary_caption_language);
+    }
     g_caption_path[0] = g_caption_language[0] = 0; g_segment_count = 0; g_skip_guard = -1;
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
@@ -1309,6 +1333,14 @@ static void resolved(Request *r, const cJSON *root) {
         copy(g_caption_tracks[i].name, sizeof g_caption_tracks[i].name, str(c, "name"));
         copy(g_caption_tracks[i].url, sizeof g_caption_tracks[i].url, url);
         g_caption_tracks[i].automatic = boolean(c, "automatic");
+    }
+    if (retain_captions && caption_cached(primary_path, primary_language)) {
+        copy(g_caption_path, sizeof g_caption_path, primary_path);
+        copy(g_caption_language, sizeof g_caption_language, primary_language);
+    }
+    if (retain_captions && caption_cached(secondary_path, secondary_language)) {
+        copy(g_secondary_caption_path, sizeof g_secondary_caption_path, secondary_path);
+        copy(g_secondary_caption_language, sizeof g_secondary_caption_language, secondary_language);
     }
     g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0; g_sb_finish_target = -1;
     g_highlight_guard = -1;
@@ -1333,7 +1365,7 @@ static void resolved(Request *r, const cJSON *root) {
         const char *headers[] = {auth};
         if (*categories) evo_net_request_async("GET", url, NULL, headers, 1, sponsor_response, (void *)(size_t)g_sb_serial);
     }
-    if (g_captions) {
+    if (g_captions && !*g_caption_path) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
             if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url"))) continue;
             r->stage = 3;
