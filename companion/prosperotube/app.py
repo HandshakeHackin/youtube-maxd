@@ -15,6 +15,8 @@ from typing import Literal
 
 from fastapi import FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +31,13 @@ from .sessions import Sessions
 from .dearrow import DeArrow
 from .media_refresh import expired as expired_media, observe as observe_media, renew as renew_media
 from .remote_lounge import Lounge, RemoteRequest
+from .voice import MAX_BASE64, MAX_REQUEST, decode_pcm
+
+
+class VoiceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
+    pcm_s16le: str = Field(max_length=MAX_BASE64, strict=True)
 
 
 class PairRequest(BaseModel):
@@ -92,7 +101,7 @@ class JobRequest(BaseModel):
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
-               http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None):
+               http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None, voice=None):
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -128,6 +137,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.library = library
     app.state.device_auth = device_auth
     app.state.remote = remote
+    app.state.voice = voice
 
     def profile_removed(identity):
         if hasattr(app.state.extractor, "invalidate_profile"):
@@ -151,6 +161,13 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def service_error(_request, exc):
         return JSONResponse({"api_version": 1, "error": {"code": exc.code, "message": exc.message}}, status_code=exc.status)
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, exc):
+        if request.url.path == "/v1/voice":
+            # Pydantic's default error includes the submitted audio field.
+            return JSONResponse({"api_version": 1, "error": {"code": "invalid_audio", "message": "Record a short voice search and retry."}}, status_code=422)
+        return await request_validation_exception_handler(request, exc)
+
     @app.middleware("http")
     async def authorize(request: Request, call_next):
         path = request.url.path
@@ -160,14 +177,20 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 return JSONResponse({"error": {"code": "unauthorized", "message": "Pair the PS5 with this companion first."}}, status_code=401)
         # Request lengths are bounded even before JSON/Pydantic parsing.
         if request.method == "POST":
+            limit = MAX_REQUEST if path == "/v1/voice" else 8192
             try:
-                if int(request.headers.get("content-length", "0")) > 8192:
+                if int(request.headers.get("content-length", "0")) > limit:
                     return Response(status_code=413)
             except ValueError:
                 return Response(status_code=400)
-            body = await request.body()
-            if len(body) > 8192:
-                return Response(status_code=413)
+            body_size = 0
+            chunks = []
+            async for chunk in request.stream():
+                body_size += len(chunk)
+                if body_size > limit:
+                    return Response(status_code=413)
+                chunks.append(chunk)
+            request._body = b"".join(chunks)
         return await call_next(request)
 
     def base(request):
@@ -189,7 +212,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
-                "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []),
+                "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []) + (["voice"] if voice is not None else []),
                 "sponsorblock": app.state.sponsorblock}
 
     @app.post("/v1/library")
@@ -276,6 +299,9 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         return app.state.sessions.create(info, payload, base(request))
 
     def cancel_auth_result(task):
+        if getattr(task, "voice_read", False) and not task.done():
+            app.state.retired_tasks.add(task)
+            task.add_done_callback(app.state.retired_tasks.discard)
         # An abandoned start may already have completed before DELETE arrives.
         # Once its result was delivered, the caller owns the device session.
         if app.state.device_auth is not None and not task.done():
@@ -372,6 +398,44 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         task.auth_delivered = False
         task.profile = (payload.playback.profile if payload.action == "resolve" else
                         payload.library.profile if payload.action == "library" else payload.profile)
+        app.state.jobs[identifier] = (now + 120, task)
+        return {"api_version": 1, "job": identifier, "state": "pending"}
+
+    @app.post("/v1/voice")
+    async def create_voice_job(payload: VoiceRequest):
+        if app.state.voice is None:
+            raise ServiceError("voice_unavailable", "Enable local speech recognition on the companion first.", 503)
+        profile = payload.profile
+        resolver(profile)
+        pcm = decode_pcm(payload.pcm_s16le)
+        now = time.monotonic()
+        for key, (deadline, task) in list(app.state.jobs.items()):
+            if deadline <= now:
+                cancel_auth_result(task)
+                task.cancel()
+                del app.state.jobs[key]
+        if sum(not task.done() for _, task in app.state.jobs.values()) >= 16:
+            raise ServiceError("job_limit", "The companion is busy. Wait for the current request or cancel it.", 503)
+        if any(getattr(task, "voice_read", False) and not task.done() for _, task in app.state.jobs.values()):
+            raise ServiceError("voice_busy", "A voice search is already running. Wait or cancel it.", 503)
+        if len(app.state.jobs) >= 80:
+            completed = [key for key, (_, task) in app.state.jobs.items() if task.done()]
+            key = min(completed, key=lambda key: (not getattr(app.state.jobs[key][1], "auth_delivered", False), app.state.jobs[key][0]))
+            _, task = app.state.jobs.pop(key)
+            cancel_auth_result(task)
+            task.cancel()
+        async def work():
+            try:
+                text = await app.state.voice.transcribe(pcm)
+                resolver(profile)
+                return {"state": "done", "result": {"query": text}}
+            except ServiceError as exc:
+                return {"state": "failed", "error": {"code": exc.code, "message": exc.message}}
+            except Exception:
+                return {"state": "failed", "error": {"code": "voice_failed", "message": "Speech recognition failed. Retry voice search."}}
+        task = asyncio.create_task(work())
+        task.profile, task.voice_read = profile, True
+        identifier = secrets.token_urlsafe(18)
         app.state.jobs[identifier] = (now + 120, task)
         return {"api_version": 1, "job": identifier, "state": "pending"}
 

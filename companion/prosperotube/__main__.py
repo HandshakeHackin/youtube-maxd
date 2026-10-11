@@ -22,7 +22,19 @@ def main():
     parser.add_argument("--fixtures", type=Path, help="Explicit offline mode using media from scripts/generate_fixtures.py")
     parser.add_argument("--library-node", help="Enable library/comments support with this Node.js executable")
     parser.add_argument("--library-profiles", type=Path, help="Explicit local account-profile configuration; credentials stay on this host")
+    parser.add_argument("--voice-cli", type=Path, help="Local whisper.cpp whisper-cli executable for voice search")
+    parser.add_argument("--voice-model", type=Path, help="Local whisper.cpp GGML speech model")
+    parser.add_argument("--voice-language", default="auto", help="Speech language code or auto (default)")
     args = parser.parse_args()
+    if bool(args.voice_cli) != bool(args.voice_model):
+        parser.error("--voice-cli and --voice-model must be supplied together")
+    voice = None
+    if args.voice_cli:
+        from .voice import WhisperCLI
+        try:
+            voice = WhisperCLI(args.voice_cli, args.voice_model, language=args.voice_language)
+        except (ValueError, OSError):
+            parser.error("Check the voice executable, local model and language configuration.")
     if args.library_profiles and not args.library_node:
         parser.error("--library-profiles requires --library-node")
     if args.fixtures and (args.library_node or args.library_profiles):
@@ -48,7 +60,7 @@ def main():
     extractor = Extractor(cookies=str(args.cookies) if args.cookies else None, extractor_args=extra, js_runtimes=runtimes)
     if args.fixtures:
         from .demo import create_demo_app
-        app = create_demo_app(args.fixtures, token=token, public_base=args.public_base)
+        app = create_demo_app(args.fixtures, token=token, public_base=args.public_base, voice=voice)
         print("OFFLINE FIXTURE MODE: generated media only; YouTube is not contacted.")
         print("Account/library actions use synthetic offline profiles; changes reset on restart.")
     else:
@@ -67,7 +79,7 @@ def main():
                                      lambda: len(library.profiles) < 8)
             from .extractor import ProfileExtractors
             extractor = ProfileExtractors(extractor, lambda: library.profiles, library)
-        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth)
+        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth, voice=voice)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")

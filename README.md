@@ -60,6 +60,8 @@ D-pad input and caption language selection. The subtitle picker can switch
 YouTube languages during playback using staged downloads and subtitle-engine
 validation. Startup acknowledgments and queue/EOF
 ownership have sanitizer coverage. Real phone/PS5 acceptance remains pending.
+The optional [local speech-recognition service](docs/VOICE_SEARCH.md) passes real
+whisper.cpp inference and API tests. PS5 microphone/search integration is pending.
 The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
 Sign in to YouTube now displays the device code/address and polls automatically;

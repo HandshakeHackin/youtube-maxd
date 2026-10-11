@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Local speech-recognition service — 2026-10-10
+
+The authenticated voice upload/job/poll/delete API now invokes a locally configured
+whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
+S16 PCM, permits one transcription at a time, enforces bounded streaming uploads
+and a recognition deadline, and retires owned processes and temporary files on
+failure, timeout, cancellation, expiry and shutdown. Audio validation errors are
+bounded and do not echo the recording. Existing API bodies retain their 8 KiB cap.
+
+Voice/companion/job-capacity/receiver/device-auth/profile-removal regressions passed
+134 tests (`.deps/voice-service-tests.*`, exit 0), including real subprocess
+termination, silence/bounds, repeated results and cleanup. The pinned whisper.cpp
+v1.9.5 host build and setup/model hash verification passed
+(`.deps/voice-whisper-build.*`, `.deps/voice-setup-verified.*`, exit 0). Real CPU
+recognition of eight seconds from upstream's public speech sample passed through
+the authenticated API with repeated polling and deletion
+(`.deps/voice-local-probe.*`, exit 0). See [configuration and contract](VOICE_SEARCH.md).
+PS5 microphone capture and native search integration remain open, and microphone
+capability is not advertised. No console voice acceptance is claimed.
+
 ## Caption language selection and playback ownership — 2026-10-10
 
 The actual subtitle picker and phone adapter share a scoped, asynchronous caption

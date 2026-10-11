@@ -118,6 +118,10 @@ Real phone and PS5
 acceptance remains open.
 The receiver advertises playback and D-pad capabilities. Microphone capability
 is withheld until native capture and speech search are connected.
+The optional [local speech-recognition service](VOICE_SEARCH.md) now provides
+authenticated bounded PCM upload, asynchronous query results and cancellation.
+Real whisper.cpp inference passed the host API; the PS5 capture/search adapter
+remains to be implemented.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

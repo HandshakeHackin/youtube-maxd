@@ -53,3 +53,12 @@ dependencies and build overlay. Keep these notices with binary distributions
 and make the matching source revision available. Launcher art/fixtures are
 original code-drawn/synthetic assets. SmartTube/MediaServiceCore are architectural
 references only; their code/assets are not distributed here.
+
+Optional local speech recognition invokes whisper.cpp (MIT), v1.9.5 at
+`d1be6fde11ac6e0407606b4e42fe72d34add8037`:
+https://github.com/ggml-org/whisper.cpp. Its executable and model are installed
+separately on the companion host; neither is bundled in the PS5 application.
+The setup script obtains the multilingual tiny GGML model through upstream's
+download script and checks SHA-256
+`be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`.
+Keep upstream license files with any redistributed tool or model.
