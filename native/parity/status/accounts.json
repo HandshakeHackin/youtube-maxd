@@ -51,14 +51,13 @@
   {
    "id": "AccountSettingsPresenter.appendSelectAccountOnBoot",
    "title": "Show account selection on boot",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Switch: show the account picker at every app start (AccountsData.selectAccountOnBoot)",
    "ps5_evidence": [
-    "native/tube_provider.c: tube_select_account_on_boot()"
+    "native/tube_provider.c: tube_select_account_on_boot()",
+    "scripts/startup_overlay.py: opens the profile list at startup"
    ],
-   "gaps": [
-    "UI host does not yet open the profile list at startup"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Would be a device-wide boolean in youtube.json plus an initial navigation to library:profiles in scripts/startup_overlay.py."

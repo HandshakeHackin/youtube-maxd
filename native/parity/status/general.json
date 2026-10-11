@@ -3,16 +3,13 @@
   {
    "id": "GeneralSettingsPresenter.appendEnabledSections",
    "title": "Set-up sections (show/hide sidebar sections)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checked list of every default sidebar section (all except Settings); each toggle shows/hides that section.",
    "ps5_evidence": [
-    "native/tube_provider.c: list_catalog root branch (`if (!parent || !*parent)`) emits a fixed CATALOG_FOLDER list (discover, history, favorites, queue, subscriptions, settings, app:settings, app:exit); `discover` branch is also fixed"
+    "native/tube_provider.c: list_catalog root branch (`if (!parent || !*parent)`) emits a fixed CATALOG_FOLDER list (discover, history, favorites, queue, subscriptions, settings, app:settings, app:exit); `discover` branch is also fixed",
+    "native/tube_provider.c: per-profile section order and visibility"
    ],
-   "gaps": [
-    "Per-profile enabled-sections bitmask and a `settings:sections` checklist",
-    "Root and `discover` menus must filter by that mask",
-    "SmartTube sections with no PS5 entry at all (Shorts, Trending, Kids, Notifications, My videos, Channels uploads) cannot be toggled until they exist"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": "Toggle plumbing is S; missing sections themselves belong to the browse audit."
@@ -72,15 +69,14 @@
   {
    "id": "GeneralSettingsPresenter.appendBootToSection",
    "title": "Boot to section",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: any default section or any pinned sidebar item to open at start.",
    "ps5_evidence": [
     "scripts/prepare_native.py: app always lands on ScreenId::EmbyBrowse at the provider root",
-    "native/tube_provider.c: tube_boot_section()"
+    "native/tube_provider.c: tube_boot_section()",
+    "UI host opens tube_boot_section() at startup"
    ],
-   "gaps": [
-    "UI host does not yet open the chosen section at startup"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""

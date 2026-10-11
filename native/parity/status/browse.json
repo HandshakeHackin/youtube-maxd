@@ -162,13 +162,12 @@
   {
    "id": "extra.Section.Shorts",
    "title": "Shorts section",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Dedicated Shorts grid (getShortsObserve) with paging.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No Shorts feed in the worker (topic_catalog.mjs sections = music, gaming, news, sports, live, movies)",
-    "No native 'section:shorts' folder; only /shorts/ URLs are accepted in search"
+   "ps5_evidence": [
+    "companion/innertube/topic_catalog.mjs + native Discover section"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": ""
@@ -176,12 +175,12 @@
   {
    "id": "extra.Section.Trending",
    "title": "Trending section",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Trending rows (getTrendingObserve).",
-   "ps5_evidence": [],
-   "gaps": [
-    "No trending browse in companion/innertube/topic_catalog.mjs and no native folder"
+   "ps5_evidence": [
+    "companion/innertube/topic_catalog.mjs + native Discover section"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Would reuse the existing topic-section plumbing."
@@ -277,12 +276,12 @@
   {
    "id": "extra.Section.MyVideos",
    "title": "My videos section",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Grid of the signed-in user's own uploads (getMyVideosObserve).",
-   "ps5_evidence": [],
-   "gaps": [
-    "No 'my videos' library action in companion/innertube/library.mjs and no native folder under Accounts & library"
+   "ps5_evidence": [
+    "companion topics my_videos + native folder"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -294,12 +293,11 @@
    "smarttube": "List of subscribed channels with new-content marker, sorting by new content / name / last viewed, optional filter field, multi-grid with the selected channel's uploads, per-channel menu.",
    "ps5_evidence": [
     "native/tube_provider.c: root 'subscriptions' folder \"Followed channels\" lists locally followed channels as 'channel:<id>' folders",
-    "native/tube_provider.c: tube_toggle_subscription()"
+    "native/tube_provider.c: tube_toggle_subscription()",
+    "companion/innertube/account_sections.mjs + native library:channels"
    ],
    "gaps": [
-    "Only local follows are listed; the account's subscribed-channel list is not fetched",
-    "No new-content marker, no sorting options, no filter field",
-    "No channel menu (unsubscribe, mark channel as watched, pin)"
+    "No new-content marker; sorting by new content and last viewed is absent"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -367,11 +365,13 @@
   {
    "id": "extra.Section.Notifications",
    "title": "Notifications section",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Grid of account notifications (getNotificationItemsObserve) with hide-notification action.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "companion/innertube/account_sections.mjs + native library:notifications"
+   ],
    "gaps": [
-    "No notifications fetch in the worker, no native folder, no hide action"
+    "Hiding a notification is not available"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -408,14 +408,12 @@
   {
    "id": "extra.Section.Pinned",
    "title": "Pinned playlists / channels in the sidebar",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Any playlist or channel can be pinned as its own sidebar section (rows or grid), renamed, moved and unpinned.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No pin storage in the per-profile state",
-    "No pin/unpin action in 'account:menu:' / 'playlist:menu:'",
-    "No pinned folders emitted at the catalog root"
+   "ps5_evidence": [
+    "native/tube_provider.c: pinned channels and playlists"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": "Favorites are per-video only and do not cover this."
@@ -423,12 +421,12 @@
   {
    "id": "extra.Section.EnableAndOrder",
    "title": "Show/hide and reorder sidebar sections, boot section",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Each section can be enabled/disabled and moved up/down; the start (boot) section is selectable.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Root and Discover folder lists are hard-coded in local_catalog(); no per-profile visibility, order or start folder"
+   "ps5_evidence": [
+    "native/tube_provider.c: per-profile section order and visibility; scripts/test_browse_sections.sh"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": ""
@@ -603,13 +601,12 @@
   {
    "id": "extra.Menu.NotInterested",
    "title": "Not interested",
-   "status": "missing",
+   "status": "done",
    "smarttube": "On Home/Shorts cards: sends the feedback token (optionally a reason) and removes the card.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Home rows do not retain feedback tokens (only History does, in history_actions.mjs)",
-    "No 'not_interested' library action or native menu row"
+   "ps5_evidence": [
+    "companion/innertube/feedback_actions.mjs + native confirmation flow"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": "The private-token retention pattern of history_actions.mjs can be reused."
@@ -617,12 +614,12 @@
   {
    "id": "extra.Menu.NotRecommendChannel",
    "title": "Don't recommend channel",
-   "status": "missing",
+   "status": "done",
    "smarttube": "On Home/Shorts cards: sends the second feedback token so the channel stops being recommended.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No feedback-token retention for Home rows; no action. Local Block channel hides rows on this PS5 only"
+   "ps5_evidence": [
+    "companion/innertube/feedback_actions.mjs + native confirmation flow"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Small once extra.Menu.NotInterested exists."
@@ -771,12 +768,12 @@
   {
    "id": "extra.Menu.PinToSidebar",
    "title": "Pin playlist / channel to sidebar",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Toggles a pinned sidebar section for the card's playlist or channel.",
-   "ps5_evidence": [],
-   "gaps": [
-    "See extra.Section.Pinned"
+   "ps5_evidence": [
+    "native/tube_provider.c: pin and unpin actions"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": ""
@@ -784,13 +781,12 @@
   {
    "id": "extra.Menu.OpenDescription",
    "title": "Open description",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Loads the video's metadata and shows the full description in a long-text dialog.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Only a 320-character overview is carried (companion/prosperotube/catalog.py item(): overview=text(description, 320)); no full-description fetch and no description row in 'account:menu:'",
-    "A long-text reader already exists for comments (g_comments[].content, L2/R2 scrolling) and could be reused"
+   "ps5_evidence": [
+    "native/tube_provider.c: description reader; companion/innertube/video_description.mjs"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -916,14 +912,13 @@
   {
    "id": "extra.Menu.RefreshSection",
    "title": "Refresh section",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Section menu entry that reloads the current section and focuses its content.",
    "ps5_evidence": [
-    "native/tube_provider.c: catalog() issues a new request and resets g_library_cursors whenever a folder is opened at page 0"
+    "native/tube_provider.c: catalog() issues a new request and resets g_library_cursors whenever a folder is opened at page 0",
+    "native/tube_provider.c: settings:refresh row"
    ],
-   "gaps": [
-    "No explicit refresh action for the folder being shown; the user must leave and re-enter"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -931,12 +926,12 @@
   {
    "id": "extra.Menu.MoveSection",
    "title": "Move section up / down",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Reorders sidebar sections from the section menu.",
-   "ps5_evidence": [],
-   "gaps": [
-    "See extra.Section.EnableAndOrder"
+   "ps5_evidence": [
+    "native/tube_provider.c: section move actions"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -944,12 +939,12 @@
   {
    "id": "extra.Menu.RenameSection",
    "title": "Rename pinned section",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Renames a pinned (non-default) section.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Depends on extra.Section.Pinned"
+   "ps5_evidence": [
+    "native/tube_provider.c: rename pinned section"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -957,12 +952,12 @@
   {
    "id": "extra.Menu.UnpinSection",
    "title": "Unpin / hide section from sidebar",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Hides a default section or unpins a pinned one from the section menu.",
-   "ps5_evidence": [],
-   "gaps": [
-    "See extra.Section.EnableAndOrder / extra.Section.Pinned"
+   "ps5_evidence": [
+    "native/tube_provider.c: unpin and hide section"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -1029,12 +1024,13 @@
   {
    "id": "extra.Search.Suggestions",
    "title": "Search suggestions / autocomplete (incl. popular searches)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Search tags provider returns completions for the typed text and popular/recent queries when empty; clicking a tag searches.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: Suggestions folder; companion search_suggestions"
+   ],
    "gaps": [
-    "No suggestion endpoint in companion (companion/innertube/suggestions.mjs is related videos, not query completion)",
-    "No tag list in the native search flow"
+    "No as-you-type list while the keyboard is open"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -1072,11 +1068,13 @@
   {
    "id": "extra.Search.FilterUploadDate",
    "title": "Filter: upload date",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Any / last hour / today / this week / this month / this year.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+   ],
    "gaps": [
-    "Search request carries only query and page; client.search(query) is called without filters; yt-dlp path uses plain ytsearch"
+    "\"Last hour\" is not offered by the pinned library"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -1085,12 +1083,12 @@
   {
    "id": "extra.Search.FilterDuration",
    "title": "Filter: duration",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Any / under 4 min / 4-20 min / over 20 min.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No search options in the request or UI"
+   "ps5_evidence": [
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Part of the shared search-options change."
@@ -1098,12 +1096,12 @@
   {
    "id": "extra.Search.FilterType",
    "title": "Filter: content type",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Any / video / channel / playlist / movie.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No search options; channel results are not normalised at all (library.mjs page() maps feed.videos and feed.playlists only)"
+   "ps5_evidence": [
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Needs a channel row normaliser that emits 'channel:<id>' folders."
@@ -1111,12 +1109,12 @@
   {
    "id": "extra.Search.FilterFeatures",
    "title": "Filter: features (Live, 4K, HDR)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Multi-select feature filters.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No search options in the request or UI"
+   "ps5_evidence": [
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Part of the shared search-options change."
@@ -1124,11 +1122,13 @@
   {
    "id": "extra.Search.Sort",
    "title": "Sort results",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Relevance / upload date / view count / rating.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+   ],
    "gaps": [
-    "No search options in the request or UI"
+    "Upload-date and rating orders are not offered by the pinned library"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -1140,11 +1140,11 @@
    "status": "partial",
    "smarttube": "Results include channels (open channel page) and playlists (open grid).",
    "ps5_evidence": [
-    "companion/innertube/library.mjs: normalizePlaylist() -> is_folder rows in page()"
+    "companion/innertube/library.mjs: normalizePlaylist() -> is_folder rows in page()",
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
    ],
    "gaps": [
-    "Channel results are dropped",
-    "The yt-dlp guest path (catalog.py item()) keeps only 11-character video ids"
+    "Cards appear only on the library search path, not on the Guest extractor path"
    ],
    "offline_feasible": true,
    "size": "S",
