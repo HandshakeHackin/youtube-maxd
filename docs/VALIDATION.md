@@ -62,9 +62,8 @@ because tracker files were uncommitted) are superseded by this one.
   against the pinned parser, fixtures and synthetic responses; the items listed
   as inferred in [STATUS.md](STATUS.md) remain unverified.
 - During development of the companion's proxy option, two anonymous requests
-  reached `www.youtube.com` by accident. They carried no account data; the
-  cause was fixed and the tests of that path no longer leave the host. They are
-  not a live-service check.
+  reached `www.youtube.com` by accident. The cause was fixed. They are not a
+  live-service check.
 - This is a candidate for the live-service check, not the frozen release
   package: gate 2 in [STATUS.md](STATUS.md) rebuilds after that check.
 
