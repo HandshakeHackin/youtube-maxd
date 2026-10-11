@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library } from './library.mjs';
 const id='abcdefghijk',next='bcdefghijkl';
+test('requested next-channel verification uses the selected endpoint identity and profile client',async()=>{
+  let calls=0,details={id:next,channel_id:'UC'+'a'.repeat(22)};
+  const library=new Library(async profile=>({getBasicInfo:async video=>{assert.equal(profile.id,'account');assert.equal(video,next);calls++;return {basic_info:details};},
+    actions:{execute:async()=>({success:true,data:{contents:{twoColumnWatchNextResults:{autoplay:{autoplay:{sets:[{autoplayVideo:{watchEndpoint:{videoId:next}}}]}}}}}})}}),[{id:'account',cookie:'synthetic'}]);
+  const request={action:'playback_next',id,profile:'account'};
+  assert.equal((await library.execute(request)).next_channel_id,undefined);assert.equal(calls,0);
+  assert.equal((await library.execute({...request,require_channel:true})).next_channel_id,details.channel_id);assert.equal(calls,1);
+  for(const invalid of [{id,channel_id:details.channel_id},{id:next,channel_id:'bad'},{id:next}]) {
+    details=invalid;await assert.rejects(library.execute({...request,require_channel:true}),{code:'playback_next_unavailable'});
+  }
+  await assert.rejects(library.execute({...request,require_channel:'true'}),{code:'invalid_request'});
+});
 test('Next playback uses the profile-owned autoplay endpoint rather than suggestion cards',async()=>{
   const calls=[];
   const library=new Library(async profile=>({actions:{execute:async(path,args)=>{

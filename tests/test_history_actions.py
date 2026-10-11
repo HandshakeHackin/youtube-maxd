@@ -5,6 +5,13 @@ from fastapi.testclient import TestClient
 from prosperotube.app import create_app
 
 AUTH={'Authorization':'Bearer history-action-fixture'}
+@pytest.mark.parametrize('patch',[dict(require_channel='true'),dict(require_channel=1),dict(action='history')])
+def test_channel_verification_request_schema(patch):
+    from pydantic import ValidationError
+    from prosperotube.app import LibraryRequest
+    with pytest.raises(ValidationError):
+        LibraryRequest.model_validate(dict(action='playback_next',id='abcdefghijk',require_channel=True)|patch)
+
 REQUEST=dict(action='history_remove',profile='signed',id='abcdefghijk',cursor='retained-history-reference')
 
 class Library:
@@ -14,7 +21,8 @@ class Library:
         return dict(api_version=1,success=True,video_id=request['id'])
     async def close(self):pass
 
-@pytest.mark.parametrize('operation',[REQUEST,dict(action='mark_watched',profile='signed',id='abcdefghijk',session='confirm-one')])
+@pytest.mark.parametrize('operation',[REQUEST,dict(action='mark_watched',profile='signed',id='abcdefghijk',session='confirm-one'),
+    dict(action='playback_next',profile='signed',id='abcdefghijk',require_channel=True)])
 def test_direct_and_job_removal_preserve_account_video_and_reference(operation):
     library=Library()
     with TestClient(create_app(library=library,token='history-action-fixture')) as client:

@@ -131,7 +131,7 @@ static int valid_speed(double speed) {
 static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
-static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12]; PlaylistContext next_context; } g_recommendation={.state=-1};
+static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12],channel[25]; PlaylistContext next_context; } g_recommendation={.state=-1};
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
 static int g_sponsor_completed;
@@ -749,6 +749,10 @@ static int blocked_channel(const char *channel) {
         if(!strcmp(g_blocked[i].profile,g_library_profile) && !strcmp(g_blocked[i].channel,channel))return i;
     return -1;
 }
+static int channel_blocks_active(void) {
+    for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile))return 1;
+    return 0;
+}
 static int change_channel_block(const char *channel,const char *name,int block) {
     char catalog[40];snprintf(catalog,sizeof catalog,"channel:%s",channel);
     if(strlen(channel)!=24 || !valid_catalog_id(catalog))return 0;
@@ -1346,13 +1350,14 @@ static int recommendation_begin(int same_playlist) {
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.scope=g_playlist_scope;g_recommendation.selection=g_selection_serial;
     copy(g_recommendation.id,sizeof g_recommendation.id,g_active_id);g_recommendation.next[0]=0;
+    g_recommendation.channel[0]=0;
     g_recommendation.state=0;r->intent=g_recommendation.serial;
     g_recommendation.same_playlist=same_playlist;memset(&g_recommendation.next_context,0,sizeof g_recommendation.next_context);
     char playlist[101];int index;
     if(tube_playback_playlist_context(playlist,sizeof playlist,&index) && valid_playlist(playlist)) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",g_active_profile,g_active_id,playlist,index);
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s}}",g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false");
     else snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\"}}",g_active_profile,g_active_id);
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"require_channel\":%s}}",g_active_profile,g_active_id,channel_blocks_active()?"true":"false");
     begin(r);return 1;
 }
 static void recommendation_result(Request *r,const cJSON *root) {
@@ -1365,6 +1370,11 @@ static void recommendation_result(Request *r,const cJSON *root) {
             (!strcmp(next->valuestring,g_recommendation.id) && !distinct_context))) ||
         (cJSON_GetObjectItemCaseSensitive(root,"playback_context") && !item.playback_scope)) {complete(r,0);return;}
     g_recommendation.state=cJSON_IsNull(next)?-1:1;
+    const cJSON *channel=cJSON_GetObjectItemCaseSensitive(root,"next_channel_id");
+    char channel_group[40];snprintf(channel_group,sizeof channel_group,"channel:%s",str(root,"next_channel_id"));
+    if(channel && (!cJSON_IsString(channel) || !valid_channel_group(channel_group))) {complete(r,0);return;}
+    copy(g_recommendation.channel,sizeof g_recommendation.channel,str(root,"next_channel_id"));
+    if(channel_blocks_active() && (!*g_recommendation.channel || blocked_channel(g_recommendation.channel)>=0))g_recommendation.state=-1;
     if(g_recommendation.same_playlist && (!item.playback_scope || strcmp(item.playback_playlist,g_active_playlist.playlist)))g_recommendation.state=-1;
     if(g_recommendation.state==1)copy(g_recommendation.next,sizeof g_recommendation.next,next->valuestring);
     copy(g_recommendation.next_context.playlist,sizeof g_recommendation.next_context.playlist,item.playback_playlist);
@@ -2634,7 +2644,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER( "favorites", "Favorites", "Your local saved videos");
         CATALOG_FOLDER( "queue", "Play queue", "R2 on a video to add or remove");
         CATALOG_FOLDER( "subscriptions", "Followed channels", "Local follows, independent of Google accounts");
-        if(g_blocked_count)CATALOG_FOLDER("blocked-channels","Blocked channels","Manage channel blocks for the selected profile");
+        if(channel_blocks_active())CATALOG_FOLDER("blocked-channels","Blocked channels","Manage channel blocks for the selected profile");
         CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
         CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
         CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
@@ -4045,9 +4055,11 @@ int tube_take_next(evo_provider_item_t *item) {
     if(g_recommendation.state==1) {
         int current=recommendation_current();g_recommendation.state=-1;
         if(!current || !item)return 0;
+        if(channel_blocks_active() && (!*g_recommendation.channel || blocked_channel(g_recommendation.channel)>=0))return 0;
         const Record *cached=record_for(g_recommendation.next,g_active_profile,0);
         if(cached)*item=cached->item;else memset(item,0,sizeof *item);
         copy(item->id,sizeof item->id,g_recommendation.next);
+        if(*g_recommendation.channel)copy(item->parent_id,sizeof item->parent_id,g_recommendation.channel);
         if(!*item->title)copy(item->title,sizeof item->title,item->id);
         item->kind=EVO_MEDIA_VIDEO;item->resume_pos_sec=0;
         copy(item->playback_playlist,sizeof item->playback_playlist,g_recommendation.next_context.playlist);

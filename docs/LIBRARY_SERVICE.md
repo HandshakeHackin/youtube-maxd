@@ -678,8 +678,18 @@ handoff is checked again before launch. Malformed or mismatched channel arrays
 are rejected rather than assigned to another occurrence.
 
 This currently matches stable channel IDs only. SmartTube's channel-name matching,
-unknown-channel metadata resolution, recommendation filtering and immediate refresh of existing UI rows
+unknown-channel playlist metadata resolution, alternative recommendation selection
+and immediate refresh of existing UI rows
 remain unfinished. No YouTube account feedback or subscription is modified.
+
+With active profile blocks, `playback_next` requests `require_channel: true`.
+The worker verifies the selected autoplay video's identity and channel using
+`getBasicInfo` on the same profile client. The native provider rejects blocked,
+missing or malformed channel metadata and rechecks the channel before handoff.
+A blocked/unverifiable recommendation currently stops playback; finding an
+alternative unblocked suggestion is still pending. Profiles without blocks avoid
+the extra metadata request. The requirement flag is a strict boolean permitted
+only for `playback_next`.
 
 ## Account history removal
 

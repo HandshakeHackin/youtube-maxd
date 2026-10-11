@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Recommendation channel verification — 2026-10-11
+
+Profiles with active channel blocks request verification of the autoplay target's
+channel through the same profile client. Native recommendation parsing and final
+handoff reject blocked, missing or malformed identities. Profiles without blocks
+avoid the additional lookup; another profile's blocks do not affect them.
+
+All 93 worker tests and 28 Python tests pass, including the selected endpoint's
+metadata identity, strict flag schema and direct/job transport. Four native
+ASan/UBSan suites pass for recommendation blocking, next-video policy, playlist
+windows and blocked windows. An additional regression confirms a block added
+after a recommendation arrives prevents handoff. The worker bundle rebuilt and
+the PS5 provider object compiles successfully (existing SDK math-header warnings).
+Blocked/unverifiable recommendations stop rather than selecting an alternative;
+alternative selection, unknown playlist-channel metadata, name matching, UI
+refresh and hardware acceptance remain unfinished.
+
 ## Channel-aware playback windows — 2026-10-11
 
 WatchNext playlist rows retain channel identities from author browse endpoints
