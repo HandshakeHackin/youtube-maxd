@@ -4,20 +4,21 @@
 #define TUBE_ABOUT_DATA_H
 
 #define TUBE_ABOUT_CHANGELOG_VERSION "0.1.0"
-#define TUBE_ABOUT_CHANGELOG_ROWS 11
+#define TUBE_ABOUT_CHANGELOG_ROWS 12
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
-    {"0.1.0", "Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper."}, \
-    {"0.1.0", "Search with suggestions and history, topics, Home rows with filters, channel and playlist browsing, and related videos with chip filters."}, \
-    {"0.1.0", "Profiles with their own favorites, watch history, resume positions, play queues and preferences."}, \
-    {"0.1.0", "YouTube account sign-in by device code, subscriptions, ratings, playlist editing and watched-state management through the companion."}, \
-    {"0.1.0", "Player controls for seeking, speed, quality, audio language, zoom, aspect, rotation and mirror, with seven end-of-video modes and Next/Previous that keep the playlist position."}, \
-    {"0.1.0", "Captions with a second language at the same time, caption styling, volume boost, loudness normalisation, audio delay and a sleep timer."}, \
+    {"0.1.0", "Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. The LAN companion is required."}, \
+    {"0.1.0", "Guest search with options, suggestions and history; Home with filters, Discover sections, channels with their sections, playlists and related videos."}, \
+    {"0.1.0", "Playback in AVC, VP9, HEVC and AV1 (SDR) with captions in two languages at once, caption styling, quality, codec and frame-rate limits, audio language and 0.25x to 4x speed."}, \
+    {"0.1.0", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer and recovery after stream failures."}, \
+    {"0.1.0", "Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position."}, \
     {"0.1.0", "SponsorBlock segment skipping with review, and DeArrow titles and thumbnails."}, \
-    {"0.1.0", "Comments with replies and rating, live chat, chat replay and sending chat messages."}, \
-    {"0.1.0", "Phone remote control with queue handoff, and voice search through the companion."}, \
-    {"0.1.0", "Channel blocking by ID or name per profile, hide switches for watched and unwanted content, and content language and country settings."}, \
-    {"0.1.0", "Playback recovery after stream failures, and advancing past unavailable videos in a queue."}
+    {"0.1.0", "YouTube account sign-in by device code, subscriptions, library, ratings, Watch later and playlist editing through the companion; every change is confirmed and sent once."}, \
+    {"0.1.0", "Comments with replies and comment rating, live chat and chat replay."}, \
+    {"0.1.0", "Video actions, a suggestions list, chapter notification and screen dimming in the player."}, \
+    {"0.1.0", "Channel blocking by ID or name, hide-content switches, content language and country, local backups, subscriptions import and About with QR links."}, \
+    {"0.1.0", "Experimental, marked (experimental) and tested offline only: phone casting, voice search, sending chat messages, posting comments, account-history pause, resume and clear, feedback actions and the profile password."}, \
+    {"0.1.0", "Not included yet: translations, the remaining interface options, drawn seek previews, update check and self-update, running without the companion, auto frame rate, HDR and background playback."}
 
 #endif

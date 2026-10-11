@@ -7,17 +7,18 @@ bullet under 300 bytes and run the generator after editing this file.
 
 ## 0.1.0
 
-First development version. It needs the LAN companion and has not been accepted
-on PS5 hardware as a whole; [docs/STATUS.md](docs/STATUS.md) records what was tested.
+First release. It needs the LAN companion. Most of it was tested offline only;
+[docs/STATUS.md](docs/STATUS.md) records what was tested and where.
 
-- Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper.
-- Search with suggestions and history, topics, Home rows with filters, channel and playlist browsing, and related videos with chip filters.
-- Profiles with their own favorites, watch history, resume positions, play queues and preferences.
-- YouTube account sign-in by device code, subscriptions, ratings, playlist editing and watched-state management through the companion.
-- Player controls for seeking, speed, quality, audio language, zoom, aspect, rotation and mirror, with seven end-of-video modes and Next/Previous that keep the playlist position.
-- Captions with a second language at the same time, caption styling, volume boost, loudness normalisation, audio delay and a sleep timer.
+- Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. The LAN companion is required.
+- Guest search with options, suggestions and history; Home with filters, Discover sections, channels with their sections, playlists and related videos.
+- Playback in AVC, VP9, HEVC and AV1 (SDR) with captions in two languages at once, caption styling, quality, codec and frame-rate limits, audio language and 0.25x to 4x speed.
+- Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer and recovery after stream failures.
+- Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position.
 - SponsorBlock segment skipping with review, and DeArrow titles and thumbnails.
-- Comments with replies and rating, live chat, chat replay and sending chat messages.
-- Phone remote control with queue handoff, and voice search through the companion.
-- Channel blocking by ID or name per profile, hide switches for watched and unwanted content, and content language and country settings.
-- Playback recovery after stream failures, and advancing past unavailable videos in a queue.
+- YouTube account sign-in by device code, subscriptions, library, ratings, Watch later and playlist editing through the companion; every change is confirmed and sent once.
+- Comments with replies and comment rating, live chat and chat replay.
+- Video actions, a suggestions list, chapter notification and screen dimming in the player.
+- Channel blocking by ID or name, hide-content switches, content language and country, local backups, subscriptions import and About with QR links.
+- Experimental, marked (experimental) and tested offline only: phone casting, voice search, sending chat messages, posting comments, account-history pause, resume and clear, feedback actions and the profile password.
+- Not included yet: translations, the remaining interface options, drawn seek previews, update check and self-update, running without the companion, auto frame rate, HDR and background playback.
