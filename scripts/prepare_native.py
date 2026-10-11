@@ -213,6 +213,8 @@ def main():
     apply_phone_player_overlay(replace, player, host)
     from queue_failure_overlay import apply_queue_failure_overlay
     apply_queue_failure_overlay(replace, host)
+    from phone_queue_failure_overlay import apply_phone_queue_failure_overlay
+    apply_phone_queue_failure_overlay(replace, host)
     from voice_controls_overlay import apply_voice_controls_overlay
     apply_voice_controls_overlay(replace, player, host)
     from phone_exit_overlay import apply_phone_exit_overlay

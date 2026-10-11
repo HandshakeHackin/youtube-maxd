@@ -291,6 +291,19 @@ int tube_remote_finish(unsigned owner, int sequence, int applied) {
     if (!applied) { invalidate(1); return 0; }
     ack = sequence; --count; memmove(queue,queue+1,(size_t)count*sizeof *queue); return 1;
 }
+int tube_remote_retire_launch(unsigned owner, int sequence) {
+    return tube_remote_finish(owner, sequence, 1);
+}
+int tube_remote_launch_interrupted(unsigned owner, int sequence) {
+    if (!tube_remote_owner_current(owner) || (sequence && !tube_remote_command_current(owner,sequence))) return 0;
+    for (int i = sequence ? 1 : 0; i < count; ++i) {
+        if (queue[i].action == TUBE_REMOTE_STOP || queue[i].action == TUBE_REMOTE_PLAYLIST ||
+            queue[i].action == TUBE_REMOTE_DISCONNECTED) {
+            return sequence ? tube_remote_retire_launch(owner,sequence) : 1;
+        }
+    }
+    return 0;
+}
 int tube_remote_state(void) { return state; }
 void tube_remote_voice_available(int available) {
     available = !!available;

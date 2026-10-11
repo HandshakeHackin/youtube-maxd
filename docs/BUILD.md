@@ -363,3 +363,13 @@ changes, bounded exhaustion and retained history/queue state. Follow with
 five-second timer, input/exit cancellation, recovery/phone admission and new-phone
 priority. `bash scripts/test_phone_player.sh` checks the real pending-launch
 adapter. Serialize native preparations. Physical PS5 acceptance remains separate.
+
+
+Phone unavailable-video advance checks: `bash scripts/test_phone_player.sh`
+runs the real JSON/receiver/adapter under sanitizers. It covers monotonic timer
+boundaries, duplicate sparse occurrences, fresh launch tickets/selections,
+terminal exhaustion, cancellation and replacement/stop interruption, preserving
+intermediate command order. `bash scripts/test_phone_queue_failure_host.sh`
+executes the shipping host's typed-error gate, wait and any-button cancellation.
+Generic network/auth errors retain their existing failure path. Hardware
+acceptance is separate; serialize scripts that prepare native sources.

@@ -37,6 +37,12 @@ void tube_remote_tick(int64_t now_ms);
 void tube_remote_report(const tube_remote_player *player);
 int tube_remote_take(tube_remote_command *command);
 int tube_remote_finish(unsigned owner, int sequence, int applied);
+/* A processed unavailable/cancelled launch consumes its command without claiming
+ * playback success. Media feedback and native selection binding remain separate. */
+int tube_remote_retire_launch(unsigned owner, int sequence);
+/* Retire only the outstanding launch if a later stop/replacement/disconnect exists.
+ * Intermediate commands remain queued and execute in their original order. */
+int tube_remote_launch_interrupted(unsigned owner, int sequence);
 int tube_remote_owner_current(unsigned owner);
 unsigned tube_remote_current_owner(void);
 int tube_remote_command_current(unsigned owner, int sequence);

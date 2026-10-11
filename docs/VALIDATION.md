@@ -2915,3 +2915,27 @@ passed. `.deps/local-queue-hardware-observer2.result` is 0; evidence is in
 This generated-media case establishes local queue behavior and native playback
 progress, not public-service availability, physical motion/audio, phone playlist
 failure advance or hardware acceptance of the other recent preferences.
+
+
+### Offline phone unavailable-video advance (2026-10-11)
+
+Typed current-scope `video_unavailable` results now advance phone playlist
+occurrences after five monotonic seconds, retaining sparse indices and duplicate
+occurrences. Every retry gets a fresh ticket and requires its own native selection
+binding. Unknown/auth/network errors cannot enter this path. Any button, host
+exit, scope retirement, stop, replacement playlist or disconnect can retire the
+pending run. Intermediate commands retain their order. Exhaustion consumes the
+unplayable command without declaring playback success or failing the receiver;
+media feedback and successful startup binding remain separate from its transport
+cursor. Saved local queue/history are untouched. A copied prior selection cannot
+satisfy a new launch's binding requirement.
+
+`.deps/phone-unavailable-connected.result` is 0: fifteen provider sanitizer cases,
+real receiver/phone adapter, extracted shipping phone and local host blocks, and
+PS5 remote/phone/ProviderHostScreen objects passed. The expanded real adapter
+adds EOF-owned retries, empty queues, disconnect close and late stop arrival
+through actual driver JSON/poll replies; `.deps/phone-unavailable-expanded.result`
+is 0. SDK output retained 36 qualified-math warnings and one existing dangling-else
+warning. No console traffic occurred for this batch. Packaging and PS5 acceptance
+are recorded separately; entirely unavailable long windows still require refill
+continuation beyond the bounded supplied playlist window.

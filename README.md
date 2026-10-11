@@ -29,6 +29,8 @@ failure caused by a too-strict final-frame threshold.
 Implemented: paginated search, topic discovery, channel/playlist browsing,
 thumbnails, local follows, favorites, history/resume, ordered queue and optional
 queue autoplay with a cancellable five-second advance past unavailable videos;
+phone playlists use the same delay, retaining sparse occurrence indices and
+receiver ownership, with stop/new-playlist interruption and bounded exhaustion;
 quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
 adaptive playback, progressive video, HLS, chapters, timed captions, optional
 SponsorBlock category actions, optional paid-promotion notices (off by default),

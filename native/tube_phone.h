@@ -28,9 +28,15 @@ typedef struct {
     void (*activity)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
+/* Explicit monotonic clock for deterministic adapter verification. */
+void tube_phone_tick_at(const tube_phone_controls *controls, int64_t now_ms);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */
 unsigned tube_phone_take(char video[12], double *position);
 int tube_phone_launch_pending(void);
+int tube_phone_retry_waiting(void);
+/* Call only for the provider's typed, current-scope video_unavailable result.
+ * 0=not current/invalid, 1=next occurrence after five seconds, 2=queue exhausted. */
+int tube_phone_launch_unavailable(unsigned ticket, const char *video, int64_t now_ms);
 int tube_phone_launch_current(unsigned ticket);
 int tube_phone_launch_bind(unsigned ticket, unsigned selection);
 int tube_phone_launch_finish(unsigned ticket, int success);
