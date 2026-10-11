@@ -34,7 +34,7 @@ scaffold = r'''
 #include <chrono>
 enum class ScreenId { EmbyBrowse, Player, Settings };
 namespace PadButtons {
-constexpr uint32_t L3=2, R3=4, Cross=16, TouchPad=32, L2=64, R2=128, Circle=256;
+constexpr uint32_t L3=2, R3=4, Cross=16, TouchPad=32, L2=64, R2=128, Circle=256, Triangle=512;
 }
 static bool keyboard, web, capture_ok=true;
 static unsigned captures, key_updates, key_calls, screen_calls;
@@ -135,6 +135,13 @@ int main() {
     assert(discussion==std::vector<int>{5}); // Existing provider precedence.
     reset(); route(PadButtons::TouchPad);
     assert(discussion==std::vector<int>{4});
+    reset(); route(PadButtons::Triangle);
+    assert(!captures && screen_pressed==PadButtons::Triangle && discussion==std::vector<int>{6});
+    reset(); route(PadButtons::Triangle|PadButtons::L3);
+    assert(discussion==std::vector<int>{6} && !voice_begins); // Replay paging precedes compose.
+    reset(); discussion_handles=false; route(PadButtons::Triangle);
+    assert(discussion==std::vector<int>{6} && !voice_begins && !captures);
+    reset(); m_providerId="other"; route(PadButtons::Triangle); assert(discussion.empty());
     reset(); route(PadButtons::L2); assert(discussion==std::vector<int>{1});
     reset(); route(PadButtons::R2); assert(discussion==std::vector<int>{2});
     reset(); route(PadButtons::Cross);
