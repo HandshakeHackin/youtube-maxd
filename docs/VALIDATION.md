@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Full companion regression — 2026-10-11
+
+The complete Python suite passes: **518 tests and five subtests**, with one
+existing Starlette/httpx deprecation warning. This includes the recent group,
+profile-routing, catalog-progress and schedule changes alongside resolver,
+receiver, account, API and packaging/artifact checks. Native preparation checks
+use their isolated test directory. No console connection was made.
+
+Pytest now configures both `companion` and `scripts` on its import path, so the
+normal whole-suite invocation can collect the artifact tests. The initial run
+stopped at that missing-path collection error; the corrected full run completed
+successfully. This is host regression evidence, not proof of full SmartTube
+parity or final-candidate/PS5 acceptance.
+
 ## Scheduled entries in retained groups — 2026-10-11
 
 Normalized cards now retain valid parsed upcoming timestamps, including raw-topic

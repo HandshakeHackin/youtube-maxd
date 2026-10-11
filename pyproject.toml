@@ -21,3 +21,4 @@ where = ["companion"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["companion", "scripts"]
