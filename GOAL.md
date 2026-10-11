@@ -28,15 +28,18 @@ configuration, localization and persistence; packaging, clean lifecycle and
 console validation. Hardware-dependent limits must be measured and disclosed,
 not silently removed from the objective.
 
-Current instruction (2026-10-11): continue implementation and use the newly
-reserved console for bounded hardware validation. The user explicitly renewed
-console testing authorization and reserved it exclusively for this work. Other
-consoles remain outside this session's authorization.
+Current instruction (2026-10-11): implement all remaining features offline,
+complete offline tests and packaging, and prepare the final candidate before
+returning to the console. **Do not connect to either console for intermediate
+candidates**, including read-only checks. Intermediate frozen builds are internal
+milestones and do not satisfy this gate. Continue the full SmartTube objective;
+hardware acceptance remains separate and must not be silently assumed.
 
-Use `ps5-homebrew-dev-protocol` for bounded hardware cases. Preserve exact
-candidate hashes, use the shared console lock, avoid unrelated running titles,
-and stop on a service/health anomaly. Keep private environment details and raw
-logs ignored. Continue independent offline work between hardware cases.
+Once all remaining offline work is complete and the final candidate is ready,
+use the user's reserved console for bounded validation under
+`ps5-homebrew-dev-protocol`. Preserve exact candidate hashes, use the shared
+console lock, avoid unrelated running titles, and stop on a service/health
+anomaly. Keep private environment details and raw logs ignored.
 
 Before every future console session, check the shared lock locally and make a
 read-only running-title check the first console operation. If any title is
