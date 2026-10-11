@@ -65,7 +65,17 @@ export class TopicCatalog {
     if (typeof section !== 'string' || !sections.has(section)) throw new this.Error('invalid_catalog', 'Choose an available section.');
     if (section === 'my_videos' && !authenticated)
       throw new this.Error('account_required', 'Sign in to the selected account first.', 401);
-    const feed = this.feed(owner, section, client, await this.request(client, { browseId: sections.get(section) }), true);
+    let raw;
+    try { raw = await this.request(client, { browseId: sections.get(section) }); }
+    catch (error) {
+      // YouTube answers the Trending and Shorts browse identities with HTTP 400
+      // for a signed-out session (checked live on 2026-10-11): the section is
+      // unavailable, not a transport failure.
+      if (error instanceof this.Error || !['trending', 'shorts'].includes(section) ||
+          !/status code 400$/.test(String(error?.message ?? ''))) throw error;
+      throw new this.Error('catalog_unavailable', 'YouTube does not offer this section here.', 404);
+    }
+    const feed = this.feed(owner, section, client, raw, true);
     if (section === 'music' && authenticated) {
       const liked = await this.likedMusic(owner, client);
       if (liked) feed.catalog_items.unshift(liked);
@@ -100,9 +110,12 @@ export class TopicCatalog {
   }
   tile(owner, section, client, tile) {
     if (!tile || tile.isAd || tile.adSlotMetadata) return null;
-    const metadata = tile.metadata?.tileMetadataRenderer ?? find(tile.onFocusCommand, 'entityMetadataRenderer');
-    const title = text(metadata?.title);
     const header = tile.header?.tileHeaderRenderer;
+    // Movie posters and storefront categories keep their title in a metadata
+    // overlay of the tile header (checked live on 2026-10-11 as Guest).
+    const metadata = tile.metadata?.tileMetadataRenderer ?? find(tile.onFocusCommand, 'entityMetadataRenderer') ??
+      (header?.thumbnailOverlays ?? []).map(value => value?.tileMetadataRenderer).find(Boolean);
+    const title = text(metadata?.title);
     const image = header?.thumbnail?.thumbnails?.[0]?.url;
     const endpoint = tile.onSelectCommand?.browseEndpoint;
     if (endpoint && (/^(VL[A-Za-z0-9_-]{10,100}|UC[A-Za-z0-9_-]{22})$/.test(endpoint.browseId ?? '') ||

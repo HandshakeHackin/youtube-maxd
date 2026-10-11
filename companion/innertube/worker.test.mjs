@@ -602,3 +602,4 @@ import './locale.test.mjs';
 import './content_filters.test.mjs';
 import './channel_page.test.mjs';
 import './account_actions.test.mjs';
+import './live_shapes.test.mjs';

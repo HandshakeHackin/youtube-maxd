@@ -33,11 +33,14 @@ export function isShort(node) {
   return Array.from(node.thumbnail_overlays ?? []).some(overlay=>
     overlay?.type==='ThumbnailOverlayTimeStatus' && overlay.style==='SHORTS');
 }
-// Shorts shelf tiles carry their identity on the tap endpoint.
+// Shorts shelf tiles carry their identity on the tap endpoint. The live tile
+// keeps its image in a view model the pinned parser does not read, so the tap
+// endpoint's own thumbnail list is the fallback (checked live on 2026-10-11).
 export function shortsCard(node,author) {
   if(node?.type!=='ShortsLockupView')return node?.type==='ReelItem'?{id:node.id,title:node.title,thumbnails:node.thumbnails,author,is_short:true}:node;
+  const tapped=node.on_tap_endpoint?.payload?.thumbnail?.thumbnails;
   return {id:node.on_tap_endpoint?.payload?.videoId,title:node.overlay_metadata?.primary_text,
-    thumbnails:node.thumbnail,author,is_short:true};
+    thumbnails:Array.from(node.thumbnail ?? []).length?node.thumbnail:Array.isArray(tapped)?tapped:[],author,is_short:true};
 }
 export const isMix=item=>item?.is_folder===true && typeof item.id==='string' && /^library:playlist:RD[A-Za-z0-9_-]+$/.test(item.id);
 export const isWatched=item=>watchedSuggestion({is_watched:item?.played===true,

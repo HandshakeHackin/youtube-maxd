@@ -17,6 +17,7 @@ import { KidsCatalog } from './kids.mjs';
 import { StreamReminders } from './stream_reminder.mjs';
 import { PlaylistOrders } from './playlist_order.mjs';
 import { CommentPosts, commentHeader, commentState } from './comment_posts.mjs';
+import { threadReplies } from './comment_replies.mjs';
 import { channelMarks } from './channel_marks.mjs';
 import { accepted } from './intents.mjs';
 import { channelsFeed, notificationsFeed } from './account_sections.mjs';
@@ -124,6 +125,10 @@ export function normalizeVideo(node, playlist = '') {
     ...(typeof node.is_reminder_set==='boolean'?{reminder_set:node.is_reminder_set}:{}),
     ...(context ? {playback_context: context} : {}) };
 }
+// A channel's own Videos and Live cards name no channel: their first metadata
+// part is the view count (checked live on 2026-10-11). The page owner fills in.
+const ownedBy = author => (_node, item) => item.channel_id || !channelId(author?.id) || !text(author.name) ? item :
+  { ...item, subtitle: text(author.name), channel_id: author.id };
 function normalizePlaylist(node) {
   if (!node || node.is_ad || node.is_promoted) return null;
   const id = node.id ?? node.playlist_id ?? node.content_id;
@@ -211,14 +216,18 @@ export class Library {
         throw new LibraryError('cursor_expired', 'Reload this catalog to continue.', 409);
       return this.execute({ action: 'continue', profile: owner, cursor: input.cursor });
     }
-    let feed;
+    let feed, video = null;
     if (input.kind === 'search' && typeof input.query === 'string' && input.query.length > 0 && input.query.length <= 200)
       feed = await client.search(input.query);
-    else if (input.kind === 'channel' && channelId(input.id)) feed = await (await client.getChannel(input.id)).getVideos();
+    else if (input.kind === 'channel' && channelId(input.id)) {
+      const channel = await client.getChannel(input.id);
+      feed = await channel.getVideos();
+      video = ownedBy({ name: channel.metadata?.title, id: input.id });
+    }
     else if (input.kind === 'playlist' && playlistId(input.id)) feed = await client.getPlaylist(input.id);
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
     return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '',
-      0, false, '', { hide: hides(hideSet(input.hide, LibraryError), hideSection(input)) });
+      0, false, '', { hide: hides(hideSet(input.hide, LibraryError), hideSection(input)), ...(video ? { video } : {}) });
   }
   // extra.video decorates a parsed card; extra.hide drops normalized rows. Both
   // stay with the cursor, so continuation pages apply the same selection.
@@ -306,7 +315,7 @@ export class Library {
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
         throw new LibraryError('cursor_expired', 'Reload the comments to view replies.', 409);
       if (entry.result) return entry.result;
-      const feed = await entry.thread.getReplies();
+      const feed = await threadReplies(entry.thread, await this.client(owner, where), LibraryError);
       if (!Array.isArray(feed?.replies))
         throw new LibraryError('upstream_failure', 'YouTube did not return a reply list.', 502);
       entry.result = this.page(owner, 'comments', feed);
@@ -385,6 +394,7 @@ export class Library {
       const author = { name: opened.info.title, id: input.channel };
       const feed = opened.info.tab === 'home' ? channelHome(owner, opened.feed, client, this.channelCatalog, node => normalizeVideo(node)) :
         opened.info.tab === 'shorts' ? mappedFeed(opened.feed, node => normalizeVideo(shortsCard(node, author)), normalizePlaylist) : opened.feed;
+      if (['videos', 'live'].includes(opened.info.tab)) extra.video = ownedBy(author);
       return { ...this.page(owner, 'catalog', feed, null, '', opened.indexed ? input.channel : '', 0, false, '', extra), channel: opened.info };
     }
     if (input.action === 'search_suggestions') return searchSuggestions(client, input, LibraryError);

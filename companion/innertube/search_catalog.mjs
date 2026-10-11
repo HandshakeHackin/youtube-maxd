@@ -1,5 +1,6 @@
 // Validated search options, mixed result cards and bounded query completions.
 // SPDX-License-Identifier: GPL-3.0-or-later
+import {shortsCard} from './content_filters.mjs';
 
 // Only values the pinned YouTube.js 18.1.0 SearchFilters encoder accepts.
 const dates={any:'',today:'today',week:'week',month:'month',year:'year'};
@@ -51,6 +52,10 @@ export function searchFeed(feed,video,playlist,channel,ErrorType) {
     for(const node of list) {
       if(!node || node.is_ad || node.is_promoted)continue;
       if(node.type==='Shelf') {if(!depth)visit(node.content?.items,1);continue;}
+      // Shorts results arrive as grid shelves of Shorts tiles; a Shorts-only
+      // search holds nothing else (checked live on 2026-10-11).
+      if(node.type==='GridShelfView') {if(!depth)visit(node.contents,1);continue;}
+      if(node.type==='ShortsLockupView') {const item=video(shortsCard(node));rows.push(item && {kind:'video',...item});continue;}
       if(['Channel','GridChannel'].includes(node.type)) {rows.push(channel(node));continue;}
       if(['Playlist','GridPlaylist','GridShow'].includes(node.type) ||
          (node.type==='LockupView' && ['PLAYLIST','ALBUM','PODCAST','SHOW'].includes(node.content_type))) {
