@@ -24,7 +24,8 @@ def apply_caption_controls_overlay(replace, player):
             track.label = *name ? name : language;
             track.detail = language;
             track.isSecondary = prospero_secondary_subtitle_active() && !std::strcmp(language, tube_caption_secondary_language());
-            if (tube_caption_track_automatic(i)) track.detail += " (automatic)";
+            if (tube_caption_track_translated(i)) track.detail += " (translated)";
+            else if (tube_caption_track_automatic(i)) track.detail += " (automatic)";
             if (prospero_subtitle_enabled && prospero_subtitle_count && !std::strcmp(language, tube_phone_caption_language()))
                 m_activeTrackIndex = static_cast<int>(m_tracks.size());
             m_tracks.push_back(std::move(track));
@@ -41,6 +42,18 @@ def apply_caption_controls_overlay(replace, player):
         if (!result) { evo_feedback(EVO_FB_ERROR); toast("CAPTIONS", "Couldn't select this language"); return; }
         toast("CAPTIONS", result == 2 ? "Loading..." : language);
     } else if (trackId == -2) {''')
+    # "Remember subtitles per channel" also remembers that they were turned off.
+    replace(picker, '        // Off\n        prospero_subtitle_enabled = 0;', '''        // Off
+        prospero_subtitle_enabled = 0;
+        char tubeVideo[12]{};
+        auto tubePlayback = Application::getInstance().getPlaybackController();
+        if (tubePlayback && tubePlayback->isActive() && tube_phone_video(tubePlayback->getCurrentFilePath().c_str(), tubeVideo))
+            tube_remember_captions(tubeVideo, 0);''')
+    # A machine translation is named in the row's tag while no line tag takes its place.
+    replace(picker, '''                                m_tracks[idx].trackId != kAutoSyncTrack) ? "PRIMARY" : "";''',
+            '''                                m_tracks[idx].trackId != kAutoSyncTrack) ? "PRIMARY" : "";
+        if (!*params.tracks[i].tag && m_tracks[idx].trackId <= -1000 && tube_caption_track_translated(-1000 - m_tracks[idx].trackId))
+            params.tracks[i].tag = "TRANSLATED";''')
     replace(picker, '    if (entry.trackId == kAutoSyncTrack) {', '''    if (entry.trackId <= -1000) {
         const char* language = tube_caption_track_language(-1000 - entry.trackId);
         if (entry.isSecondary) {

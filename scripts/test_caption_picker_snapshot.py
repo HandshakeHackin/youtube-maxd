@@ -31,6 +31,7 @@ int main() {
     p.tracks_={{"English","PRIMARY",true,false},{"French","SECONDARY",false,true}};
     assert(p.focus(&f) && f.text=="French [SECONDARY]" && f.index==2 && f.rect==1);
     assert(f.focusable.size()==2 && f.focusable[1].second=="French");
+    p.tracks_[1].tag="TRANSLATED";assert(p.focus(&f) && f.text=="French [TRANSLATED]");
     p.tracks_[1].tag.clear();assert(p.focus(&f) && f.text=="French");
     p.tracks_[1].focused=false;p.tracks_[0].focused=true;
     assert(p.focus(&f) && f.text=="English (current) [PRIMARY]");
@@ -40,4 +41,16 @@ int main() {
 (out/'test.cpp').write_text(fixture)
 subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-g',str(out/'test.cpp'),'-o',str(out/'test')],check=True)
 subprocess.run([str(out/'test')],check=True)
-print('PASS: actual native picker snapshot exposes primary/secondary tags and preserves focus semantics')
+# The generated picker: Off is remembered for the channel, and a translated
+# track is tagged only while it is neither line of dialogue.
+picker = (work/'projects/evoplayer/core/src/screens/SubtitlePickerScreen.cpp').read_text()
+off = picker.index('    } else if (trackId == -2) {')
+off = picker[off:picker.index('    } else if (!prospero_subtitle_select_primary(trackId)) {', off)]
+assert off.count('prospero_subtitle_enabled = 0;') == 1 and off.count('tube_remember_captions(tubeVideo, 0);') == 1
+assert off.index('tube_phone_video(tubePlayback->getCurrentFilePath().c_str(), tubeVideo)') < off.index('tube_remember_captions(tubeVideo, 0);')
+assert picker.count('tube_remember_captions(') == 1
+tags = picker.index('params.tracks[i].tag = m_tracks[idx].isSecondary ? "SECONDARY"')
+translated = picker.index('if (!*params.tracks[i].tag && m_tracks[idx].trackId <= -1000 && tube_caption_track_translated(-1000 - m_tracks[idx].trackId))', tags)
+assert picker.index('params.tracks[i].tag = "TRANSLATED";', translated) < picker.index('if (m_tracks[idx].trackId == kAutoSyncTrack) {', translated)
+assert picker.count('if (tube_caption_track_translated(i)) track.detail += " (translated)";') == 1
+print('PASS: actual native picker snapshot exposes primary/secondary/translated tags, preserves focus semantics and remembers Off')
