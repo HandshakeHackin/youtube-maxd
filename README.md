@@ -84,7 +84,9 @@ PS5; externally configured cookie profiles are managed in companion configuratio
 Optional DeArrow title/thumbnail replacement now has independent native preferences,
 retains original metadata, and falls back to original images on service failure;
 PS5 acceptance remains pending. AV1 SDR selection now uses the existing PS5 libdav1d software decoder and passes
-offline relay/decode/seek tests; PS5 performance and presentation remain unverified.
+offline relay/decode/seek tests. HEVC SDR selection also connects to EVO's existing
+PS5 decoder path, with a generated HEVC/AAC relay/decode/seek fixture. Both codecs
+remain unverified for console performance and presentation.
 Casting acceptance, HDR selection and standalone SABR/token execution remain unfinished.
 
 Selected primary-account profiles now route search and playback through separate

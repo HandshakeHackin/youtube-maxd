@@ -85,7 +85,7 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->speed_mode = settings_integer(root,"speed_memory_mode",0,3,1);
     p->height = settings_integer(root,"max_height",144,2160,1080);
     p->max_fps = settings_integer(root,"max_fps",0,60,0);
-    p->codec = settings_integer(root,"codec",0,3,0);
+    p->codec = settings_integer(root,"codec",0,4,0);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"captions"))) p->captions = boolean(root,"captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"automatic_captions"))) p->auto_captions = boolean(root,"automatic_captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"sponsorblock"))) p->sponsor = boolean(root,"sponsorblock");

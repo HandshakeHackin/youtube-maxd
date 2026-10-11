@@ -1,4 +1,4 @@
-"""Generate redistributable AVC/AAC, VP9/Opus, AV1/AAC, HLS and caption fixtures."""
+"""Generate redistributable AVC/AAC, VP9/Opus, AV1/AAC, HEVC/AAC, HLS and caption fixtures."""
 from pathlib import Path
 import subprocess
 import sys
@@ -16,6 +16,9 @@ def generate(out):
     ff("-f", "lavfi", "-i", "testsrc2=size=640x360:rate=30", "-t", "8", "-an", "-c:v", "libaom-av1",
        "-cpu-used", "8", "-row-mt", "1", "-threads", "2", "-crf", "40", "-g", "30",
        "-movflags", "+faststart", str(out / "video-av1.mp4"))
+    ff("-f", "lavfi", "-i", "testsrc2=size=640x360:rate=30", "-t", "8", "-an", "-c:v", "libx265",
+       "-preset", "ultrafast", "-x265-params", "pools=1:frame-threads=1:keyint=30:log-level=error",
+       "-tag:v", "hvc1", "-movflags", "+faststart", str(out / "video-hevc.mp4"))
     ff("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-t", "8", "-vn", "-c:a", "libopus", str(out / "audio.webm"))
     ff("-i", str(out / "video.mp4"), "-i", str(out / "audio.m4a"), "-c", "copy", "-movflags", "+faststart", str(out / "muxed.mp4"))
     ff("-i", str(out / "muxed.mp4"), "-c", "copy", "-hls_time", "2", "-hls_list_size", "0",

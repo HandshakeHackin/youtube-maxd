@@ -1,5 +1,29 @@
 # Offline validation record — 0.1.0
 
+## SDR HEVC selection and relay — 2026-10-11
+
+HEVC is selectable per profile and participates in automatic selection after
+AVC/VP9 and before software AV1 at equal resolution. DASH, progressive and split
+live-HLS mapping retain codec identity; DRM, HDR, unsupported transports and
+resolution/frame-rate restrictions still apply. Existing persisted codec values
+keep their meanings. The package guard requires FFmpeg's HEVC decoder and
+MP4-to-Annex-B converter, both present in the installed PS5 archive.
+
+Validation: 124 resolver/quality/fixture checks; all seventeen native sanitizer
+cases, including codec requests/reload/wraparound and HEVC profile isolation;
+PS5 provider compilation and archive symbol checks. The generated HEVC/AAC
+fixture passed real loopback companion DASH/relay decoding (240 frames), seek
+to four seconds (59 frames), and exact first-sought-frame hash agreement with
+the original. Logs: `.deps/hevc-{service,native,relay,sdk}.log`.
+
+Commands: selected pytest files `test_hevc`, `test_av1`, `test_quality_limits`,
+`test_companion`, `test_fixture_library`; `bash scripts/test_native.sh`;
+`PYTHONPATH=companion .venv/bin/python scripts/probe_hevc.py`.
+The SDK retained its existing 226 qualified-math warnings. No console connection
+was made. HEVC console presentation/performance, HDR and real-service HEVC
+availability remain unverified; this batch is not a frozen final candidate.
+
+
 ## Activated-path geometry coverage — 2026-10-11
 
 The geometry regression now extracts both the current runtime and the staged

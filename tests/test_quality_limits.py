@@ -6,7 +6,7 @@ from prosperotube.sessions import Sessions
 from test_companion import info, ID, BASE
 
 @pytest.mark.parametrize('height', [144,240,360,480,720,1080,1440,2160])
-@pytest.mark.parametrize('codec', ['avc1.640028','vp09.00.40.08','av01.0.08M.08'])
+@pytest.mark.parametrize('codec', ['avc1.640028','vp09.00.40.08','av01.0.08M.08','hvc1.1.6.L93.B0'])
 def test_resolution_and_frame_rate_limits(height, codec):
     source=info()
     video=source['formats'][0]

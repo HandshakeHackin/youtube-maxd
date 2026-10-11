@@ -38,9 +38,11 @@ the secondary high-resolution decoder is enabled by its packaging recipe.
 FFmpeg supplies demuxing and the software fallback. Presence in a binary is
 not hardware acceptance: the selected decoder, presentation, sound and timing
 must be checked on the console. The current companion format policy selects
-SDR AVC/VP9/AV1. AV1 uses the existing PS5 libdav1d software decoder, and packaging
-checks that FFmpeg contains its implementation. The backend's wider HDR/HEVC
-capabilities remain unexposed; AV1 console performance/presentation is unverified.
+SDR AVC/VP9/HEVC/AV1. AV1 uses the existing PS5 libdav1d software decoder.
+HEVC uses EVO's existing PS5 decoder path and FFmpeg fallback. Packaging checks
+the AV1/HEVC decoder symbols and HEVC MP4-to-Annex-B converter. HEVC and AV1
+pass offline relay/decode/seek checks; console performance and presentation
+remain unverified. HDR selection remains unexposed.
 See [reference candidates](REFERENCE_CANDIDATES.md) for source evidence.
 
 Set `PROSPEROTUBE_PS5_DIST` to an isolated candidate directory when checking

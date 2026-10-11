@@ -41,6 +41,11 @@ fi
 grep -Eq '[[:space:]][Dd][[:space:]]+ff_libdav1d_decoder$' "${root}/.deps/ps5-codec-symbols.txt" || {
     echo 'The PS5 FFmpeg archive lacks the required libdav1d AV1 decoder.' >&2; exit 2;
 }
+for symbol in ff_hevc_decoder ff_hevc_mp4toannexb_bsf; do
+    grep -Eq "[[:space:]][Dd][[:space:]]+${symbol}$" "${root}/.deps/ps5-codec-symbols.txt" || {
+        echo "The PS5 FFmpeg archive lacks required HEVC component ${symbol}." >&2; exit 2;
+    }
+done
 bash "${work}/scripts/package-app.sh" --zip "$@"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
