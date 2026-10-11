@@ -23,7 +23,7 @@
     "companion/innertube/home_feed.mjs: filterHomeFeed/watchedSuggestion always drops watched cards from the primary Home grid (no switch)",
     "companion/innertube/library.mjs: cards carry is_upcoming, is_live, played, watch_percent (data needed for filters is present)",
     "docs/STATUS.md: 'Home watched filtering'",
-    "native/tube_provider.c: 16 switches; companion hide[] filters; tests/test_content_settings.c"
+    "native/tube_provider.c: 16 switches; companion hide[] filters; tests/test_companion_features.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -113,7 +113,7 @@
    "ps5_evidence": [
     "native/tube_provider.c: `settings:player-ok` option 3 'Toggle playback speed' (tube_player_set_ok_mode) = 'OK -> toggle speed'",
     "tests/test_player_preferences.c",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [
     "Only D-pad remaps for skip, volume and speed; other SmartTube remaps are absent"
@@ -125,12 +125,14 @@
   {
    "id": "GeneralSettingsPresenter.appendScreenDimmingCategory",
    "title": "Screen dimming (entry)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Button opening a dialog with dimming amount and dimming timeout.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No idle dimming overlay in browser or paused player"
+   "ps5_evidence": [
+    "native/tube_provider.c: settings:extra:dimming 'Screen dimming and screen off' screen under Player controls, keys and Shorts",
+    "native/tube_player_extra.c: settings:dim-timeout, settings:dim-amount",
+    "tests/test_extra_provider.c, tests/test_player_extra.c, tests/test_dim_ui.cpp (scripts/test_dim_ui.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": "Counted with the two items below."
@@ -138,12 +140,14 @@
   {
    "id": "GeneralSettingsPresenter.appendScreenDimmingAmountCategory",
    "title": "Screen dimming amount",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: 10..80% step 10, 85..100% step 5.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Setting + full-screen black quad with that alpha after idle timeout"
+   "ps5_evidence": [
+    "native/tube_player_extra.c: settings:dim-amount (10..80% step 10, 85..100% step 5), tube_dim_decide, tube_dim_pixels",
+    "scripts/player_actions_overlay.py: #tube-dim black overlay in youtube.rml / youtube.rcss; scripts/player_extra_overlay.py: the same in the player layout and HUD",
+    "tests/test_player_extra.c, tests/test_dim_ui.cpp (the rendered browser frame darkens by the chosen amount and returns on input)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -151,14 +155,14 @@
   {
    "id": "GeneralSettingsPresenter.appendScreenDimmingTimeoutCategory",
    "title": "Screen dimming timeout",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: Never / 5, 15, 30 sec / 1..15 min.",
    "ps5_evidence": [
-    "native/tube_provider.c: sleep timer (`settings:sleep-timer`, tests/test_sleep_timer.c) already tracks input inactivity and could share its idle clock"
+    "native/tube_player_extra.c: settings:dim-timeout (Never, 5 / 15 / 30 sec, 1..15 min); tube_extra_dim_input / tube_extra_dim_tick: one idle clock restarted by every input, dimming while browsing or paused, never during text entry or a pending sign-in",
+    "scripts/player_actions_overlay.py: 'screen dimming input' and 'one idle clock' blocks of Application.cpp",
+    "tests/test_player_extra.c, tests/test_dim_ui.cpp, scripts/test_player_extra_overlay.sh (placement of the blocks)"
    ],
-   "gaps": [
-    "Timeout setting and idle detection driving the dimmer"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -170,7 +174,7 @@
    "smarttube": "Radio: 24 hours / 12 hours (AM/PM). Method is commented out in the pinned revision.",
    "ps5_evidence": [
     "native/tube_provider.c: `settings:time-display` only chooses total / remaining / estimated finish; no 12/24 h choice found",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -199,15 +203,16 @@
    "status": "partial",
    "smarttube": "Toggles: disable screensaver; separate settings per account; protect settings with password; master password; child mode; disable OK long press; player exit = double back; search exit = double back; return to launcher from ATV channels; remember position in Subscriptions; remember position in pinned playlists; open matching section when launched from ATV channels.",
    "ps5_evidence": [
-    "native/tube_profile_settings.h: ProfileSettings per profile (always on) = 'separate settings per account'; tests/test_profile_settings.c"
+    "native/tube_profile_settings.h: ProfileSettings per profile (always on) = 'separate settings per account'; tests/test_profile_settings.c",
+    "native/tube_provider.c: settings:separate-settings 'Separate settings per account' switch; tests/test_account_settings.c",
+    "native/tube_player_extra.c: settings:player-exit 'Press Circle twice to exit'; tests/test_player_extra_overlay.cpp (test_exit)"
    ],
    "gaps": [
-    "Per-profile settings cannot be switched off (single shared settings mode)",
-    "Settings password and master password",
+    "Settings password and master password (only a profile password exists)",
     "Child mode (locks search/suggestions, restricted sections/buttons)",
     "Disable screensaver switch",
     "Disable long-press switch",
-    "Player exit double-back; search exit double-back",
+    "Search exit double-back",
     "Remember last position in Subscriptions / pinned playlists"
    ],
    "offline_feasible": true,
@@ -230,13 +235,15 @@
   {
    "id": "GeneralSettingsPresenter.appendProxyManager",
    "title": "Web proxy",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Toggle 'Use Web Proxy' opening a proxy dialog (host/port/credentials) and switching the player data source to OkHttp.",
    "ps5_evidence": [
-    "PS5 talks only to the LAN companion (native/tube_provider.c g_source); no proxy option in companion/prosperotube/__main__.py searches"
+    "companion/prosperotube/__main__.py --proxy URL, companion/prosperotube/proxy.py: one HTTP or HTTPS proxy for the resolvers, the library worker (companion/innertube/proxy_fetch.mjs: CONNECT tunnel, no direct fallback), the relays, DeArrow, SponsorBlock and the phone client; GET /v1/health reports only proxy true/false",
+    "tests/test_third_batch.py (proxy tests), companion/innertube/third_batch.test.mjs"
    ],
    "gaps": [
-    "Proxy URL setting on the console forwarded to the companion, or a companion proxy option applied to yt-dlp/youtubei.js and media relays"
+    "Host start-up option only: no 'Use Web Proxy' switch and no host/port/credentials dialog on the console",
+    "SOCKS proxies are refused"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -371,13 +378,14 @@
   {
    "id": "MainUISettingsPresenter.appendChannelSortingCategory",
    "title": "Channels section sorting",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: Last viewed / Alphabetically / New content.",
    "ps5_evidence": [
-    "native/tube_provider.c: `subscriptions` branch sorts local follows by `updated` only"
+    "native/tube_provider.c: settings:channel-sort (Account order / By name / New content first), per profile, in YouTube preferences and from Touchpad on Subscribed channels",
+    "tests/test_channel_marks.c, tests/test_library_sections.c"
    ],
    "gaps": [
-    "Sorting setting and the three orders for the channels list"
+    "'Last viewed' order is not offered; account order takes its place"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -441,7 +449,7 @@
    "status": "done",
    "smarttube": "Radio: 24 hours / 12 hours; commented out of show().",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -454,15 +462,16 @@
    "status": "partial",
    "smarttube": "Toggles: unlocalized video titles; 24-hour time format; Home corner clock; player corner clock; player corner ending time; old look of Channels section; fullscreen mode; pinned channel as rows; Playlists as rows; channels filter field; search bar inside channel page; auto-load Channels content.",
    "ps5_evidence": [
-    "native/tube_provider.c: `settings:time-display` 'Estimated finish time' (tube_player_set_time_mode); scripts/time_display_overlay.py; tests/test_time_display.cpp — ending time shown in the time readout rather than a corner label"
+    "native/tube_provider.c: `settings:time-display` 'Estimated finish time' (tube_player_set_time_mode); scripts/time_display_overlay.py; tests/test_time_display.cpp — ending time shown in the time readout rather than a corner label",
+    "native/tube_player_extra.c: settings:time-format (24-hour / 12-hour clock), settings:player-clock; tests/test_player_extra.c",
+    "native/tube_provider.c: 'Search in channel'; tests/test_channel_pages.c"
    ],
    "gaps": [
     "Unlocalized titles",
-    "24-hour toggle",
-    "Clock in browser corner; clock in player corner",
+    "Clock in browser corner; the player clock is in the controls bar, not a corner label",
     "Ending time as an independent toggle alongside duration",
     "Channels old look, pinned-channel rows, playlists rows",
-    "Channels filter field; in-channel search bar",
+    "Channels filter field",
     "Channels auto-load"
    ],
    "offline_feasible": true,
@@ -511,13 +520,13 @@
   {
    "id": "SearchSettingsPresenter.appendMiscCategory",
    "title": "Search misc (8 toggles)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Toggles: disable typing auto-correction; search exit = double back; disable search history; background play while searching/browsing a channel; instant voice search; autofocus on search results; show keyboard automatically; prevent OK from opening keyboard.",
    "ps5_evidence": [
-    "scripts/prepare_native.py: Square opens evo_keyboard_open('Search YouTube videos...'); scripts/voice_controls_overlay.py: L3 hold = voice; no search settings, no search history found"
+    "native/tube_provider.c: settings:search-history 'Search history' switch and Recent searches, per profile; tests/test_search_history.c",
+    "scripts/prepare_native.py: Square opens evo_keyboard_open('Search YouTube videos...'); scripts/voice_controls_overlay.py: L3 hold = voice"
    ],
    "gaps": [
-    "Search history (and its disable switch)",
     "Search exit double-back",
     "Instant voice search on opening search",
     "Autofocus results / auto-show keyboard switches",
@@ -556,14 +565,13 @@
   {
    "id": "AboutSettingsPresenter.appendUpdateChangelogButton",
    "title": "Changelog",
-   "status": "missing",
+   "status": "done",
    "smarttube": "List of changes for the installed version.",
    "ps5_evidence": [
-    "scripts/prepare_native.py: AboutSupportScreen 'ScreenId::Changelog' is rewritten to ScreenId::EmbyBrowse, i.e. EVO's ChangelogScreen is disabled"
+    "native/tube_about_data.h, generated from CHANGELOG.md by scripts/generate_about.py; native/tube_provider.c: settings:about:changelog 'What changed in this version'",
+    "tests/test_about.c (scripts/test_about.sh: the committed header against CHANGELOG.md), tests/test_links_about.c"
    ],
-   "gaps": [
-    "ProsperoTube changelog data (EVO has include/evo_changelog.h + assets/rml/changelog.rml to reuse)"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -571,14 +579,13 @@
   {
    "id": "AboutSettingsPresenter.appendLinks",
    "title": "Releases / Sources links",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Buttons opening QR codes for the releases and sources URLs.",
    "ps5_evidence": [
-    "scripts/prepare_native.py: About screen shows name, tagline and a licence line only"
+    "native/tube_about.h (link table); native/tube_provider.c: link:about 'Releases and source code' page under About, one address per row with a QR code",
+    "tests/test_about.c, tests/test_links_about.c, tests/test_qr_ui.cpp"
    ],
-   "gaps": [
-    "Releases and source links shown as text/QR"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -608,12 +615,13 @@
   {
    "id": "AboutSettingsPresenter.appendFeedback",
    "title": "Feedback",
-   "status": "missing",
+   "status": "done",
    "smarttube": "QR links to feedback channels.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Issue-tracker link in About"
+   "ps5_evidence": [
+    "native/tube_about.h (feedback table); native/tube_provider.c: link:feedback 'Feedback' page under About, shown as QR codes",
+    "tests/test_about.c, tests/test_links_about.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -708,15 +716,16 @@
   {
    "id": "BackupSettingsPresenter.appendLocalAutoBackupOption",
    "title": "Local auto backup",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: None / Once a day / Once a week / Once a month.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Frequency setting and a dated copy at start when due"
+   "ps5_evidence": [
+    "native/tube_backup.c (tube_backup_auto_valid; a dated copy when ProsperoTube starts and one is due; the ten newest are kept); native/tube_provider.c: settings:backup:auto:<days> row cycling off / daily / weekly / monthly, saved as backup_auto_days for this PS5",
+    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "After local backup exists."
+   "notes": "Device-wide, not per profile."
   },
   {
    "id": "BackupSettingsPresenter.appendGDriveAutoBackupButton",
@@ -747,14 +756,13 @@
   {
    "id": "BackupSettingsPresenter.appendLocalBackupCategory",
    "title": "Local backup (category)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Category with backup, restore and auto backup.",
    "ps5_evidence": [
-    "native/tube_provider.c: save() writes all state atomically to evo_data_path('youtube.json') — a single file to back up"
+    "native/tube_provider.c: settings:backup 'Backup and restore' screen (create, restore or delete, automatic backup, import subscriptions)",
+    "tests/test_backup_ui.c"
    ],
-   "gaps": [
-    "Backup/restore menu"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -762,32 +770,32 @@
   {
    "id": "BackupSettingsPresenter.appendLocalBackupRestoreOptions",
    "title": "Local backup / restore app data",
-   "status": "missing",
+   "status": "done",
    "smarttube": "'Backup app data' (zip to a shown path, with confirmation) and 'Restore app data' (pick one of the found backups, with confirmation).",
-   "ps5_evidence": [],
-   "gaps": [
-    "Write dated copy of youtube.json (+ evo_player_settings.cfg) to /data/prosperotube/backup or USB",
-    "List backups, validate (version, records array) and restore, then re-run init()",
-    "Confirmation steps"
+   "ps5_evidence": [
+    "native/tube_backup.c: dated copies of the settings and library file in the backup folder of the app data, validation, safety copy of the replaced state before a restore",
+    "native/tube_provider.c: settings:backup:create, settings:backup:list, settings:backup:entry:<file> review with 'Restore this backup' / 'Delete this backup'; the provider reloads from the restored file",
+    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Host-testable with EVO_DATA_DIR_OVERRIDE exactly like tests/test_profile_settings.c. Token/remote identity handling on restore needs a decision."
+   "notes": "A backup includes the companion pairing token and stays in the app data folder (no USB target). Offline evidence in a temporary data directory only."
   },
   {
    "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",
    "title": "Import subscriptions (GrayJay/PocketTube/NewPipe)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Button opening a file picker to import a subscriptions group file.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Parser for the three export formats",
-    "File source (USB path or upload through the companion)",
-    "Merge into local follows (Record.subscribed)"
+   "ps5_evidence": [
+    "native/tube_provider.c: settings:backup:import lists the export files of the import folder (at most 1 MiB), POST /v1/subscriptions/import, the channel count shown for one confirmation, channels added to Followed channels (bounded)",
+    "companion/prosperotube/subscriptions_import.py (NewPipe, PocketTube, GrayJay)",
+    "tests/test_subscriptions_import.c, tests/test_third_batch.py"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "The file comes from the import folder (copied by FTP) instead of a file picker. Export formats inferred from the applications' files, not checked against real exports."
   },
   {
    "id": "extra.Localization",

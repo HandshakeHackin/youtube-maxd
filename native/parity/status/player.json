@@ -52,12 +52,14 @@
    "ps5_evidence": [
     "native/tube_provider.c: settings:quality (144..2160), settings:frame-rate (auto/30/60), settings:codec (Automatic/AVC/VP9/AV1/HEVC)",
     "native/tube_profile_settings.h: max_height/max_fps/codec",
-    "tests/test_quality_limits.py, tests/test_codecs.c, tests/test_profile_settings.c"
+    "tests/test_quality_limits.py, tests/test_codecs.c, tests/test_profile_settings.c",
+    "native/tube_player_extra.c: tube_preset_count/at/label/find ('Disabled' plus resolution x 60/30 fps x AVC/VP9/AV1, SmartTube's table without its HDR rows)",
+    "scripts/player_actions_overlay.py: 'Video presets' list in the in-player options (KindPresetList / KindPreset); tube_player_set_quality + tube_player_reload reopen the video at its position",
+    "tests/test_player_extra.c, tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
    "gaps": [
     "No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'",
-    "Three independent limits instead of one combined preset list; no explicit 'Disabled' entry that returns to last manually chosen format",
-    "Presets are not offered inside the in-player playback options dialog",
+    "The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits",
     "No 4320p entries"
    ],
    "offline_feasible": true,
@@ -101,7 +103,7 @@
    "status": "partial",
    "smarttube": "Checkbox list: Enable + numeric entry of delay in seconds (ms precision, positive or negative)",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [
     "Fixed list of 29 values in the picker instead of free numeric entry",
@@ -120,7 +122,7 @@
     "native/tube_volume.h: tube_volume_pcm (clamped 0..100)",
     "native/tube_phone.c: TUBE_REMOTE_VOLUME (phone-driven only)",
     "scripts/phone_player_overlay.py: evo_audio_volume()",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -166,7 +168,7 @@
     "scripts/speed_controls_overlay.py: KindSpeed rows, changePlaybackSpeed, 'Normal speed'/'Restore' toggle",
     "native/tube_audio_tempo.c",
     "tests/test_speed_switch.cpp, tests/test_audio_tempo.c, tests/test_rate_clock.c",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [
     "Speeds below 0.25x are rejected by the tempo stage",
@@ -179,31 +181,38 @@
   {
    "id": "PlayerSettingsPresenter.appendScreenOffTimeoutCategory",
    "title": "Screen off / dimming timeout",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: Never, 1..10 sec, 30..180 min; with dimming amount 10..100% (used by the Screen dimming button)",
-   "ps5_evidence": [],
-   "gaps": [
-    "No dimming overlay, timeout or amount preference"
+   "ps5_evidence": [
+    "native/tube_player_extra.c: settings:screen-off-timeout (Never, 1..10 sec, 30..180 min) and settings:screen-off-amount (10..100%), tube_dim_decide, tube_extra_dim_tick, tube_extra_screen_off",
+    "native/tube_provider.c: settings:extra:dimming 'Screen dimming and screen off' screen; the same groups are rows of the in-player options",
+    "scripts/player_actions_overlay.py: one idle clock in Application.cpp and the #tube-dim element; scripts/player_extra_overlay.py: 'screen dimming HUI' black rectangle in the kit HUD",
+    "tests/test_player_extra.c (decision, idle clock, pixels), tests/test_extra_provider.c (settings:extra:dimming), tests/test_player_extra_overlay.cpp + scripts/test_player_extra_overlay.sh (Screen off row, placement of the blocks)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Commented out of SmartTube's top-level list; reachable by long-pressing the Screen dimming button. A full-screen alpha quad over video is feasible on PS5."
+   "notes": "Commented out of SmartTube's top-level list; reachable by long-pressing the Screen dimming button. Offline evidence: the player's darkened picture is covered by decision tests and block placement, the browser's by a rendered frame (tests/test_dim_ui.cpp)."
   },
   {
    "id": "PlayerSettingsPresenter.appendPlayerButtonsCategory",
    "title": "Setup player buttons",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "27 checkboxes enabling/disabling each player overlay button (AFR, mute, rotate, flip, chat, content block, seek interval, share, info, stats, queue, dimming, zoom, channel, search, PiP, speed, subtitles, subscribe, like, dislike, add to playlist, play/pause, repeat, next, previous, playback settings)",
    "ps5_evidence": [
-    "scripts/*_overlay.py: actions live as fixed rows in AudioTrackPickerScreen ('PLAYBACK OPTIONS') and fixed controller bindings"
+    "native/tube_player_extra.c: 21 switches settings:button-* (TUBE_BUTTON_*; TUBE_BUTTONS_DEFAULT hides queue, share link and SponsorBlock as SmartTube does), tube_extra_button, tube_extra_group_in_player",
+    "native/tube_provider.c: settings:extra:buttons 'Player buttons' screen",
+    "scripts/player_actions_overlay.py: 'video action rows' and 'player buttons filter' blocks of AudioTrackPickerScreen",
+    "tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_extra_overlay.cpp (test_action_rows), scripts/test_player_extra_overlay.sh"
    ],
    "gaps": [
-    "No per-button visibility preference",
-    "No button row in the player HUD at all; see extra.Button.* items for which actions exist"
+    "No switches for subtitles, play/pause, stats and playback settings: these stay fixed controller bindings (Up/Down, Cross, Options, R2)",
+    "No AFR and PiP switches (those buttons do not exist here)",
+    "The buttons are rows of the R2 options picker, not a button bar in the HUD"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Equivalent on PS5 would be a configurable action list for the R2 options picker."
+   "notes": "SmartTube's 27 flags map to the 21 action rows that exist on PS5."
   },
   {
    "id": "PlayerSettingsPresenter.appendSeekTypeCategory",
@@ -285,8 +294,8 @@
    "status": "done",
    "smarttube": "Radio: Double back / Single back",
    "ps5_evidence": [
-    "third_party/evo PlayerScreen.cpp: 'Stop playback confirmation prompt' (README: 'Circle confirms stop')",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "third_party/evo PlayerScreen.cpp: 'Stop playback confirmation prompt' (README controls: Circle = 'Stop (confirmed)')",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -318,32 +327,24 @@
     "native/tube_provider.c: settings:player-chat Off/Left/Right (chat left)",
     "native/tube_audio_tempo.c: pitch-preserving tempo always on (time stretching, no switch)",
     "native/tube_provider.c: retained browsing groups / channel:UC groups as playback context (section playlist, always on)",
-    "native/tube_provider.c progress(): resume saved for all on-demand durations (short videos, always on)"
+    "native/tube_provider.c progress(): resume saved for all on-demand durations (short videos, always on)",
+    "native/tube_player_extra.c: settings:auto-volume, settings:player-clock, settings:quality-info, settings:quality-bitrate, settings:player-exit, settings:loop-shorts, settings:remember-short-position, settings:player-suggestions, settings:chapter-notification",
+    "native/tube_provider.c: settings:use-section-playlist, settings:dislikes",
+    "tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_extra_overlay.cpp"
    ],
    "gaps": [
-    "auto volume (loudness normalisation) missing",
-    "time stretching has no off switch",
-    "section-as-playlist has no off switch",
-    "chapter notification / next-chapter prompt missing",
     "background play while searching or browsing a channel missing",
-    "double-back exit switch missing",
-    "loop Shorts missing (no Shorts awareness in the player)",
     "comments placement missing (comments are not shown in the player)",
-    "suggestions switches (horizontal scroll, disable) missing because the player has no suggestions rows",
-    "number-key seek (0-9 = 0%..90%) missing",
-    "remember live stream position missing (live always resumes at 0)",
-    "remember short-video position has no switch",
-    "clock in controls bar missing",
-    "quality info and bitrate in controls bar missing",
+    "horizontally scrolled suggestions and 'don't resize video to fit dialog' have no equivalent (suggestions are a list in the options picker)",
+    "remember live stream position missing (live always resumes at the live point)",
     "show UI on next video switch missing",
     "UI animations switch missing",
-    "likes/dislikes count missing",
-    "tooltips, long-press hint, real channel icon, row focus sync and old speed-button behaviour have no equivalent (no button rows)",
-    "audio focus is Android-only"
+    "likes/dislikes count is shown on Video details and Open description only (see extra.Misc.LikesCount)",
+    "tooltips, long-press hint, real channel icon, row focus sync and old speed-button behaviour have no equivalent (no button rows)"
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "Broken out below as extra.Misc.* for the options with real user impact."
+   "notes": "Broken out below as extra.Misc.* for the options with real user impact. Not applicable on PS5: audio focus (Android), number-key seek (controller input only) and the time-stretching off switch (atempo is the only tempo filter)."
   },
   {
    "id": "PlayerSettingsPresenter.appendDeveloperCategory",
@@ -353,10 +354,11 @@
    "ps5_evidence": [
     "native/tube_provider.c: settings:codec AVC (covers 'prefer avc over vp9')",
     "companion/prosperotube/hls.py, live_hls.py: live streams already go through HLS relay (covers 'live stream fix' as fixed behaviour)",
-    "scripts/playback_recovery_overlay.py: automatic stream recovery (no off switch)"
+    "scripts/playback_recovery_overlay.py: automatic stream recovery (no off switch)",
+    "native/tube_player_extra.c: settings:error-fixer 'Fix playback errors'; tests/test_player_extra.c"
    ],
    "gaps": [
-    "No switch to disable automatic recovery ('disable network error fixing')",
+    "'Disable network error fixing': settings:error-fixer turns off the decoder and long-buffering fixes only; the stream refresh after an input failure has no off switch",
     "No high-bitrate/Premium 1080p or high-bitrate mp4a selection switch",
     "No 'force legacy codecs (360p progressive)' switch",
     "No 'disable buffer on streams' (live latency) switch",
@@ -390,7 +392,7 @@
    "status": "done",
    "smarttube": "Radio: white/transparent, white/semi-transparent, white/black, yellow/transparent, yellow/semi-transparent, yellow/black (+ system style on Android 19+); drop-shadow or outline edge",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -403,7 +405,7 @@
    "status": "done",
    "smarttube": "Radio: 0.1x..2.0x step 0.1",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -416,7 +418,7 @@
    "status": "done",
    "smarttube": "Radio: 0%..100% step 2.5 (vertical position)",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -426,32 +428,35 @@
   {
    "id": "SubtitleSettingsPresenter.appendMoreSubtitlesSwitch",
    "title": "Unlock more subtitles (auto-translated)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Switch: unlock additional (auto-translated) subtitle tracks (commented out upstream)",
    "ps5_evidence": [
-    "companion/prosperotube/captions.py: lists human and automatic tracks only"
+    "native/tube_provider.c: settings:more-subtitles 'Unlock more subtitles' (per profile) adds translated_captions to the resolve for a companion that lists the feature; g_caption_tracks[].translated, tube_caption_track_translated",
+    "scripts/caption_controls_overlay.py: '(translated)' detail and TRANSLATED tag in the caption picker",
+    "companion/prosperotube/extractor.py, app.py: machine translations listed on request and served by the caption relay",
+    "tests/test_third_captions.c, tests/test_third_batch.py (test_translated_tracks_are_listed_on_request_and_flagged), scripts/test_caption_picker_snapshot.py"
    ],
-   "gaps": [
-    "No auto-translated caption tracks (tlang) offered by the companion or picker"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Low priority: disabled in the pinned SmartTube UI."
+   "notes": "Disabled in the pinned SmartTube UI. Offline evidence only."
   },
   {
    "id": "extra.SubtitleRememberPerChannel",
    "title": "Remember subtitles per channel",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Switch 'subtitle_remember': captions on/off state is remembered per channel (shown in Subtitle settings and the in-player subtitle dialog)",
    "ps5_evidence": [
-    "native/tube_provider.c: g_captions is one flag per profile"
+    "native/tube_provider.c: settings:caption-memory 'Remember subtitles per channel' (per profile), g_caption_memories, tube_captions_for, tube_remember_captions",
+    "scripts/caption_controls_overlay.py: the picker's Off reports tube_remember_captions(video, 0)",
+    "tests/test_third_captions.c, scripts/test_caption_picker_snapshot.py"
    ],
    "gaps": [
-    "No per-channel caption on/off memory"
+    "The switch is in YouTube preferences (Caption style, size and position) only, not in the in-player caption picker"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Same storage pattern as the per-channel speed memories (g_speeds)."
+   "notes": "The per-channel memory itself works from the player; only the second entry point of the switch is missing."
   },
   {
    "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory",
@@ -502,12 +507,12 @@
     "scripts/queue_failure_overlay.py: 5-second unplayable advance",
     "scripts/playlist_context_overlay.py: Previous/Next video rows",
     "companion/prosperotube/resolver_errors.py: allowlisted unplayable reasons",
-    "tests/test_playback_next.c, tests/test_manual_navigation.c, tests/test_queue_failure.c, tests/test_resolver_errors.py"
+    "tests/test_playback_next.c, tests/test_manual_navigation.c, tests/test_queue_failure.c, tests/test_resolver_errors.py",
+    "native/tube_player_extra.c: quick skip on the D-pad (settings:keys-left-right / settings:keys-up-down); tests/test_player_extra_overlay.cpp (test_dpad)"
    ],
    "gaps": [
     "No preloading of the next video's formats",
-    "Next/previous are picker rows only; no dedicated controller binding or 'next up' title in the HUD",
-    "No quick-skip (D-pad left/right or up/down switches video when UI hidden)",
+    "Next/previous are picker rows or the optional quick-skip D-pad mode; no 'next up' title in the HUD",
     "No automatic aspect handling for vertical/Shorts video",
     "No playlist restart-at-end handling for repeat of a whole list",
     "Standalone (no companion) loading absent"
@@ -525,15 +530,16 @@
     "native/tube_provider.c: progress() (resume_pos_sec, watched at 95% and last 10 s), history-sync, g_speeds memories, tube_sleep_tick",
     "scripts/accurate_resume_overlay.py",
     "native/tube_profile_settings.h: quality/codec/caption/audio-language restore",
-    "tests/test_resume_timeline.cpp, tests/test_speed_memory.c, tests/test_sleep_timer.c, tests/test_history_actions.py, tests/test_catalog_progress.c"
+    "tests/test_resume_timeline.cpp, tests/test_speed_memory.c, tests/test_sleep_timer.c, tests/test_history_actions.py, tests/test_catalog_progress.c",
+    "native/tube_provider.c: 'Play incognito' (no local history, resume position or account report); tests/test_history_modes.c",
+    "native/tube_player_extra.c: settings:remember-short-position, settings:player-volume, settings:remember-quality (tube_player_remember_height in native/tube_provider.c); tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_menu.c"
    ],
    "gaps": [
-    "No incognito mode (history pause exists only as history-sync off)",
-    "Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live sources have no seekable timeline')",
-    "No short-video (<5 min) resume switch and no music-video no-resume rule",
-    "No volume or pitch restore (no such settings)",
+    "Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline')",
+    "No music-video no-resume rule",
+    "No pitch restore (no pitch setting)",
     "No resume-state expiry",
-    "Per-video last-chosen quality is not persisted (limits only)"
+    "A quality chosen in the player is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -547,18 +553,18 @@
    "ps5_evidence": [
     "scripts/player_controls_overlay.py, seek_controls_overlay.py, time_display_overlay.py, video_geometry_overlay.py, playlist_context_overlay.py, speed_controls_overlay.py, caption_controls_overlay.py",
     "native/tube_provider.c: tube_player_* preferences",
-    "tests/test_player_controls.cpp, scripts/test_controller_dispatch.py"
+    "tests/test_player_controls.cpp, scripts/test_controller_dispatch.py",
+    "scripts/player_actions_overlay.py + native/tube_provider.c (tube_player_action, tube_player_menu_*): like, dislike, subscribe, add to playlist, queue, related videos, playlist, description, share link, SponsorBlock exclusion, open channel, Search and Screen off as rows of the in-player options",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
    "gaps": [
-    "No metadata-driven button states (liked, subscribed, in playlist) inside the player",
-    "No long-press secondary dialogs",
-    "No number-key seek, no quick-skip keys",
-    "Account actions (like, dislike, subscribe, add to playlist) are browser-only, not reachable during playback",
-    "No share, description, search, open-channel or queue dialogs from the player"
+    "No metadata-driven button states (liked, subscribed, in playlist) inside the player: the rows are the browser's video actions with fixed labels",
+    "No long-press secondary dialogs (the secondary settings are separate rows)",
+    "Open channel, Search and the QR codes of Share link stop playback and leave for the browser"
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": ""
+   "notes": "Number-key seek is not applicable (extra.Misc.NumberKeySeek)."
   },
   {
    "id": "behavior.HQDialogController",
@@ -568,15 +574,15 @@
    "ps5_evidence": [
     "scripts/speed_controls_overlay.py: AudioTrackPickerScreen retitled 'PLAYBACK OPTIONS' (quality, audio tracks, speed)",
     "scripts/sleep_timer_overlay.py, video_geometry_overlay.py: KindSleep, KindResize/KindZoom/KindAspect",
-    "tests/test_player_chat_options.cpp, tests/test_speed_switch.cpp"
+    "tests/test_player_chat_options.cpp, tests/test_speed_switch.cpp",
+    "scripts/player_actions_overlay.py: 'Video presets' list and remembered quality after a QUALITY switch; native/tube_player_extra.c: audio delay, volume and mute groups listed in the picker",
+    "tests/test_player_extra_overlay.cpp (test_picker, test_presets_and_screen_off), tests/test_player_menu.c"
    ],
    "gaps": [
     "No audio language preference row in the dialog",
-    "No video presets row",
     "No video buffer row",
-    "No audio delay row",
     "No pitch effect",
-    "Manually chosen video/audio format is not persisted as the preference for following videos",
+    "A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted",
     "Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows)"
    ],
    "offline_feasible": true,
@@ -592,18 +598,21 @@
     "scripts/playback_recovery_overlay.py: evo_demux_input_failed -> tube_queue_recovery, 'Refreshing this stream and restoring playback...'",
     "native/tube_provider.c: g_recovery, tube_recovery_choice (same quality/fps kept)",
     "companion/prosperotube/media_refresh.py",
-    "tests/test_playback_recovery.c, tests/test_playback_recovery_handoff.cpp, tests/test_media_refresh.py"
+    "tests/test_playback_recovery.c, tests/test_playback_recovery_handoff.cpp, tests/test_media_refresh.py",
+    "native/tube_player_extra.c: tube_error_fix_decide (reload; next lower resolution down to 720p; AVC at up to 1080p30 after a video decoder failure; captions off first on long buffering), tube_buffering_tick (20 s of waiting inside 60 s), tube_error_fix_message, settings:error-fixer",
+    "native/tube_provider.c: tube_error_fix_begin / tube_error_fix_choice on the bounded recovery (three attempts per video)",
+    "scripts/player_actions_overlay.py: 'error fixer: decoder failure' and 'error fixer: long buffering' blocks of PlayerScreen",
+    "tests/test_player_extra.c, tests/test_player_menu.c, tests/test_player_extra_overlay.cpp (test_error_fixer_blocks)"
    ],
    "gaps": [
-    "No quality step-down after repeated stalls or decoder failure (recovery requires the same stream choice)",
-    "No automatic caption disable when a caption load/parse fails during playback start",
-    "No typed error titles per failing component",
+    "No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering)",
+    "An audio decoder or output failure gets a message but no fix (no other audio format can be requested)",
     "No handling of a stream that ended while watching (live ended -> reload as VOD)",
-    "No switch to disable automatic recovery"
+    "settings:error-fixer turns off the decoder and buffering fixes only; the stream refresh after an input failure has no off switch"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Switching the network engine is Android-only. Offline evidence only: decoder failures and long buffering are simulated in host tests."
   },
   {
    "id": "behavior.AutoFrameRateController",
@@ -627,15 +636,16 @@
     "native/tube_provider.c: library:suggestions:<id> 'Related videos' (browser actions menu), tube_chapter_target, g_chapters",
     "companion/innertube/suggestions.mjs, playback_next.mjs, remote_recommendations.mjs",
     "scripts/prepare_native.py: jumpChapter (L1/R1)",
-    "tests/test_suggestions.c, tests/test_suggestions_request.py, companion/innertube/suggestions.test.mjs, playback_next.test.mjs"
+    "tests/test_suggestions.c, tests/test_suggestions_request.py, companion/innertube/suggestions.test.mjs, playback_next.test.mjs",
+    "scripts/player_actions_overlay.py: 'Related videos' (TUBE_PLAYER_SUGGESTIONS), 'Playback queue' and the playlist as lists of the in-player options, with a 'More results' row; settings:player-suggestions; Down with the controls shown opens the list when Up / Down is set to suggestions (scripts/player_extra_overlay.py)",
+    "native/tube_player_extra.c: chapter titles in both HUDs (tube_extra_chapter_title_at, also for the seek target), chapter list, tube_extra_chapter_notice",
+    "tests/test_player_menu.c, tests/test_player_extra.c, tests/test_player_extra_overlay.cpp (test_action_lists, test_chapter_notification)"
    ],
    "gaps": [
-    "No suggestions rows inside the player (related videos only from the browser's video actions)",
-    "Chapters: start times only; no chapter titles, list, seek-bar markers or chapter name in the seek preview",
-    "No chapter notification / next-chapter prompt",
-    "No queue row in the player",
+    "Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls",
+    "No chapter markers on the seek bar",
     "No live title/description refresh",
-    "No dislike/like counts appended to metadata"
+    "Like/dislike counts are on Video details and Open description only, not appended to the player's metadata"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -647,7 +657,7 @@
    "status": "done",
    "smarttube": "Checkbox: normalise volume using the stream's loudness value",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -661,7 +671,7 @@
    "smarttube": "Checkbox: show current time in the player controls",
    "ps5_evidence": [
     "native/tube_time_display.h uses the local clock only for 'Ends HH:MM'",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -675,7 +685,7 @@
    "smarttube": "Checkboxes: show resolution/fps/codec of the playing stream in the controls bar; optionally add bitrate",
    "ps5_evidence": [
     "native/tube_provider.c: choices carry bitrate_bps and fps; shown only in the stream chooser and Options stats",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -688,7 +698,7 @@
    "status": "done",
    "smarttube": "Checkbox: repeat Shorts automatically",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -717,7 +727,7 @@
    "smarttube": "Checkbox: when off, videos under 5 minutes always start from the beginning",
    "ps5_evidence": [
     "native/tube_provider.c progress(): resume stored regardless of duration",
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -727,17 +737,17 @@
   {
    "id": "extra.Misc.ChapterNotification",
    "title": "Next-chapter notification",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checkbox: show a notification at chapter change that jumps to the next chapter when clicked",
    "ps5_evidence": [
-    "native/tube_provider.c: tube_chapter_target (L1/R1 jump only)"
+    "native/tube_player_extra.c: settings:chapter-notification, tube_chapter_notice_decide / tube_extra_chapter_notice (once per chapter; not while paused, seeking or with the controls shown)",
+    "scripts/player_actions_overlay.py: 'chapter notification' block toasts 'CHAPTER - R1 SKIPS IT' with the chapter title; R1 is the existing next-chapter jump (native/tube_provider.c: tube_chapter_target)",
+    "tests/test_player_extra.c, tests/test_player_extra_overlay.cpp (test_chapter_notification)"
    ],
-   "gaps": [
-    "No chapter-change prompt; chapter titles not carried"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "The toast cannot be clicked on a controller; R1 does the jump it offers."
   },
   {
    "id": "extra.Misc.BackgroundPlayWhileSearching",
@@ -755,17 +765,15 @@
   {
    "id": "extra.Misc.TimeStretchingSwitch",
    "title": "Audio time stretching switch",
-   "status": "partial",
+   "status": "not_applicable",
    "smarttube": "Checkbox: keep voice natural when changing speed (can be turned off for performance)",
    "ps5_evidence": [
     "native/tube_audio_tempo.c: pitch-preserving tempo stage always used"
    ],
-   "gaps": [
-    "No off switch (pitch-shifting resample path absent)"
-   ],
-   "offline_feasible": true,
+   "gaps": [],
+   "offline_feasible": false,
    "size": "S",
-   "notes": "Low value on PS5."
+   "notes": "The PS5 FFmpeg build has only the pitch-preserving atempo filter (scripts/prepare_native.py adds --enable-filter=atempo next to anull), so there is no other tempo path to switch to; time stretching is always on."
   },
   {
    "id": "extra.Misc.SectionPlaylistSwitch",
@@ -785,28 +793,31 @@
   {
    "id": "extra.Misc.LikesCount",
    "title": "Likes/dislikes count",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checkbox: show like/dislike counts in the player (dislikes via Return YouTube Dislike)",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: 'account:notice:likes' (like_count) and 'account:notice:dislikes' (GET /v1/dislikes/<id>) rows of Video details and Open description; settings:dislikes 'Show dislikes' per profile; both pages are listed during playback through Video actions",
+    "companion/prosperotube/dislikes.py (Return YouTube Dislike relay behind --return-youtube-dislike), description like_count",
+    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+   ],
    "gaps": [
-    "No like/dislike counters for videos anywhere"
+    "Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them",
+    "The like count has no switch of its own"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "The dislike relay is a host option of the companion and tells that service which videos' details are opened. Service mapping inferred, not verified live."
   },
   {
    "id": "extra.Misc.NumberKeySeek",
    "title": "Seek with number keys",
-   "status": "missing",
+   "status": "not_applicable",
    "smarttube": "Checkbox: keys 0-9 seek to 0%..90%",
    "ps5_evidence": [],
-   "gaps": [
-    "No percentage seek binding (USB remote/keyboard digits unused)"
-   ],
-   "offline_feasible": true,
+   "gaps": [],
+   "offline_feasible": false,
    "size": "S",
-   "notes": "Only reachable with a USB keyboard/remote on PS5."
+   "notes": "The EVO player reads the controller only (PadButtons in third_party/evo/projects/evoplayer/core/include/evo/Common.hpp; the keyboard is the on-screen text entry), so no digit key events reach the player."
   },
   {
    "id": "extra.Misc.AudioFocus",
@@ -895,12 +906,13 @@
    "ps5_evidence": [
     "README Controls: Up toggles captions, Down opens caption picker",
     "scripts/caption_controls_overlay.py, secondary_captions_overlay.py",
-    "tests/test_caption_switch.c, tests/test_secondary_captions.c"
+    "tests/test_caption_switch.c, tests/test_secondary_captions.c",
+    "native/tube_player_extra.c: subtitle style, size and position groups listed in the in-player options; scripts/caption_controls_overlay.py: '(translated)' / TRANSLATED tag, Off remembered per channel",
+    "tests/test_player_extra_overlay.cpp (test_picker), tests/test_third_captions.c, scripts/test_caption_picker_snapshot.py"
    ],
    "gaps": [
-    "No style/size/position entries",
-    "No per-channel remember switch",
-    "No separate human/auto-generated groups (flat list tagged '(automatic)')",
+    "No per-channel remember switch in the picker (YouTube preferences only)",
+    "No separate human/auto-generated groups (flat list tagged '(automatic)' / '(translated)')",
     "No recently-used ordering"
    ],
    "offline_feasible": true,
@@ -1016,10 +1028,12 @@
    "status": "partial",
    "smarttube": "Toggle SponsorBlock for playback; dialog with exclude-this-channel and category settings",
    "ps5_evidence": [
-    "native/tube_provider.c: settings:sponsor, settings:sb:exclusions ('Current channel')"
+    "native/tube_provider.c: settings:sponsor, settings:sb:exclusions ('Current channel')",
+    "scripts/player_actions_overlay.py: TUBE_PLAYER_SPONSOR row ('Exclude channel from SponsorBlock' / 'Use SponsorBlock on this channel') in the in-player options when settings:button-sponsorblock is on",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
    "gaps": [
-    "No in-player toggle or exclude-channel row; settings screen only"
+    "No in-player on/off toggle for SponsorBlock and no category settings from the player (YouTube preferences only)"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -1028,19 +1042,19 @@
   {
    "id": "extra.Button.SoundOff",
    "title": "Button: Mute (+ volume/pitch dialog)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Click mutes (no-audio format); long click: volume 0-300% and pitch effect 0.025..2.0",
    "ps5_evidence": [
-    "native/tube_phone.c: mute state only mirrored for the phone receiver"
+    "native/tube_player_extra.c: settings:player-mute (TUBE_EXTRA_MUTE, for the running player) and settings:player-volume 0..300% in the in-player options when settings:button-sound is on; tube_extra_gain_for",
+    "scripts/player_extra_overlay.py: evo_audio_set_player_gain(tube_extra_gain_milli())",
+    "tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_audio_extra.c"
    ],
    "gaps": [
-    "No local mute action",
-    "No volume list",
     "No pitch effect"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Pitch can reuse the FFmpeg filter graph in native/tube_audio_tempo.c."
+   "notes": "Mute is a gain of zero, not SmartTube's no-audio format. A pitch effect needs a filter the PS5 FFmpeg build does not have (only atempo)."
   },
   {
    "id": "extra.Button.Subscribe",
@@ -1049,15 +1063,16 @@
    "smarttube": "Toggle subscription with live state; long click: notification preference list",
    "ps5_evidence": [
     "native/tube_provider.c: g_account_actions subscribe/unsubscribe (browser Touchpad menu)",
-    "tests/test_video_actions.c"
+    "tests/test_video_actions.c",
+    "scripts/player_actions_overlay.py: TUBE_PLAYER_SUBSCRIBE row in the in-player options; Video actions there also lists 'Subscription notifications' (notify:<channel>: all / personalized / none through subscribe or subscribe_notifications)",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh), tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
    ],
    "gaps": [
-    "Not reachable during playback; no subscribed state shown",
-    "No notification-level dialog"
+    "No subscribed state shown in the player: the direct row always subscribes; Unsubscribe is under Video actions"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Each change is confirmed on a review row. Notification levels use the pinned library call; not verified live."
   },
   {
    "id": "extra.Button.LikeDislike",
@@ -1066,10 +1081,12 @@
    "smarttube": "Toggle like/dislike with state from metadata",
    "ps5_evidence": [
     "native/tube_provider.c: g_account_actions like/dislike/unrate (browser Touchpad menu)",
-    "tests/test_video_actions.c"
+    "tests/test_video_actions.c",
+    "scripts/player_actions_overlay.py: TUBE_PLAYER_LIKE / TUBE_PLAYER_DISLIKE rows in the in-player options",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
    "gaps": [
-    "Not reachable during playback; current rating state not shown"
+    "Current rating state is not shown; each rating is confirmed on a review row rather than toggled"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -1078,15 +1095,15 @@
   {
    "id": "extra.Button.AddToPlaylist",
    "title": "Button: Add to playlist",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Dialog of account playlists with membership checkmarks",
    "ps5_evidence": [
     "README: video actions add/remove from account playlist, create private playlist (browser)",
-    "tests/test_library.py"
+    "tests/test_library.py",
+    "scripts/player_actions_overlay.py: TUBE_PLAYER_PLAYLIST_ADD opens the account playlist picker in the in-player options while the video plays",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
-   "gaps": [
-    "Not reachable during playback"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": ""
@@ -1094,89 +1111,93 @@
   {
    "id": "extra.Button.PlaybackQueue",
    "title": "Button: Playback queue",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Dialog listing the queue; selecting an item plays it",
    "ps5_evidence": [
     "native/tube_provider.c: 'queue' catalog, tube_queue_play_next",
-    "tests/test_playback_queue.py"
+    "tests/test_playback_queue.py",
+    "scripts/player_actions_overlay.py + native/tube_provider.c: TUBE_PLAYER_QUEUE 'Playback queue' list in the in-player options; a row stops the video and starts the chosen one (tube_player_take_launch)",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
-   "gaps": [
-    "Queue is visible only in the browser, not from the player"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Hidden until settings:button-queue is switched on, as in SmartTube."
   },
   {
    "id": "extra.Button.OpenChannel",
    "title": "Button: Open channel",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Opens the playing video's channel (optionally keeping playback in background)",
    "ps5_evidence": [
-    "native/tube_provider.c: channel:UC catalogs exist for browsing"
+    "native/tube_provider.c: TUBE_PLAYER_CHANNEL -> tube_player_take_browse; scripts/player_actions_overlay.py: the 'Open channel' row stops playback and pushes the channel folder (evo_rmlui_provider_push_folder)",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
-   "gaps": [
-    "No player action that leaves to the current video's channel"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Playback stops; keeping it in the background is extra.Misc.BackgroundPlayWhileSearching."
   },
   {
    "id": "extra.Button.Search",
    "title": "Button: Search from player",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Opens search from the player (optionally keeping playback in background)",
-   "ps5_evidence": [],
-   "gaps": [
-    "Search is browser-only (Square is media info in the player)"
+   "ps5_evidence": [
+    "scripts/player_actions_overlay.py: 'Search' row (KindSearch) -> tube_player_request_search; the provider host opens the search prompt once playback has stopped (tube_player_take_browse == 2)",
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Playback stops; keeping it in the background is extra.Misc.BackgroundPlayWhileSearching."
   },
   {
    "id": "extra.Button.VideoInfo",
    "title": "Button: Video description",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Long-text dialog with the full description, titled 'title - author'",
    "ps5_evidence": [
-    "companion/prosperotube/catalog.py: overview truncated to 320 characters",
-    "README Controls: Square shows technical media information"
+    "native/tube_provider.c: TUBE_PLAYER_DESCRIPTION lists the Open description reader in the in-player options while the video plays: channel, date, views and likes, then the full text as lines (player_menu_items)",
+    "scripts/player_actions_overlay.py: KindTubeAction / KindTubeMenuRow rows; switch settings:button-description",
+    "tests/test_player_menu.c, tests/test_description.c, tests/test_player_extra_overlay.cpp (test_action_lists)"
    ],
-   "gaps": [
-    "No full description text from the companion",
-    "No description reader in the player"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Can reuse the comment full-text reader (scripts/discussion_overlay.py)."
+   "notes": "Square still shows the technical media information."
   },
   {
    "id": "extra.Button.ShareLink",
    "title": "Button: Share link",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Dialog: share link, QR code and embed link, each with the current position",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: TUBE_PLAYER_SHARE lists the video, embed, channel and playlist addresses as text in the in-player options; its 'Show QR codes' row leaves for the browser's link page (native/tube_qr.h, native/tube_qr_page.h, scripts/qr_overlay.py)",
+    "tests/test_player_menu.c, tests/test_links_about.c, tests/test_qr.c, tests/test_qr_ui.cpp"
+   ],
    "gaps": [
-    "No QR code or link display for the playing video"
+    "Links carry no current position (tube_qr_video_url is called with position 0)",
+    "The QR codes are drawn by the browser page, so showing them stops the video"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "On PS5 the useful part is the QR code with ?t= position."
+   "notes": "Hidden until settings:button-share is switched on, as in SmartTube."
   },
   {
    "id": "extra.Button.ScreenDimming",
    "title": "Button: Screen dimming",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Click dims/turns screen off; long click: dimming amount 10..100% and timeout",
-   "ps5_evidence": [],
-   "gaps": [
-    "No dimming overlay"
+   "ps5_evidence": [
+    "scripts/player_actions_overlay.py: 'Screen off' row (KindScreenOff -> tube_extra_screen_off; sound keeps playing, any button except Left and Right brings the picture back); the dimming and screen-off timeout and amount groups are listed beside it when settings:button-screen-off is on",
+    "native/tube_player_extra.c: tube_dim_decide, tube_extra_dim_input",
+    "tests/test_player_extra.c, tests/test_player_extra_overlay.cpp (test_presets_and_screen_off)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Useful for audio/music listening."
+   "notes": "Useful for audio/music listening. Offline evidence only."
   },
   {
    "id": "extra.Button.AutoFrameRate",
@@ -1208,7 +1229,7 @@
    "status": "done",
    "smarttube": "Player tweak: Left/Right (or Up/Down) switch to previous/next video for Shorts and/or regular videos when the overlay is hidden",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,

@@ -15,7 +15,7 @@
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Guest plays the role of 'None'. Secondary-account/brand-channel mapping is listed as unfinished in README."
+   "notes": "Guest plays the role of 'None'. Secondary-account/brand-channel mapping is listed as unverified in docs/STATUS.md."
   },
   {
    "id": "AccountSettingsPresenter.appendSignOutSection",
@@ -68,15 +68,15 @@
    "status": "partial",
    "smarttube": "Switch: on -> password entry dialog stores a per-account password; off -> must enter the matching password; a check dialog gates the account's sections until accepted",
    "ps5_evidence": [
-    "native/tube_provider.c: salted hash gate; tests/test_account_settings.c"
+    "native/tube_password.h (salted hash); native/tube_provider.c: settings:lock:set / change / remove under Account settings, password prompt before a protected profile is selected, g_startup_lock (a protected profile selected at close is asked for again at the next start; browsing begins as Guest)",
+    "tests/test_account_settings.c, tests/test_startup_lock.c"
    ],
    "gaps": [
-    "Keyboard shows the typed text",
-    "The profile already selected at startup is not challenged"
+    "The PS5 keyboard shows the typed text (no masked entry)"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "No occurrence of password/passcode in native/, scripts/ or companion/ apart from URL validation."
+   "notes": "Rows are marked experimental. Masked entry depends on the system keyboard."
   },
   {
    "id": "AccountSettingsPresenter.appendSeparateSettings",
@@ -86,7 +86,7 @@
    "ps5_evidence": [
     "native/tube_profile_settings.h; native/tube_provider.c: profile_settings_select()",
     "tests/test_profile_settings.c",
-    "README.md: 'independent saved profile settings'",
+    "README.md: settings are 'per profile or shared (Separate settings per account)'",
     "native/tube_provider.c: shared or per-profile settings"
    ],
    "gaps": [],
@@ -328,12 +328,12 @@
     "native/tube_phone.c: cases TUBE_REMOTE_PLAYLIST, QUEUE, NEXT/PREVIOUS, PLAY/PAUSE, SEEK, STOP, VOLUME (has_volume or delta), DPAD, VOICE, CAPTIONS, DISCONNECTED, QUERY/CONNECTED/DEVICES",
     "native/tube_remote.c / tube_remote.h: typed commands, update reporting",
     "companion/prosperotube (Lounge receiver), docs/REMOTE_SERVICE.md",
-    "tests/test_remote_native.c, tests/test_phone_player.c, tests/test_phone_provider.c, tests/test_remote_lounge.py"
+    "tests/test_remote_native.c, tests/test_phone_player.c, tests/test_phone_provider.c, tests/test_remote_lounge.py",
+    "native/tube_provider.c: settings:remote:history 'History for phone playback'; tests/test_remote_history.c"
    ],
    "gaps": [
     "Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'",
     "No 'device disconnected' message shown before closing the app",
-    "History is not suppressed for phone-started playback (see RemoteControlSettingsPresenter.appendMiscCategory)",
     "10-second start delay after app init not mirrored (harmless)"
    ],
    "offline_feasible": true,
@@ -348,10 +348,11 @@
    "ps5_evidence": [
     "native/tube_provider.c: sponsor_response(), tube_skip_target_at_rate() (2.0*rate window, +3.0 grouping, minimum, no_repeat), tube_sponsor_prompt()/tube_sponsor_confirm(), tube_sponsor_markers(), sponsor_scope() (exclusions, not live)",
     "scripts/sponsor_overlay.py, scripts/sponsor_review_overlay.py, scripts/playback_rate_overlay.py (passes evo_audio_rate())",
-    "tests/test_sponsor.c, tests/test_sponsor_review.cpp"
+    "tests/test_sponsor.c, tests/test_sponsor_review.cpp",
+    "scripts/player_actions_overlay.py: TUBE_PLAYER_SPONSOR row of the in-player options (channel exclusion); tests/test_player_menu.c"
    ],
    "gaps": [
-    "No in-player SponsorBlock button: cannot manually skip the segment the playhead is inside (full-match skip), cannot toggle SponsorBlock on/off from the player, no shortcut to SponsorBlock settings from the player",
+    "The in-player SponsorBlock row only toggles the channel exclusion: no manual skip of the segment the playhead is inside (full-match skip), no on/off toggle and no shortcut to SponsorBlock settings from the player",
     "No on/off state indicator in the player controls"
    ],
    "offline_feasible": true,
@@ -382,7 +383,9 @@
    "ps5_evidence": [
     "native/tube_provider.c: \"discussion:\" levels, \"discussion:replies:<key>\", tube_comment_text(), tube_comment_rating(), \"comment:menu:\" / \"comment:confirm:\" (like, dislike, remove)",
     "scripts/discussion_overlay.py: DiscussionKey(), L2/R2 text scroll",
-    "tests/test_comment_ratings.py"
+    "tests/test_comment_ratings.py",
+    "native/tube_provider.c: comment_count and can_post on the first page, the viewer's own rating and creator state on rows, 'Write a comment' / 'Reply to comment' (comment:post, comment:reply, comment:review; comment_post / comment_reply once per confirmation); companion/innertube/comment_posts.mjs",
+    "tests/test_comment_post.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
    ],
    "gaps": [
     "Comments open only from the browser (R3 on a video), not from inside the player with the video still visible",
@@ -391,7 +394,7 @@
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Posting goes beyond the SmartTube surface listed here; rows are marked experimental. Reply confirmation shape inferred, not verified live."
   },
   {
    "id": "behavior.AddDevicePresenter",
@@ -424,19 +427,19 @@
   {
    "id": "behavior.YTSignInPresenter",
    "title": "YouTube device-code sign-in",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Shows user code, address https://yt.be/activate and a QR code for https://youtube.com/qr/activate/<code>; on success closes and opens account selection; error text shown in place of the code",
    "ps5_evidence": [
     "native/tube_provider.c: rows \"auth:info:code\", \"auth:info:url\", automatic polling in tick (g_auth.next_poll), states expired / denied / canceled, 'Use authorized YouTube account' + 'All profiles' after success",
     "scripts/device_auth_overlay.py",
-    "tests/test_device_auth.py, tests/test_device_auth_native.c, scripts/test_device_auth_native.sh"
+    "tests/test_device_auth.py, tests/test_device_auth_native.c, scripts/test_device_auth_native.sh",
+    "native/tube_qr_page.h: TUBE_QR_PAGE_SIGN_IN turns the auth:info:code row into https://youtube.com/qr/activate/<code>; scripts/qr_overlay.py draws the code on the sign-in screen; tube_player_dim_blocked keeps the screen lit while a sign-in waits",
+    "tests/test_qr_page.c, tests/test_qr_ui.cpp (scripts/test_qr_overlay.sh)"
    ],
-   "gaps": [
-    "No QR code for the activation address"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Needs a small QR encoder and an RML/texture render path."
+   "notes": "Offline evidence only; real-account and console acceptance are tracked separately in docs/HARDWARE_ACCEPTANCE.md."
   },
   {
    "id": "behavior.GoogleSignInPresenter",

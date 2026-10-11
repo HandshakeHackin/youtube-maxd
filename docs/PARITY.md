@@ -7,11 +7,11 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Player and playback | 32 | 21 | 22 | 3 | 78 |
-| Browsing, search and menus | 55 | 14 | 10 | 1 | 80 |
-| Accounts, remote control and integrations | 18 | 8 | 2 | 1 | 29 |
-| General, interface and maintenance | 8 | 6 | 38 | 6 | 58 |
-| **All** | **113** | **49** | **72** | **11** | **245** |
+| Player and playback | 41 | 23 | 9 | 5 | 78 |
+| Browsing, search and menus | 62 | 15 | 2 | 1 | 80 |
+| Accounts, remote control and integrations | 19 | 7 | 2 | 1 | 29 |
+| General, interface and maintenance | 18 | 9 | 25 | 6 | 58 |
+| **All** | **140** | **54** | **38** | **13** | **245** |
 
 ## Player and playback
 
@@ -19,62 +19,53 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Video presets (resolution/fps/codec) (`PlayerSettingsPresenter.appendVideoPresetsCategory`) | No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'; Three independent limits instead of one combined preset list; no explicit 'Disabled' entry that returns to last manually chosen format; Presets are not offered inside the in-player playback options dialog; No 4320p entries | yes | M |
+| Video presets (resolution/fps/codec) (`PlayerSettingsPresenter.appendVideoPresetsCategory`) | No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'; The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits; No 4320p entries | yes | M |
 | Audio delay (shift) (`PlayerSettingsPresenter.appendAudioDelayCategory`) | Fixed list of 29 values in the picker instead of free numeric entry; Negative delay is unverified in the PS5 audio engine | yes | M |
 | Preview while seeking (`PlayerSettingsPresenter.appendSeekingPreviewCategory`) | Preview tiles are not drawn: the HUD has no network texture path | yes | L |
 | Video speed dialog (`PlayerSettingsPresenter.appendVideoSpeedCategory`) | Speeds below 0.25x are rejected by the tempo stage; Speed change reopens the stream instead of a live rate change | yes | S |
-| Player misc switches (28) (`PlayerSettingsPresenter.appendMiscCategory`) | auto volume (loudness normalisation) missing; time stretching has no off switch; section-as-playlist has no off switch; chapter notification / next-chapter prompt missing; background play while searching or browsing a channel missing; double-back exit switch missing; loop Shorts missing (no Shorts awareness in the player); comments placement missing (comments are not shown in the player); suggestions switches (horizontal scroll, disable) missing because the player has no suggestions rows; number-key seek (0-9 = 0%..90%) missing; remember live stream position missing (live always resumes at 0); remember short-video position has no switch; clock in controls bar missing; quality info and bitrate in controls bar missing; show UI on next video switch missing; UI animations switch missing; likes/dislikes count missing; tooltips, long-press hint, real channel icon, row focus sync and old speed-button behaviour have no equivalent (no button rows); audio focus is Android-only | yes | L |
-| Developer options (player tweaks) (`PlayerSettingsPresenter.appendDeveloperCategory`) | No switch to disable automatic recovery ('disable network error fixing'); No high-bitrate/Premium 1080p or high-bitrate mp4a selection switch; No 'force legacy codecs (360p progressive)' switch; No 'disable buffer on streams' (live latency) switch; No alt presets (bandwidth cap) behaviour; No 'hide Settings section' switch; IPv4/Google DNS preference not exposed (would be a companion flag) | yes | M |
-| Video loading, next/previous, end-of-video handling (`behavior.VideoLoaderController`) | No preloading of the next video's formats; Next/previous are picker rows only; no dedicated controller binding or 'next up' title in the HUD; No quick-skip (D-pad left/right or up/down switches video when UI hidden); No automatic aspect handling for vertical/Shorts video; No playlist restart-at-end handling for repeat of a whole list; Standalone (no companion) loading absent | yes | M |
-| Playback state: resume, history, speed, formats, live edge (`behavior.VideoStateController`) | No incognito mode (history pause exists only as history-sync off); Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live sources have no seekable timeline'); No short-video (<5 min) resume switch and no music-video no-resume rule; No volume or pitch restore (no such settings); No resume-state expiry; Per-video last-chosen quality is not persisted (limits only) | yes | L |
-| Player overlay UI and button actions (`behavior.PlayerUIController`) | No metadata-driven button states (liked, subscribed, in playlist) inside the player; No long-press secondary dialogs; No number-key seek, no quick-skip keys; Account actions (like, dislike, subscribe, add to playlist) are browser-only, not reachable during playback; No share, description, search, open-channel or queue dialogs from the player | yes | L |
-| Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; No video presets row; No video buffer row; No audio delay row; No pitch effect; Manually chosen video/audio format is not persisted as the preference for following videos; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
-| Automatic playback error fixing (`behavior.ErrorFixerController`) | No quality step-down after repeated stalls or decoder failure (recovery requires the same stream choice); No automatic caption disable when a caption load/parse fails during playback start; No typed error titles per failing component; No handling of a stream that ended while watching (live ended -> reload as VOD); No switch to disable automatic recovery | yes | M |
-| Suggestions, chapters and next-video selection (`behavior.SuggestionsController`) | No suggestions rows inside the player (related videos only from the browser's video actions); Chapters: start times only; no chapter titles, list, seek-bar markers or chapter name in the seek preview; No chapter notification / next-chapter prompt; No queue row in the player; No live title/description refresh; No dislike/like counts appended to metadata | yes | L |
-| Audio time stretching switch (`extra.Misc.TimeStretchingSwitch`) | No off switch (pitch-shifting resample path absent) | yes | S |
-| Button: Subtitles (`extra.Button.Subtitles`) | No style/size/position entries; No per-channel remember switch; No separate human/auto-generated groups (flat list tagged '(automatic)'); No recently-used ordering | yes | M |
+| Setup player buttons (`PlayerSettingsPresenter.appendPlayerButtonsCategory`) | No switches for subtitles, play/pause, stats and playback settings: these stay fixed controller bindings (Up/Down, Cross, Options, R2); No AFR and PiP switches (those buttons do not exist here); The buttons are rows of the R2 options picker, not a button bar in the HUD | yes | M |
+| Player misc switches (28) (`PlayerSettingsPresenter.appendMiscCategory`) | background play while searching or browsing a channel missing; comments placement missing (comments are not shown in the player); horizontally scrolled suggestions and 'don't resize video to fit dialog' have no equivalent (suggestions are a list in the options picker); remember live stream position missing (live always resumes at the live point); show UI on next video switch missing; UI animations switch missing; likes/dislikes count is shown on Video details and Open description only (see extra.Misc.LikesCount); tooltips, long-press hint, real channel icon, row focus sync and old speed-button behaviour have no equivalent (no button rows) | yes | L |
+| Developer options (player tweaks) (`PlayerSettingsPresenter.appendDeveloperCategory`) | 'Disable network error fixing': settings:error-fixer turns off the decoder and long-buffering fixes only; the stream refresh after an input failure has no off switch; No high-bitrate/Premium 1080p or high-bitrate mp4a selection switch; No 'force legacy codecs (360p progressive)' switch; No 'disable buffer on streams' (live latency) switch; No alt presets (bandwidth cap) behaviour; No 'hide Settings section' switch; IPv4/Google DNS preference not exposed (would be a companion flag) | yes | M |
+| Remember subtitles per channel (`extra.SubtitleRememberPerChannel`) | The switch is in YouTube preferences (Caption style, size and position) only, not in the in-player caption picker | yes | S |
+| Video loading, next/previous, end-of-video handling (`behavior.VideoLoaderController`) | No preloading of the next video's formats; Next/previous are picker rows or the optional quick-skip D-pad mode; no 'next up' title in the HUD; No automatic aspect handling for vertical/Shorts video; No playlist restart-at-end handling for repeat of a whole list; Standalone (no companion) loading absent | yes | M |
+| Playback state: resume, history, speed, formats, live edge (`behavior.VideoStateController`) | Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline'); No music-video no-resume rule; No pitch restore (no pitch setting); No resume-state expiry; A quality chosen in the player is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted | yes | L |
+| Player overlay UI and button actions (`behavior.PlayerUIController`) | No metadata-driven button states (liked, subscribed, in playlist) inside the player: the rows are the browser's video actions with fixed labels; No long-press secondary dialogs (the secondary settings are separate rows); Open channel, Search and the QR codes of Share link stop playback and leave for the browser | yes | L |
+| Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; No video buffer row; No pitch effect; A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
+| Automatic playback error fixing (`behavior.ErrorFixerController`) | No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering); An audio decoder or output failure gets a message but no fix (no other audio format can be requested); No handling of a stream that ended while watching (live ended -> reload as VOD); settings:error-fixer turns off the decoder and buffering fixes only; the stream refresh after an input failure has no off switch | yes | M |
+| Suggestions, chapters and next-video selection (`behavior.SuggestionsController`) | Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls; No chapter markers on the seek bar; No live title/description refresh; Like/dislike counts are on Video details and Open description only, not appended to the player's metadata | yes | L |
+| Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own | yes | M |
+| Button: Subtitles (`extra.Button.Subtitles`) | No per-channel remember switch in the picker (YouTube preferences only); No separate human/auto-generated groups (flat list tagged '(automatic)' / '(translated)'); No recently-used ordering | yes | M |
 | Button: Advanced playback settings (`extra.Button.HighQuality`) | See behavior.HQDialogController | yes | M |
 | Button: Chat/Comments (`extra.Button.Chat`) | Comments cannot be opened while the video plays (browser R3 only) | yes | M |
-| Button: SponsorBlock (`extra.Button.ContentBlock`) | No in-player toggle or exclude-channel row; settings screen only | yes | S |
-| Button: Subscribe (+ notification level) (`extra.Button.Subscribe`) | Not reachable during playback; no subscribed state shown; No notification-level dialog | yes | M |
-| Buttons: Like / Dislike (`extra.Button.LikeDislike`) | Not reachable during playback; current rating state not shown | yes | M |
-| Button: Add to playlist (`extra.Button.AddToPlaylist`) | Not reachable during playback | yes | M |
-| Button: Playback queue (`extra.Button.PlaybackQueue`) | Queue is visible only in the browser, not from the player | yes | M |
+| Button: SponsorBlock (`extra.Button.ContentBlock`) | No in-player on/off toggle for SponsorBlock and no category settings from the player (YouTube preferences only) | yes | S |
+| Button: Mute (+ volume/pitch dialog) (`extra.Button.SoundOff`) | No pitch effect | yes | M |
+| Button: Subscribe (+ notification level) (`extra.Button.Subscribe`) | No subscribed state shown in the player: the direct row always subscribes; Unsubscribe is under Video actions | yes | M |
+| Buttons: Like / Dislike (`extra.Button.LikeDislike`) | Current rating state is not shown; each rating is confirmed on a review row rather than toggled | yes | M |
+| Button: Share link (`extra.Button.ShareLink`) | Links carry no current position (tube_qr_video_url is called with position 0); The QR codes are drawn by the browser page, so showing them stops the video | yes | M |
 
 ### Missing
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
 | Video buffer size (`PlayerSettingsPresenter.appendVideoBufferCategory`) | No buffer-size preference; EVO prebuffer and companion relay (companion/prosperotube/hls_buffer.py) use fixed depths; No settings row or in-player options row | yes | M |
-| Screen off / dimming timeout (`PlayerSettingsPresenter.appendScreenOffTimeoutCategory`) | No dimming overlay, timeout or amount preference | yes | M |
-| Setup player buttons (`PlayerSettingsPresenter.appendPlayerButtonsCategory`) | No per-button visibility preference; No button row in the player HUD at all; see extra.Button.* items for which actions exist | yes | M |
-| Unlock more subtitles (auto-translated) (`SubtitleSettingsPresenter.appendMoreSubtitlesSwitch`) | No auto-translated caption tracks (tlang) offered by the companion or picker | yes | M |
-| Remember subtitles per channel (`extra.SubtitleRememberPerChannel`) | No per-channel caption on/off memory | yes | S |
 | Auto frame rate switches (`AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory`) | No display refresh-rate switching to match video fps; 'settings:frame-rate' is only a stream fps limit | no | L |
 | Auto frame rate pause (`AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory`) | Depends on auto frame rate, which is absent | no | S |
 | Auto frame rate: supported display modes (`AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory`) | No display-mode enumeration screen | no | S |
 | Auto frame rate behaviour (`behavior.AutoFrameRateController`) | No display mode switching by video frame rate | no | L |
 | Remember live stream position (`extra.Misc.RememberLivePosition`) | Live always starts at the live point; no DVR seek | no | L |
-| Next-chapter notification (`extra.Misc.ChapterNotification`) | No chapter-change prompt; chapter titles not carried | yes | M |
 | Keep playing while searching/browsing a channel (`extra.Misc.BackgroundPlayWhileSearching`) | Leaving the player stops playback; no in-app mini player | no | L |
-| Likes/dislikes count (`extra.Misc.LikesCount`) | No like/dislike counters for videos anywhere | yes | M |
-| Seek with number keys (`extra.Misc.NumberKeySeek`) | No percentage seek binding (USB remote/keyboard digits unused) | yes | S |
 | Tooltips, long-press hint, channel icon, row focus sync, UI animations, UI on next video, old speed button (`extra.Misc.UiChromeSwitches`) | No button rows, so none of these switches exist | yes | M |
-| Button: Mute (+ volume/pitch dialog) (`extra.Button.SoundOff`) | No local mute action; No volume list; No pitch effect | yes | M |
-| Button: Open channel (`extra.Button.OpenChannel`) | No player action that leaves to the current video's channel | yes | S |
-| Button: Search from player (`extra.Button.Search`) | Search is browser-only (Square is media info in the player) | yes | S |
-| Button: Video description (`extra.Button.VideoInfo`) | No full description text from the companion; No description reader in the player | yes | M |
-| Button: Share link (`extra.Button.ShareLink`) | No QR code or link display for the playing video | yes | M |
-| Button: Screen dimming (`extra.Button.ScreenDimming`) | No dimming overlay | yes | M |
 | Button: Auto frame rate (`extra.Button.AutoFrameRate`) | See behavior.AutoFrameRateController | no | L |
 
 ### Done
 
-OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, Player volume 0-300%, Remember speed, Seek behavior, Remaining / ending time in controls, Pixel ratio, Playback mode, Exit from the player (single/double back), Sleep timer, Subtitle language, Subtitle style, Subtitle size, Subtitle position, Auto volume adjustment (loudness normalisation), Clock in controls bar, Quality info (and bitrate) in controls bar, Loop Shorts, Remember position of short videos, Use current section as playlist, Button: Play/Pause, Buttons: Next / Previous video, Button: Playback mode, Button: Video speed, Button: Video zoom / aspect / rotate dialog, Button: Rotate, Button: Flip (mirror), Button: Seek interval, Button: Debug info (stats), Quick skip with D-pad when UI hidden.
+OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, Player volume 0-300%, Remember speed, Screen off / dimming timeout, Seek behavior, Remaining / ending time in controls, Pixel ratio, Playback mode, Exit from the player (single/double back), Sleep timer, Subtitle language, Subtitle style, Subtitle size, Subtitle position, Unlock more subtitles (auto-translated), Auto volume adjustment (loudness normalisation), Clock in controls bar, Quality info (and bitrate) in controls bar, Loop Shorts, Remember position of short videos, Next-chapter notification, Use current section as playlist, Button: Play/Pause, Buttons: Next / Previous video, Button: Playback mode, Button: Video speed, Button: Video zoom / aspect / rotate dialog, Button: Rotate, Button: Flip (mirror), Button: Seek interval, Button: Debug info (stats), Button: Add to playlist, Button: Playback queue, Button: Open channel, Button: Search from player, Button: Video description, Button: Screen dimming, Quick skip with D-pad when UI hidden.
 
 ### Not applicable on PS5
 
 - Network engine: Android library choice; PS5 fetches media through the FFmpeg/companion relay path only.
+- Audio time stretching switch: The PS5 FFmpeg build has only the pitch-preserving atempo filter (scripts/prepare_native.py adds --enable-filter=atempo next to anull), so there is no other tempo path to switch to; time stretching is always on.
+- Seek with number keys: The EVO player reads the controller only (PadButtons in third_party/evo/projects/evoplayer/core/include/evo/Common.hpp; the keyboard is the on-screen text entry), so no digit key events reach the player.
 - Audio focus: Android audio-focus API; no competing in-app players on PS5.
 - Button: Background playback (PiP): Android system PiP and HOME-key background modes; the in-app equivalent is tracked as extra.Misc.BackgroundPlayWhileSearching.
 
@@ -84,39 +75,32 @@ OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, P
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Main browse screen / sidebar (`behavior.BrowsePresenter`) | No Shorts, Trending, Kids, Notifications, My videos or account Channels sections; Sections are a fixed two-level folder tree (Discover > ...), not a flat sidebar; no per-section enable/disable, reorder (move up/down) or boot-section choice; No pinned playlists/channels in the sidebar; No section long-press menu (refresh, unpin, move, rename, mark all channels watched); No channel-section sorting (new content / name / last viewed) and no playlists rows-vs-grid style; No password-protected sections | yes | L |
+| Main browse screen / sidebar (`behavior.BrowsePresenter`) | Discover sections sit one level below the main menu (two-level tree), not a flat sidebar; No playlists rows-vs-grid style; Channel sorting has no last-viewed order | yes | L |
 | Channel page (`behavior.ChannelPresenter`) | Channel Home skips Shorts and featured-channel shelves | yes | L |
-| Playlist / uploads grid (`behavior.ChannelUploadsPresenter`) | No way to open the containing playlist or the channel uploads from a video card (Open playlist / Open channel uploads actions absent); No subscribed-channel uploads entry with new-content marker (Channels section missing) | yes | M |
-| Search screen (`behavior.SearchPresenter`) | No search suggestions / autocomplete tags; No search history (recent queries, remove one, clear all); No search filters or sort order; Search results contain videos and playlists only; channel results are dropped; No play-first-result mode (startPlay) | yes | L |
-| Playback entry point (`behavior.PlaybackPresenter`) | No incognito open (video.incognito suppressing history/progress); No background playback while browsing with a Return to background video action (isRunningInBackground); No open-at-time entry (openVideo(videoId, finishOnEnded, timeMs)) from links such as ?t= | yes | M |
-| Channels section (subscribed channels) (`extra.Section.Channels`) | No new-content marker; sorting by new content and last viewed is absent | yes | M |
+| Search screen (`behavior.SearchPresenter`) | No as-you-type suggestion tags while the keyboard is open; YouTube's 'last hour' date filter and the upload-date and rating orders are not offered; Channel and playlist results need the library worker path; Play-first-result is a Search options row for the last query; voice and phone requests do not use it | yes | L |
+| Playback entry point (`behavior.PlaybackPresenter`) | No background playback while browsing with a Return to background video action (isRunningInBackground); No open-at-time entry (openVideo(videoId, finishOnEnded, timeMs)) from links such as ?t= | yes | M |
+| Channels section (subscribed channels) (`extra.Section.Channels`) | Sorting by last viewed is absent (account order takes its place) | yes | M |
 | Notifications section (`extra.Section.Notifications`) | Hiding a notification is not available | yes | M |
+| Set / unset stream reminder (`extra.Menu.StreamReminder`) | This is YouTube's account 'Notify me' reminder; SmartTube's local reminder, which polls the stream and starts playback when it goes live, is absent; Needs an account profile and a companion that lists stream_reminder | yes | M |
+| Add to / remove from most recent playlist (`extra.Menu.AddToRecentPlaylist`) | Membership state is not shown: both rows are listed and each asks for confirmation instead of one tap | yes | S |
 | Hide from Subscriptions / Notifications feed (`extra.Menu.RemoveFromSubscriptions`) | Notifications rows cannot be hidden | yes | S |
-| Share link (`extra.Menu.ShareLink`) | No share row on channel and playlist cards themselves; No QR code | yes | S |
 | Typing / commit behaviour (`extra.Search.TypingCommit`) | The query is not kept editable on a search screen: no visible search field to refine, and nothing happens while typing; No re-run of the last query without retyping | yes | M |
 | Search suggestions / autocomplete (incl. popular searches) (`extra.Search.Suggestions`) | No as-you-type list while the keyboard is open | yes | M |
 | Filter: upload date (`extra.Search.FilterUploadDate`) | "Last hour" is not offered by the pinned library | yes | M |
 | Sort results (`extra.Search.Sort`) | Upload-date and rating orders are not offered by the pinned library | yes | S |
 | Channel and playlist cards in results (`extra.Search.ChannelAndPlaylistResults`) | Cards appear only on the library search path, not on the Guest extractor path | yes | S |
+| Search and play first result (`extra.Search.PlayFirstResult`) | Offered only as a Search options row for the last query; phone and voice 'play ...' requests do not use it | yes | S |
 
 ### Missing
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Video details screen (`behavior.DetailsPresenter`) | No video details screen (title, channel, full description, stats) before playback | yes | M |
-| Kids section (`extra.Section.Kids`) | No kids home browse in the worker and no native folder | yes | M |
-| Set / unset stream reminder (`extra.Menu.StreamReminder`) | is_upcoming is produced by companion/innertube/library.mjs but not used natively; no reminder list, poller or menu entry | yes | M |
-| Add to / remove from most recent playlist (`extra.Menu.AddToRecentPlaylist`) | Last-used playlist id/title is not remembered; menu has no shortcut row | yes | S |
-| Playlist order (`extra.Menu.PlaylistOrder`) | No per-playlist order preference and no sort parameter on the 'playlist' library action | yes | M |
-| Share link as QR code (`extra.Menu.ShareQRLink`) | No QR encoder or QR view in native/ or scripts/ | yes | M |
 | Return to background video (`extra.Menu.ReturnToBackgroundVideo`) | No background playback while browsing; opening the browser stops the player | no | L |
-| Mark all channels as watched / mark channel as watched (`extra.Menu.MarkAllChannelsWatched`) | Depends on the account Channels section with new-content markers (extra.Section.Channels) | yes | S |
 | Check for updates (section menu) (`extra.Menu.UpdateCheck`) | No update check or self-update code in ProsperoTube | yes | M |
-| Search and play first result (`extra.Search.PlayFirstResult`) | No search-then-play entry, e.g. for phone or voice 'play ...' commands | yes | S |
 
 ### Done
 
-Remove from history (video menu), Home section, Shorts section, Trending section, Sports section, Live section, Gaming section, News section, Music section, My videos section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Pinned playlists / channels in the sidebar, Show/hide and reorder sidebar sections, boot section, Play video, Play video incognito, Play from start, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Save playlist to library / remove playlist, Not interested, Don't recommend channel, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Open channel (and channel uploads), Open playlist, Subscribe / unsubscribe, Exclude channel from SponsorBlock, Pin playlist / channel to sidebar, Open description, Open comments, Share embed link, Select account, Pause / resume watch history, Clear history, Refresh section, Move section up / down, Rename pinned section, Unpin / hide section from sidebar, Text search with paged results, Search history, Voice search, Filter: duration, Filter: content type, Filter: features (Live, 4K, HDR).
+Remove from history (video menu), Playlist / uploads grid, Video details screen, Home section, Shorts section, Trending section, Kids section, Sports section, Live section, Gaming section, News section, Music section, My videos section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Pinned playlists / channels in the sidebar, Show/hide and reorder sidebar sections, boot section, Play video, Play video incognito, Play from start, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Save playlist to library / remove playlist, Playlist order, Not interested, Don't recommend channel, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Open channel (and channel uploads), Open playlist, Subscribe / unsubscribe, Exclude channel from SponsorBlock, Pin playlist / channel to sidebar, Open description, Open comments, Share link, Share link as QR code, Share embed link, Select account, Pause / resume watch history, Clear history, Refresh section, Move section up / down, Rename pinned section, Unpin / hide section from sidebar, Mark all channels as watched / mark channel as watched, Text search with paged results, Search history, Voice search, Filter: duration, Filter: content type, Filter: features (Live, 4K, HDR).
 
 ### Not applicable on PS5
 
@@ -128,14 +112,13 @@ Remove from history (video menu), Home section, Shorts section, Trending section
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Protect account with password (`AccountSettingsPresenter.appendProtectAccountWithPassword`) | Keyboard shows the typed text; The profile already selected at startup is not challenged | yes | M |
+| Protect account with password (`AccountSettingsPresenter.appendProtectAccountWithPassword`) | The PS5 keyboard shows the typed text (no masked entry) | yes | M |
 | SponsorBlock links (server status, about) (`SponsorBlockSettingsPresenter.appendLinks`) | No server status check | yes | S |
 | DeArrow switches: unlocalized titles, crowdsourced titles, crowdsourced thumbnails (`DeArrowSettingsPresenter.appendSwitches`) | 'Unlocalized video titles' switch is absent, with its mutual exclusion against crowdsourced titles | yes | M |
 | DeArrow links (server status, about) (`DeArrowSettingsPresenter.appendLinks`) | No server status check | yes | S |
-| Phone remote control behaviour (`behavior.RemoteController`) | Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'; No 'device disconnected' message shown before closing the app; History is not suppressed for phone-started playback (see RemoteControlSettingsPresenter.appendMiscCategory); 10-second start delay after app init not mirrored (harmless) | yes | M |
-| SponsorBlock playback behaviour (`behavior.SponsorBlockController`) | No in-player SponsorBlock button: cannot manually skip the segment the playhead is inside (full-match skip), cannot toggle SponsorBlock on/off from the player, no shortcut to SponsorBlock settings from the player; No on/off state indicator in the player controls | yes | M |
+| Phone remote control behaviour (`behavior.RemoteController`) | Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'; No 'device disconnected' message shown before closing the app; 10-second start delay after app init not mirrored (harmless) | yes | M |
+| SponsorBlock playback behaviour (`behavior.SponsorBlockController`) | The in-player SponsorBlock row only toggles the channel exclusion: no manual skip of the segment the playhead is inside (full-match skip), no on/off toggle and no shortcut to SponsorBlock settings from the player; No on/off state indicator in the player controls | yes | M |
 | Comments dialog (`behavior.CommentsController`) | Comments open only from the browser (R3 on a video), not from inside the player with the video still visible; No restore of the previous comment list position when reopening for the same video; Like is a reviewed menu action rather than an instant toggle with an optimistic count update | yes | M |
-| YouTube device-code sign-in (`behavior.YTSignInPresenter`) | No QR code for the activation address | yes | M |
 
 ### Missing
 
@@ -146,7 +129,7 @@ Remove from history (video menu), Home section, Shorts section, Trending section
 
 ### Done
 
-Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, SponsorBlock misc: paid content notice, don't skip again, alternative server, Exclude current channel from SponsorBlock, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher.
+Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, SponsorBlock misc: paid content notice, don't skip again, alternative server, Exclude current channel from SponsorBlock, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher, YouTube device-code sign-in.
 
 ### Not applicable on PS5
 
@@ -159,10 +142,13 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
 | Key remapping (`GeneralSettingsPresenter.appendKeyRemappingCategory`) | Only D-pad remaps for skip, volume and speed; other SmartTube remaps are absent | yes | M |
-| General misc (12 toggles) (`GeneralSettingsPresenter.appendMiscCategory`) | Per-profile settings cannot be switched off (single shared settings mode); Settings password and master password; Child mode (locks search/suggestions, restricted sections/buttons); Disable screensaver switch; Disable long-press switch; Player exit double-back; search exit double-back; Remember last position in Subscriptions / pinned playlists | yes | L |
+| General misc (12 toggles) (`GeneralSettingsPresenter.appendMiscCategory`) | Settings password and master password (only a profile password exists); Child mode (locks search/suggestions, restricted sections/buttons); Disable screensaver switch; Disable long-press switch; Search exit double-back; Remember last position in Subscriptions / pinned playlists | yes | L |
+| Web proxy (`GeneralSettingsPresenter.appendProxyManager`) | Host start-up option only: no 'Use Web Proxy' switch and no host/port/credentials dialog on the console; SOCKS proxies are refused | yes | M |
 | App/content language (`LanguageSettingsPresenter.appendLanguageCategory`) | Interface strings are not translated (see extra.Localization) | yes | L |
 | Color scheme (`MainUISettingsPresenter.appendColorScheme`) | Palettes are EVO's, not SmartTube's eight (no OLED/monochrome equivalents verified); Device-wide (evo_player_settings.cfg), not per profile; native/youtube.rcss adoption of theme tokens not verified | yes | S |
-| Main UI misc (12 toggles) (`MainUISettingsPresenter.appendMiscCategory`) | Unlocalized titles; 24-hour toggle; Clock in browser corner; clock in player corner; Ending time as an independent toggle alongside duration; Channels old look, pinned-channel rows, playlists rows; Channels filter field; in-channel search bar; Channels auto-load | yes | L |
+| Channels section sorting (`MainUISettingsPresenter.appendChannelSortingCategory`) | 'Last viewed' order is not offered; account order takes its place | yes | S |
+| Main UI misc (12 toggles) (`MainUISettingsPresenter.appendMiscCategory`) | Unlocalized titles; Clock in browser corner; the player clock is in the controls bar, not a corner label; Ending time as an independent toggle alongside duration; Channels old look, pinned-channel rows, playlists rows; Channels filter field; Channels auto-load | yes | L |
+| Search misc (8 toggles) (`SearchSettingsPresenter.appendMiscCategory`) | Search exit double-back; Instant voice search on opening search; Autofocus results / auto-show keyboard switches; Background play while searching/browsing | yes | M |
 | How ProsperoTube exposes settings (`extra.SettingsScreenStructure`) | Flat list of ~35 rows, no categories mirroring SmartTube's dialogs; Two parallel per-profile stores (ProfileSettings and g_player_preferences) plus device-wide EVO cfg; No description of options beyond 'Selected' in the detail text; no radio/check widgets | yes | M |
 
 ### Missing
@@ -173,44 +159,31 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Context menu sorting (`GeneralSettingsPresenter.appendContextMenuSortingCategory`) | Persisted order of action-menu entries and a reorder UI | yes | M |
 | Exit from the app shortcut (`GeneralSettingsPresenter.appendAppExitCategory`) | Setting with three values; Circle at provider root: nothing / confirm-on-second-press / immediate soft close | yes | S |
 | Background playback mode (`GeneralSettingsPresenter.appendBackgroundPlaybackCategory`) | No background mode at all: leaving the player stops playback; In-app equivalent (keep audio/video while browsing, return-to-video entry) not implemented | no | L |
-| Screen dimming (entry) (`GeneralSettingsPresenter.appendScreenDimmingCategory`) | No idle dimming overlay in browser or paused player | yes | M |
-| Screen dimming amount (`GeneralSettingsPresenter.appendScreenDimmingAmountCategory`) | Setting + full-screen black quad with that alpha after idle timeout | yes | S |
-| Screen dimming timeout (`GeneralSettingsPresenter.appendScreenDimmingTimeoutCategory`) | Timeout setting and idle detection driving the dimmer | yes | S |
 | Network settings category (`GeneralSettingsPresenter.appendInternetCensorship`) | No network settings group | yes | S |
-| Web proxy (`GeneralSettingsPresenter.appendProxyManager`) | Proxy URL setting on the console forwarded to the companion, or a companion proxy option applied to yt-dlp/youtubei.js and media relays | yes | M |
 | Buttons at the top of the main window (`MainUISettingsPresenter.appendTopButtonsCategory`) | No top-button row, hence nothing to toggle | yes | S |
 | Card preview (`MainUISettingsPresenter.appendCardPreviews`) | Focused-card video preview and its setting | no | L |
 | Cards style (`MainUISettingsPresenter.appendCardStyle`) | All five toggles; card layout is fixed in native/youtube.rml / youtube.rcss | yes | M |
 | Card title lines number (disabled upstream) (`MainUISettingsPresenter.appendCardTitleLines`) | Title line-count setting | yes | S |
-| Channels section sorting (`MainUISettingsPresenter.appendChannelSortingCategory`) | Sorting setting and the three orders for the channels list | yes | S |
 | Playlists section style (disabled upstream) (`MainUISettingsPresenter.appendPlaylistsCategoryStyle`) | Grid vs rows presentation of Your playlists | yes | M |
 | UI scale (`MainUISettingsPresenter.appendScaleUI`) | Scale setting applied as RmlUi dp ratio for provider/player documents | yes | M |
 | Card text scroll speed (`MainUISettingsPresenter.appendCardTextScrollSpeed`) | Depends on auto-scrolled titles, which do not exist | yes | S |
 | Video grid scale (`MainUISettingsPresenter.appendVideoGridScale`) | Card-size/columns scale for catalog grids | yes | M |
 | Video grid scale (stand-alone dialog) (`UIScaleSettingsPresenter.appendVideoGridScale`) | Same as MainUISettingsPresenter.appendVideoGridScale | yes | S |
 | UI scale (stand-alone dialog) (`UIScaleSettingsPresenter.appendScaleUI`) | Same as MainUISettingsPresenter.appendScaleUI | yes | S |
-| Search misc (8 toggles) (`SearchSettingsPresenter.appendMiscCategory`) | Search history (and its disable switch); Search exit double-back; Instant voice search on opening search; Autofocus results / auto-show keyboard switches; Background play while searching/browsing | yes | M |
 | Notify about updates (`AboutSettingsPresenter.appendAutoUpdateSwitch`) | No update check of any kind in native/ or scripts/ | yes | M |
 | Check for updates (`AboutSettingsPresenter.appendUpdateCheckButton`) | Manual update check entry | yes | S |
-| Changelog (`AboutSettingsPresenter.appendUpdateChangelogButton`) | ProsperoTube changelog data (EVO has include/evo_changelog.h + assets/rml/changelog.rml to reuse) | yes | S |
-| Releases / Sources links (`AboutSettingsPresenter.appendLinks`) | Releases and source links shown as text/QR | yes | S |
-| Feedback (`AboutSettingsPresenter.appendFeedback`) | Issue-tracker link in About | yes | S |
 | Notify about updates (simple) (`AboutSimpleSettingsPresenter.appendAutoUpdateSwitch`) | Same as AboutSettingsPresenter.appendAutoUpdateSwitch | yes | S |
 | Check for updates (simple) (`AboutSimpleSettingsPresenter.appendUpdateCheckButton`) | Same as AboutSettingsPresenter.appendUpdateCheckButton | yes | S |
 | Google Drive backup (entry) (`BackupSettingsPresenter.appendGDriveBackupCategory`) | No cloud backup | no | L |
 | Google Drive: restore app data (`BackupSettingsPresenter.appendGDriveRestoreSettings`) | Drive restore | no | M |
 | Google Drive: backup app data (`BackupSettingsPresenter.appendGDriveBackupSettings`) | Drive backup | no | M |
-| Local auto backup (`BackupSettingsPresenter.appendLocalAutoBackupOption`) | Frequency setting and a dated copy at start when due | yes | S |
 | Google Drive auto backup (`BackupSettingsPresenter.appendGDriveAutoBackupButton`) | Drive auto backup | no | S |
 | Google Drive: device-only backup + sign in (`BackupSettingsPresenter.appendGDriveMiscButtons`) | Drive sign-in and device scoping | no | M |
-| Local backup (category) (`BackupSettingsPresenter.appendLocalBackupCategory`) | Backup/restore menu | yes | S |
-| Local backup / restore app data (`BackupSettingsPresenter.appendLocalBackupRestoreOptions`) | Write dated copy of youtube.json (+ evo_player_settings.cfg) to /data/prosperotube/backup or USB; List backups, validate (version, records array) and restore, then re-run init(); Confirmation steps | yes | M |
-| Import subscriptions (GrayJay/PocketTube/NewPipe) (`BackupSettingsPresenter.appendSubscriptionsBackupButton`) | Parser for the three export formats; File source (USB path or upload through the companion); Merge into local follows (Record.subscribed) | yes | M |
 | UI localization (`extra.Localization`) | String catalog mechanism (EVO offers none): key table + per-language files + lookup helper used by tube_provider.c, overlays and RML; Language selection (PS5 system language default + setting); Catalogs converted from SmartTube strings.xml for shared labels; new strings for PS5-only labels; Fonts/shaping for non-Latin scripts and RTL; Toasts/errors in scripts/*_overlay.py are inline literals too | yes | L |
 
 ### Done
 
-Set-up sections (show/hide sidebar sections), Hide content (16 toggles), Boot to section, Time format (General; disabled upstream), History state, Country, Where to grab card thumbnails, Time format (Main UI; disabled upstream).
+Set-up sections (show/hide sidebar sections), Hide content (16 toggles), Boot to section, Screen dimming (entry), Screen dimming amount, Screen dimming timeout, Time format (General; disabled upstream), History state, Country, Where to grab card thumbnails, Time format (Main UI; disabled upstream), Changelog, Releases / Sources links, Feedback, Local auto backup, Local backup (category), Local backup / restore app data, Import subscriptions (GrayJay/PocketTube/NewPipe).
 
 ### Not applicable on PS5
 
