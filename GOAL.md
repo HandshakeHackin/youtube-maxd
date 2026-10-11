@@ -4,6 +4,32 @@ Implement a 1:1 equivalent SmartTube port for **PlayStation 5**. Stop only when
 the full objective is implemented and verified. This is the current user-approved
 goal, confirmed on 2026-10-09; the 0.1.0 prototype is an intermediate milestone.
 
+## First release scope (owner decision, 2026-10-11)
+
+Full SmartTube parity stays the long-term target, tracked in
+[docs/PARITY.md](docs/PARITY.md). The first release is limited so that what
+ships has been exercised on a console and against the live service:
+
+- **Core:** Guest search with filters, Home, Discover sections, channels,
+  playlists, playback with captions, quality and speed, history and resume, queue.
+- **Integrations:** SponsorBlock and DeArrow.
+- **Accounts:** sign-in, subscriptions, library, ratings and playlists.
+- **Settings:** those already implemented. English interface. The LAN companion
+  is required and stated as such.
+- **Experimental (off by default or labelled):** phone casting, voice search,
+  live chat and comment posting, account-history controls, feedback actions,
+  account password.
+- **Deferred to later releases:** localization, remaining interface options,
+  drawn seek previews, update check and self-update, the standalone on-console
+  service, and features that need hardware work (auto frame rate, HDR,
+  background playback).
+
+Sequence: finish and merge the batches in flight, then freeze features; check
+the service against live YouTube from the companion host; build and freeze a
+candidate; run one bounded console session on the core path; fix and release.
+Use the console as little as possible: other agents share it. Always check that
+nothing is running first; either console may be used, whichever is free.
+
 Reuse the existing PS5 ecosystem: EVO Player is the integrated playback, UI,
 decoder, FFmpeg and packaging foundation. ProsperoLight, ProsperoTV and the PS5
 video/audio research provide reference implementations and measured contracts.
