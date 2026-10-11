@@ -223,7 +223,7 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         memcpy(p.video, refill.video, sizeof p.video);
         memcpy(p.playlist, refill.playlist, sizeof p.playlist);
         memcpy(p.ctt, refill.ctt, sizeof p.ctt);
-        p.index = refill.indices[refill.cursor];
+        p.index = refill.cursor < 0 ? refill.base : refill.indices[refill.cursor];
         p.position = refill_position; p.duration = refill_duration;
     }
     if(fallback.owner) {
@@ -278,13 +278,19 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
     case TUBE_REMOTE_QUEUE:
         if(fallback.owner==c.owner && !strcmp(c.playlist,fallback.playlist) && !strcmp(c.ctt,fallback.ctt) &&
            !strcmp(c.video,fallback.video) && c.index==(fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor])) {
-            PhoneQueue anchor=fallback;double position=fallback_position,duration=fallback_duration;int64_t deadline=fallback_deadline;
-            clear_queue();refill=anchor;refill_position=position;refill_duration=duration;
-            refill_deadline=deadline;refill_not_before=now_ms;
+            PhoneQueue q=playlist(&c,fallback.video);
+            if(q.cursor>=0 && q.cursor+1<q.count && q.indices[q.cursor+1]>c.index) {
+                ++q.cursor;memcpy(q.video,q.videos[q.cursor],12);
+                clear_queue();begin(&c,&q,0);interruptible_launch=1;
+                if(ctl->browser)ctl->browser(ctl->context);
+                return;
+            }
+            /* Repeated terminal windows neither restart lookup nor extend its deadline. */
+            applied=1;break;
         }
         if (refill.owner == c.owner && !strcmp(c.playlist,refill.playlist) &&
             !strcmp(c.ctt,refill.ctt) && !strcmp(c.video,refill.video) &&
-            c.index == refill.indices[refill.cursor]) {
+            c.index == (refill.cursor < 0 ? refill.base : refill.indices[refill.cursor])) {
             PhoneQueue q = playlist(&c,refill.video);
             if (q.cursor >= 0 && q.cursor + 1 < q.count &&
                 q.indices[q.cursor + 1] > c.index) {

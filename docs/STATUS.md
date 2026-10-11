@@ -6,13 +6,14 @@ This document summarizes current evidence; older candidate entries are historica
 
 ## Current checkpoint
 
-The 2026-10-11 source checkpoint includes an unfinished native phone-recommendation
-adapter. It adds optional asynchronous lookup/cancellation callbacks and EOF/refill
-handoff state. These edits have not yet been compiled or tested and are not wired
-to the provider or application. They do not establish working phone fallback.
-The last tested service baseline is `1ac8bb5`; its evidence is listed below.
-Next: validate adapter ownership/cancellation, integrate verified provider lookup,
-then run the relevant offline integration checks. No new release package is ready.
+The source checkpoint `0db6a22` preserved the unfinished native phone-recommendation
+adapter. The following batch fixes queue-less anchor bounds and repeated-terminal
+reply handling, and passes the shipping phone/driver ASan/UBSan suite with expanded
+asynchronous lookup tests. Optional callbacks handle natural EOF, cancellation,
+timeouts and authoritative queue extensions. Provider/application callbacks remain
+unconnected, so this does not establish working phone fallback. The tested service
+baseline is `1ac8bb5`; its evidence is listed below. Next: integrate verified provider
+lookup and run offline integration checks. No new release package is ready.
 
 ## Implemented
 
@@ -36,6 +37,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Latest worker baseline: 145 tests and bundle build passed, including remote-only fallback discovery and verified channel-name replacement. The targeted Python request/library/occurrence suite passes 55 tests. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
 - After resuming, all 31 default native ASan/UBSan cases passed, including groups, progress, queues and channel-name blocks. The following related-video/filter batches passed four scoped native suites, PS5 provider compilation and expanded actual RmlUi folder/video selection; the full baseline predates that batch. Transient empty-row and empty-width warnings remain in the UI log.
 - Recent browsing-group/filter/progress changes have no console acceptance. No console was contacted during this offline phase.
+- The latest phone adapter/real-driver suite passes with ASan, UBSan and leak detection, including pending lookup feedback, invalid results, receiver/profile/selection retirement, control priority, terminal refill and queue-less extension. No SDK, application integration or hardware result covers the optional recommendation callbacks yet.
 
 ## Still missing
 

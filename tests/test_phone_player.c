@@ -36,7 +36,7 @@ static int voice_engine(void *ctx, int started, unsigned owner) {
 }
 static int close_engine(void *ctx) { (void)ctx; ++app_closes; return 1; }
 static void activity(void *ctx) { (void)ctx; ++activities; }
-static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine,0,close_engine,activity};
+static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine,0,close_engine,activity,NULL,NULL};
 static int64_t test_clock = 100000;
 static void cleanup(void) {
     tube_remote_shutdown(); tube_phone_clear();
@@ -499,9 +499,122 @@ static void test_eof_interruption(void) {
     tube_phone_tick_at(&controls,test_clock);assert(tube_phone_owns_media());feedback(1,1,0);
 }
 
+static int lookup_calls, lookup_cancels, lookup_result, lookup_index;
+static unsigned lookup_selection;
+static char lookup_video[12], lookup_playlist[101], lookup_next[12];
+static int recommendation(void *ctx,unsigned owner,unsigned selection,const char *video,const char *list,int index,char next[12]) {
+    (void)ctx;assert(tube_remote_owner_current(owner));assert(selection==engine.selection);
+    ++lookup_calls;lookup_selection=selection;lookup_index=index;
+    snprintf(lookup_video,sizeof lookup_video,"%s",video);
+    snprintf(lookup_playlist,sizeof lookup_playlist,"%s",list);
+    memcpy(next,lookup_next,12);return lookup_result;
+}
+static void recommendation_cancel(void *ctx) { (void)ctx;++lookup_cancels; }
+static void fallback_start(const char *list,int with_queue) {
+    char commands[800];snprintf(commands,sizeof commands,
+        "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":%s,\"playlist\":\"%s\",\"index\":7,\"position_sec\":0,\"ctt\":\"click\"}]",
+        with_queue?"[\"abcdefghijk\"]":"[]",list);
+    feed(commands);lookup_calls=lookup_cancels=lookup_result=0;
+    strcpy(lookup_next,"zyxwvutsrqp");
+    controls.recommendation=recommendation;controls.recommendation_cancel=recommendation_cancel;
+    tube_phone_tick_at(&controls,test_clock);started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    engine.position=engine.duration=300;engine.state=0;tube_phone_tick_at(&controls,test_clock);
+    assert(tube_phone_finished_at(test_clock));assert(tube_phone_retry_waiting());
+}
+static void test_recommendation_lifecycle(void) {
+    /* No supplied queue: retain an ended anchor while asynchronous work polls. */
+    fallback_start("",0);tube_phone_tick_at(&controls,test_clock);
+    assert(lookup_calls==1 && lookup_selection==engine.selection && lookup_index==7);
+    assert(!strcmp(lookup_video,"abcdefghijk") && !*lookup_playlist);
+    assert(!tube_phone_launch_pending() && !tube_phone_finished_at(test_clock));
+    active=0;tube_phone_tick_at(&controls,test_clock+1);assert(lookup_calls==2);
+    tube_remote_tick(test_clock+3000);cJSON *r=request("update"),*p=cJSON_GetObjectItem(r,"player");
+    assert(cJSON_GetObjectItem(p,"state")->valueint==0 && cJSON_GetObjectItem(p,"index")->valueint==7);
+    assert(cJSON_GetObjectItem(p,"position_sec")->valuedouble==300);cJSON_Delete(r);reply(0,200,accepted);
+    lookup_result=1;tube_phone_tick_at(&controls,test_clock+2);
+    assert(lookup_cancels==1 && !tube_phone_retry_waiting());
+    unsigned ticket=take_start("zyxwvutsrqp",0);started_video(ticket,"zyxwvutsrqp");
+    engine.state=1;tube_phone_tick_at(&controls,test_clock+3);
+    assert(tube_phone_owns_media() && !tube_phone_launch_current(ticket));
+    assert(!*engine.playlist); /* No inherited phone playlist on the new launch. */
+
+    /* Failure, self references, invalid characters and unterminated IDs fail closed. */
+    for(int mode=0;mode<4;++mode) {
+        fallback_start("",0);lookup_result=mode?1:-1;
+        if(mode==1)strcpy(lookup_next,"abcdefghijk");
+        if(mode==2)strcpy(lookup_next,"bad!bad!bad");
+        if(mode==3)memset(lookup_next,'x',sizeof lookup_next);
+        tube_phone_tick_at(&controls,test_clock);
+        assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    }
+    /* Deadline, replay, same-ID new selection, profile loss and callback removal. */
+    for(int mode=0;mode<8;++mode) {
+        fallback_start("",0);tube_phone_tick_at(&controls,test_clock);assert(lookup_calls==1);
+        if(mode==0)test_clock+=30000;
+        if(mode==1)engine.state=1;
+        if(mode==2)engine.selection=++selection_serial;
+        if(mode==3)configure(1,"other-profile",identity,"screen-123");
+        if(mode==4)controls.recommendation=NULL;
+        if(mode==5)tube_phone_cancel();
+        if(mode==6)controls.context=&lookup_calls;
+        if(mode==7)configure(1,"guest",identity,"different-screen");
+        lookup_result=1;tube_phone_tick_at(&controls,test_clock);
+        assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting() && !tube_phone_launch_pending());
+        controls.context=NULL;
+    }
+    cleanup();controls.recommendation=NULL;controls.recommendation_cancel=NULL;
+}
+static void test_recommendation_commands(void) {
+    const char *interrupts[]={
+        "{\"sequence\":3,\"action\":\"stopVideo\"}",
+        "{\"sequence\":3,\"action\":\"pause\"}",
+        "{\"sequence\":3,\"action\":\"seekTo\",\"position_sec\":10}",
+        "{\"sequence\":3,\"action\":\"setPlaylist\",\"video_id\":\"12345678901\",\"video_ids\":[],\"playlist\":\"\",\"index\":0,\"ctt\":\"\",\"position_sec\":0}",
+        "{\"sequence\":3,\"action\":\"remoteDisconnected\",\"device_id\":\"phone-one\",\"name\":\"Phone\"}"
+    };
+    for(int mode=0;mode<5;++mode) {
+        fallback_start("",0);tube_phone_tick_at(&controls,test_clock);lookup_result=1;
+        char commands[700];snprintf(commands,sizeof commands,"[{\"sequence\":2,\"action\":\"setVolume\",\"volume\":17},%s]",interrupts[mode]);
+        deliver_after_start(commands);tube_phone_tick_at(&controls,test_clock);assert(engine.volume==17);
+        tube_phone_tick_at(&controls,test_clock);
+        assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting());
+        if(mode==3)started_video(take_start("12345678901",0),"12345678901");
+        else assert(!tube_phone_launch_pending());
+    }
+    fallback_start("",0);tube_phone_tick_at(&controls,test_clock);lookup_result=1;
+    deliver_after_start("[{\"sequence\":2,\"action\":\"setVolume\",\"volume\":17},{\"sequence\":3,\"action\":\"getNowPlaying\"}]");
+    tube_phone_tick_at(&controls,test_clock);tube_phone_tick_at(&controls,test_clock);
+    assert(engine.volume==17 && lookup_calls==1 && !lookup_cancels);
+    tube_phone_tick_at(&controls,test_clock);started_video(take_start("zyxwvutsrqp",0),"zyxwvutsrqp");
+    cleanup();controls.recommendation=NULL;controls.recommendation_cancel=NULL;
+}
+static void test_recommendation_queue_updates(void) {
+    const char *terminal="[{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLfallback\",\"index\":7,\"position_sec\":300,\"ctt\":\"click\"}]";
+    fallback_start("PLfallback",1);tube_phone_tick_at(&controls,test_clock);assert(!lookup_calls);
+    deliver_after_start(terminal);tube_phone_tick_at(&controls,test_clock);assert(tube_phone_retry_waiting());
+    tube_phone_tick_at(&controls,test_clock);assert(lookup_calls==1 && !strcmp(lookup_playlist,"PLfallback"));
+    lookup_result=1;tube_phone_tick_at(&controls,test_clock);started_video(take_start("zyxwvutsrqp",0),"zyxwvutsrqp");
+    /* Repeated terminal windows preserve the pending lookup and original deadline. */
+    fallback_start("PLfallback",0);tube_phone_tick_at(&controls,test_clock);assert(lookup_calls==1);
+    deliver_after_start(terminal);tube_phone_tick_at(&controls,test_clock+29999);
+    assert(lookup_calls==1 && !lookup_cancels && tube_phone_retry_waiting());
+    lookup_result=1;tube_phone_tick_at(&controls,test_clock+30000);
+    assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_launch_pending() && !tube_phone_retry_waiting());
+    /* A queue-less anchor receiving an authoritative extension cannot index -1. */
+    fallback_start("PLfallback",0);tube_phone_tick_at(&controls,test_clock);assert(lookup_calls==1);
+    deliver_after_start("[{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"12345678901\"],\"playlist\":\"PLfallback\",\"index\":7,\"position_sec\":300,\"ctt\":\"click\"}]");
+    lookup_result=1;tube_phone_tick_at(&controls,test_clock);
+    assert(lookup_calls==1 && lookup_cancels==1 && !tube_phone_retry_waiting());
+    started_video(take_start("12345678901",0),"12345678901");
+    /* Keep the existing unavailable-video terminal behavior with callbacks enabled. */
+    test_unavailable_window_refill();
+    cleanup();controls.recommendation=NULL;controls.recommendation_cancel=NULL;
+}
+
 int main(void) {
     remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     test_sparse_occurrences(); cleanup();
     test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();test_eof_window_refill();test_eof_interruption();cleanup();
-    puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
+    test_recommendation_lifecycle();test_recommendation_commands();test_recommendation_queue_updates();cleanup();
+    puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership, asynchronous recommendations and PCM gain passed"); return 0;
 }

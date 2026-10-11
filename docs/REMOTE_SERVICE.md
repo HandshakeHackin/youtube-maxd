@@ -181,7 +181,7 @@ forwards the map; native next/previous and EOF use compact playable entries whil
 feedback preserves original indices, including duplicate video IDs. Unknown or
 ambiguous rows still reject expansion and preserve the supplied phone queue.
 
-## Remote recommendation fallback discovery (service only)
+## Remote recommendation fallback discovery and adapter
 
 `playback_next` accepts the strict boolean `remote_origin` only for this operation.
 When true and the autoplay endpoint is absent, the worker examines the primary
@@ -196,8 +196,13 @@ at target one, verify channel IDs/names when blocks are active, and apply normal
 blocked-occurrence traversal. The capability belongs to the selected profile;
 video occurrences remain distinct. Empty groups return no capability.
 
-This is discovery support, not completed phone autoplay. The native phone queue
-still needs an asynchronous, owner/selection-scoped handoff for both no-playlist
-EOF and a confirmed terminal playlist refill. That handoff must preserve the
-saved local queue, honor interruption and reject stale results. Console acceptance
+The native phone adapter now exposes optional owner/selection-scoped asynchronous
+lookup and cancellation callbacks for no-playlist EOF and confirmed terminal
+playlist refill. It retains ended feedback, honors incoming controls and queue
+extensions, rejects stale/invalid results, and bounds lookup to 30 seconds.
+Repeated terminal replies cannot extend that deadline. The adapter/driver sanitizer
+suite covers these paths; the adapter does not access the saved local queue.
+
+The provider and application do not yet supply the callbacks or consume the
+fallback group. End-to-end phone autoplay remains incomplete. Console acceptance
 is deferred until the final candidate.

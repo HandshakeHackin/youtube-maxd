@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## Optional native phone recommendation adapter — 2026-10-11
+
+Following checkpoint `0db6a22`, `wsl bash scripts/test_phone_player.sh` passes with
+`-Wall -Wextra -Werror`, ASan, UBSan and leak detection. This compiles the shipping
+phone adapter and remote driver against the existing real JSON/ack test harness.
+The expanded suite covers queue-less EOF, retained ended feedback, pending and
+successful lookup, one-use launch tickets, terminal/error/self/malformed results,
+timeout, replay, same-ID replacement, profile/receiver retirement, callback/context
+removal, explicit cancellation, command priority, terminal refill and authoritative
+queue extension. Existing unavailable-video/refill behavior also passes with the
+optional callbacks enabled. `git diff --check` passes.
+
+Queue-less anchors use their base index rather than a negative cursor. An incoming
+successor cancels fallback and uses the authoritative phone queue. Repeated matching
+terminal replies preserve the running lookup and its original 30-second deadline.
+These callbacks do not access or mutate the provider's saved local queue.
+
+The provider and generated application do not yet supply these optional callbacks.
+This is adapter-level validation only: no end-to-end fallback, PS5 SDK compilation,
+new package or console acceptance is claimed. No console was contacted.
+
 ## Source checkpoint before native phone integration — 2026-10-11
 
 Saved the current optional asynchronous recommendation adapter in `tube_phone.c`

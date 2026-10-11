@@ -2,11 +2,12 @@
 
 Current consolidated progress: [implemented, tested and missing](docs/STATUS.md) (2026-10-11). Historical entries below do not establish current final-candidate acceptance.
 
-Current source checkpoint: optional native phone fallback callbacks and handoff
-state are unfinished and untested. Finish adapter ownership/cancellation tests,
-connect provider metadata and verified fallback-group traversal, then validate
-the generated application and PS5 objects offline. The service discovery path
-is tested; end-to-end phone fallback and a refreshed final package remain open.
+Current offline batch: optional native phone fallback callbacks and handoff state
+pass adapter/driver sanitizer tests, including ownership, cancellation and queue
+extension priority. Repeated terminal replies preserve the original deadline.
+Next connect provider metadata and verified fallback-group traversal, then validate
+the generated application and PS5 objects offline. The service discovery path is
+tested; end-to-end phone fallback and a refreshed final package remain open.
 
 Related-video browsing now connects the native video menu to the profile-owned
 WatchNext catalog, with watched filtering, chip-filter/section folders and retained group
