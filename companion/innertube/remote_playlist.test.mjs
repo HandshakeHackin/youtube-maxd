@@ -242,3 +242,16 @@ test('Malformed, conflicting and oversized queues fail without accepting arbitra
   assert.equal(calls,0);
   await assert.rejects(library.execute({action:'remote_playlist',profile:'missing',id:video(1),playlist,index:1}),{code:'unknown_profile'});
 });
+
+test('playlist name verification hydrates known channel IDs and repeated videos',async()=>{
+  const rows=[row(0,true),row(1,false,video(0))],channel='UC'+'a'.repeat(22);let calls=0;
+  rows.forEach(entry=>entry.playlistPanelVideoRenderer.shortBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:channel}}}]});
+  const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:0})},getBasicInfo:async id=>{
+    calls++;return {basic_info:{id,channel_id:channel,author:'CAFÉ'}};
+  }}));
+  const request={action:'playback_queue',playlist,index:0,id:video(0),require_channel:true,require_name:true};
+  const result=await library.execute(request);
+  assert.equal(calls,1);assert.deepEqual(result.video_channel_names,['CAFÉ','CAFÉ']);
+  for(const patch of [{require_channel:false},{require_name:1}])
+    await assert.rejects(library.execute({...request,...patch}),{code:'invalid_request'});
+});

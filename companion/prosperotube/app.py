@@ -71,6 +71,7 @@ class LibraryRequest(BaseModel):
     index: int | None = Field(default=None, ge=0, le=100000, strict=True)
     direction: int = Field(default=0, ge=-1, le=1, strict=True)
     require_channel: bool = Field(default=False, strict=True)
+    require_name: bool = Field(default=False, strict=True)
     title: str = Field(default="", max_length=150)
     sort: Literal["top", "newest"] = "top"
     rating: Literal["like", "dislike", "none"] = "none"
@@ -86,7 +87,9 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
-        if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at"}:
+        if self.require_name and not self.require_channel:
+            raise ValueError("Channel-name verification requires channel verification.")
+        if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at", "channel_window"}:
             raise ValueError("Channel verification requires a playback navigation request.")
         if self.action == "mark_watched" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.session)):

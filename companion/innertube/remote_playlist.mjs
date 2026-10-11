@@ -7,6 +7,8 @@ const index = value => Number.isInteger(value) && value >= 0 && value <= 100000;
 export async function remotePlaylist(client, input, ErrorType) {
   if(input.require_channel!==undefined && typeof input.require_channel!=='boolean')
     throw new ErrorType('invalid_request','Channel metadata selection must be a boolean.');
+  if(input.require_name!==undefined && (typeof input.require_name!=='boolean' || (input.require_name && !input.require_channel)))
+    throw new ErrorType('invalid_request','Channel-name verification requires channel verification.');
   const lookup = input.action === 'playback_at';
   const direction=input.direction===undefined ? 0 : input.direction;
   if (![0,-1,1].includes(direction) || (!lookup && direction))
@@ -117,5 +119,5 @@ export async function remotePlaylist(client, input, ErrorType) {
       ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });
   }
   if (matches.length !== 1) fail();
-  return input.require_channel?hydrateWindowChannels(client,matches[0],ErrorType):matches[0];
+  return input.require_channel?hydrateWindowChannels(client,matches[0],ErrorType,!!input.require_name):matches[0];
 }

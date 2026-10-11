@@ -589,3 +589,4 @@ test('expired or evicted reply references never call the upstream thread', async
   await assert.rejects(library.execute({ action: 'replies', cursor: newest.items[0].reply_cursor }), { code: 'cursor_expired' });
   assert.equal(calls, 0);
 });
+import './video_channels.test.mjs';

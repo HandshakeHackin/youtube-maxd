@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Verified playback channel names — 2026-10-11
+
+Playlist/channel windows and autoplay targets now provide verified author names
+when profile-owned name blocks require them. Duplicate IDs reuse lookups without
+changing source positions. Existing channel IDs must agree with fetched metadata;
+invalid names are replaced only by verified names, and incomplete responses fail.
+Native forward/reverse and cross-window navigation skip matching names, including
+uncached entries, and recheck prepared selections at final handoff.
+
+All 99 worker tests and the worker bundle pass. Thirty-four focused API/library
+tests and four ASan/UBSan executables pass (blocked recommendations, ordinary
+recommendations, playlist windows and blocked window navigation). Cases cover
+name-only blocks with different channel IDs, case variants, missing names,
+duplicate occurrences and conflicting identities. The PS5 provider object compiles
+with the existing 262 SDK math-header qualifier warnings. No console connection was made. Alternative
+recommendation selection and hardware acceptance remain open.
+
 ## Unicode channel-name blocks — 2026-10-11
 
 Catalog and retained queue records now match blocked channel names with simple
@@ -16,8 +33,8 @@ queue membership and stale removal rejection. The real RmlUi host regression
 also passes; the PS5 provider object compiles with existing SDK warnings.
 Regeneration from the hash-pinned UCD input exactly matches the committed table;
 native preparation includes an exact copy of the Unicode license in its assets.
-Name propagation into uncached playback metadata, alternative recommendations
-and hardware acceptance remain pending.
+Name propagation was completed in the later batch recorded above. Alternative
+recommendations and hardware acceptance remain pending.
 
 ## Missing playlist-channel metadata — 2026-10-11
 

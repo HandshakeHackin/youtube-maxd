@@ -63,3 +63,13 @@ test('unavailable-only channel tails prove exhaustion while retaining the origin
     await assert.rejects(channelWindow(client(rows),{...input,target,direction},normalize,Failure),{code:'channel_changed'});
   }
 });
+
+test('channel windows verify author names while preserving source positions',async()=>{
+  const upstream=client([{id},{id}],2);let calls=0;
+  upstream.getBasicInfo=async key=>{calls++;return {basic_info:{id:key,channel_id:channel,author:'CAFÉ'}};};
+  const result=await channelWindow(upstream,{...input,index:0,require_channel:true,require_name:true},normalize,Failure);
+  assert.equal(calls,1);assert.deepEqual(result.video_channel_names,['CAFÉ','CAFÉ']);
+  assert.deepEqual(result.video_indices,[0,1]);
+  for(const patch of [{require_channel:false},{require_channel:1},{require_name:'true'}])
+    await assert.rejects(channelWindow(upstream,{...input,index:0,require_channel:true,require_name:true,...patch},normalize,Failure),{code:'invalid_request'});
+});

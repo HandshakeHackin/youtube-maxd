@@ -15,7 +15,8 @@ the playback mode permits it. Seven modes, explicit-queue policy and one-shot
 completion actions are implemented. Manual next/previous actions are connected
 through the in-player picker, preserve resume/history and use queue/group
 selection independently of EOF mode. Broader SmartTube group/suggestion
-semantics and hardware acceptance remain open.
+semantics and hardware acceptance remain open. Profile-owned channel-name blocks
+now also apply to verified uncached playlist/channel entries and autoplay targets.
 See the latest entries in `docs/VALIDATION.md`; these changes are newer than the
 last fully frozen candidate.
 

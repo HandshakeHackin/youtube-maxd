@@ -10,13 +10,15 @@ static void window(int start,int count,int malformed,int selected_index) {
     cJSON_AddStringToObject(value,"playlist","PLabcdefghijk");cJSON_AddStringToObject(value,"video_id",ids[selected_index]);
     cJSON_AddNumberToObject(value,"index",selected_index);cJSON_AddNumberToObject(value,"window_start",start);cJSON_AddNumberToObject(value,"playlist_size",4);
     cJSON *videos=cJSON_AddArrayToObject(value,"video_ids"),*channels=malformed==2?NULL:cJSON_AddArrayToObject(value,"video_channels");
+    cJSON *names=malformed==3?NULL:cJSON_AddArrayToObject(value,"video_channel_names");
     for(int i=start;i<start+count;++i){cJSON_AddItemToArray(videos,cJSON_CreateString(ids[i]));
-        if(!malformed)cJSON_AddItemToArray(channels,cJSON_CreateString(i==1 || i==2?"UCaaaaaaaaaaaaaaaaaaaaaa":"UCbbbbbbbbbbbbbbbbbbbbbb"));}
+        if(names)cJSON_AddItemToArray(names,cJSON_CreateString(i==2?"bLOCKED nAME":"Allowed"));
+        if(malformed!=1 && channels)cJSON_AddItemToArray(channels,cJSON_CreateString(i==1?"UCaaaaaaaaaaaaaaaaaaaaaa":"UCbbbbbbbbbbbbbbbbbbbbbb"));}
     char *body=cJSON_PrintUnformatted(root);poll_job(body);free(body);cJSON_Delete(root);
 }
 int main(void) {
     char dir[]="/tmp/tube-block-window-XXXXXX";assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
-    cJSON *root=cJSON_Parse("{\"version\":2,\"source\":\"http://127.0.0.1:8765\",\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\",\"captions\":false,\"records\":[],\"blocked_channels\":[{\"profile\":\"guest\",\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}]}");
+    cJSON *root=cJSON_Parse("{\"version\":2,\"source\":\"http://127.0.0.1:8765\",\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\",\"captions\":false,\"records\":[],\"blocked_channels\":[{\"profile\":\"guest\",\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"},{\"profile\":\"guest\",\"channel\":\"\",\"name\":\"Blocked Name\"}]}");
     write_store(root);cJSON_Delete(root);const evo_provider_t *p=&evo_provider_youtube;assert(!p->init());
     p->list_catalog("playlist:PLabcdefghijk",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"playback_context\":{\"playlist\":\"PLabcdefghijk\",\"index\":0}}]}}");
@@ -27,12 +29,13 @@ int main(void) {
     for(int split=0;split<2;++split) {
         p->stream_chosen("abcdefghijk",&choice);assert(tube_manual_navigation_begin(1));
         assert(strstr(pending[0].body,"\"require_channel\":true"));
+        assert(strstr(pending[0].body,"\"require_name\":true"));
         window(0,split?2:4,0,0);
         if(split){assert(tube_manual_navigation_status()==0 && pending_count==1 && strstr(pending[0].body,"\"index\":2"));window(2,2,0,2);}
         assert(tube_manual_navigation_status()==1 && tube_take_next(&next));
         assert(!strcmp(next.id,"defghijklmn") && next.playback_index==3 && !pending_count);
     }
-    for(int malformed=1;malformed<=2;++malformed) {
+    for(int malformed=1;malformed<=3;++malformed) {
         p->stream_chosen("abcdefghijk",&choice);assert(tube_playlist_window_begin());window(0,4,malformed,0);
         assert(tube_playlist_window_status(NULL)==-1 && !tube_take_next(&next));
     }

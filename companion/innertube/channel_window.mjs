@@ -1,5 +1,10 @@
 // Channel Videos navigation uses source positions, never synthesized playlist IDs.
+import {hydrateWindowChannels} from './video_channels.mjs';
 export async function channelWindow(client,input,normalize,ErrorType) {
+  if(input.require_channel!==undefined && typeof input.require_channel!=='boolean')
+    throw new ErrorType('invalid_request','Channel verification must be a boolean.');
+  if(input.require_name!==undefined && (typeof input.require_name!=='boolean' || (input.require_name && input.require_channel!==true)))
+    throw new ErrorType('invalid_request','Channel-name verification requires channel verification.');
   const index=n=>Number.isInteger(n)&&n>=0&&n<=100000;
   const target=input.target ?? input.index, direction=input.direction ?? 0;
   if(typeof input.channel!=='string' || typeof input.id!=='string' ||
@@ -52,5 +57,5 @@ export async function channelWindow(client,input,normalize,ErrorType) {
     video_ids:rows.map(row=>row.id),video_indices:rows.map(row=>row.index),video_channels:rows.map(()=>input.channel)};
   if(ended && offset<=100001)response.playlist_size=offset;
   if(selected.index!==target)Object.assign(response,{requested_index:target,skipped_unavailable:Math.abs(selected.index-target)});
-  return response;
+  return input.require_name?hydrateWindowChannels(client,response,ErrorType,true):response;
 }

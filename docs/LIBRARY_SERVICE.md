@@ -685,8 +685,15 @@ there is no locale-specific folding, multi-character expansion or normalization.
 Videos with only a channel name can be blocked and persisted. Management actions
 carry a list revision as well as the profile/source epoch so removing one row
 cannot retarget an older action to another row. Stable-ID matching remains.
-Name propagation into uncached playback metadata and alternative recommendation
-selection remain unfinished. No YouTube account feedback or subscription is modified.
+Playback navigation can request `require_name: true` together with
+`require_channel: true`. Playlist and channel windows return aligned
+`video_channel_names`; recommendations return `next_channel_name`. The worker
+verifies video/channel identity and author using the same profile client, with
+four concurrent lookups and duplicate reuse. Conflicting channel identities or
+missing/invalid names fail the request. Native navigation requests names when
+that profile has name blocks and checks them again before handoff, including
+uncached occurrences. Alternative recommendation selection remains unfinished.
+No YouTube account feedback or subscription is modified.
 
 Successful channel block/unblock actions close the local action screens and
 reload their originating catalog or search. Search text and the parent folder

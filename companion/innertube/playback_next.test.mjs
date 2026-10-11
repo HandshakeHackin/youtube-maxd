@@ -51,3 +51,14 @@ test('Playlist next lookup preserves request occurrence and a distinct repeated 
   assert.equal(result.next_video_id,id);assert.deepEqual(result.playback_context,{playlist,index:10});
   targetIndex=9;assert.equal((await library.execute(request)).next_video_id,null);
 });
+
+test('name-filtered recommendations verify author metadata and reject missing names',async()=>{
+  let author='CAFÉ';
+  const library=new Library(async()=>({getBasicInfo:async key=>({basic_info:{id:key,channel_id:'UC'+'a'.repeat(22),author}}),
+    actions:{execute:async()=>({success:true,data:{contents:{twoColumnWatchNextResults:{autoplay:{autoplay:{sets:[{autoplayVideo:{watchEndpoint:{videoId:next}}}]}}}}}})}}));
+  const request={action:'playback_next',id,require_channel:true,require_name:true};
+  assert.equal((await library.execute(request)).next_channel_name,author);
+  author='';await assert.rejects(library.execute(request),{code:'playback_next_unavailable'});
+  for(const patch of [{require_channel:false},{require_name:1}])
+    await assert.rejects(library.execute({...request,...patch}),{code:'invalid_request'});
+});

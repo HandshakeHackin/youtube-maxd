@@ -59,3 +59,19 @@ def test_invalid_history_removal_does_not_reach_worker(patch):
         for path,body in [('/v1/library',{**REQUEST,**patch}),('/v1/jobs',dict(action='library',library={**REQUEST,**patch}))]:
             assert client.post(path,json=body,headers=AUTH).status_code==422
         assert not library.calls
+
+@pytest.mark.parametrize('action',['playback_next','playback_queue','playback_at','channel_window'])
+def test_name_verification_flags(action):
+    from pydantic import ValidationError
+    from prosperotube.app import LibraryRequest
+    request=dict(action=action,id='abcdefghijk',require_channel=True,require_name=True)
+    if action in {'playback_queue','playback_at'}:
+        request.update(playlist='PLabcdefghijk',index=0)
+    if action=='playback_at':
+        request['id']=''
+    if action=='channel_window':
+        request.update(channel='UC'+'a'*22,index=0)
+    assert LibraryRequest.model_validate(request).require_name
+    for patch in [dict(require_channel=False),dict(require_name=1),dict(require_name='true')]:
+        with pytest.raises(ValidationError):
+            LibraryRequest.model_validate(request|patch)

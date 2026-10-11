@@ -133,7 +133,7 @@ static int valid_speed(double speed) {
 static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
-static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12],channel[25]; PlaylistContext next_context; } g_recommendation={.state=-1};
+static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12],channel[25],channel_name[256]; PlaylistContext next_context; } g_recommendation={.state=-1};
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
 static int g_sponsor_completed;
@@ -755,6 +755,11 @@ static int channel_blocks_active(void) {
     for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile))return 1;
     return 0;
 }
+static int channel_name_blocks_active(void) {
+    for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile) &&
+        strcmp(g_blocked[i].name,g_blocked[i].channel) && tube_channel_name_equal(g_blocked[i].name,g_blocked[i].name))return 1;
+    return 0;
+}
 static int blocked_identity(const char *channel,const char *name) {
     int index=blocked_channel(channel);if(index>=0)return index;
     for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile) &&
@@ -1362,14 +1367,14 @@ static int recommendation_begin(int same_playlist) {
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.scope=g_playlist_scope;g_recommendation.selection=g_selection_serial;
     copy(g_recommendation.id,sizeof g_recommendation.id,g_active_id);g_recommendation.next[0]=0;
-    g_recommendation.channel[0]=0;
+    g_recommendation.channel[0]=g_recommendation.channel_name[0]=0;
     g_recommendation.state=0;r->intent=g_recommendation.serial;
     g_recommendation.same_playlist=same_playlist;memset(&g_recommendation.next_context,0,sizeof g_recommendation.next_context);
     char playlist[101];int index;
     if(tube_playback_playlist_context(playlist,sizeof playlist,&index) && valid_playlist(playlist)) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s}}",g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false");
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s,\"require_name\":%s}}",g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
     else snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"require_channel\":%s}}",g_active_profile,g_active_id,channel_blocks_active()?"true":"false");
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\",\"require_channel\":%s,\"require_name\":%s}}",g_active_profile,g_active_id,channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
     begin(r);return 1;
 }
 static void recommendation_result(Request *r,const cJSON *root) {
@@ -1386,7 +1391,10 @@ static void recommendation_result(Request *r,const cJSON *root) {
     char channel_group[40];snprintf(channel_group,sizeof channel_group,"channel:%s",str(root,"next_channel_id"));
     if(channel && (!cJSON_IsString(channel) || !valid_channel_group(channel_group))) {complete(r,0);return;}
     copy(g_recommendation.channel,sizeof g_recommendation.channel,str(root,"next_channel_id"));
-    if(channel_blocks_active() && (!*g_recommendation.channel || blocked_channel(g_recommendation.channel)>=0))g_recommendation.state=-1;
+    const char *name=str(root,"next_channel_name");
+    if((*name && (strlen(name)>255 || !tube_channel_name_equal(name,name))) || (channel_name_blocks_active() && !*name)) {complete(r,0);return;}
+    copy(g_recommendation.channel_name,sizeof g_recommendation.channel_name,name);
+    if(channel_blocks_active() && (!*g_recommendation.channel || blocked_identity(g_recommendation.channel,name)>=0))g_recommendation.state=-1;
     if(g_recommendation.same_playlist && (!item.playback_scope || strcmp(item.playback_playlist,g_active_playlist.playlist)))g_recommendation.state=-1;
     if(g_recommendation.state==1)copy(g_recommendation.next,sizeof g_recommendation.next,next->valuestring);
     copy(g_recommendation.next_context.playlist,sizeof g_recommendation.next_context.playlist,item.playback_playlist);
@@ -1428,14 +1436,14 @@ static int playlist_window_begin_at(int target,int direction) {
     g_playlist_window.state=0;
     r->intent=g_playlist_window.serial;
     if(valid_channel_group(playlist)) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"channel_window\",\"profile\":\"%s\",\"id\":\"%s\",\"channel\":\"%s\",\"index\":%d,\"target\":%d,\"direction\":%d}}",
-        g_active_profile,g_active_id,playlist+8,index,target>=0?target:index,direction);
+        "{\"action\":\"library\",\"library\":{\"action\":\"channel_window\",\"profile\":\"%s\",\"id\":\"%s\",\"channel\":\"%s\",\"index\":%d,\"target\":%d,\"direction\":%d,\"require_channel\":true,\"require_name\":%s}}",
+        g_active_profile,g_active_id,playlist+8,index,target>=0?target:index,direction,channel_name_blocks_active()?"true":"false");
     else if (g_playlist_window.lookup) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"direction\":%d,\"require_channel\":%s}}",
-        g_active_profile,playlist,target,direction,channel_blocks_active()?"true":"false");
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"direction\":%d,\"require_channel\":%s,\"require_name\":%s}}",
+        g_active_profile,playlist,target,direction,channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
     else snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s}}",
-        g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false");
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s,\"require_name\":%s}}",
+        g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
     begin(r); return 1;
 }
 int tube_playlist_window_begin(void) { return playlist_window_begin_at(-1,0); }
@@ -1478,6 +1486,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
     const cJSON *ids=cJSON_GetObjectItemCaseSensitive(root,"video_ids");
     const cJSON *indices=cJSON_GetObjectItemCaseSensitive(root,"video_indices");
     const cJSON *channels=cJSON_GetObjectItemCaseSensitive(root,"video_channels");
+    const cJSON *names=cJSON_GetObjectItemCaseSensitive(root,"video_channel_names");
     const int start=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"window_start"));
     const char *selected_id=str(root,"video_id");
     int selected_index=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index"));
@@ -1497,7 +1506,8 @@ static void playlist_window_result(Request *r,const cJSON *root) {
         matching_index &&
         cJSON_IsArray(ids) && value.count > 0 && value.count <= 128 && start >= 0 &&
         (!indices || (cJSON_IsArray(indices) && cJSON_GetArraySize(indices) == value.count)) &&
-        (!channels || (cJSON_IsArray(channels) && cJSON_GetArraySize(channels)==value.count));
+        (!channels || (cJSON_IsArray(channels) && cJSON_GetArraySize(channels)==value.count)) &&
+        (!names || (cJSON_IsArray(names) && cJSON_GetArraySize(names)==value.count));
     for (int i=0; valid && i<value.count; ++i) {
         const cJSON *id=cJSON_GetArrayItem(ids,i);
         int position=indices ? playlist_index(cJSON_GetArrayItem(indices,i)) : start+i;
@@ -1516,6 +1526,13 @@ static void playlist_window_result(Request *r,const cJSON *root) {
             copy(value.channels[i],sizeof value.channels[i],g_playlist_window.context.playlist+8);
         }
         if(channel_blocks_active() && !*value.channels[i]) {valid=0;break;}
+        if(names) {
+            const cJSON *name=cJSON_GetArrayItem(names,i);
+            if(!cJSON_IsString(name) || strlen(name->valuestring)>255 ||
+               (*name->valuestring && !tube_channel_name_equal(name->valuestring,name->valuestring))) {valid=0;break;}
+            copy(value.channel_names[i],sizeof value.channel_names[i],name->valuestring);
+        }
+        if(channel_name_blocks_active() && !*value.channel_names[i]) {valid=0;break;}
         if (position == selected_index && !strcmp(id->valuestring,selected_id)) value.current=i;
     }
     if (!valid || value.current < 0) { complete(r,0); return; }
@@ -3893,7 +3910,9 @@ static int playlist_eof_advance(void) {
         const Record *cached=record_for(window->ids[at],g_active_profile,0);
         const char *channel=*window->channels[at]?window->channels[at]:cached?cached->item.parent_id:"";
         if(channel_blocks_active() && !*channel)return 0;
-        if(blocked_identity(channel,cached?cached->item.subtitle:"")<0)break;
+        const char *name=*window->channel_names[at]?window->channel_names[at]:cached?cached->item.subtitle:"";
+        if(channel_name_blocks_active() && !*name)return 0;
+        if(blocked_identity(channel,name)<0)break;
         ++blocked;at+=direction;
     }
     if (at < 0 || at >= window->count) {
@@ -3915,6 +3934,7 @@ static int playlist_eof_advance(void) {
     memset(&g_playlist_next,0,sizeof g_playlist_next);
     if (cached) { g_playlist_next=cached->item; dearrow_item(&g_playlist_next,cached); }
     if(*window->channels[at])copy(g_playlist_next.parent_id,sizeof g_playlist_next.parent_id,window->channels[at]);
+    if(*window->channel_names[at])copy(g_playlist_next.subtitle,sizeof g_playlist_next.subtitle,window->channel_names[at]);
     copy(g_playlist_next.id,sizeof g_playlist_next.id,window->ids[at]);
     if (!*g_playlist_next.title) copy(g_playlist_next.title,sizeof g_playlist_next.title,window->ids[at]);
     copy(g_playlist_next.playback_playlist,sizeof g_playlist_next.playback_playlist,window->playlist);
@@ -4073,11 +4093,13 @@ int tube_take_next(evo_provider_item_t *item) {
     if(g_recommendation.state==1) {
         int current=recommendation_current();g_recommendation.state=-1;
         if(!current || !item)return 0;
-        if(channel_blocks_active() && (!*g_recommendation.channel || blocked_channel(g_recommendation.channel)>=0))return 0;
+        if(channel_name_blocks_active() && !*g_recommendation.channel_name)return 0;
+        if(channel_blocks_active() && (!*g_recommendation.channel || blocked_identity(g_recommendation.channel,g_recommendation.channel_name)>=0))return 0;
         const Record *cached=record_for(g_recommendation.next,g_active_profile,0);
         if(cached)*item=cached->item;else memset(item,0,sizeof *item);
         copy(item->id,sizeof item->id,g_recommendation.next);
         if(*g_recommendation.channel)copy(item->parent_id,sizeof item->parent_id,g_recommendation.channel);
+        if(*g_recommendation.channel_name)copy(item->subtitle,sizeof item->subtitle,g_recommendation.channel_name);
         if(!*item->title)copy(item->title,sizeof item->title,item->id);
         item->kind=EVO_MEDIA_VIDEO;item->resume_pos_sec=0;
         copy(item->playback_playlist,sizeof item->playback_playlist,g_recommendation.next_context.playlist);
@@ -4086,7 +4108,7 @@ int tube_take_next(evo_provider_item_t *item) {
     }
     if (g_playlist_next_ready) {
         g_playlist_next_ready=0;
-        if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || blocked_identity(g_playlist_next.parent_id,g_playlist_next.subtitle)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
+        if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || (channel_name_blocks_active() && !*g_playlist_next.subtitle) || blocked_identity(g_playlist_next.parent_id,g_playlist_next.subtitle)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
         *item=g_playlist_next;manual_departure();return 1;
     }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
