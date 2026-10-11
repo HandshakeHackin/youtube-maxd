@@ -209,6 +209,11 @@ class Sessions:
                 return bool(track) and "tlang" in parse_qs(urlsplit(str(track.get("url"))).query)
             except ValueError:
                 return False
+
+        def wanted_last(lang):
+            # A translation of a human-made track is named `<target>-<source>`.
+            wanted = request.caption_language
+            return (lang != wanted, not (wanted and lang.startswith(wanted + "-")), lang)
         if request.automatic_captions:
             for lang, tracks in automatic.items():
                 subtitles.setdefault(lang, tracks)
@@ -216,10 +221,10 @@ class Sessions:
             # "More subtitles": machine translations only, at most 128 of them.
             extra = sorted((lang for lang, tracks in automatic.items()
                             if lang not in subtitles and isinstance(tracks, list) and translated(vtt(tracks))),
-                           key=lambda lang: (lang != request.caption_language, lang))
+                           key=wanted_last)
             for lang in extra[:128]:
                 subtitles[lang] = automatic[lang]
-        languages = sorted(subtitles, key=lambda lang: (lang != request.caption_language, lang))
+        languages = sorted(subtitles, key=wanted_last)
         for lang in languages[:256]:
             track = vtt(subtitles[lang]) if isinstance(subtitles[lang], list) else None
             if not track:

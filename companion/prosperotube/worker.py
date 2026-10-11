@@ -41,6 +41,26 @@ def attach_media_cookies(ydl, info):
             record["http_headers"] = {**(record.get("http_headers") or {}), "Cookie": cookie}
 
 
+def compact_captions(info):
+    """Keep the one WebVTT address per language that the relay offers.
+
+    A video with dubbed audio lists every caption language once per audio
+    track and in seven formats; with request headers that listing alone was
+    25 MB for a public Short (checked live on 2026-10-11), above the 8 MiB
+    result limit. The first WebVTT entry is the one the session used before.
+    """
+    for key in ("subtitles", "automatic_captions"):
+        tracks = info.get(key)
+        if not isinstance(tracks, dict):
+            continue
+        info[key] = {language: [track] for language, entries in tracks.items() if isinstance(entries, list)
+                     for track in [next((entry for entry in entries if isinstance(entry, dict)
+                                         and entry.get("ext") == "vtt" and entry.get("url")), None)] if track}
+    # The selection yt-dlp would download repeats entries of `formats`.
+    info.pop("requested_formats", None)
+    info.pop("requested_subtitles", None)
+
+
 def language_arguments(arguments, hl, supported):
     """Add the content language without mutating the configured arguments."""
     from .content_locale import extractor_language
@@ -100,6 +120,8 @@ def main():
                 if request.get("cookie_header") is not None:
                     install_profile_cookies(ydl, request["cookie_header"])
                 info = ydl.extract_info(request["target"], download=False)
+                if not request["flat"]:
+                    compact_captions(info)
                 attach_media_cookies(ydl, info)
                 result = ydl.sanitize_info(info)
                 if request.get("oauth_access_token") is not None:
