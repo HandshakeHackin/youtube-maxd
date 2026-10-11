@@ -15,6 +15,7 @@ void tube_phone_sync_scope(void);
 int tube_voice_scope(char *source, size_t source_capacity, char *token,
                      size_t token_capacity, char *profile, size_t profile_capacity);
 int tube_phone_stop_on_disconnect(void);
+int tube_phone_close_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
 unsigned tube_phone_selection(void);

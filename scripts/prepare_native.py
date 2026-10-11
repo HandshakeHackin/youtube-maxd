@@ -52,7 +52,7 @@ def main():
     player = "projects/evoplayer/"
     overlay_files = [player + name for name in (
         "Makefile", "addons/src/evo_provider_mgr.c", "src/evo_data_path.c", "include/evo_data_path.h",
-        "core/src/Application.cpp", "core/src/screens/ProviderHostScreen.cpp",
+        "core/src/Application.cpp", "core/include/evo/Application.hpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp", "core/include/evo/screens/ProviderHostScreen.hpp",
         "core/src/screens/AudioTrackPickerScreen.cpp", "core/include/evo/screens/AudioTrackPickerScreen.hpp",
@@ -212,6 +212,8 @@ def main():
     apply_phone_player_overlay(replace, player, host)
     from voice_controls_overlay import apply_voice_controls_overlay
     apply_voice_controls_overlay(replace, player, host)
+    from phone_exit_overlay import apply_phone_exit_overlay
+    apply_phone_exit_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")

@@ -107,6 +107,7 @@ static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
 static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed, g_remote_entropy_failed;
 static int g_remote_stop_on_disconnect;
+static int g_remote_close_on_disconnect;
 static char g_remote_device[37], g_remote_screen[129];
 static void remote_configure(void);
 static tube_player_chat_row_t g_player_chat_rows[6];
@@ -550,6 +551,7 @@ static void save(void) {
     cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
     cJSON_AddBoolToObject(root, "remote_stop_on_disconnect", g_remote_stop_on_disconnect);
+    cJSON_AddBoolToObject(root, "remote_close_on_disconnect", g_remote_close_on_disconnect);
     cJSON_AddStringToObject(root, "remote_device", g_remote_device);
     cJSON_AddStringToObject(root, "remote_screen", g_remote_screen);
     cJSON_AddBoolToObject(root, "paid_content_notifications", g_paid_notifications);
@@ -634,6 +636,7 @@ int tube_voice_scope(char *source, size_t source_capacity, char *token,
     copy(profile, profile_capacity, g_library_profile); return 1;
 }
 int tube_phone_stop_on_disconnect(void) { return g_remote_stop_on_disconnect; }
+int tube_phone_close_on_disconnect(void) { return g_remote_close_on_disconnect; }
 
 static void account_removed(void) {
     tube_recovery_finish();
@@ -672,6 +675,7 @@ static int init(void) {
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
     g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     g_remote_stop_on_disconnect = 0;
+    g_remote_close_on_disconnect = 0;
     tube_sb_defaults(&g_sb);
     sponsor_invalidate(); g_sb_last_position = -1;
     tube_chat_stop();
@@ -721,6 +725,8 @@ static int init(void) {
     g_player_chat_mode = chat_mode >= 0 && chat_mode <= 2 && floor(chat_mode) == chat_mode ? (int)chat_mode : 0;
     const char *remote_device = str(root, "remote_device"), *remote_screen = str(root, "remote_screen");
     g_remote_stop_on_disconnect = boolean(root, "remote_stop_on_disconnect");
+    g_remote_close_on_disconnect = boolean(root, "remote_close_on_disconnect");
+    if (g_remote_close_on_disconnect) g_remote_stop_on_disconnect = 0;
     if (tube_remote_identity_valid(remote_device) && strlen(remote_screen) < sizeof g_remote_screen &&
         strspn(remote_screen, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(remote_screen)) {
         copy(g_remote_device, sizeof g_remote_device, remote_device);
@@ -1945,7 +1951,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
         }
         else if (!strcmp(parent, "settings:remote:disconnect")) {
-            g_remote_stop_on_disconnect = !g_remote_stop_on_disconnect; save();
+            if (g_remote_close_on_disconnect) g_remote_close_on_disconnect = 0;
+            else if (g_remote_stop_on_disconnect) { g_remote_stop_on_disconnect = 0; g_remote_close_on_disconnect = 1; }
+            else g_remote_stop_on_disconnect = 1;
+            save();
         }
         else if (!strcmp(parent, "settings:remote:reset")) {
             tube_remote_shutdown(); g_remote_enabled = g_remote_entropy_failed = 0;
@@ -2002,8 +2011,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:remote:pair", *code ? "Get a new TV code" : "Link a phone", "Enable connection and request a TV code");
             folder(&out[n++], "settings:remote:toggle", g_remote_enabled ? "Turn phone connection off" : "Turn phone connection on", "Your local library stays available");
             folder(&out[n++], "settings:remote:reset", "Reset phone pairing", "Turn off and forget this TV's pairing identity");
-            folder(&out[n++], "settings:remote:disconnect", g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
-                "Applies to phone-started playback; disconnections may happen when the phone sleeps");
+            folder(&out[n++], "settings:remote:disconnect", g_remote_close_on_disconnect ? "When phone disconnects: close the app" : g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
+                g_remote_close_on_disconnect ? "Close ProsperoTube when a linked phone disconnects, including while browsing" :
+                "Stop applies to phone-started playback; disconnections may happen when the phone sleeps");
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
             folder(&out[n++], "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
             folder(&out[n++], "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");

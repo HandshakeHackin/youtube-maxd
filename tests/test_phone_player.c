@@ -8,6 +8,7 @@ static tube_remote_player engine;
 static int active, browsed, stopped, keys, reject_seek;
 static int deferred_caption, caption_result, caption_polls;
 static int voice_starts, voice_cancels;
+static int app_closes;
 static char deferred_language[33];
 static double sought;
 static unsigned selection_serial;
@@ -33,7 +34,8 @@ static int voice_engine(void *ctx, int started, unsigned owner) {
     if (started) ++voice_starts; else ++voice_cancels;
     return 1;
 }
-static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine};
+static int close_engine(void *ctx) { (void)ctx; ++app_closes; return 1; }
+static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine,0,close_engine};
 static int64_t test_clock = 100000;
 static void cleanup(void) {
     tube_remote_shutdown(); tube_phone_clear();
@@ -48,6 +50,7 @@ static void feed(const char *commands) {
     active = browsed = stopped = keys = reject_seek = 0;
     deferred_caption = caption_result = caption_polls = 0;
     voice_starts = voice_cancels = 0;
+    app_closes = 0;
     test_clock += 10000; configure(1,"guest",identity,"screen-123"); remote_bind(test_clock);
     tube_remote_tick(test_clock + 1); poll_reply(0,commands); assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
 }
@@ -59,6 +62,7 @@ static unsigned take_start(const char *id, double position) {
 static void started_video(unsigned value, const char *id) {
     snprintf(engine.video,sizeof engine.video,"%s",id); active = 1; engine.position = 0;
     engine.selection = ++selection_serial;
+    assert(tube_phone_launch_bind(value, engine.selection));
     assert(tube_phone_launch_finish(value,1)); assert(!tube_phone_launch_finish(value,1));
 }
 static void feedback(int index, int previous, int next) {
@@ -134,10 +138,27 @@ static void test_disconnect_policy(void) {
     /* Changing media manually makes the disconnection irrelevant to playback. */
     feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
     strcpy(engine.video,"12345678901"); tube_phone_tick(&controls); assert(active && !stopped);
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    ++engine.selection; tube_phone_tick(&controls); assert(active && !stopped);
     /* No remote launch: don't stop local media, even with the preference enabled. */
     feed("[{\"sequence\":1,\"action\":\"remoteDisconnected\",\"device_id\":\"phone-one\",\"name\":\"Phone\"}]");
     active = 1; strcpy(engine.video,"abcdefghijk"); tube_phone_tick(&controls); assert(active && !stopped);
     controls.stop_on_disconnect = 0;
+}
+static void test_disconnect_close_policy(void) {
+    const char *commands = "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLtest\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"},{\"sequence\":2,\"action\":\"remoteDisconnected\",\"device_id\":\"phone-one\",\"name\":\"Phone\"}]";
+    feed(commands); controls.close_on_disconnect = 1;
+    tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); assert(app_closes==1 && !stopped && active);
+    assert(!tube_phone_finished()); tube_phone_tick(&controls); assert(app_closes==1);
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    ++engine.selection; tube_phone_tick(&controls); assert(app_closes==1 && active);
+    feed("[{\"sequence\":1,\"action\":\"remoteDisconnected\",\"device_id\":\"phone-one\",\"name\":\"Phone\"}]");
+    tube_phone_tick(&controls); assert(app_closes==1); /* Explicit whole-app choice also applies while browsing. */
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    configure(1,"another",identity,"screen-123");
+    tube_phone_tick(&controls); assert(!app_closes); /* Retired receiver cannot close the app. */
+    controls.close_on_disconnect = 0;
 }
 static void test_deferred_caption(void) {
     const char *commands = "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLtest\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"},{\"sequence\":2,\"action\":\"setSubtitlesTrack\",\"video_id\":\"abcdefghijk\",\"language\":\"fr\"},{\"sequence\":3,\"action\":\"pause\"}]";
@@ -191,6 +212,6 @@ static void test_windowed_duplicate_and_refresh(void) {
     started_video(next,"12345678901"); tube_phone_tick(&controls); feedback(103,1,0);
 }
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
+    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

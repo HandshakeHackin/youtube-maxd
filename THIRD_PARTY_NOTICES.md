@@ -20,6 +20,10 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
 * PS5 UUID entropy adapts the checked `kern.rng_pseudo` reader from
   [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight/blob/b0149a941617c9e92a3be475b78304052c718d7c/platform/ps5/ps5_entropy.c)
   (GPL-3.0-or-later). Adapted source is in `native/tube_random.h`.
+* The native self-exit API usage follows
+  [ProsperoLight's PS5 system service](https://github.com/blackbearreloaded/ProsperoLight/blob/b0149a941617c9e92a3be475b78304052c718d7c/third_party/ps5-homebrew-ui/platform/ps5/system.cpp)
+  (GPL-3.0-or-later). ProsperoTube's overlay adds media retirement, checked GPU
+  fence drain and a single self-exit attempt for the explicit disconnect choice.
 * FFmpeg 7.1.1 minimal software profile, dav1d 1.5.1, RmlUi 6.2, SDL2,
   FreeType, OpenSSL, zlib and Pacbrew libraries retain upstream licenses.
   Source recipes/checksums are in EVO scripts and Pacbrew v0.39 source.

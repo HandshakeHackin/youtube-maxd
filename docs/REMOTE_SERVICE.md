@@ -1,5 +1,19 @@
 # YouTube phone receiver — backend integration
 
+The disconnect preference now cycles keep playing → stop phone playback → close
+the app. Existing saved stop preferences retain their meaning. The close choice
+matches SmartTube's whole-app behavior, including while browsing; retired
+receiver commands cannot close a new scope. Closure releases media, cancels
+capture/captions/provider operations and retires the receiver, presents the
+safe-close screen and parks rendering. Only confirmed GPU fence retirement
+permits one `sceSystemServiceLoadExec("exit", NULL)` request. Refusal, missing
+fences or a drain timeout leave the process parked. Host execution/fault tests
+cover this path; self-exit hardware acceptance remains pending.
+
+Successful phone launches now bind the exact provider selection before startup
+acknowledgment, closing the interval in which an immediate manual reopen of the
+same video could inherit remote queue ownership.
+
 The companion implements YouTube's Lounge / MDX TV-code receiver protocol.
 Registration, code generation, command reception and player-state feedback passed
 a live temporary-receiver check. Native pairing settings and identity storage are
@@ -120,11 +134,12 @@ retain the sender's global index and click-tracking parameters.
 
 Volume scales the final S16 output with an atomic main/audio-thread gain; mute
 does not change the media clock or retirement accounting. Unknown caption
-languages are not silently acknowledged. Secondary YouTube caption selection and
-playlist continuation beyond the supplied 128-ID
-window still need implementation. The saved disconnect choice defaults to keeping
+languages are not silently acknowledged. Secondary YouTube caption selection
+remains open. Supplied queues and partial-queue expansion use the bounded windows
+described above. The saved disconnect choice defaults to keeping
 playback running; opt-in stop applies only to the current phone-owned video and
-clears its ephemeral queue. It returns to the browser without exiting the PS5 app.
+clears its ephemeral queue. It returns to the browser. The separate close choice
+requests whole-app exit through the checked GPU park path.
 Native fixture playback, paused caption switching, queue/EOF and disconnect
 checks passed on PS5. Real phone acceptance remains open.
 The receiver advertises playback and D-pad capabilities. Microphone capability

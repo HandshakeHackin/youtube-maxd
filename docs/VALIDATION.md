@@ -1,6 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Whole-app close on phone disconnect — 2026-10-10
+
+The saved preference cycles keep playing / stop phone playback / close the app,
+retaining legacy stop choices. Close follows SmartTube's whole-app semantics,
+including browsing; retired receiver commands cannot trigger it. Successful phone
+launches bind the provider selection before acknowledgment, so an immediate manual
+reopen of the same ID does not inherit remote queue/stop ownership.
+
+The connected Application retires media, voice, captions, provider/auth operations
+and the receiver before render park. It calls the ProsperoLight-proven PS5 self-exit
+API once, gated by checked GPU fence retirement. Busy or missing fences retain
+outstanding expectations and cannot publish a safe-close checkpoint; refusal
+leaves the app parked. Real GPU drain and Application park/exit blocks pass compiled
+ASan/UBSan tests (`scripts/test_phone_exit.py`). The shipping controller dispatch
+test also passes. All 11 provider regressions and actual phone/receiver sanitizer
+checks pass, and connected PS5 Application/provider/player/AGC objects compile
+(`.deps/phone-exit-connected-{prepare,ps5-objects}.*`, exit 0). An initial repeated
+prepare exposed the new Application header missing from the pinned reset list;
+the header is now reset, and the subsequent complete object check passes.
+Full package and self-exit hardware acceptance remain pending.
+
 ## Partial phone queue expansion — 2026-10-10
+
+The expansion source `c1d9d299` completed the full PS5 build and immutable freeze:
+216 objects, 126 files, eboot SHA-256 prefix `6e62d3601814320a`
+(`.deps/remote-expansion-{ps5-build,freeze}.*`, exit 0). This package remains
+undeployed; it does not add console acceptance to the host service probes.
 
 The companion now connects confirmed Lounge playback to the selected profile's
 WatchNext library client. Raw WEB/TV panel parsing retains occurrence indices and

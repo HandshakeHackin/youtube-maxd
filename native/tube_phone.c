@@ -68,10 +68,15 @@ unsigned tube_phone_take(char video[12], double *position) {
 int tube_phone_launch_finish(unsigned value, int success) {
     if (phase != 2 || !tube_phone_launch_current(value)) { prune(); return 0; }
     unsigned owner = pending.owner; int sequence = pending.sequence;
-    if (success) { current = proposed; current.selection = 0; }
+    if (success && !proposed.selection) success = 0;
+    if (success) current = proposed;
     phase = 0; ticket = 0;
     if (sequence) return tube_remote_finish(owner, sequence, success);
     return !!success;
+}
+int tube_phone_launch_bind(unsigned value, unsigned selection) {
+    if (!selection || phase != 2 || !tube_phone_launch_current(value)) return 0;
+    proposed.selection = selection; return 1;
 }
 static int advance(const tube_remote_command *c, int direction) {
     int cursor = current.cursor + direction;
@@ -167,7 +172,10 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         applied = applied == 1; break;
     case TUBE_REMOTE_DISCONNECTED:
         applied = 1;
-        if (ctl->stop_on_disconnect && active && current.owner == c.owner && !strcmp(p.video, current.video)) {
+        if (ctl->close_on_disconnect) {
+            applied = ctl->close_app && ctl->close_app(ctl->context);
+            if (applied) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
+        } else if (ctl->stop_on_disconnect && active && current.owner == c.owner && !strcmp(p.video, current.video)) {
             applied = ctl->stop && ctl->stop(ctl->context);
             if (applied) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
         }

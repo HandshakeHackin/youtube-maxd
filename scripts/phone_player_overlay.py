@@ -37,7 +37,8 @@ static bool g_tube_recovery_launch;''')
     replace(host, '                if (g_tube_recovery_launch) { tube_recovery_finish();', '''                if (g_phone_ticket) { tube_phone_launch_finish(g_phone_ticket, 0); g_phone_ticket = 0; }
                 if (g_tube_recovery_launch) { tube_recovery_finish();''')
     replace(host, '        if (g_tube_recovery_launch) {\n            if (g_start_success', '''        if (g_phone_ticket && g_start_success) {
-            if (!tube_phone_launch_finish(g_phone_ticket, 1)) {
+            const int bound = tube_phone_launch_bind(g_phone_ticket, tube_phone_selection());
+            if (!tube_phone_launch_finish(g_phone_ticket, bound)) {
                 if (auto pb = Application::getInstance().getPlaybackController()) pb->stopPlayback();
                 g_start_success = false;
                 g_pending.choice_count = 0; /* retired owner must not launch a fallback */

@@ -17,6 +17,12 @@ profile-scoped WatchNext windows, including rebased infinite Mix responses;
 Guest initial and index-20 reads passed. Private/TV and PS5 expansion acceptance,
 real-phone/account acceptance and remaining SmartTube parity are still open.
 
+The disconnect preference now includes whole-app close, following SmartTube's
+browsing and playback behavior. Media/capture/receiver retirement precedes render
+park; checked GPU fence retirement gates a single PS5 self-exit API call. Host
+fault tests, all 11 provider regressions and connected SDK/AGC compilation pass.
+Full packaging of this change and hardware self-exit acceptance remain open.
+
 Earlier playback milestone (2026-10-10): the native PS5 package has played the real public
 YouTube video "Me at the zoo" on `.40` using native AVC and the corrected Windows
 LAN companion. The captured scanout shows video and English captions; the player
@@ -658,7 +664,9 @@ next/previous, queue replacement, EOF advance, stop, both disconnect choices and
 saved local queue preservation. Original provider/sidecar bytes were restored
 following exact GPU/process/title release; services remained healthy. Real phone
 casting and physical sound/caption appearance remain unassessed. Secondary
-YouTube captions, native voice, full app-exit behavior and long playlists remain open.
+YouTube captions and real-phone/physical acceptance remain open. Native voice,
+whole-app disconnect close and long/partial queue windows are now implemented;
+their remaining hardware/account gates are tracked above and in validation.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

@@ -22,11 +22,15 @@ typedef struct {
     int (*captions_status)(void *);
     /* 1=accepted; started=0 retires this owner's voice request only. */
     int (*voice)(void *, int started, unsigned owner);
+    /* Explicit opt-in closes the app for a current receiver disconnect. */
+    int close_on_disconnect;
+    int (*close_app)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */
 unsigned tube_phone_take(char video[12], double *position);
 int tube_phone_launch_current(unsigned ticket);
+int tube_phone_launch_bind(unsigned ticket, unsigned selection);
 int tube_phone_launch_finish(unsigned ticket, int success);
 /* Called only after the decoder/presentation engine proves natural EOF. */
 int tube_phone_finished(void);
