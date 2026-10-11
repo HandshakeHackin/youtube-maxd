@@ -23,6 +23,24 @@
 #include "tube_random.h"
 #include "tube_player_extra.h"
 #include "tube_password.h"
+#include "tube_qr_page.h"
+#include "tube_about.h"
+#include "tube_backup.h"
+#include <sys/stat.h>
+#ifdef EVO_TARGET_PS5
+/* The application sandbox has no working opendir(). */
+#include "evo_readdir.h"
+typedef evo_dir_t import_dir;
+#define import_opendir evo_opendir
+#define import_readdir evo_readdir
+#define import_closedir evo_closedir
+#else
+#include <dirent.h>
+typedef DIR import_dir;
+#define import_opendir opendir
+#define import_readdir readdir
+#define import_closedir closedir
+#endif
 
 #define RECORDS 384
 #define REQUESTS 8
@@ -81,7 +99,7 @@ typedef struct Request {
     PlaylistContext playlist;
     int page, music_origin, queue_origin, incognito;
     int search_rows, library_search, aggregate;
-    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages;
+    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content;
     unsigned intent, requires;
     char parent[160];
     char profile[33];
@@ -109,7 +127,7 @@ static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
 static char g_secondary_caption_path[512], g_secondary_caption_language[33];
 #define CAPTION_TRACKS 256
-static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic; } g_caption_tracks[CAPTION_TRACKS];
+static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic, translated; } g_caption_tracks[CAPTION_TRACKS];
 static int g_caption_track_count;
 static unsigned g_caption_revision, g_caption_serial;
 static unsigned g_selection_serial;
@@ -189,16 +207,25 @@ static const struct { const char *id, *label; } g_boot_sections[] = {
     {"history", "Continue watching & history"}, {"favorites", "Favorites"}, {"queue", "Play queue"},
     {"subscriptions", "Followed channels"}, {"discover", "Discover"},
     {"section:trending", "Trending"}, {"section:shorts", "Shorts"}, {"library:channels", "Subscribed channels"},
-    {"library:notifications", "Notifications"}, {"section:my_videos", "My videos"}
+    {"library:notifications", "Notifications"}, {"section:my_videos", "My videos"}, {"section:kids", "Kids"}
 };
 #define BOOT_SECTIONS ((int)(sizeof g_boot_sections / sizeof *g_boot_sections))
 static char g_boot_section[24];
+/* A password-protected profile that was selected when ProsperoTube closed:
+ * browsing starts as Guest and the startup folder asks for its password. */
+static char g_startup_lock[33];
 static int boot_section_index(const char *id) {
     for (int i = 1; id && i < BOOT_SECTIONS; ++i) if (!strcmp(id, g_boot_sections[i].id)) return i;
     return 0;
 }
-const char *tube_boot_section(void) { return g_boot_section; }
-const char *tube_boot_section_title(void) { return g_boot_sections[boot_section_index(g_boot_section)].label; }
+const char *tube_boot_section(void) {
+    static char locked[64];
+    if (!*g_startup_lock) return g_boot_section;
+    snprintf(locked, sizeof locked, "library:profile:%s", g_startup_lock); return locked;
+}
+const char *tube_boot_section_title(void) {
+    return *g_startup_lock ? "Accounts & library" : g_boot_sections[boot_section_index(g_boot_section)].label;
+}
 int tube_select_account_on_boot(void) { return g_select_account_on_boot; }
 /* Main-menu and Discover rows a profile may hide or reorder. The table index is
  * the row's saved identity; settings, player settings and close stay fixed. */
@@ -224,7 +251,8 @@ static const struct { const char *id, *label, *detail; int group; } g_sections[]
     {"section:live", "Live", "YouTube live shelves", SECTION_DISCOVER},
     {"section:movies", "Movies", "YouTube movies and shows", SECTION_DISCOVER},
     {"section:trending", "Trending", "Videos trending on YouTube", SECTION_DISCOVER},
-    {"section:shorts", "Shorts", "Short videos from YouTube", SECTION_DISCOVER}
+    {"section:shorts", "Shorts", "Short videos from YouTube", SECTION_DISCOVER},
+    {"section:kids", "Kids", "YouTube Kids categories", SECTION_DISCOVER}
 };
 #define SECTIONS ((int)(sizeof g_sections / sizeof *g_sections))
 #define SECTION_SLOTS 32
@@ -241,6 +269,8 @@ static int section_index(const char *id) {
 static struct { char profile[33], id[119], title[EVO_PROVIDER_MAX_TITLE]; } g_pins[PINS];
 static int g_pin_count;
 static int pin_find(const char *profile, const char *id);
+static int followed(const char *channel);
+static void unfollow(const char *channel);
 /* Folder a section menu was opened on; supplies the title of a new pin. */
 static struct { char id[119], title[EVO_PROVIDER_MAX_TITLE], profile[33]; unsigned scope; } g_menu_target;
 /* SmartTube keeps search filters for one search session; they are never saved.
@@ -264,13 +294,59 @@ static struct { char text[15][801], profile[33]; unsigned scope; int count; } g_
 /* Filtered results come from one retained companion feed: later pages continue
  * it by cursor, so they keep the options of the first page. */
 static struct { char parent[808], key[32], profile[33]; unsigned scope, serial, unavailable; } g_search_feed;
-/* Subscribed channels: 0 = the account's order, 1 = by name. Sorting needs the
- * whole list, which is then served from memory. */
+/* Subscribed channels: 0 = the account's order, 1 = by name, 2 = channels with
+ * new content first. Sorting needs the whole list, which is then served from memory. */
 static int g_channel_sort;
+static const char *const g_channel_order_labels[] = {"account order", "by name", "new content first"};
 #define CHANNEL_ROWS 480
-typedef struct { char id[33], title[EVO_PROVIDER_MAX_TITLE], subtitle[65], art[EVO_PROVIDER_MAX_ART_URL]; } ChannelRow;
+typedef struct { char id[33], title[EVO_PROVIDER_MAX_TITLE], subtitle[65], art[EVO_PROVIDER_MAX_ART_URL]; int has_new, order; } ChannelRow;
 static ChannelRow g_channel_rows[CHANNEL_ROWS];
 static struct { int count, complete; unsigned scope; char profile[33]; } g_channel_list;
+/* Channels the last Subscribed channels listing showed as new, for "Mark all as watched". */
+static struct { char channel[CHANNEL_ROWS][25], profile[33]; int count; unsigned scope; } g_channel_new;
+/* "Mark as watched": YouTube's guide keeps its new-content mark until the
+ * channel's uploads are opened, so each profile remembers the channels it has
+ * seen (with the newest video listed then, when known). A remembered channel
+ * is not shown as new; the entry leaves when YouTube's own mark clears, so the
+ * next upload marks the channel again. Bounded; the oldest entry leaves first. */
+#define CHANNEL_MARKS 512
+static struct { char profile[33], channel[25], video[12]; long long seen; } g_channel_marks[CHANNEL_MARKS];
+static int g_channel_mark_count, g_channel_marks_dirty;
+/* Channels followed without a video of theirs: a subscriptions import. */
+#define FOLLOWS 512
+static struct { char profile[33], channel[25], title[97]; } g_follows[FOLLOWS];
+static int g_follow_count;
+/* One parsed import file waiting for its confirmation. */
+static struct { unsigned serial; int count, listed, skipped, truncated, applied, added, existing, full;
+    char file[64], format[16], profile[33]; char *body;
+    struct { char channel[25], title[97]; } rows[FOLLOWS]; } g_import;
+/* The account playlist each profile last added a video to or removed one from. */
+#define RECENT_PLAYLISTS 64
+static struct { char profile[33], playlist[101], title[EVO_PROVIDER_MAX_TITLE]; } g_recent_playlists[RECENT_PLAYLISTS];
+static int g_recent_playlist_count;
+static struct { char playlist[101], title[EVO_PROVIDER_MAX_TITLE]; } g_picker_rows[48];
+static unsigned g_picker_cursor;
+/* "Remember subtitles per channel": captions on or off, chosen while watching. */
+#define CAPTION_MEMORIES 512
+static struct { char profile[33], channel[25]; int enabled; } g_caption_memories[CAPTION_MEMORIES];
+static int g_caption_memory_count;
+/* Per-profile switches of the third batch; device-owned auto-backup period. */
+static int g_more_subtitles, g_caption_memory, g_dislikes;
+static int g_backup_auto = TUBE_BACKUP_AUTO_OFF;
+static unsigned g_backup_ticket;
+static char g_backup_notice[2][160];
+/* Upcoming videos of the current browsing scope: their menu offers a reminder. */
+static struct { char id[12]; unsigned scope; } g_upcoming[64];
+static unsigned g_upcoming_cursor;
+/* The discussion being read: comments are posted to its video. */
+static struct { char video[12], profile[33], count[33]; unsigned scope; int can_post; } g_comment_thread;
+/* Rows of a details or description page while the dislike relay is asked. */
+static struct { evo_provider_item_t rows[12]; int count; char video[12]; } g_detail;
+static const char *const g_playlist_orders[] = {"added_newest", "added_oldest", "popular", "published_newest", "published_oldest"};
+static const char *const g_playlist_order_labels[] = {"Date added, newest first", "Date added, oldest first", "Most popular",
+    "Date published, newest first", "Date published, oldest first"};
+static const char *const g_notify_levels[] = {"all", "personalized", "none"};
+static const char *const g_notify_labels[] = {"All notifications", "Personalized notifications", "No notifications"};
 /* Full description shown by the long-text reader; owned by one browsing scope. */
 static struct { char id[40], content[60004], profile[33]; unsigned scope; } g_description;
 /* Home cards the profile dismissed in this session; an entry with a channel
@@ -370,7 +446,7 @@ static int recovery_scope(void) {
 int tube_recovery_active(void) { return g_recovery.phase == 2 && recovery_scope(); }
 int tube_recovery_pending(void) { return g_recovery.phase == 1 && recovery_scope(); }
 static char g_library_cursors[LIBRARY_PAGES][65];
-static struct { char id[160], content[16385], rating[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
+static struct { char id[160], content[16385], rating[65], respond[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
 static struct { char id[160], content[16385]; } g_chat_messages[CHAT_HISTORY];
 static unsigned g_account_serial;
 static unsigned g_accounts_revision;
@@ -402,12 +478,13 @@ static struct {
     unsigned serial;
     int state; /* 0 confirmation, 1 submitted, 2 confirmed, -1 unconfirmed */
     char action[32], identity[101], profile[33], playlist[101], title[601], history_cursor[65];
+    char argument[65], session[65]; /* a reminder, order, notification level or reply reference; the one attempt */
 } g_account_intent;
 /* The text prompt also asks for a search inside a channel and for profile
  * passwords: lock 1 = give it to select target, 2 = set a new one, 3 = give it
- * to change it, 4 = give it to remove it. */
-static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search;
-    char identity[101], profile[33], pin[119], target[33]; } g_playlist_prompt;
+ * to change it, 4 = give it to remove it. comment 1 = a new comment, 2 = a reply. */
+static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment;
+    char identity[101], profile[33], pin[119], target[33], cursor[65]; } g_playlist_prompt;
 static const struct { const char *action, *title; int channel; } g_account_actions[] = {
     {"like", "Like video", 0}, {"dislike", "Dislike video", 0}, {"unrate", "Remove video rating", 0},
     {"watch_later_add", "Add to YouTube Watch later", 0},
@@ -717,7 +794,7 @@ static void player_preferences_load(const cJSON *root) {
 }
 
 static const char *topic_section(const char *id) {
-    static const char *const names[] = {"music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"};
+    static const char *const names[] = {"music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos", "kids"};
     if (!id || strncmp(id, "section:", 8)) return NULL;
     for (unsigned i = 0; i < sizeof names / sizeof *names; ++i) {
         size_t n = strlen(names[i]);
@@ -907,6 +984,12 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
         }
         return 0;
     }
+    if (g_playlist_prompt.comment) { /* reviewed on its own screen before the one submission */
+        unsigned serial = account_intent(g_playlist_prompt.comment == 2 ? "comment_reply" : "comment_post", g_playlist_prompt.identity, "", title);
+        copy(g_account_intent.argument, sizeof g_account_intent.argument, g_playlist_prompt.cursor);
+        g_playlist_prompt.active = 0;
+        snprintf(parent, capacity, "comment:review:%u", serial); return 0;
+    }
     if (*g_playlist_prompt.pin) { /* a local name: applied at once, nothing to confirm */
         int index = pin_find(g_library_profile, g_playlist_prompt.pin);
         if (index < 0) return -1;
@@ -923,7 +1006,8 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity) {
     const int current = g_playlist_prompt.active && ticket == g_playlist_prompt.prompt.ticket;
     copy(g_prompt_error, sizeof g_prompt_error, !current ? "" : g_playlist_prompt.lock ? "Enter a password of 1 to 150 characters." :
-        g_playlist_prompt.search ? "Enter 1 to 150 characters to search this channel." : "");
+        g_playlist_prompt.search ? "Enter 1 to 150 characters to search this channel." :
+        g_playlist_prompt.comment ? "Enter a comment of 1 to 150 characters." : "");
     const int result = prompt_submit(ticket, text, parent, capacity);
     if (!result) g_prompt_error[0] = 0;
     return result;
@@ -932,6 +1016,7 @@ int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, s
 const char *tube_prompt_title(const char *parent) {
     return !parent ? "" : !strncmp(parent, "settings:pin:", 13) ? "Pinned section" :
         !strncmp(parent, "channel-search:", 15) ? "Search in channel" :
+        !strncmp(parent, "comment:", 8) ? "Confirm comment" :
         !strncmp(parent, "library:profile:", 16) ? "Accounts & library" :
         !strncmp(parent, "settings:", 9) ? "Accounts" : "Confirm playlist change";
 }
@@ -1182,6 +1267,7 @@ const char *tube_folder_menu(const char *id, const char *title) {
     menu[0] = 0; memset(&g_menu_target, 0, sizeof g_menu_target);
     if (section_index(id) >= 0) snprintf(menu, sizeof menu, "settings:section:%d", section_index(id));
     else if (id && !strcmp(id, "library:history")) snprintf(menu, sizeof menu, "account:history"); /* pause, resume, clear */
+    else if (id && !strcmp(id, "library:channels")) snprintf(menu, sizeof menu, "channels:menu"); /* order, mark all as watched */
     else if (pin_valid(id)) {
         copy(g_menu_target.id, sizeof g_menu_target.id, id); copy(g_menu_target.title, sizeof g_menu_target.title, title);
         copy(g_menu_target.profile, sizeof g_menu_target.profile, g_library_profile); g_menu_target.scope = g_playlist_scope;
@@ -1191,11 +1277,11 @@ const char *tube_folder_menu(const char *id, const char *title) {
 }
 /* "verb:id", a bare id (the pin's menu) or "renamed" (the pin just renamed). */
 static const char *pin_target(const char *value, int *verb) {
-    static const char *const verbs[] = {"add:", "remove:", "up:", "down:", "rename:"};
+    static const char *const verbs[] = {"add:", "remove:", "up:", "down:", "rename:", "unfollow:"};
     *verb = -1;
     if (!strcmp(value, "renamed"))
         return *g_playlist_prompt.pin && !strcmp(g_playlist_prompt.profile, g_library_profile) ? g_playlist_prompt.pin : NULL;
-    for (int i = 0; i < 5; ++i) if (!strncmp(value, verbs[i], strlen(verbs[i]))) { *verb = i; value += strlen(verbs[i]); break; }
+    for (int i = 0; i < 6; ++i) if (!strncmp(value, verbs[i], strlen(verbs[i]))) { *verb = i; value += strlen(verbs[i]); break; }
     return pin_valid(value) ? value : NULL;
 }
 /* Repeating an action is harmless: a pinned folder is not pinned twice. */
@@ -1203,7 +1289,9 @@ static int pin_action(const char *value) {
     int verb; const char *id = pin_target(value, &verb);
     if (!id) { tube_set_error("Select a channel or playlist to pin."); return 0; }
     const int index = pin_find(g_library_profile, id);
-    if (verb == 0 && index < 0) {
+    if (verb == 5) { /* a channel's own menu also ends its local follow */
+        if (!strncmp(id, "channel:", 8) && followed(id + 8)) { unfollow(id + 8); save(); }
+    } else if (verb == 0 && index < 0) {
         const int known = !strcmp(g_menu_target.id, id) && g_menu_target.scope == g_playlist_scope &&
             !strcmp(g_menu_target.profile, g_library_profile);
         if (!pin_put(g_library_profile, id, known ? g_menu_target.title : "")) {
@@ -1288,6 +1376,197 @@ static int feedback_current(const Record *r, unsigned option) {
     return r && r->feedback_scope == g_playlist_scope && r->feedback_deadline > now_ms() &&
         valid_cursor(r->feedback_cursor) && (r->feedback_options & option);
 }
+static int valid_channel(const char *id) {
+    char group[40]; snprintf(group, sizeof group, "channel:%.30s", id ? id : "");
+    return valid_channel_group(group);
+}
+/* "1234567" -> "1,234,567 views"; 0 when the text is not a plain count. */
+static int count_label(char *out, size_t capacity, const char *digits, const char *unit) {
+    size_t length = strlen(digits), used = 0;
+    if (!length || length > 20 || strspn(digits, "0123456789") != length || capacity < 64) return 0;
+    for (size_t i = 0; i < length; ++i) {
+        if (i && !((length - i) % 3)) out[used++] = ',';
+        out[used++] = digits[i];
+    }
+    snprintf(out + used, capacity - used, " %s%s", unit, strcmp(digits, "1") ? "s" : ""); return 1;
+}
+static int channel_mark_find(const char *channel) {
+    for (int i = 0; i < g_channel_mark_count; ++i)
+        if (!strcmp(g_channel_marks[i].profile, g_library_profile) && !strcmp(g_channel_marks[i].channel, channel)) return i;
+    return -1;
+}
+static void channel_mark_drop(int index) {
+    memmove(&g_channel_marks[index], &g_channel_marks[index + 1], (size_t)(g_channel_mark_count - index - 1) * sizeof g_channel_marks[0]);
+    --g_channel_mark_count; g_channel_marks_dirty = 1;
+}
+static void channel_mark_put(const char *channel, const char *video) {
+    if (!valid_channel(channel) || !strcmp(g_library_profile, "guest")) return;
+    int i = channel_mark_find(channel);
+    if (i < 0) {
+        if (g_channel_mark_count == CHANNEL_MARKS) {
+            int oldest = 0;
+            for (int k = 1; k < g_channel_mark_count; ++k) if (g_channel_marks[k].seen < g_channel_marks[oldest].seen) oldest = k;
+            channel_mark_drop(oldest);
+        }
+        i = g_channel_mark_count++; memset(&g_channel_marks[i], 0, sizeof g_channel_marks[i]);
+        copy(g_channel_marks[i].profile, sizeof g_channel_marks[i].profile, g_library_profile);
+        copy(g_channel_marks[i].channel, sizeof g_channel_marks[i].channel, channel); g_channel_marks_dirty = 1;
+    }
+    if (valid_id(video) && strcmp(g_channel_marks[i].video, video)) {
+        copy(g_channel_marks[i].video, sizeof g_channel_marks[i].video, video); g_channel_marks_dirty = 1;
+    }
+    g_channel_marks[i].seen = (long long)time(NULL);
+}
+/* A listed channel as the selected profile sees it: 1 = new content. YouTube's
+ * cleared mark also retires what the profile remembered. */
+static int channel_new(const cJSON *row, const char *channel) {
+    const cJSON *mark = cJSON_GetObjectItemCaseSensitive(row, "has_new");
+    const int seen = channel_mark_find(channel);
+    if (!cJSON_IsBool(mark)) return 0;
+    if (cJSON_IsFalse(mark)) { if (seen >= 0) channel_mark_drop(seen); return 0; }
+    if (seen < 0 && g_channel_new.count < CHANNEL_ROWS) copy(g_channel_new.channel[g_channel_new.count++], 25, channel);
+    return seen < 0;
+}
+static void channel_new_reset(void) {
+    memset(&g_channel_new, 0, sizeof g_channel_new); g_channel_new.scope = g_playlist_scope;
+    copy(g_channel_new.profile, sizeof g_channel_new.profile, g_library_profile);
+}
+static int follow_find(const char *profile, const char *channel) {
+    for (int i = 0; i < g_follow_count; ++i)
+        if (!strcmp(g_follows[i].profile, profile) && !strcmp(g_follows[i].channel, channel)) return i;
+    return -1;
+}
+/* 1 = the selected profile follows the channel, through a video or an import. */
+static int followed(const char *channel) {
+    if (!channel || !*channel) return 0;
+    if (follow_find(g_library_profile, channel) >= 0) return 1;
+    for (int i = 0; i < g_count; ++i)
+        if (current_record(&g_records[i]) && g_records[i].subscribed && !strcmp(g_records[i].item.parent_id, channel)) return 1;
+    return 0;
+}
+/* 1 = stored; 0 = invalid, already listed or the list is full. */
+static int follow_put(const char *profile, const char *channel, const char *title) {
+    if (!valid_profile(profile) || !valid_channel(channel) || follow_find(profile, channel) >= 0 || g_follow_count == FOLLOWS) return 0;
+    copy(g_follows[g_follow_count].profile, sizeof g_follows[0].profile, profile);
+    copy(g_follows[g_follow_count].channel, sizeof g_follows[0].channel, channel);
+    copy(g_follows[g_follow_count].title, sizeof g_follows[0].title, title && *title ? title : channel);
+    ++g_follow_count; return 1;
+}
+static void unfollow(const char *channel) {
+    const int i = follow_find(g_library_profile, channel);
+    if (i >= 0) { memmove(&g_follows[i], &g_follows[i + 1], (size_t)(g_follow_count - i - 1) * sizeof g_follows[0]); --g_follow_count; }
+    for (int k = 0; k < g_count; ++k)
+        if (current_record(&g_records[k]) && !strcmp(g_records[k].item.parent_id, channel)) g_records[k].subscribed = 0;
+}
+static int recent_playlist(void) {
+    for (int i = 0; i < g_recent_playlist_count; ++i) if (!strcmp(g_recent_playlists[i].profile, g_library_profile)) return i;
+    return -1;
+}
+/* The playlist of a confirmed add or remove becomes the profile's shortcut. */
+static void recent_playlist_note(const char *playlist) {
+    char title[EVO_PROVIDER_MAX_TITLE] = "";
+    int i = recent_playlist();
+    if (!valid_playlist(playlist) || !strcmp(g_library_profile, "guest")) return;
+    if (i >= 0 && !strcmp(g_recent_playlists[i].playlist, playlist)) copy(title, sizeof title, g_recent_playlists[i].title);
+    for (int k = 0; k < 48; ++k) if (!strcmp(g_picker_rows[k].playlist, playlist)) copy(title, sizeof title, g_picker_rows[k].title);
+    if (i < 0) {
+        if (g_recent_playlist_count == RECENT_PLAYLISTS) {
+            memmove(g_recent_playlists, g_recent_playlists + 1, (RECENT_PLAYLISTS - 1) * sizeof g_recent_playlists[0]); --g_recent_playlist_count;
+        }
+        i = g_recent_playlist_count++;
+    }
+    memset(&g_recent_playlists[i], 0, sizeof g_recent_playlists[i]);
+    copy(g_recent_playlists[i].profile, sizeof g_recent_playlists[i].profile, g_library_profile);
+    copy(g_recent_playlists[i].playlist, sizeof g_recent_playlists[i].playlist, playlist);
+    copy(g_recent_playlists[i].title, sizeof g_recent_playlists[i].title, *title ? title : playlist);
+}
+static int upcoming(const char *id) {
+    for (int i = 0; i < 64; ++i) if (g_upcoming[i].scope == g_playlist_scope && !strcmp(g_upcoming[i].id, id)) return 1;
+    return 0;
+}
+static void upcoming_note(const char *id) {
+    if (upcoming(id)) return;
+    const int slot = (int)(g_upcoming_cursor++ % 64);
+    copy(g_upcoming[slot].id, sizeof g_upcoming[slot].id, id); g_upcoming[slot].scope = g_playlist_scope;
+}
+static int comment_thread_current(void) {
+    return *g_comment_thread.video && g_comment_thread.scope == g_playlist_scope && !strcmp(g_comment_thread.profile, g_library_profile);
+}
+/* Everything the profile kept on this PS5 beyond its library records. */
+static void profile_forget(const char *profile) {
+    for (int i = g_channel_mark_count - 1; i >= 0; --i) if (!strcmp(g_channel_marks[i].profile, profile)) channel_mark_drop(i);
+    for (int i = g_caption_memory_count - 1; i >= 0; --i) if (!strcmp(g_caption_memories[i].profile, profile)) {
+        memmove(&g_caption_memories[i], &g_caption_memories[i + 1], (size_t)(g_caption_memory_count - i - 1) * sizeof g_caption_memories[0]);
+        --g_caption_memory_count;
+    }
+    for (int i = g_recent_playlist_count - 1; i >= 0; --i) if (!strcmp(g_recent_playlists[i].profile, profile)) {
+        memmove(&g_recent_playlists[i], &g_recent_playlists[i + 1], (size_t)(g_recent_playlist_count - i - 1) * sizeof g_recent_playlists[0]);
+        --g_recent_playlist_count;
+    }
+}
+static int caption_memory_find(const char *channel) {
+    for (int i = 0; i < g_caption_memory_count; ++i)
+        if (!strcmp(g_caption_memories[i].profile, g_library_profile) && !strcmp(g_caption_memories[i].channel, channel)) return i;
+    return -1;
+}
+/* Captions for a video of this channel: what the profile last chose while
+ * watching the channel, else its own Captions setting. */
+static int captions_wanted(const char *channel) {
+    const int i = g_caption_memory && tube_sb_channel_valid(channel) ? caption_memory_find(channel) : -1;
+    return i >= 0 ? g_caption_memories[i].enabled : g_captions;
+}
+int tube_captions_for(const char *id) {
+    const Record *r = record(id, 0);
+    return captions_wanted(r ? r->item.parent_id : "");
+}
+int tube_remember_captions(const char *id, int enabled) {
+    const Record *r = record(id, 0);
+    if (!g_caption_memory || !r || !tube_sb_channel_valid(r->item.parent_id)) return 0;
+    int i = caption_memory_find(r->item.parent_id);
+    if (i >= 0 && g_caption_memories[i].enabled == !!enabled) return 1;
+    if (i < 0) {
+        if (g_caption_memory_count == CAPTION_MEMORIES) { /* the oldest entry leaves */
+            memmove(g_caption_memories, g_caption_memories + 1, (CAPTION_MEMORIES - 1) * sizeof g_caption_memories[0]); --g_caption_memory_count;
+        }
+        i = g_caption_memory_count++;
+        copy(g_caption_memories[i].profile, sizeof g_caption_memories[i].profile, g_library_profile);
+        copy(g_caption_memories[i].channel, sizeof g_caption_memories[i].channel, r->item.parent_id);
+    }
+    g_caption_memories[i].enabled = !!enabled; save(); return 1;
+}
+/* Import files are plain names inside <data>/import: no path, no hidden file. */
+#define IMPORT_FILES 24
+static int import_name_valid(const char *name) {
+    const size_t length = name ? strlen(name) : 0;
+    return length && length < 60 && name[0] != '.' &&
+        strspn(name, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-") == length;
+}
+static long long import_size(const char *name) {
+    char path[640]; struct stat info;
+    snprintf(path, sizeof path, "%s/%s", evo_data_path("import"), name);
+    return !stat(path, &info) && S_ISREG(info.st_mode) && info.st_size > 0 && info.st_size <= 1024 * 1024 ? (long long)info.st_size : 0;
+}
+static int import_compare(const void *a, const void *b) { return strcmp(a, b); }
+static int import_files(char names[IMPORT_FILES][64]) {
+    char directory[512]; int count = 0;
+    copy(directory, sizeof directory, evo_data_path("import"));
+    evo_mkdir(evo_data_dir()); evo_mkdir(directory); /* the place to copy an export to */
+    import_dir *dir = import_opendir(directory); if (!dir) return 0;
+    for (struct dirent *entry; count < IMPORT_FILES && (entry = import_readdir(dir)) != NULL;)
+        if (import_name_valid(entry->d_name) && import_size(entry->d_name)) copy(names[count++], 64, entry->d_name);
+    import_closedir(dir);
+    qsort(names, (size_t)count, 64, import_compare); return count;
+}
+/* The whole file as text; NULL when it is missing, empty, too large or binary. */
+static char *import_read(const char *name) {
+    char path[640]; snprintf(path, sizeof path, "%s/%s", evo_data_path("import"), name);
+    const long long size = import_size(name);
+    FILE *file = size ? fopen(path, "rb") : NULL; if (!file) return NULL;
+    char *body = calloc(1, (size_t)size + 1);
+    if (body && (fread(body, 1, (size_t)size, file) != (size_t)size || memchr(body, 0, (size_t)size))) { free(body); body = NULL; }
+    fclose(file); return body;
+}
+static void import_release(void) { free(g_import.body); g_import.body = NULL; }
 
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
@@ -1381,7 +1660,12 @@ static int g_sb_alt, g_section_playlist = 1;
  * only after its feature list was read for the current source and pairing;
  * until then, and when the read fails, requests keep their earlier form. */
 enum { COMPANION_LOCALE = 1, COMPANION_THUMBNAILS = 2, COMPANION_FILTERS = 4, COMPANION_CHANNELS = 8,
-       COMPANION_SB_ALT = 16, COMPANION_LIBRARY = 32 };
+       COMPANION_SB_ALT = 16, COMPANION_LIBRARY = 32,
+       /* third batch */
+       COMPANION_TRANSLATED = 64, COMPANION_DETAILS = 128, COMPANION_IMPORT = 256, COMPANION_KIDS = 512,
+       COMPANION_REMINDER = 1024, COMPANION_PLAYLIST_ORDER = 2048, COMPANION_NOTIFICATIONS = 4096,
+       COMPANION_COMMENT_POST = 8192, COMPANION_SEARCH_FIRST = 16384, COMPANION_NEW_CONTENT = 32768,
+       COMPANION_DISLIKES = 65536 };
 static struct { char source[512]; unsigned features; int known; } g_companion;
 static int companion_known(void) { return g_companion.known && *g_source && !strcmp(g_companion.source, g_source); }
 static int companion_has(unsigned feature) { return companion_known() && (g_companion.features & feature) == feature; }
@@ -1389,7 +1673,11 @@ static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion)
 static void companion_read(const cJSON *root) {
     static const struct { const char *name; unsigned bit; } names[] = {
         {"locale", COMPANION_LOCALE}, {"thumbnail_source", COMPANION_THUMBNAILS}, {"content_filters", COMPANION_FILTERS},
-        {"channel_pages", COMPANION_CHANNELS}, {"sponsorblock_alt", COMPANION_SB_ALT}, {"library", COMPANION_LIBRARY}
+        {"channel_pages", COMPANION_CHANNELS}, {"sponsorblock_alt", COMPANION_SB_ALT}, {"library", COMPANION_LIBRARY},
+        {"translated_captions", COMPANION_TRANSLATED}, {"video_details", COMPANION_DETAILS}, {"subscriptions_import", COMPANION_IMPORT},
+        {"kids", COMPANION_KIDS}, {"stream_reminder", COMPANION_REMINDER}, {"playlist_order", COMPANION_PLAYLIST_ORDER},
+        {"subscribe_notifications", COMPANION_NOTIFICATIONS}, {"comment_post", COMPANION_COMMENT_POST},
+        {"search_first", COMPANION_SEARCH_FIRST}, {"channel_new_content", COMPANION_NEW_CONTENT}, {"dislikes", COMPANION_DISLIKES}
     };
     const cJSON *features = cJSON_GetObjectItemCaseSensitive(root, "features"), *feature;
     companion_forget();
@@ -1577,6 +1865,40 @@ static void save(void) {
         cJSON_AddStringToObject(row,"password",g_locks[i].record);
         cJSON_AddItemToArray(locks,row);
     }
+    cJSON *follows=cJSON_AddArrayToObject(root,"followed_channels");
+    for(int i=0;follows && i<g_follow_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_follows[i].profile);
+        cJSON_AddStringToObject(row,"channel",g_follows[i].channel);
+        cJSON_AddStringToObject(row,"title",g_follows[i].title);
+        cJSON_AddItemToArray(follows,row);
+    }
+    cJSON *marks=cJSON_AddArrayToObject(root,"seen_channels");
+    for(int i=0;marks && i<g_channel_mark_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_channel_marks[i].profile);
+        cJSON_AddStringToObject(row,"channel",g_channel_marks[i].channel);
+        cJSON_AddStringToObject(row,"video",g_channel_marks[i].video);
+        cJSON_AddNumberToObject(row,"seen",(double)g_channel_marks[i].seen);
+        cJSON_AddItemToArray(marks,row);
+    }
+    cJSON *recent=cJSON_AddArrayToObject(root,"recent_playlists");
+    for(int i=0;recent && i<g_recent_playlist_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_recent_playlists[i].profile);
+        cJSON_AddStringToObject(row,"playlist",g_recent_playlists[i].playlist);
+        cJSON_AddStringToObject(row,"title",g_recent_playlists[i].title);
+        cJSON_AddItemToArray(recent,row);
+    }
+    cJSON *caption_memories=cJSON_AddArrayToObject(root,"caption_memories");
+    for(int i=0;caption_memories && i<g_caption_memory_count;++i) {
+        cJSON *row=cJSON_CreateObject(); if(!row)break;
+        cJSON_AddStringToObject(row,"profile",g_caption_memories[i].profile);
+        cJSON_AddStringToObject(row,"channel",g_caption_memories[i].channel);
+        cJSON_AddBoolToObject(row,"enabled",g_caption_memories[i].enabled);
+        cJSON_AddItemToArray(caption_memories,row);
+    }
+    cJSON_AddNumberToObject(root, "backup_auto_days", g_backup_auto);
     cJSON_AddBoolToObject(root, "separate_settings", g_separate_settings);
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
@@ -1600,7 +1922,8 @@ static void save(void) {
     cJSON_AddBoolToObject(root, "automatic_captions", g_auto_captions);
     cJSON_AddStringToObject(root, "language", g_language);
     cJSON_AddStringToObject(root, "audio_language", g_audio_language);
-    cJSON_AddStringToObject(root, "library_profile", g_library_profile);
+    /* A profile waiting for its password at startup stays the saved choice. */
+    cJSON_AddStringToObject(root, "library_profile", *g_startup_lock ? g_startup_lock : g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
     cJSON_AddNumberToObject(root, "sleep_timer_minutes", g_sleep_minutes);
@@ -1676,7 +1999,7 @@ static void save(void) {
         size_t size = strlen(body);
         int ok = fwrite(body, 1, size, f) == size && fflush(f) == 0;
         if (fclose(f)) ok = 0;
-        if (ok && rename(tmp, dst) == 0) { g_last_save = now_ms(); g_remote_identity_saved = !!*g_remote_device; g_remote_write_failed = 0; }
+        if (ok && rename(tmp, dst) == 0) { g_last_save = now_ms(); g_remote_identity_saved = !!*g_remote_device; g_remote_write_failed = 0; g_channel_marks_dirty = 0; }
         else tube_set_error("Local library could not be saved. Check the ProsperoTube data directory.");
     }
     free(body);
@@ -1732,6 +2055,7 @@ static void account_removed(void) {
         g_auth.serial = serial; g_auth.revision = revision; g_auth.state = AUTH_CANCELED;
     }
     lock_remove(g_library_profile); memset(&g_unlock, 0, sizeof g_unlock);
+    profile_forget(g_library_profile);
     profile_settings_select("guest");
     watch_reset(1); tube_extra_video_end();
     g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -1771,6 +2095,11 @@ static int init(void) {
     ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
     tube_player_extra_set_save_hook(extra_saved,NULL);
     g_separate_settings = 0; g_lock_count = 0; memset(&g_unlock,0,sizeof g_unlock); g_prompt_error[0] = 0;
+    g_startup_lock[0] = 0; g_follow_count = g_channel_mark_count = g_channel_marks_dirty = g_recent_playlist_count = g_caption_memory_count = 0;
+    g_backup_auto = TUBE_BACKUP_AUTO_OFF; g_backup_ticket = 0; memset(g_backup_notice,0,sizeof g_backup_notice);
+    import_release(); memset(&g_import,0,sizeof g_import); memset(&g_channel_new,0,sizeof g_channel_new);
+    memset(g_picker_rows,0,sizeof g_picker_rows); memset(g_upcoming,0,sizeof g_upcoming);
+    memset(&g_comment_thread,0,sizeof g_comment_thread); memset(&g_detail,0,sizeof g_detail);
     companion_forget(); memset(&g_channel_facts,0,sizeof g_channel_facts); memset(&g_channel_query,0,sizeof g_channel_query);
     memset(&g_history_paused,0,sizeof g_history_paused);
     copy(g_library_profile,sizeof g_library_profile,"guest");
@@ -1903,6 +2232,44 @@ static int init(void) {
         copy(g_locks[g_lock_count].profile,sizeof g_locks[0].profile,owner);
         copy(g_locks[g_lock_count++].record,sizeof g_locks[0].record,record);
     }
+    /* Lists of the third batch: absent in older files; a malformed row is skipped. */
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"followed_channels"))
+        follow_put(str(o,"profile"),str(o,"channel"),str(o,"title"));
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"seen_channels")) {
+        const char *owner=str(o,"profile"),*channel=str(o,"channel"),*video=str(o,"video");int duplicate=0;
+        for(int i=0;i<g_channel_mark_count;++i)
+            if(!strcmp(g_channel_marks[i].profile,owner) && !strcmp(g_channel_marks[i].channel,channel))duplicate=1;
+        if(duplicate || g_channel_mark_count==CHANNEL_MARKS || !valid_profile(owner) || !strcmp(owner,"guest") || !valid_channel(channel))continue;
+        memset(&g_channel_marks[g_channel_mark_count],0,sizeof g_channel_marks[0]);
+        copy(g_channel_marks[g_channel_mark_count].profile,sizeof g_channel_marks[0].profile,owner);
+        copy(g_channel_marks[g_channel_mark_count].channel,sizeof g_channel_marks[0].channel,channel);
+        if(valid_id(video))copy(g_channel_marks[g_channel_mark_count].video,sizeof g_channel_marks[0].video,video);
+        g_channel_marks[g_channel_mark_count++].seen=(long long)num(o,"seen");
+    }
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"recent_playlists")) {
+        const char *owner=str(o,"profile"),*playlist=str(o,"playlist");int duplicate=0;
+        for(int i=0;i<g_recent_playlist_count;++i)if(!strcmp(g_recent_playlists[i].profile,owner))duplicate=1;
+        if(duplicate || g_recent_playlist_count==RECENT_PLAYLISTS || !valid_profile(owner) || !strcmp(owner,"guest") || !valid_playlist(playlist))continue;
+        memset(&g_recent_playlists[g_recent_playlist_count],0,sizeof g_recent_playlists[0]);
+        copy(g_recent_playlists[g_recent_playlist_count].profile,sizeof g_recent_playlists[0].profile,owner);
+        copy(g_recent_playlists[g_recent_playlist_count].playlist,sizeof g_recent_playlists[0].playlist,playlist);
+        copy(g_recent_playlists[g_recent_playlist_count++].title,sizeof g_recent_playlists[0].title,*str(o,"title")?str(o,"title"):playlist);
+    }
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"caption_memories")) {
+        const char *owner=str(o,"profile"),*channel=str(o,"channel");int duplicate=0;
+        const cJSON *enabled=cJSON_GetObjectItemCaseSensitive(o,"enabled");
+        for(int i=0;i<g_caption_memory_count;++i)
+            if(!strcmp(g_caption_memories[i].profile,owner) && !strcmp(g_caption_memories[i].channel,channel))duplicate=1;
+        if(duplicate || g_caption_memory_count==CAPTION_MEMORIES || !valid_profile(owner) || !tube_sb_channel_valid(channel) || !cJSON_IsBool(enabled))continue;
+        copy(g_caption_memories[g_caption_memory_count].profile,sizeof g_caption_memories[0].profile,owner);
+        copy(g_caption_memories[g_caption_memory_count].channel,sizeof g_caption_memories[0].channel,channel);
+        g_caption_memories[g_caption_memory_count++].enabled=cJSON_IsTrue(enabled);
+    }
+    {
+        const cJSON *period=cJSON_GetObjectItemCaseSensitive(root,"backup_auto_days");
+        if(cJSON_IsNumber(period) && period->valuedouble==(int)period->valuedouble && tube_backup_auto_valid((int)period->valuedouble))
+            g_backup_auto=(int)period->valuedouble;
+    }
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
         const char *owner = version == 1 ? "guest" : str(o, "profile");
         if (record_for(str(o, "id"), owner, 0)) continue;
@@ -1921,7 +2288,16 @@ static int init(void) {
         r->subscribed = boolean(o, "subscribed");
     }
     profile_settings_load(root);
-    cJSON_Delete(root); if (version == 1) save(); remote_configure(); return 0;
+    cJSON_Delete(root); if (version == 1) save();
+    /* A protected profile is not entered again without its password: browsing
+     * starts as Guest and the startup folder asks for it. */
+    if (strcmp(g_library_profile, "guest") && lock_find(g_library_profile) >= 0) {
+        char locked[33]; copy(locked, sizeof locked, g_library_profile);
+        if (profile_settings_select("guest")) copy(g_startup_lock, sizeof g_startup_lock, locked);
+    }
+    if (g_backup_auto != TUBE_BACKUP_AUTO_OFF) /* a dated copy of the file just read, when one is due */
+        tube_backup_auto_run(evo_data_dir(), g_backup_auto, (long long)time(NULL), TUBE_BACKUP_KEEP_DEFAULT, NULL, 0);
+    remote_configure(); return 0;
 }
 
 /* Local library and preferences remain usable before pairing or while offline. */
@@ -1986,6 +2362,7 @@ static void complete(Request *r, int ok) {
     }
     if (r->kind == 6 && r->intent == g_account_intent.serial && g_account_intent.state == 1)
         g_account_intent.state = -1;
+    if (r->kind == 18) import_release();
     evo_provider_items_cb items_cb = r->items_cb;
     evo_provider_resolve_cb resolve_cb = r->resolve_cb;
     void *ud = r->ud;
@@ -2068,12 +2445,15 @@ static int send_request(Request *r, const char *method, const char *path, const 
 }
 
 /* Requests by kind: 1 = search or catalog job, 2 = resolve, 3 = library list,
- * 5 = comments, 7 = playlist picker, 15 = description, 16 = suggestions. */
+ * 5 = comments, 7 = playlist picker, 15 = description, 16 = suggestions,
+ * 17 = one answer shown as rows (details, reminder state, playlist orders,
+ * first search result, a channel marked as watched), 18 = a subscriptions import. */
 static int request_wants_features(const Request *r) {
     const int listing = r->kind == 1 || r->kind == 3 || r->kind == 7;
     if (r->wants_health) return 1;
-    if (r->kind == 2) return *g_hl || g_sb_alt;
+    if (r->kind == 2) return *g_hl || g_sb_alt || g_more_subtitles;
     if (listing) return *g_hl || *g_gl || g_thumbnails || (g_hide_set && r->kind != 7);
+    if (r->kind == 15 && g_dislikes) return 1;
     return (r->kind == 5 || r->kind == 15 || r->kind == 16) && (*g_hl || *g_gl);
 }
 /* A field is replaced, never repeated: a request can begin again after pairing. */
@@ -2089,7 +2469,9 @@ static int request_decorate(Request *r) {
         (listing || r->kind == 2 || r->kind == 5 || r->kind == 15 || r->kind == 16);
     const int thumbnails = companion_has(COMPANION_THUMBNAILS) && g_thumbnails && listing;
     const int hide = companion_has(COMPANION_FILTERS) && g_hide_set && (r->kind == 1 || r->kind == 3);
-    if (!dearrow && !channel && !locale && !thumbnails && !hide) return 0;
+    const int translated = r->kind == 2 && g_more_subtitles && companion_has(COMPANION_TRANSLATED);
+    const int marks = r->kind == 3 && r->new_content && companion_has(COMPANION_NEW_CONTENT);
+    if (!dearrow && !channel && !locale && !thumbnails && !hide && !translated && !marks) return 0;
     cJSON *job = cJSON_Parse(r->payload);
     if (!job) { complete(r, 0); return -1; }
     if (channel) { /* the channel folder becomes the companion's channel page, opened on Videos */
@@ -2111,6 +2493,12 @@ static int request_decorate(Request *r) {
     if (locale && *g_hl) job_string(target, "hl", g_hl);
     if (locale && *g_gl && r->kind != 2) job_string(target, "gl", g_gl); /* a resolve takes the language only */
     if (thumbnails) job_string(target, "thumbnails", g_thumbnail_sources[g_thumbnails]);
+    if (translated) { /* machine translations join the caption list of this resolve */
+        cJSON_DeleteItemFromObjectCaseSensitive(target, "translated_captions"); cJSON_AddBoolToObject(target, "translated_captions", 1);
+    }
+    if (marks && !strcmp(str(target, "action"), "channels")) { /* a cursor continues the list it was opened with */
+        cJSON_DeleteItemFromObjectCaseSensitive(target, "new_content"); cJSON_AddBoolToObject(target, "new_content", 1);
+    }
     if (hide && strcmp(str(target, "action"), "continue")) { /* a cursor keeps the selection it was opened with */
         cJSON_DeleteItemFromObjectCaseSensitive(target, "hide");
         cJSON *names = cJSON_AddArrayToObject(target, "hide");
@@ -2144,6 +2532,10 @@ static int begin(Request *r) {
         tube_set_error(companion_known() ? "The paired companion does not offer this action. Update it and enable its library worker." :
             "The companion did not report what it offers. Check that it is running and retry.");
         complete(r, 0); return 0;
+    }
+    if (r->kind == 18) { /* the export file itself is the request body */
+        if (!g_import.body) { complete(r, 0); return 0; }
+        r->stage = 7; return send_request(r, "POST", "/v1/subscriptions/import", g_import.body);
     }
     if (request_decorate(r)) return -1;
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
@@ -2937,6 +3329,7 @@ static void resolved(Request *r, const cJSON *root) {
         copy(g_caption_tracks[i].name, sizeof g_caption_tracks[i].name, str(c, "name"));
         copy(g_caption_tracks[i].url, sizeof g_caption_tracks[i].url, url);
         g_caption_tracks[i].automatic = boolean(c, "automatic");
+        g_caption_tracks[i].translated = boolean(c, "translated");
     }
     if (retain_captions && caption_cached(primary_path, primary_language)) {
         copy(g_caption_path, sizeof g_caption_path, primary_path);
@@ -2971,7 +3364,7 @@ static void resolved(Request *r, const cJSON *root) {
         const char *headers[] = {auth};
         if (*categories) evo_net_request_async("GET", url, NULL, headers, 1, sponsor_response, (void *)(size_t)g_sb_serial);
     }
-    if (g_captions && !*g_caption_path) {
+    if (captions_wanted(cached ? cached->item.parent_id : "") && !*g_caption_path) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
             if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url"))) continue;
             r->stage = 3;
@@ -3047,6 +3440,32 @@ static void suggestions_result(Request *r, const cJSON *result) {
     memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
     free(items);
 }
+static void request_rows(Request *r, const evo_provider_item_t *items, int n) {
+    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+    memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
+}
+/* The rows in g_detail are shown at once, or after the dislike relay answered:
+ * the profile's switch and the companion's host option both have to allow it. */
+static void detail_finish(Request *r) {
+    if (g_dislikes && companion_has(COMPANION_DISLIKES) && valid_id(g_detail.video)) {
+        char path[64]; snprintf(path, sizeof path, "/v1/dislikes/%s", g_detail.video);
+        r->stage = 6; r->deadline = now_ms() + 20000;
+        send_request(r, "GET", path, NULL); return;
+    }
+    request_rows(r, g_detail.rows, g_detail.count);
+}
+/* Without a usable answer the page simply has no dislike row. */
+static void dislikes_result(Request *r, const cJSON *root) {
+    const cJSON *dislikes = cJSON_GetObjectItemCaseSensitive(root, "dislikes"); char digits[24], label[96];
+    if (root && boolean(root, "enabled") && boolean(root, "available") && !strcmp(str(root, "id"), g_detail.video) &&
+        cJSON_IsNumber(dislikes) && dislikes->valuedouble >= 0 && dislikes->valuedouble <= 1e12 &&
+        floor(dislikes->valuedouble) == dislikes->valuedouble && g_detail.count < 12) {
+        snprintf(digits, sizeof digits, "%.0f", dislikes->valuedouble);
+        if (count_label(label, sizeof label, digits, "dislike"))
+            folder(&g_detail.rows[g_detail.count++], "account:notice:dislikes", label, "Estimated by Return YouTube Dislike");
+    }
+    request_rows(r, g_detail.rows, g_detail.count);
+}
 /* The first row carries the whole text for the reader; the others are its header. */
 static void description_result(Request *r, const cJSON *result) {
     const char *id = r->parent + 12, *channel = str(result, "channel_id"), *views = str(result, "views");
@@ -3056,7 +3475,8 @@ static void description_result(Request *r, const cJSON *result) {
         strlen(text->valuestring) >= sizeof g_description.content || strlen(views) > 20 || strspn(views, "0123456789") != strlen(views)) {
         tube_set_error("The description response was invalid."); complete(r, 0); return;
     }
-    evo_provider_item_t items[4]; int n = 0;
+    evo_provider_item_t *items = g_detail.rows; int n = 0;
+    memset(&g_detail, 0, sizeof g_detail); copy(g_detail.video, sizeof g_detail.video, id);
     memset(&g_description, 0, sizeof g_description);
     snprintf(g_description.id, sizeof g_description.id, "description:text:%u", r->generation);
     copy(g_description.content, sizeof g_description.content, *text->valuestring ? text->valuestring : "This video has no description.");
@@ -3078,11 +3498,153 @@ static void description_result(Request *r, const cJSON *result) {
         snprintf(label + used, sizeof label - used, " view%s", strcmp(views, "1") ? "s" : "");
         folder(&items[n++], "account:notice:views", label, "Views");
     }
-    evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
-    memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
+    if (count_label(label, sizeof label, str(result, "like_count"), "like")) folder(&items[n++], "account:notice:likes", label, "Likes");
+    g_detail.count = n; detail_finish(r);
+}
+static int channel_tab_parse(const char *parent, int *tab, int *sort);
+static void details_result(Request *r, const cJSON *result) {
+    const char *id = r->parent + 8, *subscribers;
+    const cJSON *channel = cJSON_GetObjectItemCaseSensitive(result, "channel"), *badge;
+    char target[64], label[128], text[160] = ""; evo_provider_item_t *rows = g_detail.rows; int n = 0;
+    if (strcmp(str(result, "kind"), "video_details") || strcmp(str(result, "id"), id) || !cJSON_IsObject(channel)) {
+        tube_set_error("The details response was invalid."); complete(r, 0); return;
+    }
+    memset(&g_detail, 0, sizeof g_detail); copy(g_detail.video, sizeof g_detail.video, id);
+    cJSON_ArrayForEach(badge, cJSON_GetObjectItemCaseSensitive(result, "badges")) {
+        const char *name = !cJSON_IsString(badge) ? NULL : !strcmp(badge->valuestring, "live") ? "Live" :
+            !strcmp(badge->valuestring, "upcoming") ? "Upcoming" : !strcmp(badge->valuestring, "4k") ? "4K" : NULL;
+        if (name && strlen(text) < 64) snprintf(text + strlen(text), sizeof text - strlen(text), "%s%s", *text ? " | " : "", name);
+    }
+    const long seconds = (long)num(result, "duration_sec") > 360000 ? 0 : (long)num(result, "duration_sec");
+    if (seconds >= 3600) snprintf(text + strlen(text), sizeof text - strlen(text), "%s%ld:%02ld:%02ld", *text ? " | " : "", seconds / 3600, seconds / 60 % 60, seconds % 60);
+    else if (seconds > 0) snprintf(text + strlen(text), sizeof text - strlen(text), "%s%ld:%02ld", *text ? " | " : "", seconds / 60, seconds % 60);
+    folder(&rows[n], "account:notice:title", *str(result, "title") ? str(result, "title") : id, *text ? text : "Video details");
+    copy(rows[n].overview, sizeof rows[n].overview, str(result, "description")); ++n;
+    if (*str(channel, "name")) {
+        subscribers = str(channel, "subscribers");
+        snprintf(target, sizeof target, "channel:%.24s", str(channel, "id"));
+        if (count_label(label, sizeof label, subscribers, "subscriber")) subscribers = label;
+        folder(&rows[n], valid_channel_group(target) && strlen(str(channel, "id")) == 24 ? target : "account:notice:channel", str(channel, "name"),
+            *subscribers ? subscribers : "Channel");
+        copy(rows[n].art_url, sizeof rows[n].art_url, str(channel, "art_url")); ++n;
+    }
+    if (*str(result, "published")) folder(&rows[n++], "account:notice:published", str(result, "published"), "Published");
+    if (count_label(label, sizeof label, str(result, "views"), "view")) folder(&rows[n++], "account:notice:views", label, "Views");
+    if (count_label(label, sizeof label, str(result, "like_count"), "like")) folder(&rows[n++], "account:notice:likes", label, "Likes");
+    snprintf(target, sizeof target, "description:%s", id);
+    folder(&rows[n++], target, "Read the description", "The full text; L2 / R2 scroll");
+    if (boolean(result, "has_related")) {
+        snprintf(target, sizeof target, "library:suggestions:%s", id);
+        folder(&rows[n++], target, "Related videos", "Suggestions for this video and the selected profile");
+    }
+    g_detail.count = n; detail_finish(r);
+}
+static void reminder_result(Request *r, const cJSON *result) {
+    const char *id = r->parent + 9; evo_provider_item_t rows[2]; int n = 0; char target[64];
+    const cJSON *coming = cJSON_GetObjectItemCaseSensitive(result, "upcoming"), *available = cJSON_GetObjectItemCaseSensitive(result, "available"),
+        *set = cJSON_GetObjectItemCaseSensitive(result, "reminder_set");
+    if (strcmp(str(result, "kind"), "stream_reminder") || strcmp(str(result, "id"), id) || !cJSON_IsBool(coming) || !cJSON_IsBool(available) || !cJSON_IsBool(set)) {
+        tube_set_error("The reminder response was invalid."); complete(r, 0); return;
+    }
+    if (!cJSON_IsTrue(coming)) folder(&rows[n++], "account:notice", "This video is not an upcoming stream", "Reminders exist for streams and premieres that have not started");
+    else if (!cJSON_IsTrue(available)) folder(&rows[n++], "account:notice", "YouTube offers no reminder for this stream",
+        !strcmp(g_library_profile, "guest") ? "Choose an account profile to set a reminder" : "The stream has no Notify me control for this profile");
+    else {
+        folder(&rows[n++], "account:notice:reminder", cJSON_IsTrue(set) ? "Reminder: set" : "Reminder: not set", "YouTube notifies this account when the stream starts");
+        snprintf(target, sizeof target, "reminder:confirm:%s:%s", cJSON_IsTrue(set) ? "unset" : "set", id);
+        folder(&rows[n++], target, cJSON_IsTrue(set) ? "Remove stream reminder" : "Set stream reminder", "Asks before changing the account");
+    }
+    request_rows(r, rows, n);
+}
+static void playlist_order_result(Request *r, const cJSON *result) {
+    const char *playlist = r->parent + 15; evo_provider_item_t rows[5]; int n = 0; unsigned seen = 0;
+    const cJSON *orders = cJSON_GetObjectItemCaseSensitive(result, "orders"), *order;
+    if (strcmp(str(result, "kind"), "playlist_order") || strcmp(str(result, "playlist_id"), playlist) || !cJSON_IsArray(orders)) {
+        tube_set_error("The playlist order response was invalid."); complete(r, 0); return;
+    }
+    if (boolean(result, "editable")) cJSON_ArrayForEach(order, orders) for (int i = 0; i < 5; ++i) {
+        char id[160];
+        if (!cJSON_IsString(order) || strcmp(order->valuestring, g_playlist_orders[i]) || (seen >> i & 1)) continue;
+        seen |= 1u << i; snprintf(id, sizeof id, "playlist-order:confirm:%s:%.100s", g_playlist_orders[i], playlist);
+        folder(&rows[n++], id, g_playlist_order_labels[i], !strcmp(str(result, "order"), g_playlist_orders[i]) ? "Selected" : "Sorts this playlist on YouTube; asks first");
+    }
+    if (!n) folder(&rows[n++], "account:notice", "This playlist cannot be sorted", "YouTube offers an order only for playlists of this account");
+    request_rows(r, rows, n);
+}
+static void search_first_result(Request *r, const cJSON *result) {
+    const cJSON *row = cJSON_GetObjectItemCaseSensitive(result, "item"); evo_provider_item_t item;
+    memset(&item, 0, sizeof item);
+    if (strcmp(str(result, "kind"), "search_first")) { tube_set_error("The search response was invalid."); complete(r, 0); return; }
+    if (cJSON_IsObject(row)) parse_item(&item, row);
+    if (!boolean(result, "found") || !cJSON_IsObject(row) || !valid_id(item.id) || item.is_folder || blocked_identity(item.parent_id, item.subtitle) >= 0) {
+        folder(&item, "account:notice", "No playable video on the first result page", "Circle returns to the search options");
+        request_rows(r, &item, 1); return;
+    }
+    Record *cached = record(item.id, 1);
+    if (cached) { /* what this PS5 knows of the video's progress stays */
+        const int64_t position = cached->item.resume_pos_sec; const int played = cached->item.played, known = cached->updated > 0;
+        cached->item = item;
+        if (known) { cached->item.resume_pos_sec = position; cached->item.played = played; }
+        item = cached->item;
+        /* The host takes it once, as it does for Play from start. */
+        copy(g_menu_launch.id, sizeof g_menu_launch.id, item.id);
+        copy(g_menu_launch.profile, sizeof g_menu_launch.profile, g_library_profile); g_menu_launch.scope = g_playlist_scope;
+    }
+    request_rows(r, &item, 1);
+}
+static void channel_watched_result(Request *r, const cJSON *result) {
+    const cJSON *o; evo_provider_item_t item; const char *channel = r->parent + 16;
+    cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items"))
+        if (valid_id(str(o, "id")) && !boolean(o, "is_folder")) { channel_mark_put(channel, str(o, "id")); break; }
+    if (g_channel_marks_dirty) save();
+    folder(&item, "account:notice", "Channel marked as watched", "Its uploads were opened for the selected profile; the new-content mark is cleared");
+    request_rows(r, &item, 1);
+}
+static void facts_result(Request *r, const cJSON *result) {
+    if (!strncmp(r->parent, "details:", 8)) details_result(r, result);
+    else if (!strncmp(r->parent, "reminder:", 9)) reminder_result(r, result);
+    else if (!strncmp(r->parent, "playlist-order:", 15)) playlist_order_result(r, result);
+    else if (!strncmp(r->parent, "search-first:", 13)) search_first_result(r, result);
+    else channel_watched_result(r, result);
+}
+/* The parsed export waits for one confirmation; nothing is followed yet. */
+static void import_result(Request *r, const cJSON *root) {
+    const cJSON *channels = cJSON_GetObjectItemCaseSensitive(root, "channels"), *o;
+    evo_provider_item_t rows[2]; char label[160], detail[200], file[64];
+    double skipped = num(root, "skipped");
+    import_release();
+    if (num(root, "api_version") != 1 || strcmp(str(root, "kind"), "subscriptions_import") || !cJSON_IsArray(channels)) {
+        tube_set_error("The import response was invalid."); complete(r, 0); return;
+    }
+    const unsigned serial = g_import.serial + 1; copy(file, sizeof file, g_import.file);
+    memset(&g_import, 0, sizeof g_import); g_import.serial = serial ? serial : 1;
+    copy(g_import.file, sizeof g_import.file, file); copy(g_import.profile, sizeof g_import.profile, g_library_profile);
+    copy(g_import.format, sizeof g_import.format, str(root, "format"));
+    cJSON_ArrayForEach(o, channels) {
+        const char *channel = str(o, "channel_id"); int duplicate = 0;
+        if (!valid_channel(channel)) { ++skipped; continue; }
+        for (int i = 0; i < g_import.listed; ++i) if (!strcmp(g_import.rows[i].channel, channel)) duplicate = 1;
+        if (duplicate || g_import.count >= 100000) continue;
+        ++g_import.count;
+        if (g_import.listed == FOLLOWS) continue; /* more than the follow list can ever hold */
+        copy(g_import.rows[g_import.listed].channel, sizeof g_import.rows[0].channel, channel);
+        copy(g_import.rows[g_import.listed++].title, sizeof g_import.rows[0].title, str(o, "title"));
+    }
+    g_import.skipped = skipped > 100000 ? 100000 : (int)skipped; g_import.truncated = boolean(root, "truncated");
+    snprintf(label, sizeof label, "%d channel%s found in %s", g_import.count, g_import.count == 1 ? "" : "s", g_import.file);
+    snprintf(detail, sizeof detail, "Format: %s; %d entr%s without a channel identity skipped%s", *g_import.format ? g_import.format : "unknown",
+        g_import.skipped, g_import.skipped == 1 ? "y" : "ies", g_import.truncated ? "; the file lists more than the companion reads" : "");
+    folder(&rows[0], "account:notice:import", label, detail);
+    if (g_import.count) {
+        char id[64]; snprintf(id, sizeof id, "settings:backup:import:apply:%u", g_import.serial);
+        snprintf(label, sizeof label, "Add %d channel%s to Followed channels", g_import.count, g_import.count == 1 ? "" : "s");
+        folder(&rows[1], id, label, "For the selected profile on this PS5; channels already followed are left alone");
+    }
+    request_rows(r, rows, g_import.count ? 2 : 1);
 }
 static int channel_compare(const void *a, const void *b) {
     const ChannelRow *x = a, *y = b; const unsigned char *s = (const unsigned char *)x->title, *t = (const unsigned char *)y->title;
+    if (g_channel_sort == 2) return x->has_new != y->has_new ? y->has_new - x->has_new : x->order - y->order;
     for (; *s && *t; ++s, ++t) if (tolower(*s) != tolower(*t)) return tolower(*s) < tolower(*t) ? -1 : 1;
     return *s ? 1 : *t ? -1 : strcmp(x->id, y->id);
 }
@@ -3090,7 +3652,10 @@ static void channel_page(int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t *items = calloc(LOCAL_PAGE, sizeof *items); int n = 0;
     if (!items) { cb(0, NULL, 0, 0, ud); return; }
     for (int i = page * LOCAL_PAGE; i < g_channel_list.count && n < LOCAL_PAGE; ++i, ++n) {
-        folder(&items[n], g_channel_rows[i].id, g_channel_rows[i].title, g_channel_rows[i].subtitle);
+        char marked[EVO_PROVIDER_MAX_SUBTITLE + 8];
+        snprintf(marked, sizeof marked, "%s%s%s", g_channel_rows[i].has_new ? "New" : "",
+            g_channel_rows[i].has_new && *g_channel_rows[i].subtitle ? " | " : "", g_channel_rows[i].subtitle);
+        folder(&items[n], g_channel_rows[i].id, g_channel_rows[i].title, marked);
         copy(items[n].art_url, sizeof items[n].art_url, g_channel_rows[i].art);
         copy(items[n].parent_id, sizeof items[n].parent_id, g_channel_rows[i].id + 8);
     }
@@ -3108,6 +3673,7 @@ static void channels_result(Request *r, const cJSON *result) {
         ChannelRow *row = &g_channel_rows[g_channel_list.count++];
         copy(row->id, sizeof row->id, id); copy(row->title, sizeof row->title, *str(o, "title") ? str(o, "title") : id + 8);
         copy(row->subtitle, sizeof row->subtitle, str(o, "subtitle")); copy(row->art, sizeof row->art, str(o, "art_url"));
+        row->has_new = channel_new(o, id + 8); row->order = g_channel_list.count;
     }
     if (more && g_channel_list.count < CHANNEL_ROWS && ++r->aggregate <= 40) {
         snprintf(r->payload, sizeof r->payload, "{\"action\":\"library\",\"library\":{\"action\":\"continue\",\"profile\":\"%s\",\"cursor\":\"%s\"}}",
@@ -3116,6 +3682,7 @@ static void channels_result(Request *r, const cJSON *result) {
     }
     qsort(g_channel_rows, (size_t)g_channel_list.count, sizeof g_channel_rows[0], channel_compare);
     g_channel_list.complete = 1;
+    if (g_channel_marks_dirty) save();
     evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
     memset(r, 0, sizeof *r); if (cb) channel_page(0, cb, data);
 }
@@ -3143,6 +3710,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (ok && status == 200 && root) companion_read(root);
         cJSON_Delete(root); begin(r); return;
     }
+    if (r->stage == 6) { dislikes_result(r, ok && status == 200 ? root : NULL); cJSON_Delete(root); return; }
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
         if (status == 404 || status == 410) resolve_failure(r,error);
@@ -3167,6 +3735,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); begin(r); return;
     }
     if (r->kind == 10 && r->stage == 4) { chat_result(r, root); cJSON_Delete(root); return; }
+    if (r->stage == 7) { import_result(r, root); cJSON_Delete(root); return; }
     if (r->stage == 1) {
         const char *job = str(root, "job");
         if (!*job || strlen(job) >= sizeof r->job || strspn(job, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(job)) {
@@ -3194,6 +3763,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (r->kind == 12) { playlist_window_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 15) { description_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 16) { suggestions_result(r,result); cJSON_Delete(root); return; }
+    if (r->kind == 17) { facts_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 3 && r->aggregate) { channels_result(r,result); cJSON_Delete(root); return; }
     if (r->kind == 11) {
         if (r->intent != g_message.ticket || !message_scope() || !boolean(result, "success") ||
@@ -3262,6 +3832,40 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             copy(g_dismissed[slot].profile,sizeof g_dismissed[slot].profile,g_library_profile);g_dismissed[slot].scope=g_playlist_scope;
             g_dismissed[slot].hidden=!strcmp(g_account_intent.action,"hide");
         }
+        const int commenting = !strncmp(g_account_intent.action, "comment_", 8) && strcmp(g_account_intent.action, "comment_rate");
+        int level_missed = 0;
+        if(!strcmp(g_account_intent.action,"stream_reminder")) {
+            const cJSON *state=cJSON_GetObjectItemCaseSensitive(result,"reminder_set");
+            if(num(result,"api_version")!=1 || strcmp(str(result,"id"),g_account_intent.identity) || !cJSON_IsBool(state) ||
+               cJSON_IsTrue(state)!=!strcmp(g_account_intent.argument,"set")) {
+                cJSON_Delete(root);tube_set_error("The companion did not confirm this reminder. Reopen the reminder to see its state.");complete(r,0);return;
+            }
+        }
+        if(!strcmp(g_account_intent.action,"playlist_order")) {
+            if(num(result,"api_version")!=1 || strcmp(str(result,"playlist_id"),g_account_intent.playlist) ||
+               strcmp(str(result,"order"),g_account_intent.argument)) {
+                cJSON_Delete(root);tube_set_error("The companion did not confirm this playlist order. Reload the playlist to see it.");complete(r,0);return;
+            }
+            g_library_parent[0]=0; /* the playlist is listed again in its new order */
+        }
+        if(!strcmp(g_account_intent.action,"subscribe_notifications") &&
+           (num(result,"api_version")!=1 || strcmp(str(result,"notifications"),g_account_intent.argument))) {
+            cJSON_Delete(root);tube_set_error("The companion did not confirm this notification level.");complete(r,0);return;
+        }
+        if(!strcmp(g_account_intent.action,"subscribe") && *g_account_intent.argument)
+            level_missed=strcmp(str(result,"notifications"),g_account_intent.argument)!=0; /* subscribed all the same */
+        if(commenting) {
+            const cJSON *reply=cJSON_GetObjectItemCaseSensitive(result,"reply");
+            if(num(result,"api_version")!=1 || strcmp(str(result,"id"),g_account_intent.identity) || !*g_account_intent.session ||
+               strcmp(str(result,"session"),g_account_intent.session) || !cJSON_IsBool(reply) ||
+               cJSON_IsTrue(reply)!=!strcmp(g_account_intent.action,"comment_reply")) {
+                cJSON_Delete(root);tube_set_error("The comment was not confirmed. Reload the comments before writing it again.");complete(r,0);return;
+            }
+            g_account_intent.title[0]=0;
+        }
+        if(!strcmp(g_account_intent.action,"playlist_add") || !strcmp(g_account_intent.action,"playlist_remove")) {
+            recent_playlist_note(g_account_intent.playlist);save();
+        }
         if (!strcmp(g_account_intent.action, "comment_rate") && strcmp(str(result, "rating"), g_account_intent.identity)) {
             cJSON_Delete(root); tube_set_error("The comment rating was not confirmed."); complete(r, 0); return;
         }
@@ -3270,8 +3874,10 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         }
         if (r->intent == g_account_intent.serial) g_account_intent.state = 2;
         evo_provider_item_t item;
-        folder(&item, "account:notice", removing ? "Account removed" : "YouTube account updated",
-            removing ? "Select another profile or continue as Guest" : "The companion confirmed this change");
+        folder(&item, "account:notice", removing ? "Account removed" : commenting ? "Comment posted" :
+            level_missed ? "Subscribed; notification level not confirmed" : "YouTube account updated",
+            removing ? "Select another profile or continue as Guest" : commenting ? "Reload the comments to see it" :
+            level_missed ? "Set the level again from the channel's notification choices; do not subscribe twice" : "The companion confirmed this change");
         if (!strcmp(g_account_intent.action, "playlist_create") && valid_playlist(str(result, "playlist_id"))) {
             snprintf(item.id, sizeof item.id, "library:playlist:%s", str(result, "playlist_id"));
             copy(item.title, sizeof item.title, "Open created playlist");
@@ -3291,11 +3897,12 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (!cJSON_IsArray(profiles)) {
             free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
         }
-        int selected = !strcmp(g_library_profile, "guest"), guest = 0;
+        int selected = !strcmp(g_library_profile, "guest"), guest = 0, waiting = 0;
         cJSON_ArrayForEach(o, profiles) {
             if (n >= LOCAL_PAGE || !valid_profile(str(o, "id"))) continue;
             if (!strcmp(str(o, "id"), "guest")) guest = 1;
             if (!strcmp(str(o, "id"), g_library_profile)) selected = 1;
+            if (!strcmp(str(o, "id"), g_startup_lock)) waiting = 1;
             char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
             folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? "Account configured on the companion" : "Browse as guest");
         }
@@ -3303,6 +3910,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
         }
         if (!selected) account_removed();
+        if (*g_startup_lock && !waiting) { /* the profile whose password was awaited left the companion */
+            lock_remove(g_startup_lock); profile_forget(g_startup_lock); g_startup_lock[0] = 0; save();
+        }
         evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
         memset(r, 0, sizeof *r);
         if (cb) cb(1, items, n, 0, data);
@@ -3323,26 +3933,43 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     if (r->kind == 5) {
         memset(g_comments, 0, sizeof g_comments);
+        if (!r->page && strncmp(r->parent, "discussion:replies:", 19) && comment_thread_current() &&
+            !strcmp(g_comment_thread.video, strrchr(r->parent, ':') + 1)) {
+            /* The first page of a video's comments leads with their count and, where the profile may post, the way to write one. */
+            char id[64]; snprintf(id, sizeof id, "comment:post:%s", g_comment_thread.video);
+            copy(g_comment_thread.count, sizeof g_comment_thread.count, str(result, "comment_count"));
+            g_comment_thread.can_post = boolean(result, "can_post") && strcmp(g_library_profile, "guest");
+            if (g_comment_thread.can_post) folder(&items[n++], id, "Write a comment",
+                *g_comment_thread.count ? g_comment_thread.count : "Enter text, then review it before posting");
+            else if (*g_comment_thread.count) folder(&items[n++], "account:notice:comments", g_comment_thread.count, "Comments on this video");
+            lead = n;
+        }
         cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(result, "items")) {
-            if (n >= LOCAL_PAGE || !*str(o, "id")) continue;
-            char id[160], hint[256];
+            if (n >= LOCAL_PAGE + lead || !*str(o, "id")) continue;
+            char id[160], hint[256]; const int slot = n - lead;
             const char *reply = str(o, "reply_cursor");
             if (*reply && !valid_cursor(reply)) continue;
             if (*reply) snprintf(id, sizeof id, "discussion:replies:%s", reply);
             else snprintf(id, sizeof id, "discussion:leaf:%u:%d", r->generation, n);
-            snprintf(hint, sizeof hint, "%.80s | %.32s likes | %.32s replies%s%s",
+            snprintf(hint, sizeof hint, "%.80s | %.32s likes | %.32s replies%s%s%s%s%s%s",
                 str(o, "published"), str(o, "likes"), str(o, "replies"),
-                boolean(o, "pinned") ? " | Pinned" : "", boolean(o, "owner") ? " | Creator" : "");
+                boolean(o, "pinned") ? " | Pinned" : "", boolean(o, "owner") ? " | Creator" : "",
+                boolean(o, "member") ? " | Member" : "", boolean(o, "hearted") ? " | Creator's heart" : "",
+                boolean(o, "liked") ? " | You like it" : "", boolean(o, "disliked") ? " | You dislike it" : "");
             folder(&items[n], id, *str(o, "author") ? str(o, "author") : "Comment", hint);
             copy(items[n].overview, sizeof items[n].overview, str(o, "content"));
-            copy(g_comments[n].id, sizeof g_comments[n].id, id);
-            copy(g_comments[n].content, sizeof g_comments[n].content, str(o, "content"));
-            const char *rating = str(o, "rating_cursor");
+            copy(g_comments[slot].id, sizeof g_comments[slot].id, id);
+            copy(g_comments[slot].content, sizeof g_comments[slot].content, str(o, "content"));
+            const char *rating = str(o, "rating_cursor"), *respond = str(o, "respond_cursor");
             if (valid_cursor(rating)) {
-                copy(g_comments[n].rating, sizeof g_comments[n].rating, rating);
-                copy(g_comments[n].profile, sizeof g_comments[n].profile, g_library_profile);
-                g_comments[n].rating_options = (boolean(o, "rating_like") ? 1u : 0u) |
+                copy(g_comments[slot].rating, sizeof g_comments[slot].rating, rating);
+                copy(g_comments[slot].profile, sizeof g_comments[slot].profile, g_library_profile);
+                g_comments[slot].rating_options = (boolean(o, "rating_like") ? 1u : 0u) |
                     (boolean(o, "rating_dislike") ? 2u : 0u) | (boolean(o, "rating_remove") ? 4u : 0u);
+            }
+            if (valid_cursor(respond) && strcmp(g_library_profile, "guest")) { /* the reference a reply names */
+                copy(g_comments[slot].respond, sizeof g_comments[slot].respond, respond);
+                copy(g_comments[slot].profile, sizeof g_comments[slot].profile, g_library_profile);
             }
             ++n;
         }
@@ -3354,6 +3981,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     const int home = r->kind == 3 && home_parent(r->parent), cards = r->kind == 3 && feedback_parent(r->parent);
     const int notifications = r->kind == 3 && !strcmp(r->parent, "library:notifications");
+    const int subscribed = r->kind == 3 && !strcmp(r->parent, "library:channels");
     if (r->kind == 3 && !r->page && !strcmp(r->parent, "library:history")) {
         const cJSON *paused = cJSON_GetObjectItemCaseSensitive(result, "history_paused");
         g_history_paused.state = cJSON_IsBool(paused) ? cJSON_IsTrue(paused) ? 2 : 1 : 0; g_history_paused.scope = g_playlist_scope;
@@ -3372,6 +4000,12 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if(!items[n].is_folder && blocked_identity(items[n].parent_id,items[n].subtitle)>=0)continue;
         if(items[n].is_folder && valid_channel_group(items[n].id) && blocked_channel(items[n].id+8)>=0)continue;
         if(cards && !items[n].is_folder && dismissed(items[n].id,items[n].parent_id,!home))continue;
+        if(subscribed && items[n].is_folder && valid_channel_group(items[n].id) && channel_new(o,items[n].id+8)) {
+            char marked[EVO_PROVIDER_MAX_SUBTITLE+8];
+            snprintf(marked,sizeof marked,"New%s%s",*items[n].subtitle?" | ":"",items[n].subtitle);
+            copy(items[n].subtitle,sizeof items[n].subtitle,marked);
+        }
+        if(!items[n].is_folder && valid_id(items[n].id) && boolean(o,"is_upcoming"))upcoming_note(items[n].id);
         if(notifications && boolean(o,"unread")) {
             char sent[EVO_PROVIDER_MAX_SUBTITLE+16];
             snprintf(sent,sizeof sent,"Unread%s%s",*items[n].subtitle?" | ":"",items[n].subtitle);
@@ -3392,6 +4026,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
                 video ? video + 1 : "", items[n].id + 17);
             for (int i = 0; i < n; ++i) if (!strcmp(items[i].id, target)) duplicate = 1;
             if (duplicate) continue;
+            { /* the name a later "most recent playlist" shortcut shows */
+                const int slot = (int)(g_picker_cursor++ % 48);
+                copy(g_picker_rows[slot].playlist, sizeof g_picker_rows[slot].playlist, items[n].id + 17);
+                copy(g_picker_rows[slot].title, sizeof g_picker_rows[slot].title, items[n].title);
+            }
             copy(items[n].id, sizeof items[n].id, target); items[n].is_folder = 1;
             copy(items[n].subtitle, sizeof items[n].subtitle, "Select this playlist, then confirm the change");
             ++n; continue;
@@ -3441,6 +4080,17 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         }
         ++n;
     }
+    if (r->channel_page && !r->page && strcmp(g_library_profile, "guest")) {
+        /* Opening a subscribed channel's uploads clears YouTube's mark; remember the newest video seen. */
+        char channel[25]; int tab = 1, sort = -1, known = 0;
+        copy(channel, sizeof channel, channel_of(r->parent));
+        if (!valid_channel_group(r->parent)) channel_tab_parse(r->parent, &tab, &sort);
+        for (int i = 0; i < g_channel_new.count; ++i) if (!strcmp(g_channel_new.channel[i], channel)) known = 1;
+        if (!known || g_channel_new.scope != g_playlist_scope || strcmp(g_channel_new.profile, g_library_profile)) known = channel_mark_find(channel) >= 0;
+        for (int i = lead; known && tab == 1 && sort <= 0 && i < n; ++i)
+            if (!items[i].is_folder && valid_id(items[i].id)) { channel_mark_put(channel, items[i].id); break; }
+    }
+    if (g_channel_marks_dirty) save();
     int more = boolean(result, "has_more");
     /* Content filters can leave a companion page empty while more follow: read
      * on, a bounded number of times, instead of showing an empty list. */
@@ -3587,8 +4237,147 @@ static int extra_group_parent(const char *parent, int *choice) {
     *choice = value >= 0 && !*end && value < tube_extra_group_count(group) ? (int)value : -2;
     return group;
 }
+#define LINK_ROW(id, title, detail, url) do { \
+    CATALOG_FOLDER(id,title,detail); copy(out[n-1].overview,sizeof out[n-1].overview,url); \
+} while (0)
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[64]; int n = 0;
+    if(parent && !strncmp(parent,"link:",5)) {
+        /* Addresses to open on another device: a row's overview is its link,
+         * which the screen shows as text and as a QR code. */
+        char url[TUBE_QR_PAYLOAD_SIZE];const char *value=parent+5;
+        if(!page && !strncmp(value,"video:",6) && valid_id(value+6)) {
+            const Record *video=record(value+6,0);const int occurrence=video_occurrence(value+6);
+            if(!tube_qr_video_url(value+6,0,url,sizeof url))LINK_ROW("link:row:video","Video link",url,url);
+            snprintf(url,sizeof url,"https://www.youtube.com/embed/%s",value+6);
+            LINK_ROW("link:row:embed","Embed link",url,url);
+            if(video && !tube_qr_channel_url(video->item.parent_id,url,sizeof url))LINK_ROW("link:row:channel","Channel link",url,url);
+            if(occurrence>=0 && !tube_qr_playlist_url(g_occurrences[occurrence].playlist,url,sizeof url))LINK_ROW("link:row:playlist","Playlist link",url,url);
+        } else if(!page && !strncmp(value,"channel:",8) && valid_channel(value+8) && !tube_qr_channel_url(value+8,url,sizeof url)) {
+            LINK_ROW("link:row:channel","Channel link",url,url);
+        } else if(!page && !strncmp(value,"playlist:",9) && valid_playlist(value+9) && !tube_qr_playlist_url(value+9,url,sizeof url)) {
+            LINK_ROW("link:row:playlist","Playlist link",url,url);
+        } else if(!page && (!strcmp(value,"about") || !strcmp(value,"feedback"))) {
+            const tube_about_link *link;
+            for(int i=0;(link=tube_about_link_at(i))!=NULL;++i)if(link->feedback==(value[0]=='f')) {
+                char id[64];snprintf(id,sizeof id,"link:row:%s",link->id);
+                LINK_ROW(id,link->title,link->detail,link->url);
+            }
+        }
+        else if(!page && !strncmp(value,"row:",4))CATALOG_FOLDER("account:notice","Circle to return","Scan the code or type the address on another device");
+        if(!n){tube_set_error("Select a video, channel or playlist to share.");cb(0,NULL,0,0,ud);return 1;}
+        cb(1,out,n,0,ud);return 1;
+    }
+    if(parent && (!strncmp(parent,"reminder:confirm:",17) || !strncmp(parent,"playlist-order:confirm:",23) || !strncmp(parent,"notify:",7))) {
+        /* Reminder, playlist order and notification level: a review screen names
+         * the change; its one row submits it once. */
+        const char *value=strstr(parent,":confirm:"),*action=NULL,*identity="",*playlist="",*title="",*argument="",*prefix="";
+        if(page){tube_set_error("Account action screens do not have additional pages.");cb(0,NULL,0,0,ud);return 1;}
+        if(!strcmp(g_library_profile,"guest")) {
+            CATALOG_FOLDER("account:notice","Choose an account profile first","Discover > Accounts & library > Profile");
+            cb(1,out,n,0,ud);return 1;
+        }
+        if(!value && valid_channel(parent+7)) { /* what the selected account can ask of this channel */
+            for(int i=0;i<6;++i) {
+                char id[80],label[96];snprintf(id,sizeof id,"notify:confirm:%s:%s:%s",i<3?"subscribe":"level",g_notify_levels[i%3],parent+7);
+                snprintf(label,sizeof label,"%s: %s",i<3?"Subscribe":"Notifications",g_notify_labels[i%3]);
+                CATALOG_FOLDER(id,label,i<3?"Subscribes on YouTube with this notification level; asks first":
+                    "For a channel this account already subscribes to; asks first");
+            }
+            cb(1,out,n,0,ud);return 1;
+        }
+        value=value?value+9:"";
+        const char *colon=strchr(value,':');
+        if(parent[0]=='r') {
+            if(colon && valid_id(colon+1) && (!strncmp(value,"set:",4) || !strncmp(value,"unset:",6))) {
+                action="stream_reminder";identity=colon+1;argument=value[0]=='s'?"set":"unset";
+                title=value[0]=='s'?"Set stream reminder":"Remove stream reminder";
+            }
+        } else if(parent[0]=='p') {
+            for(int i=0;colon && i<5;++i)
+                if(strlen(g_playlist_orders[i])==(size_t)(colon-value) && !strncmp(value,g_playlist_orders[i],(size_t)(colon-value)) && valid_playlist(colon+1)) {
+                    action="playlist_order";playlist=colon+1;argument=g_playlist_orders[i];title=g_playlist_order_labels[i];prefix="Sort playlist: ";
+                }
+        } else {
+            const int subscribe=!strncmp(value,"subscribe:",10);
+            const char *level=subscribe?value+10:!strncmp(value,"level:",6)?value+6:"",*channel=strchr(level,':');
+            for(int i=0;channel && i<3;++i)
+                if(strlen(g_notify_levels[i])==(size_t)(channel-level) && !strncmp(level,g_notify_levels[i],(size_t)(channel-level)) && valid_channel(channel+1)) {
+                    action=subscribe?"subscribe":"subscribe_notifications";identity=channel+1;argument=g_notify_levels[i];
+                    title=g_notify_labels[i];prefix=subscribe?"Subscribe: ":"Notifications: ";
+                }
+        }
+        if(!action){tube_set_error("The selected account action was invalid.");cb(0,NULL,0,0,ud);return 1;}
+        char label[160],id[80],hint[160];
+        snprintf(label,sizeof label,"%s%s",prefix,title);
+        memset(&g_playlist_prompt,0,sizeof g_playlist_prompt);
+        const unsigned serial=account_intent(action,identity,playlist,"");
+        copy(g_account_intent.argument,sizeof g_account_intent.argument,argument);
+        snprintf(id,sizeof id,"account:apply:%u",serial);snprintf(hint,sizeof hint,"Confirm for YouTube profile: %s",g_library_profile);
+        CATALOG_FOLDER(id,label,hint);
+        snprintf(out[0].overview,sizeof out[0].overview,"%s. %s%s. Cross applies this change to YouTube once; Circle returns without submitting it.",
+            label,*identity?"Selected: ":"Playlist: ",*identity?identity:playlist);
+        copy(g_comments[0].id,sizeof g_comments[0].id,id);copy(g_comments[0].content,sizeof g_comments[0].content,out[0].overview);
+        cb(1,out,n,0,ud);return 1;
+    }
+    if(parent && (!strncmp(parent,"comment:post:",13) || !strncmp(parent,"comment:reply:",14) || !strncmp(parent,"comment:review:",15))) {
+        /* A comment or a reply: typed in the text prompt, reviewed, then posted by one confirmation. */
+        const int reply=parent[10]=='p',review=parent[10]=='v';
+        if(page || !strcmp(g_library_profile,"guest")) {
+            tube_set_error("Select an account profile before writing a comment.");cb(0,NULL,0,0,ud);return 1;
+        }
+        if(review) {
+            char expected[80],id[80];snprintf(expected,sizeof expected,"comment:review:%u",g_account_intent.serial);
+            const int answering=!strcmp(g_account_intent.action,"comment_reply");
+            if(!g_account_intent.serial || strcmp(parent,expected) || strcmp(g_account_intent.profile,g_library_profile) ||
+               (!answering && strcmp(g_account_intent.action,"comment_post")) || !*g_account_intent.title) {
+                tube_set_error("Reopen the comments to write one for the current profile.");cb(0,NULL,0,0,ud);return 1;
+            }
+            snprintf(id,sizeof id,"account:apply:%u",g_account_intent.serial);
+            CATALOG_FOLDER(id,answering?"Post this reply":"Post this comment","Cross posts once for the selected YouTube profile; Circle cancels");
+            copy(g_comments[LOCAL_PAGE].id,sizeof g_comments[LOCAL_PAGE].id,id);
+            snprintf(g_comments[LOCAL_PAGE].content,sizeof g_comments[LOCAL_PAGE].content,
+                "Profile: %s\nVideo: %s\n%s:\n%s\nCross posts once; Circle returns without posting.",
+                g_account_intent.profile,g_account_intent.identity,answering?"Reply":"Comment",g_account_intent.title);
+            copy(out[0].overview,sizeof out[0].overview,g_comments[LOCAL_PAGE].content);
+        } else {
+            char reference[65]="";int known=0;
+            if(!reply)known=valid_id(parent+13) && comment_thread_current() && !strcmp(parent+13,g_comment_thread.video) && g_comment_thread.can_post;
+            else if(valid_cursor(parent+14) && comment_thread_current())for(int i=0;i<LOCAL_PAGE;++i)
+                if(!strcmp(g_comments[i].respond,parent+14) && !strcmp(g_comments[i].profile,g_library_profile)) {
+                    known=1;copy(reference,sizeof reference,g_comments[i].respond);
+                }
+            if(!known){tube_set_error("Reload the comments for the current profile before writing one.");cb(0,NULL,0,0,ud);return 1;}
+            prompt_arm(reply?"Reply to this comment":"Comment on this video");
+            g_playlist_prompt.comment=reply?2:1;
+            copy(g_playlist_prompt.identity,sizeof g_playlist_prompt.identity,g_comment_thread.video);
+            copy(g_playlist_prompt.cursor,sizeof g_playlist_prompt.cursor,reference);
+            CATALOG_FOLDER("account:notice",reply?"Enter your reply":"Enter your comment","Review it before posting; Circle returns without posting");
+        }
+        cb(1,out,n,0,ud);return 1;
+    }
+    if(parent && (!strcmp(parent,"channels:menu") || !strcmp(parent,"channels:watched"))) {
+        /* Touchpad on Subscribed channels: its order, and the marks of the list last shown. */
+        char label[96];
+        if(page || !strcmp(g_library_profile,"guest")) {
+            CATALOG_FOLDER("account:notice","Choose an account profile first","Discover > Accounts & library > Profile");
+        } else if(parent[9]=='w') {
+            int marked=0;
+            if(g_channel_new.scope==g_playlist_scope && !strcmp(g_channel_new.profile,g_library_profile))
+                for(int i=0;i<g_channel_new.count;++i) {channel_mark_put(g_channel_new.channel[i],"");++marked;}
+            g_channel_new.count=0;g_channel_list.complete=0;
+            if(g_channel_marks_dirty)save();
+            snprintf(label,sizeof label,"%d channel%s marked as watched",marked,marked==1?"":"s");
+            CATALOG_FOLDER("account:notice",marked?label:"No channel is marked as new",
+                marked?"Reload Subscribed channels to see the list without their marks":"Open Subscribed channels first: the marks come with its list");
+        } else {
+            snprintf(label,sizeof label,"Order: %s",g_channel_order_labels[g_channel_sort]);
+            CATALOG_FOLDER("settings:channel-sort",label,"Account order, by name, or channels with new content first");
+            CATALOG_FOLDER("channels:watched","Mark all channels as watched","Clear the new-content marks of the list last shown");
+            CATALOG_FOLDER("settings:refresh","Refresh section","Reload the list of subscribed channels");
+        }
+        cb(1,out,n,0,ud);return 1;
+    }
     if(parent && !strncmp(parent,"channel-menu:",13)) {
         char group[48];snprintf(group,sizeof group,"channel:%s",parent+13);
         if(page || !valid_channel_group(group) || !channel_facts_current(parent+13)) {
@@ -3723,21 +4512,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 replayed?"Cross resumes this video":"Cross plays from the start");
             ++n;cb(1,out,n,0,ud);return 1;
         }
-        if(action==7) {
-            char link[192];int occurrence=video_occurrence(id);
-            snprintf(link,sizeof link,"https://youtu.be/%s",id);
-            CATALOG_FOLDER("account:notice:video",link,"Video link");
-            snprintf(link,sizeof link,"https://www.youtube.com/embed/%s",id);
-            CATALOG_FOLDER("account:notice:embed",link,"Embed link");
-            if(tube_sb_channel_valid(video->item.parent_id)) {
-                snprintf(link,sizeof link,"https://www.youtube.com/channel/%.24s",video->item.parent_id);
-                CATALOG_FOLDER("account:notice:channel",link,"Channel link");
-            }
-            if(occurrence>=0) {
-                snprintf(link,sizeof link,"https://www.youtube.com/playlist?list=%s",g_occurrences[occurrence].playlist);
-                CATALOG_FOLDER("account:notice:playlist",link,"Playlist link");
-            }
-            cb(1,out,n,0,ud);return 1;
+        if(action==7) { /* an id from before the link page: the same links */
+            char link[32];snprintf(link,sizeof link,"link:video:%s",id);
+            return local_catalog(link,page,cb,ud);
         }
         if(action>=8 && !tube_sb_channel_valid(video->item.parent_id)) {
             tube_set_error("This video has no channel identity to exclude.");cb(0,NULL,0,0,ud);return 1;
@@ -3806,6 +4583,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < 3; ++i) if (g_comments[found].rating_options & (1u << i)) {
                 char id[160]; snprintf(id, sizeof id, "comment:confirm:%s:%s", ratings[i], cursor);
                 CATALOG_FOLDER( id, titles[i], "Review the selected comment before confirming");
+            }
+            if (*g_comments[found].respond) {
+                char id[160]; snprintf(id, sizeof id, "comment:reply:%s", g_comments[found].respond);
+                CATALOG_FOLDER( id, "Reply to comment", "Enter text, then review it before posting");
             }
         } else {
             int choice = -1;
@@ -3903,6 +4684,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (strcmp(g_library_profile, "guest")) { /* a saved playlist of another channel can leave the library */
                 snprintf(id, sizeof id, "playlist:confirm:unsave:%.100s", parent + 14);
                 CATALOG_FOLDER( id, "Remove saved playlist from library", "For a playlist of another channel; requires confirmation");
+                snprintf(id, sizeof id, "playlist-order:%.100s", parent + 14);
+                CATALOG_FOLDER( id, "Playlist order", "Date added, popularity or date published, as YouTube offers for this playlist");
+            }
+            if (valid_playlist(parent + 14)) {
+                snprintf(id, sizeof id, "link:playlist:%.100s", parent + 14);
+                CATALOG_FOLDER( id, "Share link", "The playlist's address, with a QR code");
             }
         }
         cb(1, out, n, 0, ud); return 1;
@@ -3945,6 +4732,24 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER( id, "Remove from a YouTube playlist", "Choose a playlist containing this video");
                 snprintf(id, sizeof id, "playlist:prompt:create:%s", parent + 13);
                 CATALOG_FOLDER( id, "Create playlist with this video", "A new private playlist on the selected account");
+                const int recent = recent_playlist();
+                char target[160], label[EVO_PROVIDER_MAX_TITLE + 16];
+                if (recent >= 0) { /* the playlist this profile used last */
+                    snprintf(target, sizeof target, "playlist:confirm:add:%.11s:%.100s", parent + 13, g_recent_playlists[recent].playlist);
+                    snprintf(label, sizeof label, "Add to %s", g_recent_playlists[recent].title);
+                    CATALOG_FOLDER( target, label, "The playlist this profile used last; asks first");
+                    snprintf(target, sizeof target, "playlist:confirm:remove:%.11s:%.100s", parent + 13, g_recent_playlists[recent].playlist);
+                    snprintf(label, sizeof label, "Remove from %s", g_recent_playlists[recent].title);
+                    CATALOG_FOLDER( target, label, "The playlist this profile used last; asks first");
+                }
+                if (upcoming(parent + 13)) {
+                    snprintf(target, sizeof target, "reminder:%s", parent + 13);
+                    CATALOG_FOLDER( target, "Stream reminder", "See or change the reminder YouTube sends when this stream starts");
+                }
+                if (r && valid_channel(r->item.parent_id)) {
+                    snprintf(target, sizeof target, "notify:%.24s", r->item.parent_id);
+                    CATALOG_FOLDER( target, "Subscription notifications", "Subscribe with a notification level, or change the level");
+                }
             }
             const char *actions[]={"next","watched","forget"};
             const char *labels[]={"Play next","Mark as watched locally","Remove from local history"};
@@ -3964,6 +4769,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             memset(&g_restart,0,sizeof g_restart);g_menu_launch.offered[0]=0;
             char extra[128];snprintf(extra,sizeof extra,"description:%s",parent+13);
             CATALOG_FOLDER(extra,"Open description","Read the full description of this video");
+            snprintf(extra,sizeof extra,"details:%s",parent+13);
+            CATALOG_FOLDER(extra,"Video details","Channel, date, views, likes and what the video offers");
             snprintf(extra,sizeof extra,"local:video:%u:restart:%s",g_playlist_scope,parent+13);
             CATALOG_FOLDER(extra,"Play from start","Forget the resume position; keep the watched marker");
             snprintf(extra,sizeof extra,"local:video:%u:incognito:%s",g_playlist_scope,parent+13);
@@ -3980,8 +4787,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 snprintf(extra,sizeof extra,"%s%s",account?"library:playlist:":"playlist:",list);
                 if(account || strlen(list)>=10)CATALOG_FOLDER(extra,"Open playlist","Browse the playlist this video was listed in");
             }
-            snprintf(extra,sizeof extra,"local:video:%u:share:%s",g_playlist_scope,parent+13);
-            CATALOG_FOLDER(extra,"Share link","Show the video, embed, channel and playlist links");
+            snprintf(extra,sizeof extra,"link:video:%s",parent+13);
+            CATALOG_FOLDER(extra,"Share link","The video, embed, channel and playlist links, each with a QR code");
             if(channel) {
                 const int excluded=tube_sb_excluded(&g_sb,video->item.parent_id);
                 snprintf(extra,sizeof extra,"local:video:%u:%s:%s",g_playlist_scope,excluded?"sbinclude":"sbexclude",parent+13);
@@ -4110,6 +4917,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             memset(&g_unlock, 0, sizeof g_unlock);
             memset(&g_account_intent, 0, sizeof g_account_intent);
             memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
+            g_startup_lock[0] = 0; /* a profile was chosen: nothing waits for its password any more */
             if (!profile_settings_select(parent + 16)) {
                 tube_set_error("The saved profile settings list is full."); cb(0,NULL,0,0,ud); return 1;
             }
@@ -4126,7 +4934,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER( "library:history", "YouTube history", "History from the selected account");
         CATALOG_FOLDER( "library:watch_later", "Watch later", "Videos saved to your account");
         CATALOG_FOLDER( "library:playlists", "Your playlists", "Playlists from the selected account");
-        CATALOG_FOLDER( "library:channels", "Subscribed channels", g_channel_sort ? "Channels you subscribe to, by name" : "Channels you subscribe to");
+        CATALOG_FOLDER( "library:channels", "Subscribed channels", g_channel_sort == 2 ? "Channels you subscribe to, new content first" :
+            g_channel_sort ? "Channels you subscribe to, by name" : "Channels you subscribe to");
         CATALOG_FOLDER( "library:notifications", "Notifications", "Videos your account was notified about");
         CATALOG_FOLDER( "section:my_videos", "My videos", "Uploads of the selected account");
         CATALOG_FOLDER( "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
@@ -4134,7 +4943,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (strcmp(g_library_profile, "guest"))
             CATALOG_FOLDER( "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
+        if (!strncmp(parent, "settings:backup:import:file:", 28)) { /* read by the companion: a request, not a local screen */
+            if (!page && import_name_valid(parent + 28) && import_size(parent + 28)) return 0;
+            tube_set_error("Select a listed import file."); cb(0,NULL,0,0,ud); return 1;
+        }
         int extra_choice; const int extra_group = extra_group_parent(parent, &extra_choice);
+        if (!strncmp(parent, "settings:backup", 15)) memset(g_backup_notice, 0, sizeof g_backup_notice);
         if (!page) { /* Fetching a later menu page must not repeat its action. */
         if (extra_group >= 0) {
             if (extra_choice == -2) { tube_set_error("Select a listed value for this player preference."); cb(0,NULL,0,0,ud); return 1; }
@@ -4161,6 +4975,71 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_thumbnails = source; catalog_retire(); save();
         }
         else if (!strcmp(parent, "settings:sb:alt")) { g_sb_alt = !g_sb_alt; save(); }
+        else if (!strcmp(parent, "settings:more-subtitles")) { g_more_subtitles = !g_more_subtitles; save(); }
+        else if (!strcmp(parent, "settings:caption-memory")) { g_caption_memory = !g_caption_memory; save(); }
+        else if (!strcmp(parent, "settings:dislikes")) { g_dislikes = !g_dislikes; save(); }
+        else if (!strncmp(parent, "settings:backup:import:apply:", 29)) {
+            char expected[64]; snprintf(expected, sizeof expected, "settings:backup:import:apply:%u", g_import.serial);
+            if (!g_import.serial || strcmp(parent, expected) || strcmp(g_import.profile, g_library_profile)) {
+                tube_set_error("Read the import file again for the current profile."); cb(0,NULL,0,0,ud); return 1;
+            }
+            if (!g_import.applied) { /* one confirmation adds the list once */
+                for (int i = 0; i < g_import.listed; ++i) {
+                    if (followed(g_import.rows[i].channel)) ++g_import.existing;
+                    else if (follow_put(g_library_profile, g_import.rows[i].channel, g_import.rows[i].title)) ++g_import.added;
+                    else ++g_import.full;
+                }
+                g_import.full += g_import.count - g_import.listed; g_import.applied = 1; save();
+            }
+        }
+        else if (!strncmp(parent, "settings:backup:", 16) && strncmp(parent, "settings:backup:import", 22) &&
+                 strcmp(parent, "settings:backup:list") && strncmp(parent, "settings:backup:entry:", 22)) {
+            const char *verb = parent + 16; char name[TUBE_BACKUP_NAME_SIZE] = "", safety[TUBE_BACKUP_NAME_SIZE] = "";
+            const long long now = (long long)time(NULL); int rc = TUBE_BACKUP_OK;
+            if (!strcmp(verb, "create")) {
+                save(); /* the copy holds what is on screen now */
+                rc = g_store_writable && !g_remote_write_failed ? tube_backup_create(evo_data_dir(), now, name, sizeof name) : TUBE_BACKUP_E_IO;
+                if (rc == TUBE_BACKUP_OK) {
+                    tube_backup_rotate(evo_data_dir(), TUBE_BACKUP_KEEP_DEFAULT);
+                    copy(g_backup_notice[0], sizeof g_backup_notice[0], "Backup created"); copy(g_backup_notice[1], sizeof g_backup_notice[1], name);
+                }
+            } else if (!strncmp(verb, "auto:", 5)) {
+                char *end = NULL; const long days = strtol(verb + 5, &end, 10);
+                if (!verb[5] || *end || days < -1 || days > 30 || !tube_backup_auto_valid((int)days)) {
+                    tube_set_error("Select a listed backup period."); cb(0,NULL,0,0,ud); return 1;
+                }
+                g_backup_auto = (int)days; save();
+            } else if (!strncmp(verb, "restore:", 8) || !strncmp(verb, "delete:", 7)) {
+                /* The entry screen issued a ticket for one action: reloading a finished one repeats nothing. */
+                const int restore = verb[0] == 'r'; const char *value = verb + (restore ? 8 : 7); char *end = NULL;
+                const unsigned long ticket = isdigit((unsigned char)*value) ? strtoul(value, &end, 10) : 0;
+                if (!ticket || ticket != g_backup_ticket || !end || *end != ':' || !tube_backup_name_valid(end + 1)) {
+                    tube_set_error("Reopen the backup list and select the backup again."); cb(0,NULL,0,0,ud); return 1;
+                }
+                g_backup_ticket = 0; copy(name, sizeof name, end + 1);
+                if (!restore) rc = tube_backup_delete(evo_data_dir(), name);
+                else {
+                    /* The copy of the replaced state is named by the second: it must not
+                     * take the name of an existing copy, least of all the one being restored. */
+                    long long stamp = now; char taken[TUBE_BACKUP_NAME_SIZE];
+                    for (int i = 0; i < 60 && !tube_backup_format_name(stamp, 1, taken, sizeof taken) &&
+                        tube_backup_validate(evo_data_dir(), taken) != TUBE_BACKUP_E_MISSING; ++i) ++stamp;
+                    save(); /* the safety copy holds what is on screen now */
+                    rc = g_store_writable && !g_remote_write_failed ? tube_backup_restore(evo_data_dir(), name, stamp, safety, sizeof safety) : TUBE_BACKUP_E_IO;
+                    if (rc == TUBE_BACKUP_OK) {
+                        /* The file changed under the provider: read it before anything saves the replaced state over it. */
+                        if (init()) { tube_set_error("The restored backup could not be loaded."); cb(0,NULL,0,0,ud); return 1; }
+                        ++g_accounts_revision; tube_backup_rotate(evo_data_dir(), TUBE_BACKUP_KEEP_DEFAULT);
+                    }
+                }
+                if (rc == TUBE_BACKUP_OK) {
+                    copy(g_backup_notice[0], sizeof g_backup_notice[0], restore ? "Backup restored" : "Backup deleted");
+                    if (restore && *safety) snprintf(g_backup_notice[1], sizeof g_backup_notice[1], "The replaced state was kept as %s", safety);
+                    else copy(g_backup_notice[1], sizeof g_backup_notice[1], name);
+                }
+            } else { tube_set_error("Select a listed backup action."); cb(0,NULL,0,0,ud); return 1; }
+            if (rc != TUBE_BACKUP_OK) { tube_set_error(tube_backup_error_text(rc)); cb(0,NULL,0,0,ud); return 1; }
+        }
         else if (!strcmp(parent, "settings:use-section-playlist")) { g_section_playlist = !g_section_playlist; save(); }
         else if (!strcmp(parent, "settings:separate-settings")) {
             /* Either way the selected profile keeps what is on screen; the other
@@ -4372,7 +5251,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             else { cb(0,NULL,0,0,ud); return 1; }
             g_search_feed.unavailable = 0; /* a changed option asks the companion again */
         }
-        else if (!strcmp(parent, "settings:channel-sort")) { g_channel_sort = !g_channel_sort; g_channel_list.complete = 0; save(); }
+        else if (!strncmp(parent, "settings:channel-sort:", 22)) {
+            if (parent[22] < '0' || parent[22] > '2' || parent[23]) { tube_set_error("Select a listed channel order."); cb(0,NULL,0,0,ud); return 1; }
+            g_channel_sort = parent[22] - '0'; g_channel_list.complete = 0; save();
+        }
         else if (!strncmp(parent, "settings:section:", 17)) {
             char *end = NULL; long section = isdigit((unsigned char)parent[17]) ? strtol(parent + 17, &end, 10) : -1;
             if (section < 0 || section >= SECTIONS || (*end && strcmp(end, ":up") && strcmp(end, ":down") && strcmp(end, ":toggle"))) {
@@ -4409,8 +5291,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_extra_group_label(extra_group, i, label, sizeof label);
                 CATALOG_FOLDER( id, label, i == selected ? "Selected" : tube_extra_group_detail(extra_group));
             }
-        } else if (!strncmp(parent, "settings:extra:", 15) || !strcmp(parent, "settings:use-section-playlist")) {
-            int screen = 2;
+        } else if (!strncmp(parent, "settings:extra:", 15) || !strcmp(parent, "settings:use-section-playlist") ||
+                   !strcmp(parent, "settings:more-subtitles") || !strcmp(parent, "settings:caption-memory") || !strcmp(parent, "settings:dislikes")) {
+            int screen = !strcmp(parent, "settings:more-subtitles") || !strcmp(parent, "settings:caption-memory") ? 0 : 2;
             for (int i = 0; i < 3; ++i) if (!strcmp(parent, g_extra_screens[i])) screen = i;
             for (int group = 0; group < TUBE_EXTRA_GROUPS; ++group) if (extra_screen(group) == screen) {
                 char label[192], value[96] = "other";
@@ -4420,6 +5303,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
             if (screen == 2) CATALOG_FOLDER( "settings:use-section-playlist", g_section_playlist ? "Use current section as playlist: on" : "Use current section as playlist: off",
                 "On: after a video from a section, shelf or channel, continue with the next one listed there");
+            if (screen == 2) CATALOG_FOLDER( "settings:dislikes", g_dislikes ? "Show dislikes: on" : "Show dislikes: off",
+                companion_known() && !companion_has(COMPANION_DISLIKES) ? "The companion host has not enabled the Return YouTube Dislike relay" :
+                "In descriptions and details; Return YouTube Dislike then learns which videos you open them for");
+            if (screen == 0) {
+                CATALOG_FOLDER( "settings:more-subtitles", g_more_subtitles ? "Unlock more subtitles: on" : "Unlock more subtitles: off",
+                    companion_known() && !companion_has(COMPANION_TRANSLATED) ? "The paired companion does not list translated captions" :
+                    "Adds machine translations to the caption list of the next video; opening it takes longer");
+                CATALOG_FOLDER( "settings:caption-memory", g_caption_memory ? "Remember subtitles per channel: on" : "Remember subtitles per channel: off",
+                    "Captions turned on or off while watching apply to that channel's next videos");
+            }
         } else if (!strcmp(parent, "settings:content-language") || !strncmp(parent, "settings:content-language:", 26)) {
             CATALOG_FOLDER( "settings:content-language:default", "Default", !*g_hl ? "Selected" : "Let YouTube choose the language");
             for (int i = 0; i < LANGUAGES; ++i) {
@@ -4451,6 +5344,97 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id, sizeof id, "settings:thumbnails:%s", g_thumbnail_sources[i]);
                 CATALOG_FOLDER( id, g_thumbnail_labels[i], g_thumbnails == i ? "Selected" :
                     i ? "A frame of the video instead of its published thumbnail" : "The thumbnail the channel published");
+            }
+        } else if (!strcmp(parent, "settings:channel-sort") || !strncmp(parent, "settings:channel-sort:", 22)) {
+            static const char *const labels[] = {"Account order", "By name", "New content first"};
+            for (int i = 0; i < 3; ++i) {
+                char id[64]; snprintf(id, sizeof id, "settings:channel-sort:%d", i);
+                CATALOG_FOLDER( id, labels[i], g_channel_sort == i ? "Selected" : i == 2 ? "Channels YouTube marks as having new videos lead the list" :
+                    "Order of the Subscribed channels list for this profile");
+            }
+        } else if (!strcmp(parent, "settings:about")) {
+            char title[96]; tube_about_title(title, sizeof title);
+            CATALOG_FOLDER( "account:notice:version", title, TUBE_ABOUT_TAGLINE "; " TUBE_ABOUT_LICENSE);
+            CATALOG_FOLDER( "link:about", "Releases and source code", "Project links, each with a QR code to open on another device");
+            CATALOG_FOLDER( "link:feedback", "Feedback", "Report a problem or ask for a feature");
+            CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");
+            CATALOG_FOLDER( "settings:about:changelog", "What changed in this version", "The changes listed for the installed version");
+        } else if (!strcmp(parent, "settings:about:credits")) {
+            const tube_about_credit *credit;
+            for (int i = page * LOCAL_PAGE; n < LOCAL_PAGE && (credit = tube_about_credit_at(i)) != NULL; ++i) {
+                char id[64]; snprintf(id, sizeof id, "account:notice:credit:%d", i);
+                CATALOG_FOLDER( id, credit->name, credit->detail);
+            }
+            cb(1, out, n, tube_about_credit_at((page + 1) * LOCAL_PAGE) != NULL, ud); return 1;
+        } else if (!strcmp(parent, "settings:about:changelog")) {
+            /* The installed version's changes; every listed change when that version has none. */
+            const char *version = tube_about_change_count(tube_about_version()) ? tube_about_version() : NULL;
+            const tube_about_change *change;
+            for (int i = page * LOCAL_PAGE; n < LOCAL_PAGE && (change = tube_about_change_at(version, i)) != NULL; ++i) {
+                char id[64], label[64]; snprintf(id, sizeof id, "account:notice:change:%d", i);
+                snprintf(label, sizeof label, "Version %.40s", change->version);
+                CATALOG_FOLDER( id, change->text, label);
+                copy(out[n - 1].overview, sizeof out[n - 1].overview, change->text);
+            }
+            cb(1, out, n, tube_about_change_at(version, (page + 1) * LOCAL_PAGE) != NULL, ud); return 1;
+        } else if (!strncmp(parent, "settings:backup:import", 22)) {
+            if (!strncmp(parent + 22, ":apply:", 7)) {
+                char label[96], detail[160];
+                snprintf(label, sizeof label, "%d channel%s added to Followed channels", g_import.added, g_import.added == 1 ? "" : "s");
+                snprintf(detail, sizeof detail, "%d already followed; %d not added: the list holds %d channels", g_import.existing, g_import.full, FOLLOWS);
+                CATALOG_FOLDER( "account:notice:import", label, detail);
+                CATALOG_FOLDER( "subscriptions", "Followed channels", "Open the list on this PS5");
+            } else {
+                static char names[IMPORT_FILES][64]; const int count = import_files(names);
+                for (int i = 0; i < count; ++i) {
+                    char id[96], detail[96]; snprintf(id, sizeof id, "settings:backup:import:file:%s", names[i]);
+                    snprintf(detail, sizeof detail, "%lld KiB; Cross reads it and shows what it lists", (import_size(names[i]) + 1023) / 1024);
+                    CATALOG_FOLDER( id, names[i], detail);
+                }
+                if (!count) {
+                    CATALOG_FOLDER( "account:notice:import", "No import file found", "Copy a NewPipe, PocketTube or GrayJay export into the import folder, then reopen");
+                    snprintf(out[0].overview, sizeof out[0].overview, "Import folder: %s. Files of at most 1 MiB with letters, digits, dots, dashes and underscores in their names are listed.",
+                        evo_data_path("import"));
+                }
+            }
+        } else if (!strncmp(parent, "settings:backup", 15)) {
+            static tube_backup_entry entries[LOCAL_PAGE]; char id[96], label[96], when[32];
+            if (!strcmp(parent, "settings:backup:list")) {
+                const int count = tube_backup_list(evo_data_dir(), entries, LOCAL_PAGE);
+                for (int i = 0; i < count; ++i) {
+                    snprintf(id, sizeof id, "settings:backup:entry:%.39s", entries[i].name);
+                    if (tube_backup_format_time(entries[i].created, when, sizeof when)) copy(when, sizeof when, entries[i].name);
+                    snprintf(label, sizeof label, "%lld KiB%s", (entries[i].bytes + 1023) / 1024, entries[i].safety ? "; the state a restore replaced" : "");
+                    CATALOG_FOLDER( id, when, label);
+                }
+                if (count <= 0) CATALOG_FOLDER( "account:notice", "No backup yet", "Create one from Backup and restore");
+            } else if (!strncmp(parent, "settings:backup:entry:", 22)) {
+                const char *name = parent + 22; long long created = 0; int safety = 0;
+                const int rc = page ? TUBE_BACKUP_E_ARGUMENT : tube_backup_validate(evo_data_dir(), name);
+                if (rc != TUBE_BACKUP_OK || tube_backup_name_info(name, &created, &safety) || tube_backup_format_time(created, when, sizeof when)) {
+                    tube_set_error(tube_backup_error_text(rc ? rc : TUBE_BACKUP_E_NAME)); cb(0,NULL,0,0,ud); return 1;
+                }
+                if (!++g_backup_ticket) ++g_backup_ticket;
+                snprintf(id, sizeof id, "settings:backup:restore:%u:%s", g_backup_ticket, name);
+                CATALOG_FOLDER( id, "Restore this backup", "Replaces the settings and library on this PS5; the current state is kept as a safety copy");
+                snprintf(out[0].overview, sizeof out[0].overview, "Backup of %s%s. Restoring it also restores the companion pairing it held: pair again if the companion was paired since. Cross restores; Circle returns without changing anything.",
+                    when, safety ? " (the state a restore replaced)" : "");
+                snprintf(id, sizeof id, "settings:backup:delete:%u:%s", g_backup_ticket, name);
+                CATALOG_FOLDER( id, "Delete this backup", "Removes this file only");
+            } else {
+                static const int periods[] = {TUBE_BACKUP_AUTO_OFF, TUBE_BACKUP_AUTO_DAILY, TUBE_BACKUP_AUTO_WEEKLY, TUBE_BACKUP_AUTO_MONTHLY};
+                static const char *const names[] = {"off", "daily", "weekly", "monthly"};
+                int period = 0; const int count = tube_backup_list(evo_data_dir(), entries, LOCAL_PAGE);
+                for (int i = 0; i < 4; ++i) if (periods[i] == g_backup_auto) period = i;
+                if (*g_backup_notice[0]) CATALOG_FOLDER( "account:notice:backup", g_backup_notice[0], g_backup_notice[1]);
+                CATALOG_FOLDER( "settings:backup:create", "Create a backup now", "A dated copy of settings, library and companion pairing in the app data folder");
+                if (count > 0 && !tube_backup_format_time(entries[0].created, when, sizeof when)) snprintf(label, sizeof label, "%d kept; newest: %s", count, when);
+                else copy(label, sizeof label, "No backup yet");
+                CATALOG_FOLDER( "settings:backup:list", "Restore or delete a backup", label);
+                snprintf(id, sizeof id, "settings:backup:auto:%d", periods[(period + 1) % 4]);
+                snprintf(label, sizeof label, "Automatic backup: %s", names[period]);
+                CATALOG_FOLDER( id, label, "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5");
+                CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
             }
         } else if (!strncmp(parent, "settings:lock:", 14)) {
             CATALOG_FOLDER( "account:notice", "Enter the password", "Circle returns to the account settings without changing it");
@@ -4603,6 +5587,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:search:reset", "Reset search filters",
                 g_search_feed.unavailable == g_playlist_scope ? "The companion library worker is off: searches ignore these options" :
                 filtered ? "Filters are set" : "No filter is set");
+            if (last_search_current()) {
+                copy(clipped, sizeof clipped, g_last_search.query);
+                snprintf(label, sizeof label, "Play the first result: %s", clipped);
+                snprintf(id, sizeof id, "search-first:%u", g_playlist_scope);
+                CATALOG_FOLDER( id, label, "Run the last search with these options and play its first video");
+            }
         } else if (!strcmp(parent, "settings:sections")) {
             for (int group = SECTION_ROOT; group <= SECTION_DISCOVER; ++group) for (int k = 0; k < SECTIONS; ++k) {
                 const int s = g_section_order[k]; char id[64], label[256];
@@ -4666,6 +5656,23 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER( id, "Remove playlist from your library", "For a playlist saved earlier; asks first");
             }
             CATALOG_FOLDER( "settings:refresh", "Refresh section", "Reload the list this folder was shown in");
+            if (!strncmp(target, "channel:", 8)) {
+                if (strcmp(g_library_profile, "guest")) {
+                    snprintf(id, sizeof id, "channel-watched:%s", target + 8);
+                    CATALOG_FOLDER( id, "Mark channel as watched", "Clear its new-content mark in Subscribed channels");
+                    snprintf(id, sizeof id, "notify:%s", target + 8);
+                    CATALOG_FOLDER( id, "Subscription notifications", "Subscribe with a notification level, or change the level");
+                }
+                if (followed(target + 8)) {
+                    snprintf(id, sizeof id, "settings:pin:unfollow:%s", target);
+                    CATALOG_FOLDER( id, "Unfollow channel", "Remove it from Followed channels on this PS5");
+                }
+                snprintf(id, sizeof id, "link:%s", target);
+                CATALOG_FOLDER( id, "Share link", "The channel's address, with a QR code");
+            } else {
+                snprintf(id, sizeof id, "link:playlist:%.100s", strrchr(target, ':') + 1);
+                CATALOG_FOLDER( id, "Share link", "The playlist's address, with a QR code");
+            }
         } else if (!strcmp(parent,"settings:history") || !strncmp(parent,"settings:history:",17)) {
             const char *labels[]={"Automatic","Enabled","Disabled"};
             const char *details[]={"Record on this PS5; the account's own YouTube setting decides what it keeps",
@@ -4842,17 +5849,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:search-history", g_search_history ? "Search history: on" : "Search history: off", "Remember recent searches for this profile");
             CATALOG_FOLDER( "settings:search", "Search options", "Upload date, duration, type, features, sorting and result cards");
             CATALOG_FOLDER( "settings:sections", "Menu sections", "Show, hide and order the main menu, Discover and pinned sections");
-            CATALOG_FOLDER( "settings:channel-sort", g_channel_sort ? "Subscribed channels: by name" : "Subscribed channels: account order",
-                "Order of the Subscribed channels list for this profile");
+            snprintf(label, sizeof label, "Subscribed channels: %s", g_channel_order_labels[g_channel_sort]);
+            CATALOG_FOLDER( "settings:channel-sort", label, "Order of the Subscribed channels list for this profile");
             snprintf(label, sizeof label, "Start in: %s", g_boot_sections[boot_section_index(g_boot_section)].label);
             CATALOG_FOLDER( "settings:boot-section", label, "Choose the section this profile opens at startup");
             CATALOG_FOLDER( "settings:account-on-boot", g_select_account_on_boot ? "Choose account at startup: on" : "Choose account at startup: off",
                 "Show the profile list each time ProsperoTube starts; applies to all profiles");
             CATALOG_FOLDER( "settings:clear-history", "Clear local history", "Remove resume positions and watched markers for this profile");
             CATALOG_FOLDER( "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
-            CATALOG_FOLDER( "settings:extra:captions", "Caption style, size and position", "How captions look in the player");
+            CATALOG_FOLDER( "settings:extra:captions", "Caption style, size and position", "How captions look in the player, translated captions and per-channel memory");
             CATALOG_FOLDER( "settings:extra:audio", "Player volume and audio delay", "Volume up to 300%, auto volume and sound delay");
-            CATALOG_FOLDER( "settings:extra:player", "Player controls, keys and Shorts", "Clock, quality info, exit, D-pad, seek preview, speed list and Shorts rules");
+            CATALOG_FOLDER( "settings:extra:player", "Player controls, keys and Shorts", "Clock, quality info, exit, D-pad, seek preview, speed list, Shorts rules and dislikes");
             snprintf(label, sizeof label, "Content language: %s", language_index(g_hl) >= 0 ? g_languages[language_index(g_hl)].name : "default");
             CATALOG_FOLDER( "settings:content-language", label, "Language YouTube uses for titles and sections");
             snprintf(label, sizeof label, "Content country: %s", country_index(g_gl) >= 0 ? g_countries[country_index(g_gl)].name : "default");
@@ -4861,12 +5868,36 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             snprintf(label, sizeof label, "Thumbnail source: %s", g_thumbnail_labels[g_thumbnails]);
             CATALOG_FOLDER( "settings:thumbnails", label, "Published thumbnail or a frame from the start, middle or end");
             CATALOG_FOLDER( "settings:accounts", "Account settings", "Separate settings per account and profile password");
+            CATALOG_FOLDER( "settings:backup", "Backup and restore", "Local backups, automatic backup and subscriptions import");
+            tube_about_title(label, sizeof label);
+            CATALOG_FOLDER( "settings:about", label, "Links, feedback, credits and changes");
         }
-    } else if (!strcmp(parent, "history") || !strcmp(parent, "favorites") || !strcmp(parent, "queue") || !strcmp(parent, "subscriptions")) {
+    } else if (!strcmp(parent, "subscriptions")) {
+        /* Channels followed through one of their videos, most recent first, then the imported ones. */
+        static const char *channels[RECORDS + FOLLOWS], *names[RECORDS + FOLLOWS]; int indexes[RECORDS], recorded = 0, total = 0;
+        for (int i = 0; i < g_count; ++i) {
+            const Record *r = &g_records[i];
+            if (r->subscribed && current_record(r) && *r->item.parent_id && blocked_identity(r->item.parent_id,r->item.subtitle)<0) indexes[recorded++] = i;
+        }
+        for (int i = 0; i < recorded; ++i) for (int j = i + 1; j < recorded; ++j)
+            if (g_records[indexes[j]].updated > g_records[indexes[i]].updated) { int tmp = indexes[i]; indexes[i] = indexes[j]; indexes[j] = tmp; }
+        for (int i = 0; i < recorded + g_follow_count; ++i) {
+            const char *channel = i < recorded ? g_records[indexes[i]].item.parent_id : g_follows[i - recorded].channel; int duplicate = 0;
+            if (i >= recorded && (strcmp(g_follows[i - recorded].profile, g_library_profile) || blocked_channel(channel) >= 0)) continue;
+            for (int k = 0; k < total; ++k) if (!strcmp(channels[k], channel)) duplicate = 1;
+            if (duplicate) continue;
+            channels[total] = channel; names[total++] = i < recorded ? g_records[indexes[i]].item.subtitle : g_follows[i - recorded].title;
+        }
+        for (int i = page * LOCAL_PAGE; i < total && n < LOCAL_PAGE; ++i) {
+            char id[160]; snprintf(id, sizeof id, "channel:%.24s", channels[i]);
+            CATALOG_FOLDER( id, *names[i] ? names[i] : channels[i], "Followed locally on this PS5");
+        }
+        cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
+    } else if (!strcmp(parent, "history") || !strcmp(parent, "favorites") || !strcmp(parent, "queue")) {
         int indexes[RECORDS], total = 0;
         for (int i = 0; i < g_count; ++i) {
             Record *r = &g_records[i];
-            int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : !strcmp(parent, "queue") ? r->queued : r->subscribed;
+            int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : r->queued;
             if (include && current_record(r) && blocked_identity(r->item.parent_id,r->item.subtitle)<0) indexes[total++] = i;
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
@@ -4878,14 +5909,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         for (int i = page * LOCAL_PAGE; i < total && n < LOCAL_PAGE; ++i) {
             Record *r = &g_records[indexes[i]];
-            if (!strcmp(parent, "subscriptions")) {
-                if (!*r->item.parent_id) continue;
-                int duplicate = 0;
-                for (int k = 0; k < n; ++k) if (!strcmp(out[k].id + 8, r->item.parent_id)) duplicate = 1;
-                if (duplicate) continue;
-                char id[160]; snprintf(id, sizeof id, "channel:%.24s", r->item.parent_id);
-                CATALOG_FOLDER( id, r->item.subtitle, "Followed locally on this PS5");
-            } else { out[n] = r->item; dearrow_item(&out[n], r); ++n; }
+            out[n] = r->item; dearrow_item(&out[n], r); ++n;
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
     } else return 0;
@@ -4895,6 +5919,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
     cb(1, count ? out+offset : NULL, count, offset+count<n, ud);return 1;
 }
 
+#undef LINK_ROW
 #undef CATALOG_FOLDER
 
 /* Takes the operation; a request that cannot be sent completes as failed. */
@@ -5117,6 +6142,68 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (!page) { r->wants_health = 1; r->requires = COMPANION_CHANNELS; }
         return library_job(r, operation);
     }
+    if (parent && (!strncmp(parent, "details:", 8) || !strncmp(parent, "reminder:", 9) || !strncmp(parent, "playlist-order:", 15) ||
+        !strncmp(parent, "channel-watched:", 16) || !strncmp(parent, "search-first:", 13))) {
+        /* One companion answer shown as rows; each needs a companion that lists the feature. */
+        const char *value = strchr(parent, ':') + 1; const int guest = !strcmp(g_library_profile, "guest");
+        cJSON *operation = NULL; unsigned requires = 0; char expected[32];
+        snprintf(expected, sizeof expected, "search-first:%u", g_playlist_scope);
+        if (page) { tube_set_error("This screen does not have additional pages."); cb(0, NULL, 0, 0, ud); return 0; }
+        if (guest && (parent[0] == 'p' || parent[0] == 'c')) return account_notice(cb, ud);
+        if (parent[0] == 'c' && valid_channel(value)) {
+            /* Remembered here first; the companion then opens the uploads, which clears YouTube's own mark. */
+            channel_mark_put(value, ""); g_channel_list.complete = 0;
+            if (g_channel_marks_dirty) save();
+            if (companion_known() && !companion_has(COMPANION_CHANNELS)) {
+                evo_provider_item_t item; folder(&item, "account:notice", "Channel marked as watched", "Remembered on this PS5 for the selected profile");
+                cb(1, &item, 1, 0, ud); return 0;
+            }
+        }
+        if ((parent[0] == 'd' || parent[0] == 'r') ? !valid_id(value) : parent[0] == 'p' ? !valid_playlist(value) :
+            parent[0] == 'c' ? !valid_channel(value) : strcmp(parent, expected) || !last_search_current()) {
+            tube_set_error(parent[0] == 's' ? "Search again for the current profile." : "Select a video, playlist or channel first."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        operation = cJSON_CreateObject();
+        cJSON_AddStringToObject(operation, "profile", g_library_profile);
+        if (parent[0] == 'd') { cJSON_AddStringToObject(operation, "action", "video_details"); cJSON_AddStringToObject(operation, "id", value); requires = COMPANION_DETAILS; }
+        else if (parent[0] == 'r') {
+            cJSON_AddStringToObject(operation, "action", "stream_reminder"); cJSON_AddStringToObject(operation, "id", value);
+            cJSON_AddStringToObject(operation, "reminder", "status"); requires = COMPANION_REMINDER;
+        } else if (parent[0] == 'p') {
+            cJSON_AddStringToObject(operation, "action", "playlist_order"); cJSON_AddStringToObject(operation, "playlist", value); requires = COMPANION_PLAYLIST_ORDER;
+        } else if (parent[0] == 'c') {
+            cJSON_AddStringToObject(operation, "action", "channel"); cJSON_AddStringToObject(operation, "channel", value);
+            cJSON_AddStringToObject(operation, "tab", "videos"); requires = COMPANION_CHANNELS;
+        } else { /* the last typed search with its options, answered by its first playable video */
+            cJSON *features = cJSON_AddArrayToObject(operation, "features");
+            search_filters();
+            cJSON_AddStringToObject(operation, "action", "search"); cJSON_AddStringToObject(operation, "query", g_last_search.query);
+            cJSON_AddStringToObject(operation, "upload_date", g_search_dates[g_search_options.date]);
+            cJSON_AddStringToObject(operation, "duration", g_search_durations[g_search_options.duration]);
+            cJSON_AddStringToObject(operation, "type", g_search_types[g_search_options.type]);
+            for (int i = 0; features && i < SEARCH_FEATURES; ++i)
+                if (g_search_options.features >> i & 1) cJSON_AddItemToArray(features, cJSON_CreateString(g_search_features[i]));
+            cJSON_AddStringToObject(operation, "order", g_search_orders[g_search_options.order]);
+            cJSON_AddBoolToObject(operation, "first_playable", 1); requires = COMPANION_SEARCH_FIRST;
+        }
+        Request *r = request_new(17, ud); if (!r) { cJSON_Delete(operation); return -1; }
+        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent); r->wants_health = 1; r->requires = requires;
+        return library_job(r, operation);
+    }
+    if (parent && !strncmp(parent, "settings:backup:import:file:", 28)) {
+        /* The export file a user copied into the import folder is parsed by the companion. */
+        for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 18) {
+            tube_set_error("An import file is still being read. Retry in a moment."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        import_release(); g_import.body = import_read(parent + 28);
+        if (!g_import.body) {
+            tube_set_error("This file cannot be read as an export: it is missing, larger than 1 MiB or not text."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        copy(g_import.file, sizeof g_import.file, parent + 28);
+        Request *r = request_new(18, ud); if (!r) { import_release(); return -1; }
+        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent); r->wants_health = 1; r->requires = COMPANION_IMPORT;
+        begin(r); return 0;
+    }
     if (parent && !strncmp(parent, "section:", 8)) {
         if (!section || page >= LIBRARY_PAGES ||
             (page && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
@@ -5127,6 +6214,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         const char *key = parent + 8 + strlen(section);
         Request *r = request_new(3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        if (!page && !strcmp(section, "kids")) { r->wants_health = 1; r->requires = COMPANION_KIDS; } /* an older worker has no Kids client */
         snprintf(r->payload, sizeof r->payload,
             "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"section\":\"%s\",\"id\":\"%s\",\"cursor\":\"%s\"}}",
             page ? "continue" : *key ? "topic_open" : "topics", g_library_profile, section,
@@ -5185,6 +6273,30 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
             cJSON_AddStringToObject(operation, "cursor", g_account_intent.playlist);
             cJSON_AddStringToObject(operation, "rating", g_account_intent.identity);
         }
+        const char *intent = g_account_intent.action;
+        const int commenting = !strcmp(intent, "comment_post") || !strcmp(intent, "comment_reply");
+        const unsigned third = !strcmp(intent, "stream_reminder") ? COMPANION_REMINDER : !strcmp(intent, "playlist_order") ? COMPANION_PLAYLIST_ORDER :
+            !strcmp(intent, "subscribe_notifications") || (!strcmp(intent, "subscribe") && *g_account_intent.argument) ? COMPANION_NOTIFICATIONS :
+            commenting ? COMPANION_COMMENT_POST : 0;
+        if (third) { /* fields an older companion refuses: sent only where the feature is listed */
+            if (!strcmp(intent, "comment_reply") && !valid_cursor(g_account_intent.argument)) {
+                tube_set_error("Reload the comments before replying."); cJSON_Delete(job); complete(r, 0); return 0;
+            }
+            if (third != COMPANION_NOTIFICATIONS) { /* a notification level is idempotent and takes no session */
+                snprintf(g_account_intent.session, sizeof g_account_intent.session, "intent-%llx-%lx-%llx-%u", (unsigned long long)time(NULL),
+                    (unsigned long)getpid(), (unsigned long long)now_ms(), g_account_intent.serial);
+                cJSON_AddStringToObject(operation, "session", g_account_intent.session);
+            }
+            if (third == COMPANION_REMINDER) cJSON_AddStringToObject(operation, "reminder", g_account_intent.argument);
+            if (third == COMPANION_PLAYLIST_ORDER) cJSON_AddStringToObject(operation, "playlist_order", g_account_intent.argument);
+            if (third == COMPANION_NOTIFICATIONS) cJSON_AddStringToObject(operation, "notifications", g_account_intent.argument);
+            if (commenting) { /* the text travels as text, never as a playlist title */
+                cJSON_DeleteItemFromObjectCaseSensitive(operation, "title");
+                cJSON_AddStringToObject(operation, "text", g_account_intent.title);
+                if (!strcmp(intent, "comment_reply")) cJSON_AddStringToObject(operation, "cursor", g_account_intent.argument);
+            }
+            r->wants_health = 1; r->requires = third;
+        }
         char *body = cJSON_PrintUnformatted(job); cJSON_Delete(job);
         if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
         copy(r->payload, sizeof r->payload, body); free(body);
@@ -5219,6 +6331,10 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
             tube_set_error("Reload the discussion to continue reading."); cb(0, NULL, 0, 0, ud); return 0;
         }
         if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (page == 0 && !replies) {
+            memset(&g_comment_thread, 0, sizeof g_comment_thread); copy(g_comment_thread.video, sizeof g_comment_thread.video, identity);
+            copy(g_comment_thread.profile, sizeof g_comment_thread.profile, g_library_profile); g_comment_thread.scope = g_playlist_scope;
+        }
         Request *r = request_new(5, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
         snprintf(r->payload, sizeof r->payload,
@@ -5250,6 +6366,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
         Request *r = request_new(!strcmp(action, "profiles") ? 4 : 3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        if (channels && !page) { channel_new_reset(); r->wants_health = r->new_content = 1; }
         if (sorted) {
             memset(&g_channel_list, 0, sizeof g_channel_list); g_channel_list.scope = g_playlist_scope;
             copy(g_channel_list.profile, sizeof g_channel_list.profile, g_library_profile); r->aggregate = 1;
@@ -5456,12 +6573,10 @@ int tube_remove_history(const char *id) {
 
 int tube_toggle_subscription(const char *id) {
     Record *r = record(id, 1); if (!r || strncmp(r->item.parent_id, "UC", 2) || strlen(r->item.parent_id) != 24) return -1;
-    int subscribed = 0;
-    for (int i = 0; i < g_count; ++i)
-        if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, r->item.parent_id) && g_records[i].subscribed) subscribed = 1;
-    int follow = !subscribed;
-    for (int i = 0; i < g_count; ++i)
-        if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, r->item.parent_id)) g_records[i].subscribed = follow;
+    const int follow = !followed(r->item.parent_id); /* through a video or an import */
+    if (!follow) unfollow(r->item.parent_id);
+    else for (int i = 0; i < g_count; ++i)
+        if (current_record(&g_records[i]) && !strcmp(g_records[i].item.parent_id, r->item.parent_id)) g_records[i].subscribed = 1;
     save(); return follow;
 }
 
@@ -5484,6 +6599,7 @@ int tube_caption_track_count(void) { return caption_scope() ? g_caption_track_co
 const char *tube_caption_track_language(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].language : ""; }
 const char *tube_caption_track_name(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].name : ""; }
 int tube_caption_track_automatic(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].automatic; }
+int tube_caption_track_translated(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].translated; }
 unsigned tube_caption_revision(void) { return g_caption_revision; }
 unsigned tube_caption_selection(void) { return caption_scope() ? g_selection_serial : 0; }
 void tube_caption_switch_cancel(void) {
@@ -5570,6 +6686,7 @@ void tube_caption_switch_finish(int applied) {
             copy(g_caption_path, sizeof g_caption_path, g_caption_switch.media);
             copy(g_caption_language, sizeof g_caption_language, g_caption_switch.language);
             if (!strcmp(g_caption_language, g_secondary_caption_language)) tube_caption_secondary_clear();
+            tube_remember_captions(g_caption_video, 1); /* a chosen track turns captions on for this channel */
         }
         ++g_caption_revision;
     }

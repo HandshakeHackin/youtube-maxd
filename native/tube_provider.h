@@ -45,6 +45,14 @@ int tube_caption_track_count(void);
 const char *tube_caption_track_language(int index);
 const char *tube_caption_track_name(int index);
 int tube_caption_track_automatic(int index);
+/* 1 for a machine translation ("Unlock more subtitles"). */
+int tube_caption_track_translated(int index);
+/* "Remember subtitles per channel": whether captions start for this video
+ * (the choice remembered for its channel, else the profile's setting), and
+ * the player's report of captions turned on or off while watching it.
+ * remember: 1 = kept, 0 = the switch is off or the channel is unknown. */
+int tube_captions_for(const char *video_id);
+int tube_remember_captions(const char *video_id, int enabled);
 unsigned tube_caption_revision(void);
 /* Current validated source/profile/video selection; zero after scope retirement. */
 unsigned tube_caption_selection(void);

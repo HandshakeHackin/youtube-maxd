@@ -14,6 +14,7 @@ typedef struct {
     TubePlayerExtra extra;
     char hl[9], gl[3];
     unsigned hide; int hide_set, thumbnails, sb_alt, section_playlist;
+    int more_subtitles, caption_memory, dislikes;
 } ProfileSettings;
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
@@ -30,6 +31,7 @@ static ProfileSettings profile_settings_capture(void) {
     copy(p.hl,sizeof p.hl,g_hl); copy(p.gl,sizeof p.gl,g_gl);
     p.hide = g_hide; p.hide_set = g_hide_set; p.thumbnails = g_thumbnails; p.sb_alt = g_sb_alt;
     p.section_playlist = g_section_playlist;
+    p.more_subtitles = g_more_subtitles; p.caption_memory = g_caption_memory; p.dislikes = g_dislikes;
     p.speed = g_speed; p.last_speed = g_last_speed; p.speed_mode = g_speed_mode;
     p.height = g_height;
     p.max_fps = g_max_fps;
@@ -82,6 +84,7 @@ static void profile_settings_apply(const ProfileSettings *p) {
     copy(g_hl,sizeof g_hl,p->hl); copy(g_gl,sizeof g_gl,p->gl);
     g_hide = p->hide; g_hide_set = p->hide_set; g_thumbnails = p->thumbnails; g_sb_alt = p->sb_alt;
     g_section_playlist = p->section_playlist;
+    g_more_subtitles = p->more_subtitles; g_caption_memory = p->caption_memory; g_dislikes = p->dislikes;
     g_sleep_armed = g_sleep_fired = 0;
     video_geometry_publish();
 }
@@ -150,7 +153,7 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"search_history"))) p->search_history = boolean(root,"search_history");
     copy(p->boot_section,sizeof p->boot_section,g_boot_sections[boot_section_index(str(root,"boot_section"))].id);
     p->search_cards = boolean(root,"search_channels_playlists");
-    p->channel_sort = settings_integer(root,"channel_sort",0,1,0);
+    p->channel_sort = settings_integer(root,"channel_sort",0,2,0);
     sections_read(p,root);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"paid_content_notifications"))) p->paid_notifications = boolean(root,"paid_content_notifications");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"dearrow_titles"))) p->dearrow_titles = boolean(root,"dearrow_titles");
@@ -178,6 +181,9 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->thumbnails = thumbnail_index(str(root,"thumbnail_source"));
     p->sb_alt = boolean(root,"sponsorblock_alt_server");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"section_playlist"))) p->section_playlist = boolean(root,"section_playlist");
+    /* Fields of the third batch. */
+    p->more_subtitles = boolean(root,"more_subtitles"); p->caption_memory = boolean(root,"caption_memory");
+    p->dislikes = boolean(root,"show_dislikes");
 }
 static void profile_settings_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"profile_settings"), *row;
@@ -251,6 +257,9 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddStringToObject(row,"thumbnail_source",g_thumbnail_sources[p->thumbnails]);
         cJSON_AddBoolToObject(row,"sponsorblock_alt_server",p->sb_alt);
         cJSON_AddBoolToObject(row,"section_playlist",p->section_playlist);
+        cJSON_AddBoolToObject(row,"more_subtitles",p->more_subtitles);
+        cJSON_AddBoolToObject(row,"caption_memory",p->caption_memory);
+        cJSON_AddBoolToObject(row,"show_dislikes",p->dislikes);
         cJSON_AddItemToArray(rows,row);
     }
 }
