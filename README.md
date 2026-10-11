@@ -1,178 +1,31 @@
 # ProsperoTube 0.1.0
 
-Current consolidated progress: [implemented, tested and missing](docs/STATUS.md) (2026-10-11). Historical entries below do not establish current final-candidate acceptance.
-
 A native PS5 homebrew YouTube client inspired by
-[SmartTube](https://github.com/yuliskov/SmartTube), with an original TV interface
+[SmartTube](https://github.com/yuliskov/SmartTube), with its own TV interface
 and service provider built on [EVO Player](https://github.com/sainsaji/EVO-PLAYER-PS5).
+It is a native implementation of the SmartTube experience, not a port of the
+Android application: no SmartTube or MediaServiceCore source is incorporated.
 
-The first version uses a **required user-controlled LAN companion**. This is a
-native-client implementation of the SmartTube experience, not a binary port of
-the Android application. No SmartTube or MediaServiceCore source is incorporated.
-See [implementation decisions](docs/DECISIONS.md) and the
-[original plan](IMPLEMENTATION_PLAN.md).
+ProsperoTube **needs a companion program on a computer in the same network**.
+The PS5 application has no YouTube access of its own: the companion searches,
+resolves and relays everything, and keeps account credentials on that computer.
 
-The active [goal](GOAL.md) is full SmartTube equivalence on **PS5**. This
-prototype does not yet satisfy it. The player uses the pinned EVO PS5 foundation;
-ProsperoLight and ProsperoTV are integration references.
+Release 0.1.0 is being prepared. [docs/STATUS.md](docs/STATUS.md) states what is
+implemented, what was tested and where, and what is still open before release.
+Throughout this page, **host-tested** means covered by the offline test suite on
+a PC, and **checked on a console** means it ran on a PS5; most of 0.1.0 is
+host-tested only (see [What was checked on a console](#what-was-checked-on-a-console)).
 
-Hardware status: the PS5 build has played the real public video "Me at the zoo"
-through the LAN companion, with native AVC, rendered English captions and
-saved Guest history. Lapy PR50 storage access and graceful GPU park/close passed.
-Earlier PS5 packages also reloaded Guest history and pairing, paused/resumed,
-and completed a ten-second seek with the native engine reporting success.
-The user also watched Big Buck Bunny at native 1080p60 AVC/AAC for over two
-minutes and confirmed smooth video and synchronized sound; zero late drops and
-clean teardown passed. Controller feel, broader formats and long sessions still
-need acceptance. See
-[validation](docs/VALIDATION.md) for the captured frame and retained verifier
-failure caused by a too-strict final-frame threshold.
+## What you need
 
-Implemented: paginated search, topic discovery, channel/playlist browsing,
-thumbnails, local follows, favorites, history/resume, ordered queue and optional
-queue autoplay with a cancellable five-second advance past unavailable videos;
-phone playlists use the same delay, retaining sparse occurrence indices and
-receiver ownership, with stop/new-playlist interruption and bounded exhaustion;
-quality/codec/audio-language preferences; AVC/AAC and VP9/Opus
-adaptive playback, progressive video, HLS, chapters, timed captions, optional
-SponsorBlock category actions, optional paid-promotion notices (off by default),
-minimum skip duration, channel exclusions and
-rewind policy; nine-category timeline colors and highlight-point markers on the
-PS5 UI kit and RML fallback; native player controls and diagnostics. R3 in the
-player explicitly jumps to the next highlight, using silent/message/ask/disabled
-actions; L3 retains screenshot capture. Highlight and pause-preserving seek paths
-have offline coverage, with console acceptance pending. Cross/Circle SponsorBlock
-confirmation and known-end skips have offline coverage, including queue/watched
-state and extracted player paths; console acceptance remains pending. The optional
-[library service](docs/LIBRARY_SERVICE.md) adds explicitly configured account
-profiles, subscriptions/history/watch-later and account playlist browsing.
-Native comments/replies and basic ratings, Watch later and subscription controls
-and playlist editing have offline coverage; PS5/live acceptance remains
-pending. R3 on a live video opens a recent-message chat reader, with top/live
-mode switching, timed updates and literal full message text. L3 opens account
-chat composition with full-text review and one-time confirmation. The reader
-and send flow have offline coverage, including generated account fixtures;
-real-account posting, complete scrollback and PS5 acceptance remain pending.
-The player sidebar now supports playback-clock chat replay, including pause,
-seek and rewind; service/native host checks and live Guest replay checks passed.
-PS5 replay acceptance remains pending. The stationary replay reader now pages
-through dense historical intervals: Triangle loads the next message page at the
-selected time, and L1 / R1 seek by one minute and restart paging. Each response
-keeps at most 256 messages and a bounded byte size; upstream continuations remain
-private to the companion. Live chat and playback-synchronized chat keep their
-existing rolling behavior.
-The [phone receiver backend](docs/REMOTE_SERVICE.md) now supports authentic
-YouTube TV-code pairing, typed commands and playback-state feedback. Offline
-tests and a live temporary-receiver check passed. Native pairing settings and
-Lapy-backed identity persistence now have host coverage. The native player adapter
-implements queued launch, play/pause, fractional seek, next/previous, stop, volume,
-D-pad input and caption language selection. The subtitle picker can switch
-YouTube languages during playback using staged downloads and subtitle-engine
-validation. Startup acknowledgments and queue/EOF
-ownership have sanitizer coverage. Real phone/PS5 acceptance remains pending.
-The optional [local speech-recognition service](docs/VOICE_SEARCH.md) passes real
-whisper.cpp inference and API tests. PS5 microphone/search integration is pending.
-The companion device-code backend now supports bounded polling,
-cancellation and private account/refresh persistence. Native Accounts & library >
-Sign in to YouTube now displays the device code/address and polls automatically;
-Circle cancels pending sign-in. Its provider flow and layout have offline coverage,
-with PS5/real-account acceptance pending. OAuth profiles now use a TV-only resolver
-adapter and private token-refresh bridge, with offline format/pagination coverage.
-Live account playback and TV signature challenges remain unverified.
-Accounts & library > Remove selected account reviews a one-time removal of an
-app-signed-in account. It clears the companion's saved credentials and account
-requests/playback links, then returns to Guest. Local profile lists stay on the
-PS5; externally configured cookie profiles are managed in companion configuration.
-Optional DeArrow title/thumbnail replacement now has independent native preferences,
-retains original metadata, and falls back to original images on service failure;
-PS5 acceptance remains pending. AV1 SDR selection now uses the existing PS5 libdav1d software decoder and passes
-offline relay/decode/seek tests. HEVC SDR selection also connects to EVO's existing
-PS5 decoder path, with a generated HEVC/AAC relay/decode/seek fixture. Both codecs
-remain unverified for console performance and presentation.
-Casting acceptance, HDR selection and standalone SABR/token execution remain unfinished.
-
-Selected primary-account profiles now route search and playback through separate
-credential/cache contexts on the companion. Secondary-account and brand-channel
-playback mapping and live account acceptance remain unfinished. Playback history
-reports now use the selected account, with a saved sync toggle, throttled position
-updates and no retry after an unconfirmed report; see the library service.
-Local favorites, queue, follows and resume/history state are now stored by profile.
-Existing global state migrates to Guest. Hidden-Cross behavior, controls timeout and seeking mode
-are saved per profile. Quality/codec, caption and audio languages, caption preferences,
-speed policy and last-speed toggle, SponsorBlock policy/exclusions, DeArrow, paid-content
-notifications, autoplay, stream prompt, history sync, chat and sleep timer now have
-independent saved profile settings. Existing known profiles retain legacy preferences;
-new profiles start with defaults. Companion pairing and phone identity remain device-wide.
-
-**Validation boundary:** host tests and generated-media decoding verify offline
-behavior. A bounded PS5 run passed native browser startup, pairing/search,
-hardware AVC playback of an eight-second DASH fixture, an inspected scanout,
-and graceful GPU shutdown. Broader format support, pacing, audio synchronization,
-broader caption behavior and live YouTube playback still need the
-[hardware checklist](docs/HARDWARE_ACCEPTANCE.md).
-Format support is not a claim that arbitrary current YouTube videos or every
-resolution will play on a PS5.
-
-YouTube preferences and in-player playback options now offer four Cross behaviors
-when controls are hidden: show controls, show and pause, pause only, or toggle
-normal/last speed. When controls are visible, Cross retains play/pause. Each
-profile can select Never or a 1–15 second controls timeout. Existing profiles
-retain the previous Cross pause and 3.5 second timeout until changed; new
-profiles default to show controls and three seconds. Buffering, seek, end and
-stats overlays remain visible when needed. Speed selection still uses the
-existing scoped memories and console-wide last-speed toggle. PS5 acceptance of
-these preferences remains pending.
-
-Seeking offers Regular, confirmation while paused, and confirmation while playing.
-Regular seeking commits on D-pad release, with an idle fallback for lost release
-input. Confirmation keeps the preview open until Cross commits or Circle cancels.
-Commit, cancel and refused requests retain the previous pause state. Phone, voice
-and sleep-timer pause requests retire the preview and enter the requested state.
-Chat replay, phone position feedback and saved progress use the actual playback
-clock while the timeline shows a preview target. Queue EOF processing waits for
-preview/seek ownership to finish. These paths have offline coverage; physical
-PS5 seeking, sound/motion and phone acceptance remain pending.
-
-Seek intervals are saved per profile: 1, 2, 3, 5, 7, 10, 15, 20, 30 or 60 seconds.
-Choose an interval in settings or the in-player options menu. Held seeking scales
-the existing acceleration from that interval; existing profiles default to 10 seconds.
-
-Maximum resolution is selectable per profile: 144p, 240p, 360p, 480p, 720p,
-1080p, 1440p or 2160p. Frame rate can be Automatic, up to 30 fps or up to 60 fps.
-An explicit frame-rate limit requires known stream metadata; Automatic also
-permits streams that do not report their frame rate. These settings apply when
-opening the next video. Stream labels show frame rate when available. Automatic
-recovery keeps the playing video's original quality preferences and frame rate;
-new settings take effect on the next video.
-
-Video sizing is saved per profile: Fit, Fit width, Fit height, Fill or Stretch,
-plus SmartTube's 55 zoom levels from 50% to 300%. Percentage zoom is centered
-relative to Fit. Choose it in settings or the in-player options menu; changes
-apply to the active video when it belongs to that profile. Triangle cycles the
-three basic modes and returns percentage/fixed-axis sizing to Fit. Both HUDs
-show the active sizing mode. Eleven aspect choices (Original through 2.39:1)
-are saved per profile and combine with sizing/zoom. Six display pixel-ratio
-corrections apply across profiles, including the currently playing video.
-Choose either in settings or the in-player options menu. PS5 presentation
-acceptance remains pending.
-
-Time display is saved per profile. Choose total duration, remaining time (the
-default), or estimated finish time in settings or the in-player options menu.
-Remaining/finish estimates use the actual playback speed and seek-preview
-position. Finish time uses the platform's local clock and updates while paused;
-live streams show **LIVE**. Unknown durations show **--:--**.
-
-Selecting a video plays the preferred quality directly. Enable **Choose stream
-before playback** in YouTube preferences to show the available choices first;
-this preference is saved independently of EVO's live-TV settings.
-
-The in-player options picker includes **Previous video** and **Next video**.
-Manual navigation preserves the current resume position and does not mark the
-video watched. Next uses the pending queue before the current video group;
-Previous uses the group before queue history. These actions work independently
-of the end-of-video playback mode. Any player button cancels a pending lookup.
-They are hidden while a phone owns playback. Physical-controller acceptance is
-still pending.
+- A PS5 that runs homebrew, with [Lapy](native/elevation/README.md) available:
+  ProsperoTube keeps its data under `/data/prosperotube` and stops at startup
+  when it cannot get access to that folder.
+- A computer on the same private network (Linux or Windows with WSL) for the
+  companion, with Python 3 and, for Home, comments, sections and accounts,
+  Node.js 20 or newer.
+- The package from the release: a `PPSA99142` folder title, a ZIP of it and a
+  `.ffpfsc` image. Nothing in this repository deploys to a console.
 
 ## Run the companion
 
@@ -194,6 +47,26 @@ and [PO token guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide).
 Pass extractor arguments using `--extractor-args settings.json`.
 No browser cookies are read automatically. `--cookies file.txt` is explicit.
 
+Home, Discover shelves, comments, live chat, search filters, channel sections
+and everything that uses an account need the **library worker**. Build it once
+and add `--library-node`:
+
+```sh
+cd companion/innertube
+npm ci --ignore-scripts
+npm run build
+cd ../..
+PYTHONPATH=companion .venv/bin/python -m prosperotube --library-node /path/to/node \
+  --host 0.0.0.0 --public-base http://YOUR-PC-LAN-IP:8765
+```
+
+[docs/LIBRARY_SERVICE.md](docs/LIBRARY_SERVICE.md) describes the worker, account
+profiles and the other host options. `--sponsorblock` enables the SponsorBlock
+lookup; also turn skipping on in YouTube preferences on the PS5. Both are off
+by default.
+
+### Pair the PS5
+
 The companion prints a six-digit code, valid for ten minutes. In ProsperoTube,
 press **Options**, enter `http://YOUR-PC-LAN-IP:8765#123456`, then search or open
 a video to pair. Use the actual printed code. Pairing persists across restarts
@@ -201,16 +74,118 @@ while the companion token file remains intact. For WSL, configure LAN
 reachability/firewall; a WSL NAT address may not be reachable by PS5.
 Use a trusted private LAN. HTTP pairing and media are plaintext.
 
-`--sponsorblock` enables optional lookup; also enable skipping in YouTube
-preferences on the PS5. Both are off by default. Skipped categories are sponsor
-and self promotion.
+## What works
 
-## Build and verify
+The first release is limited to the following. All of it is host-tested; the
+next section lists the part that also ran on a PS5.
 
-See [BUILD.md](docs/BUILD.md) for dependencies, packaging, checks and offline
-fixture mode. The application identity is `PPSA99142`; data lives under
-`/data/prosperotube`, with verified Lapy access required at startup. Packaging produces a
-folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
+**Browsing as Guest**
+
+- Search with suggestions, per-profile search history and options (upload date,
+  duration, type, features, order; channels and playlists in results). Search
+  also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
+  `channel:CHANNEL_ID` and `playlist:PLAYLIST_ID`. YouTube's "last hour" date
+  and its date and rating orders are not available.
+- Home recommendations with their filters, and the Discover sections: topics,
+  Gaming, News, Music, Sports, Live, Movies, Trending, Shorts and Kids.
+- Channels (Home, Videos, Shorts, Live, Playlists, sort orders, search in
+  channel), playlists and related videos.
+- Comments with replies, live chat and chat replay, read-only as Guest.
+
+**Playback**
+
+- AVC, VP9, HEVC and AV1 in SDR with AAC or Opus sound, adaptive and
+  progressive streams and HLS; AV1 is decoded in software. This is not a claim
+  that every current YouTube video or resolution plays on a PS5.
+- Captions with a second language at the same time, a caption picker during
+  playback, caption style, size and position.
+- Maximum resolution (144p to 2160p), frame-rate limit, codec and audio
+  language per profile; speed from 0.25x to 4x remembered for all videos, a
+  channel, a video or one playback.
+- Seeking with three confirmation modes and ten intervals, chapters, video
+  sizing, zoom, aspect, rotation and mirror, three time displays, a sleep timer,
+  volume up to 300%, auto volume and audio delay.
+- Local history with resume positions, favorites, followed channels and an
+  ordered play queue, all per profile; seven end-of-video modes; **Next** and
+  **Previous** keep the playlist position; unavailable videos in a queue are
+  skipped after a cancellable five seconds.
+- Recovery after stream failures: up to three fresh resolutions per selected
+  video, keeping profile, format, position and captions.
+- Video actions, a suggestions list, chapter notification, screen dimming and
+  screen off from the player.
+
+**Integrations**
+
+- SponsorBlock: actions per category, minimum segment length, channel
+  exclusions, timeline colours and review of a skip.
+- DeArrow titles and thumbnails, each with its own switch; originals are kept.
+
+**YouTube accounts** (through the companion; credentials never reach the PS5)
+
+- Sign-in with a device code, removal of a signed-in account, several profiles.
+- Subscriptions, subscribed channels, notifications, YouTube history, Watch
+  later, playlists and own videos.
+- Like, dislike, subscribe and unsubscribe, Watch later, playlist add, remove,
+  create, rename, delete, order and save. Every change is reviewed on a
+  confirmation screen and sent once.
+
+**Settings** (YouTube preferences; English interface)
+
+- Player and caption choices above, per profile or shared (**Separate settings
+  per account**), **Start in** section, **Choose account at startup**, menu
+  sections and pins, content language and country, sixteen hide-content
+  switches, thumbnail source, channel blocks by ID or name.
+- **Backup and restore** in `/data/prosperotube/backup` with an optional
+  automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
+  GrayJay export placed in `/data/prosperotube/import`, and **About** with the
+  version, project links as QR codes, credits and changes.
+
+### What was checked on a console
+
+Earlier development builds ran on a PS5 for these bounded cases only
+([hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) has the records):
+
+- Startup with storage access, companion pairing and search.
+- A public YouTube video through the companion in hardware-decoded AVC with
+  English captions and saved Guest history; pause, resume and a ten-second seek.
+- More than two minutes of public 1080p60 AVC/AAC with smooth picture and
+  synchronized sound, and a clean close.
+- With generated test media and a fixture service instead of YouTube: resume
+  and seeking, speed changes, the SponsorBlock skip review, advancing past an
+  unavailable video in the queue, two caption languages at once while paused,
+  the chat reader, thumbnail decoding, and phone commands sent by a test
+  receiver (not a real phone).
+
+Everything else on this page is host-tested only: all account features,
+VP9/HEVC/AV1 playback, real live chat, the in-player actions, backups and every
+settings screen added since those runs. The release candidate itself has not
+run on a console, and the service has not been re-checked against live YouTube.
+
+## Experimental features
+
+These ship in 0.1.0 but were tested offline only. Their rows end in
+**(experimental)**, each acts only when you select it or turn it on, and
+**YouTube preferences > Experimental features** repeats this explanation.
+
+| Feature | Where | Default |
+| --- | --- | --- |
+| Phone casting (YouTube app TV code) | YouTube preferences > Phone pairing | Off until a phone is linked |
+| Voice search | Hold **L3** in the browser | Needs speech recognition set up on the companion ([voice search](docs/VOICE_SEARCH.md)) |
+| Sending a live-chat message | **L3** in an open live chat | Typed, reviewed, sent once |
+| Writing a comment or a reply | Comments of a video | Typed, reviewed, posted once |
+| Pause, resume and clear the account watch history | Touchpad on **YouTube history** | Confirmed, sent once |
+| Not interested, Don't recommend channel, Hide from this list | Video menu on cards that carry them | Confirmed, sent once |
+| Profile password | YouTube preferences > Account settings | No password; typed on the visible PS5 keyboard, stored as a salted hash |
+
+## Not included yet
+
+- Translations: the interface is English only.
+- The remaining SmartTube interface options (card styles, scaling, colour
+  schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
+- Drawn thumbnails while seeking.
+- Update check and self-update.
+- Running without the companion.
+- Automatic frame-rate switching, HDR and background playback.
 
 ## Controls
 
@@ -218,178 +193,62 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | --- | --- |
 | D-pad / Cross | Focus / open or watch |
 | Square | Search |
-| Circle | Back; cancel a pending resolve |
+| Hold L3 | Voice search (experimental) |
+| Circle | Back; cancel a pending request |
 | Triangle | Toggle favorite |
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
-| R3 | Open comments on a video |
-| Touchpad click | Video actions, section and pin actions on a folder, playlist edits, or ratings for a displayed comment |
+| R3 | Comments, or live chat on a live video |
+| Touchpad | Video actions; section and pin actions on a folder; playlist edits; ratings for a displayed comment |
 | Options | Companion address and pairing code |
 
-Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
-`channel:CHANNEL_ID` and `playlist:PLAYLIST_ID` for direct browsing.
-
 In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
-switches top/newest sorting, and Circle returns. Enable the companion library
-worker for discussion browsing. With an account profile, Touchpad opens available
-comment like/dislike/remove-rating controls. Review the comment and press Cross
-to submit once; reload comments before another rating change. Comment posting and live/PS5 acceptance remain
-unfinished.
+switches top/newest and Triangle opens the chat replay. In chat, R3 switches
+top/live, Triangle loads more replay messages and L1/R1 move the replay by one
+minute.
 
-Touchpad click on a video opens video actions for Guest and account profiles.
-**Play next** moves it ahead of pending queue entries without creating duplicates.
-**Mark as watched locally** and **Remove from local history** update only this
-profile's PS5 history; favorites and queue membership remain intact. These local
-history actions do not update YouTube account history.
+| Player | Action |
+| --- | --- |
+| Cross | Pause or resume (four behaviours selectable while controls are hidden) |
+| Left / Right | Seek |
+| L1 / R1 | Previous / next chapter |
+| Up / Down | Toggle captions / caption picker |
+| R2 | Playback options: quality, audio, speed and the video actions |
+| L2 / Touchpad halves | Caption timing |
+| Triangle | Video sizing |
+| R3 | Jump to the next SponsorBlock highlight |
+| Square / Options | Media information / statistics |
+| Circle | Stop (confirmed) |
 
-The same menu has **Play from start** (forgets the resume position, keeps the
-watched marker) and **Play incognito** (that playback writes no local history or
-resume position and sends no account report); each starts the video at once, and
-after that playback shows it as a row that Cross starts again. **Open channel**
-and **Open playlist** browse the video's
-channel and the playlist it was listed in. **Share link** shows the video, embed,
-channel and playlist links as text and as a QR code to scan with a phone; channel
-and playlist folders have the same row in their Touchpad menu. **Video details**
-lists the channel, date, views and likes. **Exclude channel from SponsorBlock** toggles
-the channel in this profile's exclusion list. **Open description** reads the full
-description (L2/R2 scroll) with the channel, publication date and view count.
-**Refresh section** reloads the list the menu was opened from.
-
-A typed search lists **Search options** and **Suggestions** first. Search options
-(also in YouTube preferences) filter by upload date, duration, type and features
-and sort by relevance or view count; the filters last until ProsperoTube closes,
-as in SmartTube. **Channels and playlists in results** is saved for the profile.
-With a filter or that choice set, results come from the companion library worker
-and include channel and playlist folders; without the worker the search falls
-back to videos only. YouTube's "last hour" date and its date and rating orders
-are not available.
-
-Discover adds **Trending**, **Shorts** and **Kids**; Accounts & library adds
-**Subscribed channels** (account order, by name, or new content first, set in
-YouTube preferences or with Touchpad on the row), **Notifications** and **My
-videos**. Subscribed channels with new videos are marked **New**; **Mark channel
-as watched** in a channel's Touchpad menu and **Mark all channels as watched**
-clear the mark for the profile on this PS5. On Home cards that carry them, the video
-menu offers **Not interested** and **Don't recommend channel**; each is confirmed,
-sent once, and removes the card from Home.
-
-Touchpad click on a main-menu or Discover section moves it up or down or hides
-it for the profile; **Menu sections** in YouTube preferences lists them all.
-Touchpad click on a channel or playlist folder pins it to the main menu (24 per
-profile), where it can be renamed, moved or unpinned.
-
-Searches are remembered per profile (the 50 most recent, repeats ignoring letter
-case). **Recent searches** in the main menu repeats a query, removes one, or
-clears them all; **Search history** in YouTube preferences turns it off.
-YouTube preferences also hold **History** (Automatic, Enabled, or Disabled, which
-also stops local history and resume positions), **Start in** (the section this
-profile opens at startup), **Choose account at startup**, the SponsorBlock
-**Ignore short segments** list (0.5 to 20 seconds), and, under Phone pairing,
-**History for phone playback**. At launch the browser opens the account list
-when **Choose account at startup** is on, otherwise the profile's **Start in**
-section; if that section cannot load it returns to the main menu.
-
-With an account profile selected, the same menu includes video ratings, YouTube
-Watch later, and channel subscribe/unsubscribe controls. Each change shows a
-confirmation for that profile. Reopening an operation screen does not submit it
-again; an unconfirmed result requires checking the account before repeating the
-change. These controls have offline coverage; live account acceptance is pending.
-
-Video actions include adding/removing the video from an account playlist and
-creating a private playlist with it. Touchpad click on an account playlist opens
-rename/delete controls. Accounts & library also creates an empty private playlist.
-Names are entered with the keyboard and reviewed before submission. L2/R2 scroll
-the confirmation details; Circle returns without submitting.
-
-YouTube preferences end with the player and content screens. **Caption style,
-size and position**, **Player volume and audio delay** and **Player controls,
-keys and Shorts** hold the player extras (also changed from the player; saved
-with the profile), **Loop Shorts**, **Remember position of short videos** and
-**Use current section as playlist**. **Content language** and **Content
-country** choose what YouTube lists, **Hide content** has SmartTube's sixteen
-switches (until one is changed, only watched videos leave Home), and **Thumbnail
-source** picks the published thumbnail or a frame from the start, middle or end.
-Caption and audio languages use the same named list. These choices, channel
-pages and the alternative SponsorBlock server need a companion that advertises
-them; the PS5 reads its feature list once and otherwise keeps the earlier
-requests. A channel folder then leads with **Channel sections** (Home, Videos,
-Shorts, Live, Playlists, sort orders and **Search in channel**, as the channel
-offers them). Touchpad click on a public playlist also offers **Save playlist to
-your library** and its removal; on **YouTube history** it opens **Pause**,
-**Resume** and **Clear watch history**; a Subscriptions card that carries it
-gets **Hide from this list**. All of these are confirmed and sent once.
-
-A companion that lists the newer features adds, each confirmed and sent once:
-**Stream reminder** on upcoming videos, **Playlist order** on an own playlist,
-**Subscription notifications** (subscribe with a level, or change it), **Write a
-comment** and **Reply to comment** in the comments (typed, reviewed, then
-posted), and **Play the first result** in Search options. The video menu also
-offers the playlist the profile used last (**Add to** / **Remove from**).
-**Unlock more subtitles** and **Remember subtitles per channel** are with the
-caption settings; **Show dislikes** (off by default) asks Return YouTube Dislike
-through the companion, which tells that service which videos' details you open.
-
-**Backup and restore** keeps dated copies of the settings and library file in
-`/data/prosperotube/backup` (they include the companion pairing token and never
-leave that folder): create one, restore or delete one after a review screen, and
-choose an automatic backup made at startup (off, daily, weekly or monthly; the
-ten newest are kept). A restore first keeps the replaced state as a safety copy.
-**Import subscriptions** reads a NewPipe, PocketTube or GrayJay export copied to
-`/data/prosperotube/import` (by FTP; at most 1 MiB), shows how many channels the
-companion found in it, and after confirmation adds them to Followed channels
-(512 at most). The last row of YouTube preferences is **About**: version,
-project links and feedback as QR codes, credits and the changes of this version.
-
-**Account settings** has **Separate settings per account** (off on a new
-installation: every profile shares one set of preferences; installations from
-earlier versions keep one set per profile) and an optional password for the
-selected account profile. The password is asked before that profile is selected,
-is typed on the visible PS5 keyboard (the keyboard has no masked entry), and is
-stored only as a salted hash. A protected profile that was selected when
-ProsperoTube closed is asked for again at the next start: browsing begins as
-Guest and the startup folder is the password prompt.
-None of this has run on a PS5 or against a live account yet.
-
-During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
-Up toggles captions, Down opens the caption picker, R2 opens playback options
-(quality, audio tracks and 0.25×–4× speed for on-demand YouTube videos),
-L2 / touchpad halves adjusts caption timing, Triangle changes aspect ratio,
-Square shows media information, Options toggles stats, and Circle confirms stop.
-Settings can remember speed for all videos, each channel, each video, or only
-the current playback. Channel/video memories are separate for each profile.
-R2 focuses a normal/last-speed toggle when one is available; Cross applies it.
-The remembered-speed list retains the 1,024 most recently changed overrides.
-Choose an audio/caption language before opening a video; this version resolves
-one selected audio track and downloads one preferred caption sidecar. During
-playback, Down opens the subtitle picker with available YouTube languages.
-Switching captions preserves playback position and pause; failed downloads
-retain the previous track. Secondary YouTube captions remain to be implemented.
-Live sources have no seekable timeline. Soft close releases resources and parks
-the app; close it from the PS5 switcher afterward.
+Left/Right and Up/Down can be reassigned under **Player controls, keys and
+Shorts**. Live streams have no seekable timeline. Closing ProsperoTube from its
+menu releases its resources and parks the application; close it from the PS5
+switcher afterward.
 
 ## Storage and privacy
 
-Local lists are independent of Google, bounded to 384 cached records. State uses
-an atomic JSON replacement and is saved periodically during playback. The
-companion bearer token is stored in PS5 state and the PC token file; PS5 storage
-encryption is not provided. Cookies, resolver headers and signed YouTube URLs
-stay on the companion. Media capabilities expire after 30 minutes of inactivity;
-delivered media and manifests renew this idle lease. Upstream signed URLs can
-still expire independently. VOD HTTP/DASH tracks now resolve fresh links once
-under the same profile after an expired-link response, preserving local relay
-URLs and validating resumed byte identity. Terminal native input failures now
-trigger up to three fresh resolutions/reopens per explicit video selection,
-preserving the profile, format, fractional VOD position and caption visibility;
-live playback restarts at the live edge. Paused playback waits until resumed.
-Changed/ambiguous formats or an exhausted budget require selecting the video
-again. This controlled restart still needs PS5 acceptance. Live HLS playlist
-roots now renew together under the same profile, preserving relay URLs and
-checking the audio-group pairing. Complete HLS segments, keys and initialization
-objects are retained in a bounded session-owned RAM buffer, so revisiting their
-exact bytes does not require an unexpired origin URL. Unbuffered expired objects
-still use controlled live-edge restart; full DVR recovery is pending.
-Access logs are disabled and native diagnostics redact
-capabilities. See [protocol/security notes](docs/PROTOCOL.md).
+- Settings, profiles, history, favorites, queues and the pairing token are in
+  one file under `/data/prosperotube`, replaced atomically; local lists keep at
+  most 384 videos. PS5 storage encryption is not provided. Backups contain the
+  pairing token and stay in `/data/prosperotube/backup`.
+- Cookies, account tokens, resolver headers and signed YouTube addresses stay
+  on the companion. The PS5 receives relay addresses that expire after 30
+  minutes without use.
+- Local history is independent of Google. With an account profile, playback
+  reports go to that account unless **History** is disabled or the video is
+  played incognito.
+- **Show dislikes** (off by default) asks Return YouTube Dislike through the
+  companion, which tells that service which videos' details you open.
+- The companion keeps no access log and the PS5 diagnostics redact relay
+  addresses. See the [protocol and security notes](docs/PROTOCOL.md).
+
+## Build
+
+[docs/BUILD.md](docs/BUILD.md) covers dependencies, the PS5 package build and
+the offline checks (`bash scripts/test_all.sh`).
+[docs/VALIDATION.md](docs/VALIDATION.md) is the dated validation record,
+[docs/DECISIONS.md](docs/DECISIONS.md) and the [goal](GOAL.md) explain the
+direction.
 
 GPL-3.0-or-later. See [LICENSE](LICENSE) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
