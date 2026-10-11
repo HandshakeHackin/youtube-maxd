@@ -26,6 +26,11 @@ typedef struct {
     int close_on_disconnect;
     int (*close_app)(void *);
     void (*activity)(void *);
+    /* Optional owner/selection-scoped asynchronous next lookup.
+     * 0=pending, 1=verified video in next, -1=terminal/error. */
+    int (*recommendation)(void *, unsigned owner, unsigned selection,
+                          const char *video, const char *playlist, int index, char next[12]);
+    void (*recommendation_cancel)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Explicit monotonic clock for deterministic adapter verification. */

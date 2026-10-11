@@ -4,6 +4,16 @@ Updated 2026-10-11. Full SmartTube equivalence on PS5 remains incomplete.
 Implementation has resumed offline after the recap. The LAN companion is required.
 This document summarizes current evidence; older candidate entries are historical.
 
+## Current checkpoint
+
+The 2026-10-11 source checkpoint includes an unfinished native phone-recommendation
+adapter. It adds optional asynchronous lookup/cancellation callbacks and EOF/refill
+handoff state. These edits have not yet been compiled or tested and are not wired
+to the provider or application. They do not establish working phone fallback.
+The last tested service baseline is `1ac8bb5`; its evidence is listed below.
+Next: validate adapter ownership/cancellation, integrate verified provider lookup,
+then run the relevant offline integration checks. No new release package is ready.
+
 ## Implemented
 
 - Native PS5 EVO playback/UI/decoder integration, Lapy storage under `/data/prosperotube`, packaging and clean-lifecycle tooling.

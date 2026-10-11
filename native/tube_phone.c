@@ -13,6 +13,18 @@ typedef struct {
 } PhoneQueue;
 static PhoneQueue current, proposed;
 static PhoneQueue refill;
+static PhoneQueue fallback;
+static int64_t fallback_deadline;
+static double fallback_position, fallback_duration;
+static void *fallback_context;
+static int (*fallback_lookup)(void *,unsigned,unsigned,const char *,const char *,int,char [12]);
+static void (*fallback_cancel)(void *);
+static int fallback_started;
+static void retire_fallback(void) {
+    if(fallback_started && fallback_cancel)fallback_cancel(fallback_context);
+    memset(&fallback,0,sizeof fallback);fallback_started=0;fallback_deadline=0;
+    fallback_position=fallback_duration=0;
+}
 static int64_t refill_deadline, refill_not_before;
 static double refill_position, refill_duration;
 static tube_remote_command pending;
@@ -26,6 +38,7 @@ static unsigned last_owner;
 static char remote_video[12];
 static unsigned remote_selection;
 static void clear_queue(void) {
+    retire_fallback();
     memset(&refill, 0, sizeof refill); refill_deadline = refill_not_before = 0;
     refill_position = refill_duration = 0;
     memset(&current, 0, sizeof current); memset(&proposed, 0, sizeof proposed);
@@ -34,6 +47,7 @@ static void clear_queue(void) {
 }
 void tube_phone_clear(void) {
     clear_queue(); remote_video[0] = 0; remote_selection = 0;
+    fallback_context=NULL;fallback_lookup=NULL;fallback_cancel=NULL;
 }
 void tube_phone_cancel(void) {
     if (phase && pending.sequence) {
@@ -49,12 +63,13 @@ static int launch_valid(void) {
 static void prune(void);
 int tube_phone_launch_current(unsigned value) { prune(); return value && value == ticket && launch_valid(); }
 static void prune(void) {
+    if(fallback.owner && (!tube_remote_owner_current(fallback.owner) || tube_remote_launch_interrupted(fallback.owner,0)))clear_queue();
     if (refill.owner && (!tube_remote_owner_current(refill.owner) || tube_remote_launch_interrupted(refill.owner,0))) clear_queue();
     if (interruptible_launch && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) clear_queue();
     if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
 }
 int tube_phone_launch_pending(void) { prune(); return phase == 1; }
-int tube_phone_retry_waiting(void) { prune(); return phase == 4 || refill.owner; }
+int tube_phone_retry_waiting(void) { prune(); return phase == 4 || refill.owner || fallback.owner; }
 static int find(const PhoneQueue *q, const char *id) {
     for (int i = 0; i < q->count; ++i) if (!strcmp(q->videos[i], id)) return i;
     return -1;
@@ -93,6 +108,12 @@ static int wait_window(const PhoneQueue *anchor, int64_t now_ms, int delay, doub
     refill = *anchor;
     refill_not_before = now_ms + delay; refill_deadline = now_ms + 30000;
     refill_position = position; refill_duration = duration;
+    return 1;
+}
+static int wait_recommendation(const PhoneQueue *anchor,int64_t now_ms,double position,double duration) {
+    if(!fallback_lookup || !fallback_cancel || !anchor->selection || !*anchor->video ||
+       !tube_remote_owner_current(anchor->owner) || now_ms<0 || now_ms>INT64_MAX-30000)return 0;
+    fallback=*anchor;fallback_deadline=now_ms+30000;fallback_position=position;fallback_duration=duration;
     return 1;
 }
 int tube_phone_launch_unavailable(unsigned value, const char *video, int64_t now_ms) {
@@ -155,7 +176,7 @@ int tube_phone_finished_at(int64_t now_ms) {
         PhoneQueue anchor = current;
         double position = last.position, duration = last.duration;
         clear_queue(); remote_video[0] = 0; remote_selection = 0;
-        wait_window(&anchor,now_ms,0,position,duration);
+        if(!wait_window(&anchor,now_ms,0,position,duration))wait_recommendation(&anchor,now_ms,position,duration);
     }
     return 1; /* Remote EOF never removes an item from the saved local queue. */
 }
@@ -167,9 +188,13 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
 }
 void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
     if (!ctl || !ctl->snapshot) return;
+    if(fallback.owner && (fallback_context!=ctl->context || fallback_lookup!=ctl->recommendation || fallback_cancel!=ctl->recommendation_cancel))clear_queue();
+    fallback_context=ctl->context;fallback_lookup=ctl->recommendation;fallback_cancel=ctl->recommendation_cancel;
     prune();
     tube_remote_player p; memset(&p, 0, sizeof p); p.volume = 100; p.state = -1;
     int active = ctl->snapshot(ctl->context, &p);
+    if(fallback.owner && (now_ms>=fallback_deadline || (active &&
+       (p.selection!=fallback.selection || strcmp(p.video,fallback.video) || p.state!=0))))clear_queue();
     if (refill.owner && (now_ms >= refill_deadline || (active &&
         (!refill.selection || p.selection != refill.selection || strcmp(p.video,refill.video) || p.state != 0)))) clear_queue();
     if (!active) {
@@ -201,9 +226,37 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         p.index = refill.indices[refill.cursor];
         p.position = refill_position; p.duration = refill_duration;
     }
+    if(fallback.owner) {
+        int volume=p.volume,muted=p.muted;memset(&p,0,sizeof p);p.volume=volume;p.muted=muted;p.state=0;
+        memcpy(p.video,fallback.video,sizeof p.video);memcpy(p.playlist,fallback.playlist,sizeof p.playlist);
+        memcpy(p.ctt,fallback.ctt,sizeof p.ctt);p.index=fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor];
+        p.position=fallback_position;p.duration=fallback_duration;
+    }
     last = p;
     last_owner = tube_remote_current_owner();
     tube_remote_report(&p);
+    tube_remote_command c;int have_command=!phase && tube_remote_take(&c);
+    if(fallback.owner && have_command && c.action!=TUBE_REMOTE_QUERY && c.action!=TUBE_REMOTE_VOLUME &&
+       c.action!=TUBE_REMOTE_CONNECTED && c.action!=TUBE_REMOTE_DEVICES && c.action!=TUBE_REMOTE_QUEUE)clear_queue();
+    if(fallback.owner && !have_command) {
+        char next[12]={0};fallback_started=1;
+        int result=fallback_lookup(fallback_context,fallback.owner,fallback.selection,fallback.video,fallback.playlist,
+            fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor],next);
+        if(result) {
+            unsigned owner=fallback.owner;
+            int valid=result==1 && next[11]==0 && strlen(next)==11 && strcmp(next,fallback.video) &&
+                strspn(next,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-")==11;
+            retire_fallback();
+            if(valid && tube_remote_owner_current(owner) && !tube_remote_launch_interrupted(owner,0)) {
+                PhoneQueue q;memset(&q,0,sizeof q);q.owner=owner;q.count=1;q.cursor=0;
+                memcpy(q.video,next,12);memcpy(q.videos[0],next,12);
+                tube_remote_command c;memset(&c,0,sizeof c);c.owner=owner;
+                begin(&c,&q,0);interruptible_launch=1;
+                if(ctl->browser)ctl->browser(ctl->context);
+                return;
+            }
+        }
+    }
     if (phase == 4 && now_ms >= retry_deadline) { phase = 1; retry_deadline = 0; }
     if (phase == 3) {
         int result = active && p.selection == caption_selection && !strcmp(p.video, pending.video) && ctl->captions_status ? ctl->captions_status(ctl->context) : -1;
@@ -212,7 +265,7 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         phase = 0; tube_remote_finish(owner, sequence, result > 0); return;
     }
     if (phase) return;
-    tube_remote_command c; if (!tube_remote_take(&c)) return;
+    if (!have_command) return;
     if (ctl->activity && c.action != TUBE_REMOTE_QUERY && c.action != TUBE_REMOTE_QUEUE && c.action != TUBE_REMOTE_CONNECTED &&
         c.action != TUBE_REMOTE_DISCONNECTED && c.action != TUBE_REMOTE_DEVICES) ctl->activity(ctl->context);
     int applied = 0;
@@ -223,6 +276,12 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         return;
     }
     case TUBE_REMOTE_QUEUE:
+        if(fallback.owner==c.owner && !strcmp(c.playlist,fallback.playlist) && !strcmp(c.ctt,fallback.ctt) &&
+           !strcmp(c.video,fallback.video) && c.index==(fallback.cursor<0?fallback.base:fallback.indices[fallback.cursor])) {
+            PhoneQueue anchor=fallback;double position=fallback_position,duration=fallback_duration;int64_t deadline=fallback_deadline;
+            clear_queue();refill=anchor;refill_position=position;refill_duration=duration;
+            refill_deadline=deadline;refill_not_before=now_ms;
+        }
         if (refill.owner == c.owner && !strcmp(c.playlist,refill.playlist) &&
             !strcmp(c.ctt,refill.ctt) && !strcmp(c.video,refill.video) &&
             c.index == refill.indices[refill.cursor]) {
@@ -238,7 +297,9 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
                 return;
             }
             /* A matching window without a successor is a terminal response. */
+            PhoneQueue anchor=refill;double position=refill_position,duration=refill_duration;
             clear_queue();
+            wait_recommendation(&anchor,now_ms,position,duration);
         }
         if (active && current.owner == c.owner && current.selection == p.selection &&
             !strcmp(current.playlist,c.playlist) && !strcmp(current.ctt,c.ctt)) {

@@ -1,5 +1,16 @@
 # Offline validation record — 0.1.0
 
+## Source checkpoint before native phone integration — 2026-10-11
+
+Saved the current optional asynchronous recommendation adapter in `tube_phone.c`
+and its callback interface in `tube_phone.h` at the user's request. This is work in
+progress: no compile, sanitizer, SDK, package or console result covers these edits.
+Provider/application callbacks remain unconnected. Pending work includes bounds
+handling for queue-less anchors, test initializer updates and cancellation/command
+priority coverage. The preceding service baseline remains `1ac8bb5`.
+
+This checkpoint is for source preservation, not candidate or hardware acceptance.
+
 ## Remote-only fallback discovery — 2026-10-11
 
 The service now accepts an explicit remote-origin flag for next metadata. Only an
