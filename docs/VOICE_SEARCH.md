@@ -1,9 +1,10 @@
 # Local voice search
 
 The companion speech-recognition service is implemented and tested with real
-whisper.cpp inference. The native AudioIn capture worker passes host lifecycle
-tests and PS5 SDK compilation. Upload/polling, search-screen integration and actual
-microphone acceptance remain open; voice search is not yet enabled on the console.
+whisper.cpp inference. The native AudioIn capture worker and scoped upload/job
+pipeline pass host fault tests and PS5 SDK compilation. App packaging, UI/search
+integration and actual microphone acceptance remain open; voice search is not
+yet enabled on the console.
 Lounge microphone capability remains withheld.
 
 `native/tube_microphone.c` records 0.5–10 seconds of 16 kHz signed-16 mono PCM
@@ -15,6 +16,17 @@ result. Samples stay in memory and are wiped on retirement. Shutdown joins the
 worker before freeing its storage; cancellation takes effect after the current
 AudioIn grain returns. Native capture code is not yet included in the app package.
 Run its deterministic lifecycle and fault tests with `bash scripts/test_microphone.sh`.
+
+`native/tube_voice.c` connects capture to authenticated `/v1/voice` uploads and
+job polling. It encodes PCM explicitly as little-endian base64, accepts a bounded
+valid UTF-8 transcript, and preserves complete queries up to 200 code points.
+Source/token/profile changes, phone-owner retirement, cancellation, shutdown and
+a 75-second overall deadline retire the operation. Completed and abandoned jobs
+are deleted with their original credentials, including a late create response
+or a late poll when cancellation found all request slots occupied. A transport
+failure can prevent deletion; the service's 120-second job expiry remains the
+cleanup backstop. Run `bash scripts/test_voice_driver.sh` for the network/capture
+substitute tests. The pipeline is not yet included in the app package.
 
 The service uses a locally configured executable and model. It does not send
 recordings to a cloud speech service. Temporary WAV and transcript files are

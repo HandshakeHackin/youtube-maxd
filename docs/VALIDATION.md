@@ -11,6 +11,16 @@ polling, busy admission and shutdown/restart. AudioIn calls occur on the owned
 worker. This proves offline capture lifecycle, not actual DualSense input or the
 connected voice-search feature; the worker is not packaged yet.
 
+The native capture/upload/job pipeline also passed ASan/UBSan fault tests and
+strict PS5 SDK object compilation (`.deps/voice-driver-tests.*` and
+`.deps/voice-driver-ps5-object.*`, exit 0). Coverage includes explicit little-endian
+base64 and padding, repeat polling, result consumption, UTF-8 transcripts and
+invalid/oversized queries, capture/request failure, recording bounds, deadlines,
+profile/credential changes, phone-owner retirement, stale create/poll callbacks,
+request-pool saturation and owned-job cleanup with original credentials. This
+pipeline still requires packaging and native UI/search integration; no new
+console acceptance is claimed.
+
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
 S16 PCM, permits one transcription at a time, enforces bounded streaming uploads
