@@ -251,6 +251,8 @@ def main():
     apply_secondary_captions_overlay(replace, player, WORK, ROOT)
     from playlist_context_overlay import apply_playlist_context_overlay
     apply_playlist_context_overlay(replace, player, host)
+    from channel_block_ui_overlay import apply_channel_block_ui_overlay
+    apply_channel_block_ui_overlay(replace, player)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

@@ -678,9 +678,13 @@ handoff is checked again before launch. Malformed or mismatched channel arrays
 are rejected rather than assigned to another occurrence.
 
 This currently matches stable channel IDs only. SmartTube's channel-name matching,
-unknown-channel playlist metadata resolution, alternative recommendation selection
-and immediate refresh of existing UI rows
+unknown-channel playlist metadata resolution and alternative recommendation selection
 remain unfinished. No YouTube account feedback or subscription is modified.
+
+Successful channel block/unblock actions close the local action screens and
+reload their originating catalog or search. Search text and the parent folder
+are retained; the blocked-channel management screen also refreshes after removal.
+Failed/stale actions do not navigate away from their error screen.
 
 With active profile blocks, `playback_next` requests `require_channel: true`.
 The worker verifies the selected autoplay video's identity and channel using

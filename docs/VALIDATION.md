@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Channel-block browser refresh — 2026-10-11
+
+Successful local block/unblock actions close the action levels and refresh the
+originating catalog or search. Search text, the parent folder and saved focus
+position are retained through the existing browser restoration path. Unblocking
+from the management list refreshes that list without leaving a replayable action
+in the navigation stack. Failed/stale actions remain on their error screen.
+
+The real generated RmlUi host regression passes search filtering/return, local
+history return, management-list removal, focus availability and stale-action
+handling, alongside its existing chat/reader/settings/playlist tests. Native
+preparation and the PS5 RmlUi provider object compile successfully. Physical UI
+acceptance remains pending; this is functional navigation work, not final polish.
+
 ## Recommendation channel verification — 2026-10-11
 
 Profiles with active channel blocks request verification of the autoplay target's
