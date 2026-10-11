@@ -6448,3 +6448,5 @@ int tube_error_fix_choice(const evo_stream_choice_t *choices, int count) {
         if (companion_url(choices[i].url) && !!choices[i].is_live == !!g_recovery.choice.is_live) return i;
     return -1;
 }
+/* Sign-in in progress: the code or QR on screen must stay readable, so the screen never dims. */
+int tube_player_dim_blocked(void) { return g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING; }

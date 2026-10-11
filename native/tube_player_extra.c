@@ -739,8 +739,8 @@ int tube_extra_dim_input(uint64_t now_ms, int pressed, int seek_only) {
 }
 int tube_extra_dim_tick(uint64_t now_ms, int context) {
     if (!g_dim_started || now_ms < g_dim_input_ms) { g_dim_input_ms = now_ms; g_dim_started = 1; }
-    /* Screen off belongs to the player: leaving it brings the picture back. */
-    if (context != TUBE_DIM_PAUSED && context != TUBE_DIM_PLAYING) g_screen_off = 0;
+    /* Screen off belongs to the player: the browser brings the picture back. */
+    if (context == TUBE_DIM_BROWSING) g_screen_off = 0;
     /* A screen that never dims also restarts the wait for the next one. */
     if (context == TUBE_DIM_NONE) g_dim_input_ms = now_ms;
     const int percent = tube_dim_decide(prefs(), context, now_ms - g_dim_input_ms, g_screen_off);
@@ -748,10 +748,7 @@ int tube_extra_dim_tick(uint64_t now_ms, int context) {
     return percent;
 }
 int tube_extra_dim_percent(void) { return g_dim_percent; }
-void tube_extra_screen_off(uint64_t now_ms) {
-    if (!g_dim_started) { g_dim_input_ms = now_ms; g_dim_started = 1; }
-    g_screen_off = 1;
-}
+void tube_extra_screen_off(void) { g_screen_off = 1; }
 int tube_extra_screen_is_off(void) { return g_screen_off; }
 void tube_dim_pixels(uint32_t *pixels, size_t count, int percent) {
     if (!pixels || percent <= 0) return;

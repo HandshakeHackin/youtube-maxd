@@ -579,13 +579,14 @@ static void test_dimming(void) {
     assert(!tube_extra_dim_input(6300, 1, 0));
     /* Screen off on request: at once, kept through blind seeking, ended by another button. */
     assert(tube_extra_set_screen_off_amount(100));
-    tube_extra_screen_off(7000);
+    tube_extra_screen_off();
     assert(tube_extra_screen_is_off() && tube_extra_dim_tick(7000, TUBE_DIM_PLAYING) == 100);
     assert(!tube_extra_dim_input(7100, 1, 1) && tube_extra_dim_tick(7100, TUBE_DIM_PLAYING) == 100);
     assert(tube_extra_dim_input(7200, 1, 0) == 1 && !tube_extra_screen_is_off() && !tube_extra_dim_tick(7200, TUBE_DIM_PLAYING));
     /* Leaving the player, or a screen that never dims, ends it too. */
-    tube_extra_screen_off(8000);
-    assert(tube_extra_dim_tick(8000, TUBE_DIM_PAUSED) == 100 && !tube_extra_dim_tick(8001, TUBE_DIM_BROWSING) && !tube_extra_screen_is_off());
+    tube_extra_screen_off();
+    assert(tube_extra_dim_tick(8000, TUBE_DIM_PAUSED) == 100 && !tube_extra_dim_tick(8000, TUBE_DIM_NONE) && tube_extra_screen_is_off());
+    assert(tube_extra_dim_tick(8000, TUBE_DIM_PLAYING) == 100 && !tube_extra_dim_tick(8001, TUBE_DIM_BROWSING) && !tube_extra_screen_is_off());
     assert(tube_extra_dim_tick(68001, TUBE_DIM_BROWSING) == 80 && !tube_extra_dim_tick(68002, TUBE_DIM_NONE));
     assert(!tube_extra_dim_tick(68003, TUBE_DIM_BROWSING) && tube_extra_dim_tick(128002, TUBE_DIM_BROWSING) == 80);
     assert(!tube_extra_dim_tick(100, TUBE_DIM_BROWSING));                                 /* a clock that went back */

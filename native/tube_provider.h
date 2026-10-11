@@ -257,6 +257,8 @@ int tube_player_reload(double position, int live, int subtitles);
 int tube_error_fix_begin(int error, double position, int live, int subtitles);
 int tube_error_fix_relaxed(void);
 int tube_error_fix_choice(const evo_stream_choice_t *choices, int count);
+/* 1 = a sign-in is waiting for the phone: the screen must not dim. */
+int tube_player_dim_blocked(void);
 #ifdef __cplusplus
 }
 #endif

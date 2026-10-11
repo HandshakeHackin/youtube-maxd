@@ -282,7 +282,7 @@ void tube_extra_dim_reset(uint64_t now_ms);
 int tube_extra_dim_input(uint64_t now_ms, int pressed, int seek_only);
 int tube_extra_dim_tick(uint64_t now_ms, int context);
 int tube_extra_dim_percent(void);                /* the last tick's result */
-void tube_extra_screen_off(uint64_t now_ms);
+void tube_extra_screen_off(void);              /* until the next input; the player only */
 int tube_extra_screen_is_off(void);
 /* Black at the given percentage over straight-alpha 0xAARRGGBB pixels. */
 void tube_dim_pixels(uint32_t *pixels, size_t count, int percent);
