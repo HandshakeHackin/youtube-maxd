@@ -1,4 +1,6 @@
-/* Profile-owned preferences. Companion pairing and remote identity are device-owned. */
+/* Profile-owned preferences. Companion pairing and remote identity are device-owned.
+ * With "separate settings per account" off, every profile uses the one row
+ * named SHARED_SETTINGS, a name no companion profile can carry. */
 #define SETTINGS_PROFILES 128
 typedef struct {
     int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_state, search_history, paid_notifications, dearrow_titles, dearrow_thumbnails;
@@ -9,17 +11,25 @@ typedef struct {
     int search_cards, channel_sort;
     unsigned char section_order[SECTION_SLOTS]; unsigned section_hidden;
     tube_sb_policy sb;
+    TubePlayerExtra extra;
+    char hl[9], gl[3];
+    unsigned hide; int hide_set, thumbnails, sb_alt, section_playlist;
 } ProfileSettings;
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
-    ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = 1;
+    ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = p.section_playlist = 1;
+    tube_player_extra_defaults(&p.extra);
     p.speed = p.last_speed = 100; p.speed_mode = 1;
     sections_default(p.section_order);
     copy(p.language,sizeof p.language,"en"); tube_sb_defaults(&p.sb); return p;
 }
 static ProfileSettings profile_settings_capture(void) {
     ProfileSettings p;
+    p.extra = *tube_player_extra_current();
+    copy(p.hl,sizeof p.hl,g_hl); copy(p.gl,sizeof p.gl,g_gl);
+    p.hide = g_hide; p.hide_set = g_hide_set; p.thumbnails = g_thumbnails; p.sb_alt = g_sb_alt;
+    p.section_playlist = g_section_playlist;
     p.speed = g_speed; p.last_speed = g_last_speed; p.speed_mode = g_speed_mode;
     p.height = g_height;
     p.max_fps = g_max_fps;
@@ -68,23 +78,27 @@ static void profile_settings_apply(const ProfileSettings *p) {
     g_dearrow_thumbnails = p->dearrow_thumbnails;
     copy(g_language,sizeof g_language,p->language);
     copy(g_audio_language,sizeof g_audio_language,p->audio_language); g_sb = p->sb;
+    tube_player_extra_select(&p->extra);
+    copy(g_hl,sizeof g_hl,p->hl); copy(g_gl,sizeof g_gl,p->gl);
+    g_hide = p->hide; g_hide_set = p->hide_set; g_thumbnails = p->thumbnails; g_sb_alt = p->sb_alt;
+    g_section_playlist = p->section_playlist;
     g_sleep_armed = g_sleep_fired = 0;
     video_geometry_publish();
 }
 static int profile_settings_slot(const char *profile, int create) {
     for (int i = 0; i < g_profile_settings_count; ++i)
         if (!strcmp(profile,g_profile_settings[i].profile)) return i;
-    if (!create || !valid_profile(profile) || g_profile_settings_count == SETTINGS_PROFILES) return -1;
+    if (!create || (!valid_profile(profile) && strcmp(profile,SHARED_SETTINGS)) || g_profile_settings_count == SETTINGS_PROFILES) return -1;
     int i = g_profile_settings_count++;
     copy(g_profile_settings[i].profile,sizeof g_profile_settings[i].profile,profile);
     g_profile_settings[i].value = profile_settings_defaults(); return i;
 }
 static void profile_settings_store(void) {
-    int i = profile_settings_slot(g_library_profile,1);
+    int i = profile_settings_slot(settings_key(),1);
     if (i >= 0) g_profile_settings[i].value = profile_settings_capture();
 }
 static int profile_settings_select(const char *profile) {
-    int i = profile_settings_slot(profile,1); if (i < 0) return 0;
+    int i = profile_settings_slot(g_separate_settings ? profile : SHARED_SETTINGS,1); if (i < 0) return 0;
     if (strcmp(profile,g_library_profile)) tube_queue_retry_cancel();
     profile_settings_store(); copy(g_library_profile,sizeof g_library_profile,profile);
     profile_settings_apply(&g_profile_settings[i].value); return 1;
@@ -114,6 +128,7 @@ static void sections_read(ProfileSettings *p, const cJSON *root) {
 static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     *p = profile_settings_defaults();
     double speed = num(root,"speed_percent"), last = num(root,"last_speed_percent");
+    p->extra = tube_player_extra_read(root);
     p->speed = valid_speed(speed) ? (int)speed : 100;
     p->last_speed = valid_speed(last) ? (int)last : 100;
     p->speed_mode = settings_integer(root,"speed_memory_mode",0,3,1);
@@ -148,6 +163,21 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     if (strlen(audio) < sizeof p->audio_language && strspn(audio,valid) == strlen(audio))
         copy(p->audio_language,sizeof p->audio_language,audio);
     tube_sb_load(&p->sb,root);
+    /* Fields of the second batch: absent in older files, default when corrupt. */
+    const char *hl = str(root,"content_language"), *gl = str(root,"content_country");
+    if (language_index(hl) >= 0) copy(p->hl,sizeof p->hl,hl);
+    if (country_index(gl) >= 0) copy(p->gl,sizeof p->gl,gl);
+    const cJSON *hidden = cJSON_GetObjectItemCaseSensitive(root,"hide"), *name;
+    if (cJSON_IsArray(hidden)) {
+        p->hide_set = 1;
+        cJSON_ArrayForEach(name,hidden) {
+            int flag = cJSON_IsString(name) ? hide_index(name->valuestring) : -1;
+            if (flag >= 0) p->hide |= 1u << flag;
+        }
+    }
+    p->thumbnails = thumbnail_index(str(root,"thumbnail_source"));
+    p->sb_alt = boolean(root,"sponsorblock_alt_server");
+    if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"section_playlist"))) p->section_playlist = boolean(root,"section_playlist");
 }
 static void profile_settings_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"profile_settings"), *row;
@@ -162,12 +192,13 @@ static void profile_settings_load(const cJSON *root) {
         /* First valid occurrence wins; malformed settings fall back field-by-field. */
         unsigned char seen[SETTINGS_PROFILES] = {0};
         cJSON_ArrayForEach(row,rows) {
-            const char *profile = str(row,"profile"); if (!valid_profile(profile)) continue;
+            const char *profile = str(row,"profile"); if (!valid_profile(profile) && strcmp(profile,SHARED_SETTINGS)) continue;
             int i = profile_settings_slot(profile,1); if (i < 0 || seen[i]) continue;
             seen[i] = 1; profile_settings_read(&g_profile_settings[i].value,row);
         }
     }
-    int i = profile_settings_slot(g_library_profile,0); profile_settings_apply(&g_profile_settings[i].value);
+    int i = profile_settings_slot(settings_key(),1);
+    if (i >= 0) profile_settings_apply(&g_profile_settings[i].value);
 }
 static void profile_settings_write(cJSON *root) {
     profile_settings_store(); cJSON *rows = cJSON_AddArrayToObject(root,"profile_settings");
@@ -208,6 +239,18 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddBoolToObject(row,"dearrow_thumbnails",p->dearrow_thumbnails);
         cJSON_AddStringToObject(row,"language",p->language);
         cJSON_AddStringToObject(row,"audio_language",p->audio_language);
-        tube_sb_save(&p->sb,row); cJSON_AddItemToArray(rows,row);
+        tube_sb_save(&p->sb,row);
+        tube_player_extra_write(row,&p->extra);
+        cJSON_AddStringToObject(row,"content_language",p->hl);
+        cJSON_AddStringToObject(row,"content_country",p->gl);
+        if (p->hide_set) { /* absent = nothing was changed: the companion keeps its own default */
+            cJSON *hidden = cJSON_AddArrayToObject(row,"hide");
+            for (int k = 0; hidden && k < HIDE_FLAGS; ++k)
+                if (p->hide >> k & 1) cJSON_AddItemToArray(hidden,cJSON_CreateString(g_hide_flags[k].name));
+        }
+        cJSON_AddStringToObject(row,"thumbnail_source",g_thumbnail_sources[p->thumbnails]);
+        cJSON_AddBoolToObject(row,"sponsorblock_alt_server",p->sb_alt);
+        cJSON_AddBoolToObject(row,"section_playlist",p->section_playlist);
+        cJSON_AddItemToArray(rows,row);
     }
 }

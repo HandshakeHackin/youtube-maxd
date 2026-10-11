@@ -44,7 +44,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"duration_sec\":100}],\"has_more\":false}}");
     provider->list_catalog("settings:sponsor", 0, items_cb, NULL);
     provider->list_catalog("settings:captions", 0, items_cb, NULL);
-    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 14);
+    provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(last_ok && last_count == 17); /* with the server switch and two info rows */
     /* Pinned reference: two-second start window, scaled by actual rate;
        grouping probes previous end + three seconds and uses final action. */
     action("sponsor", 0); action("intro", 1);
@@ -336,7 +336,7 @@ int main(void) {
         provider->list_catalog(rejected[i], 0, items_cb, NULL); assert(!last_ok);
     }
     provider->list_catalog("settings:sb", 0, items_cb, NULL);
-    assert(last_ok && last_count == 14 && !strcmp(last_items[9].title, "Ignore short segments: 7.5 seconds"));
+    assert(last_ok && last_count == 17 && !strcmp(last_items[9].title, "Ignore short segments: 7.5 seconds"));
     /* A value saved by the earlier 0-60 s cycle stays valid and listed until replaced. */
     provider->shutdown(); list_store = read_store(); cJSON *legacy_row;
     cJSON_ArrayForEach(legacy_row, cJSON_GetObjectItemCaseSensitive(list_store, "profile_settings"))

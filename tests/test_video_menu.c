@@ -33,6 +33,7 @@ int main(void) {
     char dir[]="/tmp/tube-menu-XXXXXX",stale[160];
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!p->set_source("http://127.0.0.1:8765#123456"));
     p->list_catalog("playlist:PLfixture01",0,items_cb,NULL);
     reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");poll_job(listed);
@@ -45,7 +46,7 @@ int main(void) {
         !strcmp(last_items[1].title,"https://www.youtube.com/embed/bcdefghijkl"));
     menu("abcdefghijk");assert(last_count==14);
     assert(find("Open channel")>=0 && !strcmp(row,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
-    p->list_catalog(row,0,items_cb,NULL);
+    p->list_catalog(row,0,items_cb,NULL);NO_FEATURES();
     assert(pending_count==1 && strstr(pending[0].body,"\"parent\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\""));
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}");assert(last_ok);
     menu("abcdefghijk");assert(find("Open playlist")>=0 && !strcmp(row,"playlist:PLfixture01"));

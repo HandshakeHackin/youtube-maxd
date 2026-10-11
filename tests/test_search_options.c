@@ -44,6 +44,7 @@ int main(void) {
     char dir[]="/tmp/tube-search-options-XXXXXX",again[160],suggestion[160];
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!p->set_source("http://127.0.0.1:8765#123456"));
     /* Default options keep the plain video search; a typed result leads with its two folders. */
     assert(!p->search("cats",0,items_cb,NULL));
@@ -93,7 +94,7 @@ int main(void) {
     assert(last_ok && last_count==1 && !search_lead && !last_more);
     p->list_catalog(again,2,items_cb,NULL);assert(!last_ok && !pending_count);
     /* A card opens as the existing channel folder; a blocked channel's card is hidden. */
-    p->list_catalog("channel:UCaaaaaaaaaaaaaaaaaaaaaa",0,items_cb,NULL);
+    p->list_catalog("channel:UCaaaaaaaaaaaaaaaaaaaaaa",0,items_cb,NULL);NO_FEATURES();
     assert(pending_count==1 && strstr(pending[0].body,"\"parent\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\""));drain();
     p->list_catalog(again,1,items_cb,NULL);assert(pending_count==1 && !strcmp(field("action"),"continue"));drain();
     p->list_catalog("library:home",0,items_cb,NULL);drain();

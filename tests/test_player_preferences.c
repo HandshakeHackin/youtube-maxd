@@ -11,11 +11,12 @@ int main(void) {
     char dir[]="/tmp/tube-player-prefs-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     const evo_provider_t *p=&evo_provider_youtube; assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(tube_player_ok_mode()==0 && tube_player_hide_ms()==3000);
     assert(!tube_player_seek_mode());
     p->list_catalog("settings",0,items_cb,NULL);assert(last_ok && last_count==24 && last_more);
     p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count>0 && last_count<=24 && !last_more);
-    assert(!strcmp(last_items[last_count-1].id,"settings:clear-queue"));
+    assert(!strcmp(last_items[last_count-1].id,"settings:accounts"));
     p->list_catalog("settings",2,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     p->list_catalog("settings:autoplay",0,items_cb,NULL);assert(last_ok && last_more);
     p->list_catalog("settings:autoplay",1,items_cb,NULL);assert(last_ok && !last_more);

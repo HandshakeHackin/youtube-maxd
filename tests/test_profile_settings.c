@@ -21,6 +21,7 @@ int main(void) {
     char dir[]="/tmp/tube-profile-settings-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     const evo_provider_t *p=&evo_provider_youtube; assert(!p->init());
+    SEPARATE_SETTINGS();
     action("settings:quality"); assert(last_count==8);
     const int heights[]={144,240,360,480,720,1080,1440,2160};
     for(int i=0;i<8;++i) {
@@ -90,7 +91,7 @@ int main(void) {
     root=read_store(); assert(cJSON_GetArraySize(cJSON_GetObjectItem(root,"profile_settings"))==128);
     cJSON_Delete(root); p->shutdown();
     /* Reinitializing a removed store must not retain the previous profile/settings/source. */
-    unlink(evo_data_path("youtube.json")); assert(!p->init()); action("settings:quality:1440");
+    unlink(evo_data_path("youtube.json")); assert(!p->init()); SEPARATE_SETTINGS(); action("settings:quality:1440");
     check(1440,1,0,0,0,0,"en"); root=read_store();
     assert(!strcmp(cJSON_GetObjectItem(root,"library_profile")->valuestring,"guest"));
     assert(!*cJSON_GetObjectItem(root,"source")->valuestring); cJSON_Delete(root);

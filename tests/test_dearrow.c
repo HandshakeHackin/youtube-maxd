@@ -9,7 +9,7 @@ int main(void) {
  p->search("fixture",0,items_cb,NULL);reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");poll_job(page);
  assert(!strcmp(last_items[0].title,"Original title")&&!strcmp(last_items[0].art_url,"https://i.ytimg.com/original.jpg"));
  assert(tube_toggle_favorite("abcdefghijk")==1);
- p->list_catalog("settings:dearrow:titles",0,items_cb,NULL);assert(last_ok&&last_count==3);
+ p->list_catalog("settings:dearrow:titles",0,items_cb,NULL);assert(last_ok&&last_count==5);
  p->list_catalog("favorites",0,items_cb,NULL);assert(!strcmp(last_items[0].title,"Community title"));
  p->list_catalog("settings:dearrow:thumbnails",0,items_cb,NULL);
  p->search("fixture",0,items_cb,NULL);assert(strstr(pending[0].body,"\"dearrow_titles\":true")&&strstr(pending[0].body,"\"dearrow_thumbnails\":true"));poll_job(page);

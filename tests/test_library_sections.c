@@ -38,6 +38,7 @@ int main(void) {
     char dir[]="/tmp/tube-library-sections-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!p->set_source("http://127.0.0.1:8765#123456"));
     /* Discover offers Trending and Shorts through the curated-section contract. */
     show("discover");assert(find("Trending")>=0 && !strcmp(row,"section:trending") && find("Shorts")>=0 && !strcmp(row,"section:shorts"));

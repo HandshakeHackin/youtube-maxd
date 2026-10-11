@@ -7,6 +7,7 @@ static void menu(const char* id,int page){evo_provider_youtube.list_catalog(id,p
 int main(void){
     char dir[]="/tmp/tube-video-geometry-XXXXXX";assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     const evo_provider_t* p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!tube_player_resize_mode() && !tube_player_zoom_percent() && !tube_player_video_geometry());
     const int expected[]={50,55,60,65,70,75,80,85,90,95,96,97,98,99,100,
         105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,

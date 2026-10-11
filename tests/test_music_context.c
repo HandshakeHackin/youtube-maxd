@@ -20,6 +20,7 @@ int main(void) {
     char dir[]="/tmp/tube-music-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     provider=&evo_provider_youtube; assert(!provider->init());
+    SEPARATE_SETTINGS();
     assert(!provider->set_source("http://127.0.0.1:8765#123456"));
     provider->search("fixture",0,items_cb,NULL);
     reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}"); poll_job(listing);

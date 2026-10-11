@@ -58,6 +58,16 @@ static void resolve_cb(int ok, const evo_stream_choice_t *choices, int count, vo
     if (ok) { assert(count == 1); assert(strstr(choices[0].url, "http://127.0.0.1:8765/media/") == choices[0].url); }
 }
 
+/* A new installation shares one settings set between profiles; tests of
+ * per-profile settings turn "Separate settings per account" on first. */
+#define SEPARATE_SETTINGS() do { \
+    evo_provider_youtube.list_catalog("settings:separate-settings", 0, items_cb, NULL); assert(last_ok); } while (0)
+/* The first channel folder asks the companion for its feature list; a
+ * companion without one keeps the channel as the plain catalog list. */
+#define NO_FEATURES() do { \
+    assert(pending_count >= 1 && strstr(pending[0].url, "/v1/health") && !strcmp(pending[0].method, "GET")); \
+    reply(0, 1, 404, "{}"); } while (0)
+
 static void poll_job(const char *response) {
     reply(0, 1, 200, "{\"job\":\"fixture_job\",\"state\":\"pending\"}");
     usleep(300000); tube_poll();
@@ -358,7 +368,8 @@ int main(void) {
         p->list_catalog(account_apply, 0, items_cb, NULL); assert(!pending_count);
     }
     p->list_catalog("playlist:menu:PLabcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 3 && strstr(last_items[0].id, "rename") && !strcmp(last_items[2].title, "Pin to main menu"));
+    assert(last_ok && last_count == 4 && strstr(last_items[0].id, "rename") && !strcmp(last_items[2].title, "Pin to main menu"));
+    assert(!strcmp(last_items[3].id, "playlist:confirm:unsave:PLabcdefghijk"));
     p->list_catalog("playlist:prompt:rename:PLabcdefghijk", 0, items_cb, NULL);
     tube_playlist_prompt_t prompt;
     assert(tube_take_playlist_prompt(&prompt) && strstr(prompt.label, "name"));

@@ -36,6 +36,7 @@ int main(void) {
     char dir[]="/tmp/tube-section-order-XXXXXX",parent[80],id[160];tube_playlist_prompt_t prompt;
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!strcmp(order(""),"discover history favorites queue subscriptions " ROOT_TAIL));
     /* The Touchpad menu of a section; fixed rows and unknown ids have none. */
     assert(!strcmp(tube_folder_menu("history","Continue watching & history"),"settings:section:2") && !strcmp(tube_folder_menu("section:shorts","Shorts"),"settings:section:20"));

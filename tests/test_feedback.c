@@ -71,8 +71,8 @@ int main(void) {
     poll_job("{\"state\":\"failed\",\"error\":{\"code\":\"feedback_unconfirmed\",\"message\":\"YouTube did not confirm the feedback.\"}}");
     assert(!last_ok && strstr(error_text,"did not confirm"));
     home("library:home");assert(last_count==4); /* nothing was removed */
-    /* Listing the video anywhere else retires its Home reference. */
-    p->list_catalog("library:subscriptions",0,items_cb,NULL);poll_job(page);assert(last_count==4 && !offers("abcdefghijk") && !offers("bcdefghijkl"));
+    /* Listing the video in a list without references retires its Home reference. */
+    p->list_catalog("library:watch_later",0,items_cb,NULL);poll_job(page);assert(last_count==4 && !offers("abcdefghijk") && !offers("bcdefghijkl"));
     assert(!confirm("not_interested","abcdefghijk"));
     /* A confirmed Not interested removes that card from Home lists only. */
     home("library:filter:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");assert(offers("bcdefghijkl")==1);

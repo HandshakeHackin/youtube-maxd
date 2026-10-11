@@ -194,6 +194,11 @@ const char *tube_player_chat_status(void);
 typedef struct { unsigned ticket; char label[64], initial[601]; } tube_playlist_prompt_t;
 int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt);
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity);
+/* The same prompt also takes a search inside a channel and profile passwords.
+ * After a refused text: why, for the host's notice ("" = the playlist name
+ * rule). After an accepted one: the title of the folder that opens. */
+const char *tube_prompt_error(void);
+const char *tube_prompt_title(const char *parent);
 typedef struct { unsigned ticket; char label[64], initial[801]; } tube_chat_prompt_t;
 int tube_take_chat_prompt(tube_chat_prompt_t *prompt);
 int tube_submit_chat_message(unsigned ticket, const char *text, char *parent, size_t capacity);

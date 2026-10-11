@@ -63,6 +63,7 @@ int main(void) {
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     snprintf(selected.url,sizeof selected.url,"http://127.0.0.1:8765/media/capability/p0");
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(!p->set_source("http://127.0.0.1:8765#123456"));
     show("library:profile:fixture");
     p->search("fixture",0,items_cb,NULL);reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");

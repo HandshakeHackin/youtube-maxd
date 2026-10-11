@@ -52,6 +52,7 @@ int main(void) {
     assert(!tube_select_playlist_context("abcdefghijk","PLabcdefghijk",100001,scope));
     assert(!tube_select_playlist_context("abcdefghijk","bad",1,scope));
     assert(!p->list_catalog("channel:UCaaaaaaaaaaaaaaaaaaaaaa",0,items_cb,NULL));
+    NO_FEATURES();
     poll_job("{\"state\":\"done\",\"result\":{\"items\":["
         "{\"id\":\"abcdefghijk\",\"playback_context\":{\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"index\":3}},"
         "{\"id\":\"abcdefghijk\",\"playback_context\":{\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"index\":9}},"

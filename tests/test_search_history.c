@@ -25,6 +25,7 @@ int main(void) {
     char dir[]="/tmp/tube-search-history-XXXXXX",text[840],first[160],foreign[160],clear[160];
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
+    SEPARATE_SETTINGS();
     assert(root_row()<0);
     show("search-history");assert(last_count==1 && !strcmp(last_items[0].title,"No recent searches"));
     assert(!p->set_source("http://127.0.0.1:8765#123456"));

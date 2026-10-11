@@ -12,12 +12,15 @@ for source, tag, name in ((ui, 'refresh section', 'refresh.inc'), (ui, 'search r
     start = source.index('// ProsperoTube ' + tag + '\n')
     end = source.index('// End ProsperoTube ' + tag + '\n', start)
     (output / name).write_text(source[start:end], encoding='utf-8')
-# The settings rule must keep the two real levels out of the in-place reload.
+# The settings rule must keep every real level out of the in-place reload.
 rule = ui[ui.index('id.rfind("settings:", 0) == 0 &&'):]
 rule = rule[:rule.index('{')]
-for level in ('settings:search', 'settings:sections'):
+from settings_batch_overlay import screens
+for level in ['settings:search', 'settings:sections'] + screens():
     if f'id != "{level}"' not in rule:
         raise SystemExit(level + ' would reload in place')
+if 'tube_prompt_title(parent)' not in host or '*tube_prompt_error()' not in host:
+    raise SystemExit('the text prompt does not name its folder or its refusal')
 if 'm_search_depth = m_stack.size();' not in ui:
     raise SystemExit('typed results are not tracked')
 if 'std::strncmp(parent_id, "description:", 12) == 0' not in ui or 'c.Bind("description", &m_model.description);' not in ui:
