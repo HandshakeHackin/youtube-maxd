@@ -1608,10 +1608,12 @@
         "tests/test_video_actions.c: priority ordering, persistence, unchanged favorites/queue membership, source music context and stale menu rejection",
         "companion/innertube/history_actions.mjs and tests: account-history removal references retain profile/video/page ownership, confirm processed feedback through pinned History.removeVideo, and reject repeated uncertain submissions; HTTP/job schema tests pass",
         "tests/test_history_remove.c: native account confirmation, cancellation, one submission, matching result identity, transient references, profile retirement and local history isolation pass under ASan/UBSan",
-        "Account mark_watched: pinned VideoInfo history/tracking methods at parsed duration, worker and supervisor intent retention, and native confirmation/local watched update; worker, transport/restart and ASan/UBSan regressions pass"
+        "Account mark_watched: pinned VideoInfo history/tracking methods at parsed duration, worker and supervisor intent retention, and native confirmation/local watched update; worker, transport/restart and ASan/UBSan regressions pass",
+        "tests/test_channel_block.c: stable-ID catalog filtering, persistent profile-owned block/unblock controls, repeated Block, stale profile actions, pagination and restored local memberships pass under ASan/UBSan"
       ],
       "remaining": [
         "Validate account mark-as-watched tracking and real/localized account-history removal",
+        "Complete channel-name block matching, autoplay filtering and immediate visible-row refresh; stable-ID catalog filtering and persistent profile-owned block controls are implemented",
         "Validate physical menu actions, queue order and persistence on PS5"
       ]
     },

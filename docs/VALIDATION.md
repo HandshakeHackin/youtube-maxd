@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Channel block-list foundation — 2026-10-11
+
+Stable channel IDs can be blocked/unblocked from video actions and managed in a
+profile-owned local list. Matching search/library and local rows are filtered
+without destroying their saved history/favorite/queue state. Block actions are
+idempotent, and profile/source epochs reject stale menu actions. The store is
+bounded to 128 rows and rejects malformed/duplicate rows when loading.
+
+The channel-block ASan/UBSan regression passes persistence/reload, profile
+isolation, stale actions, repeated Block, continuation preservation, filtering
+and restored favorite/queue visibility after Unblock. Core provider, local-action
+and profile-setting ASan/UBSan regressions also pass. The PS5 provider object
+compiles with the existing 262 SDK math-header qualifier warnings. SmartTube channel-name
+matching, autoplay-window filtering and immediate visible-row refresh remain
+unfinished; this is not full channel-block parity or hardware acceptance.
+
 ## Account mark-as-watched — 2026-10-11
 
 The PS5 account video menu now confirms a Mark as watched action. The worker

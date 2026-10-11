@@ -654,6 +654,22 @@ remain stationary between seeks and reject composition. Native/provider and
 actual generated reader tests pass. This is retained-window timeline browsing;
 unlimited historical-message pagination and hardware acceptance remain open.
 
+## Local channel blocks
+
+Videos with a stable YouTube channel ID expose Block channel/Unblock channel in
+their local video menu. Blocks are owned by the selected profile and persisted
+under `/data/prosperotube` with the other local preferences. The Blocked channels
+screen removes them even when their videos are hidden. Search/library catalogs
+and local history/favorites/queue lists omit matching channel videos without
+deleting favorites, queued membership or history. Source continuation flags and
+playlist occurrence indices are preserved. The bounded store holds 128 blocks
+across profiles. Repeated Block actions are idempotent and stale profile/source
+menu IDs fail.
+
+This currently matches stable channel IDs only. SmartTube's channel-name matching,
+blocking through autoplay windows and immediate refresh of existing UI rows
+remain unfinished. No YouTube account feedback or subscription is modified.
+
 ## Account history removal
 
 The account video menu also offers `mark_watched`, separate from the local-only

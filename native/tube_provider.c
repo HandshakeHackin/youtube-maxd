@@ -86,6 +86,8 @@ typedef struct Request {
 } Request;
 
 static Record g_records[RECORDS];
+static struct { char profile[33],channel[25],name[256]; } g_blocked[128];
+static int g_blocked_count;
 static int g_count;
 static int g_store_writable = 1;
 static Request g_requests[REQUESTS];
@@ -741,6 +743,27 @@ static Record *record_for(const char *id, const char *profile, int create) {
 
 static Record *record(const char *id, int create) { return record_for(id, g_library_profile, create); }
 static int current_record(const Record *r) { return !strcmp(r->profile, g_library_profile); }
+static int blocked_channel(const char *channel) {
+    if(!channel || !*channel)return -1;
+    for(int i=0;i<g_blocked_count;++i)
+        if(!strcmp(g_blocked[i].profile,g_library_profile) && !strcmp(g_blocked[i].channel,channel))return i;
+    return -1;
+}
+static int change_channel_block(const char *channel,const char *name,int block) {
+    char catalog[40];snprintf(catalog,sizeof catalog,"channel:%s",channel);
+    if(strlen(channel)!=24 || !valid_catalog_id(catalog))return 0;
+    int index=blocked_channel(channel);
+    if(!block) {
+        if(index>=0) {memmove(&g_blocked[index],&g_blocked[index+1],(size_t)(g_blocked_count-index-1)*sizeof g_blocked[0]);--g_blocked_count;}
+    } else if(index<0) {
+        if(g_blocked_count>=128){tube_set_error("The channel block list is full. Unblock a channel first.");return 0;}
+        index=g_blocked_count++;
+        copy(g_blocked[index].profile,sizeof g_blocked[index].profile,g_library_profile);
+        copy(g_blocked[index].channel,sizeof g_blocked[index].channel,channel);
+        copy(g_blocked[index].name,sizeof g_blocked[index].name,*name?name:channel);
+    }
+    save();return 1;
+}
 
 
 void tube_set_error(const char *message) {
@@ -878,6 +901,14 @@ static void save(void) {
     cJSON *root = cJSON_CreateObject(), *rows = cJSON_CreateArray();
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); return; }
     profile_settings_write(root);
+    cJSON *blocked=cJSON_AddArrayToObject(root,"blocked_channels");
+    for(int i=0;i<g_blocked_count;++i) {
+        cJSON *row=cJSON_CreateObject();
+        cJSON_AddStringToObject(row,"profile",g_blocked[i].profile);
+        cJSON_AddStringToObject(row,"channel",g_blocked[i].channel);
+        cJSON_AddStringToObject(row,"name",g_blocked[i].name);
+        cJSON_AddItemToArray(blocked,row);
+    }
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
@@ -1051,7 +1082,7 @@ static int init(void) {
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
     ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
     copy(g_library_profile,sizeof g_library_profile,"guest");
-    g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;
+    g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;g_blocked_count=0;
     g_caption_path[0] = g_caption_language[0] = 0;
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
@@ -1146,6 +1177,17 @@ static int init(void) {
         copy(g_audio_language, sizeof g_audio_language, audio);
     g_count = 0; g_queue_order = 0;
     cJSON *o;
+    cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"blocked_channels")) {
+        const char *owner=str(o,"profile"),*channel=str(o,"channel");char catalog[40];
+        snprintf(catalog,sizeof catalog,"channel:%s",channel);
+        if(g_blocked_count>=128 || !valid_profile(owner) || strlen(channel)!=24 || !valid_catalog_id(catalog))continue;
+        int duplicate=0;for(int i=0;i<g_blocked_count;++i)
+            if(!strcmp(g_blocked[i].profile,owner) && !strcmp(g_blocked[i].channel,channel))duplicate=1;
+        if(duplicate)continue;
+        copy(g_blocked[g_blocked_count].profile,sizeof g_blocked[0].profile,owner);
+        copy(g_blocked[g_blocked_count].channel,sizeof g_blocked[0].channel,channel);
+        copy(g_blocked[g_blocked_count].name,sizeof g_blocked[0].name,*str(o,"name")?str(o,"name"):channel);++g_blocked_count;
+    }
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
         const char *owner = version == 1 ? "guest" : str(o, "profile");
         if (record_for(str(o, "id"), owner, 0)) continue;
@@ -2156,6 +2198,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         parse_item(&items[n], o);
+        if(!items[n].is_folder && blocked_channel(items[n].parent_id)>=0)continue;
         parse_playlist_context(&items[n], o, r->parent);
         for (int i = 0; i < n; ++i)
             if (!strcmp(items[i].id,items[n].id) &&
@@ -2291,19 +2334,39 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 } while (0)
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[64]; int n = 0;
+    if(parent && !strncmp(parent,"block:",6)) {
+        const char *channel=strrchr(parent,':');channel=channel?channel+1:"";
+        char expected[80];snprintf(expected,sizeof expected,"block:%u:%s",g_playlist_scope,channel);
+        if(page || strcmp(parent,expected) || blocked_channel(channel)<0 || !change_channel_block(channel,"",0)) {
+            tube_set_error("Reopen blocked channels for the current profile.");cb(0,NULL,0,0,ud);return 1;
+        }
+        parent="blocked-channels";
+    }
+    if(parent && !strcmp(parent,"blocked-channels")) {
+        int total=0;
+        for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile)) {
+            if(total++<page*LOCAL_PAGE || n>=LOCAL_PAGE)continue;
+            char id[80];snprintf(id,sizeof id,"block:%u:%s",g_playlist_scope,g_blocked[i].channel);
+            CATALOG_FOLDER(id,g_blocked[i].name,"Cross unblocks this channel for the selected profile");
+        }
+        cb(1,out,n,total>(page+1)*LOCAL_PAGE,ud);return 1;
+    }
     if(parent && !strncmp(parent,"local:video:",12)) {
         const char *id=strrchr(parent,':');id=id?id+1:"";
-        const char *actions[]={"next","watched","forget"};
-        const char *messages[]={"Video will play next","Marked as watched on this PS5","Removed from local history"};
+        const char *actions[]={"next","watched","forget","block","unblock"};
+        const char *messages[]={"Video will play next","Marked as watched on this PS5","Removed from local history","Channel blocked","Channel unblocked"};
         int action=-1;
-        for(int i=0;valid_id(id) && i<3;++i) {
+        for(int i=0;valid_id(id) && i<5;++i) {
             char expected[100];snprintf(expected,sizeof expected,"local:video:%u:%s:%s",g_playlist_scope,actions[i],id);
             if(!strcmp(parent,expected))action=i;
         }
         if(page || action<0 || !record(id,0)) {
             tube_set_error("Reopen video actions for the current profile.");cb(0,NULL,0,0,ud);return 1;
         }
-        int ok=action==0?tube_queue_play_next(id):action==1?tube_mark_watched(id):tube_remove_history(id);
+        Record *video=record(id,0);
+        int ok=action==0?tube_queue_play_next(id):action==1?tube_mark_watched(id):action==2?tube_remove_history(id):
+            change_channel_block(video->item.parent_id,video->item.subtitle,action==3);
+        if(action>=3 && !ok){cb(0,NULL,0,0,ud);return 1;}
         CATALOG_FOLDER("account:notice",ok>0?messages[action]:"This video is already playing","Circle returns to video actions");
         cb(1,out,n,0,ud);return 1;
     }
@@ -2495,6 +2558,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,actions[i],parent+13);
                 CATALOG_FOLDER(id,labels[i],"Saved for the selected profile on this PS5");
             }
+            Record *video=record(parent+13,0);
+            if(video && strlen(video->item.parent_id)==24 && !strncmp(video->item.parent_id,"UC",2)) {
+                char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,
+                    blocked_channel(video->item.parent_id)>=0?"unblock":"block",parent+13);
+                CATALOG_FOLDER(id,blocked_channel(video->item.parent_id)>=0?"Unblock channel":"Block channel","Hide this channel in catalogs for the selected profile");
+            }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
             int found = -1;
@@ -2553,6 +2622,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER( "favorites", "Favorites", "Your local saved videos");
         CATALOG_FOLDER( "queue", "Play queue", "R2 on a video to add or remove");
         CATALOG_FOLDER( "subscriptions", "Followed channels", "Local follows, independent of Google accounts");
+        if(g_blocked_count)CATALOG_FOLDER("blocked-channels","Blocked channels","Manage channel blocks for the selected profile");
         CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
         CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
         CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
@@ -3009,7 +3079,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         for (int i = 0; i < g_count; ++i) {
             Record *r = &g_records[i];
             int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : !strcmp(parent, "queue") ? r->queued : r->subscribed;
-            if (include && current_record(r)) indexes[total++] = i;
+            if (include && current_record(r) && blocked_channel(r->item.parent_id)<0) indexes[total++] = i;
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
             Record *a = &g_records[indexes[i]], *b = &g_records[indexes[j]];
