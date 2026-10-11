@@ -5067,7 +5067,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
         copy(r->payload, sizeof r->payload, body); free(body); begin(r); return 0;
     }
-    tube_cancel();
+    if (!tube_player_menu_calling()) tube_cancel(); /* an in-player listing leaves playback requests alone */
     if (local_catalog(parent, page, cb, ud)) return 0;
     if (parent && (!strcmp(parent, "search-suggest") || !strncmp(parent, "description:", 12))) {
         const int suggest = parent[0] == 's';
@@ -6125,3 +6125,326 @@ const evo_provider_t evo_provider_youtube = {
     .report_progress = progress, .stream_chosen = chosen,
     .get_source = get_source, .set_source = set_source, .ui_embedded = "youtube"
 };
+
+/* ---- In-player actions (see the end of tube_provider.h). The video actions
+ * are the browser's own catalog pages, listed for the playing video while it
+ * keeps playing: nothing here names an action the menu does not offer. ---- */
+#define PLAYER_MENU_ROWS 320
+#define PLAYER_MENU_TEXT 104          /* bytes of one description line */
+static struct {
+    unsigned serial;
+    int state, page, base, count, root, calling, snapshot;
+    char parent[EVO_PROVIDER_MAX_ITEM_ID], title[96], message[160];
+    tube_player_menu_row_t rows[PLAYER_MENU_ROWS];
+    /* The browser's own list state, put back when the menu closes. */
+    char library_parent[sizeof g_library_parent], (*cursors)[65];
+    int browse_music, browse_queue;
+} g_player_menu;
+static struct { evo_provider_item_t item; char profile[33]; unsigned scope; int ready; } g_player_launch;
+static struct { char parent[EVO_PROVIDER_MAX_ITEM_ID], title[EVO_PROVIDER_MAX_TITLE], profile[33]; unsigned scope; int kind; } g_player_browse;
+static struct { char id[160]; int attempts, relaxed; } g_player_fix;
+static evo_provider_item_t g_player_root[64];
+static int g_player_root_count;
+
+int tube_player_menu_calling(void) { return g_player_menu.calling; }
+static const char *player_video(void) {
+    return valid_id(g_active_id) && recovery_scope() ? g_active_id : "";
+}
+static void player_root_items(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
+    (void)more; (void)ud;
+    g_player_root_count = 0;
+    for (int i = 0; ok && items && i < count && i < 64; ++i) g_player_root[g_player_root_count++] = items[i];
+}
+/* Rows of the actions menu that mean nothing while their video is playing. */
+static int player_row_hidden(const char *id) {
+    if (!strcmp(id, "settings:refresh") || !strncmp(id, "playlist:prompt:", 16)) return 1;
+    return !strncmp(id, "local:video:", 12) && (strstr(id, ":next:") || strstr(id, ":restart:") || strstr(id, ":incognito:"));
+}
+static int player_row_matches(int action, const char *id) {
+    switch (action) {
+    case TUBE_PLAYER_LIKE: return !strncmp(id, "account:confirm:like:", 21);
+    case TUBE_PLAYER_DISLIKE: return !strncmp(id, "account:confirm:dislike:", 24);
+    case TUBE_PLAYER_SUBSCRIBE: return !strncmp(id, "account:confirm:subscribe:", 26);
+    case TUBE_PLAYER_PLAYLIST_ADD: return !strncmp(id, "playlist:pick:add:", 18);
+    case TUBE_PLAYER_SUGGESTIONS: return !strncmp(id, "library:suggestions:", 20);
+    case TUBE_PLAYER_DESCRIPTION: return !strncmp(id, "description:", 12);
+    case TUBE_PLAYER_SHARE: return !strncmp(id, "local:video:", 12) && strstr(id, ":share:");
+    case TUBE_PLAYER_SPONSOR: return !strncmp(id, "local:video:", 12) && (strstr(id, ":sbexclude:") || strstr(id, ":sbinclude:"));
+    case TUBE_PLAYER_CHANNEL: return !strncmp(id, "channel:", 8);
+    case TUBE_PLAYER_PLAYLIST: return !strncmp(id, "library:playlist:", 17) || (!strncmp(id, "playlist:", 9) && !strchr(id + 9, ':'));
+    default: return 0;
+    }
+}
+/* The row of the actions menu behind one direct action; NULL when the menu does not offer it. */
+static const evo_provider_item_t *player_action_row(int action) {
+    static evo_provider_item_t fixed;
+    const char *video = player_video();
+    if (!*video || action < 0 || action >= TUBE_PLAYER_ACTION_COUNT) return NULL;
+    if (action == TUBE_PLAYER_ACTIONS || action == TUBE_PLAYER_QUEUE) {
+        char parent[64]; snprintf(parent, sizeof parent, "account:menu:%s", video);
+        if (action == TUBE_PLAYER_ACTIONS) folder(&fixed, parent, "Video actions", "Rate, save, share and more for this video");
+        else folder(&fixed, "queue", "Playback queue", "Videos waiting to play; Cross plays one now");
+        return &fixed;
+    }
+    char parent[64]; snprintf(parent, sizeof parent, "account:menu:%s", video);
+    g_player_root_count = 0;
+    if (!local_catalog(parent, 0, player_root_items, NULL)) return NULL;
+    for (int i = 0; i < g_player_root_count; ++i)
+        if (player_row_matches(action, g_player_root[i].id)) return &g_player_root[i];
+    return NULL;
+}
+int tube_player_action(int action, char *label, size_t label_size, char *detail, size_t detail_size) {
+    const evo_provider_item_t *row = player_action_row(action);
+    if (label && label_size) copy(label, label_size, row ? row->title : "");
+    if (detail && detail_size) copy(detail, detail_size, row ? row->subtitle : "");
+    return row != NULL;
+}
+
+static void player_menu_items(int ok, const evo_provider_item_t *items, int count, int more, void *ud);
+static void player_menu_stale(void) {
+    for (int i = 0; i < REQUESTS; ++i) {
+        Request *r = &g_requests[i];
+        if (!r->used || r->items_cb != player_menu_items) continue;
+        /* Retired like a cancelled browser request: its reply is dropped. */
+        r->generation = g_generation - 1;
+        if (*r->job && *g_source && *g_token) {
+            char url[1024], auth[160];
+            snprintf(url, sizeof url, "%s/v1/jobs/%s", g_source, r->job);
+            snprintf(auth, sizeof auth, "Authorization: Bearer %s", g_token);
+            const char *headers[] = {auth};
+            evo_net_request_async("DELETE", url, NULL, headers, 1, ignored, NULL);
+        }
+        if (!r->inflight) complete(r, 0);
+    }
+}
+static void player_menu_snapshot(void) {
+    if (g_player_menu.snapshot) return;
+    g_player_menu.cursors = malloc(sizeof g_library_cursors);
+    if (g_player_menu.cursors) memcpy(g_player_menu.cursors, g_library_cursors, sizeof g_library_cursors);
+    copy(g_player_menu.library_parent, sizeof g_player_menu.library_parent, g_library_parent);
+    g_player_menu.browse_music = g_browse_music; g_player_menu.browse_queue = g_browse_queue;
+    g_player_menu.snapshot = 1;
+}
+/* One line of at most PLAYER_MENU_TEXT - 1 bytes, broken at a space and never inside a character. */
+static const char *player_text_line(const char *text, char *out) {
+    size_t length = 0, space = 0;
+    while (text[length] && text[length] != '\n' && length < PLAYER_MENU_TEXT - 1) {
+        if (text[length] == ' ') space = length;
+        ++length;
+    }
+    if (text[length] && text[length] != '\n') {
+        if (space) length = space;
+        else while (length > 1 && ((unsigned char)text[length] & 0xc0) == 0x80) --length;
+    }
+    memcpy(out, text, length); out[length] = 0;
+    for (size_t i = 0; i < length; ++i) if ((unsigned char)out[i] < 32) out[i] = ' ';
+    text += length;
+    while (*text == ' ') ++text;
+    if (*text == '\n') ++text;
+    return text;
+}
+static tube_player_menu_row_t *player_menu_add(const char *id, const char *title, const char *detail, int is_folder) {
+    if (g_player_menu.count >= PLAYER_MENU_ROWS) return NULL;
+    tube_player_menu_row_t *row = &g_player_menu.rows[g_player_menu.count++];
+    memset(row, 0, sizeof *row);
+    copy(row->id, sizeof row->id, id); copy(row->title, sizeof row->title, title);
+    copy(row->detail, sizeof row->detail, detail); row->folder = is_folder;
+    return row;
+}
+static void player_menu_items(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
+    if (!g_player_menu.serial || (unsigned)(uintptr_t)ud != g_player_menu.serial) return;
+    if (!ok) {
+        g_player_menu.state = -1; return;   /* the reason is the provider's last error */
+    }
+    g_player_menu.count = g_player_menu.base;
+    const char *text = NULL;
+    for (int i = 0; items && i < count; ++i) {
+        if (player_row_hidden(items[i].id)) continue;
+        if (!strncmp(items[i].id, "description:text:", 17)) {
+            /* The reader's text follows its header rows as lines of this list. */
+            text = tube_comment_text(items[i].id);
+            if (!text) text = items[i].overview;
+            player_menu_add("account:notice", items[i].title, "Description", 1);
+            continue;
+        }
+        tube_player_menu_row_t *row = player_menu_add(items[i].id, items[i].title, items[i].subtitle, items[i].is_folder);
+        if (!row) break;
+        copy(row->playlist, sizeof row->playlist, items[i].playback_playlist);
+        row->index = items[i].playback_index; row->scope = items[i].playback_scope;
+    }
+    while (text && *text && g_player_menu.count < PLAYER_MENU_ROWS - 1) {
+        char line[PLAYER_MENU_TEXT];
+        text = player_text_line(text, line);
+        player_menu_add("account:notice", line, "", 1);
+    }
+    if (more && g_player_menu.page + 1 < LIBRARY_PAGES) player_menu_add("more:", "More results", "Load the next page of this list", 1);
+    if (!g_player_menu.count) player_menu_add("account:notice", "Nothing is listed here", "Circle returns", 1);
+    g_player_menu.state = 1;
+}
+static int player_menu_list(const char *parent, int page, const char *title, int root) {
+    player_menu_stale();
+    if (!++g_player_menu.serial) ++g_player_menu.serial;
+    if (!page) {
+        g_player_menu.count = 0;
+        copy(g_player_menu.parent, sizeof g_player_menu.parent, parent);
+        copy(g_player_menu.title, sizeof g_player_menu.title, title);
+        g_player_menu.root = root;
+    } else if (g_player_menu.count && !strcmp(g_player_menu.rows[g_player_menu.count - 1].id, "more:")) --g_player_menu.count;
+    g_player_menu.base = g_player_menu.count; g_player_menu.page = page;
+    g_player_menu.state = 0; g_player_menu.message[0] = 0;
+    player_menu_snapshot();
+    char target[EVO_PROVIDER_MAX_ITEM_ID]; copy(target, sizeof target, g_player_menu.parent);
+    g_player_menu.calling = 1;
+    const int result = catalog(target, page, player_menu_items, (void *)(uintptr_t)g_player_menu.serial);
+    g_player_menu.calling = 0;
+    if (result < 0 && !g_player_menu.state) {
+        copy(g_player_menu.message, sizeof g_player_menu.message, "The companion is not ready for this action.");
+        g_player_menu.state = -1;
+    }
+    return TUBE_MENU_OPENED;
+}
+static int player_browse(int kind, const char *parent, const char *title) {
+    memset(&g_player_browse, 0, sizeof g_player_browse);
+    g_player_browse.kind = kind; g_player_browse.scope = g_playlist_scope;
+    copy(g_player_browse.parent, sizeof g_player_browse.parent, parent);
+    copy(g_player_browse.title, sizeof g_player_browse.title, title);
+    copy(g_player_browse.profile, sizeof g_player_browse.profile, g_library_profile);
+    return TUBE_MENU_LEAVE;
+}
+int tube_player_menu_begin(int action) {
+    const evo_provider_item_t *row = player_action_row(action);
+    if (!row) return TUBE_MENU_NOTHING;
+    if (action == TUBE_PLAYER_CHANNEL) return player_browse(1, row->id, *row->subtitle ? row->subtitle : "Channel");
+    char id[EVO_PROVIDER_MAX_ITEM_ID], title[96];
+    copy(id, sizeof id, row->id); copy(title, sizeof title, row->title);
+    return player_menu_list(id, 0, title, action == TUBE_PLAYER_ACTIONS);
+}
+int tube_player_menu_open(int index) {
+    if (index < 0 || index >= g_player_menu.count || g_player_menu.state != 1 || !*player_video()) return TUBE_MENU_NOTHING;
+    const tube_player_menu_row_t *row = &g_player_menu.rows[index];
+    if (!strcmp(row->id, "more:")) return player_menu_list(g_player_menu.parent, g_player_menu.page + 1, g_player_menu.title, g_player_menu.root);
+    if (!strncmp(row->id, "account:notice", 14) || !strncmp(row->id, "settings:", 9)) return TUBE_MENU_NOTHING;
+    if (!strncmp(row->id, "channel:", 8)) return player_browse(1, row->id, row->folder && strcmp(row->title, "Open channel") ? row->title : *row->detail ? row->detail : "Channel");
+    if (!row->folder) {
+        if (!valid_id(row->id)) return TUBE_MENU_NOTHING;
+        const Record *known = record(row->id, 0);
+        memset(&g_player_launch, 0, sizeof g_player_launch);
+        if (known) { g_player_launch.item = known->item; dearrow_item(&g_player_launch.item, known); }
+        copy(g_player_launch.item.id, sizeof g_player_launch.item.id, row->id);
+        if (!*g_player_launch.item.title) copy(g_player_launch.item.title, sizeof g_player_launch.item.title, row->title);
+        g_player_launch.item.kind = EVO_MEDIA_VIDEO; g_player_launch.item.is_folder = 0;
+        copy(g_player_launch.item.playback_playlist, sizeof g_player_launch.item.playback_playlist, row->playlist);
+        g_player_launch.item.playback_index = row->index; g_player_launch.item.playback_scope = row->scope;
+        copy(g_player_launch.profile, sizeof g_player_launch.profile, g_library_profile);
+        g_player_launch.scope = g_playlist_scope; g_player_launch.ready = 1;
+        return TUBE_MENU_LEAVE;
+    }
+    char id[EVO_PROVIDER_MAX_ITEM_ID], title[96];
+    copy(id, sizeof id, row->id); copy(title, sizeof title, row->title);
+    return player_menu_list(id, 0, title, 0);
+}
+int tube_player_menu_status(void) { return g_player_menu.serial ? g_player_menu.state : -1; }
+int tube_player_menu_count(void) { return g_player_menu.state == 1 ? g_player_menu.count : 0; }
+const tube_player_menu_row_t *tube_player_menu_row(int index) {
+    return index >= 0 && index < tube_player_menu_count() ? &g_player_menu.rows[index] : NULL;
+}
+const char *tube_player_menu_title(void) { return g_player_menu.title; }
+const char *tube_player_menu_message(void) { return g_player_menu.message; }
+int tube_player_menu_root(void) { return g_player_menu.root; }
+void tube_player_menu_close(void) {
+    player_menu_stale();
+    if (g_player_menu.snapshot) {
+        if (g_player_menu.cursors) memcpy(g_library_cursors, g_player_menu.cursors, sizeof g_library_cursors);
+        free(g_player_menu.cursors); g_player_menu.cursors = NULL;
+        copy(g_library_parent, sizeof g_library_parent, g_player_menu.library_parent);
+        g_browse_music = g_player_menu.browse_music; g_browse_queue = g_player_menu.browse_queue;
+        g_player_menu.snapshot = 0;
+    }
+    g_player_menu.serial = 0; g_player_menu.state = 0; g_player_menu.count = 0; g_player_menu.root = 0;
+    g_player_menu.parent[0] = g_player_menu.title[0] = g_player_menu.message[0] = 0;
+}
+int tube_player_take_launch(evo_provider_item_t *item) {
+    const int ready = g_player_launch.ready && g_player_launch.scope == g_playlist_scope &&
+        !strcmp(g_player_launch.profile, g_library_profile);
+    g_player_launch.ready = 0;
+    if (!ready || !item) return 0;
+    *item = g_player_launch.item; return 1;
+}
+int tube_player_launch_pending(void) { return g_player_launch.ready; }
+void tube_player_request_search(void) { player_browse(2, "", ""); }
+int tube_player_take_browse(char *parent, size_t parent_size, char *title, size_t title_size) {
+    const int kind = g_player_browse.scope == g_playlist_scope && !strcmp(g_player_browse.profile, g_library_profile)
+        ? g_player_browse.kind : 0;
+    if (parent && parent_size) copy(parent, parent_size, kind ? g_player_browse.parent : "");
+    if (title && title_size) copy(title, title_size, kind ? g_player_browse.title : "");
+    memset(&g_player_browse, 0, sizeof g_player_browse);
+    return kind;
+}
+
+/* Quality limits of the selected profile, for the in-player presets. */
+void tube_player_quality(int *height, int *fps, int *codec) {
+    if (height) *height = g_height;
+    if (fps) *fps = g_max_fps;
+    if (codec) *codec = g_codec;
+}
+int tube_player_set_quality(int height, int fps, int codec) {
+    if (height < 0) height = g_height;
+    if (fps < 0) fps = g_max_fps;
+    if (codec < 0) codec = g_codec;
+    if ((height != 144 && height != 240 && height != 360 && height != 480 && height != 720 && height != 1080 &&
+         height != 1440 && height != 2160) || (fps != 0 && fps != 30 && fps != 60) || codec > 4) return 0;
+    if (height != g_height || fps != g_max_fps || codec != g_codec) { g_height = height; g_max_fps = fps; g_codec = codec; save(); }
+    return 1;
+}
+int tube_player_remember_height(int height) {
+    static const int heights[] = {144, 240, 360, 480, 720, 1080, 1440, 2160};
+    if (height <= 0) return 0;
+    for (int i = 0; i < 8; ++i) if (height <= heights[i] || i == 7) return tube_player_set_quality(heights[i], -1, -1);
+    return 0;
+}
+static int player_reopen(double position, int live, int subtitles, ResolveQuality quality) {
+    g_recovery.position = live ? 0 : position; g_recovery.subtitles = !!subtitles;
+    g_recovery.quality = quality; g_recovery.phase = 1;
+    copy(g_player_fix.id, sizeof g_player_fix.id, g_recovery.id);
+    g_player_fix.attempts = g_recovery.attempts; g_player_fix.relaxed = 1;
+    return 1;
+}
+int tube_player_reload(double position, int live, int subtitles) {
+    if (g_recovery.phase || !recovery_scope() || !isfinite(position) || position < 0 || position > 1000000 ||
+        !!live != !!g_recovery.choice.is_live || !companion_url(g_recovery.choice.url)) return 0;
+    return player_reopen(position, live, subtitles, (ResolveQuality){g_height, g_max_fps, g_codec});
+}
+static int player_codec(const char *name) {
+    return !strncmp(name, "avc", 3) || !strncmp(name, "h264", 4) ? TUBE_CODEC_AVC : !strncmp(name, "vp9", 3) || !strncmp(name, "vp09", 4) ? TUBE_CODEC_VP9 :
+        !strncmp(name, "av1", 3) || !strncmp(name, "av01", 4) ? TUBE_CODEC_AV1 : !strncmp(name, "hev", 3) || !strncmp(name, "hvc", 3) || !strncmp(name, "h265", 4) ? TUBE_CODEC_HEVC : TUBE_CODEC_AUTO;
+}
+int tube_error_fix_begin(int error, double position, int live, int subtitles) {
+    if (g_recovery.phase || !recovery_scope()) return TUBE_FIX_NONE;
+    const evo_stream_choice_t *playing = &g_recovery.choice;
+    int height = playing->height > 0 ? playing->height : g_recovery.quality.height;
+    int fps = isfinite(playing->fps) && playing->fps > 0 ? (int)(playing->fps + 0.5) : g_recovery.quality.max_fps;
+    int codec = player_codec(playing->video_codec);
+    const tube_fix_input input = {tube_extra_error_fixer(), error, live, subtitles, height, fps, codec, g_recovery.attempts};
+    const int action = tube_error_fix_decide(&input);
+    if (!(action & TUBE_FIX_ACTION)) return TUBE_FIX_NONE;
+    const int captions = subtitles && !(action & TUBE_FIX_SUBTITLES_OFF);
+    /* Arms the existing bounded recovery: three attempts for one video. */
+    if (!tube_queue_recovery(position, live, captions)) return TUBE_FIX_NONE;
+    fps = g_recovery.quality.max_fps; codec = g_recovery.quality.codec;
+    if (tube_error_fix_quality(action, &height, &fps, &codec))
+        player_reopen(g_recovery.position, live, captions, (ResolveQuality){height, fps, codec});
+    return action;
+}
+int tube_error_fix_relaxed(void) {
+    return g_player_fix.relaxed && tube_recovery_active() && g_player_fix.attempts == g_recovery.attempts &&
+        !strcmp(g_player_fix.id, g_recovery.id);
+}
+int tube_error_fix_choice(const evo_stream_choice_t *choices, int count) {
+    const int relaxed = tube_error_fix_relaxed();
+    g_player_fix.relaxed = 0;
+    if (!relaxed || !choices || count < 1 || count > CHOICES) return -1;
+    /* The companion lists the best stream inside the requested limits first. */
+    for (int i = 0; i < count; ++i)
+        if (companion_url(choices[i].url) && !!choices[i].is_live == !!g_recovery.choice.is_live) return i;
+    return -1;
+}

@@ -209,6 +209,54 @@ int tube_queue_skip_unavailable(const char *video_id);
 int tube_queue_retry_pending(void);
 void tube_queue_retry_cancel(void);
 void tube_set_error(const char *message);
+/* ---- In-player actions. Main/UI thread only. ----
+ * The video actions menu and the lists behind it (related videos, queue,
+ * playlist, description, links, confirmations), listed for the playing video
+ * while it keeps playing. Rows stay valid until the next call. */
+typedef struct {
+    char id[EVO_PROVIDER_MAX_ITEM_ID], title[160], detail[160], playlist[101];
+    int folder, index;
+    unsigned scope;
+} tube_player_menu_row_t;
+enum { TUBE_PLAYER_ACTIONS = 0, TUBE_PLAYER_LIKE, TUBE_PLAYER_DISLIKE, TUBE_PLAYER_SUBSCRIBE, TUBE_PLAYER_PLAYLIST_ADD,
+       TUBE_PLAYER_QUEUE, TUBE_PLAYER_SUGGESTIONS, TUBE_PLAYER_DESCRIPTION, TUBE_PLAYER_SHARE, TUBE_PLAYER_SPONSOR,
+       TUBE_PLAYER_CHANNEL, TUBE_PLAYER_PLAYLIST, TUBE_PLAYER_ACTION_COUNT };
+/* 1 = the actions menu offers this for the playing video and profile; the
+ * label and detail are its row there. */
+int tube_player_action(int action, char *label, size_t label_size, char *detail, size_t detail_size);
+enum { TUBE_MENU_NOTHING = 0,   /* an inert row, or nothing to open */
+       TUBE_MENU_OPENED = 1,    /* a list was requested: poll tube_player_menu_status() */
+       TUBE_MENU_LEAVE = 2 };   /* a video or a channel was chosen: stop and return to the browser */
+int tube_player_menu_begin(int action);
+int tube_player_menu_open(int row);
+int tube_player_menu_status(void);              /* 0 pending, 1 ready, -1 failed or closed */
+int tube_player_menu_count(void);
+const tube_player_menu_row_t *tube_player_menu_row(int index);
+const char *tube_player_menu_title(void);
+const char *tube_player_menu_message(void);     /* why the list failed; "" = the last reported error */
+int tube_player_menu_root(void);                /* 1 = the list is the actions menu itself */
+/* Ends the lists and puts the browser's own paging state back. */
+void tube_player_menu_close(void);
+int tube_player_menu_calling(void);
+/* After playback stopped on a row's request: the video to start, or the
+ * folder to open (1) or the search prompt to show (2) in the browser. */
+int tube_player_launch_pending(void);
+int tube_player_take_launch(evo_provider_item_t *item);
+void tube_player_request_search(void);
+int tube_player_take_browse(char *parent, size_t parent_size, char *title, size_t title_size);
+/* Quality limits of the selected profile: height, frame rate (0 = any) and
+ * codec (0 automatic, 1 AVC, 2 VP9, 3 AV1, 4 HEVC). A negative value keeps. */
+void tube_player_quality(int *height, int *fps, int *codec);
+int tube_player_set_quality(int height, int fps, int codec);
+int tube_player_remember_height(int height);
+/* Reopen the playing video at this position with the current limits. */
+int tube_player_reload(double position, int live, int subtitles);
+/* Error fixer (tube_player_extra.h): arms the bounded recovery for one error
+ * and returns the TUBE_FIX_* action taken, 0 for none. While a reload asks
+ * for another quality, the host takes its stream from tube_error_fix_choice(). */
+int tube_error_fix_begin(int error, double position, int live, int subtitles);
+int tube_error_fix_relaxed(void);
+int tube_error_fix_choice(const evo_stream_choice_t *choices, int count);
 #ifdef __cplusplus
 }
 #endif
