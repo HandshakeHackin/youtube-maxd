@@ -40,3 +40,18 @@ test('catalog normalization preserves progress independently of Home filtering',
   assert.equal(normalizeVideo(video(0,{is_watched:true})).watch_percent,100);
   assert.equal(normalizeVideo(video('65')).watch_percent,-1);
 });
+
+function modernProgress(percent) {
+  return new YTNodes.RichItem({content:{lockupViewModel:{contentId:id,contentType:'LOCKUP_CONTENT_TYPE_VIDEO',
+    contentImage:{thumbnailViewModel:{image:{sources:[]},overlays:[{thumbnailBottomOverlayViewModel:{
+      progressBar:{thumbnailOverlayProgressBarViewModel:{startPercent:percent}},badges:[]
+    }}]}}}}});
+}
+test('pinned modern Home cards retain progress and share watched filtering thresholds',()=>{
+  for(const [percent,expected] of [[0,0],[10,10],[50.5,50.5],[96,96],[100,100],[-1,-1],[101,-1],['96',-1]]) {
+    const item=modernProgress(percent),row=normalizeVideo(item.content);
+    assert.equal(row.watch_percent,expected);
+    const feed=filterHomeFeed({videos:[item.content],contents:{contents:[item]},has_continuation:false});
+    assert.equal(feed.videos.length,expected===10||expected>95?0:1);
+  }
+});

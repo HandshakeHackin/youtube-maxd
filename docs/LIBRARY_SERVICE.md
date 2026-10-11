@@ -848,3 +848,8 @@ to 10 and at 100, matching SmartTube. Partial remote progress supplies the displ
 resume position; unknown or fully watched remote state can use existing local
 state. Remote metadata does not overwrite saved local progress. Home filtering
 happens before this local-state merge, following the pinned source order.
+
+
+Watch progress also supports modern Lockup thumbnail bottom overlays through the
+pinned parser's progress-bar model. These values follow the same numeric bounds,
+Home filtering and native resume path as legacy resume overlays.

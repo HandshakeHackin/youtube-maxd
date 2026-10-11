@@ -7,6 +7,12 @@ export function watchPercent(node) {
     if(overlay?.type==='ThumbnailOverlayResumePlayback' && typeof percent==='number' && Number.isFinite(percent) &&
        percent>=0 && percent<=100)return percent;
   }
+  const image=node?.content_image?.primary_thumbnail ?? node?.content_image;
+  for(const overlay of image?.overlays ?? []) {
+    if(overlay?.type!=='ThumbnailBottomOverlayView' || overlay.progress_bar?.type!=='ThumbnailOverlayProgressBarView')continue;
+    const percent=overlay.progress_bar.start_percent;
+    if(typeof percent==='number' && Number.isFinite(percent) && percent>=0 && percent<=100)return percent;
+  }
   return -1;
 }
 export function watchedSuggestion(node) {

@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Modern-card watch progress — 2026-10-11
+
+Modern Lockup cards expose progress through ThumbnailBottomOverlayView and its
+ThumbnailOverlayProgressBarView, rather than the legacy resume overlay. The
+shared watch-percentage adapter now reads that pinned parser shape, supplying
+both Home filtering and catalog/native resume. Numeric values outside 0–100
+and nonnumeric fields remain unknown.
+
+All 118 worker tests and the worker bundle build pass. Tests construct actual
+pinned RichItem/Lockup/thumbnail parser nodes and check partial progress, the
+10-percent marker, completed progress and malformed fields. No native bytes
+changed or console was contacted. Modern upcoming/live-state coverage and
+real-service layout acceptance remain incomplete.
+
 ## Catalog watch progress and native resume — 2026-10-11
 
 Source inspection confirms `VideoGroup.add` filters watched Home suggestions
