@@ -140,6 +140,13 @@ void PlayerScreen::onExit() {''')
         const bool controlsHidden = m_osdVisibilityAlpha <= 0;
         const int action = tube_extra_dpad_action(axis, controlsHidden);
         if (action == TUBE_KEY_ACTION_DEFAULT) continue;
+        if (action == TUBE_KEY_ACTION_SUGGESTIONS) {
+            // Up keeps its own action; Down lists related videos over the picture.
+            if (!(keys & PadButtons::Down) || tube_phone_owns_media() || !screenMgr) continue;
+            tube_extra_picker_request(TUBE_PICKER_SUGGESTIONS);
+            screenMgr->navigateTo(ScreenId::AudioTrackPicker);
+            return true;
+        }
         // Quick skip and adjustments made with hidden controls keep them hidden.
         if (controlsHidden) m_tubeSuppressControls = true;
         if (action == TUBE_KEY_ACTION_SKIP) {
@@ -259,6 +266,15 @@ def _kit_hud(replace, player):
             ui::text(list, fonts.semibold, l, 960, y, sz, ink, Align::center);''')
     replace(hud, '        top = block(sub_lines_, bottom, size, kWhite);',
             '        top = block(sub_lines_, bottom, size, tube_style.custom ? Color::rgb(tube_style.text_rgb) : kWhite);')
+    replace(hud, '''        ui::text(list, fonts.mono, fps, chip.cx(), chip.y + 28, 20, ctx.palette.accent, Align::center);
+    }
+}''', '''        ui::text(list, fonts.mono, fps, chip.cx(), chip.y + 28, 20, ctx.palette.accent, Align::center);
+    }
+    // ProsperoTube screen dimming HUI.
+    if (const int tube_dim = tube_extra_dim_percent())
+        list.rounded_rect(Rect{0, 0, 1920, 1080}, 0, kBlack.with_alpha(static_cast<float>(tube_dim) / 100.0f));
+    // End ProsperoTube screen dimming HUI.
+}''')
 
 
 def _rml_hud(replace, player):
@@ -293,6 +309,19 @@ def _rml_hud(replace, player):
         if (auto* row = m_playback_doc->GetElementById("tube-info-row")) {
             const bool shown = !info_rml.empty() || !chapter_rml.empty();
             if (row->IsClassSet("shown") != shown) { row->SetClass("shown", shown); m_frame_dirty = true; }
+        }
+        // Screen dimming: black over the picture and everything drawn on it.
+        if (auto* dim = m_playback_doc->GetElementById("tube-dim")) {
+            static int dim_shown = -1;
+            static const void* dim_document = nullptr;
+            const int percent = tube_extra_dim_percent();
+            if (percent != dim_shown || dim_document != m_playback_doc) {
+                char value[16];
+                std::snprintf(value, sizeof value, "#000000%02x", percent * 255 / 100);
+                dim->SetProperty("background-color", value);
+                dim->SetClass("shown", percent > 0);
+                dim_shown = percent; dim_document = m_playback_doc; m_frame_dirty = true;
+            }
         }
         // Caption look: reapplied when a preference, the face or the document changes.
         static unsigned applied_revision = 0;
@@ -346,7 +375,26 @@ def _rml_hud(replace, player):
             '''        <!-- ProsperoTube: chapter title (left) and quality / clock (right) above the timeline -->
         <div id="tube-info-row"><div id="tube-chapter"></div><div id="tube-info"></div></div>
         <!-- Progress Bar Timeline -->''')
-    replace(player + 'assets/rml/playback.rcss', '#time-row {', '''/* ProsperoTube: chapter title and quality / clock labels. The row sits in the
+    replace(player + 'assets/rml/playback.rml', '</body>', '''    <!-- ProsperoTube: screen dimming and screen off, above everything else -->
+    <div id="tube-dim"></div>
+</body>''')
+    replace(player + 'assets/rml/playback.rcss', '#time-row {', '''/* ProsperoTube: black at the chosen strength over the picture and the controls. */
+#tube-dim {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920dp;
+    height: 1080dp;
+    z-index: 100;
+    background-color: #000000;
+}
+
+#tube-dim.shown {
+    display: block;
+}
+
+/* ProsperoTube: chapter title and quality / clock labels. The row sits in the
  * bar's top padding, so the rows below keep their place. */
 #tube-info-row {
     display: none;
@@ -443,6 +491,7 @@ def _picker(replace, player):
         m_tracks.push_back(std::move(e));
     }
     for (int group = 0; group < TUBE_EXTRA_GROUPS; ++group) {
+        if (!tube_extra_group_in_player(group)) continue;
         Entry e; e.kind = KindExtraGroup; e.streamIndex = group;
         char value[96];
         tube_extra_group_label(group, tube_extra_group_selected(group), value, sizeof value);
@@ -517,3 +566,6 @@ def apply_player_extra_overlay(replace, player):
     _rml_hud(replace, player)
     _picker(replace, player)
     _speed_lists(replace, player)
+    # The in-player actions extend the blocks above.
+    from player_actions_overlay import apply_player_actions_overlay
+    apply_player_actions_overlay(replace, player)

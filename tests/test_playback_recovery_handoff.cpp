@@ -60,6 +60,10 @@ static std::string chosen_url, error;
 static evo_provider_t provider;
 extern "C" const evo_provider_t* evo_provider_find(const char*) { return &provider; }
 extern "C" int tube_recovery_choice(const evo_stream_choice_t*, int) { return active ? match : -1; }
+/* A reload that asked for another quality takes the stream the fixer names instead. */
+static int relaxed=-2;
+extern "C" int tube_error_fix_relaxed(void) { return relaxed!=-2; }
+extern "C" int tube_error_fix_choice(const evo_stream_choice_t*, int) { const int chosen=relaxed; relaxed=-2; return chosen; }
 extern "C" int tube_recovery_active(void) { return active; }
 extern "C" void tube_recovery_finish(void) { ++finish_count; active=false; }
 extern "C" void tube_set_error(const char* text) { error=text; }
@@ -117,6 +121,14 @@ int main() {
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42);
     assert(chosen_count==before && !g_start_running && g_resolve_finished && !g_tube_recovery_launch);
     assert(!error.empty());
+    /* Error fixer and presets: the strict match is not consulted for a changed quality. */
+    prepare(); match=-1; relaxed=0; before=chosen_count; choices[1].is_live=0;
+    on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
+    assert(chosen_count==before+1 && chosen_url==choices[0].url && relaxed==-2 && g_pending.choice_count==1 && !g_pending.ask);
+    complete_worker();
+    prepare(); match=1; relaxed=-1; before=chosen_count; error.clear();
+    on_tube_resolved(1,choices,2,(void*)(uintptr_t)42);
+    assert(chosen_count==before && !g_start_running && !g_tube_recovery_launch && !error.empty());
     prepare(); match=1; choices[1].is_live=0;
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
     active=false; int stops=playback.stops;
