@@ -160,7 +160,7 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
@@ -343,7 +343,7 @@ static int player_preference(const char *profile, int create) {
     int i = g_player_preferences_count++;
     copy(g_player_preferences[i].profile,sizeof g_player_preferences[i].profile,profile);
     g_player_preferences[i].ok_mode = 0; g_player_preferences[i].hide_ms = 3000;
-    g_player_preferences[i].seek_seconds = 10; return i;
+    g_player_preferences[i].seek_seconds = 10; g_player_preferences[i].time_mode = 1; return i;
 }
 int tube_player_ok_mode(void) {
     int i = player_preference(g_library_profile,0); return i < 0 ? 0 : g_player_preferences[i].ok_mode;
@@ -382,6 +382,14 @@ int tube_player_set_seek_seconds(int seconds) {
     int i=player_preference(g_library_profile,1); if(i<0)return 0;
     g_player_preferences[i].seek_seconds=seconds; save(); return 1;
 }
+int tube_player_time_mode(void) {
+    int i=player_preference(g_library_profile,0);return i<0 ? 1 : g_player_preferences[i].time_mode;
+}
+int tube_player_set_time_mode(int mode) {
+    if(mode<0 || mode>2)return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].time_mode=mode;save();return 1;
+}
 static void player_preferences_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"player_preferences"), *row;
     if (!rows) {
@@ -408,6 +416,10 @@ static void player_preferences_load(const cJSON *root) {
         double seek_mode = num(row,"seek_mode");
         if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
             g_player_preferences[i].seek_mode = (int)seek_mode;
+        const cJSON *time=cJSON_GetObjectItemCaseSensitive(row,"time_mode");
+        double time_mode=num(row,"time_mode");
+        if(cJSON_IsNumber(time) && time_mode>=0 && time_mode<=2 && floor(time_mode)==time_mode)
+            g_player_preferences[i].time_mode=(int)time_mode;
         const cJSON *interval=cJSON_GetObjectItemCaseSensitive(row,"seek_seconds");
         double seconds=num(row,"seek_seconds");
         if(cJSON_IsNumber(interval) && seconds>=1 && seconds<=60 && floor(seconds)==seconds && valid_seek_seconds((int)seconds))
@@ -720,6 +732,7 @@ static void save(void) {
         cJSON_AddNumberToObject(preference,"hide_ms",g_player_preferences[i].hide_ms);
         cJSON_AddNumberToObject(preference,"seek_mode",g_player_preferences[i].seek_mode);
         cJSON_AddNumberToObject(preference,"seek_seconds",g_player_preferences[i].seek_seconds);
+        cJSON_AddNumberToObject(preference,"time_mode",g_player_preferences[i].time_mode);
         cJSON_AddItemToArray(player_preferences,preference);
     }
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
@@ -1865,8 +1878,16 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
     copy(out->subtitle, sizeof out->subtitle, hint); out->is_folder = 1; out->kind = EVO_MEDIA_VIDEO;
 }
 
+/* Menus can exceed a 24-item media page. Reject growth before writing past the
+ * fixed menu buffer; callbacks receive no partial menu on capacity failure. */
+#define CATALOG_FOLDER(id, title, detail) do { \
+    if (n >= (int)(sizeof out / sizeof out[0])) { \
+        tube_set_error("This menu exceeds its item capacity."); cb(0,NULL,0,0,ud); return 1; \
+    } \
+    folder(&out[n++],id,title,detail); \
+} while (0)
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
-    evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
+    evo_provider_item_t out[64]; int n = 0;
     if (parent && !strncmp(parent, "message:", 8)) {
         if (g_chat.replay) {
             tube_set_error("Chat replay is read-only."); cb(0, NULL, 0, 0, ud); return 1;
@@ -1884,7 +1905,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             copy(g_message.profile, sizeof g_message.profile, g_library_profile);
             copy(g_message.cursor, sizeof g_message.cursor, g_chat.cursor);
             snprintf(g_message.session, sizeof g_message.session, "chat-%lld-%u", now_ms(), g_message.ticket);
-            folder(&out[n++], "account:notice", "Compose a chat message", "Review before sending; Circle cancels");
+            CATALOG_FOLDER( "account:notice", "Compose a chat message", "Review before sending; Circle cancels");
         } else {
             char review[80], send[80];
             snprintf(review, sizeof review, "message:review:%u", g_message.ticket);
@@ -1894,13 +1915,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
             if (!strcmp(parent, send) && g_message.phase == 2) return 0;
             if (g_message.phase == 2) {
-                folder(&out[n++], send, "Send this chat message", "Cross sends once; Circle cancels");
+                CATALOG_FOLDER( send, "Send this chat message", "Cross sends once; Circle cancels");
                 copy(g_comments[LOCAL_PAGE].id, sizeof g_comments[LOCAL_PAGE].id, send);
                 snprintf(g_comments[LOCAL_PAGE].content, sizeof g_comments[LOCAL_PAGE].content,
                     "Profile: %s\nVideo: %s\nMessage:\n%s\nCross sends once; Circle returns without sending.",
                     g_message.profile, g_message.video, g_message.text);
                 copy(out[0].overview, sizeof out[0].overview, g_comments[LOCAL_PAGE].content);
-            } else folder(&out[n++], "account:notice", g_message.phase == 4 ? "Chat message sent" : "Chat message pending",
+            } else CATALOG_FOLDER( "account:notice", g_message.phase == 4 ? "Chat message sent" : "Chat message pending",
                           "Check the chat before composing another message");
         }
         cb(1, out, n, 0, ud); return 1;
@@ -1923,7 +1944,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (!reviewing) {
             for (int i = 0; i < 3; ++i) if (g_comments[found].rating_options & (1u << i)) {
                 char id[160]; snprintf(id, sizeof id, "comment:confirm:%s:%s", ratings[i], cursor);
-                folder(&out[n++], id, titles[i], "Review the selected comment before confirming");
+                CATALOG_FOLDER( id, titles[i], "Review the selected comment before confirming");
             }
         } else {
             int choice = -1;
@@ -1935,7 +1956,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             char content[16001]; copy(content, sizeof content, g_comments[found].content);
             unsigned serial = account_intent("comment_rate", ratings[choice], cursor, "");
             char id[80]; snprintf(id, sizeof id, "account:apply:%u", serial);
-            folder(&out[n++], id, titles[choice], "Cross confirms for the selected YouTube profile; Circle cancels");
+            CATALOG_FOLDER( id, titles[choice], "Cross confirms for the selected YouTube profile; Circle cancels");
             copy(g_comments[LOCAL_PAGE].id, sizeof g_comments[LOCAL_PAGE].id, id);
             snprintf(g_comments[LOCAL_PAGE].content, sizeof g_comments[LOCAL_PAGE].content, "Profile: %s\nComment:\n%s\nCross confirms; Circle returns without submitting it.",
                      g_library_profile, content);
@@ -1947,13 +1968,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (!strchr(parent + 9, ':')) return 0; /* ordinary public playlist browsing */
         if (!strncmp(parent, "playlist:pick:", 14)) return 0;
         if (!strcmp(g_library_profile, "guest")) {
-            folder(&out[n++], "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
+            CATALOG_FOLDER( "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
         } else if (!strncmp(parent, "playlist:menu:", 14) && valid_playlist(parent + 14) &&
             strcmp(parent + 14, "WL") && strcmp(parent + 14, "LL")) {
             char id[160]; snprintf(id, sizeof id, "playlist:prompt:rename:%.100s", parent + 14);
-            folder(&out[n++], id, "Rename YouTube playlist", "Enter a new name, then confirm");
+            CATALOG_FOLDER( id, "Rename YouTube playlist", "Enter a new name, then confirm");
             snprintf(id, sizeof id, "playlist:confirm:delete:%.100s", parent + 14);
-            folder(&out[n++], id, "Delete YouTube playlist", "Requires confirmation for the selected profile");
+            CATALOG_FOLDER( id, "Delete YouTube playlist", "Requires confirmation for the selected profile");
         } else if (!strncmp(parent, "playlist:prompt:", 16)) {
             int create = !strncmp(parent, "playlist:prompt:create:", 23);
             int rename = !strncmp(parent, "playlist:prompt:rename:", 23);
@@ -1971,7 +1992,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             copy(g_playlist_prompt.identity, sizeof g_playlist_prompt.identity, identity);
             copy(g_playlist_prompt.profile, sizeof g_playlist_prompt.profile, g_library_profile);
             g_playlist_prompt.create = create; g_playlist_prompt.pending = g_playlist_prompt.active = 1;
-            folder(&out[n++], "account:notice", "Enter a playlist name", "Circle returns without changing your account");
+            CATALOG_FOLDER( "account:notice", "Enter a playlist name", "Circle returns without changing your account");
         } else if (!strncmp(parent, "playlist:confirm:", 17)) {
             const char *value = parent + 17, *identity = NULL, *playlist = NULL, *action = NULL;
             char video[12] = "";
@@ -1991,7 +2012,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             unsigned serial = account_intent(action, video, playlist, "");
             char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", serial);
             snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
-            folder(&out[n++], id, !strcmp(action, "playlist_delete") ? "Delete this YouTube playlist" :
+            CATALOG_FOLDER( id, !strcmp(action, "playlist_delete") ? "Delete this YouTube playlist" :
                 !strcmp(action, "playlist_add") ? "Add video to this playlist" : "Remove video from this playlist", hint);
             snprintf(out[0].overview, sizeof out[0].overview, "Playlist: %s | Video: %s. Cross applies this change; Circle returns without submitting it.", playlist, *video ? video : "none");
             copy(g_comments[0].id, sizeof g_comments[0].id, out[0].id);
@@ -2003,7 +2024,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
             char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
             snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
-            folder(&out[n++], id, !strcmp(g_account_intent.action, "playlist_create") ? "Create private YouTube playlist" : "Rename YouTube playlist", hint);
+            CATALOG_FOLDER( id, !strcmp(g_account_intent.action, "playlist_create") ? "Create private YouTube playlist" : "Rename YouTube playlist", hint);
             copy(g_comments[0].id, sizeof g_comments[0].id, out[0].id);
             snprintf(g_comments[0].content, sizeof g_comments[0].content, "Name: %s\nPlaylist: %s\nVideo: %s\nCross confirms; Circle returns without submitting it.",
                 g_account_intent.title, g_account_intent.playlist, g_account_intent.identity);
@@ -2022,14 +2043,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             copy(g_account_intent.action, sizeof g_account_intent.action, "profile_remove");
             copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
             char id[80]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
-            folder(&out[n++], id, "Remove selected account", "Cross confirms; Circle returns without removing it");
+            CATALOG_FOLDER( id, "Remove selected account", "Cross confirms; Circle returns without removing it");
             snprintf(out[0].overview, sizeof out[0].overview,
                 "Profile: %s. Remove this account and its saved sign-in from ProsperoTube. Continue as Guest; other accounts remain available.", g_library_profile);
             copy(g_comments[0].id, sizeof g_comments[0].id, id);
             copy(g_comments[0].content, sizeof g_comments[0].content, out[0].overview);
         } else if (!strncmp(parent, "account:menu:", 13) && valid_id(parent + 13)) {
             if (!strcmp(g_library_profile, "guest")) {
-                folder(&out[n++], "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
+                CATALOG_FOLDER( "account:notice", "Choose an account profile first", "Discover > Accounts & library > Profile");
             } else {
                 Record *r = record(parent + 13, 0);
                 for (size_t i = 0; i < sizeof g_account_actions / sizeof g_account_actions[0]; ++i) {
@@ -2038,14 +2059,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     char id[160], hint[160];
                     snprintf(id, sizeof id, "account:confirm:%.32s:%.100s", g_account_actions[i].action, identity);
                     snprintf(hint, sizeof hint, "YouTube profile: %s", g_library_profile);
-                    folder(&out[n++], id, g_account_actions[i].title, hint);
+                    CATALOG_FOLDER( id, g_account_actions[i].title, hint);
                 }
                 char id[80]; snprintf(id, sizeof id, "playlist:pick:add:%s", parent + 13);
-                folder(&out[n++], id, "Add to a YouTube playlist", "Choose a playlist, then confirm");
+                CATALOG_FOLDER( id, "Add to a YouTube playlist", "Choose a playlist, then confirm");
                 snprintf(id, sizeof id, "playlist:pick:remove:%s", parent + 13);
-                folder(&out[n++], id, "Remove from a YouTube playlist", "Choose a playlist containing this video");
+                CATALOG_FOLDER( id, "Remove from a YouTube playlist", "Choose a playlist containing this video");
                 snprintf(id, sizeof id, "playlist:prompt:create:%s", parent + 13);
-                folder(&out[n++], id, "Create playlist with this video", "A new private playlist on the selected account");
+                CATALOG_FOLDER( id, "Create playlist with this video", "A new private playlist on the selected account");
             }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
@@ -2066,7 +2087,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             copy(g_account_intent.profile, sizeof g_account_intent.profile, g_library_profile);
             char id[80], hint[160]; snprintf(id, sizeof id, "account:apply:%u", g_account_intent.serial);
             snprintf(hint, sizeof hint, "Confirm for YouTube profile: %s", g_library_profile);
-            folder(&out[n++], id, g_account_actions[found].title, hint);
+            CATALOG_FOLDER( id, g_account_actions[found].title, hint);
             const char *label = colon + 1;
             Record *target = record(colon + 1, 0);
             if (target && *target->item.title) label = target->item.title;
@@ -2083,36 +2104,36 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Reopen the account action to confirm it for the current profile."); cb(0, NULL, 0, 0, ud); return 1;
             }
             if (!g_account_intent.state) return 0; /* first explicit confirmation submits one job */
-            folder(&out[n++], "account:notice", g_account_intent.state == 2 ? "YouTube account updated" :
+            CATALOG_FOLDER( "account:notice", g_account_intent.state == 2 ? "YouTube account updated" :
                 g_account_intent.state == 1 ? "Account change pending" : "Account change not confirmed",
                 g_account_intent.state == 1 ? "Wait for the companion response" : "Check your account before repeating an unconfirmed change");
         } else if (!strcmp(parent, "account:notice")) {
-            folder(&out[n++], "account:notice", "Circle to return", "No account operation submitted");
+            CATALOG_FOLDER( "account:notice", "Circle to return", "No account operation submitted");
         } else { tube_set_error("The selected account action was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
         cb(1, out, n, 0, ud); return 1;
     }
     if (!parent || !*parent) {
-        folder(&out[n++], "discover", "Discover", "Search public videos by topic");
-        folder(&out[n++], "history", "Continue watching & history", "Stored on this PS5");
-        folder(&out[n++], "favorites", "Favorites", "Your local saved videos");
-        folder(&out[n++], "queue", "Play queue", "R2 on a video to add or remove");
-        folder(&out[n++], "subscriptions", "Followed channels", "Local follows, independent of Google accounts");
-        folder(&out[n++], "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
-        folder(&out[n++], "app:settings", "Player settings", "Display, audio and controller preferences");
-        folder(&out[n++], "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
+        CATALOG_FOLDER( "discover", "Discover", "Search public videos by topic");
+        CATALOG_FOLDER( "history", "Continue watching & history", "Stored on this PS5");
+        CATALOG_FOLDER( "favorites", "Favorites", "Your local saved videos");
+        CATALOG_FOLDER( "queue", "Play queue", "R2 on a video to add or remove");
+        CATALOG_FOLDER( "subscriptions", "Followed channels", "Local follows, independent of Google accounts");
+        CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
+        CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
+        CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
     } else if (!strcmp(parent, "discover")) {
-        folder(&out[n++], "library:home", "Home recommendations", "From the companion library service");
-        folder(&out[n++], "library", "Accounts & library", "Profiles, subscriptions, history and playlists");
-        folder(&out[n++], "search:science", "Science", "Explore science videos");
-        folder(&out[n++], "search:technology", "Technology", "Explore technology videos");
-        folder(&out[n++], "section:gaming", "Gaming", "YouTube gaming shelves");
-        folder(&out[n++], "section:news", "News", "YouTube news shelves");
-        folder(&out[n++], "section:music", "Music", "YouTube music shelves");
-        folder(&out[n++], "search:documentary", "Documentaries", "Explore documentaries");
-        folder(&out[n++], "search:education", "Learning", "Explore educational videos");
-        folder(&out[n++], "section:sports", "Sports", "YouTube sports shelves");
-        folder(&out[n++], "section:live", "Live", "YouTube live shelves");
-        folder(&out[n++], "section:movies", "Movies", "YouTube movies and shows");
+        CATALOG_FOLDER( "library:home", "Home recommendations", "From the companion library service");
+        CATALOG_FOLDER( "library", "Accounts & library", "Profiles, subscriptions, history and playlists");
+        CATALOG_FOLDER( "search:science", "Science", "Explore science videos");
+        CATALOG_FOLDER( "search:technology", "Technology", "Explore technology videos");
+        CATALOG_FOLDER( "section:gaming", "Gaming", "YouTube gaming shelves");
+        CATALOG_FOLDER( "section:news", "News", "YouTube news shelves");
+        CATALOG_FOLDER( "section:music", "Music", "YouTube music shelves");
+        CATALOG_FOLDER( "search:documentary", "Documentaries", "Explore documentaries");
+        CATALOG_FOLDER( "search:education", "Learning", "Explore educational videos");
+        CATALOG_FOLDER( "section:sports", "Sports", "YouTube sports shelves");
+        CATALOG_FOLDER( "section:live", "Live", "YouTube live shelves");
+        CATALOG_FOLDER( "section:movies", "Movies", "YouTube movies and shows");
     } else if (!strcmp(parent, "library") || !strncmp(parent, "library:profile:", 16)) {
         if (!strncmp(parent, "library:profile:", 16)) {
             tube_recovery_finish();
@@ -2129,17 +2150,18 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
         }
         char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
-        folder(&out[n++], "library:profiles", label, "Choose an account configured on the companion");
-        folder(&out[n++], "library:home", "Home", "Recommendations for the selected profile");
-        folder(&out[n++], "library:subscriptions", "Subscriptions", "Videos from your YouTube subscriptions");
-        folder(&out[n++], "library:history", "YouTube history", "History from the selected account");
-        folder(&out[n++], "library:watch_later", "Watch later", "Videos saved to your account");
-        folder(&out[n++], "library:playlists", "Your playlists", "Playlists from the selected account");
-        folder(&out[n++], "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
-        folder(&out[n++], "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
+        CATALOG_FOLDER( "library:profiles", label, "Choose an account configured on the companion");
+        CATALOG_FOLDER( "library:home", "Home", "Recommendations for the selected profile");
+        CATALOG_FOLDER( "library:subscriptions", "Subscriptions", "Videos from your YouTube subscriptions");
+        CATALOG_FOLDER( "library:history", "YouTube history", "History from the selected account");
+        CATALOG_FOLDER( "library:watch_later", "Watch later", "Videos saved to your account");
+        CATALOG_FOLDER( "library:playlists", "Your playlists", "Playlists from the selected account");
+        CATALOG_FOLDER( "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
+        CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
         if (strcmp(g_library_profile, "guest"))
-            folder(&out[n++], "account:remove", "Remove selected account", "Review before removing its saved sign-in");
+            CATALOG_FOLDER( "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
+        if (!page) { /* Fetching a later menu page must not repeat its action. */
         if (!strncmp(parent, "settings:speed-mode:", 20)) {
             const char *modes[] = {"all", "channel", "video", "none"}; int mode = -1;
             for (int i = 0; i < 4; ++i) if (!strcmp(parent + 20, modes[i])) mode = i;
@@ -2219,6 +2241,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:time-display:",22)) {
+            const char *value=parent+22;char *end=NULL;long mode=strtol(value,&end,10);
+            if(!*value || *end || mode<0 || mode>2 || !tube_player_set_time_mode((int)mode)) {
+                tube_set_error("Select a valid time display for this profile.");cb(0,NULL,0,0,ud);return 1;
+            }
+        }
         else if (!strncmp(parent,"settings:seek-interval:",23)) {
             const char *value=parent+23; char *end=NULL; long seconds=strtol(value,&end,10);
             if(!*value || *end || seconds<1 || seconds>60 || !tube_player_set_seek_seconds((int)seconds)) {
@@ -2268,13 +2296,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
             save();
         }
+        }
         if (!strcmp(parent, "settings:speed-mode") || !strncmp(parent, "settings:speed-mode:", 20)) {
             const char *modes[] = {"all", "channel", "video", "none"};
             const char *labels[] = {"All videos", "Each channel", "Each video", "This playback only"};
             for (int i = 0; i < 4; ++i) {
                 char id[64], label[96]; snprintf(id, sizeof id, "settings:speed-mode:%s", modes[i]);
                 snprintf(label, sizeof label, "%s%s", i == g_speed_mode ? "Selected: " : "", labels[i]);
-                folder(&out[n++], id, label, "Choose where a speed selected during playback is remembered");
+                CATALOG_FOLDER( id, label, "Choose where a speed selected during playback is remembered");
             }
         } else if (!strcmp(parent, "settings:speed") || !strncmp(parent, "settings:speed:", 15)) {
             const int total = (int)(sizeof tube_speeds / sizeof *tube_speeds);
@@ -2283,7 +2312,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64], label[96];
                 snprintf(id, sizeof id, "settings:speed:%d", tube_speeds[i]);
                 snprintf(label, sizeof label, "%s%.3gx", g_speed == tube_speeds[i] ? "Selected: " : "", tube_speeds[i] / 100.0);
-                folder(&out[n++], id, label, "Use this speed for all on-demand videos; live streams play at normal speed");
+                CATALOG_FOLDER( id, label, "Use this speed for all on-demand videos; live streams play at normal speed");
             }
             cb(1, out, n, start + n < total, ud); return 1;
         } else if (!strncmp(parent, "settings:remote", 15)) {
@@ -2292,23 +2321,23 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             snprintf(label, sizeof label, "Phone connection: %s", g_remote_write_failed ? "local data not saved" : g_remote_entropy_failed ? "random source unavailable" : !g_remote_enabled ? "off" :
                 !g_remote_identity_saved ? "storage unavailable" : state == TUBE_REMOTE_FAILED ? "stopped; retry linking" :
                 state == TUBE_REMOTE_LISTENING ? "ready" : "connecting");
-            folder(&out[n++], "settings:remote:info", label, "YouTube app TV-code pairing");
+            CATALOG_FOLDER( "settings:remote:info", label, "YouTube app TV-code pairing");
             if (*code) {
                 char formatted[20] = ""; size_t length = strlen(code), j = 0;
                 for (size_t i = 0; i < length; ++i) { if (i && !(i % 3)) formatted[j++] = ' '; formatted[j++] = code[i]; }
                 snprintf(label, sizeof label, "TV code: %s", formatted);
-                folder(&out[n++], "settings:remote:code", label, "Enter this code in the YouTube app's TV-code pairing screen");
+                CATALOG_FOLDER( "settings:remote:code", label, "Enter this code in the YouTube app's TV-code pairing screen");
             }
-            folder(&out[n++], "settings:remote:pair", *code ? "Get a new TV code" : "Link a phone", "Enable connection and request a TV code");
-            folder(&out[n++], "settings:remote:toggle", g_remote_enabled ? "Turn phone connection off" : "Turn phone connection on", "Your local library stays available");
-            folder(&out[n++], "settings:remote:reset", "Reset phone pairing", "Turn off and forget this TV's pairing identity");
-            folder(&out[n++], "settings:remote:disconnect", g_remote_close_on_disconnect ? "When phone disconnects: close the app" : g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
+            CATALOG_FOLDER( "settings:remote:pair", *code ? "Get a new TV code" : "Link a phone", "Enable connection and request a TV code");
+            CATALOG_FOLDER( "settings:remote:toggle", g_remote_enabled ? "Turn phone connection off" : "Turn phone connection on", "Your local library stays available");
+            CATALOG_FOLDER( "settings:remote:reset", "Reset phone pairing", "Turn off and forget this TV's pairing identity");
+            CATALOG_FOLDER( "settings:remote:disconnect", g_remote_close_on_disconnect ? "When phone disconnects: close the app" : g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
                 g_remote_close_on_disconnect ? "Close ProsperoTube when a linked phone disconnects, including while browsing" :
                 "Stop applies to phone-started playback; disconnections may happen when the phone sleeps");
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
-            folder(&out[n++], "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
-            folder(&out[n++], "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
-            folder(&out[n++], "settings:dearrow", "DeArrow community attribution", "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app");
+            CATALOG_FOLDER( "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
+            CATALOG_FOLDER( "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");
+            CATALOG_FOLDER( "settings:dearrow", "DeArrow community attribution", "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app");
         } else if (!strcmp(parent, "settings:sb:exclusions") || !strncmp(parent, "settings:sb:exclude:", 20)) {
             char channels[RECORDS + TUBE_SB_EXCLUSIONS + 1][25]; int count = 0;
             if (tube_sb_channel_valid(g_sb_channel)) memcpy(channels[count++], g_sb_channel, 25);
@@ -2331,14 +2360,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                         name = g_records[j].item.subtitle; break;
                     }
                 snprintf(label, sizeof label, "%s: %.70s", tube_sb_excluded(&g_sb, channels[i]) ? "Excluded" : "Enabled", name);
-                folder(&out[n++], id, label, "Select to toggle; current and followed channels are listed");
+                CATALOG_FOLDER( id, label, "Select to toggle; current and followed channels are listed");
             }
             cb(1, out, n, (page + 1) * LOCAL_PAGE < count, ud); return 1;
         } else if (!strcmp(parent, "settings:sb:colors") || !strncmp(parent, "settings:sb:color:", 18)) {
             for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) {
                 char id[80], label[128]; snprintf(id, sizeof id, "settings:sb:color:%s", tube_sb_names[i]);
                 snprintf(label, sizeof label, "%s marker: %s", tube_sb_labels[i], g_sb.colors[i] ? "on" : "off");
-                folder(&out[n++], id, label, "Select to toggle; independent of automatic skip actions");
+                CATALOG_FOLDER( id, label, "Select to toggle; independent of automatic skip actions");
             }
         } else if (!strncmp(parent, "settings:sb", 11)) {
             for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) {
@@ -2346,113 +2375,121 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[80], label[128]; snprintf(id, sizeof id, "settings:sb:action:%s", tube_sb_names[i]);
                 snprintf(label, sizeof label, "%s: %s", tube_sb_labels[i],
                     i == 8 ? point_actions[g_sb.actions[i]] : tube_sb_actions[g_sb.actions[i]]);
-                folder(&out[n++], id, label, i == 8 ?
+                CATALOG_FOLDER( id, label, i == 8 ?
                     "R3 jumps to the next highlight; select to cycle; new categories load on next video" :
                     "Select to cycle the action; fetch new categories on the next video");
             }
             char label[96]; snprintf(label, sizeof label, "Minimum remaining skip: %.0f seconds", g_sb.minimum);
-            folder(&out[n++], "settings:sb:minimum", label, "Cycle 0 / 1 / 3 / 5 / 10 / 15 / 30 / 60 seconds");
-            folder(&out[n++], "settings:sb:repeat", g_sb.no_repeat ? "Don't skip again: on" : "Don't skip again: off", "Keep skipped segments when rewinding this video");
-            folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
-            folder(&out[n++], "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
-            folder(&out[n++], "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+            CATALOG_FOLDER( "settings:sb:minimum", label, "Cycle 0 / 1 / 3 / 5 / 10 / 15 / 30 / 60 seconds");
+            CATALOG_FOLDER( "settings:sb:repeat", g_sb.no_repeat ? "Don't skip again: on" : "Don't skip again: off", "Keep skipped segments when rewinding this video");
+            CATALOG_FOLDER( "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
+            CATALOG_FOLDER( "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
+            CATALOG_FOLDER( "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
         } else if (!strcmp(parent,"settings:quality")) {
             const int heights[] = {144,240,360,480,720,1080,1440,2160};
             for (int i=0;i<8;++i) {
                 char id[64],label[64]; snprintf(id,sizeof id,"settings:quality:%d",heights[i]);
                 snprintf(label,sizeof label,"Up to %dp",heights[i]);
-                folder(&out[n++],id,label,g_height==heights[i]?"Selected":"Maximum resolution for the next video");
+                CATALOG_FOLDER(id,label,g_height==heights[i]?"Selected":"Maximum resolution for the next video");
             }
         } else if (!strcmp(parent,"settings:frame-rate")) {
             const int rates[]={0,30,60}; const char *labels[]={"Frame rate: automatic","Up to 30 fps","Up to 60 fps"};
             for (int i=0;i<3;++i) {
                 char id[64]; snprintf(id,sizeof id,"settings:frame-rate:%d",rates[i]);
-                folder(&out[n++],id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
+                CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
+            }
+        } else if (!strcmp(parent,"settings:time-display")) {
+            const char *labels[]={"Total duration","Time remaining","Estimated finish time"};
+            for(int mode=0;mode<3;++mode) {
+                char id[64];snprintf(id,sizeof id,"settings:time-display:%d",mode);
+                CATALOG_FOLDER(id,labels[mode],tube_player_time_mode()==mode?"Selected":"Remaining and finish times account for playback speed");
             }
         } else if (!strcmp(parent,"settings:player-ok")) {
             const char *labels[] = {"Show controls", "Show controls and pause", "Pause only", "Toggle playback speed"};
             for (int i = 0; i < 4; ++i) {
                 char id[64]; snprintf(id,sizeof id,"settings:player-ok:%d",i);
-                folder(&out[n++],id,labels[i],tube_player_ok_mode()==i ? "Selected" : "Cross behavior while controls are hidden; saved for this profile");
+                CATALOG_FOLDER(id,labels[i],tube_player_ok_mode()==i ? "Selected" : "Cross behavior while controls are hidden; saved for this profile");
             }
         } else if (!strcmp(parent,"settings:seek-interval")) {
             for(unsigned i=0;i<sizeof seek_intervals/sizeof *seek_intervals;++i) {
                 int seconds=seek_intervals[i]; char id[64],label[80];
                 snprintf(id,sizeof id,"settings:seek-interval:%d",seconds);
                 snprintf(label,sizeof label,"Seek interval: %d second%s",seconds,seconds==1?"":"s");
-                folder(&out[n++],id,label,tube_player_seek_seconds()==seconds?"Selected":"Saved for this profile");
+                CATALOG_FOLDER(id,label,tube_player_seek_seconds()==seconds?"Selected":"Saved for this profile");
             }
         } else if (!strcmp(parent,"settings:player-seek")) {
             const char *labels[] = {"Regular seeking", "Seek with confirmation: pause", "Seek with confirmation: keep playing"};
             for (int mode = 0; mode < 3; ++mode) {
                 char id[64]; snprintf(id,sizeof id,"settings:player-seek:%d",mode);
-                folder(&out[n++],id,labels[mode],tube_player_seek_mode()==mode ? "Selected" : "Cross commits; Circle cancels; previous pause state is retained");
+                CATALOG_FOLDER(id,labels[mode],tube_player_seek_mode()==mode ? "Selected" : "Cross commits; Circle cancels; previous pause state is retained");
             }
         } else if (!strcmp(parent,"settings:player-hide")) {
             for (int seconds = 0; seconds <= 15; ++seconds) {
                 char id[64],label[96]; snprintf(id,sizeof id,"settings:player-hide:%d",seconds);
                 if (!seconds) copy(label,sizeof label,"Never hide player controls");
                 else snprintf(label,sizeof label,"Hide player controls after %d seconds",seconds);
-                folder(&out[n++],id,label,tube_player_hide_ms()==seconds*1000 ? "Selected" : "Saved for this profile");
+                CATALOG_FOLDER(id,label,tube_player_hide_ms()==seconds*1000 ? "Selected" : "Saved for this profile");
             }
         } else if (!strcmp(parent, "settings:sleep-timer")) {
             for (int minutes = 0; minutes <= 600; minutes += 30) {
                 char id[64], label[96]; snprintf(id,sizeof id,"settings:sleep:%d",minutes);
                 if (!minutes) copy(label,sizeof label,"Sleep timer: disabled");
                 else snprintf(label,sizeof label,"Sleep after %.1f hours without input",minutes/60.0);
-                folder(&out[n++],id,label,minutes==g_sleep_minutes ? "Selected" : "Input restarts the timer; expiry pauses playback");
+                CATALOG_FOLDER(id,label,minutes==g_sleep_minutes ? "Selected" : "Input restarts the timer; expiry pauses playback");
             }
         } else if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
             const char *langs[] = {"en", "fr", "es", "de", "it", "pt", "ja", "ko", "zh", "ru"};
-            for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); folder(&out[n++], id, langs[i], "Select this language for the next video"); }
+            for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); CATALOG_FOLDER( id, langs[i], "Select this language for the next video"); }
         } else {
             char label[96]; snprintf(label, sizeof label, "Maximum quality: %dp", g_height);
-            folder(&out[n++], "settings:quality", label, "Choose maximum resolution from 144p to 2160p");
+            CATALOG_FOLDER( "settings:quality", label, "Choose maximum resolution from 144p to 2160p");
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
-            folder(&out[n++],"settings:frame-rate",label,"Save a frame-rate limit for this profile");
+            CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
+            const char *time_labels[]={"Time display: total duration","Time display: remaining","Time display: estimated finish"};
+            CATALOG_FOLDER("settings:time-display",time_labels[tube_player_time_mode()],"Choose the playback time display for this profile");
             snprintf(label, sizeof label, "Speed for all videos: %.3gx", g_speed / 100.0);
-            folder(&out[n++], "settings:speed", g_speed_mode == 0 ? label : "Choose a speed for all videos", "Select a speed and enable all-videos memory");
+            CATALOG_FOLDER( "settings:speed", g_speed_mode == 0 ? label : "Choose a speed for all videos", "Select a speed and enable all-videos memory");
             const char *speed_modes[] = {"all videos", "each channel", "each video", "this playback only"};
             snprintf(label, sizeof label, "Remember speed: %s", speed_modes[g_speed_mode]);
-            folder(&out[n++], "settings:speed-mode", label, "Video and channel memories are separate for each profile");
+            CATALOG_FOLDER( "settings:speed-mode", label, "Video and channel memories are separate for each profile");
             snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : g_codec == 3 ? "AV1" : "Automatic");
-            folder(&out[n++], "settings:codec", label, "SDR tracks; AV1 uses software decoding. HDR remains deferred");
-            folder(&out[n++], "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");
+            CATALOG_FOLDER( "settings:codec", label, "SDR tracks; AV1 uses software decoding. HDR remains deferred");
+            CATALOG_FOLDER( "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");
             snprintf(label, sizeof label, "Caption language: %s", g_language);
-            folder(&out[n++], "settings:languages", label, "Choose a caption language");
+            CATALOG_FOLDER( "settings:languages", label, "Choose a caption language");
             snprintf(label, sizeof label, "Audio language: %s", *g_audio_language ? g_audio_language : "default");
-            folder(&out[n++], "settings:audio-languages", label, "Prefer an alternate audio language when available");
-            folder(&out[n++], "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
-            folder(&out[n++], "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
-            folder(&out[n++], "settings:dearrow", "DeArrow titles and thumbnails", "Optional community replacements; original metadata is retained");
-            folder(&out[n++], "settings:player-chat", g_player_chat_mode == 1 ? "Live chat sidebar: left" :
+            CATALOG_FOLDER( "settings:audio-languages", label, "Prefer an alternate audio language when available");
+            CATALOG_FOLDER( "settings:automatic", g_auto_captions ? "Automatic captions: allowed" : "Automatic captions: off", "Human captions are preferred");
+            CATALOG_FOLDER( "settings:sponsor", g_sponsor ? "SponsorBlock: on" : "SponsorBlock: off", "Also enable --sponsorblock on the companion");
+            CATALOG_FOLDER( "settings:dearrow", "DeArrow titles and thumbnails", "Optional community replacements; original metadata is retained");
+            CATALOG_FOLDER( "settings:player-chat", g_player_chat_mode == 1 ? "Live chat sidebar: left" :
                 g_player_chat_mode == 2 ? "Live chat sidebar: right" : "Live chat sidebar: off",
                 "Select to cycle Off / Left / Right; shows chat beside playing video");
             if (g_sleep_minutes) snprintf(label,sizeof label,"Sleep timer: %.1f hours",g_sleep_minutes/60.0);
             else copy(label,sizeof label,"Sleep timer: disabled");
-            folder(&out[n++],"settings:sleep-timer",label,"Choose inactivity duration; expiry pauses playback");
+            CATALOG_FOLDER("settings:sleep-timer",label,"Choose inactivity duration; expiry pauses playback");
             const char *ok_labels[] = {"show controls", "show controls and pause", "pause only", "toggle speed"};
             snprintf(label,sizeof label,"Cross when controls are hidden: %s",ok_labels[tube_player_ok_mode()]);
-            folder(&out[n++],"settings:player-ok",label,"Choose confirm-button behavior for this profile");
+            CATALOG_FOLDER("settings:player-ok",label,"Choose confirm-button behavior for this profile");
             if (tube_player_hide_ms()) snprintf(label,sizeof label,"Hide controls after %.1f seconds",tube_player_hide_ms()/1000.0);
             else copy(label,sizeof label,"Hide controls: never");
-            folder(&out[n++],"settings:player-hide",label,"Choose controls timeout for this profile");
+            CATALOG_FOLDER("settings:player-hide",label,"Choose controls timeout for this profile");
             const char *seek_labels[] = {"regular", "confirm while paused", "confirm while playing"};
             snprintf(label,sizeof label,"Seeking: %s",seek_labels[tube_player_seek_mode()]);
             char interval_label[80]; snprintf(interval_label,sizeof interval_label,"Seek interval: %d seconds",tube_player_seek_seconds());
-            folder(&out[n++],"settings:seek-interval",interval_label,"Choose the Left / Right seek interval for this profile");
-            folder(&out[n++],"settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
-            folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
-            folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
-            folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
-            folder(&out[n++], "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
-            folder(&out[n++], "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
+            CATALOG_FOLDER("settings:seek-interval",interval_label,"Choose the Left / Right seek interval for this profile");
+            CATALOG_FOLDER("settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
+            CATALOG_FOLDER( "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
+            CATALOG_FOLDER( "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
+            CATALOG_FOLDER( "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
+            CATALOG_FOLDER( "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
+            CATALOG_FOLDER( "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
                 g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
                 g_watch.status == 1 ? "History report pending" : g_watch.status == 2 ? "Last history report confirmed" :
                 "Report watched videos and positions for the selected account");
-            folder(&out[n++], "settings:clear-history", "Clear local history", "Remove resume positions and watched markers for this profile");
-            folder(&out[n++], "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
+            CATALOG_FOLDER( "settings:clear-history", "Clear local history", "Remove resume positions and watched markers for this profile");
+            CATALOG_FOLDER( "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
         }
     } else if (!strcmp(parent, "history") || !strcmp(parent, "favorites") || !strcmp(parent, "queue") || !strcmp(parent, "subscriptions")) {
         int indexes[RECORDS], total = 0;
@@ -2476,13 +2513,18 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 for (int k = 0; k < n; ++k) if (!strcmp(out[k].id + 8, r->item.parent_id)) duplicate = 1;
                 if (duplicate) continue;
                 char id[160]; snprintf(id, sizeof id, "channel:%.24s", r->item.parent_id);
-                folder(&out[n++], id, r->item.subtitle, "Followed locally on this PS5");
+                CATALOG_FOLDER( id, r->item.subtitle, "Followed locally on this PS5");
             } else { out[n] = r->item; dearrow_item(&out[n], r); ++n; }
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
     } else return 0;
-    cb(1, out, n, 0, ud); return 1;
+    int offset=page*LOCAL_PAGE;
+    int count=offset<n ? n-offset : 0;
+    if(count>LOCAL_PAGE)count=LOCAL_PAGE;
+    cb(1, count ? out+offset : NULL, count, offset+count<n, ud);return 1;
 }
+
+#undef CATALOG_FOLDER
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;

@@ -77,7 +77,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_volume.h", "tube_random.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_volume.h", "tube_random.h", "tube_time_display.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -227,6 +227,8 @@ def main():
     apply_player_controls_overlay(replace, player)
     from seek_controls_overlay import apply_seek_controls_overlay
     apply_seek_controls_overlay(replace, player)
+    from time_display_overlay import apply_time_display_overlay
+    apply_time_display_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     from secondary_captions_overlay import apply_secondary_captions_overlay

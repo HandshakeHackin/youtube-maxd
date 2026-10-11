@@ -141,6 +141,12 @@ opening the next video. Stream labels show frame rate when available. Automatic
 recovery keeps the playing video's original quality preferences and frame rate;
 new settings take effect on the next video.
 
+Time display is saved per profile. Choose total duration, remaining time (the
+default), or estimated finish time in settings or the in-player options menu.
+Remaining/finish estimates use the actual playback speed and seek-preview
+position. Finish time uses the platform's local clock and updates while paused;
+live streams show **LIVE**. Unknown durations show **--:--**.
+
 Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;
 this preference is saved independently of EVO's live-TV settings.

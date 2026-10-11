@@ -13,6 +13,18 @@ int main(void) {
     const evo_provider_t *p=&evo_provider_youtube; assert(!p->init());
     assert(tube_player_ok_mode()==0 && tube_player_hide_ms()==3000);
     assert(!tube_player_seek_mode());
+    p->list_catalog("settings",0,items_cb,NULL);assert(last_ok && last_count==24 && last_more);
+    p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count==1 && !last_more);
+    assert(!strcmp(last_items[0].id,"settings:clear-queue"));
+    p->list_catalog("settings",2,items_cb,NULL);assert(last_ok && !last_count && !last_more);
+    p->list_catalog("settings:autoplay",0,items_cb,NULL);assert(last_ok && last_more);
+    p->list_catalog("settings:autoplay",1,items_cb,NULL);assert(last_ok && !last_more);
+    cJSON *menu_store=read_store();assert(cJSON_IsTrue(cJSON_GetObjectItem(menu_store,"autoplay")));cJSON_Delete(menu_store);
+    assert(tube_player_time_mode()==1);
+    assert(!tube_player_set_time_mode(-1) && !tube_player_set_time_mode(3));
+    p->list_catalog("settings:time-display",0,items_cb,NULL);assert(last_ok && last_count==3);
+    p->list_catalog("settings:time-display:2",0,items_cb,NULL);assert(last_ok && tube_player_time_mode()==2);
+    p->list_catalog("settings:time-display:2junk",0,items_cb,NULL);assert(!last_ok);
     assert(tube_player_seek_seconds()==10);
     const int steps[]={1,2,3,5,7,10,15,20,30,60};
     for(unsigned i=0;i<sizeof steps/sizeof *steps;++i) assert(tube_player_set_seek_seconds(steps[i]) && tube_player_seek_seconds()==steps[i]);
@@ -34,20 +46,23 @@ int main(void) {
     p->list_catalog("settings:player-ok:2junk",0,items_cb,NULL); assert(!last_ok);
     p->list_catalog("settings:player-hide:99999999999999999",0,items_cb,NULL); assert(!last_ok);
     select_profile(p,"fixture"); assert(tube_player_ok_mode()==0 && tube_player_hide_ms()==3000);
+    assert(tube_player_time_mode()==1 && tube_player_set_time_mode(0));
     assert(tube_player_seek_seconds()==10 && tube_player_set_seek_seconds(30));
     assert(!tube_player_seek_mode() && tube_player_set_seek_mode(1));
     assert(tube_player_set_ok_mode(3) && tube_player_set_hide_seconds(15));
     p->shutdown(); assert(!p->init());
+    assert(tube_player_time_mode()==0);
     assert(tube_player_seek_seconds()==30);
     assert(tube_player_ok_mode()==3 && tube_player_hide_ms()==15000);
     assert(tube_player_seek_mode()==1);
-    select_profile(p,"guest"); assert(tube_player_seek_seconds()==7); assert(tube_player_ok_mode()==2 && !tube_player_hide_ms());
+    select_profile(p,"guest"); assert(tube_player_time_mode()==2); assert(tube_player_seek_seconds()==7); assert(tube_player_ok_mode()==2 && !tube_player_hide_ms());
     assert(tube_player_seek_mode()==2);
     p->shutdown();
     cJSON *root=read_store(); cJSON_DeleteItemFromObject(root,"player_preferences");
     cJSON *records=cJSON_GetObjectItem(root,"records"), *record=cJSON_CreateObject();
     cJSON_AddStringToObject(record,"profile","legacy"); cJSON_AddItemToArray(records,record);
     write_store(root); cJSON_Delete(root); assert(!p->init());
+    assert(tube_player_time_mode()==1);
     assert(tube_player_ok_mode()==1 && tube_player_hide_ms()==3500);
     assert(!tube_player_seek_mode());
     select_profile(p,"legacy"); assert(tube_player_ok_mode()==1 && tube_player_hide_ms()==3500);
@@ -58,9 +73,10 @@ int main(void) {
         "{\"profile\":\"new\",\"ok_mode\":2,\"hide_ms\":3501},"
         "{\"profile\":\"bad/profile\",\"ok_mode\":2,\"hide_ms\":3000},"
         "{\"profile\":\"new\",\"ok_mode\":\"3\",\"hide_ms\":3000},"
-        "{\"profile\":\"new\",\"ok_mode\":3,\"hide_ms\":3500,\"seek_mode\":1.5,\"seek_seconds\":4},"
+        "{\"profile\":\"new\",\"ok_mode\":3,\"hide_ms\":3500,\"seek_mode\":1.5,\"seek_seconds\":4,\"time_mode\":1.5},"
         "{\"profile\":\"new\",\"ok_mode\":0,\"hide_ms\":0}]"));
     write_store(root); cJSON_Delete(root); assert(!p->init());
+    assert(tube_player_time_mode()==1);
     assert(tube_player_ok_mode()==3 && tube_player_hide_ms()==3500);
     assert(!tube_player_seek_mode() && tube_player_set_seek_mode(2));
     assert(tube_player_seek_seconds()==10);

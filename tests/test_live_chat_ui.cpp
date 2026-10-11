@@ -152,6 +152,10 @@ int main(int argc,char**argv) {
     host.ShowSetupScreen();assert(pending.size()==1);reply("{}");
     /* Settings choosers push a real folder; selection retains its parent level. */
     host.m_stack.push_back("settings"); host.m_crumbs.push_back("Preferences");
+    host.RequestPage("settings",0);pump();assert(host.m_has_more);
+    host.RequestPage("settings",1);pump();assert(!host.m_has_more);
+    assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
+        [](const EvoProviderRow& row){return row.id=="settings:clear-queue";}));
     for (const auto& chooser : std::vector<std::pair<std::string,std::string>>{
             {"settings:player-ok","settings:player-ok:2"},
             {"settings:player-hide","settings:player-hide:0"},
@@ -159,6 +163,7 @@ int main(int argc,char**argv) {
             {"settings:seek-interval","settings:seek-interval:7"},
             {"settings:quality","settings:quality:240"},
             {"settings:frame-rate","settings:frame-rate:30"},
+            {"settings:time-display","settings:time-display:2"},
             {"settings:sleep-timer","settings:sleep:30"}}) {
         host.RequestPage("settings",0); pump();
         const auto depth=host.m_stack.size();

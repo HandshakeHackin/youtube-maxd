@@ -100,6 +100,8 @@ int tube_player_ok_mode(void);
 int tube_player_set_ok_mode(int mode);
 int tube_player_hide_ms(void);
 int tube_player_set_hide_seconds(int seconds);
+int tube_player_time_mode(void);
+int tube_player_set_time_mode(int mode);
 int tube_player_seek_mode(void);
 int tube_player_seek_seconds(void);
 int tube_player_set_seek_seconds(int seconds);

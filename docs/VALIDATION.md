@@ -1,5 +1,42 @@
 # Offline validation record — 0.1.0
 
+## Playback time display and bounded settings pages — 2026-10-11
+
+The pinned SmartTube `appendEndingTimeCategory` offers disabled extra timing,
+remaining time and ending time; `onSetEndingTimeLabel` adjusts estimates for
+playback speed. ProsperoTube now offers total duration, remaining time (default)
+and estimated finish time, with per-profile persistence and settings/in-player
+selectors. Both shipping HUDs share the same bounded formatter and use actual
+audio playback rate plus the displayed seek-preview position. Finish time uses
+the platform local clock, refreshes ahead of RmlUi's unchanged-state early return
+while paused, and only writes changed labels. Live and unknown-duration inputs
+show LIVE and --:-- respectively. Invalid clocks fall back to remaining time.
+
+The new root setting exposed the old 24-element menu buffer limit under ASan.
+Local menu construction now uses a checked 64-element buffer, while callbacks
+retain 24-item paging. Fetching later settings pages cannot repeat their action.
+The last root item remains reachable through real RmlUi pagination.
+
+Validation:
+- All fifteen native provider ASan/UBSan regressions pass. New cases cover the
+  selector, rejected values, profile isolation, reload, legacy/corrupt defaults,
+  two-page settings traversal and no repeated autoplay toggle on page two.
+- The shared formatter and extracted shipping HUI/RML/picker blocks pass
+  ASan/UBSan: speed correction, fractional countdown rounding, midnight wrap,
+  paused wall-clock refresh, no redundant text writes, scrub targets, live,
+  unknown/non-finite/bounded inputs and small output buffers.
+- Actual RmlUi tests pass for the new submenu and the final settings-page item.
+  PS5 compilation passes for provider, RmlUi app/provider, HUI OSD and audio
+  options picker. Existing SDK math warnings and fixture RmlUi width warnings
+  remain.
+- Ignored evidence: `.deps/time-display-{native,labels,ui,sdk}.log` and
+  `.deps/time-display.result` (`0`). The initial sanitizer failures were fixed,
+  not waived. No full package freeze or console connection was made.
+
+PS5 presentation, local timezone and clock acceptance remain pending with the
+final candidate. This is one completed offline settings section, not complete
+SmartTube settings or localization parity.
+
 ## Recovery retains quality preferences and frame rate — 2026-10-11
 
 The native provider snapshots resolution, frame-rate and codec preferences when
