@@ -39,12 +39,12 @@ int main(void) {
     reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");poll_job(listed);
     assert(last_ok && last_count==2 && last_items[0].playback_scope);
     /* Navigation rows exist only for a real channel identity and a listed occurrence. */
-    menu("bcdefghijkl");assert(last_count==10);
+    menu("bcdefghijkl");assert(last_count==11);
     assert(find("Open channel")<0 && find("Open playlist")<0 && find("Exclude channel from SponsorBlock")<0);
     assert(find("Play from start")>=0 && find("Play incognito")>=0 && find("Share link")>=0);
-    show(row);assert(last_count==2 && !strcmp(last_items[0].title,"https://youtu.be/bcdefghijkl") &&
-        !strcmp(last_items[1].title,"https://www.youtube.com/embed/bcdefghijkl"));
-    menu("abcdefghijk");assert(last_count==14);
+    show(row);assert(last_count==2 && !strcmp(last_items[0].overview,"https://youtu.be/bcdefghijkl") &&
+        !strcmp(last_items[1].overview,"https://www.youtube.com/embed/bcdefghijkl"));
+    menu("abcdefghijk");assert(last_count==15);
     assert(find("Open channel")>=0 && !strcmp(row,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
     p->list_catalog(row,0,items_cb,NULL);NO_FEATURES();
     assert(pending_count==1 && strstr(pending[0].body,"\"parent\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\""));
@@ -53,12 +53,12 @@ int main(void) {
     p->list_catalog(row,0,items_cb,NULL);
     assert(pending_count==1 && strstr(pending[0].body,"\"parent\":\"playlist:PLfixture01\""));
     poll_job(listed);assert(last_ok && last_count==2);
-    /* Share shows readable links; each row is an inert notice with its own id. */
-    menu("abcdefghijk");assert(find("Share link")>=0);show(row);
-    assert(last_count==4 && !strcmp(last_items[0].title,"https://youtu.be/abcdefghijk") && !strcmp(last_items[0].subtitle,"Video link"));
-    assert(!strcmp(last_items[1].title,"https://www.youtube.com/embed/abcdefghijk") && !strcmp(last_items[1].subtitle,"Embed link"));
-    assert(!strcmp(last_items[2].title,"https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa"));
-    assert(!strcmp(last_items[3].title,"https://www.youtube.com/playlist?list=PLfixture01"));
+    /* Share opens the link page: readable addresses, each row inert with its own id (tests/test_links_about.c). */
+    menu("abcdefghijk");assert(find("Share link")>=0 && !strcmp(row,"link:video:abcdefghijk"));show(row);
+    assert(last_count==4 && !strcmp(last_items[0].subtitle,"https://youtu.be/abcdefghijk") && !strcmp(last_items[0].title,"Video link"));
+    assert(!strcmp(last_items[1].subtitle,"https://www.youtube.com/embed/abcdefghijk") && !strcmp(last_items[1].title,"Embed link"));
+    assert(!strcmp(last_items[2].overview,"https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa"));
+    assert(!strcmp(last_items[3].overview,"https://www.youtube.com/playlist?list=PLfixture01"));
     for(int i=0;i<4;++i)for(int j=i+1;j<4;++j)assert(strcmp(last_items[i].id,last_items[j].id));
     show(last_items[3].id);assert(last_count==1 && last_items[0].is_folder);
     p->list_catalog(row,1,items_cb,NULL);assert(!last_ok);
@@ -92,7 +92,7 @@ int main(void) {
     show("library:profile:alice");assert(excluded("alice")==0 && excluded("guest")==1);
     p->list_catalog(row,0,items_cb,NULL);assert(!last_ok);
     p->list_catalog(stale,0,items_cb,NULL);assert(!last_ok);
-    menu("abcdefghijk");assert(last_count==18 && find("Open playlist")<0 && find("Open channel")<0);
+    menu("abcdefghijk");assert(last_count==19 && find("Open playlist")<0 && find("Open channel")<0);
     p->list_catalog("library:playlist:PLfixture01",0,items_cb,NULL);poll_job(listed);assert(last_count==2);
     menu("abcdefghijk");assert(find("Open playlist")>=0 && !strcmp(row,"library:playlist:PLfixture01"));
     assert(find("Play from start")>=0);show(row);assert(!last_items[0].resume_pos_sec);
