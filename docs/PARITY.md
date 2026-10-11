@@ -8,10 +8,10 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Player and playback | 18 | 25 | 32 | 3 | 78 |
-| Browsing, search and menus | 29 | 13 | 37 | 1 | 80 |
-| Accounts, remote control and integrations | 13 | 10 | 5 | 1 | 29 |
-| General, interface and maintenance | 0 | 7 | 45 | 6 | 58 |
-| **All** | **60** | **55** | **119** | **11** | **245** |
+| Browsing, search and menus | 36 | 13 | 30 | 1 | 80 |
+| Accounts, remote control and integrations | 15 | 9 | 4 | 1 | 29 |
+| General, interface and maintenance | 1 | 7 | 44 | 6 | 58 |
+| **All** | **70** | **54** | **110** | **11** | **245** |
 
 ## Player and playback
 
@@ -105,7 +105,7 @@ OK button behavior, Auto-hide player UI, Video zoom, Remember speed, Seek behavi
 | Playback entry point (`behavior.PlaybackPresenter`) | No incognito open (video.incognito suppressing history/progress); No background playback while browsing with a Return to background video action (isRunningInBackground); No open-at-time entry (openVideo(videoId, finishOnEnded, timeMs)) from links such as ?t= | yes | M |
 | Channels section (subscribed channels) (`extra.Section.Channels`) | Only local follows are listed; the account's subscribed-channel list is not fetched; No new-content marker, no sorting options, no filter field; No channel menu (unsubscribe, mark channel as watched, pin) | yes | M |
 | Save playlist to library / remove playlist (`extra.Menu.SaveRemovePlaylist`) | No Save playlist action for a foreign playlist (no like/save-playlist call in the worker); playlist:menu is offered only for account playlists; saved foreign playlists cannot be removed distinctly from deletion | yes | S |
-| Exclude channel from SponsorBlock (`extra.Menu.ExcludeFromContentBlock`) | Not available from the video actions menu; only the current channel and locally followed channels can be toggled in settings | yes | S |
+| Share link (`extra.Menu.ShareLink`) | No share row on channel and playlist cards themselves; No QR code | yes | S |
 | Pause / resume watch history (`extra.Menu.ToggleHistory`) | The toggle only stops this client's reports; it does not pause watch history on the account, and local history keeps recording | yes | S |
 | Clear history (`extra.Menu.ClearHistory`) | No account-level clear of YouTube history (worker has only per-video history_remove); No confirmation step on the local clear was found | yes | S |
 | Refresh section (`extra.Menu.RefreshSection`) | No explicit refresh action for the folder being shown; the user must leave and re-enter | yes | S |
@@ -124,21 +124,15 @@ OK button behavior, Auto-hide player UI, Video zoom, Remember speed, Seek behavi
 | Notifications section (`extra.Section.Notifications`) | No notifications fetch in the worker, no native folder, no hide action | yes | M |
 | Pinned playlists / channels in the sidebar (`extra.Section.Pinned`) | No pin storage in the per-profile state; No pin/unpin action in 'account:menu:' / 'playlist:menu:'; No pinned folders emitted at the catalog root | yes | M |
 | Show/hide and reorder sidebar sections, boot section (`extra.Section.EnableAndOrder`) | Root and Discover folder lists are hard-coded in local_catalog(); no per-profile visibility, order or start folder | yes | M |
-| Play video incognito (`extra.Menu.PlayVideoIncognito`) | No incognito flag: progress() always writes the record and watch_flush() reports to the account when history sync is on | yes | S |
-| Play from start (`extra.Menu.PlayFromStart`) | No action that clears resume_pos_sec before launching; only 'Remove from local history' (which also clears the watched marker) | yes | S |
 | Set / unset stream reminder (`extra.Menu.StreamReminder`) | is_upcoming is produced by companion/innertube/library.mjs but not used natively; no reminder list, poller or menu entry | yes | M |
 | Add to / remove from most recent playlist (`extra.Menu.AddToRecentPlaylist`) | Last-used playlist id/title is not remembered; menu has no shortcut row | yes | S |
 | Playlist order (`extra.Menu.PlaylistOrder`) | No per-playlist order preference and no sort parameter on the 'playlist' library action | yes | M |
 | Not interested (`extra.Menu.NotInterested`) | Home rows do not retain feedback tokens (only History does, in history_actions.mjs); No 'not_interested' library action or native menu row | yes | M |
 | Don't recommend channel (`extra.Menu.NotRecommendChannel`) | No feedback-token retention for Home rows; no action. Local Block channel hides rows on this PS5 only | yes | S |
 | Hide from Subscriptions / Notifications feed (`extra.Menu.RemoveFromSubscriptions`) | No hide action for Subscriptions rows; Notifications section absent | yes | S |
-| Open channel (and channel uploads) (`extra.Menu.OpenChannel`) | 'account:menu:<id>' has no row that navigates to 'channel:<parent_id>' although the record stores the channel id (Record.item.parent_id) and 'channel:UC...' is a valid catalog id; Videos without a channel id (subscription feed rows) need a metadata lookup first | yes | S |
-| Open playlist (`extra.Menu.OpenPlaylist`) | No menu row to open the playlist of a video (playlist context is kept for playback only: tube_playback_playlist_context) | yes | S |
 | Pin playlist / channel to sidebar (`extra.Menu.PinToSidebar`) | See extra.Section.Pinned | yes | M |
 | Open description (`extra.Menu.OpenDescription`) | Only a 320-character overview is carried (companion/prosperotube/catalog.py item(): overview=text(description, 320)); no full-description fetch and no description row in 'account:menu:'; A long-text reader already exists for comments (g_comments[].content, L2/R2 scrolling) and could be reused | yes | S |
-| Share link (`extra.Menu.ShareLink`) | No row that displays the youtu.be URL of the selected item | yes | S |
 | Share link as QR code (`extra.Menu.ShareQRLink`) | No QR encoder or QR view in native/ or scripts/ | yes | M |
-| Share embed link (`extra.Menu.ShareEmbedLink`) | No share actions at all | yes | S |
 | Return to background video (`extra.Menu.ReturnToBackgroundVideo`) | No background playback while browsing; opening the browser stops the player | no | L |
 | Move section up / down (`extra.Menu.MoveSection`) | See extra.Section.EnableAndOrder | yes | S |
 | Rename pinned section (`extra.Menu.RenameSection`) | Depends on extra.Section.Pinned | yes | S |
@@ -146,7 +140,6 @@ OK button behavior, Auto-hide player UI, Video zoom, Remember speed, Seek behavi
 | Mark all channels as watched / mark channel as watched (`extra.Menu.MarkAllChannelsWatched`) | Depends on the account Channels section with new-content markers (extra.Section.Channels) | yes | S |
 | Check for updates (section menu) (`extra.Menu.UpdateCheck`) | No update check or self-update code in ProsperoTube | yes | M |
 | Search suggestions / autocomplete (incl. popular searches) (`extra.Search.Suggestions`) | No suggestion endpoint in companion (companion/innertube/suggestions.mjs is related videos, not query completion); No tag list in the native search flow | yes | M |
-| Search history (`extra.Search.History`) | Queries are not stored in the profile state; no recent-searches folder, no remove/clear actions | yes | S |
 | Filter: upload date (`extra.Search.FilterUploadDate`) | Search request carries only query and page; client.search(query) is called without filters; yt-dlp path uses plain ytsearch | yes | M |
 | Filter: duration (`extra.Search.FilterDuration`) | No search options in the request or UI | yes | S |
 | Filter: content type (`extra.Search.FilterType`) | No search options; channel results are not normalised at all (library.mjs page() maps feed.videos and feed.playlists only) | yes | S |
@@ -156,7 +149,7 @@ OK button behavior, Auto-hide player UI, Video zoom, Remember speed, Seek behavi
 
 ### Done
 
-Remove from history (video menu), Home section, Sports section, Live section, Gaming section, News section, Music section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Play video, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Subscribe / unsubscribe, Open comments, Select account, Text search with paged results, Voice search.
+Remove from history (video menu), Home section, Sports section, Live section, Gaming section, News section, Music section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Play video, Play video incognito, Play from start, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Open channel (and channel uploads), Open playlist, Subscribe / unsubscribe, Exclude channel from SponsorBlock, Open comments, Share embed link, Select account, Text search with paged results, Search history, Voice search.
 
 ### Not applicable on PS5
 
@@ -168,9 +161,8 @@ Remove from history (video menu), Home section, Sports section, Live section, Ga
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
+| Show account selection on boot (`AccountSettingsPresenter.appendSelectAccountOnBoot`) | UI host does not yet open the profile list at startup | yes | S |
 | Use separate settings per account (multi profiles) (`AccountSettingsPresenter.appendSeparateSettings`) | Settings are always per profile; there is no switch to share one settings set across all accounts (SmartTube default is shared) | yes | S |
-| Remote misc: close app on disconnect, disable history under remote control (`RemoteControlSettingsPresenter.appendMiscCategory`) | 'Disable history when using remote control' is absent: no preference, and history sync/local history do not check phone-owned playback | yes | S |
-| Ignore short segments (`SponsorBlockSettingsPresenter.appendIgnoreShortSegmentsCategory`) | Value set differs: SmartTube offers every 0.5 s step from 0 to 20 s; PS5 offers only 0/1/3/5/10/15/30/60; Presented as a cycling row, not a selectable list | yes | S |
 | SponsorBlock misc: paid content notice, don't skip again, alternative server (`SponsorBlockSettingsPresenter.appendMiscCategory`) | 'Use alternative server' is absent: companion/prosperotube/app.py hard-codes https://sponsor.ajay.app/api/skipSegments | yes | S |
 | DeArrow switches: unlocalized titles, crowdsourced titles, crowdsourced thumbnails (`DeArrowSettingsPresenter.appendSwitches`) | 'Unlocalized video titles' switch is absent, with its mutual exclusion against crowdsourced titles | yes | M |
 | DeArrow links (server status, about) (`DeArrowSettingsPresenter.appendLinks`) | No server-status check row | yes | S |
@@ -183,7 +175,6 @@ Remove from history (video menu), Home section, Sports section, Live section, Ga
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Show account selection on boot (`AccountSettingsPresenter.appendSelectAccountOnBoot`) | No saved preference and no startup redirect to the profile list; the last profile is restored silently (tube_provider.c load: copy(g_library_profile, ...)) | yes | S |
 | Protect account with password (`AccountSettingsPresenter.appendProtectAccountWithPassword`) | No password storage per profile; No password entry / check prompt when selecting a protected profile; No hiding of account sections until the password is accepted | yes | M |
 | SponsorBlock links (server status, about) (`SponsorBlockSettingsPresenter.appendLinks`) | No status-check row; No about/attribution row in the SponsorBlock menu (only THIRD_PARTY_NOTICES.md) | yes | S |
 | Thumbnail source when there is no DeArrow submission (`DeArrowSettingsPresenter.appendThumbQuality`) | No preference and no fallback thumbnail choice; companion/prosperotube/dearrow.py only builds a thumbnail when DeArrow supplies a timestamp | yes | M |
@@ -191,7 +182,7 @@ Remove from history (video menu), Home section, Sports section, Live section, Ga
 
 ### Done
 
-Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Remote control (device link) on/off, Add device (TV code), Remove all devices, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Exclude current channel from SponsorBlock, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher.
+Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, Exclude current channel from SponsorBlock, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher.
 
 ### Not applicable on PS5
 
@@ -204,8 +195,8 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
 | Hide content (16 toggles) (`GeneralSettingsPresenter.appendHideContent`) | No user toggle for any of the 16 options (Home watched filter is hard-wired on); No shorts detection/filter in any feed (only catalog.py URL parsing mentions /shorts/); No mixes filter; No watched filter for Subscriptions, Notifications, Watch later; No streams/upcoming filters for Subscriptions, Home, Channel; Per-profile storage + request field so the companion applies the mask | yes | L |
+| Boot to section (`GeneralSettingsPresenter.appendBootToSection`) | UI host does not yet open the chosen section at startup | yes | S |
 | Key remapping (`GeneralSettingsPresenter.appendKeyRemappingCategory`) | D-pad left/right or up/down -> next/previous video (regular and Shorts variants); D-pad up/down -> speed up/down; D-pad -> volume; Shoulder/trigger remaps equivalent to Next/Previous, FF/RW, Page, Channel keys (L1/R1/L2/R2 -> next/previous, speed, like/dislike, search); No generic remap table | yes | M |
-| History state (`GeneralSettingsPresenter.appendHistoryCategory`) | No 'Auto (use account settings)' state (tri-state); Disable only stops account reports; local history/resume is still recorded | yes | S |
 | General misc (12 toggles) (`GeneralSettingsPresenter.appendMiscCategory`) | Per-profile settings cannot be switched off (single shared settings mode); Settings password and master password; Child mode (locks search/suggestions, restricted sections/buttons); Disable screensaver switch; Disable long-press switch; Player exit double-back; search exit double-back; Remember last position in Subscriptions / pinned playlists | yes | L |
 | Color scheme (`MainUISettingsPresenter.appendColorScheme`) | Palettes are EVO's, not SmartTube's eight (no OLED/monochrome equivalents verified); Device-wide (evo_player_settings.cfg), not per profile; native/youtube.rcss adoption of theme tokens not verified | yes | S |
 | Main UI misc (12 toggles) (`MainUISettingsPresenter.appendMiscCategory`) | Unlocalized titles; 24-hour toggle; Clock in browser corner; clock in player corner; Ending time as an independent toggle alongside duration; Channels old look, pinned-channel rows, playlists rows; Channels filter field; in-channel search bar; Channels auto-load | yes | L |
@@ -218,7 +209,6 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Set-up sections (show/hide sidebar sections) (`GeneralSettingsPresenter.appendEnabledSections`) | Per-profile enabled-sections bitmask and a `settings:sections` checklist; Root and `discover` menus must filter by that mask; SmartTube sections with no PS5 entry at all (Shorts, Trending, Kids, Notifications, My videos, Channels uploads) cannot be toggled until they exist | yes | M |
 | Context menu items on/off (`GeneralSettingsPresenter.appendContextMenuItemsCategory`) | Per-profile enabled mask for action-menu entries; settings checklist UI; Action menu builder must honour the mask | yes | M |
 | Context menu sorting (`GeneralSettingsPresenter.appendContextMenuSortingCategory`) | Persisted order of action-menu entries and a reorder UI | yes | M |
-| Boot to section (`GeneralSettingsPresenter.appendBootToSection`) | Per-profile boot section id; Provider host must open that catalog id at start (ProviderHostScreen overlay) | yes | S |
 | Exit from the app shortcut (`GeneralSettingsPresenter.appendAppExitCategory`) | Setting with three values; Circle at provider root: nothing / confirm-on-second-press / immediate soft close | yes | S |
 | Background playback mode (`GeneralSettingsPresenter.appendBackgroundPlaybackCategory`) | No background mode at all: leaving the player stops playback; In-app equivalent (keep audio/video while browsing, return-to-video entry) not implemented | no | L |
 | Screen dimming (entry) (`GeneralSettingsPresenter.appendScreenDimmingCategory`) | No idle dimming overlay in browser or paused player | yes | M |
@@ -260,6 +250,10 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Local backup / restore app data (`BackupSettingsPresenter.appendLocalBackupRestoreOptions`) | Write dated copy of youtube.json (+ evo_player_settings.cfg) to /data/prosperotube/backup or USB; List backups, validate (version, records array) and restore, then re-run init(); Confirmation steps | yes | M |
 | Import subscriptions (GrayJay/PocketTube/NewPipe) (`BackupSettingsPresenter.appendSubscriptionsBackupButton`) | Parser for the three export formats; File source (USB path or upload through the companion); Merge into local follows (Record.subscribed) | yes | M |
 | UI localization (`extra.Localization`) | String catalog mechanism (EVO offers none): key table + per-language files + lookup helper used by tube_provider.c, overlays and RML; Language selection (PS5 system language default + setting); Catalogs converted from SmartTube strings.xml for shared labels; new strings for PS5-only labels; Fonts/shaping for non-Latin scripts and RTL; Toasts/errors in scripts/*_overlay.py are inline literals too | yes | L |
+
+### Done
+
+History state.
 
 ### Not applicable on PS5
 

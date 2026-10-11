@@ -72,14 +72,14 @@
   {
    "id": "GeneralSettingsPresenter.appendBootToSection",
    "title": "Boot to section",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: any default section or any pinned sidebar item to open at start.",
    "ps5_evidence": [
-    "scripts/prepare_native.py: app always lands on ScreenId::EmbyBrowse at the provider root"
+    "scripts/prepare_native.py: app always lands on ScreenId::EmbyBrowse at the provider root",
+    "native/tube_provider.c: tube_boot_section()"
    ],
    "gaps": [
-    "Per-profile boot section id",
-    "Provider host must open that catalog id at start (ProviderHostScreen overlay)"
+    "UI host does not yet open the chosen section at startup"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -193,17 +193,15 @@
   {
    "id": "GeneralSettingsPresenter.appendHistoryCategory",
    "title": "History state",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: Auto (use account settings) / Enable history / Disable history.",
    "ps5_evidence": [
     "native/tube_provider.c: `settings:history-sync` toggle 'Sync YouTube history: on/off' (g_history_sync)",
     "native/tube_profile_settings.h: history_sync",
-    "tests/test_profile_settings.c: asserts history_sync persists per profile"
+    "tests/test_profile_settings.c: asserts history_sync persists per profile",
+    "native/tube_provider.c: settings:history tri-state; tests/test_history_modes.c"
    ],
-   "gaps": [
-    "No 'Auto (use account settings)' state (tri-state)",
-    "Disable only stops account reports; local history/resume is still recorded"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""

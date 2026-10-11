@@ -450,12 +450,12 @@
   {
    "id": "extra.Menu.PlayVideoIncognito",
    "title": "Play video incognito",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Plays the video without recording it in history or saved state.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No incognito flag: progress() always writes the record and watch_flush() reports to the account when history sync is on"
+   "ps5_evidence": [
+    "native/tube_provider.c: one-shot incognito flag; tests/test_history_modes.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Implement as a 'local:video:<scope>:incognito:<id>' action that sets a one-shot flag consumed by resolve()/progress()."
@@ -463,12 +463,12 @@
   {
    "id": "extra.Menu.PlayFromStart",
    "title": "Play from start",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Resets the saved position to 0 and opens the video.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No action that clears resume_pos_sec before launching; only 'Remove from local history' (which also clears the watched marker)"
+   "ps5_evidence": [
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -715,13 +715,12 @@
   {
    "id": "extra.Menu.OpenChannel",
    "title": "Open channel (and channel uploads)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "From any video or channel card: opens the channel page; ChannelUploads menu offers the same.",
-   "ps5_evidence": [],
-   "gaps": [
-    "'account:menu:<id>' has no row that navigates to 'channel:<parent_id>' although the record stores the channel id (Record.item.parent_id) and 'channel:UC...' is a valid catalog id",
-    "Videos without a channel id (subscription feed rows) need a metadata lookup first"
+   "ps5_evidence": [
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Workaround today: L2 follows the channel, then open it under Followed channels."
@@ -729,12 +728,12 @@
   {
    "id": "extra.Menu.OpenPlaylist",
    "title": "Open playlist",
-   "status": "missing",
+   "status": "done",
    "smarttube": "For a card that belongs to a playlist: opens that playlist as a grid.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No menu row to open the playlist of a video (playlist context is kept for playback only: tube_playback_playlist_context)"
+   "ps5_evidence": [
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Playlist cards themselves open as folders."
@@ -757,15 +756,14 @@
   {
    "id": "extra.Menu.ExcludeFromContentBlock",
    "title": "Exclude channel from SponsorBlock",
-   "status": "partial",
+   "status": "done",
    "smarttube": "From a video/channel card: toggles the channel in the SponsorBlock exclusion list.",
    "ps5_evidence": [
     "native/tube_provider.c: settings \"Excluded channels\" ('Toggle the current channel or a followed channel'), \"The excluded channel list is full.\"",
-    "tests/test_sponsor.c"
+    "tests/test_sponsor.c",
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
    ],
-   "gaps": [
-    "Not available from the video actions menu; only the current channel and locally followed channels can be toggled in settings"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -815,11 +813,14 @@
   {
    "id": "extra.Menu.ShareLink",
    "title": "Share link",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Shares the video/channel/playlist URL (Android share sheet / copy).",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
+   ],
    "gaps": [
-    "No row that displays the youtu.be URL of the selected item"
+    "No share row on channel and playlist cards themselves",
+    "No QR code"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -841,12 +842,12 @@
   {
    "id": "extra.Menu.ShareEmbedLink",
    "title": "Share embed link",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Shares the youtube.com/embed/ URL of the video.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No share actions at all"
+   "ps5_evidence": [
+    "native/tube_provider.c: video actions menu; tests/test_video_menu.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Trivial once ShareLink exists."
@@ -1042,12 +1043,12 @@
   {
    "id": "extra.Search.History",
    "title": "Search history",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Recent queries shown as tags; long-press removes one or clears all; setting to disable history.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Queries are not stored in the profile state; no recent-searches folder, no remove/clear actions"
+   "ps5_evidence": [
+    "native/tube_provider.c: Recent searches folder and per-profile switch; tests/test_search_history.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Fits the per-profile JSON state and local_catalog() folders."
