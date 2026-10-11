@@ -12,7 +12,7 @@ int main(void) {
     p->list_catalog("section:music",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[{\"id\":\"cdefghijklm\",\"title\":\"Third\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:cdefghijklm",0,items_cb,NULL);
-    assert(last_count==4);
+    assert(last_count==5);
     for(int i=0;i<3;++i)snprintf(actions[i],sizeof actions[i],"%s",last_items[i+1].id);
     p->list_catalog(actions[0],0,items_cb,NULL);assert(last_ok && !pending_count);
     cJSON *store=read_store();

@@ -2647,6 +2647,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,actions[i],parent+13);
                 CATALOG_FOLDER(id,labels[i],"Saved for the selected profile on this PS5");
             }
+            char related[64];snprintf(related,sizeof related,"library:suggestions:%s",parent+13);
+            CATALOG_FOLDER(related,"Related videos","Suggestions for this video and the selected profile");
             Record *video=record(parent+13,0);
             if(video && ((strlen(video->item.parent_id)==24 && !strncmp(video->item.parent_id,"UC",2)) ||
                          (!*video->item.parent_id && tube_channel_name_equal(video->item.subtitle,video->item.subtitle)))) {
@@ -3378,8 +3380,9 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     if (parent && !strncmp(parent, "library:", 8)) {
         const char *action = parent + 8;
         int playlist = !strncmp(action, "playlist:", 9) && valid_catalog_id(parent);
+        int suggestions = !strncmp(action, "suggestions:", 12) && valid_id(action+12);
         if (strcmp(action, "home") && strcmp(action, "subscriptions") && strcmp(action, "history") &&
-            strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist) {
+            strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist && !suggestions) {
             tube_set_error("The selected library screen is unavailable."); cb(0, NULL, 0, 0, ud); return 0;
         }
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
@@ -3390,8 +3393,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
         snprintf(r->payload, sizeof r->payload,
             "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"id\":\"%s\"}}",
-            page ? "continue" : playlist ? "playlist" : action, g_library_profile,
-            page ? g_library_cursors[page] : "", playlist ? action + 9 : "");
+            page ? "continue" : playlist ? "playlist" : suggestions ? "suggestions" : action, g_library_profile,
+            page ? g_library_cursors[page] : "", playlist ? action + 9 : suggestions ? action+12 : "");
         begin(r); return 0;
     }
     Request *r = request_new(1, ud); if (!r) return -1;

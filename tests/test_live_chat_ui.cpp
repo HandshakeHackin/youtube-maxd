@@ -257,6 +257,16 @@ int main(int argc,char**argv) {
     host.m_stack={"favorites","account:menu:abcdefghijk","local:video:0:block:abcdefghijk"};
     host.m_crumbs={"Favorites","Video actions","Block channel"};host.RequestPage(host.m_stack.back().c_str(),0);pump();
     assert(host.m_stack.size()==3 && !host.m_model.loading && pending.empty());
+    host.m_stack={"library:suggestions:abcdefghijk"};host.m_crumbs={"Related videos"};host.m_pos_stack.clear();
+    host.RequestPage(host.m_stack.back().c_str(),0);
+    reply("{\"job\":\"related-ui\",\"state\":\"pending\"}");clock_ms+=300;tube_poll();
+    reply("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"cdefghijklm\",\"title\":\"Related card\",\"playback_context\":{\"group\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"index\":2}}]}}");
+    pump();assert(host.m_all_rows.size()==1 && host.FocusPublishedRow(0));pump();
+    card=host.m_context->GetFocusElement();assert(card);card->DispatchEvent("click",Rml::Dictionary{});
+    host.ApplyPendingActivation();assert(evo_rmlui_provider_take_selection(&selection));
+    assert(!strcmp(selection.item_id,"cdefghijklm") && selection.playback_index==2 &&
+           !strcmp(selection.playback_playlist,"group:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
+    assert(pending.empty());
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);
     puts("PASS: actual provider callbacks preserve current focus/scroll across polls, handle removal/mode/setup, and bind literal shipping chat RML");

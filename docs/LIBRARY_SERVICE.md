@@ -8,6 +8,17 @@ existing asynchronous job API. Profiles and remote playlist folders preserve
 their account context. Local favorites, queue, follows and history remain console
 data, stored separately for each selected profile.
 
+The native video actions menu includes **Related videos**, using the selected
+profile's WatchNext feed through the `suggestions` library operation. Its video
+identity is required at the API boundary and checked against the upstream info.
+The initial implementation includes direct Video, CompactVideo and Lockup video
+cards, SmartTube watched-suggestion filtering, profile-owned continuations and
+retained browsing-group positions. Duplicate occurrences remain distinct; browser
+pagination and playback navigation share each continuation. Shelves, ads and
+playlist cards are not flattened into this video group. Full suggestion sections,
+chip filters, remote-only fallback selection and live-service/PS5 acceptance remain
+unfinished. This path requires the real library worker, not the fixture library.
+
 This is not full SmartTube parity. Live chat has a request-driven service and
 native retained-message reader and playback-clock replay sidebar; PS5 replay acceptance remains pending. Chat posting has
 composition/review and confirmation guards, with real-account/PS5 acceptance pending.

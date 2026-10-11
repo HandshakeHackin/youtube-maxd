@@ -56,7 +56,7 @@ class DeviceSessionRequest(BaseModel):
 
 class LibraryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists",
+    action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists", "suggestions",
                     "watch_later", "playlist", "comments", "replies", "continue", "like", "dislike",
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
@@ -88,6 +88,8 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
+        if self.action == "suggestions" and not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id):
+            raise ValueError("Suggestions require a video identity.")
         if self.require_name and not self.require_channel:
             raise ValueError("Channel-name verification requires channel verification.")
         if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at", "channel_window", "group_window"}:

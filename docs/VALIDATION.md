@@ -1,5 +1,33 @@
 # Offline validation record — 0.1.0
 
+## Related-video catalog and native selection — 2026-10-11
+
+The native video actions menu now opens a profile-owned WatchNext suggestions
+catalog. Direct Video/CompactVideo/Lockup video cards retain duplicate occurrences
+and shared browsing/playback continuations. Watched suggestions use the pinned
+SmartTube threshold. Unsupported nested shelves, ads and playlists are not flattened.
+Input and returned video identities are checked before publishing the feed.
+
+All 127 worker tests and the bundle build pass. Python library/occurrence tests
+passed (55 checks before adding the final API case); both suggestions request/job
+checks then passed. Native ASan/UBSan suggestions, provider core, local video-actions
+and retained-group regressions pass. PS5 SDK provider compilation passed with the
+existing 280 math-header qualifier warnings. Actual RmlUi selection passed, retaining
+the related video's group identity and source index through activation. The UI log
+still reports empty-row bindings and an empty-width inline-style warning.
+
+The first native run caught old menu-count expectations; those were updated for
+Related videos, preserving existing local-action ordering, and the rerun passed.
+The earlier full 31-case regression predates this batch; this batch adds a default
+suggestions case and uses the four scoped native checks above. No final package
+was built and no console was contacted. Real-service/PS5 acceptance, full suggestion
+sections/chip filters and remote fallback remain open.
+
+Baseline inspection: SmartTube `Video.findNextVideo` at
+`2c60453007dfc3775ff525c3837c2d1d4e95aab9` substitutes suggestions only when next
+metadata is absent for remote playback. Generic replacement of blocked autoplay
+is not established by that method and is not introduced here.
+
 ## Resumed full native regression — 2026-10-11
 
 The previously interrupted regression has now completed successfully: all 31

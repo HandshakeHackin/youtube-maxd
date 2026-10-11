@@ -9,6 +9,7 @@ import { channelWindow } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
 import { filterHomeFeed, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
+import { suggestionFeed } from './suggestions.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -288,12 +289,13 @@ export class Library {
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
     if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
     if (input.action === 'playlist') requireId(input.id, playlistId);
+    if (input.action === 'suggestions') requireId(input.id, videoId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
@@ -358,6 +360,12 @@ export class Library {
     let feed;
     switch (input.action) {
       case 'home': feed = filterHomeFeed(await client.getHomeFeed()); break;
+      case 'suggestions': {
+        const info=await client.getInfo(input.id);
+        if(info?.basic_info?.id!==input.id)
+          throw new LibraryError('upstream_format','YouTube returned suggestions for a different video.',502);
+        feed=suggestionFeed(info,LibraryError);break;
+      }
       case 'subscriptions': feed = await client.getSubscriptionsFeed(); break;
       case 'history': feed = await client.getHistory(); break;
       case 'library': feed = await client.getLibrary(); break;
