@@ -2757,3 +2757,12 @@ The corrected actual RmlUi chooser/chat test and affected PS5 provider,
 PlayerScreen, playback picker and RML provider objects pass:
 `.deps/player-controls-ui-sdk.result` (0), UI-final/SDK logs. The existing
 199 qualified-math warnings remain; this is not a warning-free build claim.
+
+
+Source `f6b78748` completed the full PS5 build, container/folder/PFS/ZIP
+packaging and immutable freeze: 126 files, eboot SHA-256 prefix
+`8d193cb081d74d0d`, build `prosperotube-f6b78748_1011-0348`.
+Candidate: `/home/denis/.cache/prosperotube/candidates/f6b78748-offline-player-controls/PPSA99142`.
+Evidence: `.deps/offline-player-controls-{ps5-build,freeze}.log` and result
+files (both 0). Nothing was installed or launched. All offline work and the full
+SmartTube objective remain incomplete; remaining sections stay active.
