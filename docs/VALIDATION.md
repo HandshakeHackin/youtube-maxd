@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Natural EOF repeat, pause and player mode controls — 2026-10-11
+
+All seven playback-mode choices are now present in browser settings and the
+in-player settings picker. Repeat-one emits one seek-to-zero action after natural
+drain, preserves the current queued item, and rearms only after a non-EOF idle
+playback tick. A rejected seek pauses and displays a message without a retry loop.
+Exhausted local continuation explicitly pauses; phone-owned completion is excluded.
+The controller accepts Pause from an active Finished state. Completion actions
+are scoped to the current profile/source generation and cleared on new playback.
+
+The final native window, profile, queue-failure and SponsorBlock sanitizer batch
+passed. Extracted shipping player tests passed repeat, pause, failed-seek,
+single-dispatch, phone ownership and scrub/seek/discard/prebuffer gates. Logs:
+`.deps/repeat-final-native.log` and `.deps/repeat-final-player.log`.
+The PS5 provider, PlayerScreen, AudioTrackPickerScreen and PlaybackController
+objects compiled successfully (`.deps/repeat-final-sdk.log`); existing SDK
+qualified-math warnings remain. The first picker overlay attempt failed its exact
+anchor check before compilation; the branch-chain anchor was corrected and the
+final preparation and build passed.
+These checks do not prove full mode parity: SponsorBlock-triggered completion,
+channel/recommendation context, unavailable playlist slots, radio continuation and
+console acceptance remain open. No console connections occurred.
+
 ## Explicit queue mode preference and close-at-end — 2026-10-11
 
 The profile-owned "Queue respects playback mode" setting defaults off, as in

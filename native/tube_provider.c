@@ -123,11 +123,13 @@ static int valid_speed(double speed) {
 static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
+static int g_completion_action, g_completion_consumed;
+static unsigned g_completion_scope;
 static int g_queue_respects_mode;
 static int queue_mode_allows_advance(void) {
     return g_autoplay || ((g_playback_mode==TUBE_MODE_PAUSE || g_playback_mode==TUBE_MODE_CLOSE) && !g_queue_respects_mode);
 }
-static int playback_mode_valid(int mode) { return mode>=0 && mode<=6 && mode!=TUBE_MODE_ONE; }
+static int playback_mode_valid(int mode) { return mode>=0 && mode<=6; }
 static int playback_mode_continues(int mode) { return mode!=TUBE_MODE_PAUSE && mode!=TUBE_MODE_CLOSE; }
 static int g_player_chat_mode;
 static int g_sleep_minutes, g_sleep_armed, g_sleep_fired;
@@ -2701,9 +2703,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
             }
         } else if (!strcmp(parent,"settings:playback-mode") || !strncmp(parent,"settings:playback-mode:",23)) {
-            const int modes[]={2,4,5,6,0,1};
-            const char *labels[]={"Continuous playback","Shuffle playlist","Playlist only","Reverse playlist","Stop at end","Close at end"};
-            for(int i=0;i<6;++i) {
+            const int modes[]={2,3,4,5,6,0,1};
+            const char *labels[]={"Continuous playback","Repeat one","Shuffle playlist","Playlist only","Reverse playlist","Stop at end","Close at end"};
+            for(int i=0;i<7;++i) {
                 char id[64];snprintf(id,sizeof id,"settings:playback-mode:%d",modes[i]);
                 CATALOG_FOLDER(id,labels[i],g_playback_mode==modes[i]?"Selected":"Saved for this profile");
             }
@@ -3107,7 +3109,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     } else if (state != EVO_PROVIDER_PLAY_START || pos > 0) r->item.resume_pos_sec = pos > 0 ? pos : 0;
     r->updated = (long long)time(NULL);
     if (dur > 0 && pos >= dur * 0.95 && pos >= dur - 10) { r->item.played = 1; r->item.resume_pos_sec = 0; }
-    if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; }
+    if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; g_completion_action=g_completion_consumed=0; }
     if (!strcmp(id, g_watch.id) && !g_watch.failed && !g_watch.stopped && pos >= 0 && pos <= 1000000 &&
         (state == EVO_PROVIDER_PLAY_UPDATE || state == EVO_PROVIDER_PLAY_STOP)) {
         g_watch.position = pos; g_watch.stopped = state == EVO_PROVIDER_PLAY_STOP;
@@ -3121,6 +3123,7 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     if (!recovering) { tube_sleep_activity(); tube_playlist_eof_cancel(); }
     if (!recovering && !++g_selection_serial) ++g_selection_serial;
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
+    g_completion_action=g_completion_consumed=0;
     g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;
     g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
@@ -3497,6 +3500,7 @@ int tube_queue_skip_unavailable(const char *id) {
 }
 
 void tube_playlist_eof_cancel(void) {
+    g_completion_action=0; g_completion_consumed=0;
     g_playlist_eof_wait = g_playlist_next_ready = 0;
     g_playlist_shuffle_attempted=0;
     tube_playlist_window_cancel();
@@ -3566,8 +3570,13 @@ static int finish_and_next(int playlist) {
     if (!*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
-    if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
+    if (r) { if(g_playback_mode!=TUBE_MODE_ONE) r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
     if (strcmp(g_active_profile, g_library_profile)) return 0;
+    g_completion_scope=g_playlist_scope;
+    if (g_playback_mode==TUBE_MODE_ONE) {
+        g_completion_action=g_recovery.choice.is_live?TUBE_COMPLETION_PAUSE:TUBE_COMPLETION_REPEAT;
+        return 0;
+    }
     if (!g_autoplay) {
         if (queue_mode_allows_advance() && queue_next()) return 1;
         return g_playback_mode==TUBE_MODE_CLOSE;
@@ -3603,7 +3612,25 @@ int tube_finish_and_next(double position, double duration) {
 int tube_finish_drained_and_next(double position) {
     /* Called only with the engine's natural EOF + audio/video retirement proof.
      * Unknown/inaccurate metadata duration must not prevent a clean completion. */
-    return isfinite(position) && position >= 0 ? finish_and_next(1) : 0;
+    if (!isfinite(position) || position<0) return 0;
+    int next=finish_and_next(1);
+    if (!next && g_finished && !g_completion_consumed && !g_completion_action &&
+        !tube_playlist_eof_pending() && g_completion_scope==g_playlist_scope &&
+        !strcmp(g_active_profile,g_library_profile)) g_completion_action=TUBE_COMPLETION_PAUSE;
+    return next;
+}
+
+int tube_take_completion_action(void) {
+    int action=g_completion_action; g_completion_action=0;
+    if (!g_finished || g_completion_consumed || g_completion_scope!=g_playlist_scope ||
+        strcmp(g_active_profile,g_library_profile)) return 0;
+    if(action) g_completion_consumed=1;
+    return action;
+}
+void tube_completion_playback_state(int ended,int busy) {
+    if (!ended && !busy && g_finished && g_completion_consumed) {
+        tube_playlist_eof_cancel(); g_finished=0; g_skip_guard=-1;
+    }
 }
 
 int tube_take_next(evo_provider_item_t *item) {

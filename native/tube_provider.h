@@ -96,12 +96,15 @@ void tube_playlist_window_cancel(void);
 int tube_playlist_eof_pending(void);
 void tube_playlist_eof_cancel(void);
 int tube_autoplay_enabled(void);
-/* SmartTube mode identities; repeat remains reserved until engine integration. */
+/* SmartTube mode identities. */
 enum { TUBE_MODE_PAUSE=0, TUBE_MODE_CLOSE=1, TUBE_MODE_ALL=2, TUBE_MODE_ONE=3,
        TUBE_MODE_SHUFFLE=4, TUBE_MODE_LIST=5, TUBE_MODE_REVERSE=6 };
 int tube_playback_mode(void);
 int tube_queue_respects_playback_mode(void);
 int tube_set_playback_mode(int mode);
+enum { TUBE_COMPLETION_PAUSE=1, TUBE_COMPLETION_REPEAT=2 };
+int tube_take_completion_action(void);
+void tube_completion_playback_state(int ended,int busy);
 int tube_choose_stream_enabled(void);
 int tube_queue_recovery(double position, int live, int subtitles);
 int tube_take_recovery(evo_provider_item_t *item, double *position, int *subtitles);

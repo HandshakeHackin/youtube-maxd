@@ -1,5 +1,42 @@
 """Carry playlist occurrence metadata through actual provider rows and launch staging."""
 def apply_playlist_context_overlay(replace, player, host):
+    replace(player+'core/src/services/PlaybackController.cpp',
+        '        .addTransition(PlaybackState::Finished, PlaybackEvent::Open, PlaybackState::Opening)',
+        '''        .addTransition(PlaybackState::Finished, PlaybackEvent::Pause, PlaybackState::Paused,
+                       [this]() { return isActive(); })
+        .addTransition(PlaybackState::Finished, PlaybackEvent::Open, PlaybackState::Opening)''')
+    picker=player+'core/src/screens/AudioTrackPickerScreen.cpp'
+    replace(player+'core/include/evo/screens/AudioTrackPickerScreen.hpp',
+        'KindRotate, KindMirror };','KindRotate, KindMirror, KindPlaybackMode };')
+    replace(picker,'    // End ProsperoTube chat option rows.','''    // End ProsperoTube chat option rows.
+    // ProsperoTube playback mode rows.
+    const int playbackModes[]={2,3,4,5,6,0,1};
+    const char* playbackLabels[]={"Continuous playback","Repeat one","Shuffle playlist","Playlist only","Reverse playlist","Stop at end","Close at end"};
+    for(int i=0;i<7;++i) {
+        Entry e;e.kind=KindPlaybackMode;e.streamIndex=playbackModes[i];
+        e.label=playbackLabels[i];e.detail="Playback mode; saved for this profile";
+        e.badge=tube_playback_mode()==playbackModes[i]?"SELECTED":"";
+        m_tracks.push_back(std::move(e));
+    }
+    // End ProsperoTube playback mode rows.''')
+    replace(picker,'    } else if (e.kind == KindSleep) {','''    } else if (e.kind == KindPlaybackMode) {
+        if (tube_set_playback_mode(e.streamIndex)) toast("PLAYBACK MODE",e.label.c_str());
+    } else if (e.kind == KindSleep) {''')
+    screen=player+'core/src/screens/PlayerScreen.cpp'
+    replace(screen, '    const bool ended = evo_pb_is_complete() != 0;', '''    const bool ended = evo_pb_is_complete() != 0;
+    const bool completionBusy=playback->isScrubbing() || evo_demux_is_seeking() ||
+        g_pp_pb.seek_discarding || pb_prebuffer_hold;
+    if (!tube_phone_owns_media()) tube_completion_playback_state(ended,completionBusy);''')
+    replace(screen, '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&', '''    if (ended && !completionBusy && !tube_phone_owns_media()) {
+        const int action=tube_take_completion_action();
+        if (action==TUBE_COMPLETION_REPEAT) {
+            if (!playback->seekTo(0.0,false)) {
+                playback->setPaused(true);
+                toast("PLAYBACK", "Could not restart this video");
+            }
+        } else if (action==TUBE_COMPLETION_PAUSE) playback->setPaused(true);
+    }
+    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&''')
     replace(player+'ui_rml/src/evo_rmlui_provider.cpp', 'id != "settings:video-rotate"',
         'id != "settings:video-rotate" && id != "settings:playback-mode"')
     replace(host, 'if (!tube_recovery_pending() && rp &&',

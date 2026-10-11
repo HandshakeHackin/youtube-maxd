@@ -14,6 +14,7 @@ struct Playback {
     bool isPaused() { return paused; }
     bool isScrubbing() { return scrubbing; }
     bool isLiveSource() { return live; }
+    void setPaused(bool value) { paused=value; }
     void stopPlayback() { ++stops; }
     void seekTo(double target) { sought = target; ++seeks; }
     bool seekTo(double target, bool keepPaused) {
@@ -33,6 +34,10 @@ static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, hi
 static bool finish_allowed, show_message, accepted;
 static bool phone_finished, phone_owns, local_finished;
 static int local_finish_calls, phone_finish_calls;
+enum { TUBE_COMPLETION_PAUSE=1, TUBE_COMPLETION_REPEAT=2 };
+static int completion_action, completion_taken;
+static int tube_take_completion_action() { ++completion_taken; int a=completion_action;completion_action=0;return a; }
+static void tube_completion_playback_state(int,int) {}
 static bool playlist_wait;
 static int playlist_cancels;
 static int tube_playlist_eof_pending() { return playlist_wait; }
@@ -71,6 +76,7 @@ static bool input(unsigned pressed) {
 }
 static void reset() {
     state = Playback{}; manager.returns = 0;
+    completion_action=completion_taken=0;
     playlist_wait=false; playlist_cancels=0;
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
@@ -79,6 +85,19 @@ static void reset() {
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    reset();complete=true;completion_action=TUBE_COMPLETION_REPEAT;tick();
+    assert(state.seeks==1 && state.sought==0 && !state.paused && !state.stops);
+    tick();assert(state.seeks==1);
+    reset();complete=true;completion_action=TUBE_COMPLETION_REPEAT;state.seek_accepts=false;tick();
+    assert(state.paused && notices==1 && !state.stops);tick();assert(notices==1);
+    reset();complete=true;completion_action=TUBE_COMPLETION_PAUSE;tick();assert(state.paused && !state.seeks);
+    reset();complete=true;phone_owns=true;completion_action=TUBE_COMPLETION_REPEAT;tick();
+    assert(!completion_taken && !state.seeks);
+    for(int gate=0;gate<4;++gate) {
+        reset();complete=true;completion_action=TUBE_COMPLETION_REPEAT;
+        state.scrubbing=gate==0;seeking=gate==1;g_pp_pb.seek_discarding=gate==2;pb_prebuffer_hold=gate==3;
+        tick();assert(!completion_taken && !state.seeks);
+    }
     reset();playlist_wait=true;input(0);assert(playlist_wait && !playlist_cancels);
     input(PadButtons::Cross);assert(!playlist_wait && playlist_cancels==1);
     reset(); complete=true; state.scrubbing=true; phone_finished=true; local_finished=true; tick();

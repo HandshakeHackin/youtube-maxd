@@ -1085,7 +1085,8 @@
         "Natural EOF at an exhausted window performs one scoped lookup of the following index, staging the confirmed target; cancellation, replacement and mismatched-index regressions pass",
         "Service/native playlist_size metadata preserves validated finite counts independently of bounded windows and suppresses lookup past a confirmed final occurrence",
         "Profile-owned browser mode chooser persists continuous, shuffle, playlist-only, reverse, stop and close; reverse traverses previous occurrences before queues and shuffle uses known sizes greater than 30 with failed-lookup fallback",
-        "Stop/close modes honor explicit queue exceptions and a persisted queue-respects-playback-mode preference, including unavailable-video retries and preference-change cancellation; repeat, explicit engine pause and in-player selection remain pending"
+        "Stop/close modes honor explicit queue exceptions and a persisted queue-respects-playback-mode preference, including unavailable-video retries and preference-change cancellation",
+        "All seven mode choices are exposed in browser and player settings; natural-drain repeat seeks once, exhausted continuation pauses, and completion rearms after an idle non-EOF state; SponsorBlock completion and console acceptance remain pending"
       ],
       "offline_status": "partial",
       "remaining": [

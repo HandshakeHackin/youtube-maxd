@@ -258,6 +258,24 @@ int main(void) {
     reply(0,1,200,"{\"job\":\"retired_profile\",\"state\":\"pending\"}");
     assert(!tube_playlist_eof_pending() && !tube_take_next(&next) && !pending_count);
     assert(tube_playlist_window_status(NULL)==-1 && !tube_playlist_window_begin());
+    p->list_catalog("library:profile:guest",0,items_cb,NULL);
+    assert(tube_set_playback_mode(TUBE_MODE_ONE));
+    p->stream_chosen("abcdefghijk",&choice);
+    assert(tube_toggle_queue("abcdefghijk"));
+    assert(!tube_finish_drained_and_next(100) && !pending_count && !tube_take_next(&next));
+    assert(tube_take_completion_action()==TUBE_COMPLETION_REPEAT);
+    assert(!tube_take_completion_action() && !tube_finish_drained_and_next(100));
+    tube_completion_playback_state(0,1); // demux seek has not retired yet
+    assert(!tube_finish_drained_and_next(100) && !tube_take_completion_action());
+    tube_completion_playback_state(0,0);
+    assert(!tube_finish_drained_and_next(100));
+    assert(tube_take_completion_action()==TUBE_COMPLETION_REPEAT);
+    assert(!tube_toggle_queue("abcdefghijk")); // repeating preserves the current queue entry
+    assert(tube_set_playback_mode(TUBE_MODE_PAUSE));p->stream_chosen("abcdefghijk",&choice);
+    assert(!tube_finish_drained_and_next(100));assert(tube_take_completion_action()==TUBE_COMPLETION_PAUSE);
+    assert(!tube_finish_drained_and_next(100) && !tube_take_completion_action());
+    tube_completion_playback_state(0,0); // manual replay rearms completion
+    assert(!tube_finish_drained_and_next(100));assert(tube_take_completion_action()==TUBE_COMPLETION_PAUSE);
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
     puts("PASS: native playlist windows, sparse repeats, malformed replies, cancellation and selection/profile retirement");
     return 0;

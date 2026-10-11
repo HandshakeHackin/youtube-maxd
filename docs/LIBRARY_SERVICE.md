@@ -50,7 +50,7 @@ window size. Missing or inconsistent counts remain unknown. A confirmed final
 occurrence stops autoplay without probing past the playlist; other window edges
 continue through indexed lookup. Infinite/radio queues do not supply finite sizes.
 
-The profile-owned playback-mode chooser offers continuous, shuffle, playlist-only,
+The profile-owned playback-mode chooser offers continuous, repeat-one, shuffle, playlist-only,
 reverse, stop-at-end and close-at-end. Reverse prioritizes the preceding playlist occurrence
 over the explicit queue and stops at index zero. Shuffle requires a validated
 size greater than 30 and chooses another index; failed lookups fall back to normal
@@ -59,7 +59,13 @@ respects playback mode" preference defaults off, matching the reference: explici
 queues continue in stop-at-end and close-at-end modes unless enabled. Otherwise
 close-at-end returns to the browser after natural drain. The preference also
 controls automatic unavailable-video skips, and changing it cancels a staged
-queue retry. Repeat and in-player controls remain pending. Continuous and playlist-only
+queue retry. All seven choices are also available in the in-player settings picker.
+Natural drain in repeat-one seeks to zero once, retains the current queued entry,
+and rearms completion only after playback leaves EOF and the seek is idle. Failed
+seeks pause with a message instead of retrying each frame. Exhausted continuation
+pauses explicitly, while phone-owned completion remains under phone control.
+SponsorBlock-induced completion still needs the same mode integration.
+Continuous and playlist-only
 currently share queue/playlist behavior; recommendation context is still missing.
 
 
