@@ -42,6 +42,7 @@ function cardImage(node) {
 }
 function cardLive(node) {
   if (node.is_live) return true;
+  if((node.thumbnail_overlays ?? []).some(overlay=>overlay?.type==='ThumbnailOverlayTimeStatus' && overlay.style==='LIVE'))return true;
   return (cardImage(node)?.overlays ?? []).some(overlay =>
     ['ThumbnailBottomOverlayView', 'ThumbnailOverlayBadgeView'].includes(overlay.type) &&
     (overlay.badges ?? []).some(badge => badge.type === 'ThumbnailBadgeView' &&
@@ -60,6 +61,11 @@ function cardAuthor(node) {
 function cardDuration(node) {
   const direct = Number(node.duration?.seconds ?? node.duration ?? NaN);
   if (Number.isFinite(direct) && direct >= 0) return Math.floor(direct);
+  const durationText=String(node.duration ?? '');
+  if(/^\d{1,3}:\d{2}(?::\d{2})?$/.test(durationText)) {
+    const parts=durationText.split(':').map(Number);
+    if(parts.slice(1).every(part=>part<60))return parts.reduce((total,part)=>total*60+part,0);
+  }
   for (const overlay of cardImage(node)?.overlays ?? []) {
     for (const badge of overlay.badges ?? []) {
       const value = String(badge.text ?? '');

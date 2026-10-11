@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Grouped suggestion shelves — 2026-10-11
+
+HorizontalList, ExpandedShelfContents and VerticalList shelves now remain separate
+profile-owned section folders, including on source and filtered continuations.
+Opening a section retains its own occurrence group and continuation; parent-video
+navigation skips section folders instead of entering their videos. The same bounded
+reference registry serves filters and sections. Depth is limited to four levels,
+with at most 64 sections and 4,096 rows per page. Unsupported layouts remain open.
+
+All 135 worker tests and the bundle build pass. Actual pinned Shelf/GridVideo
+parser tests cover independent groups, repeated IDs, profile isolation, section
+continuation shared by browser/playback, nested bounds and source/filter continuation
+shelves. Grid cards now preserve text-formatted durations, structured live markers
+and watch progress; invalid minute/second values remain unknown duration.
+
+No native bytes or API schema changed in this batch, so the earlier native/API/UI
+checks remain historical evidence rather than a new run. No final package was
+built and no console was contacted. Other layouts, remote-only fallback and real
+service/PS5 acceptance remain unfinished.
+
 ## Related-video chip filters — 2026-10-11
 
 Unselected WatchNext chips now become profile-owned filter folders. Parsed chip
