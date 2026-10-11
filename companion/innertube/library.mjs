@@ -7,7 +7,7 @@ import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
-import { filterHomeFeed, watchPercent } from './home_feed.mjs';
+import { HomeCatalog, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
 import { SuggestionFilters } from './suggestions.mjs';
 
@@ -145,6 +145,7 @@ export class Library {
     this.historyActions = new HistoryActions(LibraryError,clock);
     this.suggestionFilters = new SuggestionFilters(LibraryError,node=>normalizeVideo(node),clock);
     this.suggestionPages = new WeakMap();
+    this.homeCatalog = new HomeCatalog(LibraryError,node=>normalizeVideo(node),normalizePlaylist,this.suggestionFilters);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
@@ -373,7 +374,7 @@ export class Library {
     }
     let feed;
     switch (input.action) {
-      case 'home': feed = filterHomeFeed(await client.getHomeFeed()); break;
+      case 'home': feed = this.homeCatalog.root(owner,await client.getHomeFeed(),client); break;
       case 'suggestions': {
         const info=await client.getInfo(input.id);
         if(info?.basic_info?.id!==input.id)

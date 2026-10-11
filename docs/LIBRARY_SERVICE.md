@@ -27,6 +27,15 @@ reload targets and filtered continuation nodes are validated; expired in-flight
 requests cannot publish a group. The original feed and its continuation remain
 independent. HorizontalList, ExpandedShelfContents and VerticalList shelves now open as separate section folders, including shelves on root and filtered continuations. Their own continuation requests share browser/playback paging and preserve repeated video occurrences. Nested shelves are bounded to four levels, with at most 64 section folders and 4,096 entries per page. Unsupported layouts remain unfinished.
 
+Home also exposes supported RichShelf and Shelf rows plus unselected primary
+filters through the same expiring, profile-owned folder references. Main-grid
+watched filtering does not hide completed videos in secondary Home rows, matching
+the pinned SmartTube group-position rule. Recognized shelf children are removed
+from the flattened main list and retain separate occurrence groups. The main grid
+uses RichItem source order rather than parser memo type order. Section and filter
+continuations stay independent; secondary chip controls and other layouts remain
+unfinished. These additions require the actual library worker, not the fixture.
+
 This is not full SmartTube parity. Live chat has a request-driven service and
 native retained-message reader and playback-clock replay sidebar; PS5 replay acceptance remains pending. Chat posting has
 composition/review and confirmation guards, with real-account/PS5 acceptance pending.

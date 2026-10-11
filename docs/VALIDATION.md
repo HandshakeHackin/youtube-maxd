@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Home rows, primary filters and source ordering — 2026-10-11
+
+Supported RichShelf and Shelf rows now remain separate profile-owned Home folders,
+with independent pagination and occurrence groups. Recognized shelf videos are
+not duplicated in the main grid. Completed videos remain visible in secondary
+Home rows; watched filtering applies to the primary RichItem group. Main-grid
+ordering now follows source RichItems rather than parser memo type grouping,
+retaining repeated source occurrences.
+
+Unselected primary filter nodes use the pinned HomeFeed.applyFilter method and
+the shared expiring-reference registry. All 140 worker tests and the bundle build
+pass, including an actual pinned HomeFeed/filter-response case, source ordering,
+profile isolation, shared concurrent opens, secondary-row watched progress and
+section/browser/playback continuation sharing. Secondary filter controls and
+other layouts remain unfinished.
+
+Only companion code changed. No native/API schema changes, final packaging or
+console test occurred; earlier native/UI evidence remains historical. Real-service
+and PS5 acceptance remain open.
+
 ## Grouped suggestion shelves — 2026-10-11
 
 HorizontalList, ExpandedShelfContents and VerticalList shelves now remain separate

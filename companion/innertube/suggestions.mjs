@@ -47,11 +47,11 @@ export class SuggestionFilters {
   }
   async open(owner,key) {
     this.prune();const entry=this.entries.get(key);
-    if(!entry || entry.owner!==owner)throw new this.ErrorType('cursor_expired','Reload Related videos to select this filter.',409);
+    if(!entry || entry.owner!==owner)throw new this.ErrorType('cursor_expired','Reload the source screen to open this section or filter.',409);
     if(!entry.pending)entry.pending=(async()=>{
       const result=await entry.load();
       if(this.entries.get(key)!==entry || entry.deadline<=this.clock())
-        throw new this.ErrorType('cursor_expired','Reload Related videos to select this filter.',409);
+        throw new this.ErrorType('cursor_expired','Reload the source screen to open this section or filter.',409);
       return result;
     })();
     const pending=entry.pending;
