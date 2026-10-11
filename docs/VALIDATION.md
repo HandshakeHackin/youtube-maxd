@@ -1,5 +1,73 @@
 # Offline validation record — 0.1.0
 
+## Feature-freeze candidate: offline checks and PS5 package — 2026-10-11
+
+Features are frozen for release 0.1.0 (scope in [GOAL.md](../GOAL.md)). This
+entry covers the frozen tree at `bc6fab7`; later commits change documentation
+only.
+
+**Host checks.** `bash scripts/test_all.sh` ends with `58 passed, 0 failed`.
+Its steps are: fixture generation; the library worker build and its 189 Node
+tests; the full Python suite (680 tests, five subtests, one existing dependency
+deprecation warning); `scripts/test_native.sh`, 54 provider suites under
+AddressSanitizer and UndefinedBehaviorSanitizer with mocked HTTP; the 44 other
+`scripts/test_*.sh` (About, backup, QR, captions, device sign-in, live chat,
+microphone and voice, phone adapter and provider, player controls, extras and
+menu, queue failure, recovery and seek handoff, seek, sleep timer, speed,
+SponsorBlock, subtitles, time display, video drain, geometry and transform,
+elevation, screen dimming); and the 10 `scripts/test_*.py` source checks.
+`scripts/preview_native.sh`, which is not one of those steps, failed at an
+assertion about the review footer before and after today's interface change:
+its harness did not bind the description flag and row selection key that the
+shipping page reads. With both bound it passes again and renders the browser
+with the footer on one line. `git diff --check` is clean.
+
+**Changes checked in this pass.** The experimental features of the first
+release carry "(experimental)" on their rows and an explanatory overview line,
+and YouTube preferences has an **Experimental features** screen. No default
+changed: the phone receiver is off until a phone is linked, voice search needs
+speech recognition configured on the companion and a held L3, the dislike
+relay is off, and posting, history controls, feedback and the profile password
+act only on an explicit, reviewed selection. Saved choices are read as before.
+
+**PS5 package.** `bash scripts/build_ps5.sh --ffpfsc` (LLVM 18.1.8, SDK v0.42,
+development commands off, no `--usb-remote`) completed on the first attempt
+for the frozen tree, which had only been compiled as separate objects before:
+218 objects compiled without warnings in the build log, seven PRX import stubs
+built, the intermediate executable linked (74,332,896 bytes), the signed
+container inspected with valid integrity, and the MkPFS image verified. No
+source change was needed for compiling, linking or packaging. Build identity
+`prosperotube-bc6fab7a_1011-2135`, from a clean work tree; the identity carries
+the build time, so a rebuild does not reproduce these bytes. Artifacts are in
+`~/pt-dist/candidate-bc6fab7` with a `SHA256SUMS` of all 127 package files:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `PPSA99142.zip` | 19,620,808 | `92a33f2d55f8d71aa226982fe77658286291d0c132b3a028b830f38719f05607` |
+| `PPSA99142.ffpfsc` | 22,216,704 | `67910e23abf6802c7a494ce5213198a35c0de800ed6f50be2275e1c99626706d` |
+| `PPSA99142/eboot.bin` | 38,263,892 | `15105446c6ecd5e566a72d56ae97fae06361e6da3d448a9a68e1564b2650ea58` |
+| `PPSA99142/lapy.elf` | 155,224 | `d163f52f111a62fafd8537da641efae6219e46aaa2a5e81d4fe94df29f9cc578` |
+| `PPSA99142/lapy-manifest.json` | 922 | `c65c8fe818e2b6f08b8a664d64bbbd83d34de82d46fb220e9d17c3377f4caf9c` |
+
+The folder title holds 127 files and 45,638,160 bytes. The packager writes no
+manifest of its own. Two earlier builds of the same day (`candidate-ed5d07a`,
+before the labels, and `candidate-095cdfe`, whose identity is marked dirty
+because tracker files were uncommitted) are superseded by this one.
+
+**Not claimed.**
+
+- No console was contacted: the package was not installed, started or read
+  back, and nothing added today has run on a PS5.
+- The live service was not exercised. Every YouTube-facing contract ran
+  against the pinned parser, fixtures and synthetic responses; the items listed
+  as inferred in [STATUS.md](STATUS.md) remain unverified.
+- During development of the companion's proxy option, two anonymous requests
+  reached `www.youtube.com` by accident. They carried no account data; the
+  cause was fixed and the tests of that path no longer leave the host. They are
+  not a live-service check.
+- This is a candidate for the live-service check, not the frozen release
+  package: gate 2 in [STATUS.md](STATUS.md) rebuilds after that check.
+
 ## Provider-backed phone recommendation handoff — 2026-10-11
 
 The phone adapter now connects to a separate provider job and generated Application

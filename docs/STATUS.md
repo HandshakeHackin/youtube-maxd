@@ -71,8 +71,7 @@ tests; 680 Python tests of the companion and tools; the 54 native provider
 suites of `scripts/test_native.sh` under AddressSanitizer and
 UndefinedBehaviorSanitizer with mocked HTTP; 44 further native, player-overlay
 and interface scripts; and 10 Python source checks. The host interface preview
-(`scripts/preview_native.sh`, not one of those steps) stops at an assertion
-about the review footer; its harness predates the newer footers and is open.
+(`scripts/preview_native.sh`, not one of those steps) also passes.
 
 ### Parity tracker
 
