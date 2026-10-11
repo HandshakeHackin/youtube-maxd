@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Account mark-as-watched — 2026-10-11
+
+The PS5 account video menu now confirms a Mark as watched action. The worker
+obtains the selected video's finite duration and uses the pinned YouTube.js
+history/tracking methods at that position. Both responses must succeed before a
+matching result changes local watched state. Live/upcoming videos and invalid or
+mismatched metadata are rejected before submission. Favorites and queue remain.
+
+All 91 worker tests pass, including the actual pinned VideoInfo parser/tracking
+methods, cached confirmation, account/video ownership, invalid metadata and
+concurrent/uncertain submission. Twenty-four Python tests pass, including actual
+worker termination/restart with confirmed-result retention and uncertain-intent
+rejection by the supervisor. Four native ASan/UBSan suites pass for history actions,
+core provider, local actions and profile settings. The PS5 provider object compiles
+with 262 SDK math-header qualifier warnings. Real account state was not
+modified; real-account acceptance is pending.
+
 ## Account-history removal — 2026-10-11
 
 History catalogs now issue bounded profile/video/page-owned removal references.
@@ -20,7 +37,7 @@ incorrect confirmed video IDs, duplicate submissions, profile retirement,
 non-persistence of references, and preservation of favorites/queue state.
 The PS5 provider object compiles successfully against the PS5 SDK (253 existing
 SDK math-header qualifier warnings). Full candidate packaging remains pending.
-Account mark-as-watched and real/localized history acceptance remain unfinished.
+Real/localized history acceptance remains unfinished.
 
 ## Local video actions — 2026-10-11
 
@@ -29,7 +46,7 @@ Remove from local history. Queue insertion preserves other pending entries'
 relative order, avoids duplicate IDs and compacts numeric ranks. The current
 playing item is not inserted again. Music origin survives menu navigation.
 History edits preserve favorites/queue state and are explicitly local; account
-mark-as-watched submission remains unfinished; account removal is covered above.
+tracking and removal use the separate confirmed account actions described above.
 
 Menu action IDs carry the current profile/source epoch, and stale IDs after
 profile changes or reload cannot mutate the newly selected profile. Six native

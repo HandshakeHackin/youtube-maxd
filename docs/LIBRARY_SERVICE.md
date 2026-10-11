@@ -656,6 +656,18 @@ unlimited historical-message pagination and hardware acceptance remain open.
 
 ## Account history removal
 
+The account video menu also offers `mark_watched`, separate from the local-only
+action. It requires a confirmation session and signed-in profile, obtains the
+selected video's current duration, and calls the pinned playback/history tracking
+methods at that duration. Live/upcoming videos and missing, mismatched or invalid
+durations fail before any history submission. Both tracking responses must
+confirm success; only then does the PS5 mark its local record watched. The worker
+retains up to 256 confirmation sessions for 30 minutes, returns cached confirmed
+results, and rejects uncertain or concurrent retries for the same intent.
+The companion supervisor retains the same ownership/result gate across worker
+restarts, so a worker timeout cannot replay an uncertain confirmation.
+Real-account acceptance remains pending.
+
 Account-history pages now include `history_remove_cursor` where the retained
 YouTube.js history page supports removal. `history_remove` accepts that `cursor`,
 the same video `id`, and owning `profile`. References expire after two minutes,

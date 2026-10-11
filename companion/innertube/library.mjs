@@ -260,12 +260,12 @@ export class Library {
     }
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
-      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove']);
+      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
     if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
-    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove'].includes(input.action))
+    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
     if (input.action === 'playlist') requireId(input.id, playlistId);
@@ -273,6 +273,7 @@ export class Library {
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
     if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
+    if(input.action==='mark_watched')return this.historyActions.markWatched(owner,client,input);
     if (input.action === 'topics' || input.action === 'topic_open') {
       const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client,
         authenticated && client.session?.logged_in === true) :

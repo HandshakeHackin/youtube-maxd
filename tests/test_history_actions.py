@@ -14,14 +14,15 @@ class Library:
         return dict(api_version=1,success=True,video_id=request['id'])
     async def close(self):pass
 
-def test_direct_and_job_removal_preserve_account_video_and_reference():
+@pytest.mark.parametrize('operation',[REQUEST,dict(action='mark_watched',profile='signed',id='abcdefghijk',session='confirm-one')])
+def test_direct_and_job_removal_preserve_account_video_and_reference(operation):
     library=Library()
     with TestClient(create_app(library=library,token='history-action-fixture')) as client:
-        assert client.post('/v1/library',json=REQUEST).status_code==401
+        assert client.post('/v1/library',json=operation).status_code==401
         assert not library.calls
-        direct=client.post('/v1/library',json=REQUEST,headers=AUTH)
+        direct=client.post('/v1/library',json=operation,headers=AUTH)
         assert direct.status_code==200
-        job=client.post('/v1/jobs',json=dict(action='library',library=REQUEST),headers=AUTH)
+        job=client.post('/v1/jobs',json=dict(action='library',library=operation),headers=AUTH)
         assert job.status_code==200
         for _ in range(100):
             result=client.get('/v1/jobs/'+job.json()['job'],headers=AUTH).json()
@@ -29,7 +30,16 @@ def test_direct_and_job_removal_preserve_account_video_and_reference():
             time.sleep(.001)
         assert result['state']=='done' and result['result']==direct.json()
         assert len(library.calls)==2
-        assert all(all(call[key]==value for key,value in REQUEST.items()) for call in library.calls)
+        assert all(all(call[key]==value for key,value in operation.items()) for call in library.calls)
+
+@pytest.mark.parametrize('patch',[dict(id='bad'),dict(session=''),dict(session='bad/session'),dict(session='a'*65)])
+def test_invalid_mark_watched_does_not_reach_worker(patch):
+    library=Library()
+    payload=dict(action='mark_watched',profile='signed',id='abcdefghijk',session='confirm-one')|patch
+    with TestClient(create_app(library=library,token='history-action-fixture')) as client:
+        for path,body in [('/v1/library',payload),('/v1/jobs',dict(action='library',library=payload))]:
+            assert client.post(path,json=body,headers=AUTH).status_code==422
+        assert not library.calls
 
 @pytest.mark.parametrize('patch',[dict(id='bad'),dict(id=None),dict(cursor=''),dict(cursor='bad/reference'),
     dict(cursor='a'*65),dict(profile='bad/profile')])

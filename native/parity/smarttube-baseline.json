@@ -1607,10 +1607,11 @@
         "native/tube_provider.c: profile-scoped Play next, Mark as watched locally, and Remove from local history in the video-actions menu",
         "tests/test_video_actions.c: priority ordering, persistence, unchanged favorites/queue membership, source music context and stale menu rejection",
         "companion/innertube/history_actions.mjs and tests: account-history removal references retain profile/video/page ownership, confirm processed feedback through pinned History.removeVideo, and reject repeated uncertain submissions; HTTP/job schema tests pass",
-        "tests/test_history_remove.c: native account confirmation, cancellation, one submission, matching result identity, transient references, profile retirement and local history isolation pass under ASan/UBSan"
+        "tests/test_history_remove.c: native account confirmation, cancellation, one submission, matching result identity, transient references, profile retirement and local history isolation pass under ASan/UBSan",
+        "Account mark_watched: pinned VideoInfo history/tracking methods at parsed duration, worker and supervisor intent retention, and native confirmation/local watched update; worker, transport/restart and ASan/UBSan regressions pass"
       ],
       "remaining": [
-        "Implement account mark-as-watched updates; validate real/localized account-history removal",
+        "Validate account mark-as-watched tracking and real/localized account-history removal",
         "Validate physical menu actions, queue order and persistence on PS5"
       ]
     },

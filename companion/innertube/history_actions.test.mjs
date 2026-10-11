@@ -5,6 +5,44 @@ import {HistoryActions} from './history_actions.mjs';
 import {YT,YTNodes} from 'youtubei.js';
 const id='abcdefghijk';
 const profiles=[{id:'signed',cookie:'synthetic'},{id:'other',cookie:'synthetic'}];
+
+test('mark watched uses pinned tracking methods at the parsed duration and retains confirmed intent',async()=>{
+  const calls=[];
+  const info=new YT.VideoInfo([{data:{videoDetails:{videoId:id,lengthSeconds:'125',thumbnail:{thumbnails:[]}},
+    playbackTracking:{videostatsPlaybackUrl:{baseUrl:'https://s.youtube.com/api/stats/playback'},
+      videostatsWatchtimeUrl:{baseUrl:'https://s.youtube.com/api/stats/watchtime'}}}}],
+    {stats:async(url,client,params)=>{calls.push({url,params});return new Response(null,{status:204});}},'fixture-nonce');
+  const library=new Library(async()=>({session:{logged_in:true},getBasicInfo:async()=>info}),profiles);
+  const request={action:'mark_watched',profile:'signed',id,session:'confirm-one'};
+  const result=await library.execute(request);
+  assert.deepEqual(result,{api_version:1,success:true,video_id:id,position_sec:125});
+  assert.equal(calls.length,2);assert.equal(calls[1].params.cmt,'125.000');assert.equal(calls[1].params.final,'1');
+  assert.deepEqual(await library.execute(request),result);assert.equal(calls.length,2);
+  await assert.rejects(library.execute({...request,id:'12345678901'}),{code:'invalid_progress'});
+  await assert.rejects(library.execute({...request,profile:'guest'}),{code:'account_required'});
+  await library.execute({...request,profile:'other'});assert.equal(calls.length,4);
+});
+
+test('mark watched rejects invalid metadata before submission and never repeats an uncertain intent',async()=>{
+  for(const patch of [{id:'12345678901'},{duration:NaN},{duration:0},{duration:1000001},{is_live:true},{is_upcoming:true}]) {
+    let writes=0;
+    const library=new Library(async()=>({session:{logged_in:true},getBasicInfo:async()=>({basic_info:{id,duration:12,...patch},
+      addToWatchHistory:async()=>{writes++;return {ok:true};}})}),profiles);
+    await assert.rejects(library.execute({action:'mark_watched',profile:'signed',id,session:'metadata'}),{code:'history_unconfirmed'});
+    assert.equal(writes,0);
+  }
+  let writes=0,release;
+  const library=new Library(async()=>({session:{logged_in:true},getBasicInfo:async()=>({basic_info:{id,duration:12},
+    addToWatchHistory:async()=>{writes++;await new Promise(resolve=>release=resolve);return {ok:true};},
+    updateWatchTime:async()=>{writes++;return {ok:false};}})}),profiles);
+  const request={action:'mark_watched',profile:'signed',id,session:'uncertain'};
+  const first=library.execute(request);
+  while(!release)await new Promise(resolve=>setImmediate(resolve));
+  await assert.rejects(library.execute(request),{code:'history_unconfirmed'});
+  release();await assert.rejects(first,{code:'history_unconfirmed'});
+  await assert.rejects(library.execute(request),{code:'history_unconfirmed'});assert.equal(writes,2);
+  await assert.rejects(library.execute({...request,session:''}),{code:'invalid_progress'});
+});
 test('history removal references are private, profile-owned and confirmed only once',async()=>{
   let calls=0;
   const feed={videos:[{id}],has_continuation:false,async removeVideo(video,pages){

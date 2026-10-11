@@ -281,7 +281,7 @@ int main(void) {
     p->search("account fixture", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 13 && !pending_count);
+    assert(last_ok && last_count == 14 && !pending_count);
     char account_choices[7][160];
     for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
     const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};

@@ -259,7 +259,8 @@ static const struct { const char *action, *title; int channel; } g_account_actio
     {"watch_later_add", "Add to YouTube Watch later", 0},
     {"watch_later_remove", "Remove from YouTube Watch later", 0},
     {"subscribe", "Subscribe on YouTube", 1}, {"unsubscribe", "Unsubscribe on YouTube", 1},
-    {"history_remove", "Remove from YouTube history", 0}
+    {"history_remove", "Remove from YouTube history", 0},
+    {"mark_watched", "Mark as watched on YouTube", 0}
 };
 
 static int valid_cursor(const char *value) {
@@ -2047,6 +2048,14 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             cJSON_Delete(root); tube_set_error("YouTube did not confirm the account change. Check your account before repeating it."); complete(r, 0); return;
         }
         int removing = !strcmp(g_account_intent.action, "profile_remove");
+        if(!strcmp(g_account_intent.action,"mark_watched")) {
+            double position=num(result,"position_sec");
+            if(num(result,"api_version")!=1 || strcmp(str(result,"video_id"),g_account_intent.identity) ||
+               !isfinite(position) || position<=0 || position>1000000) {
+                cJSON_Delete(root);tube_set_error("The companion did not confirm this video as watched.");complete(r,0);return;
+            }
+            tube_mark_watched(g_account_intent.identity);
+        }
         if(!strcmp(g_account_intent.action,"history_remove")) {
             if(num(result,"api_version")!=1 || strcmp(str(result,"video_id"),g_account_intent.identity)) {
                 cJSON_Delete(root);tube_set_error("The companion did not confirm removal of this video.");complete(r,0);return;
@@ -3144,6 +3153,12 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         cJSON_AddStringToObject(operation, "id", g_account_intent.identity);
         cJSON_AddStringToObject(operation, "playlist", g_account_intent.playlist);
         cJSON_AddStringToObject(operation, "title", g_account_intent.title);
+        if(!strcmp(g_account_intent.action,"mark_watched")) {
+            char session[65];
+            snprintf(session,sizeof session,"watched-%llx-%lx-%llx-%u",(unsigned long long)time(NULL),
+                     (unsigned long)getpid(),(unsigned long long)now_ms(),g_account_intent.serial);
+            cJSON_AddStringToObject(operation,"session",session);
+        }
         if(!strcmp(g_account_intent.action,"history_remove")) {
             Record *history=record(g_account_intent.identity,0);
             if(!history || history->history_scope!=g_playlist_scope || history->history_deadline<=now_ms() ||

@@ -45,10 +45,35 @@ for line in sys.stdin:
         request = value["request"]
         with calls.open("a") as f: f.write(json.dumps(request) + "\\n")
         if request.get("position_sec") == 2 or request.get("action") == "hang": time.sleep(30)
-        result = {"api_version": 1, "success": True, "position_sec": request.get("position_sec", 0)}
+        result = {"api_version": 1, "success": True, "video_id": request.get("id"), "position_sec": request.get("position_sec", 125 if request.get("action") == "mark_watched" else 0)}
     print(json.dumps({"id": value["id"], "result": result}), flush=True)
 ''', encoding="utf-8")
     return path, calls
+
+
+def test_mark_watched_confirmation_and_uncertainty_survive_worker_restart(tmp_path):
+    async def run():
+        worker, calls = history_worker(tmp_path)
+        service = LibraryService(sys.executable, worker=worker, timeout=2)
+        service.profiles = [{"id": "one", "cookie": "synthetic-only"}]
+        request = dict(action='mark_watched', profile='one', id='abcdefghijk', session='confirmed')
+        assert (await service.execute(request))['position_sec'] == 125
+        await service._stop()
+        assert (await service.execute(request))['success'] and service.process is None
+        assert len(calls.read_text().splitlines()) == 1
+        with pytest.raises(ServiceError):
+            await service.execute({**request, 'id': '12345678901'})
+        await service._start()
+        service.timeout = .2
+        with pytest.raises(ServiceError) as error:
+            await service.execute({**request, 'session': 'uncertain', 'position_sec': 2})
+        assert error.value.code == 'library_timeout' and service.process is None
+        with pytest.raises(ServiceError) as error:
+            await service.execute({**request, 'session': 'uncertain'})
+        assert error.value.code == 'history_unconfirmed' and service.process is None
+        assert len(calls.read_text().splitlines()) == 2
+        await service.close()
+    asyncio.run(run())
 
 
 def test_history_uncertainty_survives_worker_restarts_and_blocks_queued_reports(tmp_path):

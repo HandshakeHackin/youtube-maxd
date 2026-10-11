@@ -60,7 +60,7 @@ class LibraryRequest(BaseModel):
                     "watch_later", "playlist", "comments", "replies", "continue", "like", "dislike",
                     "unrate", "subscribe", "unsubscribe", "playlist_create", "playlist_add",
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
-                    "watch_later_remove", "watch_progress", "profile_remove", "comment_rate",
+                    "watch_later_remove", "watch_progress", "profile_remove", "comment_rate", "mark_watched",
                     "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "history_remove"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
@@ -85,6 +85,9 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
+        if self.action == "mark_watched" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
+                or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.session)):
+            raise ValueError("Mark as watched requires a video and confirmation session.")
         if self.action == "history_remove" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.cursor)):
             raise ValueError("History removal requires a video and its retained history reference.")
