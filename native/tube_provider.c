@@ -19,6 +19,7 @@
 #include "tube_sponsor.h"
 #include "tube_remote.h"
 #include "tube_search_query.h"
+#include "tube_channel_name.h"
 #include "tube_random.h"
 
 #define RECORDS 384
@@ -88,6 +89,7 @@ typedef struct Request {
 static Record g_records[RECORDS];
 static struct { char profile[33],channel[25],name[256]; } g_blocked[128];
 static int g_blocked_count;
+static unsigned g_blocked_revision;
 static int g_count;
 static int g_store_writable = 1;
 static Request g_requests[REQUESTS];
@@ -753,18 +755,26 @@ static int channel_blocks_active(void) {
     for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile))return 1;
     return 0;
 }
+static int blocked_identity(const char *channel,const char *name) {
+    int index=blocked_channel(channel);if(index>=0)return index;
+    for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile) &&
+        tube_channel_name_equal(g_blocked[i].name,name))return i;
+    return -1;
+}
 static int change_channel_block(const char *channel,const char *name,int block) {
     char catalog[40];snprintf(catalog,sizeof catalog,"channel:%s",channel);
-    if(strlen(channel)!=24 || !valid_catalog_id(catalog))return 0;
-    int index=blocked_channel(channel);
+    if(*channel && (strlen(channel)!=24 || !valid_catalog_id(catalog)))return 0;
+    if(!*channel && !tube_channel_name_equal(name,name))return 0;
+    int index=blocked_identity(channel,name);
     if(!block) {
-        if(index>=0) {memmove(&g_blocked[index],&g_blocked[index+1],(size_t)(g_blocked_count-index-1)*sizeof g_blocked[0]);--g_blocked_count;}
+        if(index>=0) {memmove(&g_blocked[index],&g_blocked[index+1],(size_t)(g_blocked_count-index-1)*sizeof g_blocked[0]);--g_blocked_count;++g_blocked_revision;}
     } else if(index<0) {
         if(g_blocked_count>=128){tube_set_error("The channel block list is full. Unblock a channel first.");return 0;}
         index=g_blocked_count++;
         copy(g_blocked[index].profile,sizeof g_blocked[index].profile,g_library_profile);
         copy(g_blocked[index].channel,sizeof g_blocked[index].channel,channel);
         copy(g_blocked[index].name,sizeof g_blocked[index].name,*name?name:channel);
+        ++g_blocked_revision;
     }
     save();return 1;
 }
@@ -1184,9 +1194,11 @@ static int init(void) {
     cJSON_ArrayForEach(o,cJSON_GetObjectItemCaseSensitive(root,"blocked_channels")) {
         const char *owner=str(o,"profile"),*channel=str(o,"channel");char catalog[40];
         snprintf(catalog,sizeof catalog,"channel:%s",channel);
-        if(g_blocked_count>=128 || !valid_profile(owner) || strlen(channel)!=24 || !valid_catalog_id(catalog))continue;
+        const char *name=str(o,"name");
+        if(g_blocked_count>=128 || !valid_profile(owner) ||
+           (*channel ? strlen(channel)!=24 || !valid_catalog_id(catalog) : !tube_channel_name_equal(name,name)))continue;
         int duplicate=0;for(int i=0;i<g_blocked_count;++i)
-            if(!strcmp(g_blocked[i].profile,owner) && !strcmp(g_blocked[i].channel,channel))duplicate=1;
+            if(!strcmp(g_blocked[i].profile,owner) && ((*channel && !strcmp(g_blocked[i].channel,channel)) || tube_channel_name_equal(g_blocked[i].name,name)))duplicate=1;
         if(duplicate)continue;
         copy(g_blocked[g_blocked_count].profile,sizeof g_blocked[0].profile,owner);
         copy(g_blocked[g_blocked_count].channel,sizeof g_blocked[0].channel,channel);
@@ -2221,7 +2233,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (n >= LOCAL_PAGE || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         parse_item(&items[n], o);
-        if(!items[n].is_folder && blocked_channel(items[n].parent_id)>=0)continue;
+        if(!items[n].is_folder && blocked_identity(items[n].parent_id,items[n].subtitle)>=0)continue;
         parse_playlist_context(&items[n], o, r->parent);
         for (int i = 0; i < n; ++i)
             if (!strcmp(items[i].id,items[n].id) &&
@@ -2358,9 +2370,12 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[64]; int n = 0;
     if(parent && !strncmp(parent,"block:",6)) {
-        const char *channel=strrchr(parent,':');channel=channel?channel+1:"";
-        char expected[80];snprintf(expected,sizeof expected,"block:%u:%s",g_playlist_scope,channel);
-        if(page || strcmp(parent,expected) || blocked_channel(channel)<0 || !change_channel_block(channel,"",0)) {
+        int index=-1;
+        for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile)) {
+            char expected[80];snprintf(expected,sizeof expected,"block:%u:%u:%d",g_playlist_scope,g_blocked_revision,i);
+            if(!strcmp(parent,expected))index=i;
+        }
+        if(page || index<0 || !change_channel_block(g_blocked[index].channel,g_blocked[index].name,0)) {
             tube_set_error("Reopen blocked channels for the current profile.");cb(0,NULL,0,0,ud);return 1;
         }
         parent="blocked-channels";
@@ -2369,7 +2384,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         int total=0;
         for(int i=0;i<g_blocked_count;++i)if(!strcmp(g_blocked[i].profile,g_library_profile)) {
             if(total++<page*LOCAL_PAGE || n>=LOCAL_PAGE)continue;
-            char id[80];snprintf(id,sizeof id,"block:%u:%s",g_playlist_scope,g_blocked[i].channel);
+            char id[80];snprintf(id,sizeof id,"block:%u:%u:%d",g_playlist_scope,g_blocked_revision,i);
             CATALOG_FOLDER(id,g_blocked[i].name,"Cross unblocks this channel for the selected profile");
         }
         cb(1,out,n,total>(page+1)*LOCAL_PAGE,ud);return 1;
@@ -2582,10 +2597,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER(id,labels[i],"Saved for the selected profile on this PS5");
             }
             Record *video=record(parent+13,0);
-            if(video && strlen(video->item.parent_id)==24 && !strncmp(video->item.parent_id,"UC",2)) {
+            if(video && ((strlen(video->item.parent_id)==24 && !strncmp(video->item.parent_id,"UC",2)) ||
+                         (!*video->item.parent_id && tube_channel_name_equal(video->item.subtitle,video->item.subtitle)))) {
                 char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,
-                    blocked_channel(video->item.parent_id)>=0?"unblock":"block",parent+13);
-                CATALOG_FOLDER(id,blocked_channel(video->item.parent_id)>=0?"Unblock channel":"Block channel","Hide this channel in catalogs for the selected profile");
+                    blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"unblock":"block",parent+13);
+                CATALOG_FOLDER(id,blocked_identity(video->item.parent_id,video->item.subtitle)>=0?"Unblock channel":"Block channel","Hide this channel in catalogs for the selected profile");
             }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
@@ -3102,7 +3118,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         for (int i = 0; i < g_count; ++i) {
             Record *r = &g_records[i];
             int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : !strcmp(parent, "queue") ? r->queued : r->subscribed;
-            if (include && current_record(r) && blocked_channel(r->item.parent_id)<0) indexes[total++] = i;
+            if (include && current_record(r) && blocked_identity(r->item.parent_id,r->item.subtitle)<0) indexes[total++] = i;
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
             Record *a = &g_records[indexes[i]], *b = &g_records[indexes[j]];
@@ -3782,7 +3798,7 @@ int tube_playback_at_end(double position, double duration) {
 
 int tube_queue_retry_pending(void) {
     Record *r = record_for(g_next_id,g_next_profile,0);
-    return queue_mode_allows_advance() && r && r->queued && blocked_channel(r->item.parent_id)<0 && !strcmp(g_next_profile,g_library_profile);
+    return queue_mode_allows_advance() && r && r->queued && blocked_identity(r->item.parent_id,r->item.subtitle)<0 && !strcmp(g_next_profile,g_library_profile);
 }
 void tube_queue_retry_cancel(void) {
     g_next_id[0] = g_next_profile[0] = 0; g_queue_failed_count = 0;
@@ -3796,7 +3812,7 @@ static int queue_failed(const char *id) {
 static int queue_next(void) {
     Record *next = NULL;
     for (int i = 0; i < g_count; ++i)
-        if (current_record(&g_records[i]) && g_records[i].queued && blocked_channel(g_records[i].item.parent_id)<0 && !queue_failed(g_records[i].item.id) &&
+        if (current_record(&g_records[i]) && g_records[i].queued && blocked_identity(g_records[i].item.parent_id,g_records[i].item.subtitle)<0 && !queue_failed(g_records[i].item.id) &&
             (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
     if (!next) return 0;
     copy(g_next_id,sizeof g_next_id,next->item.id);
@@ -3877,7 +3893,7 @@ static int playlist_eof_advance(void) {
         const Record *cached=record_for(window->ids[at],g_active_profile,0);
         const char *channel=*window->channels[at]?window->channels[at]:cached?cached->item.parent_id:"";
         if(channel_blocks_active() && !*channel)return 0;
-        if(blocked_channel(channel)<0)break;
+        if(blocked_identity(channel,cached?cached->item.subtitle:"")<0)break;
         ++blocked;at+=direction;
     }
     if (at < 0 || at >= window->count) {
@@ -3912,7 +3928,7 @@ static int manual_queue(int direction) {
     if(direction<0 && (!current || !current->queue_order))return 0;
     for(int i=0;i<g_count;++i) {
         Record *r=&g_records[i];
-        if(!current_record(r) || blocked_channel(r->item.parent_id)>=0 || (direction>0?!r->queued:!r->queue_order) || queue_failed(r->item.id) || !strcmp(r->item.id,g_active_id))continue;
+        if(!current_record(r) || blocked_identity(r->item.parent_id,r->item.subtitle)>=0 || (direction>0?!r->queued:!r->queue_order) || queue_failed(r->item.id) || !strcmp(r->item.id,g_active_id))continue;
         if(direction<0 ? r->queue_order>=current->queue_order :
             (current && current->queued && r->queue_order<=current->queue_order))continue;
         if(!next || (direction<0?r->queue_order>next->queue_order:r->queue_order<next->queue_order))next=r;
@@ -4070,12 +4086,12 @@ int tube_take_next(evo_provider_item_t *item) {
     }
     if (g_playlist_next_ready) {
         g_playlist_next_ready=0;
-        if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || blocked_channel(g_playlist_next.parent_id)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
+        if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || blocked_identity(g_playlist_next.parent_id,g_playlist_next.subtitle)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
         *item=g_playlist_next;manual_departure();return 1;
     }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
-    if (!r || blocked_channel(r->item.parent_id)>=0 || (!r->queued && g_manual_direction>=0) || !item) return 0;
+    if (!r || blocked_identity(r->item.parent_id,r->item.subtitle)>=0 || (!r->queued && g_manual_direction>=0) || !item) return 0;
     copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
     copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
     g_launch_origin.music = r->queued_music; g_launch_origin.automatic = !g_manual_direction;

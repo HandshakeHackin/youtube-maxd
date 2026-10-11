@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Unicode channel-name blocks — 2026-10-11
+
+Catalog and retained queue records now match blocked channel names with simple
+Unicode uppercase-then-lowercase comparison. The pinned Unicode 15.0.0 table
+supports non-ASCII and supplementary characters without locale-specific folding,
+normalization or multi-character expansion. Name-only block entries persist and
+can be removed through revision-owned management actions, preventing stale row
+indices from targeting another entry after a removal.
+
+Four ASan/UBSan suites pass (name matching/persistence, channel blocks, blocked
+queue navigation and core provider), including Latin accents, Greek sigma,
+Turkish I, Cyrillic, supplementary characters, malformed UTF-8, preserved local
+queue membership and stale removal rejection. The real RmlUi host regression
+also passes; the PS5 provider object compiles with existing SDK warnings.
+Regeneration from the hash-pinned UCD input exactly matches the committed table;
+native preparation includes an exact copy of the Unicode license in its assets.
+Name propagation into uncached playback metadata, alternative recommendations
+and hardware acceptance remain pending.
+
 ## Missing playlist-channel metadata — 2026-10-11
 
 Playlist navigation requests channel verification when the current profile has

@@ -677,9 +677,16 @@ and requests the next window beyond a blocked boundary. A prepared playlist
 handoff is checked again before launch. Malformed or mismatched channel arrays
 are rejected rather than assigned to another occurrence.
 
-This currently matches stable channel IDs only. SmartTube's channel-name matching
-and alternative recommendation selection
-remain unfinished. No YouTube account feedback or subscription is modified.
+Catalog and retained queue records now also match names using Unicode simple
+uppercase-then-lowercase comparison, following the
+[Java case-insensitive comparison rule](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/lang/String.html#compareToIgnoreCase(java.lang.String)).
+The pinned Unicode 15.0.0 table handles non-ASCII and supplementary characters;
+there is no locale-specific folding, multi-character expansion or normalization.
+Videos with only a channel name can be blocked and persisted. Management actions
+carry a list revision as well as the profile/source epoch so removing one row
+cannot retarget an older action to another row. Stable-ID matching remains.
+Name propagation into uncached playback metadata and alternative recommendation
+selection remain unfinished. No YouTube account feedback or subscription is modified.
 
 Successful channel block/unblock actions close the local action screens and
 reload their originating catalog or search. Search text and the parent folder

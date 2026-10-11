@@ -85,7 +85,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_channel_name.h", "tube_name_case_data.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -101,6 +101,7 @@ def main():
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
         shutil.copyfile(ROOT / name, notices / name)
     shutil.copyfile(ROOT / "native/vendor/cJSON/LICENSE", notices / "cJSON-MIT.txt")
+    shutil.copyfile(ROOT / "native/licenses/Unicode-3.0.txt", notices / "Unicode-3.0.txt")
     shutil.copyfile(EVO / "COPYRIGHT.md", notices / "EVO-COPYRIGHT.md")
     replace(player + "Makefile", "    addons/src/provider_stremio.c", "    addons/src/provider_stremio.c \\\n    addons/src/tube_provider.c \\\n    addons/src/tube_remote.c \\\n    addons/src/tube_phone.c \\\n    addons/src/tube_voice.c \\\n    addons/src/tube_microphone.c")
     replace(player + "addons/src/evo_provider_mgr.c", "extern const evo_provider_t evo_provider_iptv;", "extern const evo_provider_t evo_provider_youtube;\nextern const evo_provider_t evo_provider_iptv;")
