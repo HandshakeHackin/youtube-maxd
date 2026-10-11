@@ -74,6 +74,12 @@ def main():
             "socket_timeout": 12, "retries": 1, "extractor_retries": 1,
             "noplaylist": not request["flat"], "ignoreerrors": False,
             "extractor_args": request.get("extractor_args", {})}
+    if request.get("translated_subs"):
+        # Without this yt-dlp skips translations of human-made tracks. Nothing
+        # is written: the worker never downloads.
+        opts["writeautomaticsub"] = True
+    if request.get("proxy"):
+        opts["proxy"] = request["proxy"]
     if request.get("cookies"):
         opts["cookiefile"] = request["cookies"]
     if request.get("js_runtimes") is not None:

@@ -241,8 +241,8 @@ class Receiver:
 
 
 class Lounge:
-    def __init__(self, client=None, *, playlist_loader=None):
-        self.http = client or httpx.AsyncClient(timeout=httpx.Timeout(65, connect=5), follow_redirects=False)
+    def __init__(self, client=None, *, playlist_loader=None, proxy=None):
+        self.http = client or httpx.AsyncClient(timeout=httpx.Timeout(65, connect=5), follow_redirects=False, proxy=proxy)
         self.owns_http = client is None
         self.receivers = {}
         self.lock = asyncio.Lock()

@@ -23,7 +23,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from . import __version__
 from .catalog import item, page_for
 from .content_locale import check_locale, locale_options
-from .description import describe
+from .description import describe, details as describe_details
+from .dislikes import Dislikes
+from .proxy import proxy_url
+from . import subscriptions_import
 from . import thumbnail_source
 from .captions import vtt_to_srt
 from .extractor import Extractor
@@ -63,6 +66,11 @@ HideFlag = Literal["shorts_all", "mixes", "watched_watch_later", "watched_home",
                    "upcoming_home", "upcoming_channel"]
 ThumbnailSource = Literal["default", "start", "middle", "end"]
 ACCOUNT_INTENTS = {"playlist_save", "playlist_unsave", "history_pause", "history_resume", "history_clear"}
+# Library actions answered from a video extraction when no worker runs.
+WORKERLESS = {"description", "video_details"}
+# Capabilities of the third batch that need the library worker.
+WORKER_FEATURES = ["kids", "stream_reminder", "playlist_order", "subscribe_notifications", "comment_post",
+                   "search_first", "channel_new_content"]
 
 
 def sponsorblock_origin(value):
@@ -90,8 +98,10 @@ class LibraryRequest(BaseModel):
                     "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "group_window", "history_remove",
                     "search", "search_suggestions", "description", "channels", "notifications", "feedback",
                     "channel", "channel_search", "playlist_save", "playlist_unsave",
-                    "history_pause", "history_resume", "history_clear"]
-    section: Literal["", "music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"] = ""
+                    "history_pause", "history_resume", "history_clear",
+                    "video_details", "stream_reminder", "playlist_order", "subscribe_notifications",
+                    "comment_post", "comment_reply"]
+    section: Literal["", "music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos", "kids"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
@@ -112,7 +122,7 @@ class LibraryRequest(BaseModel):
     chat_position_sec: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False, strict=True)
     cursor: str = Field(default="", max_length=64)
     session: str = Field(default="", max_length=64, pattern="^[A-Za-z0-9_-]*$")
-    text: str = Field(default="", max_length=200)
+    text: str = Field(default="", max_length=1000)
     position_sec: float = Field(default=0, ge=0, le=1_000_000, allow_inf_nan=False)
     state: Literal["playing", "stopped"] = "playing"
     query: str = Field(default="", max_length=200)
@@ -128,6 +138,44 @@ class LibraryRequest(BaseModel):
     tab: Literal["", "home", "videos", "shorts", "live", "playlists"] = ""
     channel_sort: Literal["", "newest", "popular", "oldest"] = ""
     thumbnails: ThumbnailSource = "default"
+    reminder: Literal["", "status", "set", "unset"] = ""
+    playlist_order: Literal["", "added_newest", "added_oldest", "popular", "published_newest", "published_oldest"] = ""
+    notifications: Literal["", "all", "personalized", "none"] = ""
+    first_playable: bool = Field(default=False, strict=True)
+    new_content: bool = Field(default=False, strict=True)
+
+    @model_validator(mode="after")
+    def third_batch(self):
+        video = re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id) is not None
+        session = re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.session) is not None
+        if (self.action == "stream_reminder") != bool(self.reminder):
+            raise ValueError("A reminder choice belongs to the stream_reminder action.")
+        if self.action == "stream_reminder" and (not video or (self.reminder != "status" and not session)):
+            raise ValueError("A stream reminder requires a video and, for a change, a confirmation session.")
+        if self.playlist_order and self.action != "playlist_order":
+            raise ValueError("A playlist order belongs to the playlist_order action.")
+        if self.action == "playlist_order" and (not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})", self.playlist)
+                                                or self.id or (bool(self.playlist_order) and not session)):
+            raise ValueError("A playlist order requires a playlist and, for a change, a confirmation session.")
+        if self.notifications and self.action not in {"subscribe", "subscribe_notifications"}:
+            raise ValueError("A notification level belongs to a subscription.")
+        if self.action == "subscribe_notifications" and (not self.notifications
+                                                         or not re.fullmatch(r"UC[A-Za-z0-9_-]{22}", self.id)):
+            raise ValueError("Changing the notification level requires a channel and a level.")
+        if self.first_playable and self.action != "search":
+            raise ValueError("Only a search can return its first playable video.")
+        if self.new_content and self.action != "channels":
+            raise ValueError("New-content marks belong to the channels action.")
+        if self.action == "video_details" and not video:
+            raise ValueError("Video details require a video identity.")
+        posting = self.action in {"comment_post", "comment_reply"}
+        if posting and (not video or not session or not self.text.strip()
+                        or re.search(r"[\x00-\x09\x0b-\x1f\x7f]", self.text)
+                        or (self.action == "comment_reply" and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.cursor))):
+            raise ValueError("Posting a comment requires a video, text, a confirmation session and, for a reply, its reference.")
+        if len(self.text) > 200 and not posting:
+            raise ValueError("Only comments may be longer than 200 characters.")
+        return self
 
     @model_validator(mode="after")
     def locale_filters_channels_and_intents(self):
@@ -248,7 +296,7 @@ class JobRequest(BaseModel):
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
                http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None, voice=None,
-               sponsorblock_server=None):
+               sponsorblock_server=None, proxy=None, return_youtube_dislike=False):
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -273,8 +321,13 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.pairing_deadline = time.monotonic() + 600
     app.state.sessions = Sessions()
     app.state.hls_buffer = HLSBuffer(app.state.sessions)
-    app.state.http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(20, connect=5), follow_redirects=False)
+    # Media addresses are bound to the address that resolved them, so the relay
+    # leaves through the same proxy as the resolvers.
+    app.state.proxy = proxy_url(proxy) if proxy else None
+    app.state.http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(20, connect=5), follow_redirects=False,
+                                                      proxy=app.state.proxy)
     app.state.dearrow = DeArrow(app.state.http)
+    app.state.dislikes = Dislikes(app.state.http, return_youtube_dislike)
     app.state.public_base = public_base.rstrip("/") if public_base else None
     app.state.pair_attempts = defaultdict(list)
     app.state.sponsorblock = sponsorblock
@@ -325,7 +378,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 return JSONResponse({"error": {"code": "unauthorized", "message": "Pair the PS5 with this companion first."}}, status_code=401)
         # Request lengths are bounded even before JSON/Pydantic parsing.
         if request.method == "POST":
-            limit = MAX_REQUEST if path == "/v1/voice" else 8192
+            limit = (MAX_REQUEST if path == "/v1/voice" else
+                     subscriptions_import.MAX_BYTES if path == "/v1/subscriptions/import" else 8192)
             try:
                 if int(request.headers.get("content-length", "0")) > limit:
                     return Response(status_code=413)
@@ -361,20 +415,32 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
                 "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow",
-                             "locale", "thumbnail_source", "storyboards"] + (["library", "content_filters", "channel_pages"] if library is not None else []) + (["device_auth"] if device_auth is not None else []) + (["voice"] if voice is not None else []),
+                             "locale", "thumbnail_source", "storyboards",
+                             "translated_captions", "video_details", "subscriptions_import"]
+                            + (["library", "content_filters", "channel_pages"] if library is not None else [])
+                            + (WORKER_FEATURES if library is not None and not getattr(app.state.extractor, "fixture_mode", False) else [])
+                            + (["device_auth"] if device_auth is not None else []) + (["voice"] if voice is not None else [])
+                            + (["dislikes"] if app.state.dislikes.enabled else [])
+                            + (["proxy"] if app.state.proxy else []),
                 "sponsorblock": app.state.sponsorblock,
-                "sponsorblock_alt": app.state.sponsorblock_server is not None}
+                "sponsorblock_alt": app.state.sponsorblock_server is not None,
+                # Only whether a proxy is in use; never its address.
+                "proxy": app.state.proxy is not None}
 
     async def library_result(operation):
         if app.state.library is None:
-            # The full description needs no worker: one video extraction has it.
-            if operation.action != "description":
+            # The description and the details summary need no worker: one video extraction has them.
+            if operation.action not in WORKERLESS:
                 raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
             info = await resolver(operation.profile).extract(
                 f"https://www.youtube.com/watch?v={video_id(operation.id)}", **locale_options(operation.hl))
-            return describe(info, operation.id)
+            return (describe if operation.action == "description" else describe_details)(info, operation.id)
         result = await app.state.library.execute(operation.model_dump(exclude={"thumbnails"}))
         return thumbnail_source.apply(result, operation.thumbnails)
+
+    def resolve_options(playback):
+        # Machine-translated tracks of human captions need a fuller caption listing.
+        return {**locale_options(playback.hl), **({"translated": True} if playback.translated_captions else {})}
 
     def catalog_options(hl, gl, hide=None):
         return {**locale_options(hl, gl), **({"hide": list(hide)} if hide is not None else {})}
@@ -389,7 +455,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if app.state.remote is None:
             if payload.action != "start":
                 raise ServiceError("remote_session", "Enable phone connection first.", 404)
-            app.state.remote = Lounge(playlist_loader=app.state.library.execute if app.state.library is not None else None)
+            app.state.remote = Lounge(playlist_loader=app.state.library.execute if app.state.library is not None else None,
+                                      proxy=app.state.proxy)
         return await app.state.remote.execute(payload)
 
     def signin():
@@ -465,9 +532,18 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def resolve(payload: ResolveRequest, request: Request):
         video_id(payload.id)
         info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}", fresh=payload.fresh,
-                                                       **locale_options(payload.hl))
+                                                       **resolve_options(payload))
         resolver(payload.profile)  # profile may have been removed while awaiting extraction
         return app.state.sessions.create(info, payload, base(request))
+
+    @app.get("/v1/dislikes/{identifier}")
+    async def dislikes(identifier: str):
+        return await app.state.dislikes.get(video_id(identifier))
+
+    @app.post("/v1/subscriptions/import")
+    async def import_subscriptions(request: Request):
+        # The body is the export file itself; nothing is stored and no account is touched.
+        return subscriptions_import.parse(await request.body())
 
     def cancel_auth_result(task):
         if getattr(task, "voice_read", False) and not task.done():
@@ -513,7 +589,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if payload.action == "resolve" and payload.playback is None:
             raise ServiceError("invalid_job", "A playback request is required.", 400)
         if payload.action == "library" and (payload.library is None or (
-                app.state.library is None and payload.library.action != "description")):
+                app.state.library is None and payload.library.action not in WORKERLESS)):
             raise ServiceError("invalid_job", "An enabled library and operation are required.", 400)
         if payload.action == "auth":
             if payload.auth is None or app.state.device_auth is None:
@@ -541,7 +617,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                 elif payload.action == "resolve":
                     identifier = video_id(payload.playback.id)
                     info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}", fresh=payload.playback.fresh,
-                                                                            **locale_options(payload.playback.hl))
+                                                                            **resolve_options(payload.playback))
                     resolver(payload.playback.profile)
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":

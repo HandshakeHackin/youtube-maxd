@@ -144,7 +144,7 @@ class FixtureLibrary:
             text = "Generated description.\nLiteral <b>markup</b> & Unicode: caf\u00e9 \u65e5\u672c\u8a9e.\n" + "Full description scroll test. " * 200
             return {"api_version": 1, "kind": "description", "id": identifier, "title": row["title"],
                     "channel": row["subtitle"], "channel_id": row["channel_id"], "published": "2024-01-01",
-                    "views": "1234", "description": text[:20000], "truncated": False}
+                    "views": "1234", "like_count": "56", "description": text[:20000], "truncated": False}
         if action in {"comments", "like", "dislike", "unrate", "playlist_add", "playlist_remove", "watch_later_add", "watch_later_remove", "watch_progress"} or (action == "playlist_create" and identifier):
             if identifier not in VIDEOS:
                 raise ServiceError("fixture_only", "Select a generated fixture video.", 404)

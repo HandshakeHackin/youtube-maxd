@@ -10,8 +10,10 @@ from .resolver_errors import service_error
 
 
 class Extractor:
-    def __init__(self, *, timeout=45, workers=2, cookies=None, cookie_header=None, extractor_args=None, js_runtimes=None):
+    def __init__(self, *, timeout=45, workers=2, cookies=None, cookie_header=None, extractor_args=None, js_runtimes=None,
+                 proxy=None):
         self.timeout = timeout
+        self.proxy = proxy
         self.semaphore = asyncio.Semaphore(workers)
         self.cookies = cookies
         self.cookie_header = cookie_header
@@ -43,11 +45,14 @@ class Extractor:
             self._kill_worker(process)
 
     async def extract(self, target: str, *, flat=False, start=1, end=24, fresh=False, _oauth_access_token=None,
-                      hl="", gl="", hide=None):
+                      hl="", gl="", hide=None, translated=False):
         # yt-dlp has a language setting only; country and content filters
-        # belong to the worker-backed catalog adapters.
+        # belong to the worker-backed catalog adapters. `translated` asks for
+        # the machine-translated caption list, which is slower to build.
         self.ensure_active()
         key = (target, flat, start, end, hl) if hl else (target, flat, start, end)
+        if translated:
+            key += ("translated",)
         cached = self.cache.get(key)
         if not fresh and cached and cached[0] > time.monotonic():
             return cached[1]
@@ -65,6 +70,8 @@ class Extractor:
                                   "cookies": self.cookies, "extractor_args": self.extractor_args,
                                   "cookie_header": self.cookie_header,
                                   "js_runtimes": self.js_runtimes, **({"hl": hl} if hl else {}),
+                                  **({"translated_subs": True} if translated else {}),
+                                  **({"proxy": self.proxy} if self.proxy else {}),
                                   **({"oauth_access_token": _oauth_access_token} if _oauth_access_token else {})}).encode()
                 async with asyncio.timeout(self.timeout):
                     process.stdin.write(payload)
@@ -147,7 +154,8 @@ class ProfileExtractors:
             raise ServiceError("playback_account_context", "Playback for secondary accounts or brand channels is not connected yet.", 503)
         if profile not in self.extractors:
             resolver = Extractor(timeout=self.guest.timeout, cookie_header=configured["cookie"],
-                                 extractor_args=self.guest.extractor_args, js_runtimes=self.guest.js_runtimes)
+                                 extractor_args=self.guest.extractor_args, js_runtimes=self.guest.js_runtimes,
+                                 proxy=self.guest.proxy)
             resolver.semaphore = self.guest.semaphore
             if self.library is not None:
                 from .guest_catalog import CatalogExtractor

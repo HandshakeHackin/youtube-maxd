@@ -98,7 +98,9 @@ class TVOAuthYoutubeIE(LoudnessMixin, PaidContentMixin, LiveHLSMixin, YoutubeIE)
         except (ValueError, AttributeError, TypeError):
             raise ExtractorError("Invalid TV account context", expected=True) from None
         try:
-            with httpx.Client(timeout=12, follow_redirects=False, trust_env=False) as client:
+            # The host's proxy, when configured, also carries this separate transport.
+            with httpx.Client(timeout=12, follow_redirects=False, trust_env=False,
+                              proxy=self.get_param("proxy") or None) as client:
                 with client.stream("POST", url_or_request, headers=headers, content=data, params=kwargs.get("query")) as response:
                     if response.status_code in (401, 403):
                         raise ExtractorError("TV account login required", expected=True)

@@ -26,7 +26,18 @@ def main():
     parser.add_argument("--voice-cli", type=Path, help="Local whisper.cpp whisper-cli executable for voice search")
     parser.add_argument("--voice-model", type=Path, help="Local whisper.cpp GGML speech model")
     parser.add_argument("--voice-language", default="auto", help="Speech language code or auto (default)")
+    parser.add_argument("--proxy", help="Web proxy for every YouTube connection: http://[user:password@]host[:port] or https://...")
+    parser.add_argument("--return-youtube-dislike", action="store_true",
+                        help="Enable optional dislike counts from returnyoutubedislikeapi.com (sends the video ID there)")
     args = parser.parse_args()
+    if args.proxy:
+        from .proxy import proxy_url
+        try:
+            args.proxy = proxy_url(args.proxy)
+        except ValueError as error:
+            parser.error(str(error))  # the message never repeats the address
+        if args.fixtures:
+            parser.error("--proxy has no use in offline fixture mode.")
     if args.sponsorblock_server:
         from .app import sponsorblock_origin
         try:
@@ -64,10 +75,12 @@ def main():
     if args.js_runtime_path and not args.js_runtime:
         parser.error("--js-runtime-path requires --js-runtime")
     runtimes = {args.js_runtime: {"path": args.js_runtime_path} if args.js_runtime_path else {}} if args.js_runtime else None
-    extractor = Extractor(cookies=str(args.cookies) if args.cookies else None, extractor_args=extra, js_runtimes=runtimes)
+    extractor = Extractor(cookies=str(args.cookies) if args.cookies else None, extractor_args=extra, js_runtimes=runtimes,
+                          proxy=args.proxy)
     if args.fixtures:
         from .demo import create_demo_app
-        app = create_demo_app(args.fixtures, token=token, public_base=args.public_base, voice=voice)
+        app = create_demo_app(args.fixtures, token=token, public_base=args.public_base, voice=voice,
+                              return_youtube_dislike=args.return_youtube_dislike)
         print("OFFLINE FIXTURE MODE: generated media only; YouTube is not contacted.")
         print("Account/library actions use synthetic offline profiles; changes reset on restart.")
     else:
@@ -78,7 +91,8 @@ def main():
             from .device_auth import DeviceAuth, OAuthProfiles
             try:
                 oauth_store = OAuthProfiles(args.state_dir)
-                library = LibraryService(args.library_node, profile_config=args.library_profiles, oauth_store=oauth_store)
+                library = LibraryService(args.library_node, profile_config=args.library_profiles, oauth_store=oauth_store,
+                                         proxy=args.proxy)
             except (ValueError, OSError, KeyError):
                 parser.error("The account profile configuration is invalid. Check profile and credential files.")
             device_auth = DeviceAuth(lambda request: library.execute(request, operation="device"),
@@ -87,7 +101,10 @@ def main():
             from .extractor import ProfileExtractors
             extractor = ProfileExtractors(extractor, lambda: library.profiles, library)
         app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth, voice=voice,
-                         sponsorblock_server=args.sponsorblock_server)
+                         sponsorblock_server=args.sponsorblock_server, proxy=args.proxy,
+                         return_youtube_dislike=args.return_youtube_dislike)
+        if args.proxy:
+            print("Web proxy: enabled for YouTube resolution, the library worker and the media relay.")
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")

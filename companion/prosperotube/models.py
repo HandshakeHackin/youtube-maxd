@@ -96,6 +96,7 @@ class ResolveRequest(BaseModel):
     caption_language: str = Field(default="en", max_length=16, pattern="^[A-Za-z0-9_-]*$")
     audio_language: str = Field(default="", max_length=16, pattern="^[A-Za-z0-9_-]*$")
     automatic_captions: bool = False
+    translated_captions: bool = Field(default=False, strict=True)
     fresh: bool = Field(default=False, strict=True)
     hl: str = Field(default="", max_length=8)
 
@@ -126,6 +127,7 @@ class Caption(BaseModel):
     name: str
     url: str
     automatic: bool = False
+    translated: bool = False
 
 
 class Storyboard(BaseModel):

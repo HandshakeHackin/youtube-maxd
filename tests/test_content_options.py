@@ -278,7 +278,7 @@ def test_description_is_served_from_the_video_extraction_without_a_worker():
         result = reply.json()
         assert {k: v for k, v in result.items() if k != "description"} == dict(
             api_version=1, kind="description", id=ID, title=source["title"], channel="Fixture channel",
-            channel_id="UC" + "a" * 22, published="2024-05-06", views="1234567", truncated=True)
+            channel_id="UC" + "a" * 22, published="2024-05-06", views="1234567", like_count="", truncated=True)
         assert result["description"] == long[:len(result["description"])] and len(result["description"]) == 19999
         assert extractor.calls[-1] == ("https://www.youtube.com/watch?v=" + ID, {"hl": "fr"})
         job = client.post("/v1/jobs", headers=AUTH, json=dict(action="library", library=dict(action="description", id=ID))).json()["job"]
@@ -289,7 +289,7 @@ def test_description_is_served_from_the_video_extraction_without_a_worker():
     assert bounded(None) == ("", False) and bounded("a\x00b") == ("ab", False)
     bare = describe({"id": ID, "view_count": True, "upload_date": "2024", "channel_id": "bad"}, ID)
     assert bare == dict(api_version=1, kind="description", id=ID, title="", channel="", channel_id="", published="",
-                        views="", description="", truncated=False)
+                        views="", like_count="", description="", truncated=False)
     for wrong in ({"id": "12345678901"}, None, []):
         with pytest.raises(ServiceError) as error:
             describe(wrong, ID)

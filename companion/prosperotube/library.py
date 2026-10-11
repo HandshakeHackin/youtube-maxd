@@ -3,6 +3,7 @@ import asyncio
 import hashlib
 import http.cookiejar
 import json
+import os
 from pathlib import Path
 import re
 import secrets
@@ -58,8 +59,10 @@ def load_profiles(config):
 
 
 class LibraryService:
-    def __init__(self, node="node", *, profile_config=None, worker=None, timeout=30, oauth_store=None):
+    def __init__(self, node="node", *, profile_config=None, worker=None, timeout=30, oauth_store=None, proxy=None):
         self.node = node
+        self.proxy = proxy
+        self.session_intents = {}
         self.worker = Path(worker) if worker else Path(__file__).resolve().parents[1] / "innertube" / "worker.bundle.mjs"
         self.profiles = load_profiles(profile_config)
         self.oauth_store = oauth_store
@@ -105,6 +108,7 @@ class LibraryService:
         self.watched_intents = {k: v for k, v in self.watched_intents.items() if k[0] != identity}
         self.feedback_states = {k: v for k, v in self.feedback_states.items() if k[0] != identity}
         self.account_intents = {k: v for k, v in self.account_intents.items() if k[0] != identity}
+        self.session_intents = {k: v for k, v in self.session_intents.items() if k[0] != identity}
         self.on_profile_removed(identity)
         await self._stop()  # retire all cached Node credentials/continuations
         if not confirmed:
@@ -180,7 +184,9 @@ class LibraryService:
         self.process = await asyncio.create_subprocess_exec(
             str(self.node), str(self.worker), stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
-            limit=1048577)
+            limit=1048577,
+            # The proxy address may hold a password: environment, never arguments.
+            env={**os.environ, "PROSPEROTUBE_PROXY": self.proxy} if self.proxy else None)
         result = await self._exchange({"operation": "init", "profiles": self.profiles})
         if result.get("ready") is not True:
             raise ServiceError("library_transport", "The library worker did not initialize.")
@@ -348,6 +354,58 @@ class LibraryService:
             self.account_intents[(owner, session)] = state
         return state
 
+    # Third-batch changes: action -> (fields that identify the change, unconfirmed code,
+    # result fields kept). Reads of the same actions (`status`, empty order) are not intents.
+    SESSION_INTENTS = {
+        'stream_reminder': (('id', 'reminder'), 'reminder_unconfirmed', ('api_version', 'success', 'id', 'reminder_set')),
+        'playlist_order': (('playlist', 'playlist_order'), 'playlist_unconfirmed', ('api_version', 'success', 'playlist_id', 'order')),
+        'comment_post': (('id', 'text'), 'comment_unconfirmed', ('api_version', 'success', 'id', 'session', 'reply')),
+        'comment_reply': (('id', 'cursor', 'text'), 'comment_unconfirmed', ('api_version', 'success', 'id', 'session', 'reply')),
+    }
+    # The worker sent nothing for these errors, so the confirmation may be used again.
+    NOTHING_SENT = {'history_control_unavailable', 'reminder_unavailable', 'playlist_order_unavailable'}
+
+    def _session_intent(self, request, *, create=False):
+        """Reminders, playlist order and comment posts: one attempt per confirmation session."""
+        action = request.get('action')
+        if (action not in self.SESSION_INTENTS or (action == 'stream_reminder' and request.get('reminder') == 'status')
+                or (action == 'playlist_order' and not request.get('playlist_order'))):
+            return None
+        fields, code, _ = self.SESSION_INTENTS[action]
+        owner, session = request.get('profile', 'guest'), request.get('session', '')
+        values = [request.get(field) for field in fields]
+        if (not isinstance(owner, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', owner)
+                or not isinstance(session, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', session)
+                or not all(isinstance(value, str) and value for value in values)):
+            raise ServiceError('invalid_request', 'The change needs a confirmation session and a valid target.', 400)
+        if owner == 'guest':
+            raise ServiceError('account_required', 'Select an account profile first.', 401)
+        if not self.has_profile(owner):
+            raise ServiceError('unknown_profile', 'Select an available profile.', 404)
+        now = time.monotonic()
+        self.session_intents = {k: v for k, v in self.session_intents.items() if v['deadline'] > now}
+        identity = (action, hashlib.sha256('\x00'.join(values).encode('utf-8')).hexdigest())
+        state = self.session_intents.get((owner, session))
+        if state and (state['identity'] != identity or state['result'] is None):
+            raise ServiceError(code, 'Check the account before repeating this change.', 409)
+        if state is None and create:
+            if len(self.session_intents) >= 256:
+                raise ServiceError('account_busy', 'Too many account changes are retained.', 429)
+            state = {'identity': identity, 'result': None, 'deadline': now + 1800}
+            self.session_intents[(owner, session)] = state
+        return state
+
+    def _confirm_session_intent(self, request, result):
+        action = request['action']
+        _, code, keys = self.SESSION_INTENTS[action]
+        expected = ({'id': request['id'], 'reminder_set': request['reminder'] == 'set'} if action == 'stream_reminder' else
+                    {'playlist_id': request['playlist'], 'order': request['playlist_order']} if action == 'playlist_order' else
+                    {'id': request['id'], 'session': request['session'], 'reply': action == 'comment_reply'})
+        if (result.get('api_version') != 1 or result.get('success') is not True
+                or any(result.get(key) != value or type(result.get(key)) is not type(value) for key, value in expected.items())):
+            raise ServiceError(code, 'YouTube did not confirm the change.', 502)
+        return {key: result[key] for key in keys}
+
     async def execute(self, request, *, operation="execute"):
         if self.closed:
             raise ServiceError("library_closed", "The library service has stopped.", 503)
@@ -381,7 +439,11 @@ class LibraryService:
                     account_intent = self._account_intent(request) if operation == 'execute' else None
                     if account_intent is not None:
                         return dict(account_intent['result'])
+                    session_intent = self._session_intent(request) if operation == 'execute' else None
+                    if session_intent is not None:
+                        return dict(session_intent['result'])
                     await self._start()
+                    session_intent = self._session_intent(request, create=True) if operation == 'execute' else None
                     account_intent = self._account_intent(request, create=True) if operation == 'execute' else None
                     feedback_state = self._feedback_state(request, create=True) if operation == 'execute' else None
                     watched_intent = self._watched_intent(request, create=True) if operation == 'execute' else None
@@ -391,6 +453,9 @@ class LibraryService:
                     if watch_state is not None:
                         watch_state["blocked"] = True
                     result = await self._exchange({"operation": operation, "request": request})
+                    if session_intent is not None:
+                        session_intent['result'] = self._confirm_session_intent(request, result)
+                        result = dict(session_intent['result'])
                     if account_intent is not None:
                         field, expected = self.ACCOUNT_RESULTS[request['action']]
                         saving = field == 'saved'
@@ -445,9 +510,12 @@ class LibraryService:
         except ServiceError as error:
             if owned and error.code == "library_transport":
                 await self._stop()
-            if owned and error.code == "history_control_unavailable":
+            if owned and error.code in self.NOTHING_SENT:
                 # The worker sent nothing, so this confirmation may be used again.
-                self.account_intents.pop((request.get("profile", "guest"), request.get("session", "")), None)
+                key = (request.get("profile", "guest"), request.get("session", ""))
+                for intents in (self.account_intents, self.session_intents):
+                    if (intents.get(key) or {}).get("result", 0) is None:
+                        del intents[key]
             raise
         except (OSError, ValueError, ConnectionError):
             if owned:

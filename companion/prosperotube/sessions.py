@@ -4,6 +4,7 @@ import secrets
 import time
 import xml.etree.ElementTree as ET
 import math
+from urllib.parse import parse_qs, urlsplit
 from .models import Caption, Choice, Playback, ResolveRequest, ServiceError, Storyboard, number, safe_remote, text
 from .media_refresh import Representation, binding, media_headers
 
@@ -198,12 +199,29 @@ class Sessions:
         captions = []
         subtitles = dict(info.get("subtitles") or {})
         automatic = info.get("automatic_captions") or {}
+
+        def vtt(tracks):
+            return next((t for t in tracks if isinstance(t, dict) and t.get("ext") == "vtt" and t.get("url")), None)
+
+        def translated(track):
+            # A machine translation is the same caption address with a target language.
+            try:
+                return bool(track) and "tlang" in parse_qs(urlsplit(str(track.get("url"))).query)
+            except ValueError:
+                return False
         if request.automatic_captions:
             for lang, tracks in automatic.items():
                 subtitles.setdefault(lang, tracks)
+        elif request.translated_captions:
+            # "More subtitles": machine translations only, at most 128 of them.
+            extra = sorted((lang for lang, tracks in automatic.items()
+                            if lang not in subtitles and isinstance(tracks, list) and translated(vtt(tracks))),
+                           key=lambda lang: (lang != request.caption_language, lang))
+            for lang in extra[:128]:
+                subtitles[lang] = automatic[lang]
         languages = sorted(subtitles, key=lambda lang: (lang != request.caption_language, lang))
         for lang in languages[:256]:
-            track = next((t for t in subtitles[lang] if t.get("ext") == "vtt" and t.get("url")), None)
+            track = vtt(subtitles[lang]) if isinstance(subtitles[lang], list) else None
             if not track:
                 continue
             try:
@@ -211,7 +229,8 @@ class Sessions:
             except ServiceError:
                 continue
             captions.append(Caption(language=text(lang, 32), name=text(track.get("name") or lang, 64),
-                                    url=url, automatic=lang not in (info.get("subtitles") or {})))
+                                    url=url, automatic=lang not in (info.get("subtitles") or {}),
+                                    translated=translated(track)))
         # Seek-preview sheets are signed image URLs, so each one becomes a relay
         # capability; `$M` in the returned template is the sheet number.
         storyboards = []

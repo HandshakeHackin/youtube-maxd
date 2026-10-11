@@ -13,7 +13,8 @@ from .models import ServiceError
 class OAuthExtractor(Extractor):
     uses_explicit_catalog_pages = True
     def __init__(self, profile, library, guest):
-        super().__init__(timeout=guest.timeout, extractor_args=guest.extractor_args, js_runtimes=guest.js_runtimes)
+        super().__init__(timeout=guest.timeout, extractor_args=guest.extractor_args, js_runtimes=guest.js_runtimes,
+                         proxy=getattr(guest, "proxy", None))
         self.profile, self.library = profile, library
         self.semaphore = guest.semaphore
         self.catalogs = {}
@@ -29,17 +30,18 @@ class OAuthExtractor(Extractor):
         self.ensure_active()
         return result
 
-    async def extract(self, target, *, flat=False, start=1, end=24, fresh=False, hl="", gl="", hide=None):
+    async def extract(self, target, *, flat=False, start=1, end=24, fresh=False, hl="", gl="", hide=None, translated=False):
         self.ensure_active()
         # Locale and content filters are part of the catalog identity below.
-        options = {key: value for key, value in (("hl", hl), ("gl", gl), ("hide", hide)) if value or value == []}
+        options = {key: value for key, value in (("hl", hl), ("gl", gl), ("hide", hide), ("translated", translated))
+                   if value or value == []}
         try:
             async with asyncio.timeout(self.timeout):
                 return await self._extract_authorized(target, flat=flat, start=start, end=end, fresh=fresh, **options)
         except TimeoutError:
             raise ServiceError("timeout", "YouTube took too long to respond. Retry from the video screen.", 504) from None
 
-    async def _extract_authorized(self, target, *, flat, start, end, fresh=False, hl="", gl="", hide=None):
+    async def _extract_authorized(self, target, *, flat, start, end, fresh=False, hl="", gl="", hide=None, translated=False):
         if flat:
             return await self._catalog(target, start, end, hl=hl, gl=gl, hide=hide)
         if not re.fullmatch(r"https://www\.youtube\.com/watch\?v=[A-Za-z0-9_-]{11}", target):
@@ -54,7 +56,8 @@ class OAuthExtractor(Extractor):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403) from None
         if not isinstance(token, str) or not 1 <= len(token) <= 8192 or re.search(r"[^\x21-\x7e]", token):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403)
-        return await super().extract(target, fresh=fresh, _oauth_access_token=token, **({"hl": hl} if hl else {}))
+        return await super().extract(target, fresh=fresh, _oauth_access_token=token, **({"hl": hl} if hl else {}),
+                                     **({"translated": True} if translated else {}))
 
     async def _catalog(self, target, start, end, *, hl="", gl="", hide=None):
         if type(start) is not int or type(end) is not int or start < 1 or (start - 1) % 24 or end != start + 24 or end > 24025:
