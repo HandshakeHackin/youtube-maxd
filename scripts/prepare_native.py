@@ -85,7 +85,7 @@ def main():
     subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
-    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_channel_name.h", "tube_name_case_data.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h", "tube_player_extra.c", "tube_player_extra.h", "tube_storyboard.h", "tube_audio_delay.h", "tube_password.h"):
+    for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_seek_timeline.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_channel_name.h", "tube_name_case_data.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h", "tube_player_extra.c", "tube_player_extra.h", "tube_storyboard.h", "tube_audio_delay.h", "tube_password.h", "tube_qr.h", "tube_qr_page.h", "tube_about.h", "tube_about_data.h", "tube_backup.c", "tube_backup.h"):
         target = "addons/src" if name.endswith(".c") else "addons/include"
         shutil.copyfile(ROOT / "native" / name, WORK / player / target / name)
     shutil.copytree(ROOT / "native/elevation", WORK / player / "src/elevation", dirs_exist_ok=True)
@@ -344,6 +344,10 @@ static const char* tube_dev_path(unsigned index) {
     apply_player_extra_overlay(replace, player)
     from settings_batch_overlay import apply_settings_batch_overlay
     apply_settings_batch_overlay(replace, player, host)
+    # Local backups are part of the provider; the QR screen extends every review layout, so it comes last.
+    replace(player + "Makefile", "    addons/src/tube_player_extra.c", "    addons/src/tube_player_extra.c \\\n    addons/src/tube_backup.c")
+    from qr_overlay import apply_qr_overlay
+    apply_qr_overlay(replace, player, WORK, ROOT)
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()
