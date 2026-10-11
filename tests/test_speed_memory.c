@@ -69,11 +69,20 @@ int main(void) {
     reload();choose("abcdefghijk");assert(tube_playback_speed_for("abcdefghijk")==100);
     action("settings:speed:175");choose("ABCDEFGHIJK");assert(tube_playback_speed_for("ABCDEFGHIJK")==175);
     choose("12345678901");assert(tube_playback_speed_for("12345678901")==175);
+    /* Library account changes cannot reinterpret the old video's speed policy or update the new account. */
+    action("library:profile:fixture"); assert(tube_playback_speed()==175);
+    assert(tube_remember_playback_speed("12345678901",225));
+    assert(tube_playback_speed()==175 && tube_last_playback_speed()==225);
+    choose("ABCDEFGHIJK"); assert(tube_playback_speed_for("ABCDEFGHIJK")==100);
+    assert(tube_last_playback_speed()==175); reload();
+    action("library:profile:guest"); choose("ABCDEFGHIJK");
+    assert(tube_playback_speed_for("ABCDEFGHIJK")==225 && tube_last_playback_speed()==225);
+    action("settings:speed:175");
     assert(!tube_remember_playback_speed(NULL,125) && !tube_remember_playback_speed("abcdefghijk",126));
     assert(tube_playback_speed_for(NULL)==100);
     root=read_store();
     assert(cJSON_GetObjectItem(root,"speed_memory_mode")->valueint==0);
-    cJSON_DeleteItemFromObject(root,"speed_memory_mode");
+    cJSON_DeleteItemFromObject(root,"speed_memory_mode"); cJSON_DeleteItemFromObject(root,"profile_settings");
     cJSON_DeleteItemFromObject(root,"last_speed_percent");
     write_store(root);cJSON_Delete(root);reload(); // Legacy global speed remains global.
     assert(tube_playback_speed_for("ABCDEFGHIJK")==175 && tube_last_playback_speed()==175);

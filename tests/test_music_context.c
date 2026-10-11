@@ -51,7 +51,7 @@ int main(void) {
     assert(!strcmp(row.id,"abcdefghijk"));
     play(); assert(tube_playback_speed_for("abcdefghijk")==100);
     // Profile change cannot reuse the prior queue's origin.
-    browse("library:profile:other"); play(); assert(tube_playback_speed_for("abcdefghijk")==125);
+    browse("library:profile:other"); play(); assert(tube_playback_speed_for("abcdefghijk")==100);
     browse("library:profile:guest"); browse("section:music");
     assert(!provider->set_source("http://127.0.0.1:8765"));
     play(); assert(tube_playback_speed_for("abcdefghijk")==125); // Source setup clears old navigation.

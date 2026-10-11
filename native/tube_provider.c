@@ -93,17 +93,7 @@ static int valid_speed(double speed) {
         if (speed == tube_speeds[i]) return 1;
     return 0;
 }
-int tube_playback_speed(void) { return g_speed; }
-int tube_speed_count(void) { return (int)(sizeof tube_speeds / sizeof *tube_speeds); }
-int tube_speed_at(int index) { return index >= 0 && index < tube_speed_count() ? tube_speeds[index] : 0; }
 static void save(void);
-int tube_set_playback_speed(int percent) {
-    if (!valid_speed(percent)) return 0;
-    if (percent != 100) g_last_speed = percent;
-    else if (g_speed != 100) g_last_speed = g_speed;
-    g_speed = percent; save(); return 1;
-}
-int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
 static int g_sleep_minutes, g_sleep_armed, g_sleep_fired;
@@ -523,12 +513,46 @@ static Record *record_for(const char *id, const char *profile, int create) {
 static Record *record(const char *id, int create) { return record_for(id, g_library_profile, create); }
 static int current_record(const Record *r) { return !strcmp(r->profile, g_library_profile); }
 
+
+void tube_set_error(const char *message) {
+    /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
+    char clean[256]; copy(clean, sizeof clean, message);
+    for (size_t i = 0; clean[i]; ++i) if ((unsigned char)clean[i] < 32) clean[i] = ' ';
+    if (strstr(clean, "://") || strstr(clean, "Bearer")) copy(clean, sizeof clean, "The companion request failed. Check its configuration and retry.");
+    evo_error_set("%s", clean);
+}
+
+/* Helpers share the provider persistence boundary. */
+#include "tube_profile_settings.h"
+
+static int profile_speed_mode(const char *profile) {
+    if (!strcmp(profile,g_library_profile)) return g_speed_mode;
+    int i = profile_settings_slot(profile,0); return i < 0 ? 1 : g_profile_settings[i].value.speed_mode;
+}
+static int profile_speed(const char *profile) {
+    if (!strcmp(profile,g_library_profile)) return g_speed;
+    int i = profile_settings_slot(profile,0); return i < 0 ? 100 : g_profile_settings[i].value.speed;
+}
+int tube_playback_speed(void) { return g_speed; }
+int tube_speed_count(void) { return (int)(sizeof tube_speeds / sizeof *tube_speeds); }
+int tube_speed_at(int index) { return index >= 0 && index < tube_speed_count() ? tube_speeds[index] : 0; }
+int tube_set_playback_speed(int percent) {
+    if (!valid_speed(percent)) return 0;
+    if (percent != 100) g_last_speed = percent;
+    else if (g_speed != 100) g_last_speed = g_speed;
+    g_speed = percent; save(); return 1;
+}
+int tube_last_playback_speed(void) {
+    const char *profile = valid_id(g_active_id) && valid_profile(g_active_profile) ? g_active_profile : g_library_profile;
+    if (!strcmp(profile,g_library_profile)) return g_last_speed;
+    int i = profile_settings_slot(profile,0); return i < 0 ? 100 : g_profile_settings[i].value.last_speed;
+}
 static const char *speed_profile(const char *id) {
     return id && !strcmp(id, g_active_id) && valid_profile(g_active_profile) ? g_active_profile : g_library_profile;
 }
 static const char *speed_key(const char *id, const char *profile) {
     if (!valid_id(id)) return "";
-    if (g_speed_mode == 2) return id;
+    if (profile_speed_mode(profile) == 2) return id;
     const Record *r = record_for(id, profile, 0);
     /* Channel identity is public video metadata; memory remains profile-keyed. */
     if (!r) for (int i = 0; i < g_count; ++i)
@@ -536,11 +560,12 @@ static const char *speed_key(const char *id, const char *profile) {
     return r && tube_sb_channel_valid(r->item.parent_id) ? r->item.parent_id : "";
 }
 static int speed_lookup(const char *id, const char *profile) {
-    if (g_speed_mode == 0) return g_speed;
-    if (g_speed_mode == 3) return 100;
+    const int mode = profile_speed_mode(profile);
+    if (mode == 0) return profile_speed(profile);
+    if (mode == 3) return 100;
     const char *key = speed_key(id, profile);
     for (int i = 0; *key && i < g_speed_count; ++i)
-        if (g_speeds[i].mode == g_speed_mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key))
+        if (g_speeds[i].mode == mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key))
             return g_speeds[i].percent;
     return 100;
 }
@@ -554,11 +579,13 @@ int tube_remember_playback_speed(const char *id, int percent) {
     if (!valid_id(id) || !valid_speed(percent)) return 0;
     const int previous = tube_playback_speed_for(id);
     const char *profile = speed_profile(id);
+    const int mode = profile_speed_mode(profile);
+    int preference = profile_settings_slot(profile,1); if (preference < 0) return 0;
     const char *key = speed_key(id, profile);
-    if ((g_speed_mode == 1 || g_speed_mode == 2) && *key) {
+    if ((mode == 1 || mode == 2) && *key) {
         int slot = -1;
         for (int i = 0; i < g_speed_count; ++i)
-            if (g_speeds[i].mode == g_speed_mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key)) { slot = i; break; }
+            if (g_speeds[i].mode == mode && !strcmp(g_speeds[i].profile, profile) && !strcmp(g_speeds[i].key, key)) { slot = i; break; }
         /* Normal speed removes an override. The bounded list retains the most
          * recently changed entries and never evicts library/favorite records. */
         if (slot >= 0) {
@@ -572,14 +599,19 @@ int tube_remember_playback_speed(const char *id, int percent) {
             slot = g_speed_count++;
             copy(g_speeds[slot].profile, sizeof g_speeds[slot].profile, profile);
             copy(g_speeds[slot].key, sizeof g_speeds[slot].key, key);
-            g_speeds[slot].mode = g_speed_mode; g_speeds[slot].percent = percent;
+            g_speeds[slot].mode = mode; g_speeds[slot].percent = percent;
         }
     }
     copy(g_speed_session_id, sizeof g_speed_session_id, id);
     copy(g_speed_session_profile, sizeof g_speed_session_profile, profile);
     g_speed_session = percent;
-    g_speed = previous;
-    return tube_set_playback_speed(percent);
+    if (!strcmp(profile,g_library_profile)) {
+        g_speed = previous; return tube_set_playback_speed(percent);
+    }
+    ProfileSettings *settings = &g_profile_settings[preference].value;
+    if (percent != 100) settings->last_speed = percent;
+    else if (previous != 100) settings->last_speed = previous;
+    settings->speed = percent; save(); return 1;
 }
 
 static void speed_load(const cJSON *root) {
@@ -608,13 +640,6 @@ static void speed_load(const cJSON *root) {
     }
 }
 
-void tube_set_error(const char *message) {
-    /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
-    char clean[256]; copy(clean, sizeof clean, message);
-    for (size_t i = 0; clean[i]; ++i) if ((unsigned char)clean[i] < 32) clean[i] = ' ';
-    if (strstr(clean, "://") || strstr(clean, "Bearer")) copy(clean, sizeof clean, "The companion request failed. Check its configuration and retry.");
-    evo_error_set("%s", clean);
-}
 
 static void save(void) {
     g_remote_write_failed = 1;
@@ -623,6 +648,7 @@ static void save(void) {
     }
     cJSON *root = cJSON_CreateObject(), *rows = cJSON_CreateArray();
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); return; }
+    profile_settings_write(root);
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
@@ -755,7 +781,7 @@ static void account_removed(void) {
         memset(&g_auth, 0, sizeof g_auth);
         g_auth.serial = serial; g_auth.revision = revision; g_auth.state = AUTH_CANCELED;
     }
-    copy(g_library_profile, sizeof g_library_profile, "guest");
+    profile_settings_select("guest");
     watch_reset(1);
     g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
@@ -781,6 +807,10 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 
 static int init(void) {
     tube_remote_shutdown();
+    g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
+    ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
+    copy(g_library_profile,sizeof g_library_profile,"guest");
+    g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;
     g_caption_path[0] = g_caption_language[0] = 0;
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
@@ -826,12 +856,11 @@ static int init(void) {
     const char *profile = str(root, "library_profile");
     copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
     player_preferences_load(root);
-    int height = (int)num(root, "max_height");
-    if (height >= 144 && height <= 2160) g_height = height;
+    g_height = settings_integer(root,"max_height",144,2160,1080);
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
     speed_load(root);
-    int codec = (int)num(root, "codec"); if (codec <= 2) g_codec = codec;
+    g_codec = settings_integer(root,"codec",0,2,0);
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
@@ -884,6 +913,7 @@ static int init(void) {
         r->queued_music = r->queued && boolean(o, "queued_music");
         r->subscribed = boolean(o, "subscribed");
     }
+    profile_settings_load(root);
     cJSON_Delete(root); if (version == 1) save(); remote_configure(); return 0;
 }
 
@@ -918,7 +948,7 @@ static int set_source(const char *value) {
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
-    if (strcmp(normalized, g_source)) copy(g_library_profile, sizeof g_library_profile, "guest");
+    if (strcmp(normalized, g_source)) profile_settings_select("guest");
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
     ++g_generation; save(); return 0;
@@ -2026,7 +2056,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (!valid_profile(parent + 16)) { tube_set_error("The selected profile was invalid."); cb(0, NULL, 0, 0, ud); return 1; }
             memset(&g_account_intent, 0, sizeof g_account_intent);
             memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
-            copy(g_library_profile, sizeof g_library_profile, parent + 16);
+            if (!profile_settings_select(parent + 16)) {
+                tube_set_error("The saved profile settings list is full."); cb(0,NULL,0,0,ud); return 1;
+            }
             watch_reset(1);
             sponsor_invalidate();
             g_next_id[0] = 0; g_next_profile[0] = 0;
@@ -2049,11 +2081,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             const char *modes[] = {"all", "channel", "video", "none"}; int mode = -1;
             for (int i = 0; i < 4; ++i) if (!strcmp(parent + 20, modes[i])) mode = i;
             if (mode < 0) { cb(0, NULL, 0, 0, ud); return 1; }
-            g_speed_mode = mode; g_speed_session_id[0] = 0; save();
+            g_speed_mode = mode;
+            if (!strcmp(g_speed_session_profile,g_library_profile)) g_speed_session_id[0] = 0;
+            save();
         } else if (!strncmp(parent, "settings:speed:", 15)) {
             char *end; long speed = strtol(parent + 15, &end, 10);
             if (!*(parent + 15) || *end || !valid_speed((double)speed)) { cb(0, NULL, 0, 0, ud); return 1; }
-            g_speed_mode = 0; g_speed_session_id[0] = 0; tube_set_playback_speed((int)speed);
+            g_speed_mode = 0;
+            if (!strcmp(g_speed_session_profile,g_library_profile)) g_speed_session_id[0] = 0;
+            tube_set_playback_speed((int)speed);
         } else if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }

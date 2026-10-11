@@ -85,7 +85,11 @@ reports now use the selected account, with a saved sync toggle, throttled positi
 updates and no retry after an unconfirmed report; see the library service.
 Local favorites, queue, follows and resume/history state are now stored by profile.
 Existing global state migrates to Guest. Hidden-Cross behavior, controls timeout and seeking mode
-are saved per profile. Other player preferences remain console-wide.
+are saved per profile. Quality/codec, caption and audio languages, caption preferences,
+speed policy and last-speed toggle, SponsorBlock policy/exclusions, DeArrow, paid-content
+notifications, autoplay, stream prompt, history sync, chat and sleep timer now have
+independent saved profile settings. Existing known profiles retain legacy preferences;
+new profiles start with defaults. Companion pairing and phone identity remain device-wide.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. A bounded PS5 run passed native browser startup, pairing/search,

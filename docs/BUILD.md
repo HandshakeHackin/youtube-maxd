@@ -338,7 +338,7 @@ commands count as input while queries/status and automatic refills do not.
 `bash scripts/test_native.sh` now runs thirteen provider regression executables,
 including the stationary replay reader. Serialize native preparations.
 
-Offline player-input checks: `bash scripts/test_native.sh player_preferences`
+Offline player-input checks: `bash scripts/test_native.sh player_preferences profile_settings`
 checks real storage, profile isolation, old-state migration and malformed rows.
 `bash scripts/test_player_controls.sh` extracts the shipping input/visibility
 blocks and checks hidden/visible Cross behavior, debounce, speed admission,

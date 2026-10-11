@@ -2811,3 +2811,28 @@ folder/PFS/ZIP packaging and immutable freeze: build
 Evidence: `.deps/offline-seek-controls-{ps5-build,freeze}.log` and result files
 (both 0). No deployment, console check, launch or input was performed. The full
 SmartTube objective and remaining offline work are still active.
+
+
+### Offline profile settings (2026-10-11)
+
+Quality/codec, caption/audio language and caption choices, speed policy/all-video
+speed/last-speed toggle, SponsorBlock policy and exclusions, DeArrow/paid-content
+notifications, autoplay/stream prompt/history sync, chat and sleep timer are now
+persisted independently for up to 128 profiles. Existing known profiles migrate
+their prior preferences; new accounts get defaults. Guest/selected profiles are
+reserved when loading bounded saved rows, duplicate profiles use the first valid
+identity, invalid fields use defaults and full-table selection fails explicitly.
+Device companion pairing, phone identity and disconnect preferences remain shared.
+Original active-video ownership governs speed memories and last-speed toggle when
+the library account changes; this cannot modify the newly selected account.
+Initialization without a store resets preferences/profile/source/local records.
+
+All fourteen shipping-provider ASan/UBSan regressions and PS5 provider compilation
+passed: `.deps/profile-settings-final.result` is 0. New tests exercise shipping
+settings actions, restart, legacy migration, default separation, source reset,
+corrupt/duplicate rows, capacity and active-account speed ownership. Older native
+and Music fixtures explicitly configure account preferences or expect fresh
+account defaults instead of relying on inherited console-wide settings. SDK
+compilation emitted 208 qualified-math warnings, without errors. Earlier failed
+fixtures/results are retained as diagnostic evidence; the final result supersedes
+them. No console connection, deployment or hardware acceptance occurred.

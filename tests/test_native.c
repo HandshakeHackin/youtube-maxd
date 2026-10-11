@@ -172,6 +172,7 @@ int main(void) {
     p->list_catalog(last_items[1].id, 0, items_cb, NULL);
     assert(last_ok && last_count == 9 && strstr(last_items[0].title, "fixture"));
     assert(!strcmp(last_items[8].id, "account:remove"));
+    p->list_catalog("settings:captions",0,items_cb,NULL); /* this fixture excludes sidecar downloads */
     p->list_catalog("library:playlists", 0, items_cb, NULL);
     assert(strstr(pending[0].body, "\"profile\":\"fixture\""));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:playlist:PLabcdefghijk\",\"title\":\"Account playlist\",\"is_folder\":true}],\"has_more\":true,\"cursor\":\"fixture_cursor\"}}");
@@ -549,6 +550,7 @@ int main(void) {
     assert(last_count == 1 && last_items[0].played && last_items[0].resume_pos_sec == 0);
     p->list_catalog("queue", 0, items_cb, NULL); assert(last_count == 0);
     assert(tube_toggle_queue("12345678901") == 1);
+    p->list_catalog("settings:autoplay",0,items_cb,NULL); /* opt in for this profile */
     p->stream_chosen("abcdefghijk", &selected);
     assert(tube_finish_and_next(100, 100));
     p->list_catalog("library:profile:guest", 0, items_cb, NULL);
