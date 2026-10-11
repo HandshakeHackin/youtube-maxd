@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Playlist occurrence context — 2026-10-11
+
+Playlist browsing preserves repeated video IDs and original sparse positions.
+Guest extraction converts yt-dlp's one-based indices once. The pinned YouTube.js
+classic/modern parsers retain validated playlist endpoints through local pages
+and upstream continuations; Watch Later and OAuth catalog routes do likewise.
+Mismatched identities, invalid positions and cross-profile cursors cannot supply
+an occurrence. HTTP catalog and asynchronous job responses retain the context.
+
+The initial Python selection passed 78 cases; the added HTTP/job case then
+passed with the complete 17-case context suite (79 distinct Python cases across
+the batch). All 62 worker tests passed and the production worker rebuilt.
+Commands: pytest for `test_playlist_context`, `test_companion`,
+`test_oauth_playback`, `test_library`; Node `companion/innertube/test.mjs` and
+`build.mjs`. Native selection/context and the full seven-mode EOF behavior are
+still pending. No console access occurred.
+
+
 ## Compiled display transforms and packaged codec probes — 2026-10-11
 
 The native AMDVLK/LLPC build completed and its shipping NV12 gfx1013 probe passed.

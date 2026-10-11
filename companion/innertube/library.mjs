@@ -59,18 +59,33 @@ function cardDuration(node) {
   }
   return 0;
 }
-export function normalizeVideo(node) {
+function playbackContext(node, id, playlist) {
+  if (typeof playlist !== 'string' || !playlistId(playlist)) return null;
+  const endpoint = (node.endpoint ?? node.renderer_context?.command_context?.on_tap)?.payload;
+  if (endpoint?.videoId !== id || endpoint?.playlistId !== playlist) return null;
+  if (endpoint.index !== undefined && endpoint.playlistIndex !== undefined && endpoint.index !== endpoint.playlistIndex) return null;
+  let index = endpoint.index !== undefined ? endpoint.index : endpoint.playlistIndex;
+  if (index === undefined) {
+    const displayed = String(node.index ?? '');
+    if (!/^[1-9][0-9]{0,5}$/.test(displayed)) return null;
+    index = Number(displayed) - 1;
+  }
+  return Number.isInteger(index) && index >= 0 && index <= 100000 ? {playlist, index} : null;
+}
+export function normalizeVideo(node, playlist = '') {
   if (!node || node.is_ad || node.is_promoted) return null;
   const id = node.video_id ?? node.id ?? node.content_id;
   if (!videoId(id)) return null;
   if (node.content_type && !['VIDEO', 'MOVIE', 'SHORT', 'STATION'].includes(node.content_type)) return null;
   const author = cardAuthor(node);
+  const context = playbackContext(node, id, playlist);
   return { id, title: text(node.title ?? node.metadata?.title), subtitle: text(author.name),
     overview: text(node.description_snippet, 1024),
     art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
     channel_id: channelId(author.id) ? author.id : '',
     duration_sec: cardDuration(node),
-    is_folder: false, is_live: !!node.is_live, played: !!node.is_watched };
+    is_folder: false, is_live: !!node.is_live, played: !!node.is_watched,
+    ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {
   if (!node || node.is_ad || node.is_promoted) return null;
@@ -140,12 +155,12 @@ export class Library {
     else if (input.kind === 'channel' && channelId(input.id)) feed = await client.getChannel(input.id);
     else if (input.kind === 'playlist' && playlistId(input.id)) feed = await client.getPlaylist(input.id);
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
-    return this.page(owner, 'catalog', feed);
+    return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '');
   }
-  page(owner, kind, feed, pending = null) {
+  page(owner, kind, feed, pending = null, playlist = '') {
     const comments = kind === 'comments';
     const items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
-      [...Array.from(feed.videos ?? []).map(normalizeVideo), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
+      [...Array.from(feed.videos ?? []).map(node => normalizeVideo(node, playlist)), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
     const output = items.slice(0, 24).map(thread => {
@@ -181,7 +196,7 @@ export class Library {
     if (remaining.length || feed.has_continuation) {
       if (this.cursors.size >= 64) this.cursors.delete(this.cursors.keys().next().value);
       cursor = randomUUID();
-      this.cursors.set(cursor, { owner, kind, feed, remaining, deadline: this.clock() + 120000 });
+      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, deadline: this.clock() + 120000 });
     }
     return { api_version: 1, kind, items: output, cursor, has_more: !!cursor };
   }
@@ -208,7 +223,7 @@ export class Library {
         throw new LibraryError('cursor_expired', 'Reload this page to continue.', 409);
       if (entry.result) return entry.result;
       const feed = entry.remaining.length ? entry.feed : await entry.feed.getContinuation();
-      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null);
+      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist);
       entry.result = result;
       return result;
     }
@@ -312,7 +327,8 @@ export class Library {
         return this.page(owner, 'comments', feed);
       default: break;
     }
-    if (feed) return this.page(owner, 'catalog', feed);
+    if (feed) return this.page(owner, 'catalog', feed, null,
+      input.action === 'playlist' ? input.id : input.action === 'watch_later' ? 'WL' : '');
     let response;
     switch (input.action) {
       case 'like': response = await client.interact.like(requireId(input.id, videoId)); break;

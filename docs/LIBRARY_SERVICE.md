@@ -16,6 +16,16 @@ cookies are configured explicitly on the companion; no browser cookies are
 read automatically. A configured profile is not proof that its session is valid.
 Real-account acceptance remains unverified.
 
+### Playlist playback context
+
+Playlist and Watch Later rows now retain the source playlist and occurrence
+index through worker pagination, OAuth catalog conversion and HTTP/job output.
+Both classic playlist nodes and modern video cards are supported. Repeated IDs
+and sparse positions survive; search deduplication remains unchanged. This is
+the service foundation for playback modes. Native row/selection context,
+seven-mode EOF policy, channel context and console acceptance remain pending.
+
+
 ### Live-chat service reader
 
 The native player can show a live top-chat sidebar beside video. In YouTube

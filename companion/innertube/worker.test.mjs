@@ -2,6 +2,7 @@
 import './topic_catalog.test.mjs';
 import './chat_replay.test.mjs';
 import './remote_playlist.test.mjs';
+import './playlist_context.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';

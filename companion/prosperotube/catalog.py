@@ -1,8 +1,25 @@
 """Search, channels, and playlists; pagination keeps opaque stable identities."""
-from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, ServiceError, number, safe_remote, text
+from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, PlaylistContext, ServiceError, number, safe_remote, text
 from urllib.parse import urlsplit, parse_qs
 
 PAGE_SIZE = 24
+
+
+def playlist_context(info, playlist):
+    if not playlist:
+        return None
+    supplied = info.get("playback_context")
+    if supplied is not None:
+        if (isinstance(supplied, dict) and supplied.get("playlist") == playlist
+                and type(supplied.get("index")) is int and 0 <= supplied["index"] <= 100000):
+            return PlaylistContext(playlist=playlist, index=supplied["index"])
+        return None
+    # yt-dlp preserves one-based source positions, including unavailable rows.
+    index = info.get("playlist_index")
+    if (info.get("playlist_id") in (None, "", playlist) and type(index) is int
+            and 1 <= index <= 100001):
+        return PlaylistContext(playlist=playlist, index=index - 1)
+    return None
 
 
 def item(info):
@@ -67,12 +84,15 @@ async def page_for(extractor, *, query="", parent="", page=0):
     start = page * PAGE_SIZE + 1
     result = await extractor.extract(target, flat=True, start=start, end=start + PAGE_SIZE)
     entries = result.get("entries") or []
+    playlist = parent[9:] if parent.startswith("playlist:") else ""
     rows, seen = [], set()
     for raw in entries[:PAGE_SIZE]:
         row = item(raw) if isinstance(raw, dict) else None
         if row and getattr(extractor, "fixture_mode", False):
             row.art_url = extractor.base + "/fixtures/thumb.png"
-        if row and row.id not in seen:
+        if row and playlist:
+            row.playback_context = playlist_context(raw, playlist)
+        if row and (playlist or row.id not in seen):
             rows.append(row)
             seen.add(row.id)
     more = result.get("_has_more") if getattr(extractor, "uses_explicit_catalog_pages", False) else len(entries) > PAGE_SIZE

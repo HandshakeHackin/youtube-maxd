@@ -114,5 +114,6 @@ class OAuthExtractor(Extractor):
                 values.append({"id": identity, "title": record.get("title", ""),
                     "channel": record.get("subtitle", ""), "channel_id": record.get("channel_id", ""),
                     "description": record.get("overview", ""), "thumbnail": record.get("art_url", ""),
-                    "duration": record.get("duration_sec", 0), "is_live": record.get("is_live", False)})
+                    "duration": record.get("duration_sec", 0), "is_live": record.get("is_live", False),
+                    "playback_context": record.get("playback_context")})
             return {"entries": values, "_has_more": entry["pages"][page]["has_more"]}

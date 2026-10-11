@@ -14,7 +14,13 @@ native six-second HTTP timeout. Direct search/catalog/video/resolve endpoints
 are available for host tools. Native completions are generation-checked.
 
 Catalog identities are video/channel/playlist IDs, never URLs. Pages include
-bounded metadata and has_more. Resolve selects height, codec, audio/caption
+bounded metadata and has_more. Playlist video rows may include
+`playback_context: {"playlist": "PL...", "index": 0}`. The index is the original
+zero-based occurrence position, not the row's position in a returned page.
+Repeated video IDs remain separate playlist rows; unavailable entries can leave
+index gaps. Missing or conflicting source positions yield no context. Ordinary
+search/channel rows do not inherit a playlist context from incidental endpoints.
+Library cursors retain the playlist and profile across continuation pages. Resolve selects height, codec, audio/caption
 language and automatic captions; returns choices, captions and chapters.
 The optional `paid_content_text` field carries YouTube's localized paid-promotion
 disclosure (at most 240 UTF-8 bytes). It is read only from a matching video's

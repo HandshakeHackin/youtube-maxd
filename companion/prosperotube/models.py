@@ -48,6 +48,11 @@ def text(value, limit=192):
     return str(value or "").replace("\x00", "")[:limit]
 
 
+class PlaylistContext(BaseModel):
+    playlist: str = Field(pattern=r"^(WL|LL|[A-Za-z0-9_-]{10,100})$")
+    index: int = Field(ge=0, le=100000, strict=True)
+
+
 class Item(BaseModel):
     id: str
     title: str
@@ -60,6 +65,7 @@ class Item(BaseModel):
     is_live: bool = False
     resume_pos_sec: int = 0
     played: bool = False
+    playback_context: PlaylistContext | None = None
 
 
 class Page(BaseModel):
