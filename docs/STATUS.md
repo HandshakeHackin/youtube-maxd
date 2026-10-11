@@ -22,7 +22,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Scoped PS5 cases cover local unavailable-video queue advancement and paused dual-caption selection/rendering/clear with speed-reopen retention. Moving timing after that reopen remains unverified.
 - At `09873cd`, the complete Python suite passed 518 tests and five subtests, with one existing dependency deprecation warning.
 - Latest worker baseline: 125 tests and bundle build passed, including modern live badges and invalid schedule bounds. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
-- The full native regression was interrupted for the requested pause. No complete full-native pass is claimed.
+- After resuming, all 31 default native ASan/UBSan cases passed, including groups, progress, queues and channel-name blocks. The actual RmlUi integration suite also passed; transient empty-row binding warnings remain in its log.
 - Recent browsing-group/filter/progress changes have no console acceptance. No console was contacted during this offline phase.
 
 ## Still missing
@@ -32,7 +32,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Secondary-account/brand-channel context and broad real-account/history/localized-layout validation.
 - Real phone, microphone and physical-controller acceptance.
 - Broader codec/HDR/live/DVR, recovery/timing, GPU transform presentation and long-session acceptance.
-- Complete native/integrated regression, a rebuilt and frozen final package, then bounded PS5 acceptance. The last fully frozen package is `c9721611`; subsequent scoped checks do not refresh that package.
+- Remaining integrated/candidate checks, a rebuilt and frozen final package, then bounded PS5 acceptance. The last fully frozen package is `c9721611`; subsequent scoped checks do not refresh that package.
 - UI polish after YouTube functionality is accepted.
 
 Complete all remaining offline implementation and final-candidate packaging before any console connection. Both consoles require the shared lock and running-title protocol when that gate is met.

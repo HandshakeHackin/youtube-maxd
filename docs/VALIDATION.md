@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Resumed full native regression — 2026-10-11
+
+The previously interrupted regression has now completed successfully: all 31
+default cases in `scripts/test_native.sh` passed with AddressSanitizer,
+UndefinedBehaviorSanitizer and leak detection. This covers the provider core,
+recovery, integrations, profile/player preferences, playback modes, queues,
+playlist/group navigation, catalog progress, history and channel ID/name blocks.
+The run used the validated transform artifact and prepared the generated native
+tree before compilation. There were no sanitizer failures.
+
+`scripts/test_live_chat_ui.sh` also passed against actual RmlUi/provider callbacks,
+including focus/scroll retention, literal chat text, settings, repeated playlist
+occurrences and channel-block catalog refresh. Its log contains transient empty-row
+binding warnings; this pass does not establish visual or console acceptance.
+
+The worker suite passes 125 tests and builds. The prior complete Python result
+remains 518 tests and five subtests; it was not rerun for these worker-only changes.
+No final package was rebuilt and no console was contacted.
+
 ## Modern live badges and malformed topic schedules — 2026-10-11
 
 All 125 worker tests and the bundle build pass. Modern Lockup cards now expose
