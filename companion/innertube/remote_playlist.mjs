@@ -74,6 +74,11 @@ export async function remotePlaylist(client, input, ErrorType) {
         (!explicit && rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset))) continue;
     if (selected >= 0 && (positioned[selected].id !== selectedId || positioned[selected].index !== input.index)) continue;
     const playable = positioned.filter(row => row.id !== null);
+    // Only an explicit finite bound permits continuing beyond an unavailable window.
+    const rawSize = panel.totalVideos;
+    const size = typeof rawSize === 'string' && /^[1-9][0-9]{0,5}$/.test(rawSize) ? Number(rawSize) : rawSize;
+    const finiteSize = (panel.isInfinite === undefined || panel.isInfinite === false) && !input.playlist.startsWith('RD') &&
+      Number.isInteger(size) && size > positioned[positioned.length - 1].index && size <= 100001;
     let targetIndex=input.index, targetId=selectedId;
     if(targetId===null && direction) {
       let offset=at;
@@ -83,6 +88,13 @@ export async function remotePlaylist(client, input, ErrorType) {
         if(candidate.id!==null) {targetId=candidate.id;break;}
         targetIndex+=direction;offset+=direction;
       }
+      if(targetId===null && finiteSize && (offset<0 || offset>=positioned.length)) {
+        const exhausted=targetIndex<0 || targetIndex>=size;
+        matches.push({api_version:1,playlist:input.playlist,unavailable_only:true,
+          requested_index:input.index,skipped_unavailable:Math.abs(targetIndex-input.index),
+          playlist_size:size,exhausted,...(!exhausted?{next_index:targetIndex}:{})});
+        continue;
+      }
     }
     const selectedPlayable = playable.findIndex(row => row.index === targetIndex && row.id === targetId);
     if (selectedPlayable < 0) continue;
@@ -91,10 +103,6 @@ export async function remotePlaylist(client, input, ErrorType) {
     const sparse = window.some((row, offset) => row.index !== window[0].index + offset);
     // The raw WEB panel exposes totalVideos separately from this bounded window.
     // Localized display text and the loaded row count are not playlist lengths.
-    const rawSize = panel.totalVideos;
-    const size = typeof rawSize === 'string' && /^[1-9][0-9]{0,5}$/.test(rawSize) ? Number(rawSize) : rawSize;
-    const finiteSize = (panel.isInfinite === undefined || panel.isInfinite === false) && !input.playlist.startsWith('RD') &&
-      Number.isInteger(size) && size > positioned[positioned.length - 1].index && size <= 100001;
     matches.push({ api_version: 1, playlist: input.playlist, index: targetIndex,
       video_id: targetId, window_start: window[0].index, video_ids: window.map(row => row.id),
       ...(direction ? {requested_index:input.index,skipped_unavailable:Math.abs(targetIndex-input.index)} : {}),

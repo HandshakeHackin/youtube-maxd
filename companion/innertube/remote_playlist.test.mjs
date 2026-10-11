@@ -30,6 +30,27 @@ test('Directional lookup rejects malformed directions and non-indexed use',async
   await assert.rejects(library.execute({action:'playback_queue',playlist,index:3,id:video(3),direction:1}),{code:'invalid_request'});
 });
 
+test('Unavailable-only windows continue monotonically or end at an explicit finite bound',async()=>{
+  for(const [indices,selectedIndex,direction,size,next] of [
+    [[3,4,5],3,1,8,6],[[3,4,5],5,-1,8,2],
+    [[3,4,5],3,1,6,null],[[0,1,2],2,-1,6,null]
+  ]) {
+    const rows=indices.map(i=>{const entry=row(i,i===selectedIndex);entry.playlistPanelVideoRenderer.isPlayable=false;return entry;});
+    const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:selectedIndex,totalVideos:size})}}));
+    const result=await library.execute({action:'playback_at',playlist,index:selectedIndex,direction});
+    assert.equal(result.unavailable_only,true);assert.equal(result.requested_index,selectedIndex);
+    assert.equal(result.skipped_unavailable,3);assert.equal(result.playlist_size,size);
+    assert.equal(result.exhausted,next===null);
+    if(next===null)assert.ok(!Object.hasOwn(result,'next_index'));else assert.equal(result.next_index,next);
+    assert.ok(!Object.hasOwn(result,'video_id'));
+  }
+  for(const totalVideos of [undefined,'unknown',5]) {
+    const rows=[row(3,true),row(4),row(5)];for(const entry of rows)entry.playlistPanelVideoRenderer.isPlayable=false;
+    const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:3,totalVideos})}}));
+    await assert.rejects(library.execute({action:'playback_at',playlist,index:3,direction:1}),{code:'remote_playlist_unavailable'});
+  }
+});
+
 test('Finite playlist size is explicit metadata, never the bounded or sparse window length',async()=>{
   for(const totalVideos of [21,'21',100001]) {
     const library=new Library(async()=>({actions:{execute:async()=>response([row(3),row(9,true),row(20)],{totalVideos})}}));

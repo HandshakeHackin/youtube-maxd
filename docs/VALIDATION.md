@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Unavailable-only finite playlist windows — 2026-10-11
+
+Directional traversal now continues beyond an unavailable-only panel when its
+source provides a validated finite playlist size. A response carries the proven
+unavailable count and either the next index or explicit exhaustion. Native
+continuation retains the active occurrence owner, creates one cancellable job
+per step and requires monotonic progress within the finite index range. Invalid
+step metadata, unobserved gaps, unknown finite bounds and radio/infinite metadata
+stop the traversal. Shuffle remains exact-index lookup with its existing fallback.
+
+All 73 worker tests and 58 targeted service/phone-playlist transport tests passed;
+the production worker rebuilt. Logs: `.deps/playlist-scan-worker.log` and
+`.deps/playlist-scan-python.log`. No console connections occurred.
+Native window/context and queue-failure sanitizer suites passed, including two
+successive unavailable windows, reverse scanning, finite exhaustion, cancellation,
+non-progressing indices and invalid infinite/radio flags. The PS5 provider object
+compiled successfully with existing SDK warnings. Logs:
+`.deps/playlist-scan-native.log` and `.deps/playlist-scan-sdk.log`.
+
 ## Directional unavailable playlist slots — 2026-10-11
 
 Forward/reverse window-edge lookup can cross consecutive explicitly unavailable

@@ -40,8 +40,11 @@ remains incomplete. At an exhausted window edge, autoplay makes
 one indexed lookup for the immediately following occurrence and stages it only
 if confirmed. Forward/reverse edge lookups now cross consecutive explicitly
 unavailable target slots within the returned panel, retaining occurrence indices.
-Unobserved gaps, an entirely unavailable window and radio continuations still
-stop traversal.
+When a finite bound is known, an unavailable-only window returns a validated
+next scan index or explicit exhaustion. The native client follows those steps
+as cancellable asynchronous jobs without changing playback ownership. Each step
+must make progress in the requested direction. Unobserved gaps, unknown-size
+unavailable windows and radio continuations still stop traversal.
 Index-only `playback_at` requests can retrieve a different occurrence and its
 window while keeping native playback ownership unchanged. This requires an
 explicit selected position from upstream; radio rebasing is not accepted for

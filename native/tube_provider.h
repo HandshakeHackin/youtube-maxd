@@ -82,6 +82,7 @@ int tube_select_playlist_context(const char *id, const char *playlist, int index
 int tube_playback_playlist_context(char *playlist, size_t capacity, int *index);
 /* Bounded WatchNext window for the active occurrence. Main thread only.
  * begin: 1=started, 0=unavailable/busy. status: 0=pending, 1=ready, -1=retired/failed.
+ * Internal directional traversal may return 2 for an unavailable-only scan step.
  * A window edge does not establish the end of the upstream playlist. */
 typedef struct {
     char playlist[101], ids[128][12];
