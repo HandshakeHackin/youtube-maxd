@@ -7,6 +7,34 @@ const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{vi
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
 
+test('required window channels hydrate missing metadata once per video on the owning profile',async()=>{
+  const rows=[row(0,true),row(1),row(2,false,video(1)),row(3)],calls=[];
+  const known='UC'+'a'.repeat(22),fetched='UC'+'b'.repeat(22);
+  rows[0].playlistPanelVideoRenderer.shortBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:known}}}]};
+  const library=new Library(async profile=>({actions:{execute:async()=>response(rows,{currentIndex:0})},getBasicInfo:async id=>{
+    assert.equal(profile.id,'account');calls.push(id);return {basic_info:{id,channel_id:fetched}};
+  }}),[{id:'account',cookie:'synthetic'}]);
+  const input={action:'playback_queue',profile:'account',playlist,index:0,id:video(0)};
+  await library.execute(input);assert.equal(calls.length,0);
+  const result=await library.execute({...input,require_channel:true});
+  assert.deepEqual(calls.sort(),[video(1),video(3)]);
+  assert.deepEqual(result.video_channels,[known,fetched,fetched,fetched]);
+  assert.deepEqual(result.video_ids,[video(0),video(1),video(1),video(3)]);
+});
+
+test('window channel lookup bounds concurrency and rejects identity mismatches without partial results',async()=>{
+  const rows=Array.from({length:20},(_,i)=>row(i,i===0));let active=0,maximum=0,calls=0,bad=false;
+  const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:0})},getBasicInfo:async id=>{
+    ++calls;++active;maximum=Math.max(maximum,active);await new Promise(resolve=>setImmediate(resolve));--active;
+    return {basic_info:{id:bad?'wrong':id,channel_id:'UC'+'a'.repeat(22)}};
+  }}));
+  const input={action:'playback_queue',playlist,index:0,id:video(0),require_channel:true};
+  const result=await library.execute(input);assert.equal(result.video_channels.length,20);assert.equal(calls,20);assert.equal(maximum,4);
+  calls=0;bad=true;await assert.rejects(library.execute(input),{code:'channel_unverified'});
+  assert.equal(active,0);assert.equal(calls,4);
+  await assert.rejects(library.execute({...input,require_channel:1}),{code:'invalid_request'});
+});
+
 test('playlist windows retain channel IDs at their exact duplicate-video occurrences',async()=>{
   const rows=[row(0,true),row(1,false,video(0)),row(2)];
   rows[0].playlistPanelVideoRenderer.shortBylineText={runs:[{navigationEndpoint:{browseEndpoint:{browseId:'UC'+'a'.repeat(22)}}}]};

@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Missing playlist-channel metadata — 2026-10-11
+
+Playlist navigation requests channel verification when the current profile has
+blocks. The worker fills missing identities on the same profile client, reuses
+lookups for repeated IDs, preserves occurrence order and limits concurrency to
+four. A failure stops new lookups and waits for already-issued calls to settle.
+The provider rejects incomplete metadata while blocks are active and checks
+prepared entries again before selection/handoff. Metadata-poor windows remain
+subject to the normal worker timeout; failure does not bypass channel filtering.
+
+All 95 worker tests and 30 Python tests pass; the worker bundle rebuilt. Four
+native ASan/UBSan suites pass for blocked windows, window parsing/ownership,
+manual navigation and next-video policy. Coverage includes duplicate lookup
+reuse, profile ownership, bounded concurrency, identity mismatch, transport of
+the verification flag and rejection of missing/malformed channel arrays.
+The PS5 provider object compiles successfully with the existing SDK math-header
+qualifier warnings.
+Name matching, alternative recommendations and hardware acceptance remain open.
+
 ## Channel-block browser refresh — 2026-10-11
 
 Successful local block/unblock actions close the action levels and refresh the

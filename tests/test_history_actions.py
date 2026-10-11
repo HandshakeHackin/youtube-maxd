@@ -22,7 +22,9 @@ class Library:
     async def close(self):pass
 
 @pytest.mark.parametrize('operation',[REQUEST,dict(action='mark_watched',profile='signed',id='abcdefghijk',session='confirm-one'),
-    dict(action='playback_next',profile='signed',id='abcdefghijk',require_channel=True)])
+    dict(action='playback_next',profile='signed',id='abcdefghijk',require_channel=True),
+    dict(action='playback_queue',profile='signed',id='abcdefghijk',playlist='PLabcdefghijk',index=0,require_channel=True),
+    dict(action='playback_at',profile='signed',id='',playlist='PLabcdefghijk',index=1,require_channel=True)])
 def test_direct_and_job_removal_preserve_account_video_and_reference(operation):
     library=Library()
     with TestClient(create_app(library=library,token='history-action-fixture')) as client:

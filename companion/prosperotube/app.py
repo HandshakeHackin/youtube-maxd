@@ -86,8 +86,8 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
-        if self.require_channel and self.action != "playback_next":
-            raise ValueError("Channel verification requires playback_next.")
+        if self.require_channel and self.action not in {"playback_next", "playback_queue", "playback_at"}:
+            raise ValueError("Channel verification requires a playback navigation request.")
         if self.action == "mark_watched" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}",self.session)):
             raise ValueError("Mark as watched requires a video and confirmation session.")

@@ -1,9 +1,12 @@
 // Original bounded WatchNext queue adapter. SPDX-License-Identifier: GPL-3.0-or-later
+import {hydrateWindowChannels} from './video_channels.mjs';
 const videoId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{11}$/.test(value);
 const playlistId = value => typeof value === 'string' && /^(WL|LL|[A-Za-z0-9_-]{10,100})$/.test(value);
 const index = value => Number.isInteger(value) && value >= 0 && value <= 100000;
 
 export async function remotePlaylist(client, input, ErrorType) {
+  if(input.require_channel!==undefined && typeof input.require_channel!=='boolean')
+    throw new ErrorType('invalid_request','Channel metadata selection must be a boolean.');
   const lookup = input.action === 'playback_at';
   const direction=input.direction===undefined ? 0 : input.direction;
   if (![0,-1,1].includes(direction) || (!lookup && direction))
@@ -114,5 +117,5 @@ export async function remotePlaylist(client, input, ErrorType) {
       ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });
   }
   if (matches.length !== 1) fail();
-  return matches[0];
+  return input.require_channel?hydrateWindowChannels(client,matches[0],ErrorType):matches[0];
 }

@@ -1613,7 +1613,7 @@
       ],
       "remaining": [
         "Validate account mark-as-watched tracking and real/localized account-history removal",
-        "Complete channel-name block matching, unknown playlist-channel resolution and alternative recommendation selection; blocked or unverified recommendations currently stop playback",
+        "Complete channel-name block matching and alternative recommendation selection; blocked or unverified recommendations currently stop playback",
         "Validate physical menu actions, queue order and persistence on PS5"
       ]
     },

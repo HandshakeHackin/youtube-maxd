@@ -677,8 +677,8 @@ and requests the next window beyond a blocked boundary. A prepared playlist
 handoff is checked again before launch. Malformed or mismatched channel arrays
 are rejected rather than assigned to another occurrence.
 
-This currently matches stable channel IDs only. SmartTube's channel-name matching,
-unknown-channel playlist metadata resolution and alternative recommendation selection
+This currently matches stable channel IDs only. SmartTube's channel-name matching
+and alternative recommendation selection
 remain unfinished. No YouTube account feedback or subscription is modified.
 
 Successful channel block/unblock actions close the local action screens and
@@ -693,7 +693,18 @@ missing or malformed channel metadata and rechecks the channel before handoff.
 A blocked/unverifiable recommendation currently stops playback; finding an
 alternative unblocked suggestion is still pending. Profiles without blocks avoid
 the extra metadata request. The requirement flag is a strict boolean permitted
-only for `playback_next`.
+only for `playback_next`, `playback_queue` and `playback_at`.
+
+Playlist navigation with active blocks also requests `require_channel: true`.
+Missing channel IDs in the bounded window are verified through `getBasicInfo` on
+the same profile client, once per unique missing video ID with at most four
+lookups in flight. Existing occurrence order and repeated IDs are preserved.
+On failure, no new lookups start and in-flight calls settle before the request
+fails. Native acceptance requires complete channel metadata when blocks are
+active, including if blocks changed after the request began. A late block also
+prevents an unverified prepared window entry from launching. The normal worker
+timeout still applies; a large metadata-poor window may time out rather than
+bypass filtering. Without blocks, no extra metadata lookups are requested.
 
 ## Account history removal
 

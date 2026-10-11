@@ -9,9 +9,9 @@ static void window(int start,int count,int malformed,int selected_index) {
     cJSON_AddStringToObject(root,"state","done");cJSON_AddNumberToObject(value,"api_version",1);
     cJSON_AddStringToObject(value,"playlist","PLabcdefghijk");cJSON_AddStringToObject(value,"video_id",ids[selected_index]);
     cJSON_AddNumberToObject(value,"index",selected_index);cJSON_AddNumberToObject(value,"window_start",start);cJSON_AddNumberToObject(value,"playlist_size",4);
-    cJSON *videos=cJSON_AddArrayToObject(value,"video_ids"),*channels=cJSON_AddArrayToObject(value,"video_channels");
+    cJSON *videos=cJSON_AddArrayToObject(value,"video_ids"),*channels=malformed==2?NULL:cJSON_AddArrayToObject(value,"video_channels");
     for(int i=start;i<start+count;++i){cJSON_AddItemToArray(videos,cJSON_CreateString(ids[i]));
-        if(!malformed)cJSON_AddItemToArray(channels,cJSON_CreateString(i==1 || i==2?"UCaaaaaaaaaaaaaaaaaaaaaa":""));}
+        if(!malformed)cJSON_AddItemToArray(channels,cJSON_CreateString(i==1 || i==2?"UCaaaaaaaaaaaaaaaaaaaaaa":"UCbbbbbbbbbbbbbbbbbbbbbb"));}
     char *body=cJSON_PrintUnformatted(root);poll_job(body);free(body);cJSON_Delete(root);
 }
 int main(void) {
@@ -26,13 +26,16 @@ int main(void) {
     evo_provider_item_t next;
     for(int split=0;split<2;++split) {
         p->stream_chosen("abcdefghijk",&choice);assert(tube_manual_navigation_begin(1));
+        assert(strstr(pending[0].body,"\"require_channel\":true"));
         window(0,split?2:4,0,0);
         if(split){assert(tube_manual_navigation_status()==0 && pending_count==1 && strstr(pending[0].body,"\"index\":2"));window(2,2,0,2);}
         assert(tube_manual_navigation_status()==1 && tube_take_next(&next));
         assert(!strcmp(next.id,"defghijklmn") && next.playback_index==3 && !pending_count);
     }
-    p->stream_chosen("abcdefghijk",&choice);assert(tube_playlist_window_begin());window(0,4,1,0);
-    assert(tube_playlist_window_status(NULL)==-1 && !tube_take_next(&next));
+    for(int malformed=1;malformed<=2;++malformed) {
+        p->stream_chosen("abcdefghijk",&choice);assert(tube_playlist_window_begin());window(0,4,malformed,0);
+        assert(tube_playlist_window_status(NULL)==-1 && !tube_take_next(&next));
+    }
     p->list_catalog("playlist:PLabcdefghijk",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"defghijklmn\",\"playback_context\":{\"playlist\":\"PLabcdefghijk\",\"index\":3}}]}}");
     assert(tube_select_playlist_context("defghijklmn","PLabcdefghijk",3,last_items[0].playback_scope));

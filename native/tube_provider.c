@@ -1419,11 +1419,11 @@ static int playlist_window_begin_at(int target,int direction) {
         "{\"action\":\"library\",\"library\":{\"action\":\"channel_window\",\"profile\":\"%s\",\"id\":\"%s\",\"channel\":\"%s\",\"index\":%d,\"target\":%d,\"direction\":%d}}",
         g_active_profile,g_active_id,playlist+8,index,target>=0?target:index,direction);
     else if (g_playlist_window.lookup) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"direction\":%d}}",
-        g_active_profile,playlist,target,direction);
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"direction\":%d,\"require_channel\":%s}}",
+        g_active_profile,playlist,target,direction,channel_blocks_active()?"true":"false");
     else snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
-        g_active_profile,g_active_id,playlist,index);
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"require_channel\":%s}}",
+        g_active_profile,g_active_id,playlist,index,channel_blocks_active()?"true":"false");
     begin(r); return 1;
 }
 int tube_playlist_window_begin(void) { return playlist_window_begin_at(-1,0); }
@@ -1503,6 +1503,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
             if(*value.channels[i] && strcmp(value.channels[i],g_playlist_window.context.playlist+8)){valid=0;break;}
             copy(value.channels[i],sizeof value.channels[i],g_playlist_window.context.playlist+8);
         }
+        if(channel_blocks_active() && !*value.channels[i]) {valid=0;break;}
         if (position == selected_index && !strcmp(id->valuestring,selected_id)) value.current=i;
     }
     if (!valid || value.current < 0) { complete(r,0); return; }
@@ -3875,6 +3876,7 @@ static int playlist_eof_advance(void) {
     while(at>=0 && at<window->count) {
         const Record *cached=record_for(window->ids[at],g_active_profile,0);
         const char *channel=*window->channels[at]?window->channels[at]:cached?cached->item.parent_id:"";
+        if(channel_blocks_active() && !*channel)return 0;
         if(blocked_channel(channel)<0)break;
         ++blocked;at+=direction;
     }
@@ -4068,7 +4070,7 @@ int tube_take_next(evo_provider_item_t *item) {
     }
     if (g_playlist_next_ready) {
         g_playlist_next_ready=0;
-        if (!item || blocked_channel(g_playlist_next.parent_id)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
+        if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || blocked_channel(g_playlist_next.parent_id)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
         *item=g_playlist_next;manual_departure();return 1;
     }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
