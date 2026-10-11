@@ -190,6 +190,7 @@ class RemoteRequest(BaseModel):
     ack: int = Field(default=0, strict=True, ge=0, le=2_147_483_647)
     update_id: int = Field(default=0, strict=True, ge=0, le=2_147_483_647)
     player: PlayerState | None = None
+    voice_enabled: bool = Field(default=False, strict=True)
 
 
 @dataclass
@@ -215,6 +216,7 @@ class Receiver:
     task: asyncio.Task | None = field(default=None, repr=False)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     touched: float = field(default_factory=time.monotonic)
+    voice_enabled: bool = False
 
 
 class Lounge:
@@ -231,8 +233,8 @@ class Lounge:
                 "state": "failed" if receiver.error else "listening", "error": receiver.error}
 
     def params(self, receiver, *, rpc=False):
-        # Advertise only connected native controls; add mic after capture/search ships.
-        params = {"device": "LOUNGE_SCREEN", "theme": "cl", "capabilities": "dsp,dpa",
+        # Native capture/search support and local ASR must both be available.
+        params = {"device": "LOUNGE_SCREEN", "theme": "cl", "capabilities": "dsp,dpa" + (",mic" if receiver.voice_enabled else ""),
                   "mdxVersion": "2", "VER": "8", "CVER": "1", "v": "2", "t": "1", "app": "lb-v4",
                   "name": receiver.name, "id": receiver.device_id, "loungeIdToken": receiver.token,
                   "zx": secrets.token_hex(8), "RID": "rpc" if rpc else str(receiver.rid)}
@@ -354,13 +356,13 @@ class Lounge:
                 if time.monotonic() - receiver.touched > LEASE_SECONDS or receiver.error:
                     await self.stop(receiver)
                 elif payload.device_id and receiver.device_id == payload.device_id:
-                    if receiver.name != payload.name or (payload.screen_id and receiver.screen_id != payload.screen_id):
+                    if receiver.name != payload.name or receiver.voice_enabled != payload.voice_enabled or (payload.screen_id and receiver.screen_id != payload.screen_id):
                         raise failure("remote_identity_conflict", 409)
                     receiver.touched = time.monotonic()
                     return self.status(receiver)
             if len(self.receivers) >= MAX_RECEIVERS:
                 raise failure("remote_capacity", 429)
-            receiver = Receiver(secrets.token_hex(16), payload.device_id or str(uuid.uuid4()), payload.name, payload.screen_id)
+            receiver = Receiver(secrets.token_hex(16), payload.device_id or str(uuid.uuid4()), payload.name, payload.screen_id, voice_enabled=payload.voice_enabled)
             try:
                 if not receiver.screen_id:
                     raw = await self.response("GET", "/pairing/generate_screen_id")

@@ -29,7 +29,7 @@ retirement before network callbacks, screen-exit retirement and the existing
 search handler are connected in the overlay. Phone adapter, transcription driver
 and capture sanitizer tests passed (`.deps/voice-{phone,driver-connected,
 microphone-connected}-tests.*`, exit 0). Full packaging and physical input remain
-open. The companion still withholds Lounge microphone capability.
+open for this object check.
 
 All ten shipping provider regressions passed after the search/scope changes
 (`.deps/voice-provider-regressions.*`, exit 0). The new case verifies exact paired
@@ -37,6 +37,23 @@ source/token/profile copying, no partial credential output, rejection after a
 source change, and a 200-code-point/four-byte UTF-8 query reaching the actual
 companion request without truncation. Existing library, SponsorBlock, DeArrow,
 recovery, speed, Music, discovery and chat paths retain their passes.
+
+Candidate `578ad430` then built and froze with 216 objects and 126 files,
+build `prosperotube-578ad430_1011-0105`, eboot prefix `2cc2432456e43ba7`
+(`.deps/voice-controls-{ps5-build,freeze}.*`, exit 0). The converter included the
+native `libSceAudioIn` imports; no import stub is packaged. This candidate has
+local and phone command handling, but predates availability-gated microphone
+advertisement. It has not been deployed or tested with a physical microphone.
+
+The availability/capability batch passed 140 companion regressions
+(`.deps/voice-capability-service-tests.*`, exit 0), native voice lifecycle and
+phone tests (`.deps/voice-capability-{driver,phone,microphone}-tests.*`, exit 0),
+and connected PS5 object compilation (`.deps/voice-capability-connected-ps5-objects.*`,
+exit 0). Tests cover health probing/retry/refresh, stale health results after scope
+changes, old-client/disabled-ASR behavior, both capability gates, actual Lounge
+bind parameters, strict booleans, idempotent binds, identity conflicts, receiver
+retirement/rebind and preservation of explicit retry after failure. The final
+failed-receiver edit is covered by the phone test; the full package remains pending.
 
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono

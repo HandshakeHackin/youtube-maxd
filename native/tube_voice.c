@@ -10,17 +10,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum { CREATE = 1, POLL, DELETE };
+enum { CREATE = 1, POLL, DELETE, HEALTH };
 typedef struct {
     int used, kind;
-    unsigned generation;
+    unsigned generation, scope;
     char source[512], token[128], job[65];
 } VoiceRequest;
 static VoiceRequest requests[4];
 static char source[512], token[128], profile[33], job[65], query[801];
-static unsigned generation = 1, owner;
-static int state, inflight;
-static int64_t clock_ms, deadline, next_poll;
+static unsigned generation = 1, scope = 1, owner;
+static int state, inflight, available, health_inflight;
+static int64_t clock_ms, deadline, next_poll, next_health;
 
 static void wipe(void *memory, size_t bytes) {
     volatile unsigned char *p = memory;
@@ -64,6 +64,7 @@ static VoiceRequest *allocate(void) {
     for (size_t i = 0; i < 4; ++i) if (!requests[i].used) {
         VoiceRequest *r = &requests[i]; memset(r, 0, sizeof *r);
         r->used = 1; r->generation = generation;
+        r->scope = scope;
         snprintf(r->source, sizeof r->source, "%s", source);
         snprintf(r->token, sizeof r->token, "%s", token); return r;
     }
@@ -72,11 +73,13 @@ static VoiceRequest *allocate(void) {
 static int voice_send(VoiceRequest *r, int kind, const char *id, const char *payload) {
     char url[608], auth[160];
     const char *headers[] = {"Content-Type: application/json", auth};
-    snprintf(url, sizeof url, "%s/v1/%s%s", r->source, kind == CREATE ? "voice" : "jobs/", kind == CREATE ? "" : id);
+    snprintf(url, sizeof url, "%s/v1/%s%s", r->source,
+             kind == CREATE ? "voice" : kind == HEALTH ? "health" : "jobs/",
+             kind == CREATE || kind == HEALTH ? "" : id);
     snprintf(auth, sizeof auth, "Authorization: Bearer %s", r->token);
     r->kind = kind;
     if (kind == POLL) snprintf(r->job, sizeof r->job, "%s", id);
-    int rc = evo_net_request_async(kind == CREATE ? "POST" : kind == POLL ? "GET" : "DELETE",
+    int rc = evo_net_request_async(kind == CREATE ? "POST" : kind == POLL || kind == HEALTH ? "GET" : "DELETE",
                                    url, payload, headers, 2, response, r);
     if (rc) { wipe(r, sizeof *r); return 0; }
     return 1;
@@ -101,14 +104,20 @@ void tube_voice_configure(const char *src, const char *bearer, const char *selec
     int valid = src && bearer && selected && strlen(src) < sizeof source &&
         strlen(bearer) < sizeof token && identifier(selected, 32) && printable(src) && printable(bearer) &&
         (!strncmp(src, "http://", 7) || !strncmp(src, "https://", 8));
-    if (!valid) { tube_voice_cancel(); source[0] = profile[0] = 0; wipe(token, sizeof token); return; }
+    if (!valid) {
+        tube_voice_cancel(); if (!++scope) ++scope;
+        available = health_inflight = 0; next_health = 0;
+        source[0] = profile[0] = 0; wipe(token, sizeof token); return;
+    }
     if (!strcmp(source, src) && !strcmp(token, bearer) && !strcmp(profile, selected)) return;
     tube_voice_cancel();
+    if (!++scope) ++scope;
+    available = health_inflight = 0; next_health = 0;
     snprintf(source, sizeof source, "%s", src); snprintf(token, sizeof token, "%s", bearer);
     snprintf(profile, sizeof profile, "%s", selected);
 }
 int tube_voice_begin(unsigned remote_owner, int64_t now) {
-    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING || !*source || !*token ||
+    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING || available != 1 || !*source || !*token ||
         now < 0 || now > INT64_MAX - 75000 || (remote_owner && !tube_remote_owner_current(remote_owner))) return 0;
     int available = 0; for (size_t i = 0; i < 4; ++i) if (!requests[i].used) available = 1;
     if (!available) return 0;
@@ -140,9 +149,18 @@ static char *payload(const int16_t *pcm, size_t samples) {
 }
 void tube_voice_tick(int64_t now) {
     clock_ms = now;
+    if (*source && *token && now >= 0 && now >= next_health && !health_inflight &&
+        (state == TUBE_VOICE_IDLE || state == TUBE_VOICE_FAILED)) {
+        VoiceRequest *r = allocate();
+        if (r && voice_send(r, HEALTH, NULL, NULL)) health_inflight = 1;
+        else {
+            available = -1;
+            next_health = now <= INT64_MAX - 10000 ? now + 10000 : INT64_MAX;
+        }
+    }
     if (state != TUBE_VOICE_RECORDING && tube_microphone_poll(NULL, NULL) != 0) tube_microphone_release();
     if (state != TUBE_VOICE_RECORDING && state != TUBE_VOICE_TRANSCRIBING && state != TUBE_VOICE_READY) return;
-    if ((owner && !tube_remote_owner_current(owner)) || now < 0 || now >= deadline) { fail(); return; }
+    if (available != 1 || (owner && !tube_remote_owner_current(owner)) || now < 0 || now >= deadline) { fail(); return; }
     if (state == TUBE_VOICE_RECORDING) {
         const int16_t *pcm = NULL; size_t samples = 0;
         int captured = tube_microphone_poll(&pcm, &samples);
@@ -165,6 +183,18 @@ static void response(int ok, int status, const char *body, size_t bytes, void *c
     VoiceRequest *r = context;
     if (r->kind == DELETE) { wipe(r, sizeof *r); return; }
     cJSON *root = ok && status == 200 ? parse(body, bytes) : NULL;
+    if (r->kind == HEALTH) {
+        if (r->scope == scope) {
+            const cJSON *features = cJSON_GetObjectItemCaseSensitive(root, "features"), *feature;
+            health_inflight = 0; available = -1;
+            if (cJSON_IsArray(features) && cJSON_GetArraySize(features) <= 64)
+                cJSON_ArrayForEach(feature, features)
+                    if (cJSON_IsString(feature) && feature->valuestring && !strcmp(feature->valuestring, "voice")) available = 1;
+            int delay = available == 1 ? 60000 : 10000;
+            next_health = clock_ms >= 0 && clock_ms <= INT64_MAX - delay ? clock_ms + delay : INT64_MAX;
+        }
+        wipe(r, sizeof *r); cJSON_Delete(root); return;
+    }
     int kind = r->kind, current = r->generation == generation && state == TUBE_VOICE_TRANSCRIBING;
     char returned[65] = "";
     if (root && identifier(text(root, "job"), 64)) snprintf(returned, sizeof returned, "%s", text(root, "job"));
@@ -194,6 +224,7 @@ failed:
     wipe(r, sizeof *r); cJSON_Delete(root); fail();
 }
 int tube_voice_state(void) { return state; }
+int tube_voice_available(void) { return available; }
 unsigned tube_voice_owner(void) { return owner; }
 const char *tube_voice_result(void) { return state == TUBE_VOICE_READY && (!owner || tube_remote_owner_current(owner)) ? query : ""; }
 int tube_voice_take(char *destination, size_t capacity) {
@@ -203,5 +234,7 @@ int tube_voice_take(char *destination, size_t capacity) {
 }
 void tube_voice_shutdown(void) {
     tube_voice_cancel(); tube_microphone_shutdown();
+    if (!++scope) ++scope;
+    available = health_inflight = 0; next_health = 0;
     source[0] = profile[0] = 0; wipe(token, sizeof token);
 }

@@ -14,6 +14,7 @@ typedef struct { int used, kind, update, ack; unsigned generation;
 static RemoteRequest requests[4];
 static unsigned generation = 1, revision;
 static int enabled, state, want_code, ack, count, update_id, dirty;
+static int voice_enabled;
 static int64_t clock_ms, next_poll, next_report;
 static char source[512], token[128], profile[33], session[33], device[37], screen[129], code[13];
 static tube_remote_command queue[32];
@@ -243,6 +244,7 @@ void tube_remote_tick(int64_t now_ms) {
     if (kind == START) {
         cJSON_AddStringToObject(root,"device_id",device); cJSON_AddStringToObject(root,"screen_id",screen);
         cJSON_AddStringToObject(root,"name","ProsperoTube PS5");
+        if (voice_enabled) cJSON_AddBoolToObject(root,"voice_enabled",1);
     } else cJSON_AddStringToObject(root,"session",session);
     if (kind == POLL) { r->ack = ack; cJSON_AddNumberToObject(root,"ack",ack); }
     if (kind == UPDATE) {
@@ -268,9 +270,16 @@ int tube_remote_finish(unsigned owner, int sequence, int applied) {
     ack = sequence; --count; memmove(queue,queue+1,(size_t)count*sizeof *queue); return 1;
 }
 int tube_remote_state(void) { return state; }
+void tube_remote_voice_available(int available) {
+    available = !!available;
+    if (voice_enabled == available) return;
+    int failed = state == TUBE_REMOTE_FAILED;
+    voice_enabled = available; invalidate(failed);
+    if (enabled && !failed) { state = TUBE_REMOTE_STARTING; ++revision; }
+}
 const char *tube_remote_code(void) { return code; }
 const char *tube_remote_device(void) { return device; }
 const char *tube_remote_screen(void) { return screen; }
 unsigned tube_remote_revision(void) { return revision; }
 int tube_remote_identity_valid(const char *value) { return value && uuid(value); }
-void tube_remote_shutdown(void) { invalidate(0); enabled = 0; }
+void tube_remote_shutdown(void) { invalidate(0); enabled = 0; voice_enabled = 0; }

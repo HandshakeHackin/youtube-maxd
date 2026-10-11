@@ -223,6 +223,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
 
     @app.post("/v1/remote")
     async def remote_operation(payload: RemoteRequest):
+        payload = payload.model_copy(update={"voice_enabled": bool(payload.voice_enabled and app.state.voice is not None)})
         if app.state.remote is None:
             if payload.action != "start":
                 raise ServiceError("remote_session", "Enable phone connection first.", 404)

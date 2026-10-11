@@ -53,7 +53,7 @@ from the library's serialized Node worker.
 
 | Action | Input | Result / behavior |
 | --- | --- | --- |
-| `start` | Optional stable `device_id` UUID, saved `screen_id`, display `name` | Opaque `session`, `device_id`, `screen_id`, name and listening status |
+| `start` | Optional stable `device_id` UUID, saved `screen_id`, display `name`, strict Boolean `voice_enabled` (default false) | Opaque `session`, `device_id`, `screen_id`, name and listening status |
 | `pair` | `session` | Nine- or twelve-digit `pairing_code` for the YouTube phone application's Link with TV code screen |
 | `poll` | `session`, `ack` (initially zero) | At most 32 ordered typed commands; unacknowledged commands remain available on retries |
 | `update` | `session`, increasing positive `update_id`, `player` | Sends now-playing, playback clock/state, volume/mute, previous/next and captions to the phone |
@@ -109,19 +109,25 @@ retain the sender's global index and click-tracking parameters.
 
 Volume scales the final S16 output with an atomic main/audio-thread gain; mute
 does not change the media clock or retirement accounting. Unknown caption
-languages and voice capture are not silently acknowledged. Voice capture/search,
-secondary YouTube caption selection and playlist continuation beyond the supplied 128-ID
+languages are not silently acknowledged. Secondary YouTube caption selection and
+playlist continuation beyond the supplied 128-ID
 window still need implementation. The saved disconnect choice defaults to keeping
 playback running; opt-in stop applies only to the current phone-owned video and
 clears its ephemeral queue. It returns to the browser without exiting the PS5 app.
-Real phone and PS5
-acceptance remains open.
+Native fixture playback, paused caption switching, queue/EOF and disconnect
+checks passed on PS5. Real phone acceptance remains open.
 The receiver advertises playback and D-pad capabilities. Microphone capability
-is withheld until native capture and speech search are connected.
+requires both native `voice_enabled` and a configured local ASR backend; the API
+clamps the request off when ASR is unavailable. A capability change requires
+retiring/rebinding the receiver with the same saved identity. Old clients omit
+the flag and retain their previous capabilities.
 The optional [local speech-recognition service](VOICE_SEARCH.md) now provides
 authenticated bounded PCM upload, asynchronous query results and cancellation.
-Real whisper.cpp inference passed the host API; the PS5 capture/search adapter
-remains to be implemented.
+Real whisper.cpp inference passed the host API. Native capture, local/phone
+controls, scoped upload/job lifecycle and actual search navigation are connected;
+the first package built/froze. Availability negotiation passes host/native tests
+and PS5 object compilation, but its full package and physical microphone/phone
+acceptance remain open.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

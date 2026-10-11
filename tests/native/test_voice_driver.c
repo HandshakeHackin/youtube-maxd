@@ -48,6 +48,12 @@ static void reset(void) {
     memset(calls, 0, sizeof calls); count = net_fail = 0; audio_samples = 8000;
     capture_state = -1; capture_busy = 0; current_owner = 7;
     tube_voice_configure("http://127.0.0.1:8765", "synthetic-token", "guest");
+    assert(tube_voice_available() == 0 && !tube_voice_begin(0, 0));
+    tube_voice_tick(0);
+    assert(count == 1 && !strcmp(calls[0].method, "GET") && strstr(calls[0].url, "/v1/health"));
+    reply(0, 1, 200, "{\"api_version\":1,\"features\":[\"search\",\"voice\"]}");
+    assert(tube_voice_available() == 1);
+    memset(calls, 0, sizeof calls); count = 0;
 }
 static void upload(void) {
     assert(tube_voice_begin(0, 100));
@@ -144,6 +150,20 @@ int main(void) {
     assert(count == 6 && !strcmp(calls[5].method, "DELETE") && strstr(calls[5].url, "busy_cleanup"));
     reset(); tube_voice_configure("http://127.0.0.1", "bad\r\ntoken", "guest");
     assert(!tube_voice_begin(0, 0));
+    reset(); tube_voice_configure("http://127.0.0.1:8888", "new-token", "new-profile");
+    tube_voice_tick(1); assert(count == 1);
+    tube_voice_configure("http://127.0.0.1:9999", "other-token", "other-profile");
+    tube_voice_tick(2); assert(count == 2);
+    reply(0, 1, 200, "{\"api_version\":1,\"features\":[\"voice\"]}");
+    assert(tube_voice_available() == 0);
+    reply(1, 1, 200, "{\"api_version\":1,\"features\":[\"search\"]}");
+    assert(tube_voice_available() == -1 && !tube_voice_begin(0, 100));
+    tube_voice_tick(10001); assert(count == 2);
+    tube_voice_tick(10002); assert(count == 3);
+    reply(2, 1, 200, "{\"api_version\":1,\"features\":[\"voice\"]}");
+    assert(tube_voice_available() == 1);
+    tube_voice_tick(70002); assert(count == 4);
+    reply(3, 0, 503, NULL); assert(tube_voice_available() == -1);
     reset(); tube_voice_shutdown(); for (int i = 0; i < count; ++i) free(calls[i].body);
     puts("voice driver: PCM upload, jobs, UTF-8, scope retirement, deadlines and cleanup passed");
     return 0;

@@ -148,8 +148,19 @@ static void test_original_source_cleanup(void) {
     assert(!strcmp(pending[0].url,"http://192.168.4.34:9000/v1/remote"));
     reply(0,200,"{\"api_version\":1,\"state\":\"stopped\"}");
 }
+static void test_voice_capability(void) {
+    configure(1,"guest",identity,"screen-123"); tube_remote_voice_available(1); tube_remote_tick(35000);
+    cJSON *root=request("start"); assert(cJSON_IsTrue(cJSON_GetObjectItem(root,"voice_enabled"))); cJSON_Delete(root);
+    reply(0,200,started); unsigned owner=tube_remote_current_owner(); assert(owner);
+    tube_remote_voice_available(0); assert(!tube_remote_owner_current(owner) && tube_remote_state()==TUBE_REMOTE_STARTING);
+    clear_stop(); tube_remote_tick(35001);
+    root=request("start"); assert(!cJSON_GetObjectItem(root,"voice_enabled")); cJSON_Delete(root);
+    reply(0,200,started); tube_remote_shutdown(); clear_stop();
+}
 int main(void) { test_commands_and_feedback(); test_scope_and_late_start_cleanup(); test_atomic_validation();
-    test_all_commands_and_pending_invalidation(); test_original_source_cleanup();
+    test_all_commands_and_pending_invalidation(); test_original_source_cleanup(); test_voice_capability();
     configure(1,"guest",identity,"screen-123"); reject=1; tube_remote_tick(30000);
-    assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0); tube_remote_shutdown();
+    assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
+    tube_remote_voice_available(1); assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
+    tube_remote_shutdown();
     puts("Native Lounge scope, command delivery, feedback and shutdown passed"); return 0; }

@@ -63,6 +63,7 @@ void ProviderHostScreen::openSearch()""")
         const auto voiceTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
         tube_voice_tick(voiceTime);
+        tube_remote_voice_available(tube_voice_available() == 1);
         if (tube_voice_state() == TUBE_VOICE_FAILED) {
             toast("VOICE SEARCH", "No speech recognized. Check the microphone and companion, then retry.");
             tube_voice_cancel();

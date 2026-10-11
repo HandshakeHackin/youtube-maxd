@@ -65,6 +65,7 @@ class WireServer:
         self.incoming = b""
         self.fail_pair = False
         self.fail_update = False
+        self.voice_enabled = False
 
     async def handle(self, request):
         assert request.url.host == "www.youtube.com" and request.url.scheme == "https"
@@ -85,7 +86,7 @@ class WireServer:
         assert path == "/bc/bind"
         query = request.url.params
         assert query["id"] == DEVICE and query["loungeIdToken"] == "private-token"
-        assert query["capabilities"] == "dsp,dpa"
+        assert query["capabilities"] == "dsp,dpa" + (",mic" if self.voice_enabled else "")
         if query.get("TYPE") == "terminate":
             assert request.method == "GET" and query["SID"] == "private-SID"
             return httpx.Response(200, content=b"")
@@ -380,3 +381,45 @@ def test_queue_overflow_stream_failure_closes_without_acknowledging_lost_command
         finally:
             await cleanup(lounge)
     asyncio.run(run())
+
+
+def test_native_voice_capability_reaches_bind_and_requires_rebinding_on_change():
+    async def run():
+        server = WireServer()
+        server.voice_enabled = True
+        lounge = service(server)
+        try:
+            status = await lounge.execute(RemoteRequest(action="start", device_id=DEVICE, voice_enabled=True))
+            receiver = lounge.receivers[status["session"]]
+            assert receiver.voice_enabled and lounge.params(receiver)["capabilities"] == "dsp,dpa,mic"
+            again = await lounge.execute(RemoteRequest(action="start", device_id=DEVICE, voice_enabled=True))
+            assert again["session"] == status["session"]
+            with pytest.raises(ServiceError) as error:
+                await lounge.execute(RemoteRequest(action="start", device_id=DEVICE, voice_enabled=False))
+            assert error.value.code == "remote_identity_conflict"
+        finally:
+            await cleanup(lounge)
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("native_voice,local_voice,expected", [(False, False, False), (True, False, False), (False, True, False), (True, True, True)])
+def test_app_requires_both_native_voice_and_local_asr(native_voice, local_voice, expected):
+    from fastapi.testclient import TestClient
+
+    class Remote:
+        async def execute(self, payload):
+            return {"api_version": 1, "voice_enabled": payload.voice_enabled}
+
+        async def close(self):
+            pass
+
+    app = create_app(token="synthetic-capability-token", remote=Remote(), voice=object() if local_voice else None)
+    with TestClient(app) as client:
+        response = client.post("/v1/remote", headers={"Authorization": "Bearer synthetic-capability-token"},
+                               json={"action": "start", "device_id": DEVICE, "voice_enabled": native_voice})
+        assert response.status_code == 200 and response.json()["voice_enabled"] is expected
+
+
+def test_voice_capability_requires_a_boolean():
+    with pytest.raises(ValueError):
+        RemoteRequest(action="start", voice_enabled="true")

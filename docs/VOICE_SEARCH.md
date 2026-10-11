@@ -4,8 +4,8 @@ The companion speech-recognition service is implemented and tested with real
 whisper.cpp inference. The native AudioIn capture worker and scoped upload/job
 pipeline pass host fault tests and PS5 SDK compilation. Local/phone controls and
 native search navigation are connected and compile with the actual Application
-and provider screen. Full package and physical microphone acceptance remain open.
-Lounge microphone capability remains withheld.
+and provider screen. Candidate `578ad430` built and froze with native AudioIn
+imports (216 objects, 126 files). Physical microphone acceptance remains open.
 
 `native/tube_microphone.c` records 0.5–10 seconds of 16 kHz signed-16 mono PCM
 through the PS5 VoiceRecognition input route. AudioIn open/input/close stay on an
@@ -35,8 +35,15 @@ receiver ownership. Starting voice search pauses active playback. Leaving the
 browser or changing source/profile retires the recording and any pending result.
 Recognized text enters the actual provider search handler, preserving the full
 UTF-8 query. If speech recognition is unavailable, the UI reports failure.
-Lounge microphone capability remains withheld until service availability is
-connected to receiver capability negotiation.
+Native service availability is now connected to receiver capability negotiation.
+The client probes `/v1/health` before recording, checks again every minute while
+idle and retries failed checks after ten seconds. Scope changes retire stale
+health results. The receiver advertises `mic` only when native capture/search is
+connected and the companion has local ASR configured. Capability changes retire
+and rebind the listening receiver with the same saved identity; an already failed
+receiver still requires an explicit retry. Older clients omit this capability,
+and companions without ASR keep it disabled. The availability-gated package still
+requires its own build and hardware acceptance.
 
 The service uses a locally configured executable and model. It does not send
 recordings to a cloud speech service. Temporary WAV and transcript files are

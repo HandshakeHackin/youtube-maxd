@@ -16,6 +16,8 @@ void tube_voice_finish(void);
 void tube_voice_cancel(void);
 void tube_voice_tick(int64_t now_ms);
 int tube_voice_state(void);
+/* 0=checking, 1=local ASR configured, -1=unavailable or failed health check. */
+int tube_voice_available(void);
 unsigned tube_voice_owner(void);
 /* Ready result remains owned until cancelled or consumed; main thread only. */
 const char *tube_voice_result(void);

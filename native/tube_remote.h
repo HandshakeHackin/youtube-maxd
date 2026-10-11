@@ -29,6 +29,8 @@ typedef struct {
 void tube_remote_configure(const char *source, const char *token, const char *profile,
                            int enabled, const char *device, const char *screen);
 void tube_remote_retry(void);
+/* Capability changes retire the old receiver and rebind the same identity. */
+void tube_remote_voice_available(int available);
 void tube_remote_pair(void);
 void tube_remote_tick(int64_t now_ms);
 void tube_remote_report(const tube_remote_player *player);
