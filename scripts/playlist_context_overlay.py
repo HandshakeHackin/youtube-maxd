@@ -1,5 +1,14 @@
 """Carry playlist occurrence metadata through actual provider rows and launch staging."""
 def apply_playlist_context_overlay(replace, player, host):
+    replace(host, 'if (!tube_recovery_pending() && rp &&',
+        'if (!tube_recovery_pending() && !tube_playlist_eof_pending() && rp &&')
+    replace(host, '        sel.is_live = queued.is_live; sel.resume_sec = queued.resume_pos_sec;', '''        sel.is_live = queued.is_live; sel.resume_sec = queued.resume_pos_sec;
+        std::snprintf(sel.playback_playlist,sizeof sel.playback_playlist,"%s",queued.playback_playlist);
+        sel.playback_index=queued.playback_index; sel.playback_scope=queued.playback_scope;''')
+    replace(player+'core/src/screens/PlayerScreen.cpp',
+        'bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {',
+        '''bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {
+    if (pressed && tube_playlist_eof_pending()) tube_playlist_eof_cancel();''')
     fields='''    char playback_playlist[101];
     int playback_index;
     unsigned playback_scope;

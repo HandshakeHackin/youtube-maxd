@@ -33,6 +33,10 @@ static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, hi
 static bool finish_allowed, show_message, accepted;
 static bool phone_finished, phone_owns, local_finished;
 static int local_finish_calls, phone_finish_calls;
+static bool playlist_wait;
+static int playlist_cancels;
+static int tube_playlist_eof_pending() { return playlist_wait; }
+static void tube_playlist_eof_cancel() { playlist_wait=false; ++playlist_cancels; }
 static double next_target;
 static const char* prompt;
 static bool m_showStatsForNerds;
@@ -67,6 +71,7 @@ static bool input(unsigned pressed) {
 }
 static void reset() {
     state = Playback{}; manager.returns = 0;
+    playlist_wait=false; playlist_cancels=0;
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
@@ -74,6 +79,8 @@ static void reset() {
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    reset();playlist_wait=true;input(0);assert(playlist_wait && !playlist_cancels);
+    input(PadButtons::Cross);assert(!playlist_wait && playlist_cancels==1);
     reset(); complete=true; state.scrubbing=true; phone_finished=true; local_finished=true; tick();
     assert(!state.stops && !phone_finish_calls && !local_finish_calls);
     for (bool discard:{false,true}) {

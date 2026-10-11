@@ -33,8 +33,10 @@ window adapter through both direct and asynchronous library requests. It
 retains profile ownership, sparse indices and repeats, and rejects contradictory
 endpoint/selected-row positions. The native provider now exposes scoped
 begin/status/cancel operations for these windows, validates their contents and
-discards retired responses. Native EOF consumption and whole-playlist shuffle
-remain to be implemented.
+discards retired responses. With queue/playlist autoplay enabled, natural EOF
+consumes the next returned occurrence after giving explicit queues priority.
+Any controller press cancels the window wait. The full seven-mode policy,
+whole-playlist shuffle and continuation beyond an exhausted window remain open.
 
 
 ### Live-chat service reader

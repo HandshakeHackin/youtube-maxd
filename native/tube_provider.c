@@ -48,6 +48,8 @@ static struct {
     char id[12];
     tube_playlist_window_t value;
 } g_playlist_window;
+static int g_playlist_eof_wait, g_playlist_next_ready;
+static evo_provider_item_t g_playlist_next;
 
 typedef struct Request {
     int used, kind, stage, inflight;
@@ -2074,6 +2076,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    g_playlist_eof_wait = g_playlist_next_ready = 0;
     tube_playlist_window_cancel();
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     if (!preserve_chat) tube_chat_stop();
@@ -2765,7 +2768,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER("settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
             CATALOG_FOLDER( "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             CATALOG_FOLDER( "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
-            CATALOG_FOLDER( "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
+            CATALOG_FOLDER( "settings:autoplay", g_autoplay ? "Queue / playlist autoplay: on" : "Queue / playlist autoplay: off", "Play queued videos first, then the next playlist occurrence");
             CATALOG_FOLDER( "settings:ask-stream", g_ask_stream ? "Choose stream before playback: on" : "Choose stream before playback: off", "Off plays the preferred quality immediately; on shows available choices");
             CATALOG_FOLDER( "settings:history-sync", g_history_sync ? "Sync YouTube history: on" : "Sync YouTube history: off",
                 g_watch.status < 0 ? "Last report unconfirmed; this playback session will not retry" :
@@ -3431,13 +3434,41 @@ int tube_queue_skip_unavailable(const char *id) {
     return queue_next(); /* Unavailable is not watched: retain queue/resume/history. */
 }
 
-static int finish_and_next(void) {
-    if (g_finished || !*g_active_id) return 0;
+void tube_playlist_eof_cancel(void) {
+    g_playlist_eof_wait = g_playlist_next_ready = 0;
+    tube_playlist_window_cancel();
+}
+int tube_playlist_eof_pending(void) { return g_playlist_eof_wait || g_playlist_next_ready; }
+static int playlist_eof_advance(void) {
+    if (!g_playlist_eof_wait) return 0;
+    if (!g_autoplay || !playlist_window_current()) { tube_playlist_eof_cancel(); return 0; }
+    int state=tube_playlist_window_status(NULL);
+    if (!state) return 0;
+    g_playlist_eof_wait=0;
+    if (state != 1) return 0;
+    const tube_playlist_window_t *window=&g_playlist_window.value;
+    int at=window->current+1;
+    if (at >= window->count) return 0;
+    const Record *cached=record_for(window->ids[at],g_active_profile,0);
+    memset(&g_playlist_next,0,sizeof g_playlist_next);
+    if (cached) { g_playlist_next=cached->item; dearrow_item(&g_playlist_next,cached); }
+    copy(g_playlist_next.id,sizeof g_playlist_next.id,window->ids[at]);
+    if (!*g_playlist_next.title) copy(g_playlist_next.title,sizeof g_playlist_next.title,window->ids[at]);
+    copy(g_playlist_next.playback_playlist,sizeof g_playlist_next.playback_playlist,window->playlist);
+    g_playlist_next.playback_index=window->indices[at]; g_playlist_next.playback_scope=window->scope;
+    g_playlist_next.resume_pos_sec=0; g_playlist_next.kind=EVO_MEDIA_VIDEO;
+    g_playlist_next_ready=1; return 1;
+}
+static int finish_and_next(int playlist) {
+    if (g_finished) return playlist ? playlist_eof_advance() : 0;
+    if (!*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
     if (!g_autoplay || strcmp(g_active_profile, g_library_profile)) return 0;
-    return queue_next();
+    if (queue_next()) return 1;
+    if (playlist && tube_playlist_window_begin()) g_playlist_eof_wait=1;
+    return 0;
 }
 
 int tube_sponsor_finish(double target, double duration) {
@@ -3450,21 +3481,26 @@ int tube_sponsor_finish(double target, double duration) {
         duration <= 0 || duration > 1000000 || target < duration ||
         target != g_sb_finish_target || target != g_skip_until || g_skip_guard < 0) return 0;
     g_sb_finish_target = -1;
-    (void)finish_and_next();
+    (void)finish_and_next(0);
     return 1; /* The caller stops and returns even with autoplay disabled. */
 }
 
 int tube_finish_and_next(double position, double duration) {
-    return tube_playback_at_end(position, duration) ? finish_and_next() : 0;
+    return tube_playback_at_end(position, duration) ? finish_and_next(1) : 0;
 }
 
 int tube_finish_drained_and_next(double position) {
     /* Called only with the engine's natural EOF + audio/video retirement proof.
      * Unknown/inaccurate metadata duration must not prevent a clean completion. */
-    return isfinite(position) && position >= 0 ? finish_and_next() : 0;
+    return isfinite(position) && position >= 0 ? finish_and_next(1) : 0;
 }
 
 int tube_take_next(evo_provider_item_t *item) {
+    if (g_playlist_next_ready) {
+        g_playlist_next_ready=0;
+        if (!item || !g_autoplay || !playlist_window_current()) return 0;
+        *item=g_playlist_next; return 1;
+    }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
     if (!r || !r->queued || !item) return 0;

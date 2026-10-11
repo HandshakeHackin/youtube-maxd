@@ -91,6 +91,8 @@ typedef struct {
 int tube_playlist_window_begin(void);
 int tube_playlist_window_status(tube_playlist_window_t *out);
 void tube_playlist_window_cancel(void);
+int tube_playlist_eof_pending(void);
+void tube_playlist_eof_cancel(void);
 int tube_autoplay_enabled(void);
 int tube_choose_stream_enabled(void);
 int tube_queue_recovery(double position, int live, int subtitles);

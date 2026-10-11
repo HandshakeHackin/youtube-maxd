@@ -10,4 +10,6 @@ tick_end = source.index("    /*\n     * Ask the playback engine", tick_start)
 input_start = source.index("    if (!m_showStatsForNerds && !playback->isScrubbing() &&")
 input_end = source.index("    // Scrub hold update", input_start)
 (destination / "tick.inc").write_text(source[tick_start:tick_end])
-(destination / "input.inc").write_text(source[input_start:input_end])
+prefix = source.index('\n', source.index('bool PlayerScreen::handleInput(')) + 1
+prefix_end = source.index('    (void)released;', prefix)
+(destination / "input.inc").write_text(source[prefix:prefix_end] + source[input_start:input_end])

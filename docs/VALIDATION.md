@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Natural EOF playlist advancement — 2026-10-11
+
+The existing autoplay preference now advances to the next returned playlist
+occurrence after natural presentation drain when no explicit queue entry is
+available. The player waits for its scoped WatchNext job, then stages one
+selection with the original sparse index and zero resume position. Browser
+return skips its usual reload while this selection is pending, preserving the
+handoff. Controller input cancels the wait; profile changes and phone selection
+invalidate its ownership. The existing phone-owned EOF gate remains intact.
+
+Native playlist-window/context, queue-failure and SponsorBlock suites passed.
+The expanded native fixture covers queue priority, one-shot playlist handoff,
+controller-side cancellation API and profile retirement while waiting. Actual
+generated player input/tick, recovery handoff and phone failure host tests pass.
+This is the first continuous-playlist path, not the seven-mode policy: reverse,
+shuffle, repeat, pause/close, channel/recommendation context, continuation beyond
+an exhausted returned window and SponsorBlock-induced playlist completion still
+need integration. Final packaging and console acceptance remain pending.
+The native phone-provider regression and PS5 compilation of the provider,
+PlayerScreen and ProviderHostScreen passed. Logs are
+`.deps/playlist-eof-{player,recovery,phone-host,phone,sdk}.log`; existing SDK
+qualified-math warnings remain. No console connections were made.
+
 ## Native playlist window transport — 2026-10-11
 
 The native provider can request and retain a bounded WatchNext window for the
@@ -14,8 +37,9 @@ The playlist-window, playlist-context, recovery and queue-failure ASan/UBSan
 suites passed, along with the native phone-provider suite. The expanded window
 fixture additionally passed the late-old-response/new-ready-window ordering and
 128-entry boundary. Logs: `.deps/native-playlist-window.log` and
-`.deps/native-playlist-window-phone.log`. Native EOF policy has not yet been
-connected to this transport. No console connections occurred.
+`.deps/native-playlist-window-phone.log`. The natural-EOF follow-up above connects
+the first consumer; complete playback-mode policy remains pending. No console
+connections occurred.
 The PS5 SDK provider object compiled successfully
 (`.deps/native-playlist-window-sdk.log`), with existing SDK qualified-math
 warnings. This change is not yet a complete frozen application candidate.
