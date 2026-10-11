@@ -1,5 +1,17 @@
 # Offline validation record — 0.1.0
 
+- 2026-10-10 | casting | 0b02a137 | PS5 | failed: unsupported screenshot NLST after pairing/remote start; exact release and original data restore passed | .deps/phone-player-rng-* | use supported MLSD
+
+The actual UI now generates and durably saves the PS5 pairing identity and screen;
+the fixture receiver registered and acknowledged native playback at 13.25 seconds
+with playlist index 5 and next-item feedback. Rendering telemetry continued.
+The adapter's screenshot listing failed before the remaining commands. There was
+no relaunch. Bounded cleanup verified the exact owned PID/app ID, GPU park,
+video/title/mount release, healthy services and byte-exact original state
+restoration (`.deps/phone-player-rng-cleanup.*`, exit 0). The adapter has been
+corrected offline to use the protocol's supported MLSD listing. Real phone and
+remaining command acceptance are still open; see [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+
 ## Downloaded caption identity — 2026-10-10
 
 Phone feedback and current-track toggles now use the language captured when the

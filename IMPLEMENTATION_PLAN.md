@@ -630,7 +630,12 @@ Corrected `f0b9f41c` PS5 package built/froze (126 files); 83 companion regressio
 passed. A saved keep-playing / stop-phone-playback-on-disconnect choice is now
 connected to the native settings/player, with ownership and restart sanitizer
 coverage. Candidate `0b02a137` built/froze (126 files) and all nine native provider
-regressions passed. Corrected runtime and actual phone playback remain unverified; caption
+regressions passed. Its PS5 fixture case now establishes runtime UUID/screen
+persistence, receiver registration and remote-command native video startup at
+13.25 seconds. Unsupported screenshot `NLST` stopped the remaining command
+checks; exact owned GPU/title/mount release and original data restoration passed.
+The adapter now uses supported MLSD. Real phone and remaining command acceptance
+are still open; caption
 language switching, voice, full app-exit behavior and long playlists remain open.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and

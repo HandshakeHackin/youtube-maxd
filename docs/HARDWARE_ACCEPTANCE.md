@@ -1,5 +1,18 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | casting | 0b02a137 | PS5 | partial-pass: UUID/screen persisted, fixture receiver registered, remote start at 13.25s; clean release/restore | .deps/phone-player-rng-* | remaining controls, real phone
+
+The native pairing RNG fix passed the actual UI path. The deterministic receiver
+accepted a version-4 UUID, and the provider saved its identity/screen under Lapy.
+Playlist command startup acknowledged only after native AVC/AAC playback began;
+feedback retained the fractional offset, playlist index and next-item state.
+Captured rendering/decoder telemetry establishes continued frame presentation.
+The case then failed because the screenshot adapter used unsupported FTP `NLST`.
+No launch retry followed. Separate cleanup verified the same PID/app ID, parked
+the GPU, closed only that instance, proved video/mount release and restored the
+exact original data. Services remained healthy. Remaining command scenarios,
+physical sound and real phone pairing were not verified.
+
 - 2026-10-10 | SponsorBlock review | e8486d38 | PS5 | pass: generated AVC/AAC persistent review, keep/skip/expiry, Stop and clean release | .deps/console/sponsor-review-hardware/verified-result.json | real service and physical appearance
 
 Candidate `17455475` (`prosperotube-17455475_1010-2002`, 126 files, eboot prefix
