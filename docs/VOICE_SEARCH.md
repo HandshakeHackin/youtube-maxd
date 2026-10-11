@@ -42,8 +42,10 @@ health results. The receiver advertises `mic` only when native capture/search is
 connected and the companion has local ASR configured. Capability changes retire
 and rebind the listening receiver with the same saved identity; an already failed
 receiver still requires an explicit retry. Older clients omit this capability,
-and companions without ASR keep it disabled. The availability-gated package still
-requires its own build and hardware acceptance.
+and companions without ASR keep it disabled. The availability-gated package
+`prosperotube-0b06bc66_1011-0111` built successfully (216 objects, 126 frozen
+files; eboot SHA-256 prefix `4b3fd861c59b9048`). Physical microphone capture and
+recognized-text search on PS5 still require hardware acceptance.
 
 The service uses a locally configured executable and model. It does not send
 recordings to a cloud speech service. Temporary WAV and transcript files are

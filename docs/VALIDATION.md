@@ -53,7 +53,21 @@ exit 0). Tests cover health probing/retry/refresh, stale health results after sc
 changes, old-client/disabled-ASR behavior, both capability gates, actual Lounge
 bind parameters, strict booleans, idempotent binds, identity conflicts, receiver
 retirement/rebind and preservation of explicit retry after failure. The final
-failed-receiver edit is covered by the phone test; the full package remains pending.
+failed-receiver edit is covered by the phone test. The full availability-gated
+package completed all 216 object builds and froze 126 files as
+`prosperotube-0b06bc66_1011-0111`, eboot SHA-256 prefix `4b3fd861c59b9048`
+(`.deps/voice-capability-{ps5-build,freeze}.*`, exit 0). Hardware acceptance is
+tracked separately.
+
+Large phone-supplied queues now retain up to 10,000 IDs on the companion and
+deliver bounded 128-ID windows to the native player. Confirmed player feedback
+refills windows, preserving global indices and duplicate-video occurrences
+without reopening playback. Replacement, stop and receiver retirement clear
+retained queues. The batch passed 142 companion checks, native remote/player
+ASan/UBSan tests and compilation of connected PS5 objects
+(`.deps/phone-window-{service-tests,tests}.*` and
+`.deps/voice-capability-connected-ps5-objects.*`, exit 0). Partial-queue service
+expansion and hardware acceptance of window refills remain open.
 
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono

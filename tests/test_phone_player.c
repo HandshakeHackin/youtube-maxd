@@ -182,7 +182,15 @@ static void test_voice_controls(void) {
     assert(voice_starts == 1 && voice_cancels == 1 && tube_remote_state() == TUBE_REMOTE_LISTENING);
     tube_remote_command command; assert(!tube_remote_take(&command));
 }
+static void test_windowed_duplicate_and_refresh(void) {
+    feed("[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\",\"abcdefghijk\"],\"playlist\":\"PLlarge\",\"index\":102,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"zyxwvutsrqp\",\"abcdefghijk\",\"12345678901\"],\"playlist\":\"PLlarge\",\"index\":102,\"window_start\":101,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":3,\"action\":\"next\"}]");
+    tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); assert(browsed == 1); /* refill does not reopen playback */
+    feedback(102,1,0); /* selected duplicate was the third occurrence in its old window */
+    tube_phone_tick(&controls); unsigned next = take_start("12345678901",0);
+    started_video(next,"12345678901"); tube_phone_tick(&controls); feedback(103,1,0);
+}
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); cleanup();
+    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

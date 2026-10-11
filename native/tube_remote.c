@@ -80,6 +80,11 @@ static int command(const cJSON *root, tube_remote_command *out, int expected) {
             if (!cJSON_IsString(row) || !row->valuestring || !safe_id(row->valuestring, 11, 0)) return 0;
             memcpy(out->videos[out->count++], row->valuestring, 12);
         }
+        out->has_window = cJSON_HasObjectItem(root, "window_start");
+        if (out->has_window && (!integer(root, "window_start", 0, 100000, &out->window_start) ||
+            out->index < out->window_start || out->index - out->window_start >= out->count ||
+            out->window_start > 100001 - out->count || !*out->video ||
+            strcmp(out->videos[out->index - out->window_start], out->video))) return 0;
     } else if (out->action == TUBE_REMOTE_SEEK) {
         if (!number(root, "position_sec", 0, 1000000, &out->position)) return 0;
     } else if (out->action == TUBE_REMOTE_VOLUME) {

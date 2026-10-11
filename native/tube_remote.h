@@ -13,7 +13,7 @@ enum { TUBE_REMOTE_PLAY = 1, TUBE_REMOTE_PAUSE, TUBE_REMOTE_NEXT, TUBE_REMOTE_PR
     TUBE_REMOTE_DEVICES, TUBE_REMOTE_DPAD, TUBE_REMOTE_VOICE, TUBE_REMOTE_CAPTIONS };
 typedef struct {
     unsigned owner;
-    int sequence, action, index, count, has_volume, has_delta, devices;
+    int sequence, action, index, count, has_volume, has_delta, devices, has_window, window_start;
     double position, volume, delta;
     char video[12], videos[128][12], playlist[101], ctt[513];
     char device[513], name[401], key[9], voice[13], language[33];

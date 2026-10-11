@@ -189,7 +189,7 @@ def test_phone_commands_have_typed_allowlisted_parameters(name, args, expected):
 
 @pytest.mark.parametrize("name,args", [("setPlaylist", {}), ("setPlaylist", {"videoId": "file:///bad"}),
     ("setPlaylist", {"videoId": VIDEO, "currentTime": "NaN"}), ("setPlaylist", {"videoId": VIDEO, "currentIndex": "0.5"}),
-    ("setPlaylist", {"videoId": VIDEO, "videoIds": ",".join([VIDEO] * 129)}),
+    ("setPlaylist", {"videoId": VIDEO, "videoIds": ",".join([VIDEO] * 10001)}),
     ("seekTo", {"newTime": "-1"}), ("seekTo", {"newTime": True}), ("setVolume", {}),
     ("setVolume", {"volume": "101"}), ("dpadCommand", {"key": "exec"}), ("voiceCommand", {"status": "EXEC"}),
     ("loungeStatus", {"devices": "{}"}), ("setSubtitlesTrack", {"languageCode": "\n"})])
@@ -423,3 +423,63 @@ def test_app_requires_both_native_voice_and_local_asr(native_voice, local_voice,
 def test_voice_capability_requires_a_boolean():
     with pytest.raises(ValueError):
         RemoteRequest(action="start", voice_enabled="true")
+
+
+def test_large_phone_queues_keep_bounded_native_windows_and_duplicate_positions():
+    ids = [f"v{i:010d}" for i in range(500)]
+    ids[250] = ids[10]
+    saved = {}
+    typed = command("setPlaylist", {"videoIds": ",".join(ids), "videoId": ids[250],
+                    "currentIndex": 250, "listId": "PLtestlarge", "ctt": "click"}, queue_state=saved)
+    assert typed["index"] == 250 and typed["window_start"] == 218
+    assert typed["video_ids"] == ids[218:346] and len(saved["ids"]) == 500
+    assert "ids" not in typed and len(json.dumps(typed)) < 2500
+    largest = command("setPlaylist", {"videoIds": ",".join([VIDEO] * 10000), "currentIndex": 9999})
+    assert len(largest["video_ids"]) == 128 and largest["window_start"] == 9872 and largest["index"] == 9999
+    with pytest.raises(ServiceError):
+        command("setPlaylist", {"videoIds": ",".join(ids), "videoId": "xxxxxxxxxxx", "currentIndex": 250})
+
+
+def test_phone_queue_windows_refresh_after_owned_feedback_and_retire_on_replacement():
+    async def run():
+        server = WireServer(); lounge = service(server)
+        ids = [f"v{i:010d}" for i in range(500)]
+        try:
+            status = await start(lounge); session = status["session"]; receiver = lounge.receivers[session]
+            lounge.accept(receiver, [[[3, ["setPlaylist", {"videoId": ids[0], "videoIds": ",".join(ids),
+                           "listId": "PLtestlarge", "currentIndex": 0, "ctt": "click"}]]]])
+            pending = await lounge.execute(RemoteRequest(action="poll", session=session, ack=0))
+            assert pending["commands"][-1]["window_start"] == 0
+            await lounge.execute(RemoteRequest(action="poll", session=session, ack=2))
+            state = PlayerState(video_id=ids[112], playlist="PLtestlarge", ctt="click", index=112,
+                                position_sec=4.5, has_previous=True, has_next=True)
+            update = RemoteRequest(action="update", session=session, update_id=1, player=state)
+            await lounge.execute(update); await lounge.execute(update)
+            assert len(receiver.queue) == 1
+            window = receiver.queue[0]
+            assert window["action"] == "updatePlaylist" and window["sequence"] == 3
+            assert window["index"] == 112 and window["window_start"] == 80 and window["video_ids"] == ids[80:208]
+            # An unacknowledged queue change prevents a second speculative refill.
+            state = state.model_copy(update={"video_id": ids[200], "index": 200})
+            await lounge.execute(RemoteRequest(action="update", session=session, update_id=2, player=state))
+            assert len(receiver.queue) == 1
+            await lounge.execute(RemoteRequest(action="poll", session=session, ack=2))
+            await lounge.execute(RemoteRequest(action="poll", session=session, ack=3))
+            await lounge.execute(RemoteRequest(action="update", session=session, update_id=3, player=state))
+            assert receiver.queue[0]["window_start"] == 168
+            # Manual or stopped playback cannot acquire an old phone queue.
+            receiver.queue.clear()
+            before = receiver.sequence
+            local = state.model_copy(update={"video_id": ids[480], "index": 480, "has_previous": False, "has_next": False})
+            await lounge.execute(RemoteRequest(action="update", session=session, update_id=4, player=local))
+            assert not receiver.queue and receiver.sequence == before
+            lounge.accept(receiver, [[[4, ["updatePlaylist", {"videoId": ids[0], "videoIds": ids[0], "listId": "PLother"}]]]])
+            assert receiver.full_playlist is None
+            lounge.accept(receiver, [[[5, ["setPlaylist", {"videoId": ids[0], "videoIds": ",".join(ids), "listId": "PLtestlarge"}]]]])
+            assert receiver.full_playlist is not None
+            lounge.accept(receiver, [[[6, ["stopVideo", {}]]]])
+            assert receiver.full_playlist is None
+        finally:
+            await cleanup(lounge)
+        assert receiver.full_playlist is None
+    asyncio.run(run())

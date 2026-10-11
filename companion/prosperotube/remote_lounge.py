@@ -102,7 +102,7 @@ def number(value, minimum=0, maximum=1_000_000):
     return result
 
 
-def command(name, args):
+def command(name, args, *, queue_state=None):
     """Expose typed allowlisted commands, never arbitrary wire parameters."""
     if not isinstance(args, dict) or len(args) > 32:
         raise failure()
@@ -111,8 +111,8 @@ def command(name, args):
         return result
     if name in ("setPlaylist", "updatePlaylist"):
         video = bounded_text(args.get("videoId", ""), 11)
-        ids = bounded_text(args.get("videoIds", ""), 1535).split(",") if args.get("videoIds") else []
-        if len(ids) > 128 or any(not VIDEO_ID.fullmatch(v) for v in ids):
+        ids = bounded_text(args.get("videoIds", ""), 119999).split(",") if args.get("videoIds") else []
+        if len(ids) > 10000 or any(not VIDEO_ID.fullmatch(v) for v in ids):
             raise failure()
         index = number(args.get("currentIndex", 0), maximum=100_000)
         if not index.is_integer() or (video and not VIDEO_ID.fullmatch(video)):
@@ -124,6 +124,21 @@ def command(name, args):
         result.update(video_id=video, video_ids=ids, playlist=bounded_text(args.get("listId", ""), 100, r"[A-Za-z0-9_-]*"),
                       index=int(index), position_sec=number(args.get("currentTime", 0)),
                       ctt=bounded_text(args.get("ctt", ""), 512))
+        if len(ids) > 128:
+            if not video:
+                if index >= len(ids): raise failure()
+                video = ids[int(index)]
+                result["video_id"] = video
+            anchor = int(index) if index < len(ids) and ids[int(index)] == video else ids.index(video) if video in ids else -1
+            if anchor < 0 or index < anchor or int(index) - anchor + len(ids) - 1 > 100000:
+                raise failure()
+            base = int(index) - anchor
+            start = max(0, min(anchor - 32, len(ids) - 128))
+            result["video_ids"] = ids[start:start + 128]
+            result["window_start"] = base + start
+            if queue_state is not None:
+                queue_state.update(ids=ids, base=base, playlist=result["playlist"], ctt=result["ctt"],
+                                   window_start=base + start, window_end=base + start + 127)
     elif name == "seekTo":
         result["position_sec"] = number(args.get("newTime"))
     elif name == "setVolume":
@@ -217,6 +232,7 @@ class Receiver:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
     touched: float = field(default_factory=time.monotonic)
     voice_enabled: bool = False
+    full_playlist: dict | None = field(default=None, repr=False)
 
 
 class Lounge:
@@ -281,12 +297,17 @@ class Lounge:
                 elif name in ("stop", "close"):
                     raise failure("remote_disconnected")
                 elif name != "noop":
-                    typed = command(name, payload[1] if len(payload) > 1 else {})
+                    queue_state = {}
+                    typed = command(name, payload[1] if len(payload) > 1 else {}, queue_state=queue_state)
                     if typed is not None:
                         if len(receiver.queue) >= MAX_QUEUE:
                             raise failure("remote_overflow")
                         receiver.sequence += 1
                         receiver.queue.append({"sequence": receiver.sequence, **typed})
+                        if name in ("setPlaylist", "updatePlaylist"):
+                            receiver.full_playlist = queue_state or None
+                        elif name == "stopVideo":
+                            receiver.full_playlist = None
                 receiver.aid = index
 
     async def bind(self, receiver):
@@ -297,6 +318,7 @@ class Lounge:
 
     def fail(self, receiver, code):
         receiver.error = code
+        receiver.full_playlist = None
         receiver.queue.clear()  # Never apply stale commands after a failed channel.
         receiver.code = ""
         if receiver.task is not None and receiver.task is not asyncio.current_task():
@@ -347,6 +369,7 @@ class Lounge:
                         pass
             finally:
                 receiver.token = receiver.sid = receiver.gsid = receiver.code = ""
+                receiver.full_playlist = None
 
     async def start(self, payload):
         async with self.lock:
@@ -448,6 +471,7 @@ class Lounge:
                     raise failure(receiver.error)
                 receiver.ofs += len(packets)
                 receiver.update_id, receiver.last_player = payload.update_id, player
+                self.refresh_playlist_window(receiver, player)
                 return self.status(receiver)
             except ServiceError as exc:
                 if exc.status >= 500:
@@ -459,6 +483,33 @@ class Lounge:
             except (httpx.HTTPError, ValueError, UnicodeError, RecursionError):
                 self.fail(receiver, "remote_upstream")
                 raise failure("remote_upstream") from None
+
+    @staticmethod
+    def refresh_playlist_window(receiver, player):
+        saved = receiver.full_playlist
+        if not saved or len(receiver.queue) >= MAX_QUEUE or receiver.sequence >= 2_147_483_647:
+            return
+        if any(c["action"] in ("setPlaylist", "updatePlaylist") for c in receiver.queue):
+            return
+        index = player["index"]
+        local = index - saved["base"]
+        ids = saved["ids"]
+        if (not player["video_id"] or not (player["has_previous"] or player["has_next"]) or
+            player["playlist"] != saved["playlist"] or player["ctt"] != saved["ctt"] or
+            not 0 <= local < len(ids) or ids[local] != player["video_id"]):
+            return
+        if (saved["window_start"] == saved["base"] or index >= saved["window_start"] + 16) and (
+            saved["window_end"] == saved["base"] + len(ids) - 1 or index <= saved["window_end"] - 16):
+            return
+        start = max(0, min(local - 32, len(ids) - 128))
+        if saved["window_start"] == saved["base"] + start:
+            return
+        receiver.sequence += 1
+        receiver.queue.append({"sequence": receiver.sequence, "action": "updatePlaylist",
+                               "video_id": player["video_id"], "video_ids": ids[start:start + 128],
+                               "playlist": saved["playlist"], "ctt": saved["ctt"], "index": index,
+                               "window_start": saved["base"] + start, "position_sec": player["position_sec"]})
+        saved["window_start"], saved["window_end"] = saved["base"] + start, saved["base"] + start + 127
 
     @staticmethod
     def state_packets(player):

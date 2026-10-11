@@ -5,7 +5,15 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Current milestone (2026-10-10): the native PS5 package has played the real public
+Latest implementation batch: availability-gated native voice capture, local ASR
+and provider search are connected and packaged (`0b06bc66`, 216 objects, 126
+frozen files). Physical microphone acceptance is in preparation on the reserved
+`.40` console. Large phone queues retain up to 10,000 IDs on the companion and
+send/refill bounded native windows; 142 companion checks, native sanitizer tests
+and connected PS5 compilation passed. Fetching beyond partial phone queues,
+real-phone/account acceptance and remaining SmartTube parity are still open.
+
+Earlier playback milestone (2026-10-10): the native PS5 package has played the real public
 YouTube video "Me at the zoo" on `.40` using native AVC and the corrected Windows
 LAN companion. The captured scanout shows video and English captions; the player
 published 284 frames with zero late drops and reached EOF/completion. Guest

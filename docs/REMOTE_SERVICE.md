@@ -3,15 +3,15 @@
 The companion implements YouTube's Lounge / MDX TV-code receiver protocol.
 Registration, code generation, command reception and player-state feedback passed
 a live temporary-receiver check. Native pairing settings and identity storage are
-integrated and host-tested. **Player command execution remains unconnected.
-This does not enable phone-to-PS5 playback.**
-The existing PS5 playback candidate remains `9ac95e69`.
+integrated. Native player command execution passed a PS5 fixture cycle, including
+playback, seek, captions, queue transitions and disconnect policy. Pairing and
+control from a real YouTube phone application remain to be accepted.
 
 The native `tube_remote` driver is now included in generated PS5 build inputs.
 It has passed ASan/UBSan command/scope/feedback tests and a PS5 SDK object compile.
 It provides opt-in asynchronous registration/pair/poll/report/stop, typed commands,
 owner-tagged acknowledgments and stable device/screen identity getters.
-The provider now calls the driver; player execution remains pending.
+The provider calls the driver and Application connects it to the native player.
 
 ## Native pairing settings
 
@@ -71,7 +71,11 @@ Incoming commands include set/update playlist, play/pause, next/previous, seek,
 volume, stop, now-playing query, phone connection events, device list, D-pad,
 voice initiation/cancellation and caption selection. Unknown command names are
 ignored. Known commands expose only validated fields, including a queue of at
-most 128 video IDs. Phone state does not prove native playback occurred.
+most 128 video IDs per native window. The companion can retain up to 10,000 IDs
+from a phone-supplied queue and refill windows after confirmed player feedback.
+Global indices and repeated videos retain their positions; refills update the
+queue without reopening playback. Fetching beyond a partial phone-supplied queue
+remains pending. Phone state alone does not prove native playback occurred.
 
 The native integration must apply each command on the main thread before
 acknowledging its sequence. Polling does not consume commands. Acknowledgments

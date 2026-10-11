@@ -49,10 +49,11 @@ static PhoneQueue playlist(const tube_remote_command *c, const char *playing) {
     q.cursor = find(&q, playing);
     /* Wire index may be global while the sender supplies a playlist window. */
     int anchor = *c->video ? find(&q, c->video) : q.cursor;
+    if (c->has_window) anchor = c->index - c->window_start;
     const char *anchor_id = *c->video ? c->video : playing;
-    if (c->index < q.count && !strcmp(q.videos[c->index], anchor_id)) anchor = c->index;
+    if (!c->has_window && c->index < q.count && !strcmp(q.videos[c->index], anchor_id)) anchor = c->index;
     if (!strcmp(playing, anchor_id)) q.cursor = anchor;
-    q.base = anchor < 0 ? c->index : c->index >= anchor ? c->index - anchor : 0;
+    q.base = c->has_window ? c->window_start : anchor < 0 ? c->index : c->index >= anchor ? c->index - anchor : 0;
     return q;
 }
 static void begin(const tube_remote_command *c, const PhoneQueue *q, double position) {
