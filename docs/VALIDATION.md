@@ -1,5 +1,18 @@
 # Offline validation record — 0.1.0
 
+## Channel catalog context foundation — 2026-10-11
+
+Signed-in channel browsing now selects the Videos tab, matching guest browsing.
+Both service paths preserve channel/index context and repeated occurrences;
+guest positions require explicit extractor indices, while the worker preserves
+raw video positions across filtered rows, local pages and upstream continuations.
+Malformed supplied context never falls back to an inferred position. Native
+channel context handoff and channel next/previous navigation remain unfinished.
+
+Validation: 78 worker tests and 28 catalog context tests pass, covering profile
+isolation, cached continuation replay, source holes, duplicate IDs, guest/OAuth
+adapters and direct/job HTTP responses. No console access was performed.
+
 ## Playlist-end and Mix next context — 2026-10-11
 
 Next-video requests now optionally include the active playlist and occurrence.

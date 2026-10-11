@@ -1,8 +1,24 @@
 """Search, channels, and playlists; pagination keeps opaque stable identities."""
-from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, PlaylistContext, ServiceError, number, safe_remote, text
+from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, PlaylistContext, ChannelContext, ServiceError, number, safe_remote, text
 from urllib.parse import urlsplit, parse_qs
 
 PAGE_SIZE = 24
+
+
+def channel_context(info, channel):
+    if not CHANNEL_ID.fullmatch(channel):
+        return None
+    supplied = info.get("playback_context")
+    if supplied is not None:
+        if (isinstance(supplied, dict) and supplied.get("channel") == channel
+                and "playlist" not in supplied and type(supplied.get("index")) is int
+                and 0 <= supplied["index"] <= 100000):
+            return ChannelContext(channel=channel, index=supplied["index"])
+        return None
+    index = info.get("playlist_index")
+    if type(index) is int and 1 <= index <= 100001:
+        return ChannelContext(channel=channel, index=index - 1)
+    return None
 
 
 def playlist_context(info, playlist):
@@ -85,6 +101,7 @@ async def page_for(extractor, *, query="", parent="", page=0):
     result = await extractor.extract(target, flat=True, start=start, end=start + PAGE_SIZE)
     entries = result.get("entries") or []
     playlist = parent[9:] if parent.startswith("playlist:") else ""
+    channel = parent[8:] if parent.startswith("channel:") else ""
     rows, seen = [], set()
     for raw in entries[:PAGE_SIZE]:
         row = item(raw) if isinstance(raw, dict) else None
@@ -92,7 +109,9 @@ async def page_for(extractor, *, query="", parent="", page=0):
             row.art_url = extractor.base + "/fixtures/thumb.png"
         if row and playlist:
             row.playback_context = playlist_context(raw, playlist)
-        if row and (playlist or row.id not in seen):
+        if row and channel:
+            row.playback_context = channel_context(raw, channel)
+        if row and (playlist or channel or row.id not in seen):
             rows.append(row)
             seen.add(row.id)
     more = result.get("_has_more") if getattr(extractor, "uses_explicit_catalog_pages", False) else len(entries) > PAGE_SIZE

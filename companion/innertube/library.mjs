@@ -153,15 +153,21 @@ export class Library {
     let feed;
     if (input.kind === 'search' && typeof input.query === 'string' && input.query.length > 0 && input.query.length <= 200)
       feed = await client.search(input.query);
-    else if (input.kind === 'channel' && channelId(input.id)) feed = await client.getChannel(input.id);
+    else if (input.kind === 'channel' && channelId(input.id)) feed = await (await client.getChannel(input.id)).getVideos();
     else if (input.kind === 'playlist' && playlistId(input.id)) feed = await client.getPlaylist(input.id);
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
-    return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '');
+    return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '');
   }
-  page(owner, kind, feed, pending = null, playlist = '') {
+  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0) {
     const comments = kind === 'comments';
     const items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
-      [...Array.from(feed.videos ?? []).map(node => normalizeVideo(node, playlist)), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
+      [...Array.from(feed.videos ?? []).map((node, offset) => {
+        const item=normalizeVideo(node,playlist);
+        if(item && channel && channelIndex+offset<=100000)
+          item.playback_context={channel,index:channelIndex+offset};
+        return item;
+      }), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
+    const nextChannelIndex=channel && !pending ? channelIndex+Array.from(feed.videos ?? []).length : channelIndex;
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
     const output = items.slice(0, 24).map(thread => {
@@ -197,7 +203,7 @@ export class Library {
     if (remaining.length || feed.has_continuation) {
       if (this.cursors.size >= 64) this.cursors.delete(this.cursors.keys().next().value);
       cursor = randomUUID();
-      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, deadline: this.clock() + 120000 });
+      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, deadline: this.clock() + 120000 });
     }
     return { api_version: 1, kind, items: output, cursor, has_more: !!cursor };
   }
@@ -226,7 +232,7 @@ export class Library {
         throw new LibraryError('cursor_expired', 'Reload this page to continue.', 409);
       if (entry.result) return entry.result;
       const feed = entry.remaining.length ? entry.feed : await entry.feed.getContinuation();
-      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist);
+      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex);
       entry.result = result;
       return result;
     }

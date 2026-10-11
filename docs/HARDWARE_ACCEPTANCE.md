@@ -1,5 +1,11 @@
 # Hardware acceptance — in progress
 
+Console scheduling: `192.168.4.40` is shared with another agent. Before every
+console test session, check the shared local lock and the console's running
+applications through the established idle-check protocol. Do not interrupt a
+busy console or assume an earlier idle check reserves it. Complete remaining
+offline work and prepare the final candidate before starting console testing.
+
 - 2026-10-11 | local queue | 73c7b869 | PS5 | pass: unavailable delay/cancel, next playback, retained failed record, clean release/restore | .deps/console/local-queue-73c7b869-hardware-observer2/ | phone failure advance
 
 - 2026-10-11 | local queue | 73c7b869 | PS5 | inconclusive: countdown observer missed notice; automatic next/start and clean release/restore established | .deps/console/local-queue-73c7b869-hardware/ | corrected observer

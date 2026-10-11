@@ -53,6 +53,11 @@ class PlaylistContext(BaseModel):
     index: int = Field(ge=0, le=100000, strict=True)
 
 
+class ChannelContext(BaseModel):
+    channel: str = Field(pattern=r"^UC[A-Za-z0-9_-]{22}$")
+    index: int = Field(ge=0, le=100000, strict=True)
+
+
 class Item(BaseModel):
     id: str
     title: str
@@ -65,7 +70,7 @@ class Item(BaseModel):
     is_live: bool = False
     resume_pos_sec: int = 0
     played: bool = False
-    playback_context: PlaylistContext | None = None
+    playback_context: PlaylistContext | ChannelContext | None = None
 
 
 class Page(BaseModel):
