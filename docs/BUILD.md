@@ -403,3 +403,22 @@ symbol extent and resource-mapping checks. CMake configuration/generation passes
 submodule and DXC archive layout. Compiler compilation is in progress; the
 shader probe remains pending. Rotation/mirroring are not yet implemented or
 hardware-validated.
+
+
+Staged display-transform shaders can be generated independently with
+`python3 scripts/prepare_video_transform_shaders.py <output-directory>`.
+The helper calls the pinned EVO video/upscale/interpolation generators with
+a shared vertex transform; pinned source and weights must be clean. It keeps
+texture coordinates, fragment code and pipeline metadata unchanged and emits
+a manifest of generated hashes. The constant-buffer ABI is 32 bytes for direct
+video (orientation at byte 28), and 48 bytes for postprocessing (orientation at
+byte 32, after existing interpolation parameters). Runtime integration must
+send zero orientation to intermediate targets and transform the final viewport
+and quad together; quarter-turns use a swapped logical canvas.
+
+`bash scripts/test_video_transform.sh` requires `glslang-tools` and
+`spirv-tools`. It compares generated fragment/metadata sections with pinned EVO,
+executes the staged GLSL transform with labeled-image golden results under
+ASan/UBSan, compiles all three vertex families, validates SPIR-V and checks
+uniform offsets. These are preparation checks; the PS5 compiler probe, runtime
+wiring, controls, package and hardware acceptance remain required.

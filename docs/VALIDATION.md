@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Rotation/mirroring preparation — 2026-10-11
+
+Pinned EVO's video, upscale and interpolation generators now have an isolated
+staging helper for a shared clockwise quarter-turn/mirror vertex transform.
+Generated fragment and pipeline metadata sections remain identical to pinned
+EVO. Direct-video uniform layout uses the existing padding at byte 28; the
+postprocessing layout adds orientation at byte 32, preserving its existing
+interpolation parameters.
+
+The staged GLSL function and native final-viewport helper pass ASan/UBSan against
+labeled-image rotation/mirror results for full frames and offset subrectangles.
+All three vertex families compile with glslang, pass spirv-val and have their
+uniform offsets checked in disassembly. Evidence:
+`.deps/video-transform-stage.log` and `.deps/video-transform-stage.result` (0).
+The initial GLSL extraction included the .pipe VsInfo metadata; correcting the
+test to stop at VsInfo allowed actual vertex compilation.
+
+This is preparation, not a completed playback feature: PS5 LLPC compilation is
+still running, runtime and preference/UI wiring remain pending, and no new
+candidate or console acceptance is claimed. The isolated compiler probe must
+pass before these shaders enter the application.
+
+
 ## Aspect overrides and display pixel correction — 2026-10-11
 
 The pinned SmartTube baseline exposes eleven aspect choices in AppDialogUtil,
