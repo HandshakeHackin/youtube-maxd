@@ -41,6 +41,7 @@ int main(void) {
     reply(0,1,401,"{}");assert(!tube_manual_navigation_pending() && !tube_take_next(&next));
     assert(tube_set_playback_mode(TUBE_MODE_PAUSE));
     assert(tube_toggle_queue("abcdefghijk")==1 && tube_toggle_queue("cdefghijklm")==1);
+    assert(tube_queue_play_next("abcdefghijk")==0 && tube_queue_play_next("cdefghijklm")==1);
     assert(tube_manual_navigation_begin(1) && !pending_count);
     assert(tube_manual_navigation_status()==1 && tube_take_next(&next));
     assert(!strcmp(next.id,"cdefghijklm"));

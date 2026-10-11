@@ -234,7 +234,13 @@ comment like/dislike/remove-rating controls. Review the comment and press Cross
 to submit once; reload comments before another rating change. Comment posting and live/PS5 acceptance remain
 unfinished.
 
-With an account profile selected, touchpad click opens video ratings, YouTube
+Touchpad click on a video opens video actions for Guest and account profiles.
+**Play next** moves it ahead of pending queue entries without creating duplicates.
+**Mark as watched locally** and **Remove from local history** update only this
+profile's PS5 history; favorites and queue membership remain intact. These local
+history actions do not update YouTube account history.
+
+With an account profile selected, the same menu includes video ratings, YouTube
 Watch later, and channel subscribe/unsubscribe controls. Each change shows a
 confirmation for that profile. Reopening an operation screen does not submit it
 again; an unconfirmed result requires checking the account before repeating the

@@ -56,7 +56,7 @@ int EvoRmlProviderHost::DiscussionKey(int key)
         if (!row || row->is_folder || row->id.size() != 11) return 0;
         m_pos_stack.push_back({m_row_offset, row->index});
         m_stack.push_back(std::string("account:menu:") + row->id.c_str());
-        m_crumbs.push_back("YouTube account actions"); m_page = 0;
+        m_crumbs.push_back("Video actions"); m_page = 0;
         RequestPage(m_stack.back().c_str(), 0); return 1;
     }
     if (key != 0) return 0;

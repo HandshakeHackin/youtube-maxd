@@ -1090,11 +1090,13 @@
         "Acknowledged SponsorBlock end skips use the common completion path, retain phone ownership and playlist waits, and retire explicit completion only after an idle seek reaches its target; console acceptance remains pending",
         "Directional playlist-edge lookup crosses consecutive proven unavailable slots; finite unavailable-only windows continue through cancellable monotonic scan steps or explicit exhaustion, while exact-index shuffle stays strict",
         "Continuous/shuffle/reverse modes without playlist context use profile-owned WEB autoplay endpoint jobs after explicit queues; playlist-only remains isolated, and stale or cancelled replies cannot change current credentials or launch another video",
-        "Confirmed finite playlist exhaustion and Mix window edges use occurrence-scoped next metadata; validated target playlist context and duplicate occurrences survive handoff, and playlist-only rejects cross-playlist targets"
+        "Confirmed finite playlist exhaustion and Mix window edges use occurrence-scoped next metadata; validated target playlist context and duplicate occurrences survive handoff, and playlist-only rejects cross-playlist targets",
+        "Anchored channel Videos windows preserve source positions and verify the original selection; channel shuffle stays sequential and playlist-only stops unless an explicit queue entry exists, matching the active reference controller",
+        "Manual Previous/Next picker actions bypass EOF mode policy, preserve watch/resume state, retain skipped queue history, and cancel on input or ownership changes; native and generated-player tests pass"
       ],
       "offline_status": "partial",
       "remaining": [
-        "Complete channel-group next/previous context and remaining source-specific playback-mode policies",
+        "Validate anchored channel navigation and manual Previous/Next on PS5; continue auditing remaining group/suggestion policies",
         "Validate implemented stop/close explicit queue exceptions and profile-owned queue-respects-playback-mode preference on PS5",
         "Validate integrated natural/SponsorBlock completion, Mix/playlist handoff, both selectors and persistence on PS5"
       ]
@@ -1594,6 +1596,21 @@
       "line": 1,
       "ps5_status": "unverified",
       "evidence": []
+    },
+    {
+      "id": "VideoMenuPresenter.localVideoActions",
+      "source": "common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/menu/VideoMenuPresenter.java",
+      "line": 493,
+      "ps5_status": "unverified",
+      "offline_status": "partial",
+      "evidence": [
+        "native/tube_provider.c: profile-scoped Play next, Mark as watched locally, and Remove from local history in the video-actions menu",
+        "tests/test_video_actions.c: priority ordering, persistence, unchanged favorites/queue membership, source music context and stale menu rejection"
+      ],
+      "remaining": [
+        "Implement account history updates and feedback-token removal corresponding to the reference's remote history actions",
+        "Validate physical menu actions, queue order and persistence on PS5"
+      ]
     },
     {
       "id": "behavior.VideoStateController",

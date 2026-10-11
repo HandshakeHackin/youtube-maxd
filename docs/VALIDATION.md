@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Local video actions — 2026-10-11
+
+Guest and account video menus expose Play next, Mark as watched locally, and
+Remove from local history. Queue insertion preserves other pending entries'
+relative order, avoids duplicate IDs and compacts numeric ranks. The current
+playing item is not inserted again. Music origin survives menu navigation.
+History edits preserve favorites/queue state and are explicitly local; account
+history submission and feedback-token removal remain unfinished.
+
+Menu action IDs carry the current profile/source epoch, and stale IDs after
+profile changes or reload cannot mutate the newly selected profile. Six native
+suites pass (video actions, base, manual navigation, queue failure, music and
+profile settings), with an additional music-origin action/persistence check.
+Active-playback insertion also passes the manual-navigation regression. Provider
+and RmlUi provider objects compile with the PS5 SDK (existing math-header warnings).
+The feature inventory now also records channel/manual navigation evidence and
+the remaining remote-history gap. Physical menu acceptance remains pending.
+
 ## Channel playback-mode policy — 2026-10-11
 
 Source review of pinned SmartTube `VideoLoaderController.initRandomNext` and

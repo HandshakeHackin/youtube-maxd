@@ -2264,6 +2264,22 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 } while (0)
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[64]; int n = 0;
+    if(parent && !strncmp(parent,"local:video:",12)) {
+        const char *id=strrchr(parent,':');id=id?id+1:"";
+        const char *actions[]={"next","watched","forget"};
+        const char *messages[]={"Video will play next","Marked as watched on this PS5","Removed from local history"};
+        int action=-1;
+        for(int i=0;valid_id(id) && i<3;++i) {
+            char expected[100];snprintf(expected,sizeof expected,"local:video:%u:%s:%s",g_playlist_scope,actions[i],id);
+            if(!strcmp(parent,expected))action=i;
+        }
+        if(page || action<0 || !record(id,0)) {
+            tube_set_error("Reopen video actions for the current profile.");cb(0,NULL,0,0,ud);return 1;
+        }
+        int ok=action==0?tube_queue_play_next(id):action==1?tube_mark_watched(id):tube_remove_history(id);
+        CATALOG_FOLDER("account:notice",ok>0?messages[action]:"This video is already playing","Circle returns to video actions");
+        cb(1,out,n,0,ud);return 1;
+    }
     if (parent && !strncmp(parent, "message:", 8)) {
         if (g_chat.replay) {
             tube_set_error("Chat replay is read-only."); cb(0, NULL, 0, 0, ud); return 1;
@@ -2443,6 +2459,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER( id, "Remove from a YouTube playlist", "Choose a playlist containing this video");
                 snprintf(id, sizeof id, "playlist:prompt:create:%s", parent + 13);
                 CATALOG_FOLDER( id, "Create playlist with this video", "A new private playlist on the selected account");
+            }
+            const char *actions[]={"next","watched","forget"};
+            const char *labels[]={"Play next","Mark as watched locally","Remove from local history"};
+            for(int i=0;i<3;++i) {
+                char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,actions[i],parent+13);
+                CATALOG_FOLDER(id,labels[i],"Saved for the selected profile on this PS5");
             }
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
@@ -2983,7 +3005,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
     const char *section = topic_section(parent);
-    g_browse_music = section && !strcmp(section, "music");
+    if(!parent || (strncmp(parent,"account:menu:",13) && strncmp(parent,"local:video:",12)))
+        g_browse_music = section && !strcmp(section, "music");
     g_browse_queue = parent && !strcmp(parent, "queue");
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     if (parent && !strncmp(parent, "auth:", 5)) {
@@ -3281,6 +3304,36 @@ int tube_toggle_queue(const char *id) {
     if (r->queued) { r->queue_order = ++g_queue_order; r->queued_music = g_browse_music; }
     else {r->queued_music = 0;r->queue_order=0;}
     save(); return r->queued;
+}
+int tube_queue_play_next(const char *id) {
+    Record *target=record(id,0);if(!target || !valid_id(id))return -1;
+    Record *active=recovery_scope()?record_for(g_active_id,g_active_profile,0):NULL;
+    if(target==active)return 0;
+    /* Compact retained order before insertion to keep persisted numeric ranks
+     * bounded. Preserve history and the relative order of all other entries. */
+    Record *ordered[RECORDS],*pending[RECORDS];int count=0,queued=0;
+    for(int i=0;i<g_count;++i)if(g_records[i].queue_order>0 || g_records[i].queued) {
+        Record *r=&g_records[i];int at=count;
+        while(at>0 && ordered[at-1]->queue_order>r->queue_order) {ordered[at]=ordered[at-1];--at;}
+        ordered[at]=r;++count;
+    }
+    for(int i=0;i<count;++i) {
+        Record *r=ordered[i];r->queue_order=i+1;
+        if(current_record(r) && r->queued && r!=target && r!=active)pending[queued++]=r;
+    }
+    g_queue_order=count;
+    if(!target->queued)target->queued_music=g_browse_music;
+    target->queued=1;target->queue_order=++g_queue_order;
+    for(int i=0;i<queued;++i)pending[i]->queue_order=++g_queue_order;
+    tube_playlist_eof_cancel();tube_queue_retry_cancel();save();return 1;
+}
+int tube_mark_watched(const char *id) {
+    Record *r=record(id,0);if(!r || !valid_id(id))return -1;
+    r->item.played=1;r->item.resume_pos_sec=0;r->updated=time(NULL);save();return 1;
+}
+int tube_remove_history(const char *id) {
+    Record *r=record(id,0);if(!r || !valid_id(id))return -1;
+    r->item.played=0;r->item.resume_pos_sec=0;r->updated=0;save();return 1;
 }
 
 int tube_toggle_subscription(const char *id) {
