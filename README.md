@@ -1,5 +1,7 @@
 # ProsperoTube 0.1.0
 
+Current consolidated progress: [implemented, tested and missing](docs/STATUS.md) (2026-10-11). Historical entries below do not establish current final-candidate acceptance.
+
 A native PS5 homebrew YouTube client inspired by
 [SmartTube](https://github.com/yuliskov/SmartTube), with an original TV interface
 and service provider built on [EVO Player](https://github.com/sainsaji/EVO-PLAYER-PS5).

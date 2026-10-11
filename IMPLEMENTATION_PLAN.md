@@ -1,5 +1,7 @@
 # ProsperoTube implementation plan
 
+Current consolidated progress: [implemented, tested and missing](docs/STATUS.md) (2026-10-11). Historical entries below do not establish current final-candidate acceptance.
+
 Current work is offline only, at the user's request. Complete all remaining
 offline implementation, validation and final-candidate packaging before connecting
 to either console; intermediate builds do not satisfy this gate. See GOAL.md.
