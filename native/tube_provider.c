@@ -577,11 +577,20 @@ static int valid_playlist(const char *id) {
     return valid_catalog_id(parent);
 }
 
+/* Catalog groups share the occurrence handoff ABI, but channel keys must never
+ * be sent to YouTube as playlist IDs. */
+static int valid_channel_group(const char *id) {
+    return id && !strncmp(id,"channel:UC",10) && strlen(id)==32 && valid_catalog_id(id);
+}
+static int valid_playback_group(const char *id) {
+    return valid_playlist(id) || valid_channel_group(id);
+}
+
 int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope) {
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
     if (!valid_id(id)) return 0;
     if (!playlist || !*playlist) return 1;
-    if (!scope || scope != g_playlist_scope || !valid_playlist(playlist) || index < 0 || index > 100000) return 0;
+    if (!scope || scope != g_playlist_scope || !valid_playback_group(playlist) || index < 0 || index > 100000) return 0;
     copy(g_selected_playlist.id,sizeof g_selected_playlist.id,id);
     copy(g_selected_playlist.value.playlist,sizeof g_selected_playlist.value.playlist,playlist);
     g_selected_playlist.value.index=index; g_selected_playlist.value.scope=scope;
@@ -598,10 +607,20 @@ int tube_playback_playlist_context(char *playlist, size_t capacity, int *index) 
 static void parse_playlist_context(evo_provider_item_t *item, const cJSON *root, const char *parent) {
     const cJSON *context=cJSON_GetObjectItemCaseSensitive(root,"playback_context");
     const char *playlist=str(context,"playlist");
+    const cJSON *channel=cJSON_GetObjectItemCaseSensitive(context,"channel");
+    char group[101];
+    if (!channel && !valid_playlist(playlist)) return;
+    if (channel) {
+        if (!cJSON_IsString(channel) || cJSON_GetObjectItemCaseSensitive(context,"playlist")) return;
+        snprintf(group,sizeof group,"channel:%s",channel->valuestring);
+        if (!valid_channel_group(group)) return;
+        playlist=group;
+    }
     const cJSON *index=cJSON_GetObjectItemCaseSensitive(context,"index");
     const char *expected=!strncmp(parent,"library:playlist:",17) ? parent+17 :
-        !strncmp(parent,"playlist:",9) ? parent+9 : !strcmp(parent,"library:watch_later") ? "WL" : NULL;
-    if (!valid_id(item->id) || item->is_folder || !valid_playlist(playlist) ||
+        !strncmp(parent,"playlist:",9) ? parent+9 : !strcmp(parent,"library:watch_later") ? "WL" :
+        !strncmp(parent,"channel:",8) ? parent : NULL;
+    if (!valid_id(item->id) || item->is_folder || !valid_playback_group(playlist) ||
         (expected && strcmp(expected,playlist)) || !cJSON_IsNumber(index) ||
         !isfinite(index->valuedouble) || index->valuedouble < 0 || index->valuedouble > 100000 ||
         floor(index->valuedouble) != index->valuedouble) return;
@@ -1272,6 +1291,7 @@ static int recommendation_current(void) {
 }
 static int recommendation_begin(int same_playlist) {
     if(!*g_token || !recovery_scope() || !valid_id(g_active_id)) return 0;
+    if(valid_channel_group(g_active_playlist.playlist)) return 0;
     Request *r=request_new(13,NULL);if(!r)return 0;
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.scope=g_playlist_scope;g_recommendation.selection=g_selection_serial;
@@ -1322,6 +1342,7 @@ int tube_playlist_window_status(tube_playlist_window_t *out) {
 static int playlist_window_begin_at(int target,int direction) {
     char playlist[101]; int index;
     if (!tube_playback_playlist_context(playlist,sizeof playlist,&index)) return 0;
+    if (!valid_playlist(playlist)) return 0;
     if (playlist_window_current() && g_playlist_window.state == 0) return 0;
     tube_playlist_window_cancel();
     Request *r=request_new(12,NULL); if (!r) return 0;
@@ -3124,6 +3145,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     }
     Request *r = request_new(1, ud); if (!r) return -1;
     r->items_cb = cb;
+    copy(r->parent,sizeof r->parent,parent);
     cJSON *o = cJSON_CreateObject();
     int search = parent && !strncmp(parent, "search:", 7);
     cJSON_AddStringToObject(o, "action", search ? "search" : "catalog");

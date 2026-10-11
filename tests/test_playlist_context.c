@@ -51,6 +51,31 @@ int main(void) {
     assert(!tube_select_playlist_context("abcdefghijk","PLabcdefghijk",-1,scope));
     assert(!tube_select_playlist_context("abcdefghijk","PLabcdefghijk",100001,scope));
     assert(!tube_select_playlist_context("abcdefghijk","bad",1,scope));
+    assert(!p->list_catalog("channel:UCaaaaaaaaaaaaaaaaaaaaaa",0,items_cb,NULL));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":["
+        "{\"id\":\"abcdefghijk\",\"playback_context\":{\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"index\":3}},"
+        "{\"id\":\"abcdefghijk\",\"playback_context\":{\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"index\":9}},"
+        "{\"id\":\"bcdefghijkl\",\"playback_context\":{\"channel\":\"UCbbbbbbbbbbbbbbbbbbbbbb\",\"index\":0}},"
+        "{\"id\":\"cdefghijklm\",\"playback_context\":{\"channel\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"playlist\":\"PLabcdefghijk\",\"index\":0}},"
+        "{\"id\":\"defghijklmn\",\"playback_context\":{\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"index\":0}}]}}");
+    assert(last_ok && last_count==5);
+    assert(last_items[0].playback_scope==scope && last_items[1].playback_index==9);
+    assert(!strcmp(last_items[0].playback_playlist,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
+    for(int i=2;i<5;++i) assert(!last_items[i].playback_scope);
+    assert(tube_select_playlist_context("abcdefghijk",last_items[1].playback_playlist,9,scope));
+    assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p);
+    assert(tube_playback_playlist_context(list,sizeof list,&index) && index==9);
+    assert(!strcmp(list,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
+    /* Channel groups cannot accidentally reach playlist-only network APIs. */
+    assert(!tube_playlist_window_begin() && !tube_playlist_window_at(10));
+    assert(tube_queue_recovery(12,0,1));
+    assert(tube_take_recovery(&item,&position,&subtitles));
+    assert(tube_select_playlist_context("abcdefghijk","",0,0));
+    assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p); tube_recovery_finish();
+    assert(tube_playback_playlist_context(list,sizeof list,&index) && index==9);
+    assert(!strcmp(list,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
+    p->list_catalog("history",0,items_cb,NULL);
+    for(int i=0;i<last_count;++i) assert(!last_items[i].playback_scope);
     p->shutdown(); assert(!p->init());
     assert(!tube_select_playlist_context("abcdefghijk","PLabcdefghijk",3,scope));
     assert(!tube_playback_playlist_context(list,sizeof list,&index));

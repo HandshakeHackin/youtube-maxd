@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Native channel occurrence handoff — 2026-10-11
+
+Channel/index metadata now travels through the native occurrence handoff using
+an explicit `channel:UC…` group key, retaining duplicate selections and recovery
+positions without writing this transient context into history. The parser rejects
+mixed playlist/channel context, mismatched source channels and channel keys falsely
+presented as playlist IDs. Ordinary catalog requests now retain their parent;
+previously that missing snapshot prevented source-context matching.
+
+Playlist-window and recommendation requests reject channel groups until dedicated
+channel navigation is implemented, so these keys cannot become YouTube playlist
+IDs. Channel next/previous fetching remains incomplete. Native occurrence,
+playlist-window and recommendation regression suites pass with sanitizers.
+The provider object also compiles with the PS5 SDK (existing SDK math-header
+qualifier warnings). No full candidate rebuild or console test was performed.
+
 ## Channel catalog context foundation — 2026-10-11
 
 Signed-in channel browsing now selects the Videos tab, matching guest browsing.
