@@ -77,6 +77,11 @@ int tube_playback_at_end(double position, double duration);
 int tube_finish_drained_and_next(double position);
 int tube_finish_and_next(double position, double duration);
 int tube_take_next(evo_provider_item_t *item);
+/* Explicit user navigation does not mark the current video watched or change
+ * playback mode. status: 0=pending, 1=ready, -1=absent/failed/cancelled. */
+int tube_manual_navigation_begin(int direction);
+int tube_manual_navigation_status(void);
+int tube_manual_navigation_pending(void);
 /* Browser occurrence is one-shot and scoped to the current source/profile epoch.
  * Group keys are YouTube playlist IDs or explicit channel:UC... catalog keys. */
 int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope);

@@ -11,9 +11,18 @@ def apply_playlist_context_overlay(replace, player, host):
         .addTransition(PlaybackState::Finished, PlaybackEvent::Open, PlaybackState::Opening)''')
     picker=player+'core/src/screens/AudioTrackPickerScreen.cpp'
     replace(player+'core/include/evo/screens/AudioTrackPickerScreen.hpp',
-        'KindRotate, KindMirror };','KindRotate, KindMirror, KindPlaybackMode };')
+        'KindRotate, KindMirror };','KindRotate, KindMirror, KindPlaybackMode, KindVideoNavigation };')
+    replace(picker,'#include "tube_provider.h"','#include "tube_provider.h"\n#include "tube_phone.h"')
     replace(picker,'    // End ProsperoTube chat option rows.','''    // End ProsperoTube chat option rows.
     // ProsperoTube playback mode rows.
+    if (playback->isActive() && !tube_phone_owns_media()) {
+        for (int direction : {-1,1}) {
+            Entry e;e.kind=KindVideoNavigation;e.streamIndex=direction;
+            e.label=direction<0?"Previous video":"Next video";
+            e.detail="Navigate videos; keep the current resume position";
+            m_tracks.push_back(std::move(e));
+        }
+    }
     const int playbackModes[]={2,3,4,5,6,0,1};
     const char* playbackLabels[]={"Continuous playback","Repeat one","Shuffle playlist","Playlist only","Reverse playlist","Stop at end","Close at end"};
     for(int i=0;i<7;++i) {
@@ -23,7 +32,11 @@ def apply_playlist_context_overlay(replace, player, host):
         m_tracks.push_back(std::move(e));
     }
     // End ProsperoTube playback mode rows.''')
-    replace(picker,'    } else if (e.kind == KindSleep) {','''    } else if (e.kind == KindPlaybackMode) {
+    replace(picker,'    } else if (e.kind == KindSleep) {','''    } else if (e.kind == KindVideoNavigation) {
+        if (!tube_phone_owns_media() && tube_manual_navigation_begin(e.streamIndex))
+            toast("PLAYBACK","Finding video; any player button cancels");
+        else toast("PLAYBACK","No video available in this direction");
+    } else if (e.kind == KindPlaybackMode) {
         if (tube_set_playback_mode(e.streamIndex)) toast("PLAYBACK MODE",e.label.c_str());
     } else if (e.kind == KindSleep) {''')
     screen=player+'core/src/screens/PlayerScreen.cpp'
@@ -33,6 +46,16 @@ def apply_playlist_context_overlay(replace, player, host):
     const bool completionBusy=playback->isScrubbing() || evo_demux_is_seeking() ||
         g_pp_pb.seek_discarding || pb_prebuffer_hold;
     if (!tube_phone_owns_media()) tube_completion_playback_state(ended,completionBusy);''')
+    replace(screen,'    if (ended && !playback->isScrubbing() && !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && (tube_phone_finished() || (!tube_phone_owns_media() && tube_finish_drained_and_next(playback->getPositionSeconds()))))', '''    bool manualVideoReady=false;
+    if (tube_manual_navigation_pending()) {
+        if (tube_phone_owns_media()) tube_playlist_eof_cancel();
+        else if (!completionBusy) {
+            const int status=tube_manual_navigation_status();
+            manualVideoReady=status==1;
+            if(status<0)toast("PLAYBACK","No video available in this direction");
+        }
+    }
+    if (manualVideoReady || (ended && !completionBusy && (tube_phone_finished() || (!tube_phone_owns_media() && tube_finish_drained_and_next(playback->getPositionSeconds())))))''')
     replace(screen, '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&', '''    if (ended && !completionBusy && !tube_phone_owns_media()) {
         const int action=tube_take_completion_action();
         if (action==TUBE_COMPLETION_REPEAT) {
@@ -53,7 +76,7 @@ def apply_playlist_context_overlay(replace, player, host):
     replace(player+'core/src/screens/PlayerScreen.cpp',
         'bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {',
         '''bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {
-    if (pressed && tube_playlist_eof_pending()) tube_playlist_eof_cancel();''')
+    if (pressed && (tube_playlist_eof_pending() || tube_manual_navigation_pending())) tube_playlist_eof_cancel();''')
     fields='''    char playback_playlist[101];
     int playback_index;
     unsigned playback_scope;

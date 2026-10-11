@@ -42,9 +42,13 @@ static int completion_action, completion_taken;
 static int tube_take_completion_action() { ++completion_taken; int a=completion_action;completion_action=0;return a; }
 static void tube_completion_playback_state(int,int) {}
 static bool playlist_wait;
+static bool manual_pending;
+static int manual_status;
+static int tube_manual_navigation_pending() { return manual_pending; }
+static int tube_manual_navigation_status() {if(manual_status<0)manual_pending=false;return manual_status;}
 static int playlist_cancels;
 static int tube_playlist_eof_pending() { return playlist_wait; }
-static void tube_playlist_eof_cancel() { playlist_wait=false; ++playlist_cancels; }
+static void tube_playlist_eof_cancel() { manual_pending=false;playlist_wait=false; ++playlist_cancels; }
 static double next_target;
 static const char* prompt;
 static bool m_showStatsForNerds;
@@ -83,6 +87,7 @@ static void reset() {
     completion_action=completion_taken=0;
     sponsor_completed=false;
     playlist_wait=false; playlist_cancels=0;
+    manual_pending=false;manual_status=0;
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
@@ -90,6 +95,12 @@ static void reset() {
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    reset();manual_pending=true;manual_status=1;tick();assert(state.stops==1 && manager.returns==1 && !local_finish_calls);
+    reset();manual_pending=true;manual_status=1;seeking=true;tick();assert(!state.stops);
+    seeking=false;tick();assert(state.stops==1);
+    reset();manual_pending=true;phone_owns=true;tick();assert(!manual_pending && !state.stops);
+    reset();manual_pending=true;manual_status=-1;tick();assert(notices==1 && !state.stops);tick();assert(notices==1);
+    reset();manual_pending=true;input(PadButtons::Cross);assert(!manual_pending && playlist_cancels==1);
     reset();complete=true;completion_action=TUBE_COMPLETION_REPEAT;tick();
     assert(state.seeks==1 && state.sought==0 && !state.paused && !state.stops);
     tick();assert(state.seeks==1);

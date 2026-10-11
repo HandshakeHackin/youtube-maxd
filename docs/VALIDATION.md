@@ -1,5 +1,31 @@
 # Offline validation record — 0.1.0
 
+## Manual next/previous video actions — 2026-10-11
+
+The in-player picker now offers Previous video and Next video. Explicit actions
+use group/queue navigation independently of all seven EOF modes; Next prioritizes
+the pending queue, while Previous prioritizes the group and falls back to retained
+queue order. Skipping a queued item consumes its pending entry without marking
+it watched or clearing its resume point. Previous can return to that entry.
+Explicit queue removal and Clear queue erase the retained navigation order, so
+Previous cannot resurrect entries the user removed.
+Group failure can consult next-video metadata once. Requests retain active
+selection/profile ownership, and player input cancels pending work.
+
+The actual generated player tick waits through seeks before stopping and returning
+to the existing provider launch path. Phone-owned playback hides these controls
+and cancels pending local navigation. Failed lookups leave the current video
+playing and show one notice. This follows the pinned SmartTube controller's
+separate explicit-next/previous path rather than applying EOF mode policy.
+
+Native tests cover both directions across all seven modes, unchanged resume and
+watched state, queue consumption/previous history, cancellation and stale replies.
+Extracted shipping-player tests cover ready, busy, phone, failure and input paths.
+Six native regression suites pass across this batch. Provider, PlayerScreen and
+AudioTrackPickerScreen objects compile with the PS5 SDK; the final queue removal
+change also passes the native base/queue/manual suites and provider recompilation.
+Physical controller and real-service acceptance remain pending.
+
 ## Channel unavailable-tail completion — 2026-10-11
 
 Directed channel scans now distinguish proven exhaustion from an unavailable

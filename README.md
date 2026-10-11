@@ -164,6 +164,14 @@ Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;
 this preference is saved independently of EVO's live-TV settings.
 
+The in-player options picker includes **Previous video** and **Next video**.
+Manual navigation preserves the current resume position and does not mark the
+video watched. Next uses the pending queue before the current video group;
+Previous uses the group before queue history. These actions work independently
+of the end-of-video playback mode. Any player button cancels a pending lookup.
+They are hidden while a phone owns playback. Physical-controller acceptance is
+still pending.
+
 ## Run the companion
 
 In WSL/Linux, from this repository:

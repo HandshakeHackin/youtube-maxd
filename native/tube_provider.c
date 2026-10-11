@@ -50,6 +50,9 @@ static struct {
     tube_playlist_window_t value;
 } g_playlist_window;
 static int g_playlist_eof_wait, g_playlist_next_ready;
+static int g_manual_direction;
+static int g_manual_fallback;
+static unsigned g_manual_scope,g_manual_selection;
 static int g_playlist_eof_target;
 static int g_playlist_shuffle_attempted;
 static tube_playlist_window_t g_playlist_shuffle_source;
@@ -1291,6 +1294,7 @@ static int recommendation_current(void) {
 }
 static int recommendation_begin(int same_playlist) {
     if(!*g_token || !recovery_scope() || !valid_id(g_active_id)) return 0;
+    if(g_manual_direction)g_manual_fallback=1;
     Request *r=request_new(13,NULL);if(!r)return 0;
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.scope=g_playlist_scope;g_recommendation.selection=g_selection_serial;
@@ -2219,6 +2223,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    if(g_manual_direction)tube_playlist_eof_cancel();
     g_playlist_eof_wait = g_playlist_next_ready = 0;
     tube_playlist_window_cancel();
     memset(&g_selected_playlist,0,sizeof g_selected_playlist);
@@ -2701,7 +2706,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_records[i].updated = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0;
             } save();
         } else if (!strcmp(parent, "settings:clear-queue")) {
-            for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) g_records[i].queued = 0;
+            for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) {
+                g_records[i].queued = 0; g_records[i].queue_order=0;
+            }
             save();
         }
         }
@@ -3272,7 +3279,7 @@ int tube_toggle_queue(const char *id) {
     Record *r = record(id, 1); if (!r) return -1;
     r->queued = !r->queued;
     if (r->queued) { r->queue_order = ++g_queue_order; r->queued_music = g_browse_music; }
-    else r->queued_music = 0;
+    else {r->queued_music = 0;r->queue_order=0;}
     save(); return r->queued;
 }
 
@@ -3606,6 +3613,8 @@ int tube_queue_skip_unavailable(const char *id) {
 }
 
 void tube_playlist_eof_cancel(void) {
+    if(g_manual_direction) {g_next_id[0]=0;g_next_profile[0]=0;}
+    g_manual_direction=0;
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.state=-1;
     g_completion_action=0; g_completion_consumed=0;
@@ -3627,7 +3636,8 @@ static int playlist_random_index(int current,int count) {
 }
 static int playlist_eof_advance(void) {
     if (!g_playlist_eof_wait) return 0;
-    if (!g_autoplay || !playlist_window_current() ||
+    const int mode=g_manual_direction? (g_manual_direction<0?TUBE_MODE_REVERSE:TUBE_MODE_ALL):g_playback_mode;
+    if ((!g_autoplay && !g_manual_direction) || !playlist_window_current() ||
         g_playlist_window.lookup != (g_playlist_eof_wait >= 2) ||
         (g_playlist_eof_wait >= 2 && g_playlist_window.target_index != g_playlist_eof_target)) {
         tube_playlist_eof_cancel(); return 0;
@@ -3641,7 +3651,7 @@ static int playlist_eof_advance(void) {
         if(target>=0) {
             g_playlist_eof_target=target;
             if(playlist_window_begin_at(target,direction)) g_playlist_eof_wait=2;
-        } else if(direction>0 && (g_playback_mode==TUBE_MODE_ALL || g_playback_mode==TUBE_MODE_SHUFFLE || g_playback_mode==TUBE_MODE_LIST)) recommendation_begin(g_playback_mode==TUBE_MODE_LIST);
+        } else if(direction>0 && (mode==TUBE_MODE_ALL || mode==TUBE_MODE_SHUFFLE || mode==TUBE_MODE_LIST)) recommendation_begin(mode==TUBE_MODE_LIST);
         return 0;
     }
     if(state != 1 && phase==3) {
@@ -3652,7 +3662,7 @@ static int playlist_eof_advance(void) {
     }
     if (state != 1) return 0;
     const tube_playlist_window_t *window=&g_playlist_window.value;
-    if(!lookup && g_playback_mode==TUBE_MODE_SHUFFLE && !g_playlist_shuffle_attempted) {
+    if(!lookup && mode==TUBE_MODE_SHUFFLE && !g_playlist_shuffle_attempted) {
         g_playlist_shuffle_attempted=1;
         int target=playlist_random_index(g_active_playlist.index,window->playlist_size);
         if(target>=0) {
@@ -3661,14 +3671,14 @@ static int playlist_eof_advance(void) {
             return 0;
         }
     }
-    int direction=g_playback_mode==TUBE_MODE_REVERSE?-1:1;
+    int direction=mode==TUBE_MODE_REVERSE?-1:1;
     int at=window->current+(lookup ? 0 : direction);
     if (at < 0 || at >= window->count) {
         if(direction>0 && !strncmp(g_active_playlist.playlist,"RD",2)) {
-            recommendation_begin(g_playback_mode==TUBE_MODE_LIST);return 0;
+            recommendation_begin(mode==TUBE_MODE_LIST);return 0;
         }
         if(direction>0 && window->playlist_size && g_active_playlist.index >= window->playlist_size-1) {
-            if(g_playback_mode==TUBE_MODE_ALL || g_playback_mode==TUBE_MODE_SHUFFLE || g_playback_mode==TUBE_MODE_LIST)recommendation_begin(g_playback_mode==TUBE_MODE_LIST);
+            if(mode==TUBE_MODE_ALL || mode==TUBE_MODE_SHUFFLE || mode==TUBE_MODE_LIST)recommendation_begin(mode==TUBE_MODE_LIST);
             return 0;
         }
         int target=g_active_playlist.index+direction;
@@ -3688,7 +3698,58 @@ static int playlist_eof_advance(void) {
     g_playlist_next.resume_pos_sec=0; g_playlist_next.kind=EVO_MEDIA_VIDEO;
     g_playlist_next_ready=1; return 1;
 }
+static int manual_queue(int direction) {
+    const Record *current=record_for(g_active_id,g_active_profile,0);
+    Record *next=NULL;
+    if(direction<0 && (!current || !current->queue_order))return 0;
+    for(int i=0;i<g_count;++i) {
+        Record *r=&g_records[i];
+        if(!current_record(r) || (direction>0?!r->queued:!r->queue_order) || queue_failed(r->item.id) || !strcmp(r->item.id,g_active_id))continue;
+        if(direction<0 ? r->queue_order>=current->queue_order :
+            (current && current->queued && r->queue_order<=current->queue_order))continue;
+        if(!next || (direction<0?r->queue_order>next->queue_order:r->queue_order<next->queue_order))next=r;
+    }
+    if(!next)return 0;
+    copy(g_next_id,sizeof g_next_id,next->item.id);copy(g_next_profile,sizeof g_next_profile,next->profile);return 1;
+}
+int tube_manual_navigation_begin(int direction) {
+    if((direction!=1 && direction!=-1) || !recovery_scope() || tube_recovery_pending())return 0;
+    tube_playlist_eof_cancel();tube_queue_retry_cancel();
+    g_manual_direction=direction;g_manual_fallback=0;g_manual_scope=g_playlist_scope;g_manual_selection=g_selection_serial;
+    if(direction>0 && manual_queue(1))return 1;
+    if(*g_active_playlist.playlist && (direction>0 || g_active_playlist.index>0) && tube_playlist_window_begin()) {
+        g_playlist_eof_wait=1;return 1;
+    }
+    if(direction>0)g_manual_fallback=1;
+    if(direction<0?manual_queue(-1):recommendation_begin(0))return 1;
+    tube_playlist_eof_cancel();return 0;
+}
+int tube_manual_navigation_status(void) {
+    if(!g_manual_direction)return -1;
+    if(!recovery_scope() || g_manual_scope!=g_playlist_scope || g_manual_selection!=g_selection_serial) {
+        tube_playlist_eof_cancel();return -1;
+    }
+    if(*g_next_id || g_playlist_next_ready || (g_recommendation.state==1 && recommendation_current()))return 1;
+    if(playlist_eof_advance())return 1;
+    if(tube_playlist_eof_pending())return 0;
+    if(g_manual_direction<0 && manual_queue(-1))return 1;
+    if(g_manual_direction>0 && !g_manual_fallback) {
+        g_manual_fallback=1;if(recommendation_begin(0))return 0;
+    }
+    tube_playlist_eof_cancel();return -1;
+}
+int tube_manual_navigation_pending(void) {return g_manual_direction!=0;}
+static void manual_departure(void) {
+    /* Consuming a pending queue entry is independent of marking it watched.
+     * Keep its order so explicit Previous can return to the skipped entry. */
+    if(g_manual_direction>0) {
+        Record *current=record_for(g_active_id,g_active_profile,0);
+        if(current && current->queued) {current->queued=0;save();}
+    }
+    g_manual_direction=0;
+}
 static int finish_and_next(int playlist) {
+    if(g_manual_direction)return 0;
     if (g_finished) {
         if(g_recommendation.state>=0 && recommendation_current())return g_recommendation.state==1;
         return playlist ? playlist_eof_advance() : 0;
@@ -3783,6 +3844,7 @@ void tube_completion_playback_state(int ended,int busy) {
 }
 
 int tube_take_next(evo_provider_item_t *item) {
+    if(g_manual_direction && tube_manual_navigation_status()!=1)return 0;
     if(g_recommendation.state==1) {
         int current=recommendation_current();g_recommendation.state=-1;
         if(!current || !item)return 0;
@@ -3793,19 +3855,20 @@ int tube_take_next(evo_provider_item_t *item) {
         item->kind=EVO_MEDIA_VIDEO;item->resume_pos_sec=0;
         copy(item->playback_playlist,sizeof item->playback_playlist,g_recommendation.next_context.playlist);
         item->playback_index=g_recommendation.next_context.index;item->playback_scope=g_recommendation.next_context.scope;
-        return 1;
+        manual_departure();return 1;
     }
     if (g_playlist_next_ready) {
         g_playlist_next_ready=0;
-        if (!item || !g_autoplay || !playlist_window_current()) return 0;
-        *item=g_playlist_next; return 1;
+        if (!item || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
+        *item=g_playlist_next;manual_departure();return 1;
     }
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
-    if (!r || !r->queued || !item) return 0;
+    if (!r || (!r->queued && g_manual_direction>=0) || !item) return 0;
     copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
     copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
-    g_launch_origin.music = r->queued_music; g_launch_origin.automatic = 1;
+    g_launch_origin.music = r->queued_music; g_launch_origin.automatic = !g_manual_direction;
+    manual_departure();
     *item = r->item; dearrow_item(item, r); return 1;
 }
 

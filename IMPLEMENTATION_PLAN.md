@@ -12,8 +12,10 @@ selection and recovery. Scoped windows drive forward/reverse completion and
 indexed traversal; channel windows verify the original source video and position.
 Finite playlist/Mix ends and confirmed channel exhaustion use next metadata where
 the playback mode permits it. Seven modes, explicit-queue policy and one-shot
-completion actions are implemented. Manual next/previous controls, broader
-SmartTube group/suggestion semantics and hardware acceptance remain open.
+completion actions are implemented. Manual next/previous actions are connected
+through the in-player picker, preserve resume/history and use queue/group
+selection independently of EOF mode. Broader SmartTube group/suggestion
+semantics and hardware acceptance remain open.
 See the latest entries in `docs/VALIDATION.md`; these changes are newer than the
 last fully frozen candidate.
 
