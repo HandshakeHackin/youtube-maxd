@@ -607,7 +607,7 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
 | Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; replay candidates `6097d274` and corrected `9ac95e69` PS5 build/freeze passed; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
-| Casting and remote integration | Authentic Lounge backend host/live-tested; native pairing/reset, checked PS5 entropy and Lapy identity storage tested; controller/resolver/worker adapter covers play/pause, fractional seek, remote queue/EOF, next/previous, stop, PCM volume, D-pad and current-track captions; saved disconnect choice and ownership tests passed; corrected PS5 packages built/froze; PS5 fixture UUID/screen persistence, receiver registration and remote video startup passed | Remaining command and real phone/PS5 acceptance; primary caption switching implemented offline, console acceptance pending; secondary YouTube captions, native voice capture/search (local ASR service tested), full app exit on disconnect and long playlist continuation |
+| Casting and remote integration | Authentic Lounge backend host/live-tested; native pairing/reset, checked PS5 entropy and Lapy identity storage tested; controller/resolver/worker adapter covers play/pause, fractional seek, remote queue/EOF, next/previous, stop, PCM volume, D-pad and current-track captions; saved disconnect choice and ownership tests passed; corrected PS5 packages built/froze; PS5 fixture UUID/screen persistence, receiver registration and remote video startup passed | Native fixture controls and primary caption switching passed on PS5; real phone/physical acceptance remains; secondary YouTube captions, native voice capture/search (local ASR service tested), full app exit on disconnect and long playlist continuation |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
@@ -639,10 +639,14 @@ are still open; caption
 language switching is now implemented in the local picker and phone adapter, with
 staged SRT loading, timeout/failure preservation and same-ID playback retirement.
 Host provider, real subtitle-engine and phone adapter tests pass. Caption switching
-candidate `b1adb57c` built/froze (214 objects, 126 files). Both consoles were busy
-at the initial check; no upload, binding or launch occurred. Console acceptance
-remains open. Secondary YouTube caption
-selection, voice, full app-exit behavior and long playlists remain open.
+candidate `b1adb57c` built/froze (214 objects, 126 files). Initial busy-console
+cases made no changes. A fresh idle-console fixture case passed paused
+French/English/off/restore selection, play/pause, fractional seek, volume/mute,
+next/previous, queue replacement, EOF advance, stop, both disconnect choices and
+saved local queue preservation. Original provider/sidecar bytes were restored
+following exact GPU/process/title release; services remained healthy. Real phone
+casting and physical sound/caption appearance remain unassessed. Secondary
+YouTube captions, native voice, full app-exit behavior and long playlists remain open.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and
 passed 40 offline protocol/API tests and a live temporary YouTube receiver check.

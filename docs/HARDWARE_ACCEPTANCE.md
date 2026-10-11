@@ -1,5 +1,6 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | phone/captions | b1adb57c | PS5 | pass: paused language/controls/queue/EOF, clean release and state restore | .deps/caption-phone-available-hardware.* | real phone/physical checks
 - 2026-10-10 | captions and phone controls | b1adb57c | PS5 .40 and .30 | no-run: each initial check found a running title; no upload, binding or launch | .deps/caption-phone{,-fallback}-hardware.* | test frozen candidate when idle
 
 - 2026-10-10 | casting | 0b02a137 | PS5 | partial-pass: UUID/screen persisted, fixture receiver registered, remote start at 13.25s; clean release/restore | .deps/phone-player-rng-* | remaining controls, real phone

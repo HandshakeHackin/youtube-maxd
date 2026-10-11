@@ -47,8 +47,15 @@ froze successfully: 214 objects, 126 files, build
 resolved English/French tracks and served valid converted SRT. Both console cases
 stopped at the initial running-title check, before any upload, binding or launch
 (`.deps/caption-phone-hardware.*` and `.deps/caption-phone-fallback-hardware.*`).
-The owned fixture server was stopped and the shared lock released. Console
-acceptance and secondary YouTube caption selection remain open.
+A fresh idle-console case passed native pairing and video startup, paused
+French/English/off/restore caption selection without moving the paused clock,
+play/pause, fractional seek, volume/mute, next/previous, queue replacement, EOF
+advance, stop, both disconnect preferences and saved local queue preservation
+(`.deps/caption-phone-available-hardware.*`, exit 0). Exact owned GPU/process/title
+release and service health passed; original provider and caption sidecar bytes
+were restored. The owned fixture server was stopped and the shared lock released.
+Real phone casting, physical sound/caption appearance and secondary YouTube
+caption selection remain open.
 
 Remote playback ownership survives receiver retirement so natural EOF cannot
 consume a saved local queue item. Manual reopening of the same video starts a new
