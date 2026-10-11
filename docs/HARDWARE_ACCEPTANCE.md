@@ -1,5 +1,16 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | disconnect close | 9340ab5a | PS5 | pass: fixture playback/pause, native self-exit, exact release/restore | .deps/console/phone-exit-9340ab5a-hardware/ | real phone/browsing
+
+The frozen 126-file package passed full install readback, 130-second settling and
+verification again. UI pairing and the persisted close preference worked. Native
+AVC/AAC playback and pause feedback preceded receiver disconnect; checked GPU
+retirement reached the PS5 self-exit API without a host close payload. Exact
+process/video-owner/mount release, healthy declared services and original
+provider/sidecar restoration passed. The owned fixture stopped and the shared
+lock was released. Real-phone disconnect, browsing-only close and physical
+motion/sound were not assessed by this case.
+
 - 2026-10-10 | voice availability | 0b06bc66 | PS5 .40 | failed fixture: playlist packet omitted required ctt; startup/UI/mic capability established, capture not attempted; clean exact release and original state/sidecars restored | .deps/console/voice-available-hardware/ | corrected fixture and physical microphone acceptance
 
 The frozen availability-gated voice package was installed with full readback,

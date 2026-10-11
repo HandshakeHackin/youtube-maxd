@@ -21,7 +21,11 @@ The disconnect preference now includes whole-app close, following SmartTube's
 browsing and playback behavior. Media/capture/receiver retirement precedes render
 park; checked GPU fence retirement gates a single PS5 self-exit API call. Host
 fault tests, all 11 provider regressions and connected SDK/AGC compilation pass.
-Full packaging of this change and hardware self-exit acceptance remain open.
+Candidate `9340ab5a` completed full packaging and immutable freeze (216 objects,
+126 files). A single PS5 fixture case passed playback/pause, saved close choice
+and disconnect-triggered native self-exit, with exact video/process/mount release,
+healthy services and original state restoration. Real-phone disconnect and
+browsing-only hardware close remain open; see the validation record.
 
 Earlier playback milestone (2026-10-10): the native PS5 package has played the real public
 YouTube video "Me at the zoo" on `.40` using native AVC and the corrected Windows

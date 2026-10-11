@@ -19,7 +19,19 @@ checks pass, and connected PS5 Application/provider/player/AGC objects compile
 (`.deps/phone-exit-connected-{prepare,ps5-objects}.*`, exit 0). An initial repeated
 prepare exposed the new Application header missing from the pinned reset list;
 the header is now reset, and the subsequent complete object check passes.
-Full package and self-exit hardware acceptance remain pending.
+Candidate `9340ab5a` completed the full PS5 build and immutable freeze: 216
+objects, 126 files, build `prosperotube-9340ab5a_1011-0159`, eboot SHA-256 prefix
+`e6581d19263cf41d` (`.deps/phone-exit-{ps5-build,freeze}.*`, exit 0).
+The single bounded PS5 case passed installed-byte verification, 130-second
+settling and full readback, native startup/first frame, UI pairing and saved close
+preference, phone-command AVC/AAC playback and pause. Receiver disconnect reached
+checked GPU retirement and `sceSystemServiceLoadExec("exit", nullptr)` without a
+host close payload. Exact process/video-owner/mount release, healthy declared
+services and byte-for-byte original provider/sidecar restoration passed. Evidence:
+`.deps/console/phone-exit-9340ab5a-hardware/` and `.deps/phone-exit-hardware.*`
+(exit 0). The owned fixture stopped and the shared lock was released. This
+establishes native fixture self-exit; real-phone disconnect, browsing-only close
+and physical motion/sound remain unassessed by this case.
 
 ## Partial phone queue expansion — 2026-10-10
 

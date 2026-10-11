@@ -8,7 +8,10 @@ capture/captions/provider operations and retires the receiver, presents the
 safe-close screen and parks rendering. Only confirmed GPU fence retirement
 permits one `sceSystemServiceLoadExec("exit", NULL)` request. Refusal, missing
 fences or a drain timeout leave the process parked. Host execution/fault tests
-cover this path; self-exit hardware acceptance remains pending.
+cover this path. Candidate `9340ab5a` also passed a single PS5 fixture case:
+playback/pause, saved close preference and disconnect-triggered native self-exit,
+exact video/process/mount release, healthy services and original state restoration.
+Real-phone disconnect and browsing-only hardware close remain open.
 
 Successful phone launches now bind the exact provider selection before startup
 acknowledgment, closing the interval in which an immediate manual reopen of the
