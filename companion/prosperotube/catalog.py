@@ -65,6 +65,8 @@ def item(info):
                 overview=text(info.get("description"), 320), art_url=art,
                 channel_id=text(info.get("channel_id"), 64),
                 duration_sec=int(number(info.get("duration"))),
+                watch_percent=(info["watch_percent"] if type(info.get("watch_percent")) in (int,float)
+                    and 0 <= info["watch_percent"] <= 100 else -1),
                 is_live=info.get("live_status") == "is_live" or info.get("is_live") is True)
 
 

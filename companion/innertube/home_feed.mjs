@@ -1,13 +1,17 @@
 // SmartTube VideoGroup.isWatchedSuggestion policy for the primary Home grid.
 // SPDX-License-Identifier: GPL-3.0-or-later
-export function watchedSuggestion(node) {
-  if(node?.is_watched===true)return true;
+export function watchPercent(node) {
+  if(node?.is_watched===true)return 100;
   for(const overlay of node?.thumbnail_overlays ?? []) {
     const percent=overlay?.percent_duration_watched;
     if(overlay?.type==='ThumbnailOverlayResumePlayback' && typeof percent==='number' && Number.isFinite(percent) &&
-       percent>=0 && percent<=100)return percent>95 || percent===10;
+       percent>=0 && percent<=100)return percent;
   }
-  return false;
+  return -1;
+}
+export function watchedSuggestion(node) {
+  const percent=watchPercent(node);
+  return percent>95 || percent===10;
 }
 export function filterHomeFeed(feed) {
   // Only direct RichItem videos belong to the primary Home group. Shelf items

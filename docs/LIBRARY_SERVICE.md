@@ -839,5 +839,12 @@ Primary Home RichItem videos now follow SmartTube's watched-suggestion threshold
 explicitly watched entries, progress above 95 percent, or its 10-percent minimum
 marker are omitted. Partially watched entries, nested shelves, search and playlists
 remain available. The same wrapper processes Home continuation pages before they
-become retained groups. Unknown Home layouts are preserved; local PS5 watch-state
-integration and other suggestion layouts are still pending.
+become retained groups. Unknown Home layouts are preserved; other suggestion layouts are still pending.
+
+
+Catalog rows carry `watch_percent` (`-1` for unknown, otherwise 0–100), including
+through Guest/cookie/OAuth catalog adapters. Native resume ignores percentages up
+to 10 and at 100, matching SmartTube. Partial remote progress supplies the displayed
+resume position; unknown or fully watched remote state can use existing local
+state. Remote metadata does not overwrite saved local progress. Home filtering
+happens before this local-state merge, following the pinned source order.

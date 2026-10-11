@@ -1106,6 +1106,12 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
     copy(item->art_url, sizeof item->art_url, str(o, "art_url"));
     copy(item->parent_id, sizeof item->parent_id, str(o, "channel_id"));
     item->duration_sec = (int64_t)num(o, "duration_sec");
+    const cJSON *watched=cJSON_GetObjectItemCaseSensitive(o,"watch_percent");
+    if(cJSON_IsNumber(watched) && isfinite(watched->valuedouble) && watched->valuedouble>=0 && watched->valuedouble<=100) {
+        item->played=watched->valuedouble==100;
+        if(watched->valuedouble>10 && watched->valuedouble<100 && item->duration_sec>0)
+            item->resume_pos_sec=(int64_t)((double)item->duration_sec/100.0*watched->valuedouble);
+    }
     item->is_live = boolean(o, "is_live");
     item->is_folder = boolean(o, "is_folder");
     item->kind = EVO_MEDIA_VIDEO;
@@ -2296,9 +2302,18 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
                 copy(cached->history_remove_cursor,sizeof cached->history_remove_cursor,valid_cursor(cursor)?cursor:"");
                 cached->history_scope=g_playlist_scope;cached->history_deadline=now_ms()+110000;
             }
-            items[n].resume_pos_sec = cached->item.resume_pos_sec;
-            items[n].played = cached->item.played;
+            const cJSON *watched=cJSON_GetObjectItemCaseSensitive(o,"watch_percent");
+            int remote=cJSON_IsNumber(watched) && isfinite(watched->valuedouble) && watched->valuedouble>=0 && watched->valuedouble<=100;
+            if(!remote || (watched->valuedouble==100 && cached->updated>0)) {
+                items[n].resume_pos_sec = cached->item.resume_pos_sec;
+                items[n].played = cached->item.played;
+            }
+            int64_t local_position=cached->item.resume_pos_sec;
+            int local_played=cached->item.played;
             cached->item = items[n];
+            if(remote && watched->valuedouble<100 && cached->updated>0) {
+                cached->item.resume_pos_sec=local_position;cached->item.played=local_played;
+            }
             /* Occurrences belong to browser selections, not shared video history. */
             cached->item.playback_playlist[0]=0;
             cached->item.playback_index=0; cached->item.playback_scope=0;

@@ -75,6 +75,7 @@ class Item(BaseModel):
     is_live: bool = False
     resume_pos_sec: int = 0
     played: bool = False
+    watch_percent: float = Field(default=-1, ge=-1, le=100, allow_inf_nan=False, strict=True)
     playback_context: PlaylistContext | ChannelContext | GroupContext | None = None
 
 

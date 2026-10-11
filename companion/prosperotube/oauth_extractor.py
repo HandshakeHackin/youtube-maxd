@@ -115,5 +115,6 @@ class OAuthExtractor(Extractor):
                     "channel": record.get("subtitle", ""), "channel_id": record.get("channel_id", ""),
                     "description": record.get("overview", ""), "thumbnail": record.get("art_url", ""),
                     "duration": record.get("duration_sec", 0), "is_live": record.get("is_live", False),
+                    "watch_percent": record.get("watch_percent", -1),
                     "playback_context": record.get("playback_context")})
             return {"entries": values, "_has_more": entry["pages"][page]["has_more"]}

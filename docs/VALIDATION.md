@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## Catalog watch progress and native resume — 2026-10-11
+
+Source inspection confirms `VideoGroup.add` filters watched Home suggestions
+before applying local state. No additional local-history hiding rule is warranted
+by that code. The service now carries validated `watch_percent` through worker
+catalogs, Guest/cookie/OAuth adapters and catalog models. Native rows use remote
+progress above 10 and below 100 percent as the resume position. Unknown remote
+progress uses local state; 100 percent uses existing local state when present.
+Remote partial progress updates display/selection without overwriting saved local
+progress, matching the pinned `Video.getPositionFromPercentWatched` and group sync
+order. Fully watched entries without local state retain their watched marker.
+
+All 117 worker tests and the bundle build pass. The 72-test Python catalog/OAuth/
+action regression run passes, including invalid percentage types and ranges.
+Native catalog-progress and core provider ASan/UBSan suites pass, including local
+history preservation across remote changes. The additional profile-routing run
+passes 64 tests. The PS5 provider object compiles with 280 SDK math-header
+qualifier warnings, including the added finite-value checks. Real-account timing and PS5 acceptance
+remain open; no console was contacted.
+
 ## Primary Home watched filtering — 2026-10-11
 
 The pinned SmartTube `VideoGroup.isWatchedSuggestion` filters the primary Home
@@ -12,8 +32,8 @@ Search and playlists keep watched entries.
 
 All 116 worker tests and the rebuilt bundle pass, including the pinned RichItem
 and Video resume-overlay parser, threshold boundaries, shelf separation and
-shared browsing/playback continuation. Native local-watch-state filtering,
-other Home layouts, suggestion feeds and live-service/PS5 acceptance remain open.
+shared browsing/playback continuation. Other Home layouts, suggestion feeds and live-service/PS5 acceptance remain open.
+The later progress batch documents the source-defined local-state ordering.
 No console connection was made.
 
 ## Catalog continuation consistency — 2026-10-11

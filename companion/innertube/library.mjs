@@ -7,7 +7,7 @@ import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
-import { filterHomeFeed } from './home_feed.mjs';
+import { filterHomeFeed, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
 
 export class LibraryError extends Error {
@@ -89,7 +89,7 @@ export function normalizeVideo(node, playlist = '') {
     art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
     channel_id: channelId(author.id) ? author.id : '',
     duration_sec: cardDuration(node),
-    is_folder: false, is_upcoming: !!node.is_upcoming, is_live: !!node.is_live, played: !!node.is_watched,
+    is_folder: false, is_upcoming: !!node.is_upcoming, is_live: !!node.is_live, played: !!node.is_watched, watch_percent: watchPercent(node),
     ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {

@@ -20,7 +20,7 @@ class Library:
         self.calls.append((request,operation))
         assert request['profile']=='guest' and request['action']=='catalog' and operation=='playback'
         continuation=bool(request.get('cursor'))
-        return {'items':[{'id':ID,'title':'Result','playback_context':{'group':KEY,'index':i}} for i in ([24] if continuation else range(24))],
+        return {'items':[{'id':ID,'title':'Result','watch_percent':65,'playback_context':{'group':KEY,'index':i}} for i in ([24] if continuation else range(24))],
                 'has_more':not continuation,'cursor':'' if continuation else 'next-page'}
 
 def test_guest_search_group_occurrences_and_continuation():
@@ -30,6 +30,7 @@ def test_guest_search_group_occurrences_and_continuation():
         first=await page_for(resolver,query='sample')
         second=await page_for(resolver,query='sample',page=1)
         assert len(first.items)==24 and second.items[0].playback_context.index==24
+        assert first.items[0].watch_percent==second.items[0].watch_percent==65
         assert first.items[0].playback_context.group==second.items[0].playback_context.group==KEY
         assert len(library.calls)==2 and not guest.calls
         assert (await page_for(resolver,query='sample',page=1))==second

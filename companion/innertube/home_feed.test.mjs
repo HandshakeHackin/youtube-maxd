@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterHomeFeed,watchedSuggestion} from './home_feed.mjs';
-import {Library} from './library.mjs';
+import {Library,normalizeVideo} from './library.mjs';
 const id='abcdefghijk';
 const video=(percent,extra={})=>({id,thumbnail_overlays:[{type:'ThumbnailOverlayResumePlayback',percent_duration_watched:percent}],...extra});
 test('SmartTube watched-suggestion threshold preserves partially watched videos',()=>{
@@ -33,4 +33,10 @@ test('pinned RichItem and resume-overlay parser expose the primary Home watched 
     thumbnailOverlays:[{thumbnailOverlayResumePlaybackRenderer:{percentDurationWatched:96}}]}}});
   assert.equal(item.type,'RichItem');assert.equal(watchedSuggestion(item.content),true);
   assert.deepEqual(filterHomeFeed({videos:[item.content],contents:{contents:[item]},has_continuation:false}).videos,[]);
+});
+
+test('catalog normalization preserves progress independently of Home filtering',()=>{
+  assert.equal(normalizeVideo(video(65)).watch_percent,65);
+  assert.equal(normalizeVideo(video(0,{is_watched:true})).watch_percent,100);
+  assert.equal(normalizeVideo(video('65')).watch_percent,-1);
 });

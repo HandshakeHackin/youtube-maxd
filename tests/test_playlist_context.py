@@ -106,3 +106,8 @@ def test_search_retains_group_occurrences_without_deduplicating_video_ids():
     page=asyncio.run(page_for(Source(),query='sample'))
     assert [item.id for item in page.items]==[ID,ID]
     assert [item.playback_context.model_dump() for item in page.items]==[{'group':key,'index':i} for i in [0,2]]
+
+@pytest.mark.parametrize('percent,expected',[(0,0),(10,10),(65.5,65.5),(100,100),(-1,-1),(101,-1),(True,-1),('50',-1),(float('nan'),-1)])
+def test_catalog_progress_validation(percent,expected):
+    from prosperotube.catalog import item
+    assert item({'id':ID,'watch_percent':percent}).watch_percent==expected
