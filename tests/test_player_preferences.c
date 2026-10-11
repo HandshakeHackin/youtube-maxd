@@ -97,7 +97,8 @@ int main(void) {
     assert(!tube_player_set_ok_mode(1) && !tube_player_set_hide_seconds(5));
     assert(!tube_player_set_seek_mode(2));
     assert(!tube_player_set_seek_seconds(7));
-    assert(!tube_player_set_resize_mode(1) && !tube_player_set_zoom_percent(150));
+    assert(!tube_player_set_resize_mode(1) && !tube_player_set_zoom_percent(150) && !tube_player_set_aspect_mode(2));
+    assert(tube_player_set_pixel_mode(1) && tube_player_pixel_mode()==1);
     p->shutdown(); unlink(evo_data_path("youtube.json")); assert(!rmdir(dir));
     puts("PASS: player preferences, chooser validation, per-profile persistence, legacy migration and corrupt rows");
     return 0;

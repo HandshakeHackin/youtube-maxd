@@ -165,6 +165,8 @@ int main(int argc,char**argv) {
             {"settings:frame-rate","settings:frame-rate:30"},
             {"settings:time-display","settings:time-display:2"},
             {"settings:video-zoom","settings:zoom:100"},
+            {"settings:video-aspect","settings:aspect:10"},
+            {"settings:pixel-ratio","settings:pixel:5"},
             {"settings:sleep-timer","settings:sleep:30"}}) {
         host.RequestPage("settings",0); pump();
         const auto depth=host.m_stack.size();
@@ -188,7 +190,7 @@ int main(int argc,char**argv) {
     }
     assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
     assert(tube_player_seek_mode()==2 && tube_player_seek_seconds()==7);
-    assert(tube_player_zoom_percent()==100);
+    assert(tube_player_zoom_percent()==100 && tube_player_aspect_mode()==10 && tube_player_pixel_mode()==5);
     host.RequestPage("settings:video-zoom",0);pump();assert(host.m_has_more);
     host.RequestPage("settings:video-zoom",1);pump();assert(host.m_has_more);
     host.RequestPage("settings:video-zoom",2);pump();assert(!host.m_has_more);

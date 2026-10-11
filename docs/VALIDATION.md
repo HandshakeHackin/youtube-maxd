@@ -1,5 +1,36 @@
 # Offline validation record — 0.1.0
 
+## Aspect overrides and display pixel correction — 2026-10-11
+
+The pinned SmartTube baseline exposes eleven aspect choices in AppDialogUtil,
+with float values from PlayerConstants, and six enabled pixel-ratio choices in
+PlayerSettingsPresenter. ProsperoTube uses those values, including upstream's
+rounded aspect constants. The shared PS5 AGC transform multiplies the selected
+(or source) aspect by the display correction before applying resize/zoom;
+Stretch continues to fill both axes.
+
+Aspect selection persists per profile. Pixel correction persists once for the
+device and applies across profiles. Changing it while a different profile owns
+playback changes only the active pixel bits, preserving that video's aspect,
+resize and zoom. Render/start workers continue to use atomic packed snapshots.
+Both settings surfaces expose the options; both HUDs show the combined sizing.
+
+All sixteen native sanitizer regressions pass, including exact menu labels,
+profile/device persistence, full preference-table handling, corrupt defaults
+and active-picture isolation. Extracted shipping AGC tests cover all 330
+aspect/pixel/resize combinations, combined percentage zoom, invalid indices,
+paused labels and both picker categories. Existing time-display checks and
+actual RmlUi selection/paging also pass. The expanded root menu moved history
+to page two; its test now follows pagination instead of assuming page zero.
+Evidence: `.deps/aspect-{native,render,time,ui}.log`.
+
+PS5 provider, shared AGC runtime, controller, both HUDs, browser and picker
+objects compile successfully (`.deps/aspect-sdk.log`; existing SDK math warnings).
+The complete check script exited 0. No console connection or new package freeze
+has been made. Physical display geometry and upscaler presentation await the
+final candidate. Rotation remains separate work.
+
+
 ## Video sizing and percentage zoom — 2026-10-11
 
 The pinned SmartTube `createVideoZoomCategory` defines five resize modes and 55

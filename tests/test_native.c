@@ -452,9 +452,12 @@ int main(void) {
     /* History reports bind to a resolved account and never block browsing. */
     p->list_catalog("settings:history-sync", 0, items_cb, NULL); /* default on -> off */
     assert(p->init() == 0);
-    p->list_catalog("settings", 0, items_cb, NULL);
-    int history_row = -1;
-    for (int i = 0; i < last_count; ++i) if (!strcmp(last_items[i].id, "settings:history-sync")) history_row = i;
+    int history_row=-1,history_page=0;
+    for(;;++history_page) {
+        p->list_catalog("settings",history_page,items_cb,NULL);assert(last_ok);
+        for(int i=0;i<last_count;++i)if(!strcmp(last_items[i].id,"settings:history-sync"))history_row=i;
+        if(history_row>=0 || !last_more)break;
+    }
     assert(history_row >= 0 && strstr(last_items[history_row].title, "off"));
     p->list_catalog("settings:history-sync", 0, items_cb, NULL);
     p->list_catalog("settings:sponsor", 0, items_cb, NULL); /* disable extra sponsor request */
@@ -496,7 +499,7 @@ int main(void) {
     reply(0, 1, 503, "{\"error\":{\"message\":\"Unconfirmed history\"}}");
     p->report_progress("abcdefghijk", 90, 100, EVO_PROVIDER_PLAY_STOP);
     tube_poll(); assert(!pending_count); /* uncertain results never retry */
-    p->list_catalog("settings", 0, items_cb, NULL);
+    p->list_catalog("settings", history_page, items_cb, NULL);
     assert(strstr(last_items[history_row].subtitle, "unconfirmed"));
     p->stream_chosen("abcdefghijk", &selected);
     p->report_progress("abcdefghijk", 3, 100, EVO_PROVIDER_PLAY_UPDATE);

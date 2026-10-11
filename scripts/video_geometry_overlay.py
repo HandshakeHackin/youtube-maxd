@@ -43,14 +43,15 @@ int evo_agc_blit_yuv(''')
     // ProsperoTube time display refresh.''')
     replace(rml,'        const char* vm = (state.view_mode == 0) ? "FIT" : ((state.view_mode == 1) ? "FILL" : "STRETCH");',
             '        char vm[64];tube_video_geometry_label(tube_player_video_geometry(),state.view_mode,vm,sizeof vm);')
+    replace(player+'ui_kit/src/evo_hui_osd.cpp','char aspect[32]','char aspect[80]')
     replace(player+'ui_kit/src/evo_hui_osd.cpp','''    std::snprintf(aspect, sizeof aspect, "Aspect: %s",
                   raw_.view_mode == 0 ? "Fit" : (raw_.view_mode == 1 ? "Fill" : "Stretch"));''','''    char geometry_name[64];
     tube_video_geometry_label(tube_player_video_geometry(),raw_.view_mode,geometry_name,sizeof geometry_name);
-    std::snprintf(aspect,sizeof aspect,"Aspect: %.23s",geometry_name);''')
+    std::snprintf(aspect,sizeof aspect,"Aspect: %.63s",geometry_name);''')
     replace(player+'ui_rml/src/evo_rmlui_provider.cpp','id != "settings:time-display"',
-            'id != "settings:time-display" && id != "settings:video-zoom"')
+            'id != "settings:time-display" && id != "settings:video-zoom" && id != "settings:video-aspect" && id != "settings:pixel-ratio"')
     replace(player+'core/include/evo/screens/AudioTrackPickerScreen.hpp',
-            'KindSeekInterval, KindTime };','KindSeekInterval, KindTime, KindResize, KindZoom };')
+            'KindSeekInterval, KindTime };','KindSeekInterval, KindTime, KindResize, KindZoom, KindAspect, KindPixel };')
     picker=player+'core/src/screens/AudioTrackPickerScreen.cpp'
     replace(picker,'    // End ProsperoTube chat option rows.','''    // End ProsperoTube chat option rows.
     // ProsperoTube video geometry rows.
@@ -64,11 +65,21 @@ int evo_agc_blit_yuv(''')
         e.detail="Centered zoom relative to Fit; saved for this profile";e.badge=tube_player_zoom_percent()==percent?"SELECTED":"";
         m_tracks.push_back(std::move(e));
     }
+    for(int i=0;i<11;++i) {
+        Entry e;e.kind=KindAspect;e.streamIndex=i;e.label=tube_aspect_labels[i];e.detail="Video aspect ratio; saved for this profile";
+        e.badge=tube_player_aspect_mode()==i?"SELECTED":"";m_tracks.push_back(std::move(e));
+    }
+    for(int i=0;i<6;++i) {
+        Entry e;e.kind=KindPixel;e.streamIndex=i;e.label=tube_pixel_labels[i];e.detail="Display correction; applies to all profiles";
+        e.badge=tube_player_pixel_mode()==i?"SELECTED":"";m_tracks.push_back(std::move(e));
+    }
     // End ProsperoTube video geometry rows.''')
     replace(picker,'#include "tube_provider.h"','#include "tube_provider.h"\n#include "tube_video_geometry.h"')
     replace(picker,'    // ProsperoTube time display selection.','''    // ProsperoTube video geometry selection.
-    if(e.kind==KindResize || e.kind==KindZoom) {
-        bool saved=e.kind==KindResize?tube_player_set_resize_mode(e.streamIndex):tube_player_set_zoom_percent(e.streamIndex);
+    if(e.kind==KindResize || e.kind==KindZoom || e.kind==KindAspect || e.kind==KindPixel) {
+        bool saved=e.kind==KindResize?tube_player_set_resize_mode(e.streamIndex):
+            e.kind==KindZoom?tube_player_set_zoom_percent(e.streamIndex):
+            e.kind==KindAspect?tube_player_set_aspect_mode(e.streamIndex):tube_player_set_pixel_mode(e.streamIndex);
         toast("VIDEO SIZING",saved?e.label.c_str():"Unable to save video sizing");
     }
     // End ProsperoTube video geometry selection.

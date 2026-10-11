@@ -162,9 +162,10 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode, resize_mode, zoom_percent; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds, time_mode, resize_mode, zoom_percent, aspect_mode; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
 static _Atomic unsigned g_video_requested, g_video_geometry;
+static int g_pixel_mode;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
     evo_stream_choice_t choice; ResolveQuality quality; } g_recovery;
@@ -399,18 +400,37 @@ int tube_player_resize_mode(void) {
 int tube_player_zoom_percent(void) {
     int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].zoom_percent;
 }
+int tube_player_aspect_mode(void) {
+    int i=player_preference(g_library_profile,0);return i<0?0:g_player_preferences[i].aspect_mode;
+}
+int tube_player_pixel_mode(void) {return g_pixel_mode;}
 unsigned tube_player_video_geometry(void) {return atomic_load(&g_video_geometry);}
 void tube_video_geometry_enable(int enabled) {
     atomic_store(&g_video_geometry,enabled?(atomic_load(&g_video_requested)|1u):0);
 }
 static void video_geometry_publish(void) {
-    unsigned value=((unsigned)tube_player_resize_mode()<<1)|((unsigned)tube_player_zoom_percent()<<4);
+    unsigned value=((unsigned)tube_player_resize_mode()<<1)|((unsigned)tube_player_zoom_percent()<<4)|
+        ((unsigned)tube_player_aspect_mode()<<13)|((unsigned)g_pixel_mode<<17);
     atomic_store(&g_video_requested,value);
     /* Editing another profile affects its next video, not the current picture. */
     if(!strcmp(g_library_profile,g_active_profile)) {
         unsigned old=atomic_load(&g_video_geometry);
         while((old&1) && !atomic_compare_exchange_weak(&g_video_geometry,&old,value|1u)) {}
     }
+}
+int tube_player_set_aspect_mode(int mode) {
+    if(mode<0 || mode>10)return 0;
+    int i=player_preference(g_library_profile,1);if(i<0)return 0;
+    g_player_preferences[i].aspect_mode=mode;video_geometry_publish();save();return 1;
+}
+int tube_player_set_pixel_mode(int mode) {
+    if(mode<0 || mode>5)return 0;
+    g_pixel_mode=mode;video_geometry_publish();
+    /* Display correction applies even when a different profile owns the video. */
+    unsigned old=atomic_load(&g_video_geometry);
+    while((old&1) && !atomic_compare_exchange_weak(&g_video_geometry,&old,
+          (old&~TUBE_PIXEL_MASK)|((unsigned)mode<<17))) {}
+    save();return 1;
 }
 int tube_player_set_resize_mode(int mode) {
     if(mode<0 || mode>4)return 0;
@@ -450,6 +470,9 @@ static void player_preferences_load(const cJSON *root) {
         double seek_mode = num(row,"seek_mode");
         if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
             g_player_preferences[i].seek_mode = (int)seek_mode;
+        double aspect=num(row,"aspect_mode");
+        if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(row,"aspect_mode")) && aspect>=0 && aspect<=10 && floor(aspect)==aspect)
+            g_player_preferences[i].aspect_mode=(int)aspect;
         const cJSON *resize=cJSON_GetObjectItemCaseSensitive(row,"resize_mode");
         double resize_mode=num(row,"resize_mode"),zoom=num(row,"zoom_percent");
         if(cJSON_IsNumber(resize) && resize_mode>=0 && resize_mode<=4 && floor(resize_mode)==resize_mode)
@@ -777,8 +800,10 @@ static void save(void) {
         cJSON_AddNumberToObject(preference,"time_mode",g_player_preferences[i].time_mode);
         cJSON_AddNumberToObject(preference,"resize_mode",g_player_preferences[i].resize_mode);
         cJSON_AddNumberToObject(preference,"zoom_percent",g_player_preferences[i].zoom_percent);
+        cJSON_AddNumberToObject(preference,"aspect_mode",g_player_preferences[i].aspect_mode);
         cJSON_AddItemToArray(player_preferences,preference);
     }
+    cJSON_AddNumberToObject(root,"pixel_ratio_mode",g_pixel_mode);
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
     cJSON_AddBoolToObject(root, "remote_stop_on_disconnect", g_remote_stop_on_disconnect);
     cJSON_AddBoolToObject(root, "remote_close_on_disconnect", g_remote_close_on_disconnect);
@@ -926,7 +951,7 @@ static int init(void) {
     g_store_writable = 0;
     g_sleep_minutes = g_sleep_armed = g_sleep_fired = 0;
     g_player_preferences_count = 0; memset(g_player_preferences,0,sizeof g_player_preferences);
-    atomic_store(&g_video_requested,0);atomic_store(&g_video_geometry,0);
+    g_pixel_mode=0;atomic_store(&g_video_requested,0);atomic_store(&g_video_geometry,0);
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_recovery, 0, sizeof g_recovery);
@@ -951,6 +976,9 @@ static int init(void) {
     copy(g_token, sizeof g_token, str(root, "token"));
     const char *profile = str(root, "library_profile");
     copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
+    double pixel=num(root,"pixel_ratio_mode");
+    if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(root,"pixel_ratio_mode")) && pixel>=0 && pixel<=5 && floor(pixel)==pixel)
+        g_pixel_mode=(int)pixel;
     player_preferences_load(root);
     g_height = settings_integer(root,"max_height",144,2160,1080);
     g_max_fps = settings_integer(root,"max_fps",0,60,0);
@@ -2286,6 +2314,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:aspect:",16) || !strncmp(parent,"settings:pixel:",15)) {
+            int aspect=!strncmp(parent,"settings:aspect:",16);
+            const char* value=parent+(aspect?16:15);char* end=NULL;long choice=strtol(value,&end,10);
+            if(!*value || *end || choice<0 || choice>(aspect?10:5) ||
+                !(aspect?tube_player_set_aspect_mode((int)choice):tube_player_set_pixel_mode((int)choice))) {
+                tube_set_error("Select a valid aspect or display correction.");cb(0,NULL,0,0,ud);return 1;
+            }
+        }
         else if (!strncmp(parent,"settings:resize:",16) || !strncmp(parent,"settings:zoom:",14)) {
             int resize=!strncmp(parent,"settings:resize:",16);
             const char* value=parent+(resize?16:14);char* end=NULL;long choice=strtol(value,&end,10);
@@ -2451,6 +2487,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id,sizeof id,"settings:frame-rate:%d",rates[i]);
                 CATALOG_FOLDER(id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
             }
+        } else if (!strcmp(parent,"settings:video-aspect") || !strncmp(parent,"settings:aspect:",16)) {
+            for(int i=0;i<11;++i) {
+                char id[64];snprintf(id,sizeof id,"settings:aspect:%d",i);
+                CATALOG_FOLDER(id,tube_aspect_labels[i],tube_player_aspect_mode()==i?"Selected":"Video aspect ratio; saved for this profile");
+            }
+        } else if (!strcmp(parent,"settings:pixel-ratio") || !strncmp(parent,"settings:pixel:",15)) {
+            for(int i=0;i<6;++i) {
+                char id[64];snprintf(id,sizeof id,"settings:pixel:%d",i);
+                CATALOG_FOLDER(id,tube_pixel_labels[i],g_pixel_mode==i?"Selected":"Display correction; applies to all profiles");
+            }
         } else if (!strcmp(parent,"settings:video-zoom") || !strncmp(parent,"settings:resize:",16) || !strncmp(parent,"settings:zoom:",14)) {
             const int modes[]={0,3,4,1,2};const char* labels[]={"Fit","Fit width","Fit height","Fill","Stretch"};
             for(int i=0;i<5;++i) {
@@ -2509,6 +2555,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
+            CATALOG_FOLDER("settings:video-aspect","Video aspect ratio","Original or an aspect override; independent of zoom");
+            CATALOG_FOLDER("settings:pixel-ratio","Display pixel ratio","Display correction shared by all profiles");
             CATALOG_FOLDER("settings:video-zoom","Video sizing and zoom","Fit, width, height, fill, stretch and 50% to 300% zoom");
             const char *time_labels[]={"Time display: total duration","Time display: remaining","Time display: estimated finish"};
             CATALOG_FOLDER("settings:time-display",time_labels[tube_player_time_mode()],"Choose the playback time display for this profile");
