@@ -7,6 +7,7 @@ import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
+import { filterHomeFeed } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
 
 export class LibraryError extends Error {
@@ -347,7 +348,7 @@ export class Library {
     }
     let feed;
     switch (input.action) {
-      case 'home': feed = await client.getHomeFeed(); break;
+      case 'home': feed = filterHomeFeed(await client.getHomeFeed()); break;
       case 'subscriptions': feed = await client.getSubscriptionsFeed(); break;
       case 'history': feed = await client.getHistory(); break;
       case 'library': feed = await client.getLibrary(); break;

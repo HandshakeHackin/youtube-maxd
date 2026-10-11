@@ -833,3 +833,11 @@ Concurrent requests for the same catalog cursor share one resulting page and
 successor cursor. Ownership/expiry is rechecked after fetching, before exposing
 new rows. Upstream failure releases the pending operation so a later request can
 retry; a completed request retains its exact result for idempotent retries.
+
+
+Primary Home RichItem videos now follow SmartTube's watched-suggestion threshold:
+explicitly watched entries, progress above 95 percent, or its 10-percent minimum
+marker are omitted. Partially watched entries, nested shelves, search and playlists
+remain available. The same wrapper processes Home continuation pages before they
+become retained groups. Unknown Home layouts are preserved; local PS5 watch-state
+integration and other suggestion layouts are still pending.

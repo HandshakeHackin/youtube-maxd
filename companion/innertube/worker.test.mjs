@@ -591,3 +591,5 @@ test('expired or evicted reply references never call the upstream thread', async
 });
 import './video_channels.test.mjs';
 import './playback_groups.test.mjs';
+
+import './home_feed.test.mjs';

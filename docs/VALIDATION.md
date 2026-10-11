@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Primary Home watched filtering — 2026-10-11
+
+The pinned SmartTube `VideoGroup.isWatchedSuggestion` filters the primary Home
+group and suggestions at progress greater than 95 percent or its 10-percent
+minimum-watched marker. The worker now applies those thresholds to direct Home
+RichItem videos with resume overlays, as well as explicit watched flags. Nested
+shelves and layouts without primary-group evidence remain intact. The filter
+also applies to Home continuations used by browsing and retained-group playback.
+Search and playlists keep watched entries.
+
+All 116 worker tests and the rebuilt bundle pass, including the pinned RichItem
+and Video resume-overlay parser, threshold boundaries, shelf separation and
+shared browsing/playback continuation. Native local-watch-state filtering,
+other Home layouts, suggestion feeds and live-service/PS5 acceptance remain open.
+No console connection was made.
+
 ## Catalog continuation consistency — 2026-10-11
 
 Concurrent requests for one catalog cursor now share the completed page and its
