@@ -447,6 +447,7 @@ int main(void) {
     assert(!tube_finish_drained_and_next(-1));
     assert(!tube_playback_at_end(2, 0)); /* stored duration remains 30 seconds */
     (void)tube_finish_drained_and_next(2);
+    assert(!pending_count && !tube_playlist_eof_pending()); /* Re-pairing above retired credentials. */
     p->list_catalog("queue", 0, items_cb, NULL);
     assert(last_count == 0); /* drained completion removed the final queued item */
     /* History reports bind to a resolved account and never block browsing. */

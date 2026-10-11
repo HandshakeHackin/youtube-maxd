@@ -79,8 +79,15 @@ Acknowledged SponsorBlock end skips pause the current frame and enter the same
 completion path, preserving phone ownership and asynchronous playlist waits.
 A successful repeat/manual seek retires that explicit completion only after the
 idle playback position reaches the target; a failed seek keeps it paused.
-Continuous and playlist-only
-currently share queue/playlist behavior; recommendation context is still missing.
+Outside playlist context, continuous playback uses the authenticated
+`playback_next` operation after explicit queues are exhausted. Shuffle and reverse
+also use this fallback when no playlist is active; playlist-only does not.
+The adapter reads the first WEB autoplay endpoint, following the pinned
+YouTube.js `VideoInfo.autoplay_video_endpoint` policy, and never substitutes an
+arbitrary suggestion card. Missing/self-referencing endpoints stop playback.
+Native jobs retain source/profile/selection ownership, support controller
+cancellation and reject retired errors before credential handling. Channel
+context and continuation beyond an exhausted selected playlist remain pending.
 
 
 ### Live-chat service reader

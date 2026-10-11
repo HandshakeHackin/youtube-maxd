@@ -1088,7 +1088,8 @@
         "Stop/close modes honor explicit queue exceptions and a persisted queue-respects-playback-mode preference, including unavailable-video retries and preference-change cancellation",
         "All seven mode choices are exposed in browser and player settings; natural-drain repeat seeks once, exhausted continuation pauses, and completion rearms after an idle non-EOF state",
         "Acknowledged SponsorBlock end skips use the common completion path, retain phone ownership and playlist waits, and retire explicit completion only after an idle seek reaches its target; console acceptance remains pending",
-        "Directional playlist-edge lookup crosses consecutive proven unavailable slots; finite unavailable-only windows continue through cancellable monotonic scan steps or explicit exhaustion, while exact-index shuffle stays strict"
+        "Directional playlist-edge lookup crosses consecutive proven unavailable slots; finite unavailable-only windows continue through cancellable monotonic scan steps or explicit exhaustion, while exact-index shuffle stays strict",
+        "Continuous/shuffle/reverse modes without playlist context use profile-owned WEB autoplay endpoint jobs after explicit queues; playlist-only remains isolated, and stale or cancelled replies cannot change current credentials or launch another video"
       ],
       "offline_status": "partial",
       "remaining": [

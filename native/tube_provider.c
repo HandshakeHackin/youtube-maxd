@@ -123,6 +123,7 @@ static int valid_speed(double speed) {
 static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
+static struct { int state; unsigned serial,scope,selection; char id[12],next[12]; } g_recommendation={.state=-1};
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
 static int g_sponsor_completed;
@@ -1178,6 +1179,7 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if(r->kind==13 && r->intent==g_recommendation.serial && !ok) g_recommendation.state=-1;
     if (r->kind == 12 && r->intent == g_playlist_window.serial && !ok)
         g_playlist_window.state = -1;
     if (r->kind == 11 && r->intent == g_message.ticket && g_message.phase == 3) g_message.phase = -1;
@@ -1264,6 +1266,30 @@ static int begin(Request *r) {
     r->stage = 1; return send_request(r, "POST", "/v1/jobs", r->payload);
 }
 
+static int recommendation_current(void) {
+    return recovery_scope() && g_recommendation.scope==g_playlist_scope &&
+        g_recommendation.selection==g_selection_serial && !strcmp(g_recommendation.id,g_active_id);
+}
+static int recommendation_begin(void) {
+    if(!*g_token || !recovery_scope() || !valid_id(g_active_id)) return 0;
+    Request *r=request_new(13,NULL);if(!r)return 0;
+    if(!++g_recommendation.serial)++g_recommendation.serial;
+    g_recommendation.scope=g_playlist_scope;g_recommendation.selection=g_selection_serial;
+    copy(g_recommendation.id,sizeof g_recommendation.id,g_active_id);g_recommendation.next[0]=0;
+    g_recommendation.state=0;r->intent=g_recommendation.serial;
+    snprintf(r->payload,sizeof r->payload,
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_next\",\"profile\":\"%s\",\"id\":\"%s\"}}",g_active_profile,g_active_id);
+    begin(r);return 1;
+}
+static void recommendation_result(Request *r,const cJSON *root) {
+    const cJSON *next=cJSON_GetObjectItemCaseSensitive(root,"next_video_id");
+    if(num(root,"api_version")!=1 || strcmp(str(root,"video_id"),g_recommendation.id) ||
+        (!cJSON_IsNull(next) && (!cJSON_IsString(next) || !valid_id(next->valuestring) ||
+            !strcmp(next->valuestring,g_recommendation.id)))) {complete(r,0);return;}
+    g_recommendation.state=cJSON_IsNull(next)?-1:1;
+    if(g_recommendation.state==1)copy(g_recommendation.next,sizeof g_recommendation.next,next->valuestring);
+    complete(r,1);
+}
 static int playlist_window_current(void) {
     return g_playlist_window.selection && g_playlist_window.selection == g_selection_serial &&
         recovery_scope() && g_playlist_window.context.scope == g_playlist_scope &&
@@ -1901,6 +1927,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         auth_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
     }
     if (r->generation != g_generation) { complete(r, 0); return; }
+    if(r->kind==13 && (r->intent!=g_recommendation.serial || !recommendation_current())) {complete(r,0);return;}
     if (r->kind == 12 && (r->intent != g_playlist_window.serial || !playlist_window_current())) {
         complete(r,0); return;
     }
@@ -1947,6 +1974,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); complete(r, 0); return;
     }
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
+    if(r->kind==13) {recommendation_result(r,result);cJSON_Delete(root);return;}
     if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
     if (r->kind == 12) { playlist_window_result(r,result); cJSON_Delete(root); return; }
@@ -3537,12 +3565,15 @@ int tube_queue_skip_unavailable(const char *id) {
 }
 
 void tube_playlist_eof_cancel(void) {
+    if(!++g_recommendation.serial)++g_recommendation.serial;
+    g_recommendation.state=-1;
     g_completion_action=0; g_completion_consumed=0;
     g_playlist_eof_wait = g_playlist_next_ready = 0;
     g_playlist_shuffle_attempted=0;
     tube_playlist_window_cancel();
 }
-int tube_playlist_eof_pending(void) { return g_playlist_eof_wait || g_playlist_next_ready; }
+int tube_playlist_eof_pending(void) { return g_playlist_eof_wait || g_playlist_next_ready ||
+    (g_recommendation.state>=0 && recommendation_current()); }
 static int playlist_random_index(int current,int count) {
     if (count<=30 || current<0 || current>=count) return -1;
     uint32_t bound=(uint32_t)count-1, threshold=(uint32_t)(-bound)%bound, value;
@@ -3611,7 +3642,10 @@ static int playlist_eof_advance(void) {
     g_playlist_next_ready=1; return 1;
 }
 static int finish_and_next(int playlist) {
-    if (g_finished) return playlist ? playlist_eof_advance() : 0;
+    if (g_finished) {
+        if(g_recommendation.state>=0 && recommendation_current())return g_recommendation.state==1;
+        return playlist ? playlist_eof_advance() : 0;
+    }
     if (!*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
@@ -3633,6 +3667,7 @@ static int finish_and_next(int playlist) {
     }
     if (queue_next()) return 1;
     if (playlist && tube_playlist_window_begin()) g_playlist_eof_wait=1;
+    else if(playlist && !*g_active_playlist.playlist && g_playback_mode!=TUBE_MODE_LIST) recommendation_begin();
     return 0;
 }
 
@@ -3701,6 +3736,17 @@ void tube_completion_playback_state(int ended,int busy) {
 }
 
 int tube_take_next(evo_provider_item_t *item) {
+    if(g_recommendation.state==1) {
+        int current=recommendation_current();g_recommendation.state=-1;
+        if(!current || !item)return 0;
+        const Record *cached=record_for(g_recommendation.next,g_active_profile,0);
+        if(cached)*item=cached->item;else memset(item,0,sizeof *item);
+        copy(item->id,sizeof item->id,g_recommendation.next);
+        if(!*item->title)copy(item->title,sizeof item->title,item->id);
+        item->kind=EVO_MEDIA_VIDEO;item->resume_pos_sec=0;
+        item->playback_playlist[0]=0;item->playback_index=0;item->playback_scope=0;
+        return 1;
+    }
     if (g_playlist_next_ready) {
         g_playlist_next_ready=0;
         if (!item || !g_autoplay || !playlist_window_current()) return 0;

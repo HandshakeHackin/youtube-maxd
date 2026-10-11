@@ -4,6 +4,7 @@ import { validCredentials } from './device_auth.mjs';
 import { ChatReader } from './live_chat.mjs';
 import { TopicCatalog } from './topic_catalog.mjs';
 import { remotePlaylist } from './remote_playlist.mjs';
+import { playbackNext } from './playback_next.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -203,6 +204,7 @@ export class Library {
   async execute(input) {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
+    if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError);
     if (['remote_playlist', 'playback_queue', 'playback_at'].includes(input.action))
       return remotePlaylist(await this.client(owner), input, LibraryError);
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>

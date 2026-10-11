@@ -1,5 +1,31 @@
 # Offline validation record — 0.1.0
 
+## Continuous playback recommendations — 2026-10-11
+
+The new authenticated direct/job `playback_next` operation reads the WEB autoplay
+endpoint for the playing video and selected profile. It follows the pinned
+YouTube.js VideoInfo policy; suggestion cards and next-button alternatives are
+not substituted. Missing/self-referencing targets terminate normally. Outside
+playlist context, continuous/shuffle/reverse modes request it after explicit
+queues, while playlist-only, pause, close and repeat retain their own policy.
+Native requests snapshot playback selection and scope; cancellation/profile
+changes retire replies before HTTP errors can affect credentials. Handoff clears
+playlist occurrence and resume state.
+
+All 76 worker tests and 59 targeted service/phone-playlist tests passed, and the
+production worker rebuilt (`.deps/playback-next-{worker,python}.log`). The new
+native recommendation suite passed mode gating, terminal/malformed results,
+cancellation, profile retirement and a late 401. The initial native fixture
+omitted the required records array; it was corrected before playback testing.
+The broader native regression also exposed a re-pairing edge: retired credentials
+must not trigger background recommendation pairing. A token prerequisite now
+prevents that request, and the provider regression passed with the guard.
+The final recommendation, provider, SponsorBlock, playlist-window/context and
+queue-failure sanitizer batch passed. The PS5 provider object compiled with
+existing SDK warnings (`.deps/playback-next-{native,sdk}.log`).
+Channel context, exhausted-playlist recommendation policy and real YouTube/PS5
+acceptance remain pending. No console connections occurred.
+
 ## Unavailable-only finite playlist windows — 2026-10-11
 
 Directional traversal now continues beyond an unavailable-only panel when its
