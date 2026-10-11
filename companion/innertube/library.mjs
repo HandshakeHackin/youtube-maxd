@@ -15,6 +15,7 @@ import { normalizeChannel, searchFeed, searchFilters, searchQuery, searchSuggest
 import { videoDescription } from './video_description.mjs';
 import { channelsFeed, notificationsFeed } from './account_sections.mjs';
 import { FeedbackActions } from './feedback_actions.mjs';
+import { requestLocale } from './locale.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -159,18 +160,26 @@ export class Library {
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
-  async client(id) {
+  // One client per profile and content locale: a retained feed, cursor or
+  // section keeps the session that opened it, so locales never mix.
+  async client(id, where = null) {
     const profile = this.profiles.get(id);
     if (!profile) throw new LibraryError('unknown_profile', 'Select an available profile.', 404);
-    if (!this.clients.has(id)) this.clients.set(id, await this.createClient(profile));
-    return this.clients.get(id);
+    const key = id + (where?.key ?? '');
+    if (!this.clients.has(key)) {
+      const localized = Array.from(this.clients.keys()).filter(name => name.includes('|'));
+      if (where?.key && localized.length >= 16) this.clients.delete(localized[0]);
+      this.clients.set(key, await this.createClient(profile, where?.key ? { lang: where.lang, location: where.location } : undefined));
+    }
+    return this.clients.get(key);
   }
   async playback(input) {
     const owner = input?.profile;
     if (!this.profiles.has(owner))throw new LibraryError('unknown_profile','Select an available profile.',404);
     if (input.action !== 'catalog' && !this.profiles.get(owner)?.oauth)
       throw new LibraryError('playback_account_context', 'Select an OAuth account profile.', 403);
-    const client = await this.client(owner);
+    const where = input.action === 'catalog' ? requestLocale(input, LibraryError) : null;
+    const client = await this.client(owner, where);
     if (input.action === 'credentials') {
       const oauth = client.session.oauth;
       if (Date.parse(oauth.oauth2_tokens?.expiry_date) <= this.clock() + 60000)
@@ -252,18 +261,19 @@ export class Library {
   async execute(input) {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
+    const where = requestLocale(input, LibraryError);
     if (input.action === 'suggestions_filter') {
       if(!this.profiles.has(owner))throw new LibraryError('unknown_profile','Select an available profile.',404);
       const feed=await this.suggestionFilters.open(owner,input.id);
       if(!this.suggestionPages.has(feed))this.suggestionPages.set(feed,this.page(owner,'catalog',feed));
       return this.suggestionPages.get(feed);
     }
-    if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner));
-    if (input.action === 'channel_window') return channelWindow(await this.client(owner),input,normalizeVideo,LibraryError);
-    if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError,
+    if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner, where));
+    if (input.action === 'channel_window') return channelWindow(await this.client(owner, where),input,normalizeVideo,LibraryError);
+    if (input.action === 'playback_next') return playbackNext(await this.client(owner, where),input,LibraryError,
       data=>remoteRecommendationGroup(data,input,owner,this.groups,node=>normalizeVideo(node),LibraryError));
     if (['remote_playlist', 'playback_queue', 'playback_at'].includes(input.action))
-      return remotePlaylist(await this.client(owner), input, LibraryError);
+      return remotePlaylist(await this.client(owner, where), input, LibraryError);
     if (input.action === 'profiles') return { api_version: 1, profiles: Array.from(this.profiles.values(), p =>
       ({ id: p.id, name: p.name, account_configured: !!(p.cookie || p.oauth) })) };
     if (input.action === 'replies') {
@@ -304,11 +314,11 @@ export class Library {
         if (!['top', 'live', undefined].includes(input.chat_mode)) throw new LibraryError('invalid_sort', 'Select top or live chat.');
       }
       if (input.action === 'chat_send') {
-        if (!authenticated || !(await this.client(owner)).session?.logged_in)
+        if (!authenticated || !(await this.client(owner, where)).session?.logged_in)
           throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
         requireId(input.id, videoId);
       }
-      return this.chats.execute(input, owner, input.action === 'live_chat' ? await this.client(owner) : null);
+      return this.chats.execute(input, owner, input.action === 'live_chat' ? await this.client(owner, where) : null);
     }
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
@@ -328,7 +338,7 @@ export class Library {
     const query = input.action === 'search' ? searchQuery(input.query, LibraryError) : '';
     const filters = input.action === 'search' ? searchFilters(input, LibraryError) : null;
     if (input.action === 'search_suggestions') searchQuery(input.query ?? '', LibraryError, true);
-    const client = await this.client(owner);
+    const client = await this.client(owner, where);
     if (input.action === 'feedback') return this.feedback.submit(owner, client, input);
     if (input.action === 'search_suggestions') return searchSuggestions(client, input, LibraryError);
     if (input.action === 'description') return videoDescription(client, input, LibraryError);

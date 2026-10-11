@@ -35,9 +35,9 @@ async function scopedFetch(input, init = {}) {
   });
   return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
-async function createClient(profile) {
+async function createClient(profile, locale) {
   return createProfileClient(profile, Innertube, scopedFetch,
-    (id, credentials) => credentialUpdates.set(id, credentials));
+    (id, credentials) => credentialUpdates.set(id, credentials), locale);
 }
 const credentialUpdates = new Map();
 const deviceAuth = new DeviceAuthorization(() => Innertube.create({ client_type: 'TVHTML5',

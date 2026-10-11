@@ -16,13 +16,14 @@ function validClient(client) {
     Object.keys(client).sort().join(',') === 'client_id,client_secret' &&
     scalar(client.client_id, 512) && scalar(client.client_secret, 512);
 }
-export async function createProfileClient(profile, Innertube, fetch, onRefresh = () => {}) {
+export async function createProfileClient(profile, Innertube, fetch, onRefresh = () => {}, locale = null) {
   if (profile.oauth && (!validCredentials(profile.oauth) || profile.cookie || profile.account_index || profile.channel))
     throw new LibraryError('invalid_profiles', 'The OAuth profile is invalid.');
   const client = await Innertube.create({ cookie: profile.cookie || undefined,
     client_type: profile.oauth ? 'TVHTML5' : 'WEB',
     account_index: profile.account_index ?? 0, on_behalf_of_user: profile.channel || undefined,
-    retrieve_player: false, retrieve_innertube_config: !profile.oauth, generate_session_locally: true, fetch });
+    retrieve_player: false, retrieve_innertube_config: !profile.oauth, generate_session_locally: true, fetch,
+    ...(locale?.lang ? { lang: locale.lang } : {}), ...(locale?.location ? { location: locale.location } : {}) });
   if (profile.oauth) {
     client.session.on('update-credentials', ({ credentials }) => {
       if (!validCredentials(credentials)) throw new LibraryError('auth_response', 'The refreshed credentials are invalid.', 502);

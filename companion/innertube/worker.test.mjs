@@ -597,3 +597,4 @@ import './suggestions.test.mjs';
 import './search_catalog.test.mjs';
 import './sections.test.mjs';
 import './feedback_actions.test.mjs';
+import './locale.test.mjs';
