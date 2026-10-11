@@ -106,6 +106,8 @@ int tube_set_playback_speed(int percent) {
 int tube_last_playback_speed(void) { return g_last_speed; }
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_player_chat_mode;
+static int g_sleep_minutes, g_sleep_armed, g_sleep_fired;
+static long long g_sleep_activity_ms;
 static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed, g_remote_entropy_failed;
 static int g_remote_stop_on_disconnect;
 static int g_remote_close_on_disconnect;
@@ -236,6 +238,23 @@ static long long now_ms(void) {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return (long long)t.tv_sec * 1000 + t.tv_nsec / 1000000;
+}
+
+int tube_sleep_minutes(void) { return g_sleep_minutes; }
+void tube_sleep_activity(void) {
+    g_sleep_activity_ms = now_ms(); g_sleep_armed = g_sleep_minutes > 0; g_sleep_fired = 0;
+}
+int tube_sleep_set_minutes(int minutes) {
+    if (minutes < 0 || minutes > 600 || minutes % 30) return 0;
+    g_sleep_minutes = minutes; tube_sleep_activity(); save(); return 1;
+}
+int tube_sleep_tick(int playback_active) {
+    if (!playback_active || !g_sleep_minutes || g_sleep_fired) return 0;
+    if (!g_sleep_armed) tube_sleep_activity();
+    long long current = now_ms();
+    if (current < g_sleep_activity_ms) { tube_sleep_activity(); return 0; }
+    if (current - g_sleep_activity_ms < (long long)g_sleep_minutes * 60000) return 0;
+    g_sleep_fired = 1; return 1;
 }
 
 int tube_chat_due(const char *parent) {
@@ -564,6 +583,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "library_profile", g_library_profile);
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
+    cJSON_AddNumberToObject(root, "sleep_timer_minutes", g_sleep_minutes);
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
     cJSON_AddBoolToObject(root, "remote_stop_on_disconnect", g_remote_stop_on_disconnect);
     cJSON_AddBoolToObject(root, "remote_close_on_disconnect", g_remote_close_on_disconnect);
@@ -704,6 +724,7 @@ static int init(void) {
     g_speed_session_id[0] = g_speed_session_profile[0] = 0;
     g_browse_music = g_browse_queue = 0;
     g_store_writable = 0;
+    g_sleep_minutes = g_sleep_armed = g_sleep_fired = 0;
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_recovery, 0, sizeof g_recovery);
@@ -739,6 +760,10 @@ static int init(void) {
     g_sponsor = boolean(root, "sponsorblock");
     double chat_mode = num(root, "player_chat_mode");
     g_player_chat_mode = chat_mode >= 0 && chat_mode <= 2 && floor(chat_mode) == chat_mode ? (int)chat_mode : 0;
+    double sleep_minutes = num(root, "sleep_timer_minutes");
+    g_sleep_minutes = sleep_minutes >= 0 && sleep_minutes <= 600 && floor(sleep_minutes) == sleep_minutes &&
+        (int)sleep_minutes % 30 == 0 ? (int)sleep_minutes : 0;
+    g_sleep_armed = g_sleep_fired = 0;
     const char *remote_device = str(root, "remote_device"), *remote_screen = str(root, "remote_screen");
     g_remote_stop_on_disconnect = boolean(root, "remote_stop_on_disconnect");
     g_remote_close_on_disconnect = boolean(root, "remote_close_on_disconnect");
@@ -1993,6 +2018,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strcmp(parent, "settings:player-chat")) {
             tube_player_chat_set_mode((g_player_chat_mode + 1) % 3);
         }
+        else if (!strncmp(parent, "settings:sleep:", 15)) {
+            const char *value = parent + 15; char *end = NULL;
+            long minutes = strtol(value, &end, 10);
+            if (!*value || *end || minutes < 0 || minutes > 600 || !tube_sleep_set_minutes((int)minutes)) {
+                tube_set_error("Select a valid sleep timer duration."); cb(0,NULL,0,0,ud); return 1;
+            }
+        }
         else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
             if (!g_store_writable || !*g_source || !*g_token) {
                 tube_set_error("Pair with the companion and check local storage before linking a phone.");
@@ -2118,6 +2150,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             folder(&out[n++], "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             folder(&out[n++], "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+        } else if (!strcmp(parent, "settings:sleep-timer")) {
+            for (int minutes = 0; minutes <= 600; minutes += 30) {
+                char id[64], label[96]; snprintf(id,sizeof id,"settings:sleep:%d",minutes);
+                if (!minutes) copy(label,sizeof label,"Sleep timer: disabled");
+                else snprintf(label,sizeof label,"Sleep after %.1f hours without input",minutes/60.0);
+                folder(&out[n++],id,label,minutes==g_sleep_minutes ? "Selected" : "Input restarts the timer; expiry pauses playback");
+            }
         } else if (!strcmp(parent, "settings:languages") || !strcmp(parent, "settings:audio-languages")) {
             const char *langs[] = {"en", "fr", "es", "de", "it", "pt", "ja", "ko", "zh", "ru"};
             for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); folder(&out[n++], id, langs[i], "Select this language for the next video"); }
@@ -2142,6 +2181,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:player-chat", g_player_chat_mode == 1 ? "Live chat sidebar: left" :
                 g_player_chat_mode == 2 ? "Live chat sidebar: right" : "Live chat sidebar: off",
                 "Select to cycle Off / Left / Right; shows chat beside playing video");
+            if (g_sleep_minutes) snprintf(label,sizeof label,"Sleep timer: %.1f hours",g_sleep_minutes/60.0);
+            else copy(label,sizeof label,"Sleep timer: disabled");
+            folder(&out[n++],"settings:sleep-timer",label,"Choose inactivity duration; expiry pauses playback");
             folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");
@@ -2420,6 +2462,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
+    if (!recovering) tube_sleep_activity();
     if (!recovering && !++g_selection_serial) ++g_selection_serial;
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;

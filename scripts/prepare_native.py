@@ -215,6 +215,8 @@ def main():
     apply_voice_controls_overlay(replace, player, host)
     from phone_exit_overlay import apply_phone_exit_overlay
     apply_phone_exit_overlay(replace, player)
+    from sleep_timer_overlay import apply_sleep_timer_overlay
+    apply_sleep_timer_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     from secondary_captions_overlay import apply_secondary_captions_overlay

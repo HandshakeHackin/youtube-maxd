@@ -8,7 +8,7 @@ static tube_remote_player engine;
 static int active, browsed, stopped, keys, reject_seek;
 static int deferred_caption, caption_result, caption_polls;
 static int voice_starts, voice_cancels;
-static int app_closes;
+static int app_closes, activities;
 static char deferred_language[33];
 static double sought;
 static unsigned selection_serial;
@@ -35,7 +35,8 @@ static int voice_engine(void *ctx, int started, unsigned owner) {
     return 1;
 }
 static int close_engine(void *ctx) { (void)ctx; ++app_closes; return 1; }
-static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine,0,close_engine};
+static void activity(void *ctx) { (void)ctx; ++activities; }
+static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine,0,close_engine,activity};
 static int64_t test_clock = 100000;
 static void cleanup(void) {
     tube_remote_shutdown(); tube_phone_clear();
@@ -51,6 +52,7 @@ static void feed(const char *commands) {
     deferred_caption = caption_result = caption_polls = 0;
     voice_starts = voice_cancels = 0;
     app_closes = 0;
+    activities = 0;
     test_clock += 10000; configure(1,"guest",identity,"screen-123"); remote_bind(test_clock);
     tube_remote_tick(test_clock + 1); poll_reply(0,commands); assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
 }
@@ -77,6 +79,7 @@ static void feedback(int index, int previous, int next) {
 static void test_execution(void) {
     feed("[{\"sequence\":1,\"action\":\"loungeStatus\",\"devices\":[]},{\"sequence\":2,\"action\":\"getNowPlaying\"},{\"sequence\":3,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLtest\",\"index\":7,\"position_sec\":13.25,\"ctt\":\"opaque\"},{\"sequence\":4,\"action\":\"pause\"},{\"sequence\":5,\"action\":\"seekTo\",\"position_sec\":27.125},{\"sequence\":6,\"action\":\"setVolume\",\"volume\":40},{\"sequence\":7,\"action\":\"play\"},{\"sequence\":8,\"action\":\"next\"},{\"sequence\":9,\"action\":\"previous\"},{\"sequence\":10,\"action\":\"dpadCommand\",\"key\":\"ENTER\"},{\"sequence\":11,\"action\":\"setSubtitlesTrack\",\"video_id\":\"abcdefghijk\",\"language\":\"en\"},{\"sequence\":12,\"action\":\"stopVideo\"}]");
     tube_phone_tick(&controls); tube_phone_tick(&controls); tube_phone_tick(&controls);
+    assert(activities==1); /* Status/query traffic does not postpone sleep. */
     assert(browsed == 1); unsigned value = take_start("abcdefghijk",13.25);
     tube_remote_command c; assert(tube_remote_take(&c) && c.sequence == 3);
     tube_phone_tick(&controls); assert(tube_remote_take(&c) && c.sequence == 3 && engine.state == 1);
@@ -207,6 +210,7 @@ static void test_windowed_duplicate_and_refresh(void) {
     feed("[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\",\"abcdefghijk\"],\"playlist\":\"PLlarge\",\"index\":102,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"zyxwvutsrqp\",\"abcdefghijk\",\"12345678901\"],\"playlist\":\"PLlarge\",\"index\":102,\"window_start\":101,\"position_sec\":0,\"ctt\":\"click\"},{\"sequence\":3,\"action\":\"next\"}]");
     tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
     tube_phone_tick(&controls); assert(browsed == 1); /* refill does not reopen playback */
+    assert(activities==1); /* Automatic refill does not reset inactivity. */
     feedback(102,1,0); /* selected duplicate was the third occurrence in its old window */
     tube_phone_tick(&controls); unsigned next = take_start("12345678901",0);
     started_video(next,"12345678901"); tube_phone_tick(&controls); feedback(103,1,0);

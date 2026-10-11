@@ -1,5 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Offline inactivity sleep timer — 2026-10-10
+
+The pinned SmartTube VideoStateController pauses after configured inactivity and
+restarts its timer on input/new media. ProsperoTube now implements that behavior
+with saved half-hour choices from disabled through ten hours in both provider
+settings and the in-player options menu. The actual main
+loop checks expiry after input handling, pauses once, preserves media/queue and
+shows a notice. Startup/close work is gated. Physical controller and deliberate
+phone commands restart inactivity; query/status traffic and automatic queue
+refills do not. Elapsed runtime is reset after application restart, not persisted.
+
+Shipping timer sanitizer tests cover choices, persistence, exact expiry, reset,
+disabled/idle state, once-only firing, new media and clock regression. Actual
+phone adapter tests cover activity classification. Provider/phone/Application
+compile with the PS5 SDK (`.deps/sleep-timer-batch.result`, exit 0). The complete
+provider regression batch passes all twelve executables, and the committed
+standalone timer test passes (`.deps/offline-provider-final.result`, exit 0).
+Actual generated chat/HUD option tests remain passing alongside the new timer
+rows; connected provider/phone/Application/picker compilation passes
+(`.deps/sleep-timer-connected-final.result`, exit 0). Final packaging is pending.
+PS5 menu/pause and system screensaver behavior remain unverified. No console
+connection.
+
+Replay candidate `a9a6f582` built and froze successfully: 126 files, eboot SHA-256
+prefix `5c7306c9307786cb`. It was not deployed. The replay implementation remains
+retained-window browsing; unlimited historical-message pagination is still open.
+
 ## Offline replay reader — 2026-10-10
 
 The browser now opens chat replay from top/newest comments with Triangle. L1/R1

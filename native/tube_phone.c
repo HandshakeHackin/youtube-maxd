@@ -135,6 +135,8 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
     }
     if (phase) return;
     tube_remote_command c; if (!tube_remote_take(&c)) return;
+    if (ctl->activity && c.action != TUBE_REMOTE_QUERY && c.action != TUBE_REMOTE_QUEUE && c.action != TUBE_REMOTE_CONNECTED &&
+        c.action != TUBE_REMOTE_DISCONNECTED && c.action != TUBE_REMOTE_DEVICES) ctl->activity(ctl->context);
     int applied = 0;
     switch (c.action) {
     case TUBE_REMOTE_PLAYLIST: {

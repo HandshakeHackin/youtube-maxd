@@ -25,6 +25,7 @@ typedef struct {
     /* Explicit opt-in closes the app for a current receiver disconnect. */
     int close_on_disconnect;
     int (*close_app)(void *);
+    void (*activity)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */

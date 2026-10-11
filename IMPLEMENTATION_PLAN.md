@@ -11,8 +11,12 @@ Fresh-stream caption/timing recovery and occurrence-preserving sparse phone
 playlist windows are implemented and packaged in frozen candidate `bc3ff150`.
 The next offline batch adds a stationary replay reader with explicit time
 navigation, ended rewind and read-only enforcement. Provider, actual RmlUi and
-PS5 object checks pass; unlimited historical-message pagination and hardware
-acceptance remain open. See `docs/VALIDATION.md`.
+PS5 object checks pass; it is packaged as `a9a6f582`. The inactivity sleep timer
+is now implemented with persisted half-hour choices, once-only pause and
+controller/phone activity resets, including in-player controls. All twelve
+provider regressions, timer/phone/HUD tests and connected PS5 compilation pass;
+final packaging is pending. Unlimited historical-message pagination and
+hardware acceptance remain open. See `docs/VALIDATION.md`.
 - Date: 2026-10-08 (America/New_York)
 - Status: full PS5 SmartTube parity is the active objective; implementation and console/live-service acceptance remain incomplete. See [current goal](GOAL.md).
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
