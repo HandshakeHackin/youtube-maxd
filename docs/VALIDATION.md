@@ -1,5 +1,29 @@
 # Offline validation record — 0.1.0
 
+## Phone natural-EOF command priority — 2026-10-11
+
+Automatic advance to an already-loaded phone playlist item now checks for queued
+Stop, replacement playlist and disconnect before scheduling. The sequence-free
+launch remains interruptible during resolution and native selection binding.
+Retired attempts cannot bind or acknowledge success; intervening volume/status
+commands retain their original order. Explicit user-requested launches retain
+the existing ordered-command behavior.
+
+Validation:
+- Real receiver/phone adapter ASan/UBSan suite passes, including twelve new
+  combinations: three interrupting commands before EOF, before taking the next
+  launch, during resolution, and after binding but before successful completion.
+  Replacement playback retains its requested position and occurrence. Ordinary
+  volume/query traffic does not cancel automatic advance.
+- The same regression against pre-change `b2d92f0` fails because the unwanted
+  next launch remains pending. This establishes the behavioral regression.
+- Extracted shipping phone failure/wait/input checks pass. PS5 SDK compilation
+  of `tube_phone`, `ProviderHostScreen` and `PlayerScreen` passes (one existing
+  dangling-else warning in the host screen).
+- Ignored evidence: `.deps/eof-interruption-{native,host,sdk,before}.log` and
+  `.deps/eof-interruption.result` (`0`). No console connection, package freeze
+  or physical-phone acceptance is claimed for this batch.
+
 ## AV1 SDR software decode integration — 2026-10-11
 
 EVO's pinned PS5 recipe already builds libdav1d and registers FFmpeg's libdav1d

@@ -441,9 +441,67 @@ static void test_eof_window_refill(void) {
     tube_phone_tick_at(&controls,test_clock);assert(tube_phone_finished_at(-1));assert(!tube_phone_retry_waiting());
 }
 
+
+/* Deliver commands through the real poll/ack path while playback is ending. */
+static void deliver_after_start(const char *commands) {
+    int delivered=0;
+    for(int i=0;i<8 && !delivered;++i) {
+        tube_remote_tick(test_clock+100+i*500);if(!count)continue;
+        cJSON *r=cJSON_Parse(pending[0].body);assert(r);
+        const char *action=cJSON_GetObjectItem(r,"action")->valuestring;
+        int poll=!strcmp(action,"poll");assert(poll || !strcmp(action,"update"));cJSON_Delete(r);
+        if(poll){poll_reply(1,commands);delivered=1;}else reply(0,200,accepted);
+    }
+    assert(delivered && tube_remote_state()==TUBE_REMOTE_LISTENING);
+}
+static void test_eof_interruption(void) {
+    const char *initial="[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLeof\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"}]";
+    const char *interrupts[]={
+        "{\"sequence\":3,\"action\":\"stopVideo\"}",
+        "{\"sequence\":3,\"action\":\"setPlaylist\",\"video_id\":\"12345678901\",\"video_ids\":[\"12345678901\"],\"playlist\":\"PLnew\",\"index\":900,\"window_start\":900,\"position_sec\":0.375,\"ctt\":\"newclick\"}",
+        "{\"sequence\":3,\"action\":\"remoteDisconnected\",\"device_id\":\"phone-one\",\"name\":\"Phone\"}"
+    };
+    for(int action=0;action<3;++action)for(int stage=0;stage<4;++stage) {
+        feed(initial);controls.close_on_disconnect=1;
+        tube_phone_tick_at(&controls,test_clock);started_video(take_start("abcdefghijk",0),"abcdefghijk");
+        tube_phone_tick_at(&controls,test_clock);
+        unsigned next=0;
+        if(stage)assert(tube_phone_finished_at(test_clock));
+        if(stage>=2)next=take_start("zyxwvutsrqp",0);
+        if(stage==3)assert(tube_phone_launch_bind(next,++selection_serial));
+        char commands[1200];snprintf(commands,sizeof commands,
+            "[{\"sequence\":2,\"action\":\"setVolume\",\"volume\":17},%s]",interrupts[action]);
+        deliver_after_start(commands);
+        if(!stage)assert(tube_phone_finished_at(test_clock));
+        assert(!tube_phone_launch_pending());
+        if(next)assert(!tube_phone_launch_current(next) && !tube_phone_launch_bind(next,999) && !tube_phone_launch_finish(next,1));
+        assert(!tube_phone_owns_media() && !tube_phone_finished_at(test_clock));
+        tube_phone_tick_at(&controls,test_clock);assert(engine.volume==17);
+        tube_phone_tick_at(&controls,test_clock);
+        if(action==1) {
+            started_video(take_start("12345678901",.375),"12345678901");
+            tube_phone_tick_at(&controls,test_clock);feedback(900,0,0);
+        } else {
+            assert(!tube_phone_launch_pending());
+            if(action==0)assert(stopped==1 && !active);
+            else assert(app_closes==1);
+        }
+        tube_remote_command c;assert(!tube_remote_take(&c));
+        assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
+        controls.close_on_disconnect=0;
+    }
+    /* Ordinary queued controls must not cancel automatic advancement. */
+    feed(initial);tube_phone_tick_at(&controls,test_clock);
+    started_video(take_start("abcdefghijk",0),"abcdefghijk");tube_phone_tick_at(&controls,test_clock);
+    assert(tube_phone_finished_at(test_clock));unsigned next=take_start("zyxwvutsrqp",0);
+    deliver_after_start("[{\"sequence\":2,\"action\":\"setVolume\",\"volume\":17},{\"sequence\":3,\"action\":\"getNowPlaying\"}]");
+    started_video(next,"zyxwvutsrqp");tube_phone_tick_at(&controls,test_clock);assert(engine.volume==17);
+    tube_phone_tick_at(&controls,test_clock);assert(tube_phone_owns_media());feedback(1,1,0);
+}
+
 int main(void) {
     remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     test_sparse_occurrences(); cleanup();
-    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();test_eof_window_refill();cleanup();
+    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();test_eof_window_refill();test_eof_interruption();cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

@@ -19,7 +19,7 @@ static tube_remote_command pending;
 static unsigned serial, ticket, caption_selection;
 static int phase; /* 1 ready, 2 resolving/starting, 3 caption, 4 unavailable delay */
 static int64_t retry_deadline;
-static int retry_run;
+static int interruptible_launch;
 static double resume;
 static tube_remote_player last;
 static unsigned last_owner;
@@ -29,7 +29,7 @@ static void clear_queue(void) {
     memset(&refill, 0, sizeof refill); refill_deadline = refill_not_before = 0;
     refill_position = refill_duration = 0;
     memset(&current, 0, sizeof current); memset(&proposed, 0, sizeof proposed);
-    memset(&pending, 0, sizeof pending); phase = 0; ticket = 0; retry_deadline = 0; retry_run = 0;
+    memset(&pending, 0, sizeof pending); phase = 0; ticket = 0; retry_deadline = 0; interruptible_launch = 0;
     memset(&last, 0, sizeof last); last_owner = 0;
 }
 void tube_phone_clear(void) {
@@ -50,7 +50,7 @@ static void prune(void);
 int tube_phone_launch_current(unsigned value) { prune(); return value && value == ticket && launch_valid(); }
 static void prune(void) {
     if (refill.owner && (!tube_remote_owner_current(refill.owner) || tube_remote_launch_interrupted(refill.owner,0))) clear_queue();
-    if (retry_run && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) clear_queue();
+    if (interruptible_launch && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) clear_queue();
     if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
 }
 int tube_phone_launch_pending(void) { prune(); return phase == 1; }
@@ -79,7 +79,7 @@ static PhoneQueue playlist(const tube_remote_command *c, const char *playing) {
     return q;
 }
 static void begin(const tube_remote_command *c, const PhoneQueue *q, double position) {
-    pending = *c; proposed = *q; proposed.selection = 0; resume = position; phase = 1; retry_deadline = 0; retry_run = 0;
+    pending = *c; proposed = *q; proposed.selection = 0; resume = position; phase = 1; retry_deadline = 0; interruptible_launch = 0;
     if (!++serial) ++serial;
     ticket = serial;
 }
@@ -108,7 +108,7 @@ int tube_phone_launch_unavailable(unsigned value, const char *video, int64_t now
         return 2;
     }
     ++proposed.cursor; memcpy(proposed.video,proposed.videos[proposed.cursor],12);
-    proposed.selection = 0; resume = 0; phase = 4; retry_run = 1; retry_deadline = now_ms + 5000;
+    proposed.selection = 0; resume = 0; phase = 4; interruptible_launch = 1; retry_deadline = now_ms + 5000;
     if (!++serial) ++serial;
     ticket = serial; /* The failed attempt cannot bind or acknowledge this one. */
     return 1;
@@ -118,7 +118,7 @@ int tube_phone_launch_finish(unsigned value, int success) {
     unsigned owner = pending.owner; int sequence = pending.sequence;
     if (success && !proposed.selection) success = 0;
     if (success) current = proposed;
-    phase = 0; ticket = 0; retry_run = 0;
+    phase = 0; ticket = 0; interruptible_launch = 0;
     if (sequence) return tube_remote_finish(owner, sequence, success);
     return !!success;
 }
@@ -143,7 +143,15 @@ int tube_phone_finished_at(int64_t now_ms) {
     if (phase || !*remote_video || strcmp(last.video, remote_video) || last.selection != remote_selection) return 0;
     if (!current.owner) { remote_video[0] = 0; return 1; }
     tube_remote_command c; memset(&c, 0, sizeof c); c.owner = current.owner;
-    if (!advance(&c, 1)) {
+    if (tube_remote_launch_interrupted(c.owner,0)) {
+        clear_queue(); remote_video[0] = 0; remote_selection = 0;
+        return 1;
+    }
+    if (advance(&c, 1)) {
+        /* Automatic EOF has no command sequence. Keep it interruptible through
+         * resolution and native binding, just like unavailable-video retries. */
+        interruptible_launch = 1;
+    } else {
         PhoneQueue anchor = current;
         double position = last.position, duration = last.duration;
         clear_queue(); remote_video[0] = 0; remote_selection = 0;
@@ -224,7 +232,7 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
                 ++q.cursor; memcpy(q.video,q.videos[q.cursor],12);
                 int64_t delay = refill_not_before;
                 memset(&refill,0,sizeof refill);
-                begin(&c,&q,0); retry_run = 1;
+                begin(&c,&q,0); interruptible_launch = 1;
                 if (now_ms < delay) { phase = 4; retry_deadline = delay; }
                 if (ctl->browser) ctl->browser(ctl->context);
                 return;
