@@ -96,8 +96,10 @@ int tube_backup_validate(const char *data_dir, const char *name);
 
 /* Replace the state file with a validated backup. The state being replaced
  * is first copied byte for byte to a "-safety" backup (named in `safety_out`
- * when given; empty when there was no state file). The replacement is a
- * rename, so a failure leaves the previous state in place. */
+ * when given; empty when there was no state file). That copy takes the first
+ * free name from `now` on, so it never replaces an existing backup, the one
+ * being restored included. The replacement is a rename, so a failure leaves
+ * the previous state in place. */
 int tube_backup_restore(const char *data_dir, const char *name, long long now, char *safety_out, size_t safety_size);
 
 int tube_backup_delete(const char *data_dir, const char *name);

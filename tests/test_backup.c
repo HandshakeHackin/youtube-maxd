@@ -226,6 +226,21 @@ static void test_create_restore(void) {
     /* The safety copy is itself restorable: undo. */
     assert(tube_backup_restore(g_dir, safety, T0 + 120, NULL, 0) == TUBE_BACKUP_OK && holds("youtube.json", STATE_B, sizeof STATE_B - 1));
     assert(holds("backup/youtube-20261011-140500-safety.json", STATE_A, sizeof STATE_A - 1) && entries("backup") == 3);
+    /* A safety copy restored within its own second is not replaced by the copy
+     * of the state it replaces: that one takes the next free second. */
+    assert(tube_backup_restore(g_dir, "youtube-20261011-140500-safety.json", T0 + 120, safety, sizeof safety) == TUBE_BACKUP_OK);
+    assert(!strcmp(safety, "youtube-20261011-140501-safety.json") && holds(backup_leaf(safety), STATE_B, sizeof STATE_B - 1));
+    assert(holds("backup/youtube-20261011-140500-safety.json", STATE_A, sizeof STATE_A - 1) && holds("youtube.json", STATE_A, sizeof STATE_A - 1));
+    put_text("youtube.json", STATE_B);
+    assert(tube_backup_restore(g_dir, "youtube-20261011-140500-safety.json", T0 + 120, safety, sizeof safety) == TUBE_BACKUP_OK);
+    assert(!strcmp(safety, "youtube-20261011-140502-safety.json") && holds(backup_leaf(safety), STATE_B, sizeof STATE_B - 1));
+    assert(holds("backup/youtube-20261011-140500-safety.json", STATE_A, sizeof STATE_A - 1) && entries("backup") == 5);
+    assert(holds("backup/youtube-20261011-140501-safety.json", STATE_B, sizeof STATE_B - 1) && !present("backup/youtube-20261011-140502-safety.json.tmp"));
+    /* A regular backup of the same second is another name and is left alone too. */
+    assert(tube_backup_restore(g_dir, name, T0, safety, sizeof safety) == TUBE_BACKUP_OK && !strcmp(safety, "youtube-20261011-140300-safety.json"));
+    assert(holds(backup_leaf(name), STATE_A, sizeof STATE_A - 1) && entries("backup") == 6);
+    assert(tube_backup_delete(g_dir, safety) == TUBE_BACKUP_OK && tube_backup_delete(g_dir, "youtube-20261011-140501-safety.json") == TUBE_BACKUP_OK);
+    assert(tube_backup_delete(g_dir, "youtube-20261011-140502-safety.json") == TUBE_BACKUP_OK && entries("backup") == 3);
 
     /* A damaged current state does not block recovery and is preserved. */
     put_text("youtube.json", "{\"version\":2,\"reco");

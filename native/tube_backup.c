@@ -275,16 +275,30 @@ int tube_backup_validate(const char *data_dir, const char *name) {
     return result == TUBE_BACKUP_OK ? tube_backup_validate_file(path) : result;
 }
 
+/* Name and path of a safety copy made at `now`. Names carry seconds, and a
+ * copy never replaces an existing one - least of all the backup a restore is
+ * reading - so a taken name gives way to the next free second. */
+static int free_safety_name(const char *data_dir, long long now, char *name, char *path) {
+    enum { SECONDS = 3600 };
+    for (int i = 0; i < SECONDS; i++) {
+        struct stat info;
+        int result = tube_backup_format_name(now + i, 1, name, TUBE_BACKUP_NAME_SIZE);
+        if (result == TUBE_BACKUP_OK) result = join(path, data_dir, TUBE_BACKUP_DIRECTORY, name, TEMPORARY);
+        if (result == TUBE_BACKUP_OK) result = join(path, data_dir, TUBE_BACKUP_DIRECTORY, name, NULL);
+        if (result != TUBE_BACKUP_OK) return result;
+        if (stat(path, &info) != 0) return errno == ENOENT ? TUBE_BACKUP_OK : TUBE_BACKUP_E_IO;
+    }
+    return TUBE_BACKUP_E_IO;
+}
+
 int tube_backup_restore(const char *data_dir, const char *name, long long now, char *safety_out, size_t safety_size) {
     char source[PATH_SIZE], state[PATH_SIZE], directory[PATH_SIZE], safety[PATH_SIZE], safety_name[TUBE_BACKUP_NAME_SIZE];
     if (safety_out && safety_size) safety_out[0] = 0;
     int result = backup_path(source, data_dir, name);
     if (result == TUBE_BACKUP_OK) result = join(state, data_dir, TUBE_BACKUP_STATE_FILE, NULL, TEMPORARY);
     if (result == TUBE_BACKUP_OK) result = join(state, data_dir, TUBE_BACKUP_STATE_FILE, NULL, NULL);
-    if (result == TUBE_BACKUP_OK) result = tube_backup_format_name(now, 1, safety_name, sizeof safety_name);
+    if (result == TUBE_BACKUP_OK) result = free_safety_name(data_dir, now, safety_name, safety);
     if (result == TUBE_BACKUP_OK && safety_out && strlen(safety_name) >= safety_size) result = TUBE_BACKUP_E_ARGUMENT;
-    if (result == TUBE_BACKUP_OK) result = join(safety, data_dir, TUBE_BACKUP_DIRECTORY, safety_name, TEMPORARY);
-    if (result == TUBE_BACKUP_OK) result = join(safety, data_dir, TUBE_BACKUP_DIRECTORY, safety_name, NULL);
     if (result == TUBE_BACKUP_OK) result = tube_backup_validate_file(source);
     if (result == TUBE_BACKUP_OK) result = ensure_directory(data_dir, directory);
     if (result != TUBE_BACKUP_OK) return result;

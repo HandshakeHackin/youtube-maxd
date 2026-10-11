@@ -5020,13 +5020,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_backup_ticket = 0; copy(name, sizeof name, end + 1);
                 if (!restore) rc = tube_backup_delete(evo_data_dir(), name);
                 else {
-                    /* The copy of the replaced state is named by the second: it must not
-                     * take the name of an existing copy, least of all the one being restored. */
-                    long long stamp = now; char taken[TUBE_BACKUP_NAME_SIZE];
-                    for (int i = 0; i < 60 && !tube_backup_format_name(stamp, 1, taken, sizeof taken) &&
-                        tube_backup_validate(evo_data_dir(), taken) != TUBE_BACKUP_E_MISSING; ++i) ++stamp;
                     save(); /* the safety copy holds what is on screen now */
-                    rc = g_store_writable && !g_remote_write_failed ? tube_backup_restore(evo_data_dir(), name, stamp, safety, sizeof safety) : TUBE_BACKUP_E_IO;
+                    rc = g_store_writable && !g_remote_write_failed ? tube_backup_restore(evo_data_dir(), name, now, safety, sizeof safety) : TUBE_BACKUP_E_IO;
                     if (rc == TUBE_BACKUP_OK) {
                         /* The file changed under the provider: read it before anything saves the replaced state over it. */
                         if (init()) { tube_set_error("The restored backup could not be loaded."); cb(0,NULL,0,0,ud); return 1; }
