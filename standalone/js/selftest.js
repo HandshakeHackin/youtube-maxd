@@ -7,6 +7,7 @@ import { catalog } from './core.js';
 import { branding, thumbnails } from './extras.js';
 import { chaptersOf, codecName, dashManifest, hlsVariants, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
 import { Invalid, jobRequest, libraryRequest, resolveRequest } from './schema.js';
+import { cueSegments, evenSegments, sidxSegments } from './segments.js';
 
 const host = globalThis.__host;
 
@@ -110,6 +111,30 @@ export async function selfTest() {
       [1, 1080, 60, 'h264', 'aac', 'https://manifest.googlevideo.com/api/v/video.m3u8']);
     if (!variants[0].master.includes('URI="https://manifest.googlevideo.com/api/a/audio.m3u8"')) return false;
     return !redact('https://rr1---sn-a.googlevideo.com/videoplayback?expire=99&sig=SECRET').includes('SECRET');
+  });
+  await check('segment indexes', () => {
+    // sidx, version 0: timescale 1000, three fragments.
+    const sidx = new Uint8Array(68), data = new DataView(sidx.buffer);
+    data.setUint32(0, 68); sidx.set([0x73, 0x69, 0x64, 0x78], 4); data.setUint32(16, 1000); data.setUint16(30, 3);
+    [[1000, 4000], [2000, 6000], [1500, 5000]].forEach(([size, duration], at) => { data.setUint32(32 + at * 12, size); data.setUint32(36 + at * 12, duration); });
+    const index = sidxSegments(sidx, 741);
+    same(index, { timescale: 1000, segments: [{ start: 809, end: 1808, duration: 4000 }, { start: 1809, end: 3808, duration: 6000 }, { start: 3809, end: 5308, duration: 5000 }] });
+    // Grouping on a grid of the longest fragment: the segment for time t starts at or before t.
+    const uneven = { segments: [2, 2, 2, 10, 3, 3, 3, 3, 9, 1].map((duration, at) => ({ start: at * 100, end: at * 100 + 99, duration })) };
+    const { step, segments } = evenSegments(uneven);
+    same([step, segments.map(segment => segment.start)], [10, [0, 300, 500, 800]]);
+    const starts = []; let time = 0;
+    for (const fragment of uneven.segments) { starts.push([fragment.start, time]); time += fragment.duration; }
+    for (let t = 0; t < time; t += 0.5) {
+      const begins = starts.find(([start]) => start === segments[Math.floor(t / step)].start)[1];
+      if (begins > t || t - begins > 2 * step) throw new Error(`seek to ${t} opens a segment that begins at ${begins}`);
+    }
+    // Matroska: EBML header, Segment with Info (tick 1 ms), and Cues naming two clusters.
+    const head = Uint8Array.of(0x1a, 0x45, 0xdf, 0xa3, 0x80, 0x18, 0x53, 0x80, 0x67, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+      0x15, 0x49, 0xa9, 0x66, 0x87, 0x2a, 0xd7, 0xb1, 0x83, 0x0f, 0x42, 0x40);
+    const point = (ms, position) => [0xbb, 0x8d, 0xb3, 0x82, ms >> 8, ms & 255, 0xb7, 0x87, 0xf7, 0x81, 1, 0xf1, 0x82, position >> 8, position & 255];
+    const cues = Uint8Array.of(0x1c, 0x53, 0xbb, 0x6b, 0x9e, ...point(0, 500), ...point(5000, 9000));
+    same(cueSegments(head, cues, 20000, 12), { timescale: 1000, segments: [{ start: 517, end: 9016, duration: 5000 }, { start: 9017, end: 19999, duration: 7000 }] });
   });
   await check('request models', () => {
     same(libraryRequest({ action: 'search', query: 'x' }).sort, 'top');

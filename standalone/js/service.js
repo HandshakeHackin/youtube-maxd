@@ -53,7 +53,8 @@ async function resolve(id, client) {
   const playback = await createPlayback(source, request, 'http://127.0.0.1:0/media/session', session, 1800);
   const shown = !!host.getenv('TUBE_JS_SHOW_URLS');
   return { ...playback, client: source.client, served: {
-    manifests: Object.fromEntries(Array.from(session.manifests, ([name, text]) => [name, shown ? text : `${text.length} bytes, ${redact(/<BaseURL>([^<]+)/.exec(text)?.[1]?.replaceAll('&amp;', '&') ?? '')}`])),
+    manifests: Object.fromEntries(Array.from(session.manifests, ([name, text]) => [name, typeof text !== 'string' ? 'built on first use' :
+      shown ? text : `${text.length} bytes, ${redact(/<BaseURL>([^<]+)/.exec(text)?.[1]?.replaceAll('&amp;', '&') ?? '')}`])),
     playlists: Object.fromEntries(Array.from(session.hls_manifests, ([name, text]) => [name, shown ? text : `${text.length} bytes`])),
     tracks: Object.fromEntries(Array.from(session.tracks, ([name, track]) => [name, `${track.kind} ${shown ? track.url : redact(track.url)}`]).slice(0, 12)) } };
 }

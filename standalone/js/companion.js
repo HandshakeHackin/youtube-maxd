@@ -36,6 +36,7 @@ export class Companion {
   constructor(settings = config) {
     this.origin = settings.origin; this.token = settings.token;
     this.pairingCode = settings.pairing_code ?? ''; this.pairingDeadline = host.now() + 600000; this.pairAttempts = [];
+    this.ranged = !!settings.ranged_manifest;
     this.sponsor = new Sponsor(settings.sponsorblock, settings.sponsorblock_server);
     this.dearrow = new DeArrow();
     this.catalog = new Catalog(request => libraryExecute({ ...request, profile: 'guest' }, 'playback'), (id, hl) => extractVideo(id, { hl }));
@@ -61,7 +62,7 @@ export class Companion {
     if (this.sessions.size >= 32) throw new ServiceError('busy', 'The companion has too many active playback sessions. Retry shortly.', 503);
     const session = { token: tokenUrlsafe(24), video_id: request.id, deadline: now + SESSION_TTL, profile: request.profile,
       tracks: new Map(), manifests: new Map(), hls_manifests: new Map() };
-    const playback = await createPlayback(source, request, `${this.origin}/media/${session.token}`, session, SESSION_TTL / 1000);
+    const playback = await createPlayback(source, request, `${this.origin}/media/${session.token}`, session, SESSION_TTL / 1000, this.ranged ? mediaFetch : null);
     this.sessions.set(session.token, session);
     return playback;
   }
@@ -70,7 +71,9 @@ export class Companion {
     const text = (body, type) => ({ status: 200, type, headers: [['Cache-Control', 'no-store']], body: method === 'GET' ? body : '' });
     if (session.manifests.has(key) || session.hls_manifests.has(key)) {
       this.touch(session);
-      return session.hls_manifests.has(key) ? text(session.hls_manifests.get(key), 'application/vnd.apple.mpegurl') : text(session.manifests.get(key), 'application/dash+xml');
+      if (session.hls_manifests.has(key)) return text(session.hls_manifests.get(key), 'application/vnd.apple.mpegurl');
+      const manifest = session.manifests.get(key);   // text, or a function that builds it on first use
+      return text(typeof manifest === 'function' ? await manifest() : manifest, 'application/dash+xml');
     }
     const remote = session.tracks.get(key);
     if (!remote) throw new ServiceError('missing_media', 'The playback resource does not exist.', 404);

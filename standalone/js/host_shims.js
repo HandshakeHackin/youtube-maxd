@@ -47,7 +47,9 @@ define('TextDecoder', class TextDecoder {
   get encoding() { return 'utf-8'; }
   decode(data) { return data === undefined ? '' : host.utf8Decode(data); }
 });
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+// The library modules measure text with Node's Buffer.byteLength; nothing else of Buffer is used.
+define('Buffer', { byteLength: value => typeof value === 'string' ? host.utf8Encode(value).byteLength : value.byteLength });
+const alphabet ='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 define('btoa', text => {
   let out = '';
   for (let i = 0; i < text.length; i += 3) {

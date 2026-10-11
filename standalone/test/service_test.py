@@ -438,6 +438,24 @@ def main():
         code, errors = plain.stop()
     same("clean shutdown (defaults)", (code, errors.strip()), (0, ""))
 
+    # Manifests with one byte-range segment per group of fragments, read from the file's index.
+    ranged = Service(binary, "--token", TOKEN, "--ranged-manifest")
+    try:
+        play = ranged.call("POST", "/v1/resolve", {"id": VIDEO, "codec": "avc"})[2]
+        same("ranged resolve keeps the record", (play["choices"][0]["label"], play["choices"][0]["container"]), ("1080p 60 fps H264 / AAC", "dash"))
+        status, headers, manifest = ranged.call("GET", play["choices"][0]["url"], token=None, raw=True)
+        manifest = manifest.decode()
+        escaped = MEDIA.replace("&", "&amp;") + "&amp;itag=299"
+        same("ranged manifest", (status, headers.get("content-type"), manifest.count("<SegmentURL "), manifest.count("<Initialization ")),
+             (200, "application/dash+xml", 6, 2))
+        check("ranged video track", f'<BaseURL>{escaped}</BaseURL><SegmentList timescale="1000" duration="6000">'
+              f'<Initialization sourceURL="{escaped}" range="0-740" /><SegmentURL media="{escaped}" mediaRange="809-1808" />'
+              f'<SegmentURL media="{escaped}" mediaRange="1809-3808" /><SegmentURL media="{escaped}" mediaRange="3809-5308" /></SegmentList>' in manifest, manifest[:900])
+        same("ranged manifest is built once", ranged.call("GET", play["choices"][0]["url"], token=None, raw=True)[2].decode(), manifest)
+    finally:
+        code, errors = ranged.stop()
+    same("clean shutdown (ranged)", (code, errors.strip()), (0, ""))
+
     for failure in failures:
         print("FAIL", failure)
     print(f"service test: {passed} checks passed, {len(failures)} failed")

@@ -562,6 +562,7 @@ static JSValue service_settings(JSContext *ctx, void *opaque) {
   set_string(ctx, config, "sponsorblock_server", service.options.sponsorblock_server);
   set_string(ctx, config, "pairing_code", service.options.pairing_code);
   JS_SetPropertyStr(ctx, config, "sponsorblock", JS_NewBool(ctx, service.options.sponsorblock));
+  JS_SetPropertyStr(ctx, config, "ranged_manifest", JS_NewBool(ctx, service.options.ranged_manifest));
   return config;
 }
 

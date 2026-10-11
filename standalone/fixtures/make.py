@@ -9,6 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 import hashlib
 import json
 from pathlib import Path
+import struct
 
 HERE = Path(__file__).resolve().parent
 CHANNEL = "UC" + "f" * 22
@@ -179,6 +180,11 @@ def main():
     write("live.m3u8", MASTER)
     write("captions.vtt", VTT)
     write("sheet.jpg", bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffd9"))
+    # A segment index (ISO BMFF `sidx`, version 0): three fragments of 4, 6 and 5 seconds.
+    references = [(1000, 4000), (2000, 6000), (1500, 5000)]
+    body = struct.pack(">4sIIIIIHH", b"sidx", 0, 1, 1000, 0, 0, 0, len(references))
+    body += b"".join(struct.pack(">III", size, duration, 0x90000000) for size, duration in references)
+    write("sidx.bin", struct.pack(">I", len(body) + 4) + body)
     write("sponsor.json", [
         {"videoID": "anotherVID1", "segments": [{"category": "sponsor", "actionType": "skip", "segment": [1, 2]}]},
         {"videoID": VIDEO, "segments": [
@@ -200,7 +206,8 @@ def main():
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
             {"body_contains": f'"videoId":"{GONE}"', "file": "player_gone.json"}],
         f"GET manifest.googlevideo.com/api/manifest/hls_variant/id/{LIVE}/file/index.m3u8": {"file": "live.m3u8", "type": "application/vnd.apple.mpegurl"},
-        "GET www.youtube.com/api/timedtext": {"file": "captions.vtt", "type": "text/vtt"},
+        "GET rr1---sn-fixture.googlevideo.com/videoplayback": {"file": "sidx.bin", "status": 206, "type": "video/mp4"},
+        "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},
         f"GET sponsor.ajay.app/api/branding/{prefix(ZOO)}": {"file": "branding.json"},

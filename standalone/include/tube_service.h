@@ -36,6 +36,8 @@ typedef struct tube_service_options {
     const char *sponsorblock_server;    /* optional alternative https origin */
     const char *pairing_code;           /* six digits; NULL = /v1/pair answers "expired" (not needed) */
     int allow_player_script;            /* permit the costly player-script fallback (larger stack and heap) */
+    int ranged_manifest;                /* DASH manifests with one byte-range segment per fragment (fast seeks);
+                                           0 = the companion's one-segment-per-file shape */
 } tube_service_options;
 void tube_service_configure(const tube_service_options *options);
 

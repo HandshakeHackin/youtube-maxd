@@ -36,6 +36,11 @@
   "file": "live.m3u8",
   "type": "application/vnd.apple.mpegurl"
  },
+ "GET rr1---sn-fixture.googlevideo.com/videoplayback": {
+  "file": "sidx.bin",
+  "status": 206,
+  "type": "video/mp4"
+ },
  "GET www.youtube.com/api/timedtext": {
   "file": "captions.vtt",
   "type": "text/vtt"

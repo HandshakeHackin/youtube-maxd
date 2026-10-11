@@ -7,6 +7,7 @@
 // and captions.py. The `Playback` record keeps its fields; what changes is
 // that manifests name YouTube's servers directly instead of relay addresses.
 import { ServiceError, classify, number, resolverError, safeRemote, text } from './errors.js';
+import { fileIndex, rangedManifest } from './segments.js';
 
 const host = globalThis.__host;
 
@@ -239,7 +240,11 @@ export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async 
 
 // Sessions.create. `session` receives what /media will serve: manifests,
 // playlists, redirects for muxed files, caption and storyboard sources.
-export async function createPlayback(source, request, prefix, session, ttl) {
+// `ranged` (a fetch for the media servers) asks for manifests whose segments
+// are byte ranges read from each file's index; see segments.js. They are built
+// when first requested, and fall back to the classic shape if an index cannot
+// be read.
+export async function createPlayback(source, request, prefix, session, ttl, ranged = null) {
   const { info, list, live } = source, details = info.basic_info;
   const duration = number(details.duration);
   session.duration = duration; session.is_live = live;
@@ -277,8 +282,15 @@ export async function createPlayback(source, request, prefix, session, ttl) {
         seen.add(key);
         push({ url: `${prefix}/${name}`, container: text(container(video.mime_type), 16) }, video, vcodec, formatCodec(video) && 'aac', fps);
       } else if (audios.length && duration) {
-        const audio = audios[0], name = `d${choices.length}.mpd`;
-        session.manifests.set(name, dashManifest(duration, video, audio, await address(video), await address(audio)));
+        const audio = audios[0], name = `d${choices.length}.mpd`, videoUrl = await address(video), audioUrl = await address(audio);
+        const classic = dashManifest(duration, video, audio, videoUrl, audioUrl);
+        let built = null;
+        session.manifests.set(name, !ranged ? classic : () => built ??= (async () => {
+          const index = (format, url) => fileIndex(ranged, format, url, duration).catch(() => null);
+          const tracks = [{ kind: 'video', format: video, url: videoUrl, index: await index(video, videoUrl) },
+            { kind: 'audio', format: audio, url: audioUrl, index: await index(audio, audioUrl) }];
+          return tracks.some(track => track.index) ? rangedManifest(duration, tracks) : classic;
+        })());
         seen.add(key);
         push({ url: `${prefix}/${name}`, container: 'dash' }, video, vcodec, formatCodec(audio), fps);
       }
@@ -319,7 +331,8 @@ export async function createPlayback(source, request, prefix, session, ttl) {
   }
   const chapters = chaptersOf(details.short_description, duration).slice(0, 128)
     .map(chapter => ({ title: text(chapter.title, 96), start: number(chapter.start_time), end: number(chapter.end_time) }));
-  const loudness = info.player_config?.audio_config?.loudness_db;
+  // The player configuration names the loudness; some clients only put it on the audio formats.
+  const loudness = info.player_config?.audio_config?.loudness_db ?? selectAudio(list, request)[0]?.loudness_db;
   return { api_version: 1, id: request.id, title: text(details.title), duration_sec: duration, expires_in: ttl, choices, captions, chapters,
     paid_content_text: '', loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
     is_short: false, storyboards };
