@@ -6,6 +6,7 @@ from yt_dlp.extractor.youtube import YoutubeIE
 
 from .models import ServiceError, safe_remote
 from .paid_content import PaidContentMixin
+from .player_metadata import LoudnessMixin
 
 
 def attributes(line):
@@ -64,7 +65,7 @@ class LiveHLSMixin:
         return formats, subtitles
 
 
-class LiveHLSYoutubeIE(PaidContentMixin, LiveHLSMixin, YoutubeIE):
+class LiveHLSYoutubeIE(LoudnessMixin, PaidContentMixin, LiveHLSMixin, YoutubeIE):
     @classmethod
     def ie_key(cls):
         return 'Youtube'

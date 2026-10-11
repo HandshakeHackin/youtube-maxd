@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import secrets
 import time
 import xml.etree.ElementTree as ET
-from .models import Caption, Choice, Playback, ResolveRequest, ServiceError, number, safe_remote, text
+import math
+from .models import Caption, Choice, Playback, ResolveRequest, ServiceError, Storyboard, number, safe_remote, text
 from .media_refresh import Representation, binding, media_headers
 
 DASH = "urn:mpeg:dash:schema:mpd:2011"
@@ -211,10 +212,41 @@ class Sessions:
                 continue
             captions.append(Caption(language=text(lang, 32), name=text(track.get("name") or lang, 64),
                                     url=url, automatic=lang not in (info.get("subtitles") or {})))
+        # Seek-preview sheets are signed image URLs, so each one becomes a relay
+        # capability; `$M` in the returned template is the sheet number.
+        storyboards = []
+        boards = [] if live or duration <= 0 else [f for f in formats if isinstance(f, dict)
+                                                  and f.get("format_note") == "storyboard"]
+        boards.sort(key=lambda f: number(f.get("width")) * number(f.get("height")))  # level 0 is the smallest
+        for fmt in boards[:8]:
+            width, height = int(number(fmt.get("width"))), int(number(fmt.get("height")))
+            columns, rows = int(number(fmt.get("columns"))), int(number(fmt.get("rows")))
+            fragments = fmt.get("fragments")
+            count = round(number(fmt.get("fps")) * duration)
+            if (len(storyboards) >= 4 or not isinstance(fragments, list) or not 1 <= len(fragments) <= 512
+                    or not 1 <= width <= 1024 or not 1 <= height <= 1024 or not 1 <= columns <= 32
+                    or not 1 <= rows <= 32 or count < 1
+                    or math.ceil(count / (columns * rows)) != len(fragments)):
+                continue
+            level = len(storyboards)
+            try:
+                urls = [safe_remote(part["url"]) for part in fragments]
+            except (ServiceError, TypeError, KeyError):
+                continue
+            # Signed sheet addresses need no account cookie.
+            plain = {k: v for k, v in media_headers(headers, fmt).items() if k.lower() != "cookie"}
+            for index, url in enumerate(urls):
+                session.tracks[f"sb{level}-{index}.jpg"] = Remote(url, plain, "image/jpeg")
+            storyboards.append(Storyboard(width=width, height=height, columns=columns, rows=rows, count=count,
+                                          sheets=len(urls), interval_ms=max(1, round(duration * 1000 / count)),
+                                          url=f"{prefix}/sb{level}-$M.jpg"))
         self.sessions[session.token] = session
         chapters = [{"title": text(c.get("title"), 96), "start": number(c.get("start_time")),
                      "end": number(c.get("end_time"))} for c in (info.get("chapters") or [])[:128]]
         from .paid_content import disclosure
+        from .player_metadata import loudness
         return Playback(id=request.id, title=text(info.get("title")), duration_sec=duration,
                         expires_in=self.ttl, choices=choices, captions=captions, chapters=chapters,
-                        paid_content_text=disclosure(info.get("paid_content_text")))
+                        paid_content_text=disclosure(info.get("paid_content_text")),
+                        loudness_db=loudness(info.get("loudness_db")), is_short=info.get("media_type") == "short",
+                        storyboards=storyboards)
