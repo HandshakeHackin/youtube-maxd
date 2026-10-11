@@ -128,6 +128,10 @@ clock while the timeline shows a preview target. Queue EOF processing waits for
 preview/seek ownership to finish. These paths have offline coverage; physical
 PS5 seeking, sound/motion and phone acceptance remain pending.
 
+Seek intervals are saved per profile: 1, 2, 3, 5, 7, 10, 15, 20, 30 or 60 seconds.
+Choose an interval in settings or the in-player options menu. Held seeking scales
+the existing acceleration from that interval; existing profiles default to 10 seconds.
+
 Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;
 this preference is saved independently of EVO's live-TV settings.

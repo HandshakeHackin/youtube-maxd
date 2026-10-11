@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## Per-profile seek intervals — 2026-10-11
+
+The pinned SmartTube AppDialogUtil exposes intervals of 1, 2, 3, 5, 7, 10, 15,
+20, 30 and 60 seconds. These choices now persist per profile in the PS5 settings
+browser and in-player options picker. Missing/legacy preferences retain ten
+seconds; unsupported, corrupt and oversized values cannot become active settings.
+The shipping PlayerScreen uses the controller's interval for both directions.
+Held seek retains EVO's acceleration curve, scaled by the selected interval;
+non-YouTube sources keep their original ten-second base. Existing confirmation,
+pause ownership, duration clamps and live-source restrictions remain in force.
+
+All fifteen provider sanitizer regressions pass, covering the interval choices,
+invalid values, distinct profile values, persistence/reload, legacy/corrupt-row
+fallback and full preference-table behavior. Actual RmlUi chooser navigation
+passes. Shipping controller/FSM tests exercise every interval, both tap directions
+and held acceleration, with other-source fallback. The affected provider,
+PlaybackController, PlayerScreen, AudioTrackPickerScreen and RmlUi sources compile
+with the PS5 SDK (`.deps/seek-interval.result`, exit 0; extended tap extraction in
+`.deps/seek-interval-controller-final.log`). Existing SDK header/UI warnings remain.
+No new full package or console acceptance is claimed.
+
 ## Historical replay continuation paging — 2026-10-11
 
 The stationary replay reader no longer discards dense replay intervals merely

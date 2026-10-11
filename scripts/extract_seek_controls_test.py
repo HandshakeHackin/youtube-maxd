@@ -20,6 +20,7 @@ root, output = map(Path, sys.argv[1:])
 output.mkdir(parents=True, exist_ok=True)
 source = (root / 'core/src/services/PlaybackController.cpp').read_text()
 signatures = ('void PlaybackController::initStateMachine()',
+              'double PlaybackController::getSeekIntervalSeconds() const',
               'bool PlaybackController::isPaused() const',
               'bool PlaybackController::isScrubbing() const',
               'double PlaybackController::getPositionSeconds() const',
@@ -40,6 +41,8 @@ interface = (root / 'core/include/evo/interfaces/IPlaybackController.hpp').read_
 (output / 'enums.inc').write_text(block(interface, 'enum class PlaybackState') + ';\n' +
                                 block(interface, 'enum class PlaybackEvent') + ';\n', encoding='utf-8')
 source = (root / 'core/src/screens/PlayerScreen.cpp').read_text()
+(output / 'taps.inc').write_text(block(source, 'if (pressed & PadButtons::Left) {') +
+                                block(source, 'if (pressed & PadButtons::Right) {'), encoding='utf-8')
 start = source.index('// ProsperoTube seek input')
 end = source.index('// End ProsperoTube seek input', start)
 (output / 'input.inc').write_text(source[start:end], encoding='utf-8')

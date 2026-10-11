@@ -4,6 +4,19 @@
 def apply_seek_controls_overlay(replace, player):
     controller = player + 'core/src/services/PlaybackController.cpp'
     replace(player + 'core/include/evo/interfaces/IPlaybackController.hpp',
+            '    virtual void moveScrub(double deltaSeconds) = 0;',
+            '    virtual void moveScrub(double deltaSeconds) = 0;\n    virtual double getSeekIntervalSeconds() const = 0;')
+    replace(player + 'core/include/evo/services/PlaybackController.hpp',
+            '    void moveScrub(double deltaSeconds) override;',
+            '    void moveScrub(double deltaSeconds) override;\n    double getSeekIntervalSeconds() const override;')
+    replace(controller, 'void PlaybackController::moveScrub(double deltaSeconds) {', '''double PlaybackController::getSeekIntervalSeconds() const {
+    return m_source.provider == "youtube" ? tube_player_seek_seconds() : 10.0;
+}
+
+void PlaybackController::moveScrub(double deltaSeconds) {''')
+    replace(controller, 'moveScrub(static_cast<double>(dir) * speed);',
+            'moveScrub(static_cast<double>(dir) * speed * getSeekIntervalSeconds() / 10.0);')
+    replace(player + 'core/include/evo/interfaces/IPlaybackController.hpp',
             '    virtual double getPositionSeconds() const = 0;',
             '    virtual double getPositionSeconds() const = 0;\n    virtual double getPlaybackPositionSeconds() const = 0;')
     replace(player + 'core/include/evo/services/PlaybackController.hpp',
@@ -117,6 +130,8 @@ void PlaybackController::tickScrubAutoCommit() {''')
     pb_scrub_hold = 0;
     m_playbackFsm.postEvent(PlaybackEvent::CancelScrub);''')
     screen = player + 'core/src/screens/PlayerScreen.cpp'
+    replace(screen, 'playback->moveScrub(-10.0);', 'playback->moveScrub(-playback->getSeekIntervalSeconds());')
+    replace(screen, 'playback->moveScrub(10.0);', 'playback->moveScrub(playback->getSeekIntervalSeconds());')
     replace(screen, '), playback->getPositionSeconds());', '), playback->getPlaybackPositionSeconds());')
     replace(screen, 'if (ended && (tube_phone_finished()',
             'if (ended && !playback->isScrubbing() && !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && (tube_phone_finished()')
@@ -142,10 +157,10 @@ void PlaybackController::tickScrubAutoCommit() {''')
     }
     // End ProsperoTube seek input.''')
     replace(player + 'ui_rml/src/evo_rmlui_provider.cpp', 'id != "settings:player-hide"',
-            'id != "settings:player-hide" && id != "settings:player-seek"')
+            'id != "settings:player-hide" && id != "settings:player-seek" && id != "settings:seek-interval"')
     picker = player + 'core/src/screens/AudioTrackPickerScreen.cpp'
     replace(player + 'core/include/evo/screens/AudioTrackPickerScreen.hpp',
-            'KindCross, KindHide };', 'KindCross, KindHide, KindSeek };')
+            'KindCross, KindHide };', 'KindCross, KindHide, KindSeek, KindSeekInterval };')
     replace(picker, '    // End ProsperoTube chat option rows.', '''    // End ProsperoTube chat option rows.
     const char *seekLabels[] = {"Seeking: regular", "Seeking: confirm while paused", "Seeking: confirm while playing"};
     for (int mode = 0; mode < 3; ++mode) {
@@ -153,8 +168,17 @@ void PlaybackController::tickScrubAutoCommit() {''')
         e.detail = "Cross commits, Circle cancels; retain the previous pause state";
         e.badge = tube_player_seek_mode() == mode ? "SELECTED" : "";
         m_tracks.push_back(std::move(e));
+    }
+    for (int seconds : {1,2,3,5,7,10,15,20,30,60}) {
+        Entry e; e.kind = KindSeekInterval; e.streamIndex = seconds;
+        e.label = "Seek interval: " + std::to_string(seconds) + " seconds";
+        e.detail = "Left / Right step; held seeking accelerates from this interval";
+        e.badge = tube_player_seek_seconds() == seconds ? "SELECTED" : "";
+        m_tracks.push_back(std::move(e));
     }''')
-    replace(picker, '    if (e.kind == KindCross || e.kind == KindHide) {', '''    if (e.kind == KindSeek) {
+    replace(picker, '    if (e.kind == KindCross || e.kind == KindHide) {', '''    if (e.kind == KindSeekInterval) {
+        toast("SEEK",tube_player_set_seek_seconds(e.streamIndex) ? e.label.c_str() : "Unable to save seek interval");
+    } else if (e.kind == KindSeek) {
         toast("SEEK",tube_player_set_seek_mode(e.streamIndex) ? e.label.c_str() : "Unable to save seeking mode");
     } else if (e.kind == KindCross || e.kind == KindHide) {''')
     hui = player + 'ui_kit/src/evo_hui_osd.cpp'

@@ -22,6 +22,8 @@ static void pp_playback_resume(decltype(g_pp_pb)*) { enginePaused=false; ++resum
 static int evo_pb_is_paused() { return player_paused; }
 static int evo_demux_is_seeking() { return seeking; }
 static int tube_player_seek_mode() { return mode; }
+static int interval=10;
+static int tube_player_seek_seconds() { return interval; }
 static void evo_boot_log(const char*,...) {}
 static std::string notice;
 static void toast(const char*, const char *message) { notice=message; }
@@ -48,6 +50,7 @@ struct Application {
 };
 static void tube_player_chat_tick_at(bool active,double pos) { chat_eligible=active; chat_position=pos; }
 struct PlaybackController {
+    double getSeekIntervalSeconds() const;
     StateMachine<PlaybackState,PlaybackEvent> m_playbackFsm{PlaybackState::Stopped,"PlaybackFSM"};
     bool active=true, live=false, accepted=true, m_tubeScrubWasPaused=false;
     int m_tubeScrubMode=0, requests=0, m_scrubHoldDirection=0;
@@ -81,6 +84,10 @@ static double evo_pb_position_s() { return current->physical; }
 #include "scrub.inc"
 struct Screen {
     PlaybackController *playback;
+    bool tap(uint32_t pressed) {
+#include "taps.inc"
+        return false;
+    }
     uint64_t m_lastPlayPauseToggleMs=0;
     bool input(uint32_t pressed,uint32_t held=0,uint32_t released=0) {
 #include "input.inc"
@@ -201,5 +208,20 @@ int main() {
     FILE* file=std::fopen(resume_file,"r"); assert(file); char key[80]; double saved=-1;
     assert(std::fscanf(file,"%79s%lf",key,&saved)==2 && saved==50);
     assert(std::string(key)=="evo://youtube/abcdefghijk"); std::fclose(file); unlink(resume_file);
+    resume_base_offset_seconds=0;
+    for(int step : {1,2,3,5,7,10,15,20,30,60}) {
+        interval=step; mode=2; PlaybackController stepped; reset(stepped,false);
+        stepped.m_durationSeconds=10000;
+        assert(stepped.getSeekIntervalSeconds()==step);
+        Screen taps{&stepped}; assert(taps.tap(PadButtons::Right));
+        assert(stepped.m_scrubTargetSeconds==40+step);
+        assert(taps.tap(PadButtons::Left) && stepped.m_scrubTargetSeconds==40);
+        assert(taps.tap(PadButtons::Right));
+        stepped.updateScrubHold(PadButtons::Right);now+=100;
+        stepped.updateScrubHold(PadButtons::Right);
+        assert(std::abs(stepped.m_scrubTargetSeconds-(40+step+step/10.0))<0.00001);
+        stepped.cancelScrub();
+        stepped.m_source.provider="";assert(stepped.getSeekIntervalSeconds()==10);
+    }
     puts("PASS: shipping scrub/FSM modes, pause/commit/cancel/EOF ownership, actual-clock chat/phone/history and input priority");
 }

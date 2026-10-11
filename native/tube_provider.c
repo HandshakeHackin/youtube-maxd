@@ -156,7 +156,7 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms, seek_mode; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
@@ -338,7 +338,8 @@ static int player_preference(const char *profile, int create) {
     if (!create || !valid_profile(profile) || g_player_preferences_count == PLAYER_PROFILES) return -1;
     int i = g_player_preferences_count++;
     copy(g_player_preferences[i].profile,sizeof g_player_preferences[i].profile,profile);
-    g_player_preferences[i].ok_mode = 0; g_player_preferences[i].hide_ms = 3000; return i;
+    g_player_preferences[i].ok_mode = 0; g_player_preferences[i].hide_ms = 3000;
+    g_player_preferences[i].seek_seconds = 10; return i;
 }
 int tube_player_ok_mode(void) {
     int i = player_preference(g_library_profile,0); return i < 0 ? 0 : g_player_preferences[i].ok_mode;
@@ -363,6 +364,19 @@ int tube_player_set_seek_mode(int mode) {
     if (mode < 0 || mode > 2) return 0;
     int i = player_preference(g_library_profile,1); if (i < 0) return 0;
     g_player_preferences[i].seek_mode = mode; save(); return 1;
+}
+static const int seek_intervals[] = {1,2,3,5,7,10,15,20,30,60};
+static int valid_seek_seconds(int seconds) {
+    for (unsigned i=0;i<sizeof seek_intervals/sizeof *seek_intervals;++i) if (seek_intervals[i]==seconds) return 1;
+    return 0;
+}
+int tube_player_seek_seconds(void) {
+    int i=player_preference(g_library_profile,0); return i<0 ? 10 : g_player_preferences[i].seek_seconds;
+}
+int tube_player_set_seek_seconds(int seconds) {
+    if (!valid_seek_seconds(seconds)) return 0;
+    int i=player_preference(g_library_profile,1); if(i<0)return 0;
+    g_player_preferences[i].seek_seconds=seconds; save(); return 1;
 }
 static void player_preferences_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"player_preferences"), *row;
@@ -390,6 +404,10 @@ static void player_preferences_load(const cJSON *root) {
         double seek_mode = num(row,"seek_mode");
         if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
             g_player_preferences[i].seek_mode = (int)seek_mode;
+        const cJSON *interval=cJSON_GetObjectItemCaseSensitive(row,"seek_seconds");
+        double seconds=num(row,"seek_seconds");
+        if(cJSON_IsNumber(interval) && seconds>=1 && seconds<=60 && floor(seconds)==seconds && valid_seek_seconds((int)seconds))
+            g_player_preferences[i].seek_seconds=(int)seconds;
     }
 }
 
@@ -696,6 +714,7 @@ static void save(void) {
         cJSON_AddNumberToObject(preference,"ok_mode",g_player_preferences[i].ok_mode);
         cJSON_AddNumberToObject(preference,"hide_ms",g_player_preferences[i].hide_ms);
         cJSON_AddNumberToObject(preference,"seek_mode",g_player_preferences[i].seek_mode);
+        cJSON_AddNumberToObject(preference,"seek_seconds",g_player_preferences[i].seek_seconds);
         cJSON_AddItemToArray(player_preferences,preference);
     }
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
@@ -2185,6 +2204,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:seek-interval:",23)) {
+            const char *value=parent+23; char *end=NULL; long seconds=strtol(value,&end,10);
+            if(!*value || *end || seconds<1 || seconds>60 || !tube_player_set_seek_seconds((int)seconds)) {
+                tube_set_error("Select a valid seek interval for this profile."); cb(0,NULL,0,0,ud); return 1;
+            }
+        }
         else if (!strncmp(parent,"settings:player-seek:",21)) {
             const char *value = parent + 21; char *end = NULL; long mode = strtol(value,&end,10);
             if (!*value || *end || mode < 0 || mode > 2 || !tube_player_set_seek_mode((int)mode)) {
@@ -2322,6 +2347,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id,sizeof id,"settings:player-ok:%d",i);
                 folder(&out[n++],id,labels[i],tube_player_ok_mode()==i ? "Selected" : "Cross behavior while controls are hidden; saved for this profile");
             }
+        } else if (!strcmp(parent,"settings:seek-interval")) {
+            for(unsigned i=0;i<sizeof seek_intervals/sizeof *seek_intervals;++i) {
+                int seconds=seek_intervals[i]; char id[64],label[80];
+                snprintf(id,sizeof id,"settings:seek-interval:%d",seconds);
+                snprintf(label,sizeof label,"Seek interval: %d second%s",seconds,seconds==1?"":"s");
+                folder(&out[n++],id,label,tube_player_seek_seconds()==seconds?"Selected":"Saved for this profile");
+            }
         } else if (!strcmp(parent,"settings:player-seek")) {
             const char *labels[] = {"Regular seeking", "Seek with confirmation: pause", "Seek with confirmation: keep playing"};
             for (int mode = 0; mode < 3; ++mode) {
@@ -2377,6 +2409,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++],"settings:player-hide",label,"Choose controls timeout for this profile");
             const char *seek_labels[] = {"regular", "confirm while paused", "confirm while playing"};
             snprintf(label,sizeof label,"Seeking: %s",seek_labels[tube_player_seek_mode()]);
+            char interval_label[80]; snprintf(interval_label,sizeof interval_label,"Seek interval: %d seconds",tube_player_seek_seconds());
+            folder(&out[n++],"settings:seek-interval",interval_label,"Choose the Left / Right seek interval for this profile");
             folder(&out[n++],"settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
             folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
