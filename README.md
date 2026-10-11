@@ -248,7 +248,9 @@ resume position and sends no account report); each starts the video at once, and
 after that playback shows it as a row that Cross starts again. **Open channel**
 and **Open playlist** browse the video's
 channel and the playlist it was listed in. **Share link** shows the video, embed,
-channel and playlist links as text. **Exclude channel from SponsorBlock** toggles
+channel and playlist links as text and as a QR code to scan with a phone; channel
+and playlist folders have the same row in their Touchpad menu. **Video details**
+lists the channel, date, views and likes. **Exclude channel from SponsorBlock** toggles
 the channel in this profile's exclusion list. **Open description** reads the full
 description (L2/R2 scroll) with the channel, publication date and view count.
 **Refresh section** reloads the list the menu was opened from.
@@ -262,9 +264,12 @@ and include channel and playlist folders; without the worker the search falls
 back to videos only. YouTube's "last hour" date and its date and rating orders
 are not available.
 
-Discover adds **Trending** and **Shorts**; Accounts & library adds **Subscribed
-channels** (account order or by name, set in YouTube preferences),
-**Notifications** and **My videos**. On Home cards that carry them, the video
+Discover adds **Trending**, **Shorts** and **Kids**; Accounts & library adds
+**Subscribed channels** (account order, by name, or new content first, set in
+YouTube preferences or with Touchpad on the row), **Notifications** and **My
+videos**. Subscribed channels with new videos are marked **New**; **Mark channel
+as watched** in a channel's Touchpad menu and **Mark all channels as watched**
+clear the mark for the profile on this PS5. On Home cards that carry them, the video
 menu offers **Not interested** and **Don't recommend channel**; each is confirmed,
 sent once, and removes the card from Home.
 
@@ -314,12 +319,35 @@ your library** and its removal; on **YouTube history** it opens **Pause**,
 **Resume** and **Clear watch history**; a Subscriptions card that carries it
 gets **Hide from this list**. All of these are confirmed and sent once.
 
+A companion that lists the newer features adds, each confirmed and sent once:
+**Stream reminder** on upcoming videos, **Playlist order** on an own playlist,
+**Subscription notifications** (subscribe with a level, or change it), **Write a
+comment** and **Reply to comment** in the comments (typed, reviewed, then
+posted), and **Play the first result** in Search options. The video menu also
+offers the playlist the profile used last (**Add to** / **Remove from**).
+**Unlock more subtitles** and **Remember subtitles per channel** are with the
+caption settings; **Show dislikes** (off by default) asks Return YouTube Dislike
+through the companion, which tells that service which videos' details you open.
+
+**Backup and restore** keeps dated copies of the settings and library file in
+`/data/prosperotube/backup` (they include the companion pairing token and never
+leave that folder): create one, restore or delete one after a review screen, and
+choose an automatic backup made at startup (off, daily, weekly or monthly; the
+ten newest are kept). A restore first keeps the replaced state as a safety copy.
+**Import subscriptions** reads a NewPipe, PocketTube or GrayJay export copied to
+`/data/prosperotube/import` (by FTP; at most 1 MiB), shows how many channels the
+companion found in it, and after confirmation adds them to Followed channels
+(512 at most). The last row of YouTube preferences is **About**: version,
+project links and feedback as QR codes, credits and the changes of this version.
+
 **Account settings** has **Separate settings per account** (off on a new
 installation: every profile shares one set of preferences; installations from
 earlier versions keep one set per profile) and an optional password for the
 selected account profile. The password is asked before that profile is selected,
-is typed on the visible PS5 keyboard, and is stored only as a salted hash; it
-does not protect the profile that is already selected when ProsperoTube starts.
+is typed on the visible PS5 keyboard (the keyboard has no masked entry), and is
+stored only as a salted hash. A protected profile that was selected when
+ProsperoTube closed is asked for again at the next start: browsing begins as
+Guest and the startup folder is the password prompt.
 None of this has run on a PS5 or against a live account yet.
 
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
