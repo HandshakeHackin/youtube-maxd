@@ -1,5 +1,17 @@
 # Offline validation record — 0.1.0
 
+## Caption preservation across decoder reopens — 2026-10-10
+
+The connected startup bridge reloads the provider-scoped second-language sidecar
+after decoder teardown. A failed reload is reported while retaining primary cues.
+Speed reopens now preserve primary delay, primary timing ratio and secondary delay
+alongside the existing source, tracks, pause and position. The extracted shipping
+speed-reopen test and actual subtitle application/startup bridge pass; the latter
+now covers 98 checks (`.deps/secondary-reopen-{speed,engine}.log`). The provider
+staging tests and connected PS5 provider/PlaybackController compilation also pass
+(`.deps/secondary-reopen.result`, exit 0). Full packaging and PS5 reopen
+acceptance of this follow-up remain open.
+
 ## Independent secondary YouTube captions — 2026-10-10
 
 The YouTube subtitle picker now uses Square to choose or clear a second language.
@@ -23,7 +35,10 @@ case also passed directly). Full packaging and PS5 secondary-caption visual/inpu
 acceptance remain open.
 The final connected PS5 Application/provider/picker/subtitle objects, all 11
 provider regressions, caption-identity tests and shipping controller/checked-exit
-tests passed (`.deps/secondary-final.result`, exit 0).
+tests passed (`.deps/secondary-final.result`, exit 0). Candidate `225b5858` completed
+the full PS5 build and immutable freeze: 216 objects, 126 files, build
+`prosperotube-225b5858_1011-0221`, eboot SHA-256 prefix `88be5396c1b84f33`
+(`.deps/secondary-{ps5-build,freeze}.*`, exit 0).
 
 ## Whole-app close on phone disconnect — 2026-10-10
 

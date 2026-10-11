@@ -5,13 +5,14 @@
 #include "tube_subtitles.h"
 #include "tube_caption_apply.h"
 static int switch_state, switch_applied, switch_secondary;
-static char switch_media[512], active_media[512];
+static char switch_media[512], active_media[512], secondary_media[512];
 int tube_caption_switch_status(const char **media) { *media = switch_media; return switch_state; }
 void tube_caption_switch_finish(int applied) { switch_applied = applied; switch_state = -1; if (applied && !switch_secondary) strcpy(active_media,switch_media); }
 const char *tube_caption_media_path(void) { return active_media; }
 int tube_caption_switch_secondary(void) { return switch_secondary; }
 const char *tube_caption_switch_language(void) { return "fr"; }
 const char *tube_caption_secondary_language(void) { return ""; }
+const char *tube_caption_secondary_media_path(void) { return secondary_media; }
 
 int main(int argc, char **argv) {
     if (evo_dualsub_main(argc, argv)) return 1;
@@ -82,6 +83,15 @@ int main(int argc, char **argv) {
     switch_secondary=0;strcpy(switch_media,good_media);switch_state=1;
     CHECK(tube_caption_apply_ready()==1 && prospero_secondary_subtitle_active(),"primary application retains separate second bank");
     CHECK(audio_clock_seconds==42.125 && player_paused==1,"dual caption operations preserve clock and pause");
+    strcpy(secondary_media,media);
+    prospero_embedded_subtitle_close();
+    CHECK(!prospero_secondary_subtitle_active(),"decoder reopen retires old secondary bank");
+    CHECK(tube_subtitle_reopen(prospero_subtitle_load_for_media(good_media))==1,"startup bridge reloads both selected languages");
+    CHECK(prospero_secondary_subtitle_text_at(2,second_text,sizeof second_text) && !strcmp(second_text,"SRT one"),"secondary returns after decoder reopen");
+    cue=prospero_subtitle_active_cue(2);CHECK(cue && !strcmp(cue->text,"Bonjour"),"primary returns after decoder reopen");
+    strcpy(secondary_media,"/missing/second.mp4");
+    CHECK(tube_subtitle_reopen(prospero_subtitle_load_for_media(good_media))==-1,"failed secondary restoration is reported");
+    cue=prospero_subtitle_active_cue(2);CHECK(cue && !strcmp(cue->text,"Bonjour"),"failed secondary restoration retains primary cues");
     prospero_embedded_subtitle_close();avformat_free_context(play_fmt);play_fmt=NULL;
     remove(sidecar); remove(next_sidecar);
     prospero_subtitle_clear();

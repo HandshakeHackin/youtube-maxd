@@ -2492,6 +2492,7 @@ int tube_caption_secondary_begin(const char *language) { return caption_switch_b
 int tube_caption_switch_secondary(void) { return g_caption_switch.phase && g_caption_switch.secondary; }
 const char *tube_caption_switch_language(void) { return g_caption_switch.phase ? g_caption_switch.language : ""; }
 const char *tube_caption_secondary_language(void) { return caption_scope() ? g_secondary_caption_language : ""; }
+const char *tube_caption_secondary_media_path(void) { return caption_scope() ? g_secondary_caption_path : ""; }
 void tube_caption_secondary_clear(void) {
     if (g_caption_switch.secondary) tube_caption_switch_cancel();
     g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0; ++g_caption_revision;

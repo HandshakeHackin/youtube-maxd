@@ -32,6 +32,7 @@ int tube_caption_secondary_begin(const char *language);
 int tube_caption_switch_secondary(void);
 const char *tube_caption_switch_language(void);
 const char *tube_caption_secondary_language(void);
+const char *tube_caption_secondary_media_path(void);
 void tube_caption_secondary_clear(void);
 /* 0=pending, 1=ready, -1=failed/retired. Only apply ready files on the main thread. */
 int tube_caption_switch_status(const char **media_path);

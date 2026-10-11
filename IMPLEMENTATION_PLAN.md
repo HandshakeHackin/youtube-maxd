@@ -7,8 +7,11 @@
 
 Latest caption batch: independent secondary YouTube captions are connected to
 the native picker through Square, separate staged sidecars and an independently
-parsed/rendered EVO buffer. Engine and application tests pass; full packaging and
-PS5 visual/input acceptance remain open. See `docs/VALIDATION.md`.
+parsed/rendered EVO buffer. Candidate `225b5858` built/froze (216 objects, 126
+files); PS5 visual/input acceptance remains open. The follow-up reloads selected
+secondary cues after decoder teardown and preserves both delays and the primary
+timing ratio through speed reopens; extracted controller and actual engine tests
+pass. See `docs/VALIDATION.md`.
 
 Earlier implementation batch: availability-gated native voice capture, local ASR
 and provider search are connected and packaged (`0b06bc66`, 216 objects, 126

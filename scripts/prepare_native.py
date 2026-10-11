@@ -151,7 +151,7 @@ def main():
     path = player + "core/src/services/PlaybackController.cpp"
     replace(path, '#include "evo_provider.h"', '#include "evo_provider.h"\n#include "tube_provider.h"\n#include "tube_subtitles.h"')
     replace(path, "    prospero_subtitle_load_for_media(filePath.c_str());", "    const int tube_cues = prospero_subtitle_load_for_media(m_source.provider == \"youtube\" && *tube_caption_media_path()\n        ? tube_caption_media_path() : filePath.c_str());")
-    replace(path, "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file", "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file\n    if (m_source.provider == \"youtube\") tube_subtitle_activate(tube_cues);")
+    replace(path, "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file", "    prospero_secondary_subtitle_open(play_fmt);   // #110: only if one was chosen for this file\n    if (m_source.provider == \"youtube\" && tube_subtitle_reopen(tube_cues) < 0) toast(\"SECONDARY CAPTIONS\", \"Could not restore this language\");")
     replace(path, "void PlaybackController::jumpChapter(int direction) {", "void PlaybackController::jumpChapter(int direction) {\n    if (m_source.provider == \"youtube\") {\n        double target = tube_chapter_target(getPositionSeconds(), direction);\n        if (target >= 0) { seekTo(clampScrubTarget(target)); return; }\n    }")
     path = player + "core/src/screens/PlayerScreen.cpp"
     replace(path, '#include "evo/screens/PlayerScreen.hpp"', '#include "evo/screens/PlayerScreen.hpp"\n#include "tube_provider.h"')

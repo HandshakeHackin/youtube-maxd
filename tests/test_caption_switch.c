@@ -60,6 +60,7 @@ int main(void) {
     reply(0,1,200,cue); assert(tube_caption_switch_status(&media)==1);
     assert(strstr(media,"caption-secondary-a.mp4")); tube_caption_switch_finish(1);
     assert(!strcmp(tube_caption_secondary_language(),"fr") && !strcmp(tube_phone_caption_language(),"en"));
+    assert(strstr(tube_caption_secondary_media_path(),"caption-secondary-a.mp4"));
     assert(tube_caption_secondary_begin("de")==2); reply(0,1,200,cue);
     assert(tube_caption_switch_status(&media)==1 && strstr(media,"caption-secondary-b.mp4"));
     tube_caption_switch_finish(0); assert(!strcmp(tube_caption_secondary_language(),"fr"));

@@ -10,6 +10,8 @@ static struct { bool seek_discarding; } g_pp_pb;
 static int saved_rate=100, engine_rate=100, audio_stream_index=3;
 static int prospero_subtitle_enabled=1, prospero_subtitle_use_external=0;
 static int prospero_embedded_subtitle_stream_index=4, prospero_subtitle_requested_stream=-2;
+static int prospero_subtitle_delay_ms=450, prospero_secondary_delay_ms=-300;
+static double prospero_subtitle_time_scale=1.25;
 static int evo_pb_is_complete() { return complete; }
 static int evo_demux_is_seeking() { return seeking; }
 static double evo_audio_rate() { return engine_rate/100.0; }
@@ -58,6 +60,7 @@ struct PlaybackController {
         m_source={};m_currentFilePath.clear();paused=false;
         prospero_subtitle_enabled=0;prospero_subtitle_use_external=0;
         prospero_embedded_subtitle_stream_index=-1;
+        prospero_subtitle_delay_ms=prospero_secondary_delay_ms=0;prospero_subtitle_time_scale=1;
         if(open_ok) { m_source=source;m_currentFilePath=source.url;engine_rate=m_tubeRequestedSpeed; }
         return open_ok;
     }
@@ -74,6 +77,7 @@ static void reset() {
     provider_stops=0;
     prospero_subtitle_enabled=1;prospero_subtitle_use_external=0;
     prospero_embedded_subtitle_stream_index=4;prospero_subtitle_requested_stream=-2;
+    prospero_subtitle_delay_ms=450;prospero_secondary_delay_ms=-300;prospero_subtitle_time_scale=1.25;
 }
 int main() {
     PlaybackController chat;
@@ -90,6 +94,7 @@ int main() {
         assert(c.observed_audio==3 && c.observed_sub==(external?-2:4));
         assert(c.paused==paused && c.pauses==(paused?1:0));
         assert(prospero_subtitle_enabled==1 && prospero_subtitle_use_external==external);
+        assert(prospero_subtitle_delay_ms==450 && prospero_secondary_delay_ms==-300 && prospero_subtitle_time_scale==1.25);
         if(!external) assert(prospero_embedded_subtitle_stream_index==4);
         assert(saved_rate==125 && c.playbackSpeedPercent()==125);
         assert(provider_stops==0);

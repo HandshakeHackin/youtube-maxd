@@ -54,6 +54,9 @@ bool PlaybackController::changePlaybackSpeed(int percent) {
     const int savedSubEnabled = prospero_subtitle_enabled;
     const int savedSubUseExt = prospero_subtitle_use_external;
     const int savedSubStream = prospero_embedded_subtitle_stream_index;
+    const int savedSubDelay = prospero_subtitle_delay_ms;
+    const double savedSubScale = prospero_subtitle_time_scale;
+    const int savedSecondaryDelay = prospero_secondary_delay_ms;
     m_requestedAudioStream = audio_stream_index;
     if (!savedSubUseExt && savedSubStream >= 0) prospero_subtitle_requested_stream = savedSubStream;
     m_tubeRequestedSpeed = percent;
@@ -73,6 +76,9 @@ bool PlaybackController::changePlaybackSpeed(int percent) {
 
     prospero_subtitle_enabled = savedSubEnabled;
     prospero_subtitle_use_external = savedSubUseExt;
+    prospero_subtitle_delay_ms = savedSubDelay;
+    prospero_subtitle_time_scale = savedSubScale;
+    prospero_secondary_delay_ms = savedSecondaryDelay;
     if (!savedSubUseExt && savedSubStream >= 0) prospero_embedded_subtitle_stream_index = savedSubStream;
     if (wasPaused) setPaused(true);
     tube_remember_playback_speed(savedSource.item_id.c_str(), percent);
