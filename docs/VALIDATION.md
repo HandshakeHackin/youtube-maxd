@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Channel unavailable-tail completion — 2026-10-11
+
+Directed channel scans now distinguish proven exhaustion from an unavailable
+target. If every remaining slot is unavailable/upcoming, the worker returns
+the finite size and skipped count with the original video/index anchor. Native
+validation checks that anchor before accepting the exhaustion result, then
+continuous mode can request next metadata. A stale anchor cannot trigger that
+fallback. Reverse exhaustion stops at the beginning of the channel group.
+
+The rebuilt worker passes 85 tests; native context, playlist-window and next
+metadata suites pass, including actual EOF dispatch and stale-anchor rejection.
+The PS5 provider object compiles with the existing SDK math-header warnings.
+These are offline fixtures; console/live-feed acceptance remains outstanding.
+
 ## Anchored channel navigation — 2026-10-11
 
 Dedicated channel-window requests now fetch the Videos feed using the selected

@@ -49,3 +49,16 @@ test('empty continuation loops terminate and finite one-video groups report thei
   const result=await channelWindow(client([{id}]),{...input,index:0},normalize,Failure);
   assert.deepEqual(result.video_indices,[0]);assert.equal(result.playlist_size,1);
 });
+test('unavailable-only channel tails prove exhaustion while retaining the original anchor',async()=>{
+  for(const direction of [-1,1]) {
+    const rows=Array.from({length:50},()=>({}));rows[25]={id};
+    const target=25+direction;
+    const result=await channelWindow(client(rows),{...input,target,direction},normalize,Failure);
+    assert.equal(result.unavailable_only,true);assert.equal(result.exhausted,true);
+    assert.equal(result.anchor_video_id,id);assert.equal(result.anchor_index,25);
+    assert.equal(result.requested_index,target);assert.equal(result.playlist_size,50);
+    assert.equal(result.skipped_unavailable,direction>0?24:25);
+    rows[25]={id:'12345678901'};
+    await assert.rejects(channelWindow(client(rows),{...input,target,direction},normalize,Failure),{code:'channel_changed'});
+  }
+});

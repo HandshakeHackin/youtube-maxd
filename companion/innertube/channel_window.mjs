@@ -2,7 +2,8 @@
 export async function channelWindow(client,input,normalize,ErrorType) {
   const index=n=>Number.isInteger(n)&&n>=0&&n<=100000;
   const target=input.target ?? input.index, direction=input.direction ?? 0;
-  if(!/^UC[A-Za-z0-9_-]{22}$/.test(input.channel ?? '') || !/^[A-Za-z0-9_-]{11}$/.test(input.id ?? '') ||
+  if(typeof input.channel!=='string' || typeof input.id!=='string' ||
+      !/^UC[A-Za-z0-9_-]{22}$/.test(input.channel) || !/^[A-Za-z0-9_-]{11}$/.test(input.id) ||
       !index(input.index) || !index(target) || ![-1,0,1].includes(direction) || input.playlist)
     throw new ErrorType('invalid_request','Channel navigation requires a channel and anchored video occurrence.');
   let feed=await (await client.getChannel(input.channel)).getVideos();
@@ -35,6 +36,12 @@ export async function channelWindow(client,input,normalize,ErrorType) {
     feed=await feed.getContinuation();
   }
   if(!anchor)throw new ErrorType('channel_changed','The selected channel position has changed. Reload the channel.',409);
+  if(!selected && direction && ended && offset<=100001 && target<offset) {
+    const skipped=direction>0?offset-target:target+1;
+    if(skipped<=4096)return {api_version:1,playlist:'channel:'+input.channel,
+      anchor_video_id:input.id,anchor_index:input.index,unavailable_only:true,
+      requested_index:target,skipped_unavailable:skipped,playlist_size:offset,exhausted:true};
+  }
   if(!selected)throw new ErrorType('channel_window_unavailable','No playable video was found at the requested channel position.',404);
   const rows=[...previous,...(selected.index===target?[selected]:[]),...following]
     .filter((row,i,all)=>all.findIndex(other=>other.index===row.index)===i);

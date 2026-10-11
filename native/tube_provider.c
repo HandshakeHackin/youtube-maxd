@@ -1385,7 +1385,9 @@ static void playlist_window_result(Request *r,const cJSON *root) {
         int next=requested+g_playlist_window.direction*skipped;
         int end=next==-1 || next==size;
         int valid=r->intent==g_playlist_window.serial && playlist_window_current() &&
-            !valid_channel_group(g_playlist_window.context.playlist) &&
+            (!valid_channel_group(g_playlist_window.context.playlist) ||
+                (!strcmp(str(root,"anchor_video_id"),g_playlist_window.id) &&
+                 playlist_index(cJSON_GetObjectItemCaseSensitive(root,"anchor_index"))==g_playlist_window.context.index)) &&
             g_playlist_window.lookup && g_playlist_window.direction && num(root,"api_version")==1 &&
             !strcmp(str(root,"playlist"),g_playlist_window.context.playlist) &&
             strncmp(g_playlist_window.context.playlist,"RD",2) &&

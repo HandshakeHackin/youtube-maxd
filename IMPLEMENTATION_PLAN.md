@@ -7,6 +7,16 @@ Console `192.168.4.40` is shared with another agent. Once the final candidate is
 ready, inspect the shared lock and running titles before testing, and leave a
 busy console untouched; earlier availability is not a continuing reservation.
 
+Current offline playback batch: playlist and channel occurrence context survives
+selection and recovery. Scoped windows drive forward/reverse completion and
+indexed traversal; channel windows verify the original source video and position.
+Finite playlist/Mix ends and confirmed channel exhaustion use next metadata where
+the playback mode permits it. Seven modes, explicit-queue policy and one-shot
+completion actions are implemented. Manual next/previous controls, broader
+SmartTube group/suggestion semantics and hardware acceptance remain open.
+See the latest entries in `docs/VALIDATION.md`; these changes are newer than the
+last fully frozen candidate.
+
 Latest accepted caption package: `879b1281` rendered French and English together
 on PS5, retained them across a paused 1.25x decoder reopen, and cleared French
 independently. Exact release and original state/sidecar restoration passed.

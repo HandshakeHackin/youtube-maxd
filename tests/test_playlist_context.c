@@ -100,6 +100,22 @@ int main(void) {
     assert(pending_count==1 && strstr(pending[0].body,"playback_next") && !strstr(pending[0].body,"\"playlist\""));
     poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"video_id\":\"abcdefghijk\",\"next_video_id\":null}}");
     assert(!tube_finish_drained_and_next(100) && !tube_take_next(&item));
+    for(int stale=0;stale<2;++stale) {
+        p->stream_chosen("abcdefghijk",&choice);
+        assert(!tube_finish_drained_and_next(100));
+        poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":10,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":10,\"window_start\":10,\"video_ids\":[\"abcdefghijk\"],\"video_indices\":[10],\"playlist_size\":13}}");
+        assert(!tube_finish_drained_and_next(100));
+        assert(pending_count==1 && strstr(pending[0].body,"\"target\":11"));
+        char response[600];
+        snprintf(response,sizeof response,"{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":%d,\"unavailable_only\":true,\"requested_index\":11,\"skipped_unavailable\":2,\"playlist_size\":13,\"exhausted\":true}}",stale?9:10);
+        poll_job(response);
+        assert(!tube_finish_drained_and_next(100));
+        if(!stale) {
+            assert(pending_count==1 && strstr(pending[0].body,"playback_next"));
+            poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"video_id\":\"abcdefghijk\",\"next_video_id\":null}}");
+        } else assert(!pending_count && tube_playlist_window_status(NULL)==-1);
+        assert(!tube_take_next(&item));
+    }
     p->list_catalog("history",0,items_cb,NULL);
     for(int i=0;i<last_count;++i) assert(!last_items[i].playback_scope);
     p->shutdown(); assert(!p->init());

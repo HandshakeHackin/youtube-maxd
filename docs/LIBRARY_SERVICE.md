@@ -661,6 +661,9 @@ video at its source position before returning a target. Changed anchors fail
 with `channel_changed`; they are never silently moved to another occurrence.
 Forward/backward requests can skip unavailable or upcoming slots within 4095
 positions; exact requests require the requested position to be playable.
+When a directed scan proves that all remaining slots are unavailable, it returns
+an anchored `unavailable_only` exhaustion result instead of a missing-video
+error. Native continuous playback can then use next-video metadata at the end.
 
 The response uses the existing bounded window format (at most 128 video IDs
 and explicit source indices), an internal `channel:UC…` group key, and mandatory
