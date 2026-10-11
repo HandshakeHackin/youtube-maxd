@@ -61,7 +61,8 @@ regressions passed (`.deps/phone-disconnect-native-regression.*`, exit 0).
 Candidate `0b02a137` built/froze successfully: 126 files, build
 `prosperotube-0b02a137_1010-2349`, eboot prefix `94333ca3a1e86586`
 (`.deps/phone-disconnect-{ps5-build,freeze}.*`, exit 0). Runtime acceptance remains
-pending; neither corrected candidate has been installed or launched.
+pending at that offline stage; neither corrected candidate had yet been installed
+or launched. Subsequent `0b02a137` fixture evidence is recorded above.
 
 ## Phone player and ephemeral queue adapter — 2026-10-10
 
