@@ -31,6 +31,11 @@ static void channels(const char *names,int more) {
     snprintf(body+used,sizeof body-(size_t)used,"],\"has_more\":%s,\"cursor\":\"%s\"}}",more?"true":"false",more==1?"next-page":more?"bad cursor!":"");
     poll_job(body);
 }
+/* The feature list of a companion without new-content marks. */
+static void features(void) {
+    assert(pending_count==1 && !strcmp(pending[0].method,"GET") && strstr(pending[0].url,"/v1/health"));
+    reply(0,1,200,"{\"api_version\":1,\"features\":[\"search\",\"library\"]}");
+}
 static const char *videos="{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Real title\",\"subtitle\":\"Real channel\","
     "\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"},{\"id\":\"section:trending:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"title\":\"Shelf\",\"is_folder\":true}],\"has_more\":true,\"cursor\":\"next-page\"}}";
 static const char *none="{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}";
@@ -65,7 +70,8 @@ int main(void) {
     assert(!strcmp(field("action"),"topics") && !strcmp(field("section"),"my_videos") && !strcmp(field("profile"),"fixture"));
     poll_job(videos);assert(last_ok && last_count==2 && !strcmp(last_items[0].title,"Real title"));
     /* Subscribed channels, account order: channel folders, one companion page at a time. */
-    p->list_catalog("library:channels",0,items_cb,NULL);assert(!strcmp(field("action"),"channels") && !strcmp(field("profile"),"fixture"));
+    p->list_catalog("library:channels",0,items_cb,NULL);features(); /* the list asks once what the companion offers */
+    assert(!strcmp(field("action"),"channels") && !strcmp(field("profile"),"fixture") && !strcmp(field("new_content"),"<absent>"));
     channels("zAbz",1);
     assert(last_ok && last_count==3 && last_more && last_items[0].is_folder && !strcmp(last_items[0].title,"z channel"));
     assert(!strcmp(last_items[0].id,"channel:UCz000000000000000000000") && !strcmp(last_items[0].subtitle,"1 subscribers"));
@@ -76,7 +82,8 @@ int main(void) {
     /* By name: the whole list is read first, then sorted and paged from memory. */
     assert(saved_sort("fixture")==0);
     p->list_catalog("settings",1,items_cb,NULL);assert(find("Subscribed channels: account order")>=0 && !strcmp(row,"settings:channel-sort"));
-    show("settings:channel-sort");assert(saved_sort("fixture")==1 && saved_sort("guest")==0);
+    show("settings:channel-sort");assert(last_count==3 && !strcmp(last_items[0].subtitle,"Selected") && saved_sort("fixture")==0);
+    show("settings:channel-sort:1");assert(!strcmp(last_items[1].subtitle,"Selected") && saved_sort("fixture")==1 && saved_sort("guest")==0);
     show("library");assert(find("Subscribed channels")>=0 && !strcmp(last_items[find("Subscribed channels")].subtitle,"Channels you subscribe to, by name"));
     item_calls=0;p->list_catalog("library:channels",0,items_cb,NULL);assert(!strcmp(field("action"),"channels"));
     channels("zAbz",1);assert(!item_calls && pending_count==1 && !strcmp(field("action"),"continue") && !strcmp(field("cursor"),"next-page"));
@@ -116,7 +123,7 @@ int main(void) {
         else assert(!strcmp(last_items[i].title,"Someone is live") && !*last_items[i].subtitle);
     }
     /* The new sections can be the startup section of a profile. */
-    show("settings:boot-section");assert(last_count==22);
+    show("settings:boot-section");assert(last_count==23);
     assert(find("Trending")==17 && find("Shorts")==18 && find("Subscribed channels")==19 && find("Notifications")==20 && find("My videos")==21);
     show("settings:boot-section:19");assert(!strcmp(tube_boot_section(),"library:channels") && !strcmp(tube_boot_section_title(),"Subscribed channels"));
     p->shutdown();assert(!p->init());
@@ -126,7 +133,7 @@ int main(void) {
     p->shutdown();cJSON *store=read_store(),*entry;
     cJSON_ArrayForEach(entry,cJSON_GetObjectItem(store,"profile_settings"))cJSON_ReplaceItemInObject(entry,"channel_sort",cJSON_CreateNumber(7));
     write_store(store);cJSON_Delete(store);assert(!p->init());show("library:profile:fixture");
-    p->list_catalog("library:channels",0,items_cb,NULL);channels("ba",0);assert(last_count==2 && !strcmp(last_items[0].title,"b channel"));
+    p->list_catalog("library:channels",0,items_cb,NULL);features();channels("ba",0);assert(last_count==2 && !strcmp(last_items[0].title,"b channel"));
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
     puts("PASS: Trending, Shorts and My videos sections, subscribed channels in account and name order, notifications, guest notices and startup choices");
 }
