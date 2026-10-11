@@ -81,16 +81,24 @@ int main(void) {
     assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p); tube_recovery_finish();
     assert(tube_playback_playlist_context(list,sizeof list,&index) && index==9);
     assert(!strcmp(list,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
-    for(int reverse=0;reverse<2;++reverse) {
-        assert(tube_set_playback_mode(reverse?TUBE_MODE_REVERSE:TUBE_MODE_ALL));
+    for(int mode=0;mode<3;++mode) {
+        int reverse=mode==1;
+        assert(tube_set_playback_mode(mode==2?TUBE_MODE_SHUFFLE:reverse?TUBE_MODE_REVERSE:TUBE_MODE_ALL));
         p->stream_chosen("abcdefghijk",&choice);
         assert(!tube_finish_drained_and_next(100) && tube_playlist_eof_pending());
         assert(pending_count==1 && strstr(pending[0].body,"channel_window"));
-        poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":9,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":9,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\",\"abcdefghijk\",\"cdefghijklm\"],\"video_indices\":[8,9,10],\"playlist_size\":11}}");
+        poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"playlist\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\",\"video_id\":\"abcdefghijk\",\"index\":9,\"anchor_video_id\":\"abcdefghijk\",\"anchor_index\":9,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\",\"abcdefghijk\",\"cdefghijklm\"],\"video_indices\":[8,9,10],\"playlist_size\":120}}");
         assert(tube_finish_drained_and_next(100) && tube_take_next(&item));
         assert(item.playback_index==(reverse?8:10) && item.playback_scope==scope);
         assert(!strcmp(item.playback_playlist,"channel:UCaaaaaaaaaaaaaaaaaaaaaa"));
     }
+    assert(tube_set_playback_mode(TUBE_MODE_LIST));p->stream_chosen("abcdefghijk",&choice);
+    assert(!tube_finish_drained_and_next(100) && !pending_count);
+    assert(tube_take_completion_action()==TUBE_COMPLETION_PAUSE);
+    assert(tube_toggle_queue("cdefghijklm")==1);p->stream_chosen("abcdefghijk",&choice);
+    assert(tube_finish_drained_and_next(100) && tube_take_next(&item));
+    assert(!strcmp(item.id,"cdefghijklm") && !pending_count);
+    assert(tube_toggle_queue("cdefghijklm")==0);
     assert(tube_set_playback_mode(TUBE_MODE_ALL));
     assert(tube_select_playlist_context("abcdefghijk","channel:UCaaaaaaaaaaaaaaaaaaaaaa",10,scope));
     assert(!p->resolve("abcdefghijk",selected,NULL)); finish(p);

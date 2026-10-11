@@ -3662,7 +3662,7 @@ static int playlist_eof_advance(void) {
     }
     if (state != 1) return 0;
     const tube_playlist_window_t *window=&g_playlist_window.value;
-    if(!lookup && mode==TUBE_MODE_SHUFFLE && !g_playlist_shuffle_attempted) {
+    if(!lookup && mode==TUBE_MODE_SHUFFLE && !g_playlist_shuffle_attempted && valid_playlist(g_active_playlist.playlist)) {
         g_playlist_shuffle_attempted=1;
         int target=playlist_random_index(g_active_playlist.index,window->playlist_size);
         if(target>=0) {
@@ -3774,6 +3774,7 @@ static int finish_and_next(int playlist) {
         return 0;
     }
     if (queue_next()) return 1;
+    if(g_playback_mode==TUBE_MODE_LIST && valid_channel_group(g_active_playlist.playlist))return 0;
     if (playlist && tube_playlist_window_begin()) g_playlist_eof_wait=1;
     else if(playlist && !*g_active_playlist.playlist && g_playback_mode!=TUBE_MODE_LIST) recommendation_begin(0);
     return 0;

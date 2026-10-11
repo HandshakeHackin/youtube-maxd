@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Channel playback-mode policy — 2026-10-11
+
+Source review of pinned SmartTube `VideoLoaderController.initRandomNext` and
+`applyPlaybackMode`, plus `SuggestionsController.findNextSectionVideoIfNeeded`,
+confirms that active shuffle targets user playlists larger than 30 entries;
+the random section helper is disabled. Channel windows therefore retain normal
+forward order even when their finite size exceeds 30. Playlist-only now stops
+after a channel video unless an explicit queued video is available. Manual
+Previous/Next remains independent of this completion policy.
+
+The channel provider regression includes a 120-position channel in shuffle mode,
+playlist-only pause, and the explicit-queue exception. Existing playlist tests
+retain the size-30 boundary, large indexed shuffle and failed-target fallback.
+Channel context, playlist window, manual navigation and recommendation native
+suites pass with sanitizers. The PS5 provider object compiles with the existing
+SDK math-header warnings. No console connection or full candidate rebuild occurred.
+
 ## Manual next/previous video actions — 2026-10-11
 
 The in-player picker now offers Previous video and Next video. Explicit actions

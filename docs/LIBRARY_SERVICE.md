@@ -63,10 +63,12 @@ occurrence stops autoplay without probing past the playlist; other window edges
 continue through indexed lookup. Infinite/radio queues do not supply finite sizes.
 
 The profile-owned playback-mode chooser offers continuous, repeat-one, shuffle, playlist-only,
-reverse, stop-at-end and close-at-end. Reverse prioritizes the preceding playlist occurrence
+reverse, stop-at-end and close-at-end. Reverse prioritizes the preceding playlist/channel occurrence
 over the explicit queue and stops at index zero. Shuffle requires a validated
-size greater than 30 and chooses another index; failed lookups fall back to normal
-continuation. Small/unknown sizes continue normally. The profile-owned "Queue
+playlist size greater than 30 and chooses another index; failed lookups fall back to normal
+continuation. Small/unknown sizes and channel groups continue normally, matching
+the active SmartTube controller path. Playlist-only stops after a channel video
+unless an explicit queue entry is available. The profile-owned "Queue
 respects playback mode" preference defaults off, matching the reference: explicit
 queues continue in stop-at-end and close-at-end modes unless enabled. Otherwise
 close-at-end returns to the browser after natural drain. The preference also
@@ -89,7 +91,7 @@ arbitrary suggestion card. Missing/self-referencing endpoints stop playback;
 the same ID at a different validated playlist occurrence remains playable.
 Native jobs retain source/profile/selection ownership, support controller
 cancellation and reject retired errors before credential handling. Channel
-context remains pending. Continuous/shuffle modes consult next-video metadata
+groups use the dedicated anchored Videos windows documented below. Continuous/shuffle modes consult next-video metadata
 after confirmed finite playlist exhaustion. At finite ends and Mix edges,
 playlist-only also consults that metadata but accepts only a target in the same
 playlist, including an explicit wrap to its first occurrence. Requests
