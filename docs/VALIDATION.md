@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Guest browsing-group routing — 2026-10-11
+
+With the library worker enabled, Guest catalogs now use the same bounded opaque
+continuation adapter as account catalogs. Worker search results retain source
+groups through catalog conversion and native selection; public video resolution
+continues using the existing Guest extractor. Guest credential access remains
+rejected. A failed worker catalog does not silently switch to another source.
+
+All 106 worker tests and the rebuilt bundle pass. Fifty-four Python tests covering
+Guest catalogs, occurrence propagation, OAuth playback, profile partitions and
+account removal pass. New cases cover repeated IDs across pages, group continuity,
+cached-page reuse, independent public video resolution, missing-worker behavior,
+and catalog failure. No native bytes changed and no console was contacted.
+Real Guest search/continuation and long-session acceptance remain pending.
+
 ## Native browsing-group handoff — 2026-10-11
 
 The provider now validates retained group keys, accepts source contexts, and

@@ -68,3 +68,14 @@ test('catalog browsing can start a fresh group after retained capacity or evicti
   store.groups.delete(fresh.key);
   assert.notEqual(store.attach('guest',{},[row(other)],fresh.key,true).key,fresh.key);
 });
+
+test('Guest search catalogs retain groups without enabling credential access',async()=>{
+  const library=new Library(async profile=>({search:async query=>{assert.equal(profile.id,'guest');assert.equal(query,'sample');
+    return {videos:[{id},{id:other}],has_continuation:false};}}));
+  const page=await library.playback({action:'catalog',kind:'search',query:'sample',profile:'guest'});
+  const group=page.items[0].playback_context.group;
+  const next=await library.execute({action:'group_window',group,id,index:0,target:1,direction:1});
+  assert.equal(next.video_id,other);
+  await assert.rejects(library.playback({action:'credentials',profile:'guest'}),{code:'playback_account_context'});
+  await assert.rejects(library.playback({action:'catalog',kind:'search',query:'sample',profile:'missing'}),{code:'unknown_profile'});
+});

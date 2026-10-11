@@ -804,4 +804,10 @@ Next/Previous preserve group positions; continuous completion traverses the grou
 and playlist-only completion excludes ordinary browsing groups. Failed forward
 group lookup falls back to next-video metadata. OAuth search/catalog conversion
 preserves supplied group occurrences without deduplicating repeated video IDs.
-Guest extractor group creation and PS5 acceptance remain pending.
+When the library worker is enabled, Guest search/channel/playlist catalogs now
+use its bounded continuation adapter too, retaining the same group references
+used by native navigation. Guest video resolution stays on the existing public
+yt-dlp extractor; Guest cannot request account credentials. Worker failures are
+reported rather than replacing a retained group with unrelated extractor rows.
+Without the library worker, the original Guest catalog behavior remains available
+without retained browsing groups. PS5 and live-service acceptance remain pending.

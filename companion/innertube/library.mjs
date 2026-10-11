@@ -137,7 +137,8 @@ export class Library {
   }
   async playback(input) {
     const owner = input?.profile;
-    if (!this.profiles.get(owner)?.oauth)
+    if (!this.profiles.has(owner))throw new LibraryError('unknown_profile','Select an available profile.',404);
+    if (input.action !== 'catalog' && !this.profiles.get(owner)?.oauth)
       throw new LibraryError('playback_account_context', 'Select an OAuth account profile.', 403);
     const client = await this.client(owner);
     if (input.action === 'credentials') {

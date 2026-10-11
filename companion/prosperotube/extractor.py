@@ -115,6 +115,9 @@ class ProfileExtractors:
         self.profile_source = profiles if callable(profiles) else lambda: profiles
         self.extractors = {"guest": guest}
         self.library = library
+        if library is not None:
+            from .guest_catalog import GuestCatalogExtractor
+            self.extractors["guest"] = GuestCatalogExtractor(library, guest)
 
     def invalidate_profile(self, identity):
         resolver = self.extractors.pop(identity, None)
@@ -123,7 +126,7 @@ class ProfileExtractors:
 
     def for_profile(self, profile):
         if profile == "guest":
-            return self.guest
+            return self.extractors["guest"]
         configured = next((p for p in self.profile_source() if p["id"] == profile), None)
         if configured is None:
             raise ServiceError("unknown_profile", "Select an available profile.", 404)
@@ -147,4 +150,4 @@ class ProfileExtractors:
         return self.extractors[profile]
 
     async def extract(self, target, **kwargs):
-        return await self.guest.extract(target, **kwargs)
+        return await self.for_profile("guest").extract(target, **kwargs)
