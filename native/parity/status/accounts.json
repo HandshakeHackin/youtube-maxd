@@ -65,13 +65,14 @@
   {
    "id": "AccountSettingsPresenter.appendProtectAccountWithPassword",
    "title": "Protect account with password",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Switch: on -> password entry dialog stores a per-account password; off -> must enter the matching password; a check dialog gates the account's sections until accepted",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: salted hash gate; tests/test_account_settings.c"
+   ],
    "gaps": [
-    "No password storage per profile",
-    "No password entry / check prompt when selecting a protected profile",
-    "No hiding of account sections until the password is accepted"
+    "Keyboard shows the typed text",
+    "The profile already selected at startup is not challenged"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -80,16 +81,15 @@
   {
    "id": "AccountSettingsPresenter.appendSeparateSettings",
    "title": "Use separate settings per account (multi profiles)",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Switch: off = one shared settings set, on = settings stored per account",
    "ps5_evidence": [
     "native/tube_profile_settings.h; native/tube_provider.c: profile_settings_select()",
     "tests/test_profile_settings.c",
-    "README.md: 'independent saved profile settings'"
+    "README.md: 'independent saved profile settings'",
+    "native/tube_provider.c: shared or per-profile settings"
    ],
-   "gaps": [
-    "Settings are always per profile; there is no switch to share one settings set across all accounts (SmartTube default is shared)"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -219,12 +219,13 @@
   {
    "id": "SponsorBlockSettingsPresenter.appendLinks",
    "title": "SponsorBlock links (server status, about)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Buttons: 'Check SponsorBlock server status' and 'About SponsorBlock', each opening a URL",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: info rows"
+   ],
    "gaps": [
-    "No status-check row",
-    "No about/attribution row in the SponsorBlock menu (only THIRD_PARTY_NOTICES.md)"
+    "No server status check"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -233,16 +234,15 @@
   {
    "id": "SponsorBlockSettingsPresenter.appendMiscCategory",
    "title": "SponsorBlock misc: paid content notice, don't skip again, alternative server",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Checkboxes: 'Paid content notification', 'Don't skip segments again', 'Use alternative server'",
    "ps5_evidence": [
     "native/tube_provider.c: \"settings:sb:paid\" (g_paid_notifications, tube_take_paid_content_notice())",
     "native/tube_provider.c: \"settings:sb:repeat\" (g_sb.no_repeat)",
-    "tests/test_paid_content.c, tests/test_paid_content.py, scripts/test_paid_notice.py"
+    "tests/test_paid_content.c, tests/test_paid_content.py, scripts/test_paid_notice.py",
+    "native/tube_provider.c + companion --sponsorblock-server"
    ],
-   "gaps": [
-    "'Use alternative server' is absent: companion/prosperotube/app.py hard-codes https://sponsor.ajay.app/api/skipSegments"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -298,10 +298,11 @@
    "status": "partial",
    "smarttube": "Buttons: 'Check DeArrow server status' and 'About DeArrow', each opening a URL",
    "ps5_evidence": [
-    "native/tube_provider.c: row 'DeArrow community attribution' ('Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app')"
+    "native/tube_provider.c: row 'DeArrow community attribution' ('Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app')",
+    "native/tube_provider.c: info rows"
    ],
    "gaps": [
-    "No server-status check row"
+    "No server status check"
    ],
    "offline_feasible": true,
    "size": "S",

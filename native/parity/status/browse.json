@@ -48,13 +48,11 @@
     "companion/prosperotube/catalog.py: page_for() parent 'channel:<UC id>' -> /channel/<id>/videos",
     "companion/innertube/library.mjs: kind 'channel' -> client.getChannel(id).getVideos(); action 'channel_window'",
     "native/tube_provider.c: valid_catalog_id() accepts 'channel:UC...'; 'subscriptions' folder emits 'channel:%.24s' rows",
-    "tests/test_group_block_window.c, companion/innertube/channel_window.test.mjs"
+    "tests/test_group_block_window.c, companion/innertube/channel_window.test.mjs",
+    "native/tube_provider.c: channel sections, sort orders, search in channel"
    ],
    "gaps": [
-    "Channel shows only the uploads list; no rows/tabs for playlists, live streams, Shorts, releases or featured shelves",
-    "No in-channel search (ChannelPresenter.onSearchSubmit) and no channel sort options (onSearchSettingsClicked)",
-    "A channel can only be opened from locally followed channels or by typing channel:<id>; no Open channel action from a video (see extra.Menu.OpenChannel)",
-    "Channel results are not returned by search, so channels cannot be discovered by name"
+    "Channel Home skips Shorts and featured-channel shelves"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -571,16 +569,14 @@
   {
    "id": "extra.Menu.SaveRemovePlaylist",
    "title": "Save playlist to library / remove playlist",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Saves someone else's playlist to the user's library, or deletes/removes a playlist from the Playlists section (with confirmation).",
    "ps5_evidence": [
     "native/tube_provider.c: 'playlist:confirm:delete:<id>' (\"Delete YouTube playlist\") -> 'playlist_delete'",
-    "companion/innertube/library.mjs: case 'playlist_delete'"
+    "companion/innertube/library.mjs: case 'playlist_delete'",
+    "native/tube_provider.c + companion playlist_save; tests/test_account_changes.c"
    ],
-   "gaps": [
-    "No Save playlist action for a foreign playlist (no like/save-playlist call in the worker)",
-    "playlist:menu is offered only for account playlists; saved foreign playlists cannot be removed distinctly from deletion"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -627,11 +623,13 @@
   {
    "id": "extra.Menu.RemoveFromSubscriptions",
    "title": "Hide from Subscriptions / Notifications feed",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Removes a video from the Subscriptions feed (feedback token) or hides a notification.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: hide Subscriptions card"
+   ],
    "gaps": [
-    "No hide action for Subscriptions rows; Notifications section absent"
+    "Notifications rows cannot be hidden"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -866,15 +864,14 @@
   {
    "id": "extra.Menu.ToggleHistory",
    "title": "Pause / resume watch history",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Pauses or resumes YouTube watch history on the account and stops local history recording.",
    "ps5_evidence": [
     "native/tube_provider.c: 'settings:history-sync' (\"Sync YouTube history: on/off\"), watch_flush()",
-    "docs/LIBRARY_SERVICE.md: 'Playback history reports'"
+    "docs/LIBRARY_SERVICE.md: 'Playback history reports'",
+    "native/tube_provider.c + companion history_pause/resume"
    ],
-   "gaps": [
-    "The toggle only stops this client's reports; it does not pause watch history on the account, and local history keeps recording"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -882,16 +879,14 @@
   {
    "id": "extra.Menu.ClearHistory",
    "title": "Clear history",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Clears the whole account watch history (with confirmation) and refreshes the History section.",
    "ps5_evidence": [
     "native/tube_provider.c: 'settings:clear-history' (\"Clear local history\")",
-    "tests/test_native.c: list_catalog('settings:clear-history')"
+    "tests/test_native.c: list_catalog('settings:clear-history')",
+    "native/tube_provider.c + companion history_clear"
    ],
-   "gaps": [
-    "No account-level clear of YouTube history (worker has only per-video history_remove)",
-    "No confirmation step on the local clear was found"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""

@@ -83,18 +83,14 @@
   {
    "id": "PlayerSettingsPresenter.appendAudioLanguageCategory",
    "title": "Preferred audio language",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: Original + recently used languages on top + every system locale (alphabetical)",
    "ps5_evidence": [
     "native/tube_provider.c: settings:audio-languages -> settings:audio:<code>, g_audio_language",
-    "native/tube_profile_settings.h: audio_language"
+    "native/tube_profile_settings.h: audio_language",
+    "native/tube_provider.c: language list with Original entry"
    ],
-   "gaps": [
-    "Only 10 hard-coded codes (en fr es de it pt ja ko zh ru) with raw codes as labels",
-    "No 'Original' entry: once a language is chosen it cannot be reset to default from the list",
-    "No recently-used ordering; no selection mark on the current language",
-    "Not offered in the in-player playback options (applies to next video only)"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -102,12 +98,14 @@
   {
    "id": "PlayerSettingsPresenter.appendAudioDelayCategory",
    "title": "Audio delay (shift)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checkbox list: Enable + numeric entry of delay in seconds (ms precision, positive or negative)",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
+   ],
    "gaps": [
-    "No audio delay value or enable switch; only caption timing offsets exist (prospero_subtitle_delay_ms)",
-    "No PCM/video delay stage in the audio drain path"
+    "Fixed list of 29 values in the picker instead of free numeric entry",
+    "Negative delay is unverified in the PS5 audio engine"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -116,18 +114,15 @@
   {
    "id": "PlayerSettingsPresenter.appendMasterVolumeCategory",
    "title": "Player volume 0-300%",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: 0%..300% step 5, warning above 100%",
    "ps5_evidence": [
     "native/tube_volume.h: tube_volume_pcm (clamped 0..100)",
     "native/tube_phone.c: TUBE_REMOTE_VOLUME (phone-driven only)",
-    "scripts/phone_player_overlay.py: evo_audio_volume()"
+    "scripts/phone_player_overlay.py: evo_audio_volume()",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "No volume setting in preferences or in-player options; gain is reachable only from a linked phone",
-    "No boost above 100% (gain clamp) and no saturation handling",
-    "Value not saved per profile"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -135,13 +130,13 @@
   {
    "id": "PlayerSettingsPresenter.appendSeekingPreviewCategory",
    "title": "Preview while seeking",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: Disabled / Single frame / Carousel (slow, by keyframes) / Carousel (fast); uses YouTube storyboards",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_storyboard.h; companion storyboards relay"
+   ],
    "gaps": [
-    "No storyboard extraction in companion (no storyboard/preview references anywhere)",
-    "Scrub HUD shows only the target time (evo_hui_osd.cpp clock_text(scrub_target))",
-    "No preference"
+    "Preview tiles are not drawn: the HUD has no network texture path"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -170,12 +165,12 @@
     "native/tube_provider.c: tube_speeds[] (the 30-value long list), settings:speed, settings:speed-mode",
     "scripts/speed_controls_overlay.py: KindSpeed rows, changePlaybackSpeed, 'Normal speed'/'Restore' toggle",
     "native/tube_audio_tempo.c",
-    "tests/test_speed_switch.cpp, tests/test_audio_tempo.c, tests/test_rate_clock.c"
+    "tests/test_speed_switch.cpp, tests/test_audio_tempo.c, tests/test_rate_clock.c",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
    "gaps": [
-    "No extra-long list (0.05 steps, includes <0.25x and values like 1.55x)",
-    "No short/long list switches (always the long list)",
-    "Speed change reopens the stream instead of a live rate change (behavioural, not option-set)"
+    "Speeds below 0.25x are rejected by the tempo stage",
+    "Speed change reopens the stream instead of a live rate change"
    ],
    "offline_feasible": true,
    "size": "S",
@@ -287,14 +282,13 @@
   {
    "id": "PlayerSettingsPresenter.appendPlayerExitCategory",
    "title": "Exit from the player (single/double back)",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: Double back / Single back",
    "ps5_evidence": [
-    "third_party/evo PlayerScreen.cpp: 'Stop playback confirmation prompt' (README: 'Circle confirms stop')"
+    "third_party/evo PlayerScreen.cpp: 'Stop playback confirmation prompt' (README: 'Circle confirms stop')",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "Fixed confirm-before-stop behaviour; no preference to exit on a single Circle press"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Add settings:player-exit and gate the confirmation in a PlayerScreen overlay."
@@ -377,16 +371,15 @@
   {
    "id": "SubtitleSettingsPresenter.appendSubtitleLanguageCategory",
    "title": "Subtitle language",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Radio: Subtitles disabled + every supported app locale (commented out upstream: 'no robust language detection')",
    "ps5_evidence": [
     "native/tube_provider.c: settings:captions on/off, settings:languages -> settings:lang:<code>, settings:automatic",
     "scripts/caption_controls_overlay.py: per-video language picker during playback",
-    "tests/test_caption_switch.c, tests/test_caption_identity.c"
+    "tests/test_caption_switch.c, tests/test_caption_identity.c",
+    "native/tube_provider.c: language list"
    ],
-   "gaps": [
-    "Preference list limited to 10 hard-coded codes with raw codes as labels"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "In-player picker lists all tracks of the video, including automatic ones and a secondary track."
@@ -394,13 +387,12 @@
   {
    "id": "SubtitleSettingsPresenter.appendSubtitleStyleCategory",
    "title": "Subtitle style",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: white/transparent, white/semi-transparent, white/black, yellow/transparent, yellow/semi-transparent, yellow/black (+ system style on Android 19+); drop-shadow or outline edge",
-   "ps5_evidence": [],
-   "gaps": [
-    "No caption colour/background/edge preference; EVO subtitle renderer exposes no style variables (media/include/evo_subtitle.h)",
-    "No settings row and no entry in the subtitle picker"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": "Implement in a new caption-style overlay on evo_hui_osd.cpp + RML subtitle element; six presets, saved per profile."
@@ -408,12 +400,12 @@
   {
    "id": "SubtitleSettingsPresenter.appendSubtitleSizeCategory",
    "title": "Subtitle size",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: 0.1x..2.0x step 0.1",
-   "ps5_evidence": [],
-   "gaps": [
-    "No caption scale preference (prospero_subtitle_time_scale is timing, not size)"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -421,12 +413,12 @@
   {
    "id": "SubtitleSettingsPresenter.appendSubtitlePositionCategory",
    "title": "Subtitle position",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: 0%..100% step 2.5 (vertical position)",
-   "ps5_evidence": [],
-   "gaps": [
-    "No vertical caption position preference"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -652,12 +644,12 @@
   {
    "id": "extra.Misc.AutoVolume",
    "title": "Auto volume adjustment (loudness normalisation)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checkbox: normalise volume using the stream's loudness value",
-   "ps5_evidence": [],
-   "gaps": [
-    "Companion does not pass loudnessDb; no gain applied"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Companion resolve payload + gain in native/tube_volume.h."
@@ -665,14 +657,13 @@
   {
    "id": "extra.Misc.ClockInControls",
    "title": "Clock in controls bar",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checkbox: show current time in the player controls",
    "ps5_evidence": [
-    "native/tube_time_display.h uses the local clock only for 'Ends HH:MM'"
+    "native/tube_time_display.h uses the local clock only for 'Ends HH:MM'",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "No current-time label in either HUD"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -680,14 +671,13 @@
   {
    "id": "extra.Misc.QualityInfo",
    "title": "Quality info (and bitrate) in controls bar",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checkboxes: show resolution/fps/codec of the playing stream in the controls bar; optionally add bitrate",
    "ps5_evidence": [
-    "native/tube_provider.c: choices carry bitrate_bps and fps; shown only in the stream chooser and Options stats"
+    "native/tube_provider.c: choices carry bitrate_bps and fps; shown only in the stream chooser and Options stats",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "No always-visible quality label in the HUD; no bitrate option"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -695,12 +685,12 @@
   {
    "id": "extra.Misc.LoopShorts",
    "title": "Loop Shorts",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Checkbox: repeat Shorts automatically",
-   "ps5_evidence": [],
-   "gaps": [
-    "Player has no Shorts classification, so no Shorts-specific repeat"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Needs an is_short flag from the companion catalog."
@@ -723,14 +713,13 @@
   {
    "id": "extra.Misc.RememberShortVideoPosition",
    "title": "Remember position of short videos",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Checkbox: when off, videos under 5 minutes always start from the beginning",
    "ps5_evidence": [
-    "native/tube_provider.c progress(): resume stored regardless of duration"
+    "native/tube_provider.c progress(): resume stored regardless of duration",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "No switch; behaviour is fixed to 'remember'"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -781,15 +770,14 @@
   {
    "id": "extra.Misc.SectionPlaylistSwitch",
    "title": "Use current section as playlist",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Checkbox: next/previous follow the row the video was opened from",
    "ps5_evidence": [
     "native/tube_provider.c: tube_select_playlist_context, retained groups, channel:UC groups",
-    "tests/test_group_navigation.c"
+    "tests/test_group_navigation.c",
+    "native/tube_provider.c: section playlist switch"
    ],
-   "gaps": [
-    "Always on; no switch to fall back to YouTube suggestions only"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -1217,12 +1205,12 @@
   {
    "id": "extra.Keys.QuickSkip",
    "title": "Quick skip with D-pad when UI hidden",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Player tweak: Left/Right (or Up/Down) switch to previous/next video for Shorts and/or regular videos when the overlay is hidden",
-   "ps5_evidence": [],
-   "gaps": [
-    "D-pad is bound to seeking/captions only"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Handled in PlayerUIController.handleLeftRightSkip/handleUpDownSkip."

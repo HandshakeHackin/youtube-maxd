@@ -17,21 +17,15 @@
   {
    "id": "GeneralSettingsPresenter.appendHideContent",
    "title": "Hide content (16 toggles)",
-   "status": "partial",
+   "status": "done",
    "smarttube": "16 toggles: shorts everywhere / from subscriptions / search / home / channel / history / trending; mixes; watched from Watch later / Home / Subscriptions / Notifications; streams from Subscriptions; upcoming from Subscriptions / Home / Channel.",
    "ps5_evidence": [
     "companion/innertube/home_feed.mjs: filterHomeFeed/watchedSuggestion always drops watched cards from the primary Home grid (no switch)",
     "companion/innertube/library.mjs: cards carry is_upcoming, is_live, played, watch_percent (data needed for filters is present)",
-    "docs/STATUS.md: 'Home watched filtering'"
+    "docs/STATUS.md: 'Home watched filtering'",
+    "native/tube_provider.c: 16 switches; companion hide[] filters; tests/test_content_settings.c"
    ],
-   "gaps": [
-    "No user toggle for any of the 16 options (Home watched filter is hard-wired on)",
-    "No shorts detection/filter in any feed (only catalog.py URL parsing mentions /shorts/)",
-    "No mixes filter",
-    "No watched filter for Subscriptions, Notifications, Watch later",
-    "No streams/upcoming filters for Subscriptions, Home, Channel",
-    "Per-profile storage + request field so the companion applies the mask"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "L",
    "notes": "Needs a hide-mask in ProfileSettings, forwarded in the library job JSON and applied in library.mjs/home_feed.mjs; unit-testable with the existing *.test.mjs fixtures."
@@ -118,13 +112,11 @@
    "smarttube": "25 toggles: OK->toggle speed; skip Shorts with left/right or up/down; skip regular videos with left/right or up/down; Play/Pause->OK; D-pad left/right->volume; D-pad up/down->volume or speed; numbers->speed; Next/Previous->FF/RW or speed; FF/RW->next/previous, speed, speed toggle; S->speed toggle; Page Up/Down->next/prev, like/dislike, speed up/down, speed down/up; Channel Up/Down->volume, next/prev, like/dislike, speed, speed toggle, search.",
    "ps5_evidence": [
     "native/tube_provider.c: `settings:player-ok` option 3 'Toggle playback speed' (tube_player_set_ok_mode) = 'OK -> toggle speed'",
-    "tests/test_player_preferences.c"
+    "tests/test_player_preferences.c",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
    "gaps": [
-    "D-pad left/right or up/down -> next/previous video (regular and Shorts variants)",
-    "D-pad up/down -> speed up/down; D-pad -> volume",
-    "Shoulder/trigger remaps equivalent to Next/Previous, FF/RW, Page, Channel keys (L1/R1/L2/R2 -> next/previous, speed, like/dislike, search)",
-    "No generic remap table"
+    "Only D-pad remaps for skip, volume and speed; other SmartTube remaps are absent"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -174,14 +166,13 @@
   {
    "id": "GeneralSettingsPresenter.appendTimeFormatCategory",
    "title": "Time format (General; disabled upstream)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: 24 hours / 12 hours (AM/PM). Method is commented out in the pinned revision.",
    "ps5_evidence": [
-    "native/tube_provider.c: `settings:time-display` only chooses total / remaining / estimated finish; no 12/24 h choice found"
+    "native/tube_provider.c: `settings:time-display` only chooses total / remaining / estimated finish; no 12/24 h choice found",
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
-   "gaps": [
-    "12/24 h preference applied to finish time and any clock"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "Dead code upstream; live equivalent is MainUI misc '24 hours Time format'."
@@ -265,15 +256,14 @@
   {
    "id": "LanguageSettingsPresenter.appendLanguageCategory",
    "title": "App/content language",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: Default (system) + 47 languages (res/values/languages.xml); sets UI locale and YouTube hl, restarts.",
    "ps5_evidence": [
-    "native/tube_provider.c: `settings:languages` / `settings:audio-languages` only choose caption and audio track language from 10 codes (en fr es de it pt ja ko zh ru)"
+    "native/tube_provider.c: `settings:languages` / `settings:audio-languages` only choose caption and audio track language from 10 codes (en fr es de it pt ja ko zh ru)",
+    "native/tube_provider.c: content language sent as hl"
    ],
    "gaps": [
-    "UI language setting (needs extra.Localization)",
-    "Content language (hl) sent to the companion for feeds/search/titles; no hl/lang field exists in companion requests",
-    "Default = PS5 system language"
+    "Interface strings are not translated (see extra.Localization)"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -282,13 +272,12 @@
   {
    "id": "LanguageSettingsPresenter.appendCountryCategory",
    "title": "Country",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: Default + 92 countries (res/values/countries.xml); sets YouTube gl, restarts.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Per-profile country code setting",
-    "Forward as gl/location in companion library/search/catalog jobs (no such field today)"
+   "ps5_evidence": [
+    "native/tube_provider.c: country sent as gl"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
    "notes": ""
@@ -368,14 +357,13 @@
   {
    "id": "MainUISettingsPresenter.appendThumbSource",
    "title": "Where to grab card thumbnails",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: Default / Start of the video / Middle / End (clickbait remover).",
    "ps5_evidence": [
-    "native/tube_provider.c: only DeArrow thumbnails (`settings:dearrow:thumbnails`) alter art_url"
+    "native/tube_provider.c: only DeArrow thumbnails (`settings:dearrow:thumbnails`) alter art_url",
+    "native/tube_provider.c + companion thumbnails field"
    ],
-   "gaps": [
-    "Setting with four values and art_url rewrite to the start/middle/end frame thumbnails"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": ""
@@ -450,12 +438,12 @@
   {
    "id": "MainUISettingsPresenter.appendTimeFormatCategory",
    "title": "Time format (Main UI; disabled upstream)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: 24 hours / 12 hours; commented out of show().",
-   "ps5_evidence": [],
-   "gaps": [
-    "12/24 h preference"
+   "ps5_evidence": [
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_player_extra_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
    "notes": "See MainUI misc."
