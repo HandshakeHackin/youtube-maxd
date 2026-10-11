@@ -10,6 +10,8 @@ sudo apt-get install clang-18 lld-18 llvm-18 cmake ninja-build make git \
   libssl-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev ffmpeg
 export PATH=/usr/lib/llvm-18/bin:$PATH
 bash scripts/bootstrap_sdk.sh
+# Install the shader-toolchain dependencies listed below before its first build.
+bash scripts/build_ps5_shader_compiler.sh
 bash scripts/build_ps5.sh --ffpfsc
 ```
 
@@ -403,8 +405,8 @@ A resumed run reuses fetched revisions and Ninja outputs. Success requires
 compiling the shipping NV12 shader for gfx1013 and passing EVO's ELF, relocation,
 symbol extent and resource-mapping checks. CMake configuration/generation passes after resolving the pinned llvm-dialects
 submodule and DXC archive layout. Compiler compilation is in progress; the
-shader probe remains pending. Rotation/mirroring are not yet implemented or
-hardware-validated.
+shader probe remains pending. Rotation/mirroring controls and runtime integration
+are implemented offline; compiled-shader activation and hardware validation remain.
 
 
 Staged display-transform shaders can be generated independently with

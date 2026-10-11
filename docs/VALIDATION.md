@@ -13,7 +13,9 @@ runtime compile check also accepts already-activated sources without reapplying
 the overlay. Fourteen artifact cases and five subtests pass; shell syntax and the
 staged runtime's actual PS5 SDK compilation pass. Full compilation, activation
 and application packaging remain pending the live compiler bootstrap. This does
-not constitute GPU or final-candidate acceptance. No console access occurred.
+not constitute GPU or final-candidate acceptance. A real `build_ps5.sh` rejection
+probe also verifies that a missing compiler or invalid explicit artifact stops
+before creating the native output tree. No console access occurred.
 
 
 ## SDR HEVC selection and relay — 2026-10-11
