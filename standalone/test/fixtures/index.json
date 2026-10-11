@@ -1,4 +1,0 @@
-{
-  "POST www.youtube.com/youtubei/v1/config": { "file": "config.json" },
-  "POST www.youtube.com/youtubei/v1/search": { "file": "search.json" }
-}
