@@ -35,6 +35,19 @@ def info():
                  "width": 1280, "height": 720, "tbr": 1000}],
             "subtitles": {"en": [{"ext": "vtt", "url": "https://www.youtube.com/api/timedtext?v=" + ID}]}}
 
+def test_caption_catalog_includes_languages_beyond_first_32_and_prefers_human():
+    source = info()
+    source["subtitles"] = {f"x{i:03}": [{"ext": "vtt", "name": f"Language {i}",
+        "url": f"https://www.youtube.com/api/timedtext?v={ID}&lang=x{i:03}"}] for i in range(70)}
+    source["automatic_captions"] = {"x000": [{"ext": "vtt", "url": f"https://www.youtube.com/api/timedtext?v={ID}&auto=1"}],
+        "auto": [{"ext": "vtt", "url": f"https://www.youtube.com/api/timedtext?v={ID}&lang=auto"}]}
+    playback = Sessions().create(source, ResolveRequest(id=ID, caption_language="x069", automatic_captions=True), BASE)
+    assert len(playback.captions) == 71 and playback.captions[0].language == "x069"
+    tracks = {track.language: track for track in playback.captions}
+    assert not tracks["x000"].automatic and tracks["auto"].automatic
+    assert all(track.url.startswith(BASE + "/media/") for track in playback.captions)
+    assert len(Sessions().create(source, ResolveRequest(id=ID), BASE).captions) == 70
+
 
 class FakeExtractor:
     def __init__(self, result=None):

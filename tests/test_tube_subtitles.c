@@ -3,6 +3,12 @@
 #include "../third_party/evo/tools/dualsub_host.c"
 #undef main
 #include "tube_subtitles.h"
+#include "tube_caption_apply.h"
+static int switch_state, switch_applied;
+static char switch_media[512], active_media[512];
+int tube_caption_switch_status(const char **media) { *media = switch_media; return switch_state; }
+void tube_caption_switch_finish(int applied) { switch_applied = applied; switch_state = -1; if (applied) strcpy(active_media,switch_media); }
+const char *tube_caption_media_path(void) { return active_media; }
 
 int main(int argc, char **argv) {
     if (evo_dualsub_main(argc, argv)) return 1;
@@ -37,6 +43,27 @@ int main(int argc, char **argv) {
     CHECK(!tube_subtitle_activate(0), "missing captions stay off");
     CHECK(tube_subtitle_activate(3) == 0 && !prospero_subtitle_enabled,
           "failed selection cannot enable an empty track");
+    /* The real parser/application bridge switches without changing playback clocks. */
+    write_srt(sidecar); strcpy(active_media,media);
+    CHECK(tube_subtitle_activate(prospero_subtitle_load_for_media(media)), "original track active before language switch");
+    char next_sidecar[512]; snprintf(switch_media,sizeof switch_media,"%s/switch.mp4",dir);
+    snprintf(next_sidecar,sizeof next_sidecar,"%s/switch.srt",dir);
+    FILE *translated=fopen(next_sidecar,"wb"); CHECK(translated!=NULL,"translated sidecar opened");
+    if (translated) { fputs("1\n00:00:01,000 --> 00:00:03,000\nBonjour\n\n",translated); fclose(translated); }
+    audio_clock_seconds=42.125; player_paused=1;
+    prospero_subtitle_delay_ms=250; prospero_subtitle_time_scale=1.25;
+    switch_state=0; CHECK(!tube_caption_apply_ready(),"pending transfer does not apply a track");
+    switch_state=1; CHECK(tube_caption_apply_ready()==1 && switch_applied,"valid translated track applied");
+    cue=prospero_subtitle_active_cue(2.0); CHECK(cue && !strcmp(cue->text,"Bonjour"),"translated cue rendered by real engine");
+    CHECK(audio_clock_seconds==42.125 && player_paused==1,"language switch preserves pause and media clock");
+    CHECK(prospero_subtitle_delay_ms==250 && prospero_subtitle_time_scale==1.25,"language switch preserves timing adjustments");
+    char good_media[512]; strcpy(good_media,active_media);
+    snprintf(switch_media,sizeof switch_media,"%s/missing.mp4",dir); switch_state=1;
+    CHECK(tube_caption_apply_ready()==-1 && !switch_applied,"invalid new file is not committed");
+    cue=prospero_subtitle_active_cue(2.0); CHECK(cue && !strcmp(cue->text,"Bonjour"),"failed switch restores actual old cues");
+    CHECK(!strcmp(active_media,good_media) && prospero_subtitle_enabled && prospero_subtitle_use_external,"failed switch retains old enabled track");
+    CHECK(audio_clock_seconds==42.125 && player_paused==1 && prospero_subtitle_delay_ms==250 && prospero_subtitle_time_scale==1.25,"failed switch preserves playback and timing");
+    remove(sidecar); remove(next_sidecar);
     prospero_subtitle_clear();
     fprintf(stderr, "%d total checks passed, %d failed\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

@@ -27,6 +27,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[]}}");
     p->list_catalog("settings:captions", 0, items_cb, NULL);
     resolution(p, 0); p->stream_chosen("abcdefghijk", &recovered);
+    unsigned selection = tube_phone_selection(); assert(selection);
     assert(tube_toggle_queue("abcdefghijk") == 1);
     assert(!tube_queue_recovery(NAN, 0, 1));
     assert(!tube_queue_recovery(-1, 0, 1));
@@ -49,12 +50,14 @@ int main(void) {
         assert(tube_recovery_choice(choices, 2) < 0);
         assert(tube_recovery_choice(&recovered, 1) == 0);
         p->stream_chosen("abcdefghijk", &recovered); // a reopen must not reset the retry budget
+        assert(tube_phone_selection() == selection);
         tube_recovery_finish();
     }
     assert(!tube_queue_recovery(38, 0, 1));
     p->list_catalog("queue", 0, items_cb, NULL);
     assert(last_count == 1 && !strcmp(last_items[0].id, "abcdefghijk") && !last_items[0].played);
     p->stream_chosen("abcdefghijk", &recovered); // explicit selection starts a new budget
+    assert(tube_phone_selection() != selection);
     assert(tube_queue_recovery(39, 0, 0)); tube_cancel();
     assert(!tube_recovery_pending() && !tube_take_recovery(&item, &position, &subtitles));
     assert(tube_queue_recovery(39, 0, 0));

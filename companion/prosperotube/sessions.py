@@ -196,7 +196,7 @@ class Sessions:
             for lang, tracks in automatic.items():
                 subtitles.setdefault(lang, tracks)
         languages = sorted(subtitles, key=lambda lang: (lang != request.caption_language, lang))
-        for lang in languages[:32]:
+        for lang in languages[:256]:
             track = next((t for t in subtitles[lang] if t.get("ext") == "vtt" and t.get("url")), None)
             if not track:
                 continue
@@ -204,7 +204,7 @@ class Sessions:
                 url = remote(f"c{len(captions)}.srt", track, "text/vtt; charset=utf-8")
             except ServiceError:
                 continue
-            captions.append(Caption(language=text(lang, 16), name=text(track.get("name") or lang, 64),
+            captions.append(Caption(language=text(lang, 32), name=text(track.get("name") or lang, 64),
                                     url=url, automatic=lang not in (info.get("subtitles") or {})))
         self.sessions[session.token] = session
         chapters = [{"title": text(c.get("title"), 96), "start": number(c.get("start_time")),

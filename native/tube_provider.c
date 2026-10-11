@@ -51,7 +51,7 @@ typedef struct Request {
     int has_chat_position;
     int64_t chat_position_ms;
     char auth_source[512], auth_token[128];
-    char caption_language[16];
+    char caption_language[33];
 } Request;
 
 static Record g_records[RECORDS];
@@ -61,7 +61,16 @@ static Request g_requests[REQUESTS];
 static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
-static char g_caption_language[16];
+static char g_caption_language[33];
+#define CAPTION_TRACKS 256
+static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic; } g_caption_tracks[CAPTION_TRACKS];
+static int g_caption_track_count;
+static unsigned g_caption_revision, g_caption_serial;
+static unsigned g_selection_serial;
+static char g_caption_video[12], g_caption_profile[33], g_caption_source[512], g_caption_token[128];
+static struct { int phase, sequence; unsigned owner, serial, selection; long long deadline;
+    char language[33], media[512]; } g_caption_switch;
+static void caption_switch_tick(void);
 static char g_active_profile[33], g_next_profile[33];
 /* Navigation origin, not a content classifier. Resolve snapshots the origin
  * before asynchronous work; queue entries retain the origin of their insertion. */
@@ -648,6 +657,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 static int init(void) {
     tube_remote_shutdown();
     g_caption_path[0] = g_caption_language[0] = 0;
+    tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
     g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     g_remote_stop_on_disconnect = 0;
     tube_sb_defaults(&g_sb);
@@ -1261,6 +1271,24 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.is_live = r->choices[0].is_live;
     }
     g_caption_path[0] = g_caption_language[0] = 0; g_segment_count = 0; g_skip_guard = -1;
+    tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
+    copy(g_caption_video, sizeof g_caption_video, r->parent);
+    copy(g_caption_profile, sizeof g_caption_profile, r->profile);
+    copy(g_caption_source, sizeof g_caption_source, g_source); copy(g_caption_token, sizeof g_caption_token, g_token);
+    cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
+        const char *language = str(c, "language"), *url = str(c, "url");
+        if (g_caption_track_count >= CAPTION_TRACKS || !*language || strlen(language) >= 33 ||
+            strspn(language, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(language) ||
+            strlen(url) >= EVO_PROVIDER_MAX_URL || !companion_url(url)) continue;
+        int duplicate = 0;
+        for (int i = 0; i < g_caption_track_count; ++i) if (!strcmp(g_caption_tracks[i].language, language)) duplicate = 1;
+        if (duplicate) continue;
+        int i = g_caption_track_count++;
+        copy(g_caption_tracks[i].language, sizeof g_caption_tracks[i].language, language);
+        copy(g_caption_tracks[i].name, sizeof g_caption_tracks[i].name, str(c, "name"));
+        copy(g_caption_tracks[i].url, sizeof g_caption_tracks[i].url, url);
+        g_caption_tracks[i].automatic = boolean(c, "automatic");
+    }
     g_sb_prompt = -1; g_sb_last_position = -1; g_sb_message = 0; g_sb_finish_target = -1;
     g_highlight_guard = -1;
     if (!++g_sb_serial) ++g_sb_serial;
@@ -1500,6 +1528,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 }
 
 void tube_poll(void) {
+    caption_switch_tick();
     if (g_remote_enabled && tube_remote_state() == TUBE_REMOTE_LISTENING &&
         !strcmp(g_remote_device, tube_remote_device()) && *tube_remote_screen() &&
         strcmp(g_remote_screen, tube_remote_screen())) {
@@ -2312,6 +2341,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
+    if (!recovering && !++g_selection_serial) ++g_selection_serial;
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;
     g_sb_finish_target = -1;
@@ -2372,6 +2402,86 @@ int tube_phone_video(const char *url, char video[12]) {
     copy(video, 12, g_active_id); return 1;
 }
 const char *tube_phone_caption_language(void) { return *g_caption_path ? g_caption_language : ""; }
+unsigned tube_phone_selection(void) { return g_selection_serial; }
+static int caption_scope(void) {
+    return recovery_scope() && !strcmp(g_caption_video, g_active_id) &&
+        !strcmp(g_caption_profile, g_library_profile) && !strcmp(g_caption_source, g_source) &&
+        !strcmp(g_caption_token, g_token);
+}
+int tube_caption_track_count(void) { return caption_scope() ? g_caption_track_count : 0; }
+const char *tube_caption_track_language(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].language : ""; }
+const char *tube_caption_track_name(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].name : ""; }
+int tube_caption_track_automatic(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].automatic; }
+unsigned tube_caption_revision(void) { return g_caption_revision; }
+void tube_caption_switch_cancel(void) {
+    if (!++g_caption_serial) ++g_caption_serial;
+    memset(&g_caption_switch, 0, sizeof g_caption_switch);
+}
+static int caption_switch_current(void) {
+    return caption_scope() && g_caption_switch.selection == g_selection_serial && (!g_caption_switch.owner ||
+        tube_remote_command_current(g_caption_switch.owner, g_caption_switch.sequence));
+}
+static void caption_switch_response(int ok, int status, const char *body, size_t size, void *ud) {
+    unsigned serial = (unsigned)(size_t)ud;
+    if (serial != g_caption_serial || g_caption_switch.phase != 1 || g_caption_switch.serial != serial) return;
+    g_caption_switch.phase = 3;
+    if (!caption_switch_current() || !ok || status != 200 || !body || size >= 2 * 1024 * 1024) return;
+    if (size && !body[size - 1]) --size;
+    if (!size || memchr(body, 0, size)) return;
+    char path[512], temporary[512];
+    copy(path, sizeof path, g_caption_switch.media);
+    size_t length = strlen(path); if (length < 4 || length > sizeof path - 9) return;
+    memcpy(path + length - 4, ".srt", 5);
+    memcpy(temporary, path, length); memcpy(temporary + length, ".tmp", 5);
+    FILE *file = fopen(temporary, "wb"); if (!file) return;
+    int success = fwrite(body, 1, size, file) == size;
+    if (fclose(file)) success = 0;
+    if (success && rename(temporary, path) == 0) g_caption_switch.phase = 2;
+    else remove(temporary);
+}
+int tube_caption_switch_begin(const char *language, unsigned owner, int sequence) {
+    if (!language || !caption_scope() || g_caption_switch.phase ||
+        (owner ? !tube_remote_command_current(owner, sequence) : sequence != 0)) return 0;
+    int index = -1;
+    for (int i = 0; i < g_caption_track_count; ++i) if (!strcmp(language, g_caption_tracks[i].language)) { index = i; break; }
+    if (index < 0) return 0;
+    char first[512]; copy(first, sizeof first, evo_data_path("caption-a.mp4"));
+    tube_caption_switch_cancel();
+    copy(g_caption_switch.media, sizeof g_caption_switch.media,
+        !strcmp(g_caption_path, first) ? evo_data_path("caption-b.mp4") : first);
+    if (strlen(g_caption_switch.media) > sizeof g_caption_switch.media - 9) { tube_caption_switch_cancel(); return 0; }
+    copy(g_caption_switch.language, sizeof g_caption_switch.language, language);
+    g_caption_switch.owner = owner; g_caption_switch.sequence = sequence; g_caption_switch.selection = g_selection_serial;
+    g_caption_switch.serial = g_caption_serial; g_caption_switch.deadline = now_ms() + 15000; g_caption_switch.phase = 1;
+    if (evo_net_request_async("GET", g_caption_tracks[index].url, NULL, NULL, 0,
+        caption_switch_response, (void *)(size_t)g_caption_serial)) { tube_caption_switch_cancel(); return 0; }
+    return 2;
+}
+static void caption_switch_tick(void) {
+    if (g_caption_switch.phase && !caption_switch_current()) tube_caption_switch_cancel();
+    else if (g_caption_switch.phase == 1 && now_ms() > g_caption_switch.deadline) {
+        g_caption_switch.phase = 3;
+        if (!++g_caption_serial) ++g_caption_serial; /* discard a late HTTP completion */
+    }
+}
+int tube_caption_switch_status(const char **media_path) {
+    if (media_path) *media_path = "";
+    caption_switch_tick();
+    if (g_caption_switch.phase == 2) {
+        if (media_path) *media_path = g_caption_switch.media;
+        return 1;
+    }
+    return g_caption_switch.phase == 1 ? 0 : -1;
+}
+void tube_caption_switch_finish(int applied) {
+    if (applied && g_caption_switch.phase == 2 && caption_switch_current()) {
+        copy(g_caption_path, sizeof g_caption_path, g_caption_switch.media);
+        copy(g_caption_language, sizeof g_caption_language, g_caption_switch.language);
+        ++g_caption_revision;
+    }
+    tube_caption_switch_cancel();
+}
+int tube_caption_switch_local(void) { return g_caption_switch.phase && !g_caption_switch.owner; }
 const char *tube_take_paid_content_notice(void) {
     if (!g_paid_notifications || g_paid_shown || !*g_paid_text || g_finished ||
         !*g_active_id || !*g_sb_source || strcmp(g_sb_source, g_source) ||
@@ -2627,7 +2737,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_remote_shutdown(); tube_cancel(); save(); }
+static void tube_shutdown(void) { tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
     .caps = EVO_PROVIDER_CAP_CATALOG | EVO_PROVIDER_CAP_SEARCH | EVO_PROVIDER_CAP_RESOLVE |

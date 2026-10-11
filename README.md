@@ -56,7 +56,9 @@ YouTube TV-code pairing, typed commands and playback-state feedback. Offline
 tests and a live temporary-receiver check passed. Native pairing settings and
 Lapy-backed identity persistence now have host coverage. The native player adapter
 implements queued launch, play/pause, fractional seek, next/previous, stop, volume,
-D-pad input and current-track captions. Startup acknowledgments and queue/EOF
+D-pad input and caption language selection. The subtitle picker can switch
+YouTube languages during playback using staged downloads and subtitle-engine
+validation. Startup acknowledgments and queue/EOF
 ownership have sanitizer coverage. Real phone/PS5 acceptance remains pending.
 The companion device-code backend now supports bounded polling,
 cancellation and private account/refresh persistence. Native Accounts & library >
@@ -179,7 +181,10 @@ the current playback. Channel/video memories are separate for each profile.
 R2 focuses a normal/last-speed toggle when one is available; Cross applies it.
 The remembered-speed list retains the 1,024 most recently changed overrides.
 Choose an audio/caption language before opening a video; this version resolves
-one selected audio track and downloads one preferred caption sidecar.
+one selected audio track and downloads one preferred caption sidecar. During
+playback, Down opens the subtitle picker with available YouTube languages.
+Switching captions preserves playback position and pause; failed downloads
+retain the previous track. Secondary YouTube captions remain to be implemented.
 Live sources have no seekable timeline. Soft close releases resources and parks
 the app; close it from the PS5 switcher afterward.
 

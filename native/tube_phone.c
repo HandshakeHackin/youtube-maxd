@@ -5,24 +5,30 @@
 #include <string.h>
 typedef struct {
     unsigned owner;
+    unsigned selection;
     int count, cursor, base;
     char videos[128][12], video[12], playlist[101], ctt[513];
 } PhoneQueue;
 static PhoneQueue current, proposed;
 static tube_remote_command pending;
-static unsigned serial, ticket;
+static unsigned serial, ticket, caption_selection;
 static int phase;
 static double resume;
 static tube_remote_player last;
 static unsigned last_owner;
-void tube_phone_clear(void) {
+static char remote_video[12];
+static unsigned remote_selection;
+static void clear_queue(void) {
     memset(&current, 0, sizeof current); memset(&proposed, 0, sizeof proposed);
     memset(&pending, 0, sizeof pending); phase = 0; ticket = 0;
     memset(&last, 0, sizeof last); last_owner = 0;
 }
+void tube_phone_clear(void) {
+    clear_queue(); remote_video[0] = 0; remote_selection = 0;
+}
 void tube_phone_cancel(void) {
     if (phase && pending.sequence) tube_remote_finish(pending.owner, pending.sequence, 0);
-    tube_phone_clear();
+    clear_queue();
 }
 static int launch_valid(void) {
     return phase && tube_remote_owner_current(pending.owner) &&
@@ -30,7 +36,7 @@ static int launch_valid(void) {
 }
 int tube_phone_launch_current(unsigned value) { return value && value == ticket && launch_valid(); }
 static void prune(void) {
-    if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) tube_phone_clear();
+    if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
 }
 static int find(const PhoneQueue *q, const char *id) {
     for (int i = 0; i < q->count; ++i) if (!strcmp(q->videos[i], id)) return i;
@@ -59,9 +65,9 @@ unsigned tube_phone_take(char video[12], double *position) {
     memcpy(video, proposed.video, 12); *position = resume; phase = 2; return ticket;
 }
 int tube_phone_launch_finish(unsigned value, int success) {
-    if (!tube_phone_launch_current(value)) { prune(); return 0; }
+    if (phase != 2 || !tube_phone_launch_current(value)) { prune(); return 0; }
     unsigned owner = pending.owner; int sequence = pending.sequence;
-    if (success) current = proposed;
+    if (success) { current = proposed; current.selection = 0; }
     phase = 0; ticket = 0;
     if (sequence) return tube_remote_finish(owner, sequence, success);
     return !!success;
@@ -74,10 +80,14 @@ static int advance(const tube_remote_command *c, int direction) {
 }
 int tube_phone_finished(void) {
     prune();
-    if (phase || !current.owner || strcmp(last.video, current.video)) return 0;
+    if (phase || !*remote_video || strcmp(last.video, remote_video) || last.selection != remote_selection) return 0;
+    if (!current.owner) { remote_video[0] = 0; return 1; }
     tube_remote_command c; memset(&c, 0, sizeof c); c.owner = current.owner;
-    if (!advance(&c, 1)) memset(&current, 0, sizeof current);
+    if (!advance(&c, 1)) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
     return 1; /* Remote EOF never removes an item from the saved local queue. */
+}
+int tube_phone_owns_media(void) {
+    prune(); return *remote_video && !strcmp(last.video, remote_video) && last.selection == remote_selection;
 }
 void tube_phone_tick(const tube_phone_controls *ctl) {
     if (!ctl || !ctl->snapshot) return;
@@ -92,7 +102,11 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         } else { p.video[0] = 0; p.position = p.duration = 0; p.state = -1; }
     }
     if (!phase && current.owner && active && strcmp(p.video, current.video)) memset(&current, 0, sizeof current);
+    if (current.owner && active && current.selection && current.selection != p.selection) memset(&current, 0, sizeof current);
+    if (*remote_video && active && (strcmp(p.video, remote_video) || p.selection != remote_selection)) remote_video[0] = 0;
     if (current.owner && active && !strcmp(p.video, current.video)) {
+        current.selection = p.selection;
+        memcpy(remote_video, p.video, sizeof remote_video); remote_selection = p.selection;
         memcpy(p.playlist, current.playlist, sizeof p.playlist); memcpy(p.ctt, current.ctt, sizeof p.ctt);
         p.index = current.base + (current.cursor < 0 ? 0 : current.cursor);
         if (p.index > 100000) p.index = 100000;
@@ -101,6 +115,12 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
     last = p;
     last_owner = tube_remote_current_owner();
     tube_remote_report(&p);
+    if (phase == 3) {
+        int result = active && p.selection == caption_selection && !strcmp(p.video, pending.video) && ctl->captions_status ? ctl->captions_status(ctl->context) : -1;
+        if (!result) return;
+        unsigned owner = pending.owner; int sequence = pending.sequence;
+        phase = 0; tube_remote_finish(owner, sequence, result > 0); return;
+    }
     if (phase) return;
     tube_remote_command c; if (!tube_remote_take(&c)) return;
     int applied = 0;
@@ -111,7 +131,7 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         return;
     }
     case TUBE_REMOTE_QUEUE:
-        if (active) current = playlist(&c, p.video);
+        if (active) { current = playlist(&c, p.video); current.selection = p.selection; }
         applied = 1; break;
     case TUBE_REMOTE_NEXT: case TUBE_REMOTE_PREVIOUS:
         if (active && !strcmp(p.video, current.video) && advance(&c, c.action == TUBE_REMOTE_NEXT ? 1 : -1)) {
@@ -126,7 +146,7 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         applied = active && ctl->seek && ctl->seek(ctl->context, c.position); break;
     case TUBE_REMOTE_STOP:
         applied = !active || (ctl->stop && ctl->stop(ctl->context));
-        if (applied) memset(&current, 0, sizeof current);
+        if (applied) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
         break;
     case TUBE_REMOTE_VOLUME: {
         double v = c.has_volume ? c.volume : p.volume + c.delta;
@@ -136,12 +156,17 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
     }
     case TUBE_REMOTE_DPAD: applied = ctl->key && ctl->key(ctl->context, c.key); break;
     case TUBE_REMOTE_CAPTIONS:
-        applied = active && (!*c.video || !strcmp(c.video, p.video)) && ctl->captions && ctl->captions(ctl->context, c.language); break;
+        if (active && (!*c.video || !strcmp(c.video, p.video)) && ctl->captions)
+            applied = ctl->captions(ctl->context, c.language, c.owner, c.sequence);
+        if (applied == 2) {
+            pending = c; memcpy(pending.video, p.video, sizeof pending.video); caption_selection = p.selection; phase = 3; ticket = 0; return;
+        }
+        applied = applied == 1; break;
     case TUBE_REMOTE_DISCONNECTED:
         applied = 1;
         if (ctl->stop_on_disconnect && active && current.owner == c.owner && !strcmp(p.video, current.video)) {
             applied = ctl->stop && ctl->stop(ctl->context);
-            if (applied) memset(&current, 0, sizeof current);
+            if (applied) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
         }
         break;
     case TUBE_REMOTE_QUERY: case TUBE_REMOTE_CONNECTED: case TUBE_REMOTE_DEVICES:

@@ -14,7 +14,21 @@ void tube_phone_sync_scope(void);
 int tube_phone_stop_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
+unsigned tube_phone_selection(void);
 const char *tube_phone_caption_language(void);
+/* Ephemeral tracks for the active source/profile/video. Main thread only. */
+int tube_caption_track_count(void);
+const char *tube_caption_track_language(int index);
+const char *tube_caption_track_name(int index);
+int tube_caption_track_automatic(int index);
+unsigned tube_caption_revision(void);
+/* 2=pending, 0=rejected. owner/sequence=0 for a local picker operation. */
+int tube_caption_switch_begin(const char *language, unsigned owner, int sequence);
+/* 0=pending, 1=ready, -1=failed/retired. Only apply ready files on the main thread. */
+int tube_caption_switch_status(const char **media_path);
+void tube_caption_switch_finish(int applied);
+void tube_caption_switch_cancel(void);
+int tube_caption_switch_local(void);
 /* Selected on-demand video speed in percent; main/UI thread only. */
 int tube_playback_speed(void);
 int tube_speed_count(void);

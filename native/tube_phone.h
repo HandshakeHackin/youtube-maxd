@@ -14,10 +14,12 @@ typedef struct {
     int (*stop)(void *);
     int (*volume)(void *, int);
     int (*key)(void *, const char *);
-    int (*captions)(void *, const char *);
+    /* 1=applied, 2=deferred; polling returns 0=pending, 1=applied, -1=failed. */
+    int (*captions)(void *, const char *, unsigned, int);
     void (*browser)(void *);
     /* Default keeps playback running if the phone disconnects. */
     int stop_on_disconnect;
+    int (*captions_status)(void *);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */
@@ -26,6 +28,7 @@ int tube_phone_launch_current(unsigned ticket);
 int tube_phone_launch_finish(unsigned ticket, int success);
 /* Called only after the decoder/presentation engine proves natural EOF. */
 int tube_phone_finished(void);
+int tube_phone_owns_media(void);
 void tube_phone_clear(void);
 void tube_phone_cancel(void);
 #ifdef __cplusplus

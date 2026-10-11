@@ -1,5 +1,33 @@
 # Offline validation record — 0.1.0
 
+## Caption language selection and playback ownership — 2026-10-10
+
+The actual subtitle picker and phone adapter share a scoped, asynchronous caption
+switch. Up to 256 validated tracks retain human/automatic identity. Downloads use
+alternating inactive SRT files; only successful parsing and selection by EVO's
+subtitle engine updates the current language. The bridge preserves pause, clock
+and timing adjustments without reopening media. File, transport, timeout and
+scope failures preserve the previous track, and late callbacks cannot overwrite
+a new attempt. Manual reopening of the same ID retires a pending switch.
+
+Shipping provider and phone adapter ASan/UBSan tests passed
+(`.deps/caption-switch-tests.*`, exit 0). The real subtitle engine passed 83 checks
+including successful French selection and failed-track rollback
+(`.deps/caption-switch-engine-tests.*`, exit 0); 44 companion tests passed,
+including catalogs beyond 32 tracks and human-track precedence
+(`.deps/caption-switch-companion-tests.*`, exit 0). Connected provider/driver/adapter,
+Application, PlayerScreen and SubtitlePickerScreen compiled with the pinned PS5 SDK
+(`.deps/caption-switch-ps5-objects.*`, exit 0). All nine provider regressions and
+PS5 pairing/storage sanitizer tests passed after the final scope edits
+(`.deps/caption-switch-native-regression.*` and
+`.deps/caption-switch-phone-provider.*`, exit 0). Full packaging and console
+acceptance remain pending; secondary YouTube caption selection remains open.
+
+Remote playback ownership survives receiver retirement so natural EOF cannot
+consume a saved local queue item. Manual reopening of the same video starts a new
+logical selection and releases that ownership. Recovery retains the selection.
+Phone tests cover retired-receiver EOF, one-time completion and same-ID reopening.
+
 - 2026-10-10 | casting | 0b02a137 | PS5 | failed: unsupported screenshot NLST after pairing/remote start; exact release and original data restore passed | .deps/phone-player-rng-* | use supported MLSD
 
 The actual UI now generates and durably saves the PS5 pairing identity and screen;

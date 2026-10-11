@@ -97,15 +97,20 @@ The native player adapter now executes playlist launch through EVO's existing
 resolver/fallback/worker path. It acknowledges only after successful startup,
 keeps fractional offsets, rejects retired owners and reports the actual selected
 profile/source player. Play/pause, pause-preserving seek admission, stop,
-next/previous, queue replacement, PCM volume, D-pad and current-track caption
-enable/disable are connected. A separate ephemeral phone queue preserves the
+next/previous, queue replacement, PCM volume, D-pad and caption selection
+are connected. Caption language changes fetch a validated track into an inactive
+SRT file and acknowledge only after the actual subtitle engine parses and selects
+it. Failed, timed-out or retired requests preserve the current track. The operation
+is bound to the logical playback selection, including when the same video is
+manually reopened. The local subtitle picker uses the same staged operation.
+A separate ephemeral phone queue preserves the
 saved local queue and advances after proven presentation EOF. Playlist windows
 retain the sender's global index and click-tracking parameters.
 
 Volume scales the final S16 output with an atomic main/audio-thread gain; mute
 does not change the media clock or retirement accounting. Unknown caption
 languages and voice capture are not silently acknowledged. Voice capture/search,
-caption-language switching and playlist continuation beyond the supplied 128-ID
+secondary YouTube caption selection and playlist continuation beyond the supplied 128-ID
 window still need implementation. The saved disconnect choice defaults to keeping
 playback running; opt-in stop applies only to the current phone-owned video and
 clears its ephemeral queue. It returns to the browser without exiting the PS5 app.

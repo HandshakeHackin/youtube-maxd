@@ -65,7 +65,7 @@ void ProviderHostScreen::startSelected()''')
     replace(player + 'core/include/evo/screens/ProviderHostScreen.hpp', '    void setNavigatingToPlayer(bool b)', '    static bool playbackStartupBusy();\n    void setNavigatingToPlayer(bool b)')
     app = player + 'core/src/Application.cpp'
     replace(app, '        evo_net_poll();', '        tube_phone_sync_scope(); /* retire changed profiles before resolver callbacks */\n        evo_net_poll();')
-    replace(app, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_phone.h"\n#include "evo_audio_out.h"')
+    replace(app, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_phone.h"\n#include "tube_caption_apply.h"\n#include "evo_audio_out.h"\n#include "evo_toast.h"')
     replace(app, '        tube_poll();', '''        tube_poll();
         if (!ProviderHostScreen::playbackStartupBusy()) {
             tube_phone_controls phone{};
@@ -76,8 +76,9 @@ void ProviderHostScreen::startSelected()''')
                 p->volume = evo_audio_volume(); p->muted = p->volume == 0;
                 if (!pb || !pb->isActive() || !tube_phone_video(pb->getCurrentFilePath().c_str(), p->video)) return 0;
                 p->position = pb->getPositionSeconds(); p->duration = pb->getDurationSeconds();
+                p->selection = tube_phone_selection();
                 p->state = pb->isPaused() ? 2 : pb->getPlaybackState() == PlaybackState::Finished ? 0 : 1;
-                if (prospero_subtitle_enabled) std::snprintf(p->language, sizeof p->language, "%s", tube_phone_caption_language());
+                if (prospero_subtitle_enabled && prospero_subtitle_count) std::snprintf(p->language, sizeof p->language, "%s", tube_phone_caption_language());
                 return 1;
             };
             phone.pause = [](void* ctx, int paused) -> int {
@@ -107,22 +108,31 @@ void ProviderHostScreen::startSelected()''')
                     : !std::strcmp(key, "ENTER") ? PadButtons::Cross : PadButtons::Circle;
                 sm->handleInput(button, button, 0); sm->handleInput(0, 0, button); return 1;
             };
-            phone.captions = [](void*, const char* language) -> int {
+            phone.captions = [](void*, const char* language, unsigned owner, int sequence) -> int {
                 if (!*language) { prospero_subtitle_enabled = 0; return 1; }
-                if (!prospero_subtitle_count || std::strcmp(language, tube_phone_caption_language())) return 0;
-                prospero_subtitle_enabled = 1; return 1;
+                if (prospero_subtitle_count && !std::strcmp(language, tube_phone_caption_language())) {
+                    return prospero_subtitle_select_primary(-1);
+                }
+                return tube_caption_switch_begin(language, owner, sequence);
             };
+            phone.captions_status = [](void*) -> int { return tube_caption_apply_ready(); };
             phone.browser = [](void* ctx) {
                 auto sm = static_cast<Application*>(ctx)->getScreenManager(); if (!sm) return;
                 ProviderHostScreen::setPendingProvider("youtube");
                 if (sm->getCurrentScreenId() == ScreenId::Player) sm->returnFromPlayback();
                 else if (sm->getCurrentScreenId() != ScreenId::EmbyBrowse) sm->navigateTo(ScreenId::EmbyBrowse);
             };
+            if (tube_caption_switch_local()) {
+                tube_remote_player current{};
+                int result = phone.snapshot(this, &current) ? tube_caption_apply_ready() : -1;
+                if (result < 0) { tube_caption_switch_cancel(); toast("CAPTIONS", "Couldn't load this language"); }
+                else if (result > 0) toast("CAPTIONS", tube_phone_caption_language());
+            }
             tube_phone_tick(&phone);
         }''')
     screen = player + 'core/src/screens/PlayerScreen.cpp'
     replace(screen, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_phone.h"')
-    replace(screen, 'if (ended && tube_finish_drained_and_next(playback->getPositionSeconds()))', 'if (ended && (tube_phone_finished() || tube_finish_drained_and_next(playback->getPositionSeconds())))')
+    replace(screen, 'if (ended && tube_finish_drained_and_next(playback->getPositionSeconds()))', 'if (ended && (tube_phone_finished() || (!tube_phone_owns_media() && tube_finish_drained_and_next(playback->getPositionSeconds()))))')
     audio = player + 'media/src/evo_audio_out.c'
     replace(audio, '#include "evo_audio_out.h"', '#include "evo_audio_out.h"\n#include "tube_volume.h"')
     replace(audio, 'static int16_t audio_queue[', '''static int tube_volume = 100;

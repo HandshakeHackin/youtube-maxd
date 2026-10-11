@@ -20,6 +20,7 @@ typedef struct {
 } tube_remote_command;
 typedef struct {
     char video[12], playlist[101], ctt[513], language[33], vss_id[65];
+    unsigned selection; /* Native-only selection identity; never serialized to Lounge. */
     int state, index, volume, muted, previous, next;
     double position, duration;
 } tube_remote_player;

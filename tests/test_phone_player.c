@@ -6,16 +6,28 @@
 #include "tube_volume.h"
 static tube_remote_player engine;
 static int active, browsed, stopped, keys, reject_seek;
+static int deferred_caption, caption_result, caption_polls;
+static char deferred_language[33];
 static double sought;
+static unsigned selection_serial;
 static int snapshot(void *ctx, tube_remote_player *p) { (void)ctx; *p = engine; return active; }
 static int pause_engine(void *ctx, int paused) { (void)ctx; engine.state = paused ? 2 : 1; return active; }
 static int seek_engine(void *ctx, double position) { (void)ctx; if (reject_seek) return 0; sought = engine.position = position; return active; }
 static int stop_engine(void *ctx) { (void)ctx; active = 0; ++stopped; return 1; }
 static int volume_engine(void *ctx, int value) { (void)ctx; engine.volume = value; engine.muted = !value; return 1; }
 static int key_engine(void *ctx, const char *key) { (void)ctx; assert(!strcmp(key, "ENTER")); ++keys; return 1; }
-static int caption_engine(void *ctx, const char *lang) { (void)ctx; snprintf(engine.language, sizeof engine.language, "%s", lang); return 1; }
+static int caption_engine(void *ctx, const char *lang, unsigned owner, int sequence) {
+    (void)ctx; assert(tube_remote_command_current(owner,sequence));
+    if (deferred_caption) { snprintf(deferred_language,sizeof deferred_language,"%s",lang); return 2; }
+    snprintf(engine.language, sizeof engine.language, "%s", lang); return 1;
+}
+static int caption_status(void *ctx) {
+    (void)ctx; ++caption_polls;
+    if (caption_result > 0) strcpy(engine.language,deferred_language);
+    return caption_result;
+}
 static void browser(void *ctx) { (void)ctx; ++browsed; }
-static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0};
+static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status};
 static int64_t test_clock = 100000;
 static void cleanup(void) {
     tube_remote_shutdown(); tube_phone_clear();
@@ -28,6 +40,7 @@ static void cleanup(void) {
 static void feed(const char *commands) {
     cleanup(); memset(&engine,0,sizeof engine); engine.volume = 100; engine.duration = 300; engine.state = 1;
     active = browsed = stopped = keys = reject_seek = 0;
+    deferred_caption = caption_result = caption_polls = 0;
     test_clock += 10000; configure(1,"guest",identity,"screen-123"); remote_bind(test_clock);
     tube_remote_tick(test_clock + 1); poll_reply(0,commands); assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
 }
@@ -38,6 +51,7 @@ static unsigned take_start(const char *id, double position) {
 }
 static void started_video(unsigned value, const char *id) {
     snprintf(engine.video,sizeof engine.video,"%s",id); active = 1; engine.position = 0;
+    engine.selection = ++selection_serial;
     assert(tube_phone_launch_finish(value,1)); assert(!tube_phone_launch_finish(value,1));
 }
 static void feedback(int index, int previous, int next) {
@@ -118,7 +132,43 @@ static void test_disconnect_policy(void) {
     active = 1; strcpy(engine.video,"abcdefghijk"); tube_phone_tick(&controls); assert(active && !stopped);
     controls.stop_on_disconnect = 0;
 }
+static void test_deferred_caption(void) {
+    const char *commands = "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLtest\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"},{\"sequence\":2,\"action\":\"setSubtitlesTrack\",\"video_id\":\"abcdefghijk\",\"language\":\"fr\"},{\"sequence\":3,\"action\":\"pause\"}]";
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    deferred_caption = 1; strcpy(engine.language,"en"); engine.position = 42.125; engine.state = 2;
+    tube_phone_tick(&controls); tube_remote_command c;
+    assert(tube_remote_take(&c) && c.sequence == 2 && !caption_polls);
+    tube_phone_tick(&controls); assert(caption_polls == 1 && !strcmp(engine.language,"en"));
+    assert(engine.state == 2 && engine.position == 42.125 && tube_phone_owns_media());
+    assert(!tube_phone_finished()); /* The Player's ownership guard suppresses local EOF while deferred. */
+    caption_result = 1; tube_phone_tick(&controls);
+    assert(!strcmp(engine.language,"fr") && engine.state == 2 && engine.position == 42.125);
+    assert(tube_remote_take(&c) && c.sequence == 3); tube_phone_tick(&controls);
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    deferred_caption = 1; strcpy(engine.language,"en"); tube_phone_tick(&controls);
+    caption_result = -1; tube_phone_tick(&controls);
+    assert(tube_remote_state() == TUBE_REMOTE_FAILED && !strcmp(engine.language,"en"));
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    deferred_caption = 1; tube_phone_tick(&controls);
+    configure(1,"retired-profile",identity,"screen-123"); tube_phone_tick(&controls); assert(!caption_polls);
+    /* Reopening the same ID must not apply the old phone's pending language. */
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    deferred_caption = 1; strcpy(engine.language,"en"); tube_phone_tick(&controls);
+    engine.selection = ++selection_serial; caption_result = 1; tube_phone_tick(&controls);
+    assert(!caption_polls && !strcmp(engine.language,"en") && tube_remote_state() == TUBE_REMOTE_FAILED);
+}
+static void test_retired_receiver_eof(void) {
+    const char *commands = "[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLtest\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"}]";
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); assert(tube_phone_owns_media());
+    configure(0,"guest",identity,"screen-123"); tube_phone_tick(&controls);
+    assert(tube_phone_owns_media() && tube_phone_finished()); assert(!tube_phone_finished());
+    /* A manual reopening of the same video is a new selection, not remote-owned. */
+    feed(commands); tube_phone_tick(&controls); started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls); engine.selection = ++selection_serial; tube_phone_tick(&controls);
+    assert(!tube_phone_owns_media() && !tube_phone_finished());
+}
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); cleanup();
+    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }
