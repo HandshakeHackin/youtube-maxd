@@ -1,7 +1,7 @@
 /* Profile-owned preferences. Companion pairing and remote identity are device-owned. */
 #define SETTINGS_PROFILES 128
 typedef struct {
-    int height, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_sync, paid_notifications, dearrow_titles, dearrow_thumbnails;
+    int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_sync, paid_notifications, dearrow_titles, dearrow_thumbnails;
     int speed, last_speed, speed_mode;
     char language[16], audio_language[16];
     tube_sb_policy sb;
@@ -17,6 +17,7 @@ static ProfileSettings profile_settings_capture(void) {
     ProfileSettings p;
     p.speed = g_speed; p.last_speed = g_last_speed; p.speed_mode = g_speed_mode;
     p.height = g_height;
+    p.max_fps = g_max_fps;
     p.codec = g_codec;
     p.captions = g_captions;
     p.auto_captions = g_auto_captions;
@@ -35,6 +36,7 @@ static ProfileSettings profile_settings_capture(void) {
 static void profile_settings_apply(const ProfileSettings *p) {
     g_speed = p->speed; g_last_speed = p->last_speed; g_speed_mode = p->speed_mode;
     g_height = p->height;
+    g_max_fps = p->max_fps;
     g_codec = p->codec;
     g_captions = p->captions;
     g_auto_captions = p->auto_captions;
@@ -81,6 +83,7 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->last_speed = valid_speed(last) ? (int)last : 100;
     p->speed_mode = settings_integer(root,"speed_memory_mode",0,3,1);
     p->height = settings_integer(root,"max_height",144,2160,1080);
+    p->max_fps = settings_integer(root,"max_fps",0,60,0);
     p->codec = settings_integer(root,"codec",0,3,0);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"captions"))) p->captions = boolean(root,"captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"automatic_captions"))) p->auto_captions = boolean(root,"automatic_captions");
@@ -132,6 +135,7 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddNumberToObject(row,"last_speed_percent",p->last_speed);
         cJSON_AddNumberToObject(row,"speed_memory_mode",p->speed_mode);
         cJSON_AddNumberToObject(row,"max_height",p->height);
+        cJSON_AddNumberToObject(row,"max_fps",p->max_fps);
         cJSON_AddNumberToObject(row,"codec",p->codec);
         cJSON_AddBoolToObject(row,"captions",p->captions);
         cJSON_AddBoolToObject(row,"automatic_captions",p->auto_captions);

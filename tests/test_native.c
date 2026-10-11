@@ -133,10 +133,12 @@ int main(void) {
     p->list_catalog("settings:sponsor", 0, items_cb, NULL);
     p->list_catalog("settings:captions", 0, items_cb, NULL); /* avoid a caption request in this fixture */
     for(int i=0;i<3;++i)p->list_catalog("settings:codec",0,items_cb,NULL);
+    p->list_catalog("settings:frame-rate:30",0,items_cb,NULL);
     assert(p->resolve("invalid", resolve_cb, NULL) < 0);
     assert(p->resolve("abcdefghijk", resolve_cb, NULL) == 0);
     assert(strstr(pending[0].body, "\"profile\":\"guest\""));
     assert(strstr(pending[0].body, "\"codec\":\"av1\""));
+    assert(strstr(pending[0].body, "\"max_fps\":30"));
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"label\":\"1080p\",\"container\":\"dash\",\"height\":1080,\"video_codec\":\"av1\",\"audio_codec\":\"aac\"}],\"chapters\":[{\"start\":0},{\"start\":20},{\"start\":60}]}}");
     assert(resolve_calls == 1 && last_ok && pending_count == 1);
     reply(0, 1, 200, "{\"segments\":[{\"start\":10,\"end\":20},{\"start\":15,\"end\":30},{\"start\":29,\"end\":40}]}");

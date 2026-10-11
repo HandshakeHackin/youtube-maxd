@@ -21,8 +21,19 @@ int main(void) {
     char dir[]="/tmp/tube-profile-settings-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     const evo_provider_t *p=&evo_provider_youtube; assert(!p->init());
+    action("settings:quality"); assert(last_count==8);
+    const int heights[]={144,240,360,480,720,1080,1440,2160};
+    for(int i=0;i<8;++i) {
+        char id[64]; snprintf(id,sizeof id,"settings:quality:%d",heights[i]);action(id);
+        check(heights[i],1,0,0,0,0,"en");
+    }
+    action("settings:quality:1080");action("settings:frame-rate");assert(last_count==3);
+    action("settings:frame-rate:30");
+    const char *invalid[]={"settings:quality:","settings:quality:1080junk","settings:quality:9999999999999999999",
+        "settings:quality:1000","settings:frame-rate:","settings:frame-rate:30junk","settings:frame-rate:61"};
+    for(unsigned i=0;i<sizeof invalid/sizeof *invalid;++i){p->list_catalog(invalid[i],0,items_cb,NULL);assert(!last_ok);}
     action("settings:remote:disconnect"); assert(tube_phone_stop_on_disconnect());
-    action("settings:quality"); action("settings:captions"); action("settings:sponsor");
+    action("settings:quality:1440"); action("settings:captions"); action("settings:sponsor");
     action("settings:autoplay"); action("settings:player-chat"); action("settings:sleep:60");
     action("settings:lang:fr"); action("settings:audio:de"); action("settings:codec"); action("settings:codec"); action("settings:codec");
     action("settings:automatic"); action("settings:sb:paid"); action("settings:dearrow:titles");
@@ -30,14 +41,18 @@ int main(void) {
     action("settings:sb:exclude:UCabcdefghijklmnopqrstuv");
     check(1440,0,1,1,1,60,"fr");
     action("library:profile:alice"); check(1080,1,0,0,0,0,"en");
+    cJSON *fps_store=read_store();assert(cJSON_GetObjectItem(fps_store,"max_fps")->valueint==0);cJSON_Delete(fps_store);
+    action("settings:frame-rate:60");
     assert(tube_phone_stop_on_disconnect());
-    action("settings:quality"); action("settings:quality"); action("settings:sleep:120");
+    action("settings:quality:2160"); action("settings:sleep:120");
     action("settings:lang:es"); check(2160,1,0,0,0,120,"es");
     p->shutdown(); assert(!p->init()); action("library"); check(2160,1,0,0,0,120,"es");
+    fps_store=read_store();assert(cJSON_GetObjectItem(fps_store,"max_fps")->valueint==60);cJSON_Delete(fps_store);
     action("library:profile:guest"); check(1440,0,1,1,1,60,"fr");
     cJSON *root=read_store(), *rows=cJSON_GetObjectItem(root,"profile_settings");
     cJSON *guest=cJSON_GetArrayItem(rows,0);
     assert(cJSON_GetObjectItem(guest,"codec")->valueint==3);
+    assert(cJSON_GetObjectItem(guest,"max_fps")->valueint==30);
     assert(!strcmp(cJSON_GetObjectItem(guest,"audio_language")->valuestring,"de"));
     assert(cJSON_IsTrue(cJSON_GetObjectItem(guest,"automatic_captions")));
     assert(cJSON_IsTrue(cJSON_GetObjectItem(guest,"paid_content_notifications")));
@@ -75,7 +90,7 @@ int main(void) {
     root=read_store(); assert(cJSON_GetArraySize(cJSON_GetObjectItem(root,"profile_settings"))==128);
     cJSON_Delete(root); p->shutdown();
     /* Reinitializing a removed store must not retain the previous profile/settings/source. */
-    unlink(evo_data_path("youtube.json")); assert(!p->init()); action("settings:quality");
+    unlink(evo_data_path("youtube.json")); assert(!p->init()); action("settings:quality:1440");
     check(1440,1,0,0,0,0,"en"); root=read_store();
     assert(!strcmp(cJSON_GetObjectItem(root,"library_profile")->valuestring,"guest"));
     assert(!*cJSON_GetObjectItem(root,"source")->valuestring); cJSON_Delete(root);

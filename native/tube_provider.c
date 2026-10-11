@@ -82,7 +82,7 @@ static char g_active_profile[33], g_next_profile[33];
  * before asynchronous work; queue entries retain the origin of their insertion. */
 static int g_browse_music, g_browse_queue, g_resolved_music;
 static struct { char id[160], profile[33]; int music, automatic; } g_launch_origin;
-static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
+static int g_height = 1080, g_max_fps, g_codec, g_auto_captions, g_captions = 1;
 static int g_speed = 100;
 /* Modes: all videos, per channel, per video, this session only. */
 static int g_speed_mode = 1, g_last_speed = 100;
@@ -684,6 +684,7 @@ static void save(void) {
     cJSON_AddStringToObject(root, "source", g_source);
     cJSON_AddStringToObject(root, "token", g_token);
     cJSON_AddNumberToObject(root, "max_height", g_height);
+    cJSON_AddNumberToObject(root, "max_fps", g_max_fps);
     cJSON_AddNumberToObject(root, "speed_percent", g_speed);
     cJSON_AddNumberToObject(root, "last_speed_percent", g_last_speed);
     cJSON_AddNumberToObject(root, "speed_memory_mode", g_speed_mode);
@@ -890,6 +891,7 @@ static int init(void) {
     copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
     player_preferences_load(root);
     g_height = settings_integer(root,"max_height",144,2160,1080);
+    g_max_fps = settings_integer(root,"max_fps",0,60,0);
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
     speed_load(root);
@@ -2145,8 +2147,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_speed_mode = 0;
             if (!strcmp(g_speed_session_profile,g_library_profile)) g_speed_session_id[0] = 0;
             tube_set_playback_speed((int)speed);
-        } else if (!strcmp(parent, "settings:quality")) {
-            g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
+        } else if (!strncmp(parent, "settings:quality:", 17)) {
+            char *end; long height = strtol(parent + 17, &end, 10);
+            if (!*(parent + 17) || *end || (height != 144 && height != 240 && height != 360 && height != 480 &&
+                height != 720 && height != 1080 && height != 1440 && height != 2160)) { cb(0,NULL,0,0,ud); return 1; }
+            g_height = (int)height; save();
+        } else if (!strncmp(parent, "settings:frame-rate:", 20)) {
+            char *end; long fps = strtol(parent + 20, &end, 10);
+            if (!*(parent + 20) || *end || (fps != 0 && fps != 30 && fps != 60)) { cb(0,NULL,0,0,ud); return 1; }
+            g_max_fps = (int)fps; save();
         } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 4; save(); }
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
@@ -2341,6 +2350,19 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             folder(&out[n++], "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             folder(&out[n++], "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+        } else if (!strcmp(parent,"settings:quality")) {
+            const int heights[] = {144,240,360,480,720,1080,1440,2160};
+            for (int i=0;i<8;++i) {
+                char id[64],label[64]; snprintf(id,sizeof id,"settings:quality:%d",heights[i]);
+                snprintf(label,sizeof label,"Up to %dp",heights[i]);
+                folder(&out[n++],id,label,g_height==heights[i]?"Selected":"Maximum resolution for the next video");
+            }
+        } else if (!strcmp(parent,"settings:frame-rate")) {
+            const int rates[]={0,30,60}; const char *labels[]={"Frame rate: automatic","Up to 30 fps","Up to 60 fps"};
+            for (int i=0;i<3;++i) {
+                char id[64]; snprintf(id,sizeof id,"settings:frame-rate:%d",rates[i]);
+                folder(&out[n++],id,labels[i],g_max_fps==rates[i]?"Selected":"Require known frame rate within this limit for the next video");
+            }
         } else if (!strcmp(parent,"settings:player-ok")) {
             const char *labels[] = {"Show controls", "Show controls and pause", "Pause only", "Toggle playback speed"};
             for (int i = 0; i < 4; ++i) {
@@ -2379,7 +2401,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for (int i = 0; i < 10; ++i) { char id[64]; snprintf(id, sizeof id, "%s%s", !strcmp(parent, "settings:languages") ? "settings:lang:" : "settings:audio:", langs[i]); folder(&out[n++], id, langs[i], "Select this language for the next video"); }
         } else {
             char label[96]; snprintf(label, sizeof label, "Maximum quality: %dp", g_height);
-            folder(&out[n++], "settings:quality", label, "Cycle 720 / 1080 / 1440 / 2160; console validation pending");
+            folder(&out[n++], "settings:quality", label, "Choose maximum resolution from 144p to 2160p");
+            if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
+            else copy(label,sizeof label,"Frame rate: automatic");
+            folder(&out[n++],"settings:frame-rate",label,"Save a frame-rate limit for this profile");
             snprintf(label, sizeof label, "Speed for all videos: %.3gx", g_speed / 100.0);
             folder(&out[n++], "settings:speed", g_speed_mode == 0 ? label : "Choose a speed for all videos", "Select a speed and enable all-videos memory");
             const char *speed_modes[] = {"all videos", "each channel", "each video", "this playback only"};
@@ -2669,8 +2694,8 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
         r->music_origin = g_launch_origin.music;
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     snprintf(r->payload, sizeof r->payload,
-        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
-        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : g_codec == 3 ? "av1" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
+        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"max_fps\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
+        id, g_library_profile, g_height, g_max_fps, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : g_codec == 3 ? "av1" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
     begin(r); return 0;
 }
 

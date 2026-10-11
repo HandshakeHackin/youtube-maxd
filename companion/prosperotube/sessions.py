@@ -125,6 +125,7 @@ class Sessions:
             return (fmt.get("url") and codec in {"h264", "vp9", "av1"}
                     and (request.codec == "auto" or codec == {"avc": "h264", "vp9": "vp9", "av1": "av1"}.get(request.codec))
                     and 0 < number(fmt.get("height")) <= request.max_height
+                    and (not request.max_fps or 0 < number(fmt.get("fps")) <= request.max_fps)
                     and fmt.get("dynamic_range", "SDR") in (None, "SDR")
                     and not fmt.get("has_drm"))
 
@@ -183,9 +184,11 @@ class Sessions:
             else:
                 continue
             seen.add(key)
-            choices.append(Choice(url=url, label=f"{height}p {vcodec.upper()} / {acodec.upper()}",
+            fps = max(0, number(fmt.get("fps")))
+            rate_label = f" {fps:g} fps" if fps else ""
+            choices.append(Choice(url=url, label=f"{height}p{rate_label} {vcodec.upper()} / {acodec.upper()}",
                                   container=container, video_codec=vcodec, audio_codec=acodec,
-                                  width=int(number(fmt.get("width"))), height=height,
+                                  width=int(number(fmt.get("width"))), height=height, fps=fps,
                                   bitrate_bps=int(number(fmt.get("tbr")) * 1000), is_live=live,
                                   audio_channels=2))
         if not choices:

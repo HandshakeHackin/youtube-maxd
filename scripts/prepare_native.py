@@ -221,6 +221,8 @@ def main():
     apply_phone_exit_overlay(replace, player)
     from sleep_timer_overlay import apply_sleep_timer_overlay
     apply_sleep_timer_overlay(replace, player)
+    from quality_preferences_overlay import apply_quality_preferences_overlay
+    apply_quality_preferences_overlay(replace, player)
     from player_controls_overlay import apply_player_controls_overlay
     apply_player_controls_overlay(replace, player)
     from seek_controls_overlay import apply_seek_controls_overlay

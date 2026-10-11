@@ -1,5 +1,34 @@
 # Offline validation record — 0.1.0
 
+## Resolution and frame-rate preferences — 2026-10-11
+
+The maximum-quality cycle is replaced by an explicit eight-choice submenu:
+144, 240, 360, 480, 720, 1080, 1440 and 2160 lines. A separate per-profile
+frame-rate menu provides Automatic, up to 30 fps and up to 60 fps. Both apply
+to subsequent resolution requests. Existing profiles default to Automatic.
+The companion request accepts strict integer `max_fps` from 0 through 60;
+0 disables this constraint. Explicit limits reject formats without a known
+positive rate and formats above the limit before transport selection. Choices
+now return `fps` and display the known rate in their existing native label.
+Resolution/frame-rate constraints remain combined with codec, SDR and transport
+eligibility; this is not yet complete SmartTube video-preset parity.
+
+Validation:
+- 92 service tests passed across the quality, AV1 and companion suites. After
+  adding two transport cases, the expanded 37-case quality suite passed,
+  covering eight heights, all three codecs, fractional rates, unknown/excessive
+  rates, invalid inputs, progressive MP4 and live HLS (94 distinct service
+  cases across these runs).
+- Native provider and profile-settings ASan/UBSan suites pass, including actual
+  resolve JSON, all eight selectors, malformed actions, profile isolation and
+  persistence/reload. Actual RmlUi navigation confirms both submenus push and
+  retain their folder level through selection.
+- PS5 SDK compilation of provider and provider UI passes; existing SDK math
+  warnings remain. Ignored evidence: `.deps/quality-limits-{service,formats,
+  native,ui,sdk}.log`, `.deps/quality-limits.result` and
+  `.deps/quality-limits-ui.result` (both `0`). No new package freeze or console
+  playback/performance acceptance is claimed.
+
 ## Phone natural-EOF command priority — 2026-10-11
 
 Automatic advance to an already-loaded phone playlist item now checks for queued
