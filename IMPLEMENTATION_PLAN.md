@@ -5,9 +5,11 @@ Current consolidated progress: [implemented, tested and missing](docs/STATUS.md)
 Current offline batch: optional native phone fallback callbacks and handoff state
 pass adapter/driver sanitizer tests, including ownership, cancellation and queue
 extension priority. Repeated terminal replies preserve the original deadline.
-Next connect provider metadata and verified fallback-group traversal, then validate
-the generated application and PS5 objects offline. The service discovery path is
-tested; end-to-end phone fallback and a refreshed final package remain open.
+Provider metadata, verified fallback-group traversal and application callbacks are
+now connected. Host integration covers the driver through the next launch ticket
+and saved-record isolation. Next preserve returned playlist occurrence context,
+including same-ID successors at distinct positions. Real-service/phone acceptance
+and a refreshed final package remain open.
 
 Related-video browsing now connects the native video menu to the profile-owned
 WatchNext catalog, with watched filtering, chip-filter/section folders and retained group

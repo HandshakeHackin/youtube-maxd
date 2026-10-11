@@ -19,6 +19,9 @@ int tube_phone_close_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);
 unsigned tube_phone_selection(void);
+/* Remote-only asynchronous next metadata and verified suggestion traversal. */
+int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,char next[12]);
+void tube_phone_recommendation_cancel(void);
 const char *tube_phone_caption_language(void);
 /* Ephemeral tracks for the active source/profile/video. Main thread only. */
 int tube_caption_track_count(void);

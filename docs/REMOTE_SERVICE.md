@@ -203,6 +203,12 @@ extensions, rejects stale/invalid results, and bounds lookup to 30 seconds.
 Repeated terminal replies cannot extend that deadline. The adapter/driver sanitizer
 suite covers these paths; the adapter does not access the saved local queue.
 
-The provider and application do not yet supply the callbacks or consume the
-fallback group. End-to-end phone autoplay remains incomplete. Console acceptance
-is deferred until the final candidate.
+The provider and application now supply the callbacks. A separate scoped job reads
+remote next metadata, verifies the fallback group's anchor and finite bounds, and
+scans verified identities/names across windows. Existing autoplay endpoints remain
+authoritative; a blocked endpoint does not cause arbitrary suggestion substitution.
+Receiver, playback, profile, source and block-policy changes retire stale results.
+Host integration covers a receiver command through EOF and a new launch ticket,
+with unchanged saved local records. The callback currently returns only a video ID;
+returned playlist context and distinct same-ID occurrences still need propagation.
+Real-service and console acceptance are deferred until the final candidate.

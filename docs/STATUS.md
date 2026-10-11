@@ -6,14 +6,13 @@ This document summarizes current evidence; older candidate entries are historica
 
 ## Current checkpoint
 
-The source checkpoint `0db6a22` preserved the unfinished native phone-recommendation
-adapter. The following batch fixes queue-less anchor bounds and repeated-terminal
-reply handling, and passes the shipping phone/driver ASan/UBSan suite with expanded
-asynchronous lookup tests. Optional callbacks handle natural EOF, cancellation,
-timeouts and authoritative queue extensions. Provider/application callbacks remain
-unconnected, so this does not establish working phone fallback. The tested service
-baseline is `1ac8bb5`; its evidence is listed below. Next: integrate verified provider
-lookup and run offline integration checks. No new release package is ready.
+The phone fallback adapter from `891ddf8` now has provider lookup and application
+callbacks. Remote-only next metadata can return a verified suggestion group; native
+traversal skips blocked identities and names without changing saved queue records.
+Host integration covers receiver commands through EOF, service jobs and a new launch
+ticket. Full occurrence-context parity still needs work: the callback currently
+returns a video ID and does not carry a returned playlist occurrence or permit a
+same-ID successor at a distinct playlist position. No new release package is ready.
 
 ## Implemented
 
@@ -37,14 +36,14 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Latest worker baseline: 145 tests and bundle build passed, including remote-only fallback discovery and verified channel-name replacement. The targeted Python request/library/occurrence suite passes 55 tests. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
 - After resuming, all 31 default native ASan/UBSan cases passed, including groups, progress, queues and channel-name blocks. The following related-video/filter batches passed four scoped native suites, PS5 provider compilation and expanded actual RmlUi folder/video selection; the full baseline predates that batch. Transient empty-row and empty-width warnings remain in the UI log.
 - Recent browsing-group/filter/progress changes have no console acceptance. No console was contacted during this offline phase.
-- The latest phone adapter/real-driver suite passes with ASan, UBSan and leak detection, including pending lookup feedback, invalid results, receiver/profile/selection retirement, control priority, terminal refill and queue-less extension. No SDK, application integration or hardware result covers the optional recommendation callbacks yet.
+- The latest phone adapter/real-driver suite passes with ASan, UBSan and leak detection. Four scoped provider suites also pass, including integrated phone EOF through verified fallback to a launch ticket with unchanged saved records. PS5 SDK compilation passes for the provider, adapter, generated Application, ProviderHostScreen and PlayerScreen objects, with the existing 280 provider math-header warnings. Hardware/live-service acceptance remains open.
 
 ## Still missing
 
 - Standalone/on-console service and SABR/proof-token integration; companion dependence remains.
 - Remaining SmartTube settings/localization, other Home/suggestion layouts and controls, group/recommendation semantics and remote-playback fallback selection. The pinned baseline only substitutes a suggestion when a remote video's next metadata is absent; generic replacement of blocked autoplay is not established by that source.
 - Secondary-account/brand-channel context and broad real-account/history/localized-layout validation.
-- Native consumption of the new remote-only fallback discovery group, including EOF/refill ownership, cancellation and saved-queue isolation; real phone, microphone and physical-controller acceptance.
+- Preserve returned recommendation playlist contexts and distinct same-ID successor occurrences through the phone handoff; real phone, microphone and physical-controller acceptance.
 - Broader codec/HDR/live/DVR, recovery/timing, GPU transform presentation and long-session acceptance.
 - Remaining integrated/candidate checks, a rebuilt and frozen final package, then bounded PS5 acceptance. The last fully frozen package is `c9721611`; subsequent scoped checks do not refresh that package.
 - UI polish after YouTube functionality is accepted.

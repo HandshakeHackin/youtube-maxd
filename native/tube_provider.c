@@ -134,6 +134,11 @@ static void save(void);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
 static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12],channel[25],channel_name[256]; PlaylistContext next_context; } g_recommendation={.state=-1};
+static struct {
+    int state,index,target,total; /* 0=request pending, 1=ready, 2=next group window */
+    unsigned serial,owner,selection,scope,blocks;
+    char id[12],next[12],playlist[101],group[43];
+} g_phone_next={.state=-1};
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
 static int g_sponsor_completed;
@@ -1292,6 +1297,7 @@ static int set_source(const char *value) {
 }
 
 static void complete(Request *r, int ok) {
+    if(r->kind==14 && r->intent==g_phone_next.serial && !ok)g_phone_next.state=-1;
     if(r->kind==13 && r->intent==g_recommendation.serial && !ok) g_recommendation.state=-1;
     if (r->kind == 12 && r->intent == g_playlist_window.serial && !ok)
         g_playlist_window.state = -1;
@@ -1422,6 +1428,126 @@ static void recommendation_result(Request *r,const cJSON *root) {
     if(g_recommendation.state==1)copy(g_recommendation.next,sizeof g_recommendation.next,next->valuestring);
     copy(g_recommendation.next_context.playlist,sizeof g_recommendation.next_context.playlist,item.playback_playlist);
     g_recommendation.next_context.index=item.playback_index;g_recommendation.next_context.scope=item.playback_scope;
+    complete(r,1);
+}
+static int phone_next_current(void) {
+    return recovery_scope() && tube_remote_owner_current(g_phone_next.owner) &&
+        g_phone_next.selection==g_selection_serial && g_phone_next.scope==g_playlist_scope &&
+        g_phone_next.blocks==g_blocked_revision && !strcmp(g_phone_next.id,g_active_id);
+}
+void tube_phone_recommendation_cancel(void) {
+    unsigned serial=g_phone_next.serial+1;
+    memset(&g_phone_next,0,sizeof g_phone_next);
+    g_phone_next.serial=serial?serial:1;g_phone_next.state=-1;
+}
+static int phone_next_integer(const cJSON *root,const char *key,int max) {
+    const cJSON *value=cJSON_GetObjectItemCaseSensitive(root,key);
+    return cJSON_IsNumber(value) && value->valuedouble>=0 && value->valuedouble<=max &&
+        value->valuedouble==value->valueint?value->valueint:-1;
+}
+/* Validate identities even when no block is active; never trust truncated labels. */
+static int phone_next_identity(const char *channel,const char *name) {
+    char parent[40];snprintf(parent,sizeof parent,"channel:%s",channel);
+    return (!*channel || (strlen(channel)==24 && valid_channel_group(parent))) &&
+        strlen(name)<=255 && (!*name || tube_channel_name_equal(name,name)) &&
+        (!channel_blocks_active() || *channel) && (!channel_name_blocks_active() || *name);
+}
+static int phone_next_request(void) {
+    Request *r=request_new(14,NULL);if(!r){g_phone_next.state=-1;return 0;}
+    r->intent=g_phone_next.serial;
+    if(*g_phone_next.group)snprintf(r->payload,sizeof r->payload,
+        "{\"action\":\"library\",\"library\":{\"action\":\"group_window\",\"profile\":\"%s\",\"id\":\"%s\",\"group\":\"%s\",\"index\":0,\"target\":%d,\"direction\":1,\"require_channel\":%s,\"require_name\":%s}}",
+        g_active_profile,g_phone_next.id,g_phone_next.group+6,g_phone_next.target,
+        channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
+    else {
+        cJSON *job=cJSON_CreateObject(),*lib=cJSON_AddObjectToObject(job,"library");
+        cJSON_AddStringToObject(job,"action","library");cJSON_AddStringToObject(lib,"action","playback_next");
+        cJSON_AddStringToObject(lib,"profile",g_active_profile);cJSON_AddStringToObject(lib,"id",g_phone_next.id);
+        cJSON_AddBoolToObject(lib,"remote_origin",1);
+        cJSON_AddBoolToObject(lib,"require_channel",channel_blocks_active());
+        cJSON_AddBoolToObject(lib,"require_name",channel_name_blocks_active());
+        if(*g_phone_next.playlist) {
+            cJSON_AddStringToObject(lib,"playlist",g_phone_next.playlist);
+            cJSON_AddNumberToObject(lib,"index",g_phone_next.index);
+        }
+        char *body=cJSON_PrintUnformatted(job);cJSON_Delete(job);
+        if(!body || strlen(body)>=sizeof r->payload){free(body);complete(r,0);return 0;}
+        copy(r->payload,sizeof r->payload,body);free(body);
+    }
+    g_phone_next.state=0;begin(r);return 1;
+}
+int tube_phone_recommendation(unsigned owner,unsigned selection,const char *video,const char *playlist,int index,char next[12]) {
+    if(next)next[0]=0;
+    if(!next || !video || !playlist || !valid_id(video) || (*playlist && !valid_playlist(playlist)) ||
+        index<0 || index>100000 || !selection || selection!=g_selection_serial ||
+        !tube_remote_owner_current(owner) || !recovery_scope() || strcmp(video,g_active_id) || !*g_token)return -1;
+    if(g_phone_next.owner!=owner || g_phone_next.selection!=selection || strcmp(g_phone_next.id,video) ||
+        strcmp(g_phone_next.playlist,playlist) || g_phone_next.index!=index) {
+        tube_phone_recommendation_cancel();g_phone_next.owner=owner;g_phone_next.selection=selection;
+        g_phone_next.scope=g_playlist_scope;g_phone_next.blocks=g_blocked_revision;g_phone_next.index=index;
+        copy(g_phone_next.id,sizeof g_phone_next.id,video);copy(g_phone_next.playlist,sizeof g_phone_next.playlist,playlist);
+        phone_next_request();
+    }
+    if(!phone_next_current())return -1;
+    if(g_phone_next.state==2)phone_next_request();
+    if(g_phone_next.state==1)copy(next,12,g_phone_next.next);
+    return g_phone_next.state;
+}
+static void phone_next_result(Request *r,const cJSON *root) {
+    if(phone_next_integer(root,"api_version",1)!=1){complete(r,0);return;}
+    if(!*g_phone_next.group) {
+        const cJSON *next=cJSON_GetObjectItemCaseSensitive(root,"next_video_id");
+        if(strcmp(str(root,"video_id"),g_phone_next.id)){complete(r,0);return;}
+        if(cJSON_IsString(next)) {
+            const cJSON *channel=cJSON_GetObjectItemCaseSensitive(root,"next_channel_id");
+            const cJSON *name=cJSON_GetObjectItemCaseSensitive(root,"next_channel_name");
+            if(!valid_id(next->valuestring) || !strcmp(next->valuestring,g_phone_next.id) ||
+                (channel && !cJSON_IsString(channel)) || (name && !cJSON_IsString(name)) ||
+                !phone_next_identity(str(root,"next_channel_id"),str(root,"next_channel_name"))) {complete(r,0);return;}
+            g_phone_next.state=blocked_identity(str(root,"next_channel_id"),str(root,"next_channel_name"))>=0?-1:1;
+            if(g_phone_next.state==1)copy(g_phone_next.next,12,next->valuestring);
+        } else if(cJSON_IsNull(next)) {
+            const cJSON *context=cJSON_GetObjectItemCaseSensitive(root,"fallback_context");
+            if(!context){g_phone_next.state=-1;complete(r,1);return;}
+            const char *group=str(context,"group");
+            char key[43];snprintf(key,sizeof key,"group:%s",group);
+            int count=phone_next_integer(root,"fallback_count",4095);
+            if(strlen(group)!=36 || !valid_retained_group(key) || phone_next_integer(context,"index",0)!=0 || count<1) {complete(r,0);return;}
+            copy(g_phone_next.group,sizeof g_phone_next.group,key);
+            g_phone_next.total=count+1;g_phone_next.target=1;g_phone_next.state=2;
+        } else {complete(r,0);return;}
+        complete(r,1);return;
+    }
+    const cJSON *ids=cJSON_GetObjectItemCaseSensitive(root,"video_ids"),*indices=cJSON_GetObjectItemCaseSensitive(root,"video_indices");
+    const cJSON *channels=cJSON_GetObjectItemCaseSensitive(root,"video_channels"),*names=cJSON_GetObjectItemCaseSensitive(root,"video_channel_names");
+    int count=cJSON_GetArraySize(ids),selected=phone_next_integer(root,"index",4095),previous=-1,found=0;
+    int valid=!strcmp(str(root,"playlist"),g_phone_next.group) && !strcmp(str(root,"anchor_video_id"),g_phone_next.id) &&
+        phone_next_integer(root,"anchor_index",0)==0 && phone_next_integer(root,"playlist_size",4096)==g_phone_next.total &&
+        selected>=g_phone_next.target && selected<g_phone_next.total && valid_id(str(root,"video_id")) &&
+        cJSON_IsArray(ids) && count>0 && count<=128 && cJSON_IsArray(indices) && cJSON_GetArraySize(indices)==count &&
+        (!channels || (cJSON_IsArray(channels) && cJSON_GetArraySize(channels)==count)) &&
+        (!names || (cJSON_IsArray(names) && cJSON_GetArraySize(names)==count));
+    if(selected!=g_phone_next.target)valid=valid && phone_next_integer(root,"requested_index",4095)==g_phone_next.target &&
+        phone_next_integer(root,"skipped_unavailable",4095)==selected-g_phone_next.target;
+    char chosen[12]={0};
+    for(int i=0;valid && i<count;++i) {
+        const cJSON *id=cJSON_GetArrayItem(ids,i),*position=cJSON_GetArrayItem(indices,i);
+        const cJSON *channel=channels?cJSON_GetArrayItem(channels,i):NULL,*name=names?cJSON_GetArrayItem(names,i):NULL;
+        int index=cJSON_IsNumber(position)?position->valueint:-1;
+        const char *cid=cJSON_IsString(channel)?channel->valuestring:"",*label=cJSON_IsString(name)?name->valuestring:"";
+        valid=cJSON_IsString(id) && valid_id(id->valuestring) && cJSON_IsNumber(position) && position->valuedouble==index &&
+            index>previous && index<g_phone_next.total && (index || !strcmp(id->valuestring,g_phone_next.id)) &&
+            (i || index==phone_next_integer(root,"window_start",4095)) &&
+            (!channel || cJSON_IsString(channel)) && (!name || cJSON_IsString(name)) && phone_next_identity(cid,label);
+        if(!valid)break;
+        previous=index;
+        if(index==selected && !strcmp(id->valuestring,str(root,"video_id")))found=1;
+        if(index>=selected && !*chosen && strcmp(id->valuestring,g_phone_next.id) && blocked_identity(cid,label)<0)copy(chosen,12,id->valuestring);
+    }
+    if(!valid || !found){complete(r,0);return;}
+    if(*chosen){copy(g_phone_next.next,12,chosen);g_phone_next.state=1;}
+    else if(previous+1<g_phone_next.total){g_phone_next.target=previous+1;g_phone_next.state=2;}
+    else g_phone_next.state=-1;
     complete(r,1);
 }
 static int playlist_window_current(void) {
@@ -2096,6 +2222,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         auth_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
     }
     if (r->generation != g_generation) { complete(r, 0); return; }
+    if(r->kind==14 && (r->intent!=g_phone_next.serial || !phone_next_current())) {complete(r,0);return;}
     if(r->kind==13 && (r->intent!=g_recommendation.serial || !recommendation_current())) {complete(r,0);return;}
     if (r->kind == 12 && (r->intent != g_playlist_window.serial || !playlist_window_current())) {
         complete(r,0); return;
@@ -2143,6 +2270,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); complete(r, 0); return;
     }
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
+    if(r->kind==14) {phone_next_result(r,result);cJSON_Delete(root);return;}
     if(r->kind==13) {recommendation_result(r,result);cJSON_Delete(root);return;}
     if (r->kind == 9) { auth_result(r, result); cJSON_Delete(root); return; }
     if (r->kind == 2) { resolved(r, result); cJSON_Delete(root); return; }
@@ -2380,6 +2508,8 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    if(!++g_phone_next.serial)++g_phone_next.serial;
+    g_phone_next.state=-1;
     if(g_manual_direction)tube_playlist_eof_cancel();
     g_playlist_eof_wait = g_playlist_next_ready = 0;
     tube_playlist_window_cancel();

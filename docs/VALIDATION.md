@@ -1,5 +1,36 @@
 # Offline validation record — 0.1.0
 
+## Provider-backed phone recommendation handoff — 2026-10-11
+
+The phone adapter now connects to a separate provider job and generated Application
+callbacks. The provider requests remote next metadata, uses fallback groups only
+when supplied by the absent-endpoint service path, validates anchored finite windows,
+and skips blocked channel identities/names across windows. Playback, receiver,
+profile/source and block-policy scope must survive asynchronous responses. Provider
+cancellation retires both pending and ready results. A stale-response regression
+exposed the ownership guard in the wrong callback; it now runs before authorization
+or result handling in the recommendation response path.
+
+The `phone_recommendation`, `playback_next`, `channel_block_next` and
+`group_navigation` native ASan/UBSan suites pass, as does `test_phone_player.sh`
+with leak detection. The new suite uses the shipping receiver, phone adapter and
+provider together: a real parsed phone command reaches EOF, asynchronous metadata
+and a verified fallback group, then produces the expected launch ticket. Saved
+local records compare byte-for-byte before and after this handoff. Cases also cover
+blocked-window traversal, malformed anchors/bounds/arrays, ID/name blocks, provider
+cancellation and late authorization failures after receiver work is retired or
+playback is replaced. Existing local recommendation/navigation suites still pass.
+
+PS5 SDK compilation passes for the provider, phone adapter, generated Application,
+ProviderHostScreen and PlayerScreen objects. The provider emits the existing 280
+SDK math-header qualifier warnings. `git diff --check` passes. These are object
+checks, not a refreshed linked/frozen release candidate.
+
+This handoff currently returns a video ID, discarding any returned playlist context
+and rejecting a same-ID successor even when its playlist occurrence differs. That
+parity gap remains explicit next work. No real phone/service, final package or PS5
+playback acceptance is implied. No console was contacted.
+
 ## Optional native phone recommendation adapter — 2026-10-11
 
 Following checkpoint `0db6a22`, `wsl bash scripts/test_phone_player.sh` passes with
