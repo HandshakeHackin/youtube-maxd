@@ -11,7 +11,7 @@ if [[ -n "${PROSPEROTUBE_TEMPO_FFMPEG:-}" ]]; then
            "${ff}/libswscale/libswscale.a" "${ff}/libswresample/libswresample.a"
            "${ff}/libavutil/libavutil.a" -Wl,--end-group -lxml2)
 else
-    read -ra flags <<< "$(pkg-config --cflags --libs libavformat libavcodec libavfilter libavutil libswresample)"
+    read -ra flags <<< "$(pkg-config --cflags --libs libavformat libavcodec libavfilter libswscale libswresample libavutil)"
 fi
 cc -std=c11 -D_DEFAULT_SOURCE -O1 -g -ffunction-sections -fdata-sections \
     -fsanitize=address,undefined -fno-omit-frame-pointer \
