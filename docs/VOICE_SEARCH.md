@@ -1,9 +1,20 @@
 # Local voice search
 
 The companion speech-recognition service is implemented and tested with real
-whisper.cpp inference. Native PS5 microphone capture and search-screen integration
-are the next gates; this service alone does not enable voice search on the console.
+whisper.cpp inference. The native AudioIn capture worker passes host lifecycle
+tests and PS5 SDK compilation. Upload/polling, search-screen integration and actual
+microphone acceptance remain open; voice search is not yet enabled on the console.
 Lounge microphone capability remains withheld.
+
+`native/tube_microphone.c` records 0.5–10 seconds of 16 kHz signed-16 mono PCM
+through the PS5 VoiceRecognition input route. AudioIn open/input/close stay on an
+owned thread. The main thread polls completion without joining an active capture;
+early finish supports push-to-talk, while cancellation discards even completed
+audio. Silence, input/open/user/close failures and a recording deadline reject the
+result. Samples stay in memory and are wiped on retirement. Shutdown joins the
+worker before freeing its storage; cancellation takes effect after the current
+AudioIn grain returns. Native capture code is not yet included in the app package.
+Run its deterministic lifecycle and fault tests with `bash scripts/test_microphone.sh`.
 
 The service uses a locally configured executable and model. It does not send
 recordings to a cloud speech service. Temporary WAV and transcript files are

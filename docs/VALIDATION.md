@@ -2,6 +2,15 @@
 
 ## Local speech-recognition service — 2026-10-10
 
+The native PS5 microphone worker passed ASan/UBSan lifecycle tests and strict PS5
+SDK object compilation (`.deps/microphone-tests.result` and
+`.deps/microphone-ps5-object.result`, exit 0). Tests exercise minimum/maximum
+recordings, exact AudioIn routing/format, user/open/input/close failures, silence,
+in-flight cancellation, short and valid push-to-talk finish, PCM wiping, repeated
+polling, busy admission and shutdown/restart. AudioIn calls occur on the owned
+worker. This proves offline capture lifecycle, not actual DualSense input or the
+connected voice-search feature; the worker is not packaged yet.
+
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
 S16 PCM, permits one transcription at a time, enforces bounded streaming uploads

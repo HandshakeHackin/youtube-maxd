@@ -54,6 +54,10 @@ and make the matching source revision available. Launcher art/fixtures are
 original code-drawn/synthetic assets. SmartTube/MediaServiceCore are architectural
 references only; their code/assets are not distributed here.
 
+Native microphone AudioIn ABI and routing are based on the GPL-3.0-or-later
+[ps5-audio-decoding-research microphone proof of concept](https://github.com/blackbearreloaded/ps5-audio-decoding-research/tree/26be5a12f92b2cdc67f8a9e082fd69ae0e9a35a2/examples/native-audio-poc/microphone).
+Implementation: `native/tube_microphone.c`.
+
 Optional local speech recognition invokes whisper.cpp (MIT), v1.9.5 at
 `d1be6fde11ac6e0407606b4e42fe72d34add8037`:
 https://github.com/ggml-org/whisper.cpp. Its executable and model are installed
