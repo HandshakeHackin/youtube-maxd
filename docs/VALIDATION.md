@@ -77,6 +77,12 @@ verifies local start/release/cancel, unavailable admission, chat precedence,
 keyboard/browser ownership and screenshot routing under ASan/UBSan
 (`scripts/test_controller_dispatch.py`, exit 0).
 
+The `0b06bc66` console case established availability-gated startup/UI/capability
+negotiation, then stopped on a malformed test playlist packet. Capture was not
+attempted. Exact teardown and original data restoration passed; see
+`docs/HARDWARE_ACCEPTANCE.md` for the failed fixture classification and wrapper
+exit-code limitation. No launch retry occurred.
+
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
 S16 PCM, permits one transcription at a time, enforces bounded streaming uploads

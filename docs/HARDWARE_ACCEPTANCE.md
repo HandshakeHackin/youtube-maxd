@@ -1,5 +1,19 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | voice availability | 0b06bc66 | PS5 .40 | failed fixture: playlist packet omitted required ctt; startup/UI/mic capability established, capture not attempted; clean exact release and original state/sidecars restored | .deps/console/voice-available-hardware/ | corrected fixture and physical microphone acceptance
+
+The frozen availability-gated voice package was installed with full readback,
+130-second settling and full verification again. Native startup, first frame,
+UI pairing and the ASR-enabled receiver capability were established. The test
+fixture then sent a malformed playlist command without `ctt`; the native driver
+rejected it and the case stopped at acknowledgment. No playback or microphone
+acceptance is claimed. GPU park, exact owned PID/app/title/mount release, healthy
+services and byte-for-byte provider/sidecar restoration passed. Both temporary
+fixture services stopped and the lock was released. The wrapper incorrectly
+returned exit 0 after recording the functional failure; the recorded milestone
+classifies this case as failed. The fixture and failure exit handling were fixed
+offline; no relaunch followed.
+
 - 2026-10-10 | phone/captions | b1adb57c | PS5 | pass: paused language/controls/queue/EOF, clean release and state restore | .deps/caption-phone-available-hardware.* | real phone/physical checks
 - 2026-10-10 | captions and phone controls | b1adb57c | PS5 .40 and .30 | no-run: each initial check found a running title; no upload, binding or launch | .deps/caption-phone{,-fallback}-hardware.* | test frozen candidate when idle
 

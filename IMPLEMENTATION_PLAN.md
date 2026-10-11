@@ -7,8 +7,10 @@
 
 Latest implementation batch: availability-gated native voice capture, local ASR
 and provider search are connected and packaged (`0b06bc66`, 216 objects, 126
-frozen files). Physical microphone acceptance is in preparation on the reserved
-`.40` console. Large phone queues retain up to 10,000 IDs on the companion and
+frozen files). A `.40` case established native startup/UI/microphone capability,
+then stopped on a malformed fixture packet; microphone capture remains open.
+Exact release and original state restoration passed. Large phone queues retain
+up to 10,000 IDs on the companion and
 send/refill bounded native windows; 142 companion checks, native sanitizer tests
 and connected PS5 compilation passed. Fetching beyond partial phone queues,
 real-phone/account acceptance and remaining SmartTube parity are still open.
