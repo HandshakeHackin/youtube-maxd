@@ -2883,3 +2883,12 @@ an incorrectly placed C++ chrono include inside the host's C linkage block; it
 was moved beside the C++ headers, then all three affected PS5 objects compiled.
 SDK compilation retained 208 qualified-math warnings without errors. Earlier
 failed iteration logs/results remain diagnostic evidence, not acceptance.
+
+
+Source `73c7b869` completed all 216 PS5 objects, link/container conversion and
+folder/PFS/ZIP packaging, then immutable freeze: build
+`prosperotube-73c7b869_1011-0444`, 126 files, eboot SHA-256 prefix
+`2e0a46ca8df87873`. Both
+`.deps/offline-local-queue-failures-{ps5-build,freeze}.result` files are 0.
+This records offline packaging; hardware acceptance is separate. The user
+subsequently renewed exclusive console testing authorization.

@@ -28,15 +28,15 @@ configuration, localization and persistence; packaging, clean lifecycle and
 console validation. Hardware-dependent limits must be measured and disclosed,
 not silently removed from the objective.
 
-Current instruction (2026-10-10): complete all remaining offline implementation,
-tests and packaging. **Do not connect to either console**, including read-only
-checks, until the user explicitly authorizes console testing again. Pending
-hardware gates remain recorded separately and do not block independent offline work.
+Current instruction (2026-10-11): continue implementation and use the newly
+reserved console for bounded hardware validation. The user explicitly renewed
+console testing authorization and reserved it exclusively for this work. Other
+consoles remain outside this session's authorization.
 
-After renewed authorization, use the PS5 and
-`ps5-homebrew-dev-protocol` for bounded hardware cases. Preserve exact candidate
-hashes, use the shared console lock, avoid unrelated running titles, and stop on
-a service/health anomaly. Keep private environment details and raw logs ignored.
+Use `ps5-homebrew-dev-protocol` for bounded hardware cases. Preserve exact
+candidate hashes, use the shared console lock, avoid unrelated running titles,
+and stop on a service/health anomaly. Keep private environment details and raw
+logs ignored. Continue independent offline work between hardware cases.
 
 Before every future console session, check the shared lock locally and make a
 read-only running-title check the first console operation. If any title is
