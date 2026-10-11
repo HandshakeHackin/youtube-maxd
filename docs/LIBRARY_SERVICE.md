@@ -16,8 +16,16 @@ cards, SmartTube watched-suggestion filtering, profile-owned continuations and
 retained browsing-group positions. Duplicate occurrences remain distinct; browser
 pagination and playback navigation share each continuation. Shelves, ads and
 playlist cards are not flattened into this video group. Full suggestion sections,
-chip filters, remote-only fallback selection and live-service/PS5 acceptance remain
+remote-only fallback selection and live-service/PS5 acceptance remain
 unfinished. This path requires the real library worker, not the fixture library.
+
+Unselected WatchNext chip filters appear as folders above the direct suggestions.
+Each folder is an opaque, profile-owned reference, limited to 256 retained entries
+and a two-minute lifetime. Opening it uses that chip's parsed endpoint and creates
+an independent feed/group. Concurrent opens share the result and cursor. Parsed
+reload targets and filtered continuation nodes are validated; expired in-flight
+requests cannot publish a group. The original feed and its continuation remain
+independent. Nested suggestion shelves and their layouts are still unfinished.
 
 This is not full SmartTube parity. Live chat has a request-driven service and
 native retained-message reader and playback-clock replay sidebar; PS5 replay acceptance remains pending. Chat posting has

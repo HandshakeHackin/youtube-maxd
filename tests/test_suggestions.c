@@ -21,6 +21,16 @@ int main(void) {
     assert(found);
     p->list_catalog("library:suggestions:invalid",0,items_cb,NULL);assert(!last_ok && !pending_count);
     p->list_catalog("library:suggestions:bcdefghijkl",1,items_cb,NULL);assert(!last_ok && !pending_count);
+    p->list_catalog("library:suggestions:abcdefghijk",0,items_cb,NULL);
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:filter:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"title\":\"From this channel\",\"is_folder\":true}]}}");
+    assert(last_ok && last_count==1 && last_items[0].is_folder);
+    char filter[160];snprintf(filter,sizeof filter,"%s",last_items[0].id);
+    p->list_catalog(filter,0,items_cb,NULL);
+    assert(strstr(pending[0].body,"\"action\":\"suggestions_filter\"") && strstr(pending[0].body,"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[],\"has_more\":true,\"cursor\":\"filter-next\"}}");
+    p->list_catalog(filter,1,items_cb,NULL);assert(strstr(pending[0].body,"filter-next") && strstr(pending[0].body,"\"action\":\"continue\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[],\"has_more\":false}}");
+    p->list_catalog("library:filter:invalid",0,items_cb,NULL);assert(!last_ok && !pending_count);
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
     puts("PASS: native related-video menu, scoped catalog requests, continuations and retained group identity");
 }

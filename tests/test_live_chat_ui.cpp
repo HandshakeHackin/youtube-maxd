@@ -260,6 +260,11 @@ int main(int argc,char**argv) {
     host.m_stack={"library:suggestions:abcdefghijk"};host.m_crumbs={"Related videos"};host.m_pos_stack.clear();
     host.RequestPage(host.m_stack.back().c_str(),0);
     reply("{\"job\":\"related-ui\",\"state\":\"pending\"}");clock_ms+=300;tube_poll();
+    reply("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"library:filter:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"title\":\"From this channel\",\"is_folder\":true}]}}");
+    pump();assert(host.m_all_rows.size()==1 && host.FocusPublishedRow(0));pump();
+    card=host.m_context->GetFocusElement();assert(card);card->DispatchEvent("click",Rml::Dictionary{});
+    host.ApplyPendingActivation();assert(host.m_stack.back()=="library:filter:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    reply("{\"job\":\"filtered-ui\",\"state\":\"pending\"}");clock_ms+=300;tube_poll();
     reply("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"cdefghijklm\",\"title\":\"Related card\",\"playback_context\":{\"group\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"index\":2}}]}}");
     pump();assert(host.m_all_rows.size()==1 && host.FocusPublishedRow(0));pump();
     card=host.m_context->GetFocusElement();assert(card);card->DispatchEvent("click",Rml::Dictionary{});

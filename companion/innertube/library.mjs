@@ -9,7 +9,7 @@ import { channelWindow } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
 import { filterHomeFeed, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
-import { suggestionFeed } from './suggestions.mjs';
+import { SuggestionFilters } from './suggestions.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -137,6 +137,8 @@ export class Library {
     this.commentRatings = new Map();
     this.groups = new PlaybackGroups(LibraryError, feed => feed.catalog_items ?? [...Array.from(feed.videos ?? []).map(node=>normalizeVideo(node)), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean), clock);
     this.historyActions = new HistoryActions(LibraryError,clock);
+    this.suggestionFilters = new SuggestionFilters(LibraryError,node=>normalizeVideo(node),clock);
+    this.suggestionPages = new WeakMap();
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
@@ -233,6 +235,12 @@ export class Library {
   async execute(input) {
     if (!input || typeof input !== 'object') throw new LibraryError('invalid_request', 'Expected an operation.');
     const owner = input.profile ?? 'guest';
+    if (input.action === 'suggestions_filter') {
+      if(!this.profiles.has(owner))throw new LibraryError('unknown_profile','Select an available profile.',404);
+      const feed=await this.suggestionFilters.open(owner,input.id);
+      if(!this.suggestionPages.has(feed))this.suggestionPages.set(feed,this.page(owner,'catalog',feed));
+      return this.suggestionPages.get(feed);
+    }
     if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner));
     if (input.action === 'channel_window') return channelWindow(await this.client(owner),input,normalizeVideo,LibraryError);
     if (input.action === 'playback_next') return playbackNext(await this.client(owner),input,LibraryError);
@@ -364,7 +372,7 @@ export class Library {
         const info=await client.getInfo(input.id);
         if(info?.basic_info?.id!==input.id)
           throw new LibraryError('upstream_format','YouTube returned suggestions for a different video.',502);
-        feed=suggestionFeed(info,LibraryError);break;
+        feed=this.suggestionFilters.root(owner,info,client);break;
       }
       case 'subscriptions': feed = await client.getSubscriptionsFeed(); break;
       case 'history': feed = await client.getHistory(); break;

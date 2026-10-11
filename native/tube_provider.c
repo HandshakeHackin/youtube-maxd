@@ -574,6 +574,7 @@ static const char *topic_section(const char *id) {
 }
 
 static int valid_catalog_id(const char *id) {
+    if (id && !strncmp(id,"library:filter:",15) && strlen(id+15)==36 && valid_cursor(id+15))return 1;
     if (topic_section(id)) return 1;
     if (valid_id(id)) return 1;
     const char *value = NULL;
@@ -3381,8 +3382,9 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         const char *action = parent + 8;
         int playlist = !strncmp(action, "playlist:", 9) && valid_catalog_id(parent);
         int suggestions = !strncmp(action, "suggestions:", 12) && valid_id(action+12);
+        int filter = !strncmp(action,"filter:",7) && strlen(action+7)==36 && valid_cursor(action+7);
         if (strcmp(action, "home") && strcmp(action, "subscriptions") && strcmp(action, "history") &&
-            strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist && !suggestions) {
+            strcmp(action, "watch_later") && strcmp(action, "playlists") && strcmp(action, "profiles") && !playlist && !suggestions && !filter) {
             tube_set_error("The selected library screen is unavailable."); cb(0, NULL, 0, 0, ud); return 0;
         }
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
@@ -3393,8 +3395,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
         snprintf(r->payload, sizeof r->payload,
             "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"id\":\"%s\"}}",
-            page ? "continue" : playlist ? "playlist" : suggestions ? "suggestions" : action, g_library_profile,
-            page ? g_library_cursors[page] : "", playlist ? action + 9 : suggestions ? action+12 : "");
+            page ? "continue" : playlist ? "playlist" : suggestions ? "suggestions" : filter ? "suggestions_filter" : action, g_library_profile,
+            page ? g_library_cursors[page] : "", playlist ? action + 9 : suggestions ? action+12 : filter ? action+7 : "");
         begin(r); return 0;
     }
     Request *r = request_new(1, ud); if (!r) return -1;

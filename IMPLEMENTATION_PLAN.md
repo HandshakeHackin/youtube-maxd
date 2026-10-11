@@ -3,8 +3,8 @@
 Current consolidated progress: [implemented, tested and missing](docs/STATUS.md) (2026-10-11). Historical entries below do not establish current final-candidate acceptance.
 
 Related-video browsing now connects the native video menu to the profile-owned
-WatchNext catalog, with watched filtering and retained group navigation. Full
-suggestion layouts/filters and remote fallback remain open. Baseline
+WatchNext catalog, with watched filtering, chip-filter folders and retained group
+navigation. Full suggestion layouts and remote fallback remain open. Baseline
 `Video.findNextVideo` only substitutes suggestions for remote playback when next
 metadata is absent; do not generalize that into arbitrary autoplay substitution.
 

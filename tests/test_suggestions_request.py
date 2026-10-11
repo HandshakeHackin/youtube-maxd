@@ -13,6 +13,13 @@ def test_suggestions_request_requires_a_video():
             LibraryRequest(action="suggestions", id=identity)
 
 
+def test_filter_request_requires_an_opaque_reference():
+    assert LibraryRequest(action="suggestions_filter", id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").action == "suggestions_filter"
+    for identity in ("", "abcdefghijk", "From this channel", "https://example.com"):
+        with pytest.raises(ValidationError):
+            LibraryRequest(action="suggestions_filter", id=identity)
+
+
 def test_suggestions_job_preserves_profile_and_group_context():
     class Library:
         async def execute(self, request):

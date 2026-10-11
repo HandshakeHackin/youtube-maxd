@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Related-video chip filters — 2026-10-11
+
+Unselected WatchNext chips now become profile-owned filter folders. Parsed chip
+endpoints return an independent feed with its own continuation and retained group;
+filtering never mutates the original VideoInfo pagination state. At most 256
+references survive for two minutes. Concurrent opens share one upstream request,
+page and group; expired in-flight references cannot publish results. Reload target
+and continuation shapes are checked before use.
+
+All 130 worker tests and the bundle build pass. Tests use actual pinned parser
+nodes for chip/reload/continuation responses and cover ownership, concurrent opens,
+independent source state, expiry during requests, retry and malformed responses.
+The initial concurrency test exposed duplicate group creation; caching the published
+filter page fixed it and the rerun passed. All three suggestions API tests pass.
+
+Native suggestions, core provider, local actions and retained-group ASan/UBSan
+checks pass. The initial new native test failed compilation because its destination
+buffer was smaller than the source ID type; correcting that buffer resolved it.
+PS5 provider compilation passes with the existing 280 math-header warnings.
+Actual RmlUi opened a returned filter folder, selected its video and retained the
+filtered group/index through handoff. Existing empty-row/empty-width UI warnings
+remain. This is scoped offline evidence; no full package or console test ran.
+
+Full suggestion shelves/layouts and remote-only metadata fallback remain open.
+
 ## Related-video catalog and native selection — 2026-10-11
 
 The native video actions menu now opens a profile-owned WatchNext suggestions
