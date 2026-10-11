@@ -26,6 +26,10 @@ static void test_storage(void) {
     assert(!defaults.clock && !defaults.quality_info && !defaults.quality_bitrate && !defaults.clock_12h);
     assert(defaults.exit_mode == TUBE_EXIT_MODE_ASK && !defaults.keys_lr && !defaults.keys_ud && !defaults.seek_preview);
     assert(defaults.speed_list == 1 && !defaults.loop_shorts && defaults.remember_short == 1);
+    /* Rows the options already had stay shown; nothing dims and nothing is announced. */
+    assert(defaults.buttons == TUBE_BUTTONS_DEFAULT && defaults.suggestions == 1 && !defaults.chapter_notice);
+    assert(defaults.error_fixer == 1 && !defaults.remember_quality && !defaults.dim_timeout && defaults.dim_amount == 80);
+    assert(!defaults.screen_off_timeout && defaults.screen_off_amount == 100);
 
     TubePlayerExtra read = tube_player_extra_read(NULL);
     assert(!memcmp(&read, &defaults, sizeof read));
@@ -42,11 +46,14 @@ static void test_storage(void) {
     chosen.quality_info = 1; chosen.quality_bitrate = 1; chosen.clock_12h = 1; chosen.exit_mode = TUBE_EXIT_MODE_DOUBLE;
     chosen.keys_lr = TUBE_KEYS_VOLUME; chosen.keys_ud = TUBE_KEYS_SPEED; chosen.seek_preview = 3; chosen.speed_list = 2;
     chosen.loop_shorts = 1; chosen.remember_short = 0;
+    chosen.buttons = 1 << TUBE_BUTTON_SHARE; chosen.suggestions = 0; chosen.chapter_notice = 1; chosen.error_fixer = 0;
+    chosen.remember_quality = 1; chosen.dim_timeout = 300; chosen.dim_amount = 85; chosen.screen_off_timeout = 7;
+    chosen.screen_off_amount = 40;
     cJSON *object = cJSON_CreateObject();
     cJSON_AddStringToObject(object, "name", "Profile");
     cJSON_AddNumberToObject(object, "volume", 5);          /* replaced, not duplicated */
     assert(tube_player_extra_write(object, &chosen));
-    assert(cJSON_GetArraySize(object) == 19);
+    assert(cJSON_GetArraySize(object) == 28);
     assert(!strcmp(cJSON_GetObjectItem(object, "name")->valuestring, "Profile"));
     read = tube_player_extra_read(object);
     assert(!memcmp(&read, &chosen, sizeof read));
@@ -61,7 +68,9 @@ static void test_storage(void) {
                          "\"auto_volume\":true,\"audio_delay_ms\":2001,\"audio_delay_enabled\":2,\"clock\":1.5,"
                          "\"quality_info\":1e300,\"quality_bitrate\":null,\"clock_12h\":[1],\"exit_mode\":3,"
                          "\"keys_lr\":5,\"keys_ud\":5,\"seek_preview\":-1,\"speed_list\":0,\"loop_shorts\":{},"
-                         "\"remember_short\":false}");
+                         "\"remember_short\":false,\"buttons\":2097152,\"suggestions\":2,\"chapter_notice\":-1,\"error_fixer\":\"no\","
+                         "\"remember_quality\":3,\"dim_timeout\":7,\"dim_amount\":5,\"screen_off_timeout\":10801,"
+                         "\"screen_off_amount\":95}");
     assert(parsed);
     read = tube_player_extra_read(parsed);
     TubePlayerExtra expected = defaults;
@@ -111,7 +120,7 @@ static void test_setters(void) {
     assert(tube_extra_set_clock(1) && tube_extra_set_quality_info(1) && tube_extra_set_quality_bitrate(1) && tube_extra_set_clock_12h(1));
     assert(tube_extra_clock() && tube_extra_quality_info() && tube_extra_quality_bitrate() && tube_extra_clock_12h());
     assert(tube_extra_set_exit_mode(2) && !tube_extra_set_exit_mode(3) && tube_extra_exit_mode() == 2);
-    assert(tube_extra_set_keys_lr(4) && !tube_extra_set_keys_lr(5) && tube_extra_set_keys_ud(5) && !tube_extra_set_keys_ud(6));
+    assert(tube_extra_set_keys_lr(4) && !tube_extra_set_keys_lr(5) && tube_extra_set_keys_ud(6) && !tube_extra_set_keys_ud(7) && tube_extra_set_keys_ud(5));
     assert(tube_extra_keys_lr() == 4 && tube_extra_keys_ud() == 5);
     assert(tube_extra_set_seek_preview(3) && !tube_extra_set_seek_preview(4) && tube_extra_seek_preview() == 3);
     assert(tube_extra_set_speed_list(2) && !tube_extra_set_speed_list(3) && tube_extra_speed_list() == 2);
@@ -166,7 +175,8 @@ static void test_groups(void) {
         assert(!tube_extra_group_select(group, count) && !tube_extra_group_select(group, -1));
         assert(!tube_extra_group_label(group, count, label, sizeof label) && !label[0]);
     }
-    assert(total == 7 + 20 + 42 + 61 + 2 + 2 + 29 + 2 + 2 + 2 + 2 + 2 + 3 + 5 + 6 + 4 + 3 + 2 + 2);
+    assert(total == 7 + 20 + 42 + 61 + 2 + 2 + 29 + 2 + 2 + 2 + 2 + 2 + 3 + 5 + 7 + 4 + 3 + 2 + 2 +
+                    2 + 2 + 2 + 2 + 19 + 12 + 17 + 10 + 2 * TUBE_BUTTON_COUNT);
     assert(tube_extra_group_find("settings:nothing") == -1 && tube_extra_group_find(NULL) == -1);
     assert(!tube_extra_group_count(-1) && !tube_extra_group_count(TUBE_EXTRA_GROUPS) && tube_extra_group_selected(99) == -1);
     TubePlayerExtra defaults;
@@ -462,6 +472,225 @@ static void test_video(void) {
     tube_player_extra_select(NULL);
 }
 
+static void test_buttons(void) {
+    char label[96];
+    tube_player_extra_select(NULL);
+    /* SmartTube hides the queue, the share link and SponsorBlock until asked for. */
+    for (int button = 0; button < TUBE_BUTTON_COUNT; ++button)
+        assert(tube_extra_button(button) == (button != TUBE_BUTTON_QUEUE && button != TUBE_BUTTON_SHARE && button != TUBE_BUTTON_CONTENT_BLOCK));
+    assert(!tube_extra_button(-1) && !tube_extra_button(TUBE_BUTTON_COUNT));
+    assert(!tube_extra_set_buttons(-1) && !tube_extra_set_buttons(1 << TUBE_BUTTON_COUNT) && tube_extra_set_buttons(0));
+    assert(!tube_extra_button(TUBE_BUTTON_LIKE) && tube_extra_set_buttons(TUBE_BUTTONS_DEFAULT));
+    /* One switch per button, each moving its own bit only. */
+    for (int button = 0; button < TUBE_BUTTON_COUNT; ++button) {
+        const int group = TUBE_EXTRA_BUTTON_FIRST + button, mask = tube_extra_buttons();
+        assert(tube_extra_group_count(group) == 2 && !strncmp(tube_extra_group_title(group), "Button: ", 8));
+        assert(tube_extra_group_selected(group) == tube_extra_button(button));
+        assert(tube_extra_group_select(group, !tube_extra_button(button)) && tube_extra_buttons() == (mask ^ 1 << button));
+        assert(tube_extra_group_select(group, mask >> button & 1) && tube_extra_buttons() == mask);
+        assert(!tube_extra_group_in_player(group) && tube_extra_group_screen(group) == 3);
+    }
+    assert(!strcmp(tube_extra_group_id(TUBE_EXTRA_BUTTON_FIRST + TUBE_BUTTON_FLIP), "settings:button-mirror"));
+    assert(tube_extra_group_label(TUBE_EXTRA_BUTTON_FIRST, 1, label, sizeof label) && !strcmp(label, "On"));
+    /* A switched-off button also hides the preferences behind it. */
+    assert(tube_extra_group_in_player(TUBE_EXTRA_VOLUME) && tube_extra_group_in_player(TUBE_EXTRA_MUTE));
+    assert(tube_extra_group_in_player(TUBE_EXTRA_DIM_TIMEOUT) && tube_extra_group_in_player(TUBE_EXTRA_SCREEN_OFF_AMOUNT));
+    assert(tube_extra_set_buttons(TUBE_BUTTONS_DEFAULT & ~(1 << TUBE_BUTTON_SOUND) & ~(1 << TUBE_BUTTON_SCREEN_OFF)));
+    assert(!tube_extra_group_in_player(TUBE_EXTRA_VOLUME) && !tube_extra_group_in_player(TUBE_EXTRA_MUTE));
+    assert(!tube_extra_group_in_player(TUBE_EXTRA_DIM_AMOUNT) && !tube_extra_group_in_player(TUBE_EXTRA_SCREEN_OFF_TIMEOUT));
+    assert(tube_extra_group_in_player(TUBE_EXTRA_AUTO_VOLUME) && tube_extra_group_in_player(TUBE_EXTRA_CHAPTER_NOTICE));
+    assert(!tube_extra_group_in_player(-1) && tube_extra_group_screen(TUBE_EXTRA_GROUPS) == -1);
+    assert(tube_extra_group_screen(TUBE_EXTRA_SUBTITLE_SIZE) == 0 && tube_extra_group_screen(TUBE_EXTRA_AUDIO_DELAY) == 1);
+    assert(tube_extra_group_screen(TUBE_EXTRA_ERROR_FIXER) == 2 && tube_extra_group_screen(TUBE_EXTRA_DIM_AMOUNT) == 4);
+    /* SmartTube's dimming lists. */
+    assert(tube_extra_group_label(TUBE_EXTRA_DIM_TIMEOUT, 0, label, sizeof label) && !strcmp(label, "Never"));
+    assert(tube_extra_group_label(TUBE_EXTRA_DIM_TIMEOUT, 1, label, sizeof label) && !strcmp(label, "5 sec"));
+    assert(tube_extra_group_label(TUBE_EXTRA_DIM_TIMEOUT, 18, label, sizeof label) && !strcmp(label, "15 min"));
+    assert(tube_extra_group_label(TUBE_EXTRA_DIM_AMOUNT, 8, label, sizeof label) && !strcmp(label, "85%"));
+    assert(tube_extra_group_selected(TUBE_EXTRA_DIM_AMOUNT) == 7 && !tube_extra_group_selected(TUBE_EXTRA_DIM_TIMEOUT));
+    assert(tube_extra_group_label(TUBE_EXTRA_SCREEN_OFF_TIMEOUT, 10, label, sizeof label) && !strcmp(label, "10 sec"));
+    assert(tube_extra_group_label(TUBE_EXTRA_SCREEN_OFF_TIMEOUT, 16, label, sizeof label) && !strcmp(label, "180 min"));
+    assert(tube_extra_group_select(TUBE_EXTRA_SCREEN_OFF_TIMEOUT, 11) && tube_extra_screen_off_timeout() == 1800);
+    assert(tube_extra_set_dim_timeout(10) && tube_extra_group_selected(TUBE_EXTRA_DIM_TIMEOUT) == -1);   /* valid, not listed */
+    assert(!tube_extra_set_dim_timeout(7) && !tube_extra_set_dim_amount(5) && !tube_extra_set_screen_off_amount(95));
+    /* Down lists suggestions only with visible controls and the switch on. */
+    assert(tube_extra_key_action(TUBE_KEYS_SUGGESTIONS, 0, 0) == TUBE_KEY_ACTION_SUGGESTIONS);
+    assert(tube_extra_key_action(TUBE_KEYS_SUGGESTIONS, 0, 1) == TUBE_KEY_ACTION_DEFAULT);
+    assert(tube_extra_set_keys_ud(TUBE_KEYS_SUGGESTIONS) && tube_extra_dpad_action(1, 0) == TUBE_KEY_ACTION_SUGGESTIONS);
+    assert(tube_extra_dpad_action(0, 0) == TUBE_KEY_ACTION_DEFAULT && tube_extra_set_suggestions(0));
+    assert(tube_extra_dpad_action(1, 0) == TUBE_KEY_ACTION_DEFAULT);
+    /* The request for the opening list is taken once. */
+    assert(tube_extra_take_picker_request() == TUBE_PICKER_OPTIONS);
+    tube_extra_picker_request(TUBE_PICKER_SUGGESTIONS);
+    assert(tube_extra_take_picker_request() == TUBE_PICKER_SUGGESTIONS && tube_extra_take_picker_request() == TUBE_PICKER_OPTIONS);
+    tube_player_extra_select(NULL);
+}
+
+static void test_chapter_notice(void) {
+    assert(tube_chapter_notice_decide(0, -1, 2, 0, 0) == -1);                 /* switched off */
+    assert(tube_chapter_notice_decide(1, -1, -1, 0, 0) == -1);                /* before the first chapter */
+    assert(tube_chapter_notice_decide(1, -1, 0, 0, 0) == 0 && tube_chapter_notice_decide(1, 0, 0, 0, 0) == -1);
+    assert(tube_chapter_notice_decide(1, 0, 1, 1, 0) == -1 && tube_chapter_notice_decide(1, 0, 1, 0, 1) == -1);
+    assert(tube_chapter_notice_decide(1, 0, 1, 0, 0) == 1 && tube_chapter_notice_decide(1, 3, 1, 0, 0) == 1);
+    const double starts[] = {0, 60, 600};
+    const char *titles[] = {"Intro", "Middle", "End"};
+    tube_player_extra_select(NULL);
+    assert(tube_extra_set_chapter_list(starts, titles, 3) == 3);
+    assert(tube_extra_chapter_notice(10, 0, 0) == -1);                          /* default: off */
+    assert(tube_extra_set_chapter_notice(1) && tube_extra_chapter_notice_enabled());
+    assert(tube_extra_chapter_notice(10, 0, 1) == -1 && tube_extra_chapter_notice(10, 1, 0) == -1);
+    assert(tube_extra_chapter_notice(10, 0, 0) == 0 && tube_extra_chapter_notice(30, 0, 0) == -1);   /* once per chapter */
+    assert(tube_extra_chapter_notice(61, 0, 0) == 1 && tube_extra_chapter_notice(700, 0, 0) == 2);
+    assert(tube_extra_chapter_notice(20, 0, 0) == 0);                           /* a seek back announces again */
+    tube_extra_video_end();
+    assert(tube_extra_set_chapter_list(starts, titles, 3) == 3 && tube_extra_chapter_notice(20, 0, 0) == 0);
+    tube_extra_video_end();
+    assert(tube_extra_chapter_notice(20, 0, 0) == -1);                          /* no chapters */
+    tube_player_extra_select(NULL);
+}
+
+static void test_dimming(void) {
+    TubePlayerExtra prefs;
+    tube_player_extra_defaults(&prefs);
+    /* Defaults never darken the picture by themselves. */
+    for (int context = TUBE_DIM_NONE; context <= TUBE_DIM_PLAYING; ++context)
+        assert(!tube_dim_decide(&prefs, context, 100000000, 0));
+    assert(tube_dim_decide(&prefs, TUBE_DIM_PLAYING, 0, 1) == 100 && tube_dim_decide(&prefs, TUBE_DIM_PAUSED, 0, 1) == 100);
+    assert(!tube_dim_decide(&prefs, TUBE_DIM_BROWSING, 0, 1) && !tube_dim_decide(&prefs, TUBE_DIM_NONE, 0, 1));
+    assert(!tube_dim_decide(NULL, TUBE_DIM_PAUSED, 0, 1));
+    prefs.dim_timeout = 60; prefs.dim_amount = 80;
+    assert(!tube_dim_decide(&prefs, TUBE_DIM_BROWSING, 59999, 0) && tube_dim_decide(&prefs, TUBE_DIM_BROWSING, 60000, 0) == 80);
+    assert(tube_dim_decide(&prefs, TUBE_DIM_PAUSED, 60000, 0) == 80 && !tube_dim_decide(&prefs, TUBE_DIM_PLAYING, 60000, 0));
+    assert(!tube_dim_decide(&prefs, TUBE_DIM_NONE, 60000, 0));
+    prefs.screen_off_timeout = 5; prefs.screen_off_amount = 50;
+    assert(tube_dim_decide(&prefs, TUBE_DIM_PLAYING, 5000, 0) == 50 && !tube_dim_decide(&prefs, TUBE_DIM_PLAYING, 4999, 0));
+    assert(tube_dim_decide(&prefs, TUBE_DIM_PAUSED, 5000, 0) == 50 && tube_dim_decide(&prefs, TUBE_DIM_PAUSED, 60000, 0) == 80);
+    assert(!tube_dim_decide(&prefs, TUBE_DIM_BROWSING, 5000, 0));
+
+    tube_player_extra_select(&prefs);
+    tube_extra_dim_reset(1000);
+    unsigned revision = tube_extra_revision();
+    assert(!tube_extra_dim_tick(1000, TUBE_DIM_PLAYING) && !tube_extra_dim_tick(5999, TUBE_DIM_PLAYING) && !tube_extra_dim_percent());
+    assert(tube_extra_revision() == revision);
+    assert(tube_extra_dim_tick(6000, TUBE_DIM_PLAYING) == 50 && tube_extra_dim_percent() == 50 && tube_extra_revision() != revision);
+    assert(!tube_extra_dim_input(6100, 0, 0) && tube_extra_dim_percent() == 50);       /* no press */
+    /* The waking press is swallowed; the next one reaches the player. */
+    assert(tube_extra_dim_input(6200, 1, 1) == 1 && !tube_extra_dim_percent() && !tube_extra_dim_tick(6200, TUBE_DIM_PLAYING));
+    assert(!tube_extra_dim_input(6300, 1, 0));
+    /* Screen off on request: at once, kept through blind seeking, ended by another button. */
+    assert(tube_extra_set_screen_off_amount(100));
+    tube_extra_screen_off(7000);
+    assert(tube_extra_screen_is_off() && tube_extra_dim_tick(7000, TUBE_DIM_PLAYING) == 100);
+    assert(!tube_extra_dim_input(7100, 1, 1) && tube_extra_dim_tick(7100, TUBE_DIM_PLAYING) == 100);
+    assert(tube_extra_dim_input(7200, 1, 0) == 1 && !tube_extra_screen_is_off() && !tube_extra_dim_tick(7200, TUBE_DIM_PLAYING));
+    /* Leaving the player, or a screen that never dims, ends it too. */
+    tube_extra_screen_off(8000);
+    assert(tube_extra_dim_tick(8000, TUBE_DIM_PAUSED) == 100 && !tube_extra_dim_tick(8001, TUBE_DIM_BROWSING) && !tube_extra_screen_is_off());
+    assert(tube_extra_dim_tick(68001, TUBE_DIM_BROWSING) == 80 && !tube_extra_dim_tick(68002, TUBE_DIM_NONE));
+    assert(!tube_extra_dim_tick(68003, TUBE_DIM_BROWSING) && tube_extra_dim_tick(128002, TUBE_DIM_BROWSING) == 80);
+    assert(!tube_extra_dim_tick(100, TUBE_DIM_BROWSING));                                 /* a clock that went back */
+    tube_extra_dim_reset(0);
+    tube_player_extra_select(NULL);
+
+    uint32_t pixels[] = {0x00000000u, 0xffffffffu, 0xff804020u, 0x80ffffffu};
+    tube_dim_pixels(pixels, 4, 0);
+    assert(pixels[1] == 0xffffffffu);
+    tube_dim_pixels(pixels, 4, 100);
+    for (int i = 0; i < 4; ++i) assert(pixels[i] == 0xff000000u);
+    uint32_t half[] = {0x00000000u, 0xffffffffu, 0xff804020u};
+    tube_dim_pixels(half, 3, 50);
+    assert(half[0] == 0x7f000000u);                       /* over nothing: black at half strength */
+    assert(half[1] >> 24 == 0xff && (half[1] & 0xff) >= 0x7f && (half[1] & 0xff) <= 0x81);
+    assert((half[2] >> 16 & 0xff) >= 0x3f && (half[2] >> 16 & 0xff) <= 0x41 && (half[2] & 0xff) >= 0x0f && (half[2] & 0xff) <= 0x11);
+    tube_dim_pixels(NULL, 4, 50);
+    tube_dim_pixels(half, 3, 250);
+    assert(half[1] == 0xff000000u);
+}
+
+static void test_error_fixer(void) {
+    assert(tube_error_fix_lower_height(2160) == 1440 && tube_error_fix_lower_height(1440) == 1080);
+    assert(tube_error_fix_lower_height(1080) == 720 && !tube_error_fix_lower_height(720) && !tube_error_fix_lower_height(144));
+    assert(tube_error_fix_lower_height(4320) == 1440 && tube_error_fix_lower_height(900) == 720);
+    tube_fix_input in = {1, TUBE_ERROR_VIDEO_DECODER, 0, 1, 2160, 60, TUBE_CODEC_VP9, 0};
+    assert(tube_error_fix_decide(&in) == TUBE_FIX_SAFE_VIDEO);
+    in.attempts = 1; assert(tube_error_fix_decide(&in) == TUBE_FIX_LOWER_QUALITY);
+    in.attempts = TUBE_FIX_ATTEMPTS; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE);
+    in.attempts = 0; in.enabled = 0; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE);
+    in.enabled = 1; in.height = 1080; in.fps = 30; in.codec = TUBE_CODEC_AVC;
+    assert(tube_error_fix_decide(&in) == TUBE_FIX_LOWER_QUALITY);            /* already the safe format */
+    in.height = 720; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE);
+    in.fps = 60; assert(tube_error_fix_decide(&in) == TUBE_FIX_SAFE_VIDEO);
+    in.error = TUBE_ERROR_AUDIO_DECODER; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE);
+    in.error = TUBE_ERROR_SOURCE; assert(tube_error_fix_decide(&in) == TUBE_FIX_RELOAD);
+    in.error = 99; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE && tube_error_fix_decide(NULL) == TUBE_FIX_NONE);
+    /* Long buffering: captions off first, then the same stream, then a smaller picture. */
+    in = (tube_fix_input){1, TUBE_ERROR_BUFFERING, 0, 1, 1440, 30, TUBE_CODEC_VP9, 0};
+    assert(tube_error_fix_decide(&in) == (TUBE_FIX_RELOAD | TUBE_FIX_SUBTITLES_OFF));
+    in.subtitles = 0; assert(tube_error_fix_decide(&in) == TUBE_FIX_RELOAD);
+    in.attempts = 1; assert(tube_error_fix_decide(&in) == TUBE_FIX_LOWER_QUALITY);
+    in.height = 720; assert(tube_error_fix_decide(&in) == TUBE_FIX_RELOAD);
+    in.live = 1; in.subtitles = 1; assert(tube_error_fix_decide(&in) == TUBE_FIX_RELOAD);   /* live keeps its captions */
+    in.attempts = -1; assert(tube_error_fix_decide(&in) == TUBE_FIX_NONE);
+
+    int height = 2160, fps = 60, codec = TUBE_CODEC_AV1;
+    assert(tube_error_fix_quality(TUBE_FIX_SAFE_VIDEO, &height, &fps, &codec) && height == 1080 && fps == 30 && codec == TUBE_CODEC_AVC);
+    assert(!tube_error_fix_quality(TUBE_FIX_SAFE_VIDEO, &height, &fps, &codec));
+    assert(tube_error_fix_quality(TUBE_FIX_LOWER_QUALITY | TUBE_FIX_SUBTITLES_OFF, &height, &fps, &codec) && height == 720);
+    assert(!tube_error_fix_quality(TUBE_FIX_LOWER_QUALITY, &height, &fps, &codec) && height == 720 && fps == 30);
+    assert(!tube_error_fix_quality(TUBE_FIX_RELOAD, &height, &fps, &codec) && !tube_error_fix_quality(TUBE_FIX_RELOAD, NULL, &fps, &codec));
+    height = 480; fps = 0; codec = TUBE_CODEC_AUTO;
+    assert(tube_error_fix_quality(TUBE_FIX_SAFE_VIDEO, &height, &fps, &codec) && height == 480 && fps == 30);
+    for (int error = 0; error <= TUBE_ERROR_BUFFERING; ++error)
+        for (int action = 0; action <= TUBE_FIX_SAFE_VIDEO; ++action) {
+            assert(tube_error_fix_message(error, action)[0] && tube_error_fix_message(error, action | TUBE_FIX_SUBTITLES_OFF)[0]);
+            assert(strlen(tube_error_fix_message(error, action | TUBE_FIX_SUBTITLES_OFF)) < 96);
+        }
+    assert(strstr(tube_error_fix_message(TUBE_ERROR_BUFFERING, TUBE_FIX_RELOAD | TUBE_FIX_SUBTITLES_OFF), "Captions off"));
+    assert(strstr(tube_error_fix_message(TUBE_ERROR_VIDEO_DECODER, TUBE_FIX_SAFE_VIDEO), "AVC"));
+
+    /* 20 s of waiting inside 60 s; smooth playback in between lets the window expire. */
+    tube_buffering_t state;
+    tube_buffering_reset(&state);
+    uint64_t now = 5000;
+    assert(!tube_buffering_tick(&state, now, 1));
+    for (int i = 0; i < 1200; ++i) { now += 16; assert(!tube_buffering_tick(&state, now, 1)); }   /* 19.2 s */
+    for (int i = 0; i < 49; ++i) { now += 16; assert(!tube_buffering_tick(&state, now, 1)); }
+    now += 16; assert(tube_buffering_tick(&state, now, 1));                                      /* 20 s reached */
+    now += 16; assert(!tube_buffering_tick(&state, now, 1));                                     /* started over */
+    tube_buffering_reset(&state); now = 100000;
+    tube_buffering_tick(&state, now, 0);
+    for (int i = 0; i < 950; ++i) { now += 20; assert(!tube_buffering_tick(&state, now, 1)); }    /* 19 s */
+    for (int i = 0; i < 2100; ++i) { now += 20; assert(!tube_buffering_tick(&state, now, 0)); }   /* 42 s playing: new window */
+    for (int i = 0; i < 950; ++i) { now += 20; assert(!tube_buffering_tick(&state, now, 1)); }
+    for (int i = 0; i < 49; ++i) { now += 20; assert(!tube_buffering_tick(&state, now, 1)); }
+    now += 20; assert(tube_buffering_tick(&state, now, 1));
+    /* A stopped clock (the app was suspended) is not a wait, and time never runs back. */
+    tube_buffering_reset(&state);
+    assert(!tube_buffering_tick(&state, 1000, 1) && !tube_buffering_tick(&state, 31000, 1) && !state.waited_ms);
+    assert(!tube_buffering_tick(&state, 500, 1) && !state.waited_ms && !tube_buffering_tick(NULL, 0, 1));
+}
+
+static void test_presets(void) {
+    char label[48];
+    int height, fps, codec, seen = 0;
+    assert(tube_preset_count() == 39);
+    assert(tube_preset_at(0, &height, &fps, &codec) && !height && !fps && codec == TUBE_CODEC_AUTO);
+    assert(tube_preset_label(0, label, sizeof label) && !strcmp(label, "Disabled"));
+    assert(tube_preset_label(1, label, sizeof label) && !strcmp(label, "2160p 60 fps VP9"));
+    assert(tube_preset_label(38, label, sizeof label) && !strcmp(label, "144p 30 fps AV1"));
+    assert(!tube_preset_at(39, &height, &fps, &codec) && !tube_preset_at(-1, &height, &fps, &codec) && !tube_preset_at(1, NULL, &fps, &codec));
+    assert(!tube_preset_label(39, label, sizeof label) && !label[0]);
+    for (int i = 1; i < tube_preset_count(); ++i) {
+        assert(tube_preset_at(i, &height, &fps, &codec) && (fps == 30 || fps == 60) && codec >= TUBE_CODEC_AVC && codec <= TUBE_CODEC_AV1);
+        assert(!(codec == TUBE_CODEC_AVC && height > 1080) && !(fps == 60 && height < 360));   /* SmartTube's table */
+        assert(tube_preset_find(height, fps, codec) == i);
+        seen += height == 1080;
+    }
+    assert(seen == 6);
+    assert(!tube_preset_find(1080, 0, TUBE_CODEC_AUTO) && tube_preset_find(1080, 0, TUBE_CODEC_VP9) == -1);
+    assert(tube_preset_find(1080, 60, TUBE_CODEC_HEVC) == -1 && tube_preset_find(2160, 30, TUBE_CODEC_AVC) == -1);
+}
+
 int main(void) {
     test_storage();
     test_setters();
@@ -472,6 +701,11 @@ int main(void) {
     test_exit_and_keys();
     test_speeds_and_shorts();
     test_video();
+    test_buttons();
+    test_chapter_notice();
+    test_dimming();
+    test_error_fixer();
+    test_presets();
     puts("PASS: player extra preferences, option groups, per-video facts and player decisions");
     return 0;
 }

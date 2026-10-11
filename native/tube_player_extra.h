@@ -36,6 +36,15 @@ typedef struct {
     int speed_list;          /* 0 short, 1 long, 2 extra long */
     int loop_shorts;         /* 0/1 */
     int remember_short;      /* 0/1: resume videos shorter than six minutes */
+    int buttons;             /* bit set of TUBE_BUTTON_*: action rows the in-player options show */
+    int suggestions;         /* 0/1: related videos can be listed during playback */
+    int chapter_notice;      /* 0/1: announce a chapter when playback enters it */
+    int error_fixer;         /* 0/1: reload or lower the quality after playback errors */
+    int remember_quality;    /* 0/1: a quality chosen in the player becomes the profile's maximum */
+    int dim_timeout;         /* seconds without input before dimming while paused or browsing; 0 = never */
+    int dim_amount;          /* percent of black while dimmed, 10..100 */
+    int screen_off_timeout;  /* seconds without input before the screen goes off in the player; 0 = never */
+    int screen_off_amount;   /* percent of black while the screen is off, 10..100 */
 } TubePlayerExtra;
 
 void tube_player_extra_defaults(TubePlayerExtra *prefs);
@@ -104,7 +113,10 @@ enum {
     TUBE_EXTRA_CLOCK, TUBE_EXTRA_QUALITY_INFO, TUBE_EXTRA_QUALITY_BITRATE, TUBE_EXTRA_TIME_FORMAT,
     TUBE_EXTRA_EXIT, TUBE_EXTRA_KEYS_LR, TUBE_EXTRA_KEYS_UD, TUBE_EXTRA_SEEK_PREVIEW,
     TUBE_EXTRA_SPEED_LIST, TUBE_EXTRA_LOOP_SHORTS, TUBE_EXTRA_REMEMBER_SHORT,
-    TUBE_EXTRA_GROUPS
+    TUBE_EXTRA_SUGGESTIONS, TUBE_EXTRA_CHAPTER_NOTICE, TUBE_EXTRA_ERROR_FIXER, TUBE_EXTRA_REMEMBER_QUALITY,
+    TUBE_EXTRA_DIM_TIMEOUT, TUBE_EXTRA_DIM_AMOUNT, TUBE_EXTRA_SCREEN_OFF_TIMEOUT, TUBE_EXTRA_SCREEN_OFF_AMOUNT,
+    TUBE_EXTRA_BUTTON_FIRST,       /* one switch per TUBE_BUTTON_*, in that order */
+    TUBE_EXTRA_GROUPS = TUBE_EXTRA_BUTTON_FIRST + 21
 };
 const char *tube_extra_group_id(int group);     /* "settings:subtitle-style", ... */
 const char *tube_extra_group_title(int group);
@@ -154,8 +166,11 @@ void tube_extra_exit_reset(void);
 
 /* D-pad behaviour. */
 enum { TUBE_KEYS_DEFAULT = 0, TUBE_KEYS_SKIP_SHORTS = 1, TUBE_KEYS_SKIP_VIDEOS = 2,
-       TUBE_KEYS_SKIP_ALL = 3, TUBE_KEYS_VOLUME = 4, TUBE_KEYS_SPEED = 5 };
-enum { TUBE_KEY_ACTION_DEFAULT = 0, TUBE_KEY_ACTION_SKIP = 1, TUBE_KEY_ACTION_VOLUME = 2, TUBE_KEY_ACTION_SPEED = 3 };
+       TUBE_KEYS_SKIP_ALL = 3, TUBE_KEYS_VOLUME = 4, TUBE_KEYS_SPEED = 5, TUBE_KEYS_SUGGESTIONS = 6 };
+/* TUBE_KEY_ACTION_SUGGESTIONS belongs to Down alone and only while the
+ * controls are visible, as SmartTube lists its rows under the controls. */
+enum { TUBE_KEY_ACTION_DEFAULT = 0, TUBE_KEY_ACTION_SKIP = 1, TUBE_KEY_ACTION_VOLUME = 2, TUBE_KEY_ACTION_SPEED = 3,
+       TUBE_KEY_ACTION_SUGGESTIONS = 4 };
 /* Quick skip applies only while the controls are hidden, as in SmartTube. */
 int tube_extra_key_action(int mode, int is_short, int controls_hidden);
 int tube_extra_dpad_action(int vertical, int controls_hidden);
@@ -206,6 +221,102 @@ const tube_storyboard_level *tube_extra_storyboard(int index);
  * url receives the sheet address. */
 int tube_extra_seek_preview_tile(double seconds, double duration, int target_width, int target_height,
                                  tube_storyboard_tile *tile, char *url, size_t url_size);
+
+/* Player buttons: which action rows the in-player options show. SmartTube's
+ * button flags, for the rows that exist here. */
+enum { TUBE_BUTTON_LIKE, TUBE_BUTTON_DISLIKE, TUBE_BUTTON_SUBSCRIBE, TUBE_BUTTON_PLAYLIST_ADD, TUBE_BUTTON_QUEUE,
+       TUBE_BUTTON_CHANNEL, TUBE_BUTTON_SEARCH, TUBE_BUTTON_VIDEO_INFO, TUBE_BUTTON_SHARE, TUBE_BUTTON_CONTENT_BLOCK,
+       TUBE_BUTTON_CHAT, TUBE_BUTTON_SCREEN_OFF, TUBE_BUTTON_SOUND, TUBE_BUTTON_SPEED, TUBE_BUTTON_ZOOM,
+       TUBE_BUTTON_REPEAT, TUBE_BUTTON_NEXT, TUBE_BUTTON_PREVIOUS, TUBE_BUTTON_SEEK_INTERVAL, TUBE_BUTTON_ROTATE,
+       TUBE_BUTTON_FLIP, TUBE_BUTTON_COUNT };
+/* Rows the player already had stay shown; of the new ones SmartTube hides the
+ * queue, the share link and SponsorBlock until they are switched on. */
+#define TUBE_BUTTONS_DEFAULT (((1 << TUBE_BUTTON_COUNT) - 1) & \
+    ~((1 << TUBE_BUTTON_QUEUE) | (1 << TUBE_BUTTON_SHARE) | (1 << TUBE_BUTTON_CONTENT_BLOCK)))
+int tube_extra_buttons(void);
+int tube_extra_set_buttons(int mask);
+int tube_extra_button(int button);               /* 1 = its rows are shown */
+int tube_extra_suggestions(void);
+int tube_extra_set_suggestions(int enabled);
+int tube_extra_chapter_notice_enabled(void);
+int tube_extra_set_chapter_notice(int enabled);
+int tube_extra_error_fixer(void);
+int tube_extra_set_error_fixer(int enabled);
+int tube_extra_remember_quality(void);
+int tube_extra_set_remember_quality(int enabled);
+int tube_extra_dim_timeout(void);
+int tube_extra_set_dim_timeout(int seconds);
+int tube_extra_dim_amount(void);
+int tube_extra_set_dim_amount(int percent);
+int tube_extra_screen_off_timeout(void);
+int tube_extra_set_screen_off_timeout(int seconds);
+int tube_extra_screen_off_amount(void);
+int tube_extra_set_screen_off_amount(int percent);
+/* 0 = this group is not a row of the in-player options: a button switch, or a
+ * preference whose button is switched off. */
+int tube_extra_group_in_player(int group);
+/* Settings screen a group belongs to: 0 captions, 1 sound, 2 player, 3 player
+ * buttons, 4 screen dimming. */
+int tube_extra_group_screen(int group);
+/* One-shot request from the player screen for the list the options open on. */
+enum { TUBE_PICKER_OPTIONS = 0, TUBE_PICKER_SUGGESTIONS = 1 };
+void tube_extra_picker_request(int list);
+int tube_extra_take_picker_request(void);
+
+/* Chapter notification: the index of the chapter to announce, once, when
+ * playback enters it with the controls hidden; -1 = nothing to announce. */
+int tube_chapter_notice_decide(int enabled, int announced, int current, int busy, int controls_visible);
+int tube_extra_chapter_notice(double position, int busy, int controls_visible);
+
+/* Screen dimming and screen off. One idle clock restarted by every input:
+ * the picture dims while paused or browsing, and goes off in the player after
+ * its own timeout or at once on request. Any input brings it back. */
+enum { TUBE_DIM_NONE = 0,      /* a screen that never dims: text entry, sign-in, pickers */
+       TUBE_DIM_BROWSING = 1, TUBE_DIM_PAUSED = 2, TUBE_DIM_PLAYING = 3 };
+/* Percent of black, 0..100. */
+int tube_dim_decide(const TubePlayerExtra *prefs, int context, uint64_t idle_ms, int screen_off);
+void tube_extra_dim_reset(uint64_t now_ms);
+/* One frame of input. 1 = the press only brought the picture back and must
+ * not reach the screen. While the screen is off, Left and Right alone keep it
+ * off so that seeking stays possible, as in SmartTube. */
+int tube_extra_dim_input(uint64_t now_ms, int pressed, int seek_only);
+int tube_extra_dim_tick(uint64_t now_ms, int context);
+int tube_extra_dim_percent(void);                /* the last tick's result */
+void tube_extra_screen_off(uint64_t now_ms);
+int tube_extra_screen_is_off(void);
+/* Black at the given percentage over straight-alpha 0xAARRGGBB pixels. */
+void tube_dim_pixels(uint32_t *pixels, size_t count, int percent);
+
+/* Error fixer: SmartTube's recovery ladder as one decision. */
+enum { TUBE_CODEC_AUTO = 0, TUBE_CODEC_AVC = 1, TUBE_CODEC_VP9 = 2, TUBE_CODEC_AV1 = 3, TUBE_CODEC_HEVC = 4 };
+enum { TUBE_ERROR_SOURCE = 0, TUBE_ERROR_VIDEO_DECODER = 1, TUBE_ERROR_AUDIO_DECODER = 2, TUBE_ERROR_BUFFERING = 3 };
+enum { TUBE_FIX_NONE = 0,          /* the player's own handling applies */
+       TUBE_FIX_RELOAD = 1,        /* the same format again */
+       TUBE_FIX_LOWER_QUALITY = 2, /* the next lower resolution */
+       TUBE_FIX_SAFE_VIDEO = 3 };  /* AVC at up to 1080p30 after a failed video decoder */
+#define TUBE_FIX_ACTION 0xff
+#define TUBE_FIX_SUBTITLES_OFF 0x100   /* added to an action: captions are switched off first */
+#define TUBE_FIX_ATTEMPTS 3
+typedef struct { int enabled, error, live, subtitles, height, fps, codec, attempts; } tube_fix_input;
+int tube_error_fix_decide(const tube_fix_input *input);
+/* The quality a fix asks for. 1 = it differs from the one given. */
+int tube_error_fix_quality(int action, int *height, int *fps, int *codec);
+int tube_error_fix_lower_height(int height);     /* 0 = nothing lower is offered */
+const char *tube_error_fix_message(int error, int action);
+/* Long buffering: 20 s of waiting inside a 60 s window. */
+#define TUBE_BUFFERING_LIMIT_MS 20000
+#define TUBE_BUFFERING_WINDOW_MS 60000
+typedef struct { uint64_t window_ms, last_ms; uint32_t waited_ms; int started; } tube_buffering_t;
+void tube_buffering_reset(tube_buffering_t *state);
+/* 1 = the limit was reached now; the detector starts over. */
+int tube_buffering_tick(tube_buffering_t *state, uint64_t now_ms, int buffering);
+
+/* Video presets: one resolution, frame rate and codec at a time. Entry 0
+ * switches presets off (any frame rate and codec; height 0 = keep the limit). */
+int tube_preset_count(void);
+int tube_preset_at(int index, int *height, int *fps, int *codec);
+int tube_preset_label(int index, char *out, size_t size);
+int tube_preset_find(int height, int fps, int codec);   /* -1 = not a preset */
 #ifdef __cplusplus
 }
 #endif

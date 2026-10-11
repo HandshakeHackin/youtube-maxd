@@ -57,8 +57,13 @@ int main(void) {
     show("settings:extra:captions");assert(last_count==3 && !strcmp(last_items[0].id,"settings:subtitle-style") && !strcmp(last_items[0].title,"Subtitle style: Default"));
     assert(!strcmp(last_items[1].title,"Subtitle size: 1.0x") && !strcmp(last_items[2].title,"Subtitle position: Default"));groups+=last_count;
     show("settings:extra:audio");assert(last_count==5 && !strcmp(last_items[0].title,"Player volume: 100%") && !strcmp(last_items[1].title,"Mute: Off"));groups+=last_count;
-    show("settings:extra:player");assert(last_count==12 && !strcmp(last_items[11].id,"settings:use-section-playlist"));groups+=last_count-1;
-    assert(groups==TUBE_EXTRA_GROUPS && !strcmp(last_items[8].title,"Speed list: Long speed list") && !strcmp(last_items[10].title,"Remember position of short videos: On"));
+    show("settings:extra:player");assert(last_count==24 && last_more && !strcmp(last_items[11].id,"settings:player-suggestions"));groups+=last_count;
+    assert(!strcmp(last_items[8].title,"Speed list: Long speed list") && !strcmp(last_items[10].title,"Remember position of short videos: On"));
+    assert(!strcmp(last_items[15].title,"Screen dimming: Never") && !strcmp(last_items[19].title,"Button: Like: On"));
+    /* The player buttons continue on the next page, before the section switch. */
+    p->list_catalog("settings:extra:player",1,items_cb,NULL);
+    assert(last_ok && !last_more && !strcmp(last_items[last_count-1].id,"settings:use-section-playlist"));groups+=last_count-1;
+    assert(groups==TUBE_EXTRA_GROUPS && !strcmp(last_items[last_count-2].title,"Button: Mirror video: On") && find("settings:button-share")>=0);
     /* A group lists its choices with the selection mark; a choice acts in place and is saved. */
     show("settings:subtitle-style");assert(last_count==7 && !strcmp(last_items[0].subtitle,"Selected") && strcmp(last_items[4].subtitle,"Selected"));
     show("settings:subtitle-style:4");
@@ -80,8 +85,8 @@ int main(void) {
         assert(tube_extra_group_selected(group)==last);
     }
     assert(tube_extra_volume()==300 && tube_extra_muted() && tube_extra_audio_delay_ms()==2000 && tube_extra_audio_delay_enabled());
-    assert(tube_extra_keys_ud()==TUBE_KEYS_SPEED && tube_extra_seek_preview()==3 && tube_extra_speed_list()==2 && tube_extra_loop_shorts());
-    assert(saved("guest","volume")==300 && saved("guest","keys_ud")==TUBE_KEYS_SPEED && saved("guest","subtitle_position")==1000 && saved("guest","muted")==-99);
+    assert(tube_extra_keys_ud()==TUBE_KEYS_SUGGESTIONS && tube_extra_seek_preview()==3 && tube_extra_speed_list()==2 && tube_extra_loop_shorts());
+    assert(saved("guest","volume")==300 && saved("guest","keys_ud")==TUBE_KEYS_SUGGESTIONS && saved("guest","subtitle_position")==1000 && saved("guest","muted")==-99);
     show("settings:player-mute:0");assert(!tube_extra_muted());
     /* Profiles are isolated: a new one starts at the defaults and keeps its own values. */
     show("library:profile:alice");
@@ -116,7 +121,7 @@ int main(void) {
     assert(tube_extra_exit_mode()==TUBE_EXIT_MODE_ASK && tube_extra_keys_lr()==TUBE_KEYS_DEFAULT && tube_extra_clock()); /* the valid neighbour stays */
     show("library:profile:guest");
     assert(tube_extra_volume()==100 && !tube_extra_subtitle_style_index() && tube_extra_speed_list()==1 && tube_extra_remember_short() && !tube_extra_loop_shorts());
-    show("settings:extra:player");assert(!strcmp(last_items[11].title,"Use current section as playlist: on"));
+    p->list_catalog("settings:extra:player",1,items_cb,NULL);assert(last_ok && !strcmp(last_items[last_count-1].title,"Use current section as playlist: on"));
     /* A store from before per-profile rows gives every profile the defaults. */
     p->shutdown();store=read_store();cJSON_DeleteItemFromObject(store,"profile_settings");write_store(store);cJSON_Delete(store);
     assert(!p->init());assert(tube_extra_volume()==100 && tube_extra_speed_list()==1);
@@ -178,7 +183,8 @@ int main(void) {
     unsigned scope=last_items[0].playback_scope;char list[101];int index=-1;assert(scope);
     assert(tube_select_playlist_context(B,"group:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",2,scope));
     play(B,100,"");assert(tube_playback_playlist_context(list,sizeof list,&index)==1 && index==2);
-    show("settings:use-section-playlist");assert(!strcmp(last_items[11].title,"Use current section as playlist: off") && saved("guest","section_playlist")==0);
+    show("settings:use-section-playlist");assert(saved("guest","section_playlist")==0);
+    p->list_catalog("settings:extra:player",1,items_cb,NULL);assert(last_ok && !strcmp(last_items[last_count-1].title,"Use current section as playlist: off"));
     p->list_catalog("library:suggestions:abcdefghijk",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"bcdefghijkl\",\"playback_context\":{\"group\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"index\":2}}],\"has_more\":false}}");
     scope=last_items[0].playback_scope;

@@ -23,7 +23,8 @@ typedef struct {
 enum { F_SUBTITLE_STYLE, F_SUBTITLE_SCALE, F_SUBTITLE_POSITION, F_VOLUME, F_AUTO_VOLUME,
        F_AUDIO_DELAY_MS, F_AUDIO_DELAY_ENABLED, F_CLOCK, F_QUALITY_INFO, F_QUALITY_BITRATE,
        F_CLOCK_12H, F_EXIT_MODE, F_KEYS_LR, F_KEYS_UD, F_SEEK_PREVIEW, F_SPEED_LIST,
-       F_LOOP_SHORTS, F_REMEMBER_SHORT, F_COUNT };
+       F_LOOP_SHORTS, F_REMEMBER_SHORT, F_BUTTONS, F_SUGGESTIONS, F_CHAPTER_NOTICE, F_ERROR_FIXER,
+       F_REMEMBER_QUALITY, F_DIM_TIMEOUT, F_DIM_AMOUNT, F_SCREEN_OFF_TIMEOUT, F_SCREEN_OFF_AMOUNT, F_COUNT };
 static const field_t fields[F_COUNT] = {
     FIELD(subtitle_style, 0, 0, 6, 1, NO_ALT),
     FIELD(subtitle_scale, 100, 10, 200, 10, NO_ALT),
@@ -38,12 +39,22 @@ static const field_t fields[F_COUNT] = {
     FIELD(clock_12h, 0, 0, 1, 1, NO_ALT),
     FIELD(exit_mode, TUBE_EXIT_MODE_ASK, 0, 2, 1, NO_ALT),
     FIELD(keys_lr, TUBE_KEYS_DEFAULT, 0, TUBE_KEYS_VOLUME, 1, NO_ALT),
-    FIELD(keys_ud, TUBE_KEYS_DEFAULT, 0, TUBE_KEYS_SPEED, 1, NO_ALT),
+    FIELD(keys_ud, TUBE_KEYS_DEFAULT, 0, TUBE_KEYS_SUGGESTIONS, 1, NO_ALT),
     FIELD(seek_preview, 0, 0, 3, 1, NO_ALT),
     FIELD(speed_list, 1, 0, 2, 1, NO_ALT),
     FIELD(loop_shorts, 0, 0, 1, 1, NO_ALT),
     FIELD(remember_short, 1, 0, 1, 1, NO_ALT),
+    FIELD(buttons, TUBE_BUTTONS_DEFAULT, 0, (1 << TUBE_BUTTON_COUNT) - 1, 1, NO_ALT),
+    FIELD(suggestions, 1, 0, 1, 1, NO_ALT),
+    FIELD(chapter_notice, 0, 0, 1, 1, NO_ALT),
+    FIELD(error_fixer, 1, 0, 1, 1, NO_ALT),
+    FIELD(remember_quality, 0, 0, 1, 1, NO_ALT),
+    FIELD(dim_timeout, 0, 0, 900, 5, NO_ALT),
+    FIELD(dim_amount, 80, 10, 100, 5, NO_ALT),
+    FIELD(screen_off_timeout, 0, 0, 10800, 1, NO_ALT),
+    FIELD(screen_off_amount, 100, 10, 100, 10, NO_ALT),
 };
+_Static_assert(TUBE_EXTRA_GROUPS == TUBE_EXTRA_BUTTON_FIRST + TUBE_BUTTON_COUNT, "one switch per player button");
 
 static int *slot(TubePlayerExtra *prefs, const field_t *field) {
     return (int *)(void *)((char *)prefs + field->offset);
@@ -118,6 +129,9 @@ static double g_stream_fps;
 static long long g_stream_bitrate;
 static char g_stream_codec[24];
 static uint64_t g_exit_armed;
+static int g_chapter_announced = -1, g_picker_request;
+static uint64_t g_dim_input_ms;
+static int g_dim_started, g_dim_percent, g_screen_off;
 
 static TubePlayerExtra *prefs(void) {
     if (!g_ready) { tube_player_extra_defaults(&g_prefs); g_ready = 1; }
@@ -163,6 +177,18 @@ ACCESSORS(tube_extra_seek_preview, tube_extra_set_seek_preview, seek_preview, F_
 ACCESSORS(tube_extra_speed_list, tube_extra_set_speed_list, speed_list, F_SPEED_LIST)
 ACCESSORS(tube_extra_loop_shorts, tube_extra_set_loop_shorts, loop_shorts, F_LOOP_SHORTS)
 ACCESSORS(tube_extra_remember_short, tube_extra_set_remember_short, remember_short, F_REMEMBER_SHORT)
+ACCESSORS(tube_extra_buttons, tube_extra_set_buttons, buttons, F_BUTTONS)
+ACCESSORS(tube_extra_suggestions, tube_extra_set_suggestions, suggestions, F_SUGGESTIONS)
+ACCESSORS(tube_extra_chapter_notice_enabled, tube_extra_set_chapter_notice, chapter_notice, F_CHAPTER_NOTICE)
+ACCESSORS(tube_extra_error_fixer, tube_extra_set_error_fixer, error_fixer, F_ERROR_FIXER)
+ACCESSORS(tube_extra_remember_quality, tube_extra_set_remember_quality, remember_quality, F_REMEMBER_QUALITY)
+ACCESSORS(tube_extra_dim_timeout, tube_extra_set_dim_timeout, dim_timeout, F_DIM_TIMEOUT)
+ACCESSORS(tube_extra_dim_amount, tube_extra_set_dim_amount, dim_amount, F_DIM_AMOUNT)
+ACCESSORS(tube_extra_screen_off_timeout, tube_extra_set_screen_off_timeout, screen_off_timeout, F_SCREEN_OFF_TIMEOUT)
+ACCESSORS(tube_extra_screen_off_amount, tube_extra_set_screen_off_amount, screen_off_amount, F_SCREEN_OFF_AMOUNT)
+int tube_extra_button(int button) {
+    return button >= 0 && button < TUBE_BUTTON_COUNT && (prefs()->buttons >> button & 1);
+}
 
 int tube_extra_audio_delay_ms(void) { return prefs()->audio_delay_ms; }
 int tube_extra_audio_delay_enabled(void) { return prefs()->audio_delay_enabled; }
@@ -307,11 +333,13 @@ int tube_extra_key_action(int mode, int is_short, int controls_hidden) {
     case TUBE_KEYS_SKIP_ALL: return controls_hidden ? TUBE_KEY_ACTION_SKIP : TUBE_KEY_ACTION_DEFAULT;
     case TUBE_KEYS_VOLUME: return TUBE_KEY_ACTION_VOLUME;
     case TUBE_KEYS_SPEED: return TUBE_KEY_ACTION_SPEED;
+    case TUBE_KEYS_SUGGESTIONS: return controls_hidden ? TUBE_KEY_ACTION_DEFAULT : TUBE_KEY_ACTION_SUGGESTIONS;
     default: return TUBE_KEY_ACTION_DEFAULT;
     }
 }
 int tube_extra_dpad_action(int vertical, int controls_hidden) {
-    return tube_extra_key_action(vertical ? prefs()->keys_ud : prefs()->keys_lr, g_short, controls_hidden);
+    const int action = tube_extra_key_action(vertical ? prefs()->keys_ud : prefs()->keys_lr, g_short, controls_hidden);
+    return action == TUBE_KEY_ACTION_SUGGESTIONS && !prefs()->suggestions ? TUBE_KEY_ACTION_DEFAULT : action;
 }
 
 /* ---- Speed lists. ---- */
@@ -485,7 +513,7 @@ void tube_extra_video_end(void) {
     g_has_loudness = 0; g_loudness = 0; g_short = 0;
     g_chapter_count = 0; g_storyboard_count = 0;
     g_stream_height = 0; g_stream_fps = 0; g_stream_bitrate = 0; g_stream_codec[0] = 0;
-    g_exit_armed = 0;
+    g_exit_armed = 0; g_chapter_announced = -1;
     ++g_revision;
 }
 
@@ -500,11 +528,13 @@ void tube_extra_video_begin(const cJSON *resolve_result) {
 }
 
 /* ---- Preference groups for the settings screen and the in-player picker. ---- */
-enum { G_LABELS, G_SWITCH, G_SCALE, G_POSITION, G_VOLUME, G_DELAY };
+enum { G_LABELS, G_SWITCH, G_SCALE, G_POSITION, G_VOLUME, G_DELAY, G_SECONDS, G_PERCENT, G_BUTTON };
 typedef struct {
     const char *id, *title, *detail;
     int kind, field, count;       /* field: index into fields, or -1 for mute */
     const char *const *labels;
+    const int *values;            /* G_SECONDS and G_PERCENT choices */
+    int button;                   /* G_BUTTON: its TUBE_BUTTON_* */
 } group_t;
 static const char *const style_labels[] = {
     "Default", "White on transparent background", "White on semitransparent background",
@@ -517,32 +547,70 @@ static const char *const keys_lr_labels[] = {
     "Previous / next for Shorts and videos", "Volume down / up" };
 static const char *const keys_ud_labels[] = {
     "Captions on or off / caption list", "Previous / next for Shorts", "Previous / next for videos",
-    "Previous / next for Shorts and videos", "Volume up / down", "Speed up / down" };
+    "Previous / next for Shorts and videos", "Volume up / down", "Speed up / down",
+    "Captions on or off / suggestions" };
 static const char *const preview_labels[] = { "Disabled", "Single frame", "Carousel (slow)", "Carousel (fast)" };
 static const char *const speed_list_labels[] = { "Short speed list", "Long speed list", "Extra long speed list" };
 static const int delay_values[] = { -2000, -1500, -1000, -750, -500, -400, -300, -250, -200, -150, -100, -75, -50, -25,
                                     0, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000 };
 #define DELAY_COUNT ((int)(sizeof delay_values / sizeof *delay_values))
+/* SmartTube's lists: never, 5 to 30 s, 1 to 15 min; 10 to 80 % and 85 to 100 %. */
+static const int dim_timeout_values[] = { 0, 5, 15, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 660, 720, 780, 840, 900 };
+static const int dim_amount_values[] = { 10, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95, 100 };
+/* Never, 1 to 10 s, 30 to 180 min. */
+static const int screen_off_timeout_values[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1800, 3600, 5400, 7200, 9000, 10800 };
+static const int screen_off_amount_values[] = { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+#define VALUES(list) (int)(sizeof list / sizeof *list), NULL, list, 0
+#define BUTTON_DETAIL "Show this action in the in-player options"
 static const group_t groups[TUBE_EXTRA_GROUPS] = {
-    { "settings:subtitle-style", "Subtitle style", "Text colour, background and edge of captions", G_LABELS, F_SUBTITLE_STYLE, 7, style_labels },
-    { "settings:subtitle-size", "Subtitle size", "Caption text scale", G_SCALE, F_SUBTITLE_SCALE, 20, NULL },
-    { "settings:subtitle-position", "Subtitle position", "Height of captions above the bottom edge", G_POSITION, F_SUBTITLE_POSITION, 42, NULL },
-    { "settings:player-volume", "Player volume", "Above 100% the sound is boosted and may distort", G_VOLUME, F_VOLUME, 61, NULL },
-    { "settings:player-mute", "Mute", "Silence the player until switched back", G_SWITCH, -1, 2, NULL },
-    { "settings:auto-volume", "Auto volume", "Turn loud videos down to YouTube's reference level", G_SWITCH, F_AUTO_VOLUME, 2, NULL },
-    { "settings:audio-delay", "Audio delay", "Shift the sound against the picture", G_DELAY, F_AUDIO_DELAY_MS, DELAY_COUNT, NULL },
-    { "settings:audio-delay-enabled", "Use audio delay", "Keep the chosen delay but switch it on or off", G_SWITCH, F_AUDIO_DELAY_ENABLED, 2, NULL },
-    { "settings:player-clock", "Clock in controls", "Show the time of day in the controls bar", G_SWITCH, F_CLOCK, 2, NULL },
-    { "settings:quality-info", "Quality info in controls", "Show resolution, frame rate and codec in the controls bar", G_SWITCH, F_QUALITY_INFO, 2, NULL },
-    { "settings:quality-bitrate", "Bitrate in quality info", "Add the stream bitrate to the quality info", G_SWITCH, F_QUALITY_BITRATE, 2, NULL },
-    { "settings:time-format", "Time format", "Clock and estimated finish time", G_LABELS, F_CLOCK_12H, 2, time_labels },
-    { "settings:player-exit", "Exit from the player", "What Circle does during playback", G_LABELS, F_EXIT_MODE, 3, exit_labels },
-    { "settings:keys-left-right", "Left / Right", "Quick skip works while the controls are hidden", G_LABELS, F_KEYS_LR, 5, keys_lr_labels },
-    { "settings:keys-up-down", "Up / Down", "Quick skip works while the controls are hidden", G_LABELS, F_KEYS_UD, 6, keys_ud_labels },
-    { "settings:seek-preview", "Preview while seeking", "Thumbnails from YouTube storyboards", G_LABELS, F_SEEK_PREVIEW, 4, preview_labels },
-    { "settings:speed-list", "Speed list", "Which speeds the speed picker offers", G_LABELS, F_SPEED_LIST, 3, speed_list_labels },
-    { "settings:loop-shorts", "Loop Shorts", "Repeat a Short until another video is chosen", G_SWITCH, F_LOOP_SHORTS, 2, NULL },
-    { "settings:remember-short-position", "Remember position of short videos", "Off: videos under six minutes start from the beginning", G_SWITCH, F_REMEMBER_SHORT, 2, NULL },
+    { "settings:subtitle-style", "Subtitle style", "Text colour, background and edge of captions", G_LABELS, F_SUBTITLE_STYLE, 7, style_labels, NULL, 0 },
+    { "settings:subtitle-size", "Subtitle size", "Caption text scale", G_SCALE, F_SUBTITLE_SCALE, 20, NULL, NULL, 0 },
+    { "settings:subtitle-position", "Subtitle position", "Height of captions above the bottom edge", G_POSITION, F_SUBTITLE_POSITION, 42, NULL, NULL, 0 },
+    { "settings:player-volume", "Player volume", "Above 100% the sound is boosted and may distort", G_VOLUME, F_VOLUME, 61, NULL, NULL, 0 },
+    { "settings:player-mute", "Mute", "Silence the player until switched back", G_SWITCH, -1, 2, NULL, NULL, 0 },
+    { "settings:auto-volume", "Auto volume", "Turn loud videos down to YouTube's reference level", G_SWITCH, F_AUTO_VOLUME, 2, NULL, NULL, 0 },
+    { "settings:audio-delay", "Audio delay", "Shift the sound against the picture", G_DELAY, F_AUDIO_DELAY_MS, DELAY_COUNT, NULL, NULL, 0 },
+    { "settings:audio-delay-enabled", "Use audio delay", "Keep the chosen delay but switch it on or off", G_SWITCH, F_AUDIO_DELAY_ENABLED, 2, NULL, NULL, 0 },
+    { "settings:player-clock", "Clock in controls", "Show the time of day in the controls bar", G_SWITCH, F_CLOCK, 2, NULL, NULL, 0 },
+    { "settings:quality-info", "Quality info in controls", "Show resolution, frame rate and codec in the controls bar", G_SWITCH, F_QUALITY_INFO, 2, NULL, NULL, 0 },
+    { "settings:quality-bitrate", "Bitrate in quality info", "Add the stream bitrate to the quality info", G_SWITCH, F_QUALITY_BITRATE, 2, NULL, NULL, 0 },
+    { "settings:time-format", "Time format", "Clock and estimated finish time", G_LABELS, F_CLOCK_12H, 2, time_labels, NULL, 0 },
+    { "settings:player-exit", "Exit from the player", "What Circle does during playback", G_LABELS, F_EXIT_MODE, 3, exit_labels, NULL, 0 },
+    { "settings:keys-left-right", "Left / Right", "Quick skip works while the controls are hidden", G_LABELS, F_KEYS_LR, 5, keys_lr_labels, NULL, 0 },
+    { "settings:keys-up-down", "Up / Down", "Quick skip works while the controls are hidden", G_LABELS, F_KEYS_UD, 7, keys_ud_labels, NULL, 0 },
+    { "settings:seek-preview", "Preview while seeking", "Thumbnails from YouTube storyboards", G_LABELS, F_SEEK_PREVIEW, 4, preview_labels, NULL, 0 },
+    { "settings:speed-list", "Speed list", "Which speeds the speed picker offers", G_LABELS, F_SPEED_LIST, 3, speed_list_labels, NULL, 0 },
+    { "settings:loop-shorts", "Loop Shorts", "Repeat a Short until another video is chosen", G_SWITCH, F_LOOP_SHORTS, 2, NULL, NULL, 0 },
+    { "settings:remember-short-position", "Remember position of short videos", "Off: videos under six minutes start from the beginning", G_SWITCH, F_REMEMBER_SHORT, 2, NULL, NULL, 0 },
+    { "settings:player-suggestions", "Suggestions in the player", "List related videos, the queue and the playlist during playback", G_SWITCH, F_SUGGESTIONS, 2, NULL, NULL, 0 },
+    { "settings:chapter-notification", "Chapter notification", "Announce a chapter when it starts; R1 skips it", G_SWITCH, F_CHAPTER_NOTICE, 2, NULL, NULL, 0 },
+    { "settings:error-fixer", "Fix playback errors", "Reload the stream or lower its quality after decoder errors and long buffering", G_SWITCH, F_ERROR_FIXER, 2, NULL, NULL, 0 },
+    { "settings:remember-quality", "Remember chosen quality", "A quality chosen in the player becomes the maximum for this profile", G_SWITCH, F_REMEMBER_QUALITY, 2, NULL, NULL, 0 },
+    { "settings:dim-timeout", "Screen dimming", "Dim the picture while paused or browsing after this time without input", G_SECONDS, F_DIM_TIMEOUT, VALUES(dim_timeout_values) },
+    { "settings:dim-amount", "Screen dimming amount", "How dark the dimmed picture is", G_PERCENT, F_DIM_AMOUNT, VALUES(dim_amount_values) },
+    { "settings:screen-off-timeout", "Screen off timeout", "Turn the picture off in the player after this time without input; sound keeps playing", G_SECONDS, F_SCREEN_OFF_TIMEOUT, VALUES(screen_off_timeout_values) },
+    { "settings:screen-off-amount", "Screen off amount", "How dark the picture is while the screen is off", G_PERCENT, F_SCREEN_OFF_AMOUNT, VALUES(screen_off_amount_values) },
+    { "settings:button-like", "Button: Like", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_LIKE },
+    { "settings:button-dislike", "Button: Dislike", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_DISLIKE },
+    { "settings:button-subscribe", "Button: Subscribe", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SUBSCRIBE },
+    { "settings:button-playlist", "Button: Add to playlist", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_PLAYLIST_ADD },
+    { "settings:button-queue", "Button: Playback queue", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_QUEUE },
+    { "settings:button-channel", "Button: Open channel", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_CHANNEL },
+    { "settings:button-search", "Button: Search", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SEARCH },
+    { "settings:button-description", "Button: Description", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_VIDEO_INFO },
+    { "settings:button-share", "Button: Share link", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SHARE },
+    { "settings:button-sponsorblock", "Button: SponsorBlock", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_CONTENT_BLOCK },
+    { "settings:button-chat", "Button: Live chat", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_CHAT },
+    { "settings:button-screen-off", "Button: Screen off", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SCREEN_OFF },
+    { "settings:button-sound", "Button: Mute and volume", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SOUND },
+    { "settings:button-speed", "Button: Video speed", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SPEED },
+    { "settings:button-zoom", "Button: Video zoom", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_ZOOM },
+    { "settings:button-repeat", "Button: Playback mode", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_REPEAT },
+    { "settings:button-next", "Button: Next video", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_NEXT },
+    { "settings:button-previous", "Button: Previous video", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_PREVIOUS },
+    { "settings:button-seek-interval", "Button: Seek interval", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_SEEK_INTERVAL },
+    { "settings:button-rotate", "Button: Rotate video", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_ROTATE },
+    { "settings:button-mirror", "Button: Mirror video", BUTTON_DETAIL, G_BUTTON, F_BUTTONS, 2, NULL, NULL, TUBE_BUTTON_FLIP },
 };
 
 static const group_t *group_at(int group) { return group >= 0 && group < TUBE_EXTRA_GROUPS ? &groups[group] : NULL; }
@@ -552,6 +620,7 @@ static int group_value(const group_t *group, int choice) {
     case G_POSITION: return choice ? (choice - 1) * 25 : -1;
     case G_VOLUME: return choice * 5;
     case G_DELAY: return delay_values[choice];
+    case G_SECONDS: case G_PERCENT: return group->values[choice];
     default: return choice;
     }
 }
@@ -578,7 +647,13 @@ int tube_extra_group_label(int group, int choice, char *out, size_t size) {
         else if (value % 10) snprintf(out, size, "%d.%d%%", value / 10, value % 10);
         else snprintf(out, size, "%d%%", value / 10);
         break;
-    case G_VOLUME: snprintf(out, size, "%d%%", value); break;
+    case G_VOLUME: case G_PERCENT: snprintf(out, size, "%d%%", value); break;
+    case G_BUTTON: snprintf(out, size, "%s", choice ? "On" : "Off"); break;
+    case G_SECONDS:
+        if (!value) snprintf(out, size, "Never");
+        else if (value < 60) snprintf(out, size, "%d sec", value);
+        else snprintf(out, size, "%d min", value / 60);
+        break;
     default:
         if (!value) snprintf(out, size, "No delay");
         else snprintf(out, size, "%+d ms (audio %s)", value, value > 0 ? "later" : "earlier");
@@ -591,6 +666,7 @@ int tube_extra_group_selected(int group) {
     if (!entry) return -1;
     int value = entry->field < 0 ? g_muted : *slot(prefs(), &fields[entry->field]);
     if (entry->kind == G_DELAY) value = tube_extra_effective_audio_delay_ms();
+    if (entry->kind == G_BUTTON) value = value >> entry->button & 1;
     for (int choice = 0; choice < entry->count; ++choice) if (group_value(entry, choice) == value) return choice;
     return -1;
 }
@@ -601,5 +677,211 @@ int tube_extra_group_select(int group, int choice) {
     if (entry->field < 0) { tube_extra_set_muted(value); return 1; }
     if (entry->kind == G_DELAY) return tube_extra_set_audio_delay_ms(value);
     if (entry->field == F_AUDIO_DELAY_ENABLED) return tube_extra_set_audio_delay_enabled(value);
+    if (entry->kind == G_BUTTON)
+        return set_field(F_BUTTONS, value ? prefs()->buttons | 1 << entry->button : prefs()->buttons & ~(1 << entry->button));
     return set_field(entry->field, value);
+}
+
+/* ---- Player buttons and where a group is listed. ---- */
+int tube_extra_group_in_player(int group) {
+    if (!group_at(group) || groups[group].kind == G_BUTTON) return 0;
+    if (group == TUBE_EXTRA_VOLUME || group == TUBE_EXTRA_MUTE) return tube_extra_button(TUBE_BUTTON_SOUND);
+    if (group >= TUBE_EXTRA_DIM_TIMEOUT && group <= TUBE_EXTRA_SCREEN_OFF_AMOUNT) return tube_extra_button(TUBE_BUTTON_SCREEN_OFF);
+    return 1;
+}
+int tube_extra_group_screen(int group) {
+    if (!group_at(group)) return -1;
+    if (groups[group].kind == G_BUTTON) return 3;
+    if (group >= TUBE_EXTRA_DIM_TIMEOUT && group <= TUBE_EXTRA_SCREEN_OFF_AMOUNT) return 4;
+    return group <= TUBE_EXTRA_SUBTITLE_POSITION ? 0 : group <= TUBE_EXTRA_AUDIO_DELAY_ENABLED ? 1 : 2;
+}
+void tube_extra_picker_request(int list) { g_picker_request = list; }
+int tube_extra_take_picker_request(void) { const int list = g_picker_request; g_picker_request = TUBE_PICKER_OPTIONS; return list; }
+
+/* ---- Chapter notification. ---- */
+int tube_chapter_notice_decide(int enabled, int announced, int current, int busy, int controls_visible) {
+    /* The controls already show the chapter title; a seek in flight has no
+     * settled position yet. Either way the chapter is announced afterwards. */
+    if (!enabled || current < 0 || busy || controls_visible || current == announced) return -1;
+    return current;
+}
+int tube_extra_chapter_notice(double position, int busy, int controls_visible) {
+    const int chapter = tube_chapter_notice_decide(prefs()->chapter_notice, g_chapter_announced,
+        tube_extra_chapter_at(position), busy, controls_visible);
+    if (chapter >= 0) g_chapter_announced = chapter;
+    return chapter;
+}
+
+/* ---- Screen dimming and screen off. ---- */
+int tube_dim_decide(const TubePlayerExtra *profile, int context, uint64_t idle_ms, int screen_off) {
+    int percent = 0;
+    if (!profile || context == TUBE_DIM_NONE) return 0;
+    const int player = context == TUBE_DIM_PAUSED || context == TUBE_DIM_PLAYING;
+    if (player && (screen_off || (profile->screen_off_timeout > 0 &&
+                                  idle_ms >= (uint64_t)profile->screen_off_timeout * 1000)))
+        percent = profile->screen_off_amount;
+    if (context != TUBE_DIM_PLAYING && profile->dim_timeout > 0 &&
+        idle_ms >= (uint64_t)profile->dim_timeout * 1000 && profile->dim_amount > percent)
+        percent = profile->dim_amount;
+    return percent < 0 ? 0 : percent > 100 ? 100 : percent;
+}
+void tube_extra_dim_reset(uint64_t now_ms) {
+    g_dim_input_ms = now_ms; g_dim_started = 1; g_screen_off = 0;
+    if (g_dim_percent) { g_dim_percent = 0; ++g_revision; }
+}
+int tube_extra_dim_input(uint64_t now_ms, int pressed, int seek_only) {
+    if (!pressed) return 0;
+    const int dimmed = g_dim_percent > 0;
+    /* Seeking blind keeps a screen that is off as it is; a dimmed one wakes. */
+    if (dimmed && seek_only && g_dim_percent >= 100) return 0;
+    tube_extra_dim_reset(now_ms);
+    return dimmed;
+}
+int tube_extra_dim_tick(uint64_t now_ms, int context) {
+    if (!g_dim_started || now_ms < g_dim_input_ms) { g_dim_input_ms = now_ms; g_dim_started = 1; }
+    /* Screen off belongs to the player: leaving it brings the picture back. */
+    if (context != TUBE_DIM_PAUSED && context != TUBE_DIM_PLAYING) g_screen_off = 0;
+    /* A screen that never dims also restarts the wait for the next one. */
+    if (context == TUBE_DIM_NONE) g_dim_input_ms = now_ms;
+    const int percent = tube_dim_decide(prefs(), context, now_ms - g_dim_input_ms, g_screen_off);
+    if (percent != g_dim_percent) { g_dim_percent = percent; ++g_revision; }
+    return percent;
+}
+int tube_extra_dim_percent(void) { return g_dim_percent; }
+void tube_extra_screen_off(uint64_t now_ms) {
+    if (!g_dim_started) { g_dim_input_ms = now_ms; g_dim_started = 1; }
+    g_screen_off = 1;
+}
+int tube_extra_screen_is_off(void) { return g_screen_off; }
+void tube_dim_pixels(uint32_t *pixels, size_t count, int percent) {
+    if (!pixels || percent <= 0) return;
+    if (percent > 100) percent = 100;
+    const unsigned black = (unsigned)percent * 255u / 100u, keep = 255u - black;
+    for (size_t i = 0; i < count; ++i) {
+        const uint32_t pixel = pixels[i];
+        const unsigned alpha = pixel >> 24, covered = alpha * keep / 255u, out = black + covered;
+        /* Black over the pixel: its colours keep only their own share of the result. */
+        const unsigned scale = out ? covered * 255u / out : 0;
+        const unsigned r = (pixel >> 16 & 0xffu) * scale / 255u, g = (pixel >> 8 & 0xffu) * scale / 255u,
+                       b = (pixel & 0xffu) * scale / 255u;
+        pixels[i] = (uint32_t)out << 24 | (uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b;
+    }
+}
+
+/* ---- Error fixer. ---- */
+int tube_error_fix_lower_height(int height) {
+    /* SmartTube steps down the format list but never below 720p. */
+    static const int steps[] = { 2160, 1440, 1080, 720 };
+    for (int i = 0; i + 1 < (int)(sizeof steps / sizeof *steps); ++i) if (height > steps[i + 1]) return steps[i + 1];
+    return 0;
+}
+int tube_error_fix_decide(const tube_fix_input *input) {
+    if (!input || !input->enabled || input->attempts < 0 || input->attempts >= TUBE_FIX_ATTEMPTS) return TUBE_FIX_NONE;
+    const int lower = tube_error_fix_lower_height(input->height) ? TUBE_FIX_LOWER_QUALITY : TUBE_FIX_NONE;
+    switch (input->error) {
+    case TUBE_ERROR_SOURCE: return TUBE_FIX_RELOAD;
+    case TUBE_ERROR_VIDEO_DECODER: {
+        /* First the format every decoder path handles, then smaller pictures. */
+        const int safe = input->codec == TUBE_CODEC_AVC && input->height <= 1080 && input->fps <= 30;
+        return !input->attempts && !safe ? TUBE_FIX_SAFE_VIDEO : lower;
+    }
+    case TUBE_ERROR_BUFFERING: {
+        /* Captions go first, as in SmartTube; a repeated stall also lowers the quality. */
+        const int action = input->attempts && lower ? lower : TUBE_FIX_RELOAD;
+        return action | (input->subtitles && !input->live ? TUBE_FIX_SUBTITLES_OFF : 0);
+    }
+    default: return TUBE_FIX_NONE;    /* no other audio format can be requested */
+    }
+}
+int tube_error_fix_quality(int action, int *height, int *fps, int *codec) {
+    if (!height || !fps || !codec) return 0;
+    const int old_height = *height, old_fps = *fps, old_codec = *codec;
+    switch (action & TUBE_FIX_ACTION) {
+    case TUBE_FIX_LOWER_QUALITY:
+        if (tube_error_fix_lower_height(*height)) *height = tube_error_fix_lower_height(*height);
+        break;
+    case TUBE_FIX_SAFE_VIDEO:
+        if (*height > 1080) *height = 1080;
+        *fps = 30; *codec = TUBE_CODEC_AVC;
+        break;
+    default: break;
+    }
+    return *height != old_height || *fps != old_fps || *codec != old_codec;
+}
+const char *tube_error_fix_message(int error, int action) {
+    const int off = action & TUBE_FIX_SUBTITLES_OFF;
+    switch (action & TUBE_FIX_ACTION) {
+    case TUBE_FIX_SAFE_VIDEO: return "Video decoder error. Reloading as AVC at up to 1080p30...";
+    case TUBE_FIX_LOWER_QUALITY:
+        return error == TUBE_ERROR_BUFFERING ? off ? "Still buffering. Captions off; reloading at a lower quality..."
+                                                   : "Still buffering. Reloading at a lower quality..."
+                                             : "Video decoder error. Reloading at a lower quality...";
+    case TUBE_FIX_RELOAD:
+        return error == TUBE_ERROR_BUFFERING ? off ? "Buffering too long. Captions off; reloading this stream..."
+                                                   : "Buffering too long. Reloading this stream..."
+                                             : "Refreshing this stream and restoring playback...";
+    default:
+        return error == TUBE_ERROR_VIDEO_DECODER ? "Video decoder error. Select the video to retry."
+             : error == TUBE_ERROR_AUDIO_DECODER ? "Audio decoding or output failed. Select the video to retry."
+             : error == TUBE_ERROR_BUFFERING ? "Buffering too long. Check the connection or choose a lower quality."
+             : "Recovery is unavailable. Stop and select the video again.";
+    }
+}
+void tube_buffering_reset(tube_buffering_t *state) { if (state) memset(state, 0, sizeof *state); }
+int tube_buffering_tick(tube_buffering_t *state, uint64_t now_ms, int buffering) {
+    if (!state) return 0;
+    if (!state->started || now_ms < state->last_ms) {
+        state->started = 1; state->window_ms = state->last_ms = now_ms; state->waited_ms = 0;
+        return 0;
+    }
+    /* A frame gap longer than a second is a stopped clock, not a wait. */
+    const uint64_t step = now_ms - state->last_ms;
+    state->last_ms = now_ms;
+    if (now_ms - state->window_ms > TUBE_BUFFERING_WINDOW_MS) { state->window_ms = now_ms; state->waited_ms = 0; }
+    if (buffering && step <= 1000) state->waited_ms += (uint32_t)step;
+    if (state->waited_ms < TUBE_BUFFERING_LIMIT_MS) return 0;
+    state->window_ms = now_ms; state->waited_ms = 0;
+    return 1;
+}
+
+/* ---- Video presets. ---- */
+static const int preset_heights[] = { 2160, 1440, 1080, 720, 480, 360, 240, 144 };
+/* SmartTube's table without its HDR rows: AVC up to 1080p, 60 fps from 360p. */
+static int preset_walk(int wanted, int *height, int *fps, int *codec) {
+    int index = 1;
+    for (int h = 0; h < (int)(sizeof preset_heights / sizeof *preset_heights); ++h)
+        for (int rate = 60; rate >= 30; rate -= 30) {
+            if (rate == 60 && preset_heights[h] < 360) continue;
+            for (int kind = TUBE_CODEC_AVC; kind <= TUBE_CODEC_AV1; ++kind) {
+                if (kind == TUBE_CODEC_AVC && preset_heights[h] > 1080) continue;
+                if (index == wanted) { *height = preset_heights[h]; *fps = rate; *codec = kind; }
+                ++index;
+            }
+        }
+    return index;
+}
+int tube_preset_count(void) { int h, f, c; return preset_walk(-1, &h, &f, &c); }
+int tube_preset_at(int index, int *height, int *fps, int *codec) {
+    if (!height || !fps || !codec || index < 0 || index >= tube_preset_count()) return 0;
+    *height = 0; *fps = 0; *codec = TUBE_CODEC_AUTO;
+    if (index) preset_walk(index, height, fps, codec);
+    return 1;
+}
+int tube_preset_label(int index, char *out, size_t size) {
+    int height, fps, codec;
+    if (!out || !size) return 0;
+    out[0] = 0;
+    if (!tube_preset_at(index, &height, &fps, &codec)) return 0;
+    if (!index) snprintf(out, size, "Disabled");
+    else snprintf(out, size, "%dp %d fps %s", height, fps, codec == TUBE_CODEC_AVC ? "AVC" : codec == TUBE_CODEC_VP9 ? "VP9" : "AV1");
+    return 1;
+}
+int tube_preset_find(int height, int fps, int codec) {
+    if (!fps && codec == TUBE_CODEC_AUTO) return 0;
+    for (int i = 1; i < tube_preset_count(); ++i) {
+        int h, f, c;
+        tube_preset_at(i, &h, &f, &c);
+        if (h == height && f == fps && c == codec) return i;
+    }
+    return -1;
 }
