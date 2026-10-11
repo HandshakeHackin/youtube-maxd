@@ -19,7 +19,10 @@ provider regression batch passes all twelve executables, and the committed
 standalone timer test passes (`.deps/offline-provider-final.result`, exit 0).
 Actual generated chat/HUD option tests remain passing alongside the new timer
 rows; connected provider/phone/Application/picker compilation passes
-(`.deps/sleep-timer-connected-final.result`, exit 0). Final packaging is pending.
+(`.deps/sleep-timer-connected-final.result`, exit 0). Candidate `8b41ff55`
+built and froze successfully: 126 files, eboot SHA-256 prefix `cadba35dfb6a47b3`
+(`.deps/offline-sleep-timer-ps5-build.result` and
+`.deps/offline-sleep-timer-freeze.result`, exit 0).
 PS5 menu/pause and system screensaver behavior remain unverified. No console
 connection.
 

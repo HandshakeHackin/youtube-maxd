@@ -329,3 +329,11 @@ audio/video teardown and console queue behavior still require PS5 acceptance.
 The marker command extracts both actual UI-kit and fallback draw blocks and
 checks clipped intervals, visible point markers, track containment and clearing
 with mocked draw-list/DOM functions. Physical rendering remains unverified.
+
+Offline inactivity-timer checks run with `bash scripts/test_sleep_timer.sh`.
+They use the shipping provider with a controlled monotonic clock under ASan/UBSan
+and cover persistence, exact expiry, activity, disabled/idle behavior and one-shot
+pause admission. `bash scripts/test_phone_player.sh` checks that deliberate phone
+commands count as input while queries/status and automatic refills do not.
+`bash scripts/test_native.sh` now runs twelve provider regression executables,
+including the stationary replay reader. Serialize native preparations.
