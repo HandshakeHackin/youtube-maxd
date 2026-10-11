@@ -223,7 +223,7 @@ folder title, ZIP and optional verified `.ffpfsc`. No console deployment runs.
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
 | R3 | Open comments on a video |
-| Touchpad click | Account actions, playlist edits, or ratings for a displayed comment |
+| Touchpad click | Video actions, section and pin actions on a folder, playlist edits, or ratings for a displayed comment |
 | Options | Companion address and pairing code |
 
 Search also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
@@ -244,11 +244,34 @@ history actions do not update YouTube account history.
 
 The same menu has **Play from start** (forgets the resume position, keeps the
 watched marker) and **Play incognito** (that playback writes no local history or
-resume position and sends no account report); each shows the video as a row and
-Cross starts it. **Open channel** and **Open playlist** browse the video's
+resume position and sends no account report); each starts the video at once, and
+after that playback shows it as a row that Cross starts again. **Open channel**
+and **Open playlist** browse the video's
 channel and the playlist it was listed in. **Share link** shows the video, embed,
 channel and playlist links as text. **Exclude channel from SponsorBlock** toggles
-the channel in this profile's exclusion list.
+the channel in this profile's exclusion list. **Open description** reads the full
+description (L2/R2 scroll) with the channel, publication date and view count.
+**Refresh section** reloads the list the menu was opened from.
+
+A typed search lists **Search options** and **Suggestions** first. Search options
+(also in YouTube preferences) filter by upload date, duration, type and features
+and sort by relevance or view count; the filters last until ProsperoTube closes,
+as in SmartTube. **Channels and playlists in results** is saved for the profile.
+With a filter or that choice set, results come from the companion library worker
+and include channel and playlist folders; without the worker the search falls
+back to videos only. YouTube's "last hour" date and its date and rating orders
+are not available.
+
+Discover adds **Trending** and **Shorts**; Accounts & library adds **Subscribed
+channels** (account order or by name, set in YouTube preferences),
+**Notifications** and **My videos**. On Home cards that carry them, the video
+menu offers **Not interested** and **Don't recommend channel**; each is confirmed,
+sent once, and removes the card from Home.
+
+Touchpad click on a main-menu or Discover section moves it up or down or hides
+it for the profile; **Menu sections** in YouTube preferences lists them all.
+Touchpad click on a channel or playlist folder pins it to the main menu (24 per
+profile), where it can be renamed, moved or unpinned.
 
 Searches are remembered per profile (the 50 most recent, repeats ignoring letter
 case). **Recent searches** in the main menu repeats a query, removes one, or
@@ -257,8 +280,9 @@ YouTube preferences also hold **History** (Automatic, Enabled, or Disabled, whic
 also stops local history and resume positions), **Start in** (the section this
 profile opens at startup), **Choose account at startup**, the SponsorBlock
 **Ignore short segments** list (0.5 to 20 seconds), and, under Phone pairing,
-**History for phone playback**. The two startup preferences are stored now and
-take effect once the browser reads them at launch.
+**History for phone playback**. At launch the browser opens the account list
+when **Choose account at startup** is on, otherwise the profile's **Start in**
+section; if that section cannot load it returns to the main menu.
 
 With an account profile selected, the same menu includes video ratings, YouTube
 Watch later, and channel subscribe/unsubscribe controls. Each change shows a

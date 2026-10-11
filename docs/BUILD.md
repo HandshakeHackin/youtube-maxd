@@ -380,6 +380,15 @@ priority. `bash scripts/test_phone_player.sh` checks the real pending-launch
 adapter. Serialize native preparations. Physical PS5 acceptance remains separate.
 
 
+Browse section checks: `bash scripts/test_native.sh search_options description
+library_sections feedback section_order menu_launch` runs the provider side of
+search options and suggestions, the description reader, the new sections, Home
+feedback, section order and pins, and single-press menu playback.
+`bash scripts/test_browse_sections.sh` executes the generated host's Refresh
+section, results level, Touchpad section menu and startup-section blocks. None
+of this has run on a PS5 or against the live service.
+
+
 Phone unavailable-video advance checks: `bash scripts/test_phone_player.sh`
 runs the real JSON/receiver/adapter under sanitizers. It covers monotonic timer
 boundaries, duplicate sparse occurrences, fresh launch tickets/selections,
