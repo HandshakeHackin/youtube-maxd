@@ -123,9 +123,11 @@ export class TopicCatalog {
     const status=overlays.map(value=>value.thumbnailOverlayTimeStatusRenderer).find(Boolean);
     const rawStart=video.upcomingEventData?.startTime;
     const start=(typeof rawStart==='number' || (typeof rawStart==='string' && /^\d+$/.test(rawStart)))?Number(rawStart):NaN;
+    const upcoming=new Date(start*1000);
+    const validStart=Number.isFinite(upcoming.getTime()) && upcoming.getTime()>0;
     return {is_live:status?.style==='LIVE' || (video.badges ?? []).some(value=>value.metadataBadgeRenderer?.style==='BADGE_STYLE_TYPE_LIVE_NOW'),
-      is_upcoming:Number.isFinite(start) && start>this.clock()/1000,
-      upcoming:Number.isFinite(start)?new Date(start*1000):undefined,
+      is_upcoming:validStart && upcoming.getTime()>this.clock(),
+      upcoming:validStart?upcoming:undefined,
       is_watched:video.isWatched===true,
       thumbnail_overlays:overlays.filter(value=>value.thumbnailOverlayResumePlaybackRenderer).map(value=>({
         type:'ThumbnailOverlayResumePlayback',percent_duration_watched:value.thumbnailOverlayResumePlaybackRenderer.percentDurationWatched}))};

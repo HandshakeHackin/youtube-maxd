@@ -61,3 +61,21 @@ test('catalog normalization retains only valid parsed upcoming dates',()=>{
   for(const upcoming of [new Date(NaN),new Date(-1),'2000',2000])
     assert.equal(normalizeVideo({id,upcoming,is_upcoming:true}).upcoming_start_ms,undefined);
 });
+
+test('modern live badges survive actual parser normalization independently of localized text',async()=>{
+  for(const kind of ['thumbnailBottomOverlayViewModel','thumbnailOverlayBadgeViewModel']) {
+    const make=(style,label)=>new YTNodes.LockupView({contentId:id,contentType:'LOCKUP_CONTENT_TYPE_VIDEO',
+      contentImage:{thumbnailViewModel:{image:{sources:[]},overlays:[{[kind]:{
+        [kind==='thumbnailBottomOverlayViewModel'?'badges':'thumbnailBadges']:[{thumbnailBadgeViewModel:{
+          text:label,badgeStyle:style}}]
+      }}]}}});
+    const live=make('THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE','En directo');
+    assert.equal(normalizeVideo(live).is_live,true);
+    assert.equal(normalizeVideo(make('THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT','LIVE')).is_live,false);
+    const library=new Library(async()=>({getHomeFeed:async()=>({videos:[live],has_continuation:false})}));
+    const page=await library.execute({action:'home'});
+    assert.equal(page.items[0].is_live,true);assert.equal(page.items[0].playback_context.index,0);
+  }
+  assert.equal(normalizeVideo({id,is_live:true}).is_live,true);
+  assert.equal(normalizeVideo({id}).is_live,false);
+});

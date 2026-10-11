@@ -21,7 +21,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Earlier PS5 packages played public YouTube with captions/history; the user confirmed smooth, synchronized 1080p60 AVC/AAC Big Buck Bunny playback.
 - Scoped PS5 cases cover local unavailable-video queue advancement and paused dual-caption selection/rendering/clear with speed-reopen retention. Moving timing after that reopen remains unverified.
 - At `09873cd`, the complete Python suite passed 518 tests and five subtests, with one existing dependency deprecation warning.
-- Latest worker baseline: 123 tests and bundle build passed. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
+- Latest worker baseline: 125 tests and bundle build passed, including modern live badges and invalid schedule bounds. Recent native suites and PS5 SDK provider compilation passed within their documented scope.
 - The full native regression was interrupted for the requested pause. No complete full-native pass is claimed.
 - Recent browsing-group/filter/progress changes have no console acceptance. No console was contacted during this offline phase.
 

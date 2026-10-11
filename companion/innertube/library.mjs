@@ -39,6 +39,13 @@ export function imageUrl(value) {
 function cardImage(node) {
   return node.content_image?.primary_thumbnail ?? node.content_image;
 }
+function cardLive(node) {
+  if (node.is_live) return true;
+  return (cardImage(node)?.overlays ?? []).some(overlay =>
+    ['ThumbnailBottomOverlayView', 'ThumbnailOverlayBadgeView'].includes(overlay.type) &&
+    (overlay.badges ?? []).some(badge => badge.type === 'ThumbnailBadgeView' &&
+      badge.badge_style === 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE'));
+}
 function cardAuthor(node) {
   if (node.author) return node.author;
   const parts = node.metadata?.metadata?.metadata_rows?.[0]?.metadata_parts ?? [];
@@ -90,7 +97,7 @@ export function normalizeVideo(node, playlist = '') {
     art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
     channel_id: channelId(author.id) ? author.id : '',
     duration_sec: cardDuration(node),
-    is_folder: false, is_upcoming: !!node.is_upcoming, is_live: !!node.is_live, played: !!node.is_watched, watch_percent: watchPercent(node),
+    is_folder: false, is_upcoming: !!node.is_upcoming, is_live: cardLive(node), played: !!node.is_watched, watch_percent: watchPercent(node),
     ...(Number.isFinite(scheduled) && scheduled>0?{upcoming_start_ms:scheduled}:{}),
     ...(context ? {playback_context: context} : {}) };
 }

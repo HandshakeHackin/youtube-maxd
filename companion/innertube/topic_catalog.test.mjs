@@ -209,3 +209,20 @@ test('TV topic progress survives normalization and upcoming items remain ineligi
   const next=await library.execute({action:'group_window',group:context.group,id:page.items[0].id,index:0,target:1,direction:1});
   assert.equal(next.video_id,page.items[2].id);assert.equal(next.index,2);
 });
+
+test('topic schedules outside the representable date range cannot permanently exclude group entries',async()=>{
+  const topics=new TopicCatalog(Error,normalizeVideo,imageUrl,()=>1000000);
+  for(const startTime of [1e308,'8640000000001',-1,0,Infinity,NaN]) {
+    const row=topics.webVideo({videoId:'abcdefghijk',upcomingEventData:{startTime}});
+    assert.equal(row.is_upcoming,false,String(startTime));
+    assert.equal(row.upcoming_start_ms,undefined,String(startTime));
+  }
+  const first=tile(1),invalid=tile(2);
+  invalid.tileRenderer.upcomingEventData={startTime:'8640000000001'};
+  const library=new Library(async()=>({actions:{execute:async()=>response({sectionListRenderer:{contents:[shelf([first,invalid])]}})}}));
+  const root=await library.execute({action:'topics',section:'music'});
+  const page=await library.execute({action:'topic_open',section:'music',id:root.items[0].id.split(':')[2]});
+  const context=page.items[0].playback_context;
+  const next=await library.execute({action:'group_window',group:context.group,id:page.items[0].id,index:0,target:1,direction:1});
+  assert.equal(next.video_id,page.items[1].id);assert.equal(next.index,1);
+});

@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Modern live badges and malformed topic schedules — 2026-10-11
+
+All 125 worker tests and the bundle build pass. Modern Lockup cards now expose
+structured LIVE badge styles through both bottom-overlay and badge-overlay parser
+nodes, independently of translated labels. Actual pinned youtubei.js parser tests
+cover both shapes, ordinary cards and the Home service result. The badge contract
+is corroborated by [yt-dlp's Lockup adapter](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/_tab.py).
+Modern upcoming markers and real-service layout acceptance remain open.
+
+Raw topic schedules now require a positive representable JavaScript date before
+marking a video upcoming. Overflow/out-of-range timestamps previously produced an
+upcoming flag without a valid expiry, permanently excluding those occurrences
+from automatic group navigation. Tests cover invalid bounds and actual group
+Next selection. No native code changed and no console was contacted.
+
 ## Full companion regression — 2026-10-11
 
 The complete Python suite passes: **518 tests and five subtests**, with one
