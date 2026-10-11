@@ -6,6 +6,10 @@ This document summarizes current evidence; older candidate entries are historica
 
 ## Current checkpoint
 
+Latest implementation commit: [`3420686`](https://github.com/blackbearreloaded/ProsperoTube/commit/3420686fc4fe84af27fd002d08509a40493b99cf),
+on `codex/first-version` in [draft PR #1](https://github.com/blackbearreloaded/ProsperoTube/pull/1).
+The validation below covers that implementation; it is not a new frozen release.
+
 The phone fallback adapter from `891ddf8` now has provider lookup and application
 callbacks. Remote-only next metadata can return a verified suggestion group; native
 traversal skips blocked identities and names without changing saved queue records.
