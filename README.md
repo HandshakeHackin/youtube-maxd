@@ -83,8 +83,9 @@ requests/playback links, then returns to Guest. Local profile lists stay on the
 PS5; externally configured cookie profiles are managed in companion configuration.
 Optional DeArrow title/thumbnail replacement now has independent native preferences,
 retains original metadata, and falls back to original images on service failure;
-PS5 acceptance remains pending. Casting, HDR selection, AV1 and standalone SABR/token
-execution remain unfinished.
+PS5 acceptance remains pending. AV1 SDR selection now uses the existing PS5 libdav1d software decoder and passes
+offline relay/decode/seek tests; PS5 performance and presentation remain unverified.
+Casting acceptance, HDR selection and standalone SABR/token execution remain unfinished.
 
 Selected primary-account profiles now route search and playback through separate
 credential/cache contexts on the companion. Secondary-account and brand-channel

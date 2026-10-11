@@ -1,5 +1,37 @@
 # Offline validation record — 0.1.0
 
+## AV1 SDR software decode integration — 2026-10-11
+
+EVO's pinned PS5 recipe already builds libdav1d and registers FFmpeg's libdav1d
+AV1 decoder. Its generic software backend opens the selected codec through
+avcodec_find_decoder; this batch connects the missing companion selection and
+native profile preference. AVC, VP9 and AV1 SDR now map to progressive, separate
+track DASH and paired live-HLS paths. At equal resolution Automatic keeps AVC
+before VP9 before AV1. Explicit AV1 restricts selection to AV1. HDR, DRM,
+unsupported transports and the selected height bound remain filtered. AV1 uses
+software decode; no claim of PS5 real-time performance follows from this change.
+
+Validation: 105 companion tests pass, including AV1 MP4/WebM codec metadata,
+refresh bindings, progressive/HLS mapping, preference ordering, and exclusions.
+All fifteen provider sanitizer regressions pass; actual native resolve requests
+carry codec=av1 and profile persistence/reload retains the preference. The
+provider and software decoder PS5 object targets pass; the installed PS5
+libavcodec archive defines ff_libdav1d_decoder. Packaging now refuses an archive
+missing that implementation (`.deps/av1-native.result`, exit 0).
+
+The offline probe generates redistributable AV1/AAC media, starts a loopback-only
+real fixture companion, resolves it and reads its DASH/relay URLs with libdav1d.
+It decodes 240 frames, decodes 59 frames after a four-second seek, and hashes the
+first sought frame against the local original, with equality. The server shuts
+down in the probe's finally path (`.deps/av1-probe-final.log`, terminal exit 0).
+Run with `PYTHONPATH=companion .venv/bin/python scripts/probe_av1.py`; host FFmpeg
+needs libaom-av1 for fixture generation and libdav1d for decoding.
+
+No console connection or new full package was made. Representative PS5 AV1
+bitrate/frame-rate, memory, rendering, sync, speed/recovery and long-session
+acceptance remain required at the final-candidate stage. The console is shared
+with another agent; its previous exclusive reservation no longer applies.
+
 ## Per-profile seek intervals — 2026-10-11
 
 The pinned SmartTube AppDialogUtil exposes intervals of 1, 2, 3, 5, 7, 10, 15,

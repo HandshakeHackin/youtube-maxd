@@ -37,6 +37,10 @@ if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
     grep -q '^#define CONFIG_ATEMPO_FILTER 1$' "${work}/build/ffmpeg/7.1.1-minimal/config_components.h"
     printf '%s\n' "${ffmpeg_identity}" > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
 fi
+"${PS5_PAYLOAD_SDK}/bin/prospero-nm" --defined-only "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libavcodec.a" > "${root}/.deps/ps5-codec-symbols.txt"
+grep -Eq '[[:space:]][Dd][[:space:]]+ff_libdav1d_decoder$' "${root}/.deps/ps5-codec-symbols.txt" || {
+    echo 'The PS5 FFmpeg archive lacks the required libdav1d AV1 decoder.' >&2; exit 2;
+}
 bash "${work}/scripts/package-app.sh" --zip "$@"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"

@@ -32,7 +32,7 @@ def apply_master(info, master, content):
     for url, attrs in variants:
         codecs = attrs.get('CODECS', '').split(',')
         audio_codec = next((c for c in codecs if c.startswith(('mp4a.', 'opus'))), None)
-        video_codec = next((c for c in codecs if c.startswith(('avc1.', 'vp09.', 'vp9'))), None)
+        video_codec = next((c for c in codecs if c.startswith(('avc1.', 'vp09.', 'vp9', 'av01.'))), None)
         if not audio_codec or not video_codec:
             continue
         paired = []

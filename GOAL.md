@@ -36,7 +36,7 @@ milestones and do not satisfy this gate. Continue the full SmartTube objective;
 hardware acceptance remains separate and must not be silently assumed.
 
 Once all remaining offline work is complete and the final candidate is ready,
-use the user's reserved console for bounded validation under
+use the user's shared console for bounded validation under
 `ps5-homebrew-dev-protocol`. Preserve exact candidate hashes, use the shared
 console lock, avoid unrelated running titles, and stop on a service/health
 anomaly. Keep private environment details and raw logs ignored.
@@ -51,3 +51,8 @@ Current progress and limitations: [README](README.md),
 [library service](docs/LIBRARY_SERVICE.md), [build](docs/BUILD.md),
 [hardware acceptance](docs/HARDWARE_ACCEPTANCE.md), and
 [reference candidates](docs/REFERENCE_CANDIDATES.md).
+
+Console ownership update (2026-10-11): another agent also uses the fallback console.
+The previous exclusive reservation no longer applies. Always respect the shared
+local lock and check running titles before use; if busy, leave it untouched.
+This does not lift the final-candidate-only console gate.

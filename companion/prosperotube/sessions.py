@@ -41,6 +41,7 @@ class Session:
 def codec_name(raw):
     if raw.startswith(("avc1", "h264")): return "h264"
     if raw.startswith(("vp9", "vp09")): return "vp9"
+    if raw == "av1" or raw.startswith("av01."): return "av1"
     if raw.startswith(("mp4a", "aac")): return "aac"
     if raw.startswith("opus"): return "opus"
     return ""
@@ -121,14 +122,14 @@ class Sessions:
         def eligible(fmt):
             raw = str(fmt.get("vcodec", ""))
             codec = codec_name(raw)
-            return (fmt.get("url") and codec in {"h264", "vp9"}
-                    and (request.codec == "auto" or codec == {"avc": "h264", "vp9": "vp9"}.get(request.codec))
+            return (fmt.get("url") and codec in {"h264", "vp9", "av1"}
+                    and (request.codec == "auto" or codec == {"avc": "h264", "vp9": "vp9", "av1": "av1"}.get(request.codec))
                     and 0 < number(fmt.get("height")) <= request.max_height
                     and fmt.get("dynamic_range", "SDR") in (None, "SDR")
                     and not fmt.get("has_drm"))
 
         videos = sorted((f for f in formats if eligible(f)),
-                        key=lambda f: (number(f.get("height")), codec_name(str(f.get("vcodec", ""))) == "h264",
+                        key=lambda f: (number(f.get("height")), {"h264": 2, "vp9": 1, "av1": 0}.get(codec_name(str(f.get("vcodec", ""))), -1),
                                        number(f.get("fps")), number(f.get("tbr"))), reverse=True)
         audios = [f for f in formats if f.get("url") and f.get("vcodec") == "none"
                   and codec_name(str(f.get("acodec", ""))) in {"aac", "opus"}
@@ -188,7 +189,7 @@ class Sessions:
                                   bitrate_bps=int(number(fmt.get("tbr")) * 1000), is_live=live,
                                   audio_channels=2))
         if not choices:
-            raise ServiceError("unsupported_media", "No compatible AVC/VP9 SDR stream was returned. This video may require a different runtime, token, transport, or quality setting.", 422)
+            raise ServiceError("unsupported_media", "No compatible AVC/VP9/AV1 SDR stream was returned. This video may require a different runtime, token, transport, or quality setting.", 422)
         captions = []
         subtitles = dict(info.get("subtitles") or {})
         automatic = info.get("automatic_captions") or {}

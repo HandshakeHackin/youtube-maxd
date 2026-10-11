@@ -14,21 +14,22 @@ CHANNEL = "UC" + "f" * 22
 
 def fixture_info(identifier):
     vp9 = identifier == "DEMOVP90001"
+    av1 = identifier == "DEMOAV10001"
     hls = identifier == "DEMOHLS0001"
-    info = {"id": identifier, "title": "Offline fixture: " + ("VP9 / Opus" if vp9 else "HLS" if hls else "AVC / AAC"),
+    info = {"id": identifier, "title": "Offline fixture: " + ("AV1 / AAC" if av1 else "VP9 / Opus" if vp9 else "HLS" if hls else "AVC / AAC"),
             "channel": "Generated test media", "channel_id": CHANNEL, "duration": 8,
             "description": "Synthetic, redistributable media. This fixture does not establish YouTube or PS5 compatibility.",
             "thumbnail": ORIGIN + "thumb.png", "is_live": hls,
             "chapters": [{"title": "First section", "start_time": 0, "end_time": 4}, {"title": "Seek target", "start_time": 4, "end_time": 8}],
             "subtitles": {"en": [{"ext": "vtt", "url": ORIGIN + "captions.vtt"}]},
             "formats": [
-                {"format_id": "video", "url": ORIGIN + ("video.webm" if vp9 else "video.mp4"),
-                 "protocol": "https", "ext": "webm" if vp9 else "mp4", "vcodec": "vp9" if vp9 else "avc1.64001e",
+                {"format_id": "video", "url": ORIGIN + ("video-av1.mp4" if av1 else "video.webm" if vp9 else "video.mp4"),
+                 "protocol": "https", "ext": "webm" if vp9 else "mp4", "vcodec": "av01.0.01M.08" if av1 else "vp9" if vp9 else "avc1.64001e",
                  "acodec": "none", "height": 360, "width": 640, "fps": 30, "tbr": 800, "dynamic_range": "SDR"},
                 {"format_id": "audio", "url": ORIGIN + ("audio.webm" if vp9 else "audio.m4a"),
                  "protocol": "https", "ext": "webm" if vp9 else "m4a", "vcodec": "none",
                  "acodec": "opus" if vp9 else "mp4a.40.2", "asr": 48000, "abr": 128, "language": "en"}]}
-    if not vp9:
+    if not vp9 and not av1:
         info["formats"].append({"format_id": "progressive", "url": ORIGIN + "muxed.mp4", "protocol": "https",
                                 "ext": "mp4", "vcodec": "avc1.64001e", "acodec": "mp4a.40.2", "height": 360,
                                 "width": 640, "tbr": 800, "dynamic_range": "SDR"})
@@ -52,9 +53,9 @@ class FixtureExtractor:
         return info
     async def extract(self, target, *, flat=False, **_):
         if flat:
-            return {"entries": [self.info(i) for i in ("DEMOAVC0001", "DEMOVP90001", "DEMOHLS0001")]}
+            return {"entries": [self.info(i) for i in ("DEMOAVC0001", "DEMOVP90001", "DEMOHLS0001", "DEMOAV10001")]}
         identifier = target.split("v=")[-1]
-        if identifier not in ("DEMOAVC0001", "DEMOVP90001", "DEMOHLS0001"):
+        if identifier not in ("DEMOAVC0001", "DEMOVP90001", "DEMOHLS0001", "DEMOAV10001"):
             raise ServiceError("fixture_only", "Fixture mode only plays the generated demo videos.", 404)
         return self.info(identifier)
 

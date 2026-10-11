@@ -893,7 +893,7 @@ static int init(void) {
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
     speed_load(root);
-    g_codec = settings_integer(root,"codec",0,2,0);
+    g_codec = settings_integer(root,"codec",0,3,0);
     g_captions = boolean(root, "captions");
     g_auto_captions = boolean(root, "automatic_captions");
     g_sponsor = boolean(root, "sponsorblock");
@@ -2147,7 +2147,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             tube_set_playback_speed((int)speed);
         } else if (!strcmp(parent, "settings:quality")) {
             g_height = g_height == 720 ? 1080 : g_height == 1080 ? 1440 : g_height == 1440 ? 2160 : 720; save();
-        } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 3; save(); }
+        } else if (!strcmp(parent, "settings:codec")) { g_codec = (g_codec + 1) % 4; save(); }
         else if (!strcmp(parent, "settings:captions")) { g_captions = !g_captions; save(); }
         else if (!strcmp(parent, "settings:automatic")) { g_auto_captions = !g_auto_captions; save(); }
         else if (!strcmp(parent, "settings:sponsor")) { g_sponsor = !g_sponsor; g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save(); }
@@ -2385,8 +2385,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             const char *speed_modes[] = {"all videos", "each channel", "each video", "this playback only"};
             snprintf(label, sizeof label, "Remember speed: %s", speed_modes[g_speed_mode]);
             folder(&out[n++], "settings:speed-mode", label, "Video and channel memories are separate for each profile");
-            snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : "Automatic");
-            folder(&out[n++], "settings:codec", label, "Use supported SDR tracks; AV1 and HDR deferred");
+            snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : g_codec == 3 ? "AV1" : "Automatic");
+            folder(&out[n++], "settings:codec", label, "SDR tracks; AV1 uses software decoding. HDR remains deferred");
             folder(&out[n++], "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");
             snprintf(label, sizeof label, "Caption language: %s", g_language);
             folder(&out[n++], "settings:languages", label, "Choose a caption language");
@@ -2670,7 +2670,7 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     snprintf(r->payload, sizeof r->payload,
         "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
-        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
+        id, g_library_profile, g_height, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : g_codec == 3 ? "av1" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
     begin(r); return 0;
 }
 

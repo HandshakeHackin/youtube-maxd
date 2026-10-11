@@ -24,7 +24,7 @@ int main(void) {
     action("settings:remote:disconnect"); assert(tube_phone_stop_on_disconnect());
     action("settings:quality"); action("settings:captions"); action("settings:sponsor");
     action("settings:autoplay"); action("settings:player-chat"); action("settings:sleep:60");
-    action("settings:lang:fr"); action("settings:audio:de"); action("settings:codec");
+    action("settings:lang:fr"); action("settings:audio:de"); action("settings:codec"); action("settings:codec"); action("settings:codec");
     action("settings:automatic"); action("settings:sb:paid"); action("settings:dearrow:titles");
     action("settings:dearrow:thumbnails"); action("settings:ask-stream"); action("settings:history-sync");
     action("settings:sb:exclude:UCabcdefghijklmnopqrstuv");
@@ -37,7 +37,7 @@ int main(void) {
     action("library:profile:guest"); check(1440,0,1,1,1,60,"fr");
     cJSON *root=read_store(), *rows=cJSON_GetObjectItem(root,"profile_settings");
     cJSON *guest=cJSON_GetArrayItem(rows,0);
-    assert(cJSON_GetObjectItem(guest,"codec")->valueint==1);
+    assert(cJSON_GetObjectItem(guest,"codec")->valueint==3);
     assert(!strcmp(cJSON_GetObjectItem(guest,"audio_language")->valuestring,"de"));
     assert(cJSON_IsTrue(cJSON_GetObjectItem(guest,"automatic_captions")));
     assert(cJSON_IsTrue(cJSON_GetObjectItem(guest,"paid_content_notifications")));
