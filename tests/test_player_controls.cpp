@@ -56,6 +56,8 @@ int main() {
         }
         Screen shown; shown.m_osdVisibilityAlpha=1;
         shown.input(PadButtons::Cross); assert(shown.mock.paused && shown.mock.reopens==0 && shown.visible());
+        Screen scrub; scrub.mock.scrub=true;
+        scrub.input(PadButtons::Cross); assert(!scrub.m_tubeSuppressControls && scrub.mock.reopens==0);
     }
     mode=3;
     Screen toggle; toggle.mock.speed=150; toggle.input(PadButtons::Cross);

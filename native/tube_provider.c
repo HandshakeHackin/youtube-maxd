@@ -162,7 +162,7 @@ static void sponsor_invalidate(void) {
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
 #define PLAYER_PROFILES 64
-static struct { char profile[33]; int ok_mode, hide_ms; } g_player_preferences[PLAYER_PROFILES];
+static struct { char profile[33]; int ok_mode, hide_ms, seek_mode; } g_player_preferences[PLAYER_PROFILES];
 static int g_player_preferences_count;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
@@ -353,6 +353,14 @@ int tube_player_set_hide_seconds(int seconds) {
     int i = player_preference(g_library_profile,1); if (i < 0) return 0;
     g_player_preferences[i].hide_ms = seconds * 1000; save(); return 1;
 }
+int tube_player_seek_mode(void) {
+    int i = player_preference(g_library_profile,0); return i < 0 ? 0 : g_player_preferences[i].seek_mode;
+}
+int tube_player_set_seek_mode(int mode) {
+    if (mode < 0 || mode > 2) return 0;
+    int i = player_preference(g_library_profile,1); if (i < 0) return 0;
+    g_player_preferences[i].seek_mode = mode; save(); return 1;
+}
 static void player_preferences_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"player_preferences"), *row;
     if (!rows) {
@@ -375,6 +383,10 @@ static void player_preferences_load(const cJSON *root) {
             (ms != 3500 && fmod(ms,1000) != 0) || player_preference(profile,0) >= 0) continue;
         int i = player_preference(profile,1); if (i < 0) break;
         g_player_preferences[i].ok_mode = (int)mode; g_player_preferences[i].hide_ms = (int)ms;
+        const cJSON *seek = cJSON_GetObjectItemCaseSensitive(row,"seek_mode");
+        double seek_mode = num(row,"seek_mode");
+        if (cJSON_IsNumber(seek) && seek_mode >= 0 && seek_mode <= 2 && floor(seek_mode) == seek_mode)
+            g_player_preferences[i].seek_mode = (int)seek_mode;
     }
 }
 
@@ -644,6 +656,7 @@ static void save(void) {
         cJSON_AddStringToObject(preference,"profile",g_player_preferences[i].profile);
         cJSON_AddNumberToObject(preference,"ok_mode",g_player_preferences[i].ok_mode);
         cJSON_AddNumberToObject(preference,"hide_ms",g_player_preferences[i].hide_ms);
+        cJSON_AddNumberToObject(preference,"seek_mode",g_player_preferences[i].seek_mode);
         cJSON_AddItemToArray(player_preferences,preference);
     }
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
@@ -2098,6 +2111,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:player-seek:",21)) {
+            const char *value = parent + 21; char *end = NULL; long mode = strtol(value,&end,10);
+            if (!*value || *end || mode < 0 || mode > 2 || !tube_player_set_seek_mode((int)mode)) {
+                tube_set_error("Select a valid seeking mode for this profile."); cb(0,NULL,0,0,ud); return 1;
+            }
+        }
         else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
             if (!g_store_writable || !*g_source || !*g_token) {
                 tube_set_error("Pair with the companion and check local storage before linking a phone.");
@@ -2229,6 +2248,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64]; snprintf(id,sizeof id,"settings:player-ok:%d",i);
                 folder(&out[n++],id,labels[i],tube_player_ok_mode()==i ? "Selected" : "Cross behavior while controls are hidden; saved for this profile");
             }
+        } else if (!strcmp(parent,"settings:player-seek")) {
+            const char *labels[] = {"Regular seeking", "Seek with confirmation: pause", "Seek with confirmation: keep playing"};
+            for (int mode = 0; mode < 3; ++mode) {
+                char id[64]; snprintf(id,sizeof id,"settings:player-seek:%d",mode);
+                folder(&out[n++],id,labels[mode],tube_player_seek_mode()==mode ? "Selected" : "Cross commits; Circle cancels; previous pause state is retained");
+            }
         } else if (!strcmp(parent,"settings:player-hide")) {
             for (int seconds = 0; seconds <= 15; ++seconds) {
                 char id[64],label[96]; snprintf(id,sizeof id,"settings:player-hide:%d",seconds);
@@ -2276,6 +2301,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (tube_player_hide_ms()) snprintf(label,sizeof label,"Hide controls after %.1f seconds",tube_player_hide_ms()/1000.0);
             else copy(label,sizeof label,"Hide controls: never");
             folder(&out[n++],"settings:player-hide",label,"Choose controls timeout for this profile");
+            const char *seek_labels[] = {"regular", "confirm while paused", "confirm while playing"};
+            snprintf(label,sizeof label,"Seeking: %s",seek_labels[tube_player_seek_mode()]);
+            folder(&out[n++],"settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
             folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");

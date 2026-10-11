@@ -150,6 +150,7 @@ int main(int argc,char**argv) {
     for (const auto& chooser : std::vector<std::pair<std::string,std::string>>{
             {"settings:player-ok","settings:player-ok:2"},
             {"settings:player-hide","settings:player-hide:0"},
+            {"settings:player-seek","settings:player-seek:2"},
             {"settings:sleep-timer","settings:sleep:30"}}) {
         host.RequestPage("settings",0); pump();
         const auto depth=host.m_stack.size();
@@ -166,6 +167,7 @@ int main(int argc,char**argv) {
         host.m_stack.pop_back(); host.m_crumbs.pop_back(); host.m_pos_stack.pop_back();
     }
     assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
+    assert(tube_player_seek_mode()==2);
     assert(pending.empty());
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);

@@ -84,7 +84,7 @@ playback mapping and live account acceptance remain unfinished. Playback history
 reports now use the selected account, with a saved sync toggle, throttled position
 updates and no retry after an unconfirmed report; see the library service.
 Local favorites, queue, follows and resume/history state are now stored by profile.
-Existing global state migrates to Guest. Hidden-Cross behavior and controls timeout
+Existing global state migrates to Guest. Hidden-Cross behavior, controls timeout and seeking mode
 are saved per profile. Other player preferences remain console-wide.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
@@ -105,6 +105,16 @@ profiles default to show controls and three seconds. Buffering, seek, end and
 stats overlays remain visible when needed. Speed selection still uses the
 existing scoped memories and console-wide last-speed toggle. PS5 acceptance of
 these preferences remains pending.
+
+Seeking offers Regular, confirmation while paused, and confirmation while playing.
+Regular seeking commits on D-pad release, with an idle fallback for lost release
+input. Confirmation keeps the preview open until Cross commits or Circle cancels.
+Commit, cancel and refused requests retain the previous pause state. Phone, voice
+and sleep-timer pause requests retire the preview and enter the requested state.
+Chat replay, phone position feedback and saved progress use the actual playback
+clock while the timeline shows a preview target. Queue EOF processing waits for
+preview/seek ownership to finish. These paths have offline coverage; physical
+PS5 seeking, sound/motion and phone acceptance remain pending.
 
 Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;

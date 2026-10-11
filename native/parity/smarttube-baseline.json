@@ -992,7 +992,20 @@
         "player_seek_type": "Seek behavior"
       },
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_provider.c: per-profile seek mode",
+        "scripts/seek_controls_overlay.py: actual controller, input, reporting and hints",
+        "tests/test_seek_controls.cpp: shipping methods and EVO StateMachine",
+        "tests/test_seek_hints.cpp",
+        "tests/test_player_preferences.c",
+        "tests/test_live_chat_ui.cpp",
+        "tests/test_sponsor_player.cpp"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "PS5 physical confirmation/play-preview and pause-state acceptance",
+        "Real phone/voice/sleep-timer interaction acceptance"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendEndingTimeCategory",

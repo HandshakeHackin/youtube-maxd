@@ -344,3 +344,12 @@ checks real storage, profile isolation, old-state migration and malformed rows.
 blocks and checks hidden/visible Cross behavior, debounce, speed admission,
 timeouts and urgent overlays under ASan/UBSan. The actual RmlUi test also checks
 settings chooser folder ownership and selection. Serialize preparations.
+
+Offline seeking checks: `bash scripts/test_seek_controls.sh` executes shipping
+controller methods with the actual EVO StateMachine and records both renderers'
+labels. It checks all three modes, previous pause state, release/confirm/cancel,
+refusal, external pause/resume, preview versus actual clock, stored progress,
+chat/phone feedback, hold acceleration and competing ownership. Follow with
+`bash scripts/test_seek_handoff.sh` for actual mailbox/demux/media timing and
+`bash scripts/test_sponsor_player.sh` for EOF priority. Native preparations must
+remain serialized. PS5 physical controller/render/audio acceptance is separate.

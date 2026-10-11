@@ -32,7 +32,7 @@ static struct { bool seek_discarding; } g_pp_pb;
 static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures, idle_retries;
 static bool finish_allowed, show_message, accepted;
 static bool phone_finished, phone_owns, local_finished;
-static int local_finish_calls;
+static int local_finish_calls, phone_finish_calls;
 static double next_target;
 static const char* prompt;
 static bool m_showStatsForNerds;
@@ -40,7 +40,7 @@ static void toast(const char*, const char*) { ++notices; }
 static int evo_pb_is_complete() { return complete; }
 static int evo_pb_is_paused() { return engine_paused || state.paused; }
 static int evo_demux_is_seeking() { return seeking; }
-static int tube_phone_finished() { return phone_finished; }
+static int tube_phone_finished() { ++phone_finish_calls; return phone_finished; }
 static int tube_phone_owns_media() { return phone_owns; }
 static int tube_finish_drained_and_next(double) { ++local_finish_calls; return local_finished; }
 static double evo_audio_rate() { return 1.75; }
@@ -70,10 +70,17 @@ static void reset() {
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
-    phone_finished = phone_owns = local_finished = false; local_finish_calls = 0;
+    phone_finished = phone_owns = local_finished = false; local_finish_calls = phone_finish_calls = 0;
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    reset(); complete=true; state.scrubbing=true; phone_finished=true; local_finished=true; tick();
+    assert(!state.stops && !phone_finish_calls && !local_finish_calls);
+    for (bool discard:{false,true}) {
+        reset(); complete=true; phone_finished=true; local_finished=true;
+        seeking=!discard; g_pp_pb.seek_discarding=discard; tick();
+        assert(!state.stops && !phone_finish_calls && !local_finish_calls);
+    }
     // EOF is owned by the phone queue or local queue, before SponsorBlock runs.
     reset(); complete=true; phone_finished=true; local_finished=true; tick();
     assert(state.stops==1 && manager.returns==1 && !local_finish_calls && !skip_calls);

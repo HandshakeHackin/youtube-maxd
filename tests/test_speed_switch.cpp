@@ -46,6 +46,7 @@ struct PlaybackController {
     bool isPaused() const { return paused; }
     bool isMusicMode() const { return music; }
     double getPositionSeconds() const { return position; }
+    double getPlaybackPositionSeconds() const { return position; }
     void setPaused(bool value) { paused=value; ++pauses; }
     void reportStop() {
 #include "stop-progress.inc"

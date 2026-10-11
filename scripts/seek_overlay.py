@@ -34,7 +34,7 @@ def apply_seek_overlay(replace, player):
             '    virtual bool switchVideoVariant(int streamIndex) = 0;',
             '''    virtual bool switchVideoVariant(int streamIndex) = 0;
     /* Explicit seeks such as highlight jumps can retain the paused state.
-     * The one-argument scrub/legacy contract still resumes playback. */
+     * The one-argument legacy contract still resumes playback. */
     virtual bool seekTo(double targetSeconds, bool keepPaused) = 0;''')
     replace(player + 'core/include/evo/services/PlaybackController.hpp',
             '    void seekTo(double targetSeconds) override;',

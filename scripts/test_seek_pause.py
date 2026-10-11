@@ -54,4 +54,4 @@ with tempfile.TemporaryDirectory(prefix="tube-seek-pause-") as directory:
     subprocess.run([os.environ.get("CXX", "c++"), "-std=c++17", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", str(test), "-o", str(binary)], check=True)
     subprocess.run([str(binary)], check=True)
-print("PASS: shipping seek mailbox preserves explicit pause on success/refusal; legacy scrub seeks resume and invalid targets never queue")
+print("PASS: shipping seek mailbox preserves explicit pause on success/refusal; legacy one-argument seeks resume and invalid targets never queue")

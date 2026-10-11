@@ -219,6 +219,8 @@ def main():
     apply_sleep_timer_overlay(replace, player)
     from player_controls_overlay import apply_player_controls_overlay
     apply_player_controls_overlay(replace, player)
+    from seek_controls_overlay import apply_seek_controls_overlay
+    apply_seek_controls_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     from secondary_captions_overlay import apply_secondary_captions_overlay

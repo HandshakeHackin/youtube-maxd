@@ -2766,3 +2766,38 @@ Candidate: `/home/denis/.cache/prosperotube/candidates/f6b78748-offline-player-c
 Evidence: `.deps/offline-player-controls-{ps5-build,freeze}.log` and result
 files (both 0). Nothing was installed or launched. All offline work and the full
 SmartTube objective remain incomplete; remaining sections stay active.
+
+
+### Seek confirmation and actual playback ownership (offline, 2026-10-11)
+
+Per-profile Regular / confirm-paused / confirm-playing choices now reach the
+provider, playback picker and shipping controller. Regular commits on D-pad
+release (600ms idle fallback); confirmation retains the preview until Cross or
+Circle. Both previous pause states survive commit, cancel and refused admission.
+Explicit phone/voice/timer pause or resume retires the preview directly without
+an intermediate resume. Active opening/stopped/seeking/finished provider FSM
+states enter preview directly, preserving the real engine pause state.
+
+A separate actual-playback position now feeds chat replay, phone snapshots and
+provider/local history while the HUD displays the preview target. Extracted
+shipping getters, callbacks and complete resume-writing method prove that a
+pending target is not reported or stored, including a changed resume base.
+Logical paused reporting includes paused previews. EOF callbacks cannot consume
+phone/local queues during preview, pending seek or decoder discard. Cross/Circle
+hints and music hints describe confirmation/cancellation in both renderers.
+
+Shipping methods execute with the actual EVO StateMachine under ASan/UBSan:
+all modes, both pause states, release/confirm/cancel, refused requests, external
+pause/resume, stale FSM states, held-key acceleration, bounds and input priority.
+`bash scripts/test_seek_controls.sh` passed after the final fixture expansion.
+The thirteen provider tests, phone adapter and timer tests passed in
+`.deps/seek-controls-final.result` (0). Connected input/speed/SponsorBlock,
+mailbox and actual demux/media seek regressions, chat HUD/options, actual RmlUi
+chooser/chat and affected PS5 controller/Application/provider/render objects
+passed in `.deps/seek-controls-connected-final.result` (0). SDK warnings remain.
+
+The first focused test incorrectly expected a strict less-than-duration clamp;
+it was corrected to the foundation's inclusive duration boundary. This was a
+fixture failure, not a shipping decoder failure. Physical PS5 controller feel,
+playing-preview sound/motion, cancellation, voice/phone/timer interaction and
+full seeking-thumbnail behavior remain unaccepted. No console connection occurred.
