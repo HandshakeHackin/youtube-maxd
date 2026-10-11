@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Display-transform runtime and packaging preparation — 2026-10-11
+
+The staged AGC overlay now captures one atomic geometry snapshot per frame and
+uses its logical canvas consistently for video sizing and both postprocessing
+planners. Intermediate passes receive orientation zero. Final passes receive
+the preserved UV/interpolation constants plus orientation at byte 32 and the
+matching physical viewport. Direct video uses byte 28 of its existing constant
+block. This overlay compiles successfully in isolation with the PS5 SDK.
+
+The labeled-image sanitizer/GLSL/SPIR-V checks also pass with checks for scratch
+versus scanout uniforms and disabled geometry. Nine artifact-integrity tests
+pass, including stale sources, missing/changed headers, wrong target/type,
+relocations and source-hash mismatches. Evidence:
+`.deps/video-transform-{stage,runtime,artifact}.log`; the orchestration exited 0.
+Artifact fixtures verify packaging gates, not GPU code generation.
+
+The complete transformed shader build is queued behind the running compiler
+bootstrap. It publishes a hash-keyed artifact only after every real PS5 pipeline
+passes EVO's metadata checks. Application activation, persisted controls,
+full package and physical acceptance are still pending. No console was contacted.
+
+
 ## Rotation/mirroring preparation — 2026-10-11
 
 Pinned EVO's video, upscale and interpolation generators now have an isolated

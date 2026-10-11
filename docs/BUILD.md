@@ -422,3 +422,23 @@ executes the staged GLSL transform with labeled-image golden results under
 ASan/UBSan, compiles all three vertex families, validates SPIR-V and checks
 uniform offsets. These are preparation checks; the PS5 compiler probe, runtime
 wiring, controls, package and hardware acceptance remain required.
+
+
+`python3 scripts/build_video_transform_shaders.py` compiles the complete staged
+set with the verified PS5 compiler and EVO's metadata packager. All pipelines
+must pass before it publishes an immutable cache directory keyed by source,
+compiler, spvgen and packager hashes. A manifest covers every header and metadata
+file; reuse verifies completeness, hashes, source identity, gfx1013 target,
+NGG pipeline type and absence of relocations. The application shader tree is
+unchanged by this command. `tests/test_transform_artifact.py` checks these
+integrity gates with synthetic fixtures; it is not GPU compilation evidence.
+
+The runtime overlay is staged separately in `scripts/video_transform_overlay.py`.
+It captures geometry once per frame, uses a swapped logical canvas for quarter
+turns, leaves intermediate surfaces unrotated, and transforms final viewports
+and quad positions together. Pass constants preserve UV/interpolation fields
+and reserve 48 bytes; direct video uses the existing 32-byte block.
+`bash scripts/test_video_transform_runtime.sh` applies this overlay to an
+isolated copy of already prepared native sources and compiles it with the PS5
+SDK. This compile passes, but the overlay is not yet enabled by
+`prepare_native.py`; complete shader compilation and profile/UI wiring remain.

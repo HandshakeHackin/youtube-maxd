@@ -4,6 +4,16 @@
  */
 #ifndef TUBE_VIDEO_TRANSFORM_H
 #define TUBE_VIDEO_TRANSFORM_H
+#include <string.h>
+static inline unsigned tube_video_transform_code(unsigned geometry) {
+    return (geometry&1)?(geometry>>20)&7:0;
+}
+static inline void tube_video_transform_uniforms(unsigned code,int scanout,const float uv[4],const float params[4],float out[12]) {
+    memset(out,0,12*sizeof(float));
+    memcpy(out,uv,4*sizeof(float));
+    if(params)memcpy(out+4,params,4*sizeof(float));
+    out[8]=scanout?(float)(code&7):0;
+}
 static inline void tube_video_transform_canvas(unsigned code,int width,int height,int* logical_w,int* logical_h) {
     *logical_w=(code&1)?height:width;
     *logical_h=(code&1)?width:height;

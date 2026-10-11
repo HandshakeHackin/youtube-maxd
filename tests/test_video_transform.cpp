@@ -7,6 +7,17 @@
 struct vec2 {float x,y;vec2(float a,float b):x(a),y(b){} vec2 operator-()const{return {-x,-y};}};
 #include "transform.inc"
 int main() {
+    for(unsigned code=0;code<8;++code) {
+        assert(tube_video_transform_code((code<<20)|1)==code);
+        assert(!tube_video_transform_code(code<<20));
+        for(int scanout=0;scanout<2;++scanout)for(int parameters=0;parameters<2;++parameters) {
+            const float uv[]={.1f,.2f,.3f,.4f},params[]={.5f,2,3,4};
+            float out[12];std::fill(out,out+12,99);
+            tube_video_transform_uniforms(code,scanout,uv,parameters?params:nullptr,out);
+            for(int i=0;i<4;++i){assert(out[i]==uv[i]);assert(out[4+i]==(parameters?params[i]:0));}
+            assert(out[8]==(scanout?code:0) && !out[9] && !out[10] && !out[11]);
+        }
+    }
     for(int width:{5,8,1920})for(int height:{7,12})for(unsigned code=0;code<8;++code) {
         int lw,lh;tube_video_transform_canvas(code,width,height,&lw,&lh);
         std::vector<std::vector<int>> image(lh,std::vector<int>(lw));
