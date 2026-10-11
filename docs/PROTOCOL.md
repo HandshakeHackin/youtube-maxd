@@ -222,3 +222,67 @@ and the `trending`, `shorts` and `my_videos` sections of `topics`. Their request
 and response fields, bounds and errors are specified in
 [LIBRARY_SERVICE.md](LIBRARY_SERVICE.md#search-sections-description-and-feedback-contracts).
 The top-level `search` job and `GET /v1/search` are unchanged.
+
+## Second-batch request and response fields
+
+All fields below are optional; without them a request behaves as before, and a
+client may ignore the added response fields. `GET /v1/health` lists `locale`,
+`thumbnail_source` and `storyboards` in `features` (plus `content_filters` and
+`channel_pages` when the library worker runs) and adds a boolean
+`sponsorblock_alt`. Field values, defaults and errors for `hl`, `gl`, `hide`,
+`thumbnails` and the new library actions (`channel`, `channel_search`,
+`playlist_save`, `playlist_unsave`, `history_pause`, `history_resume`,
+`history_clear`, `feedback` with `hide`) are specified in
+[LIBRARY_SERVICE.md](LIBRARY_SERVICE.md#locale-content-filters-channel-pages-and-account-changes).
+
+Top-level jobs (`POST /v1/jobs`) accept `hl`, `gl`, `hide` and `thumbnails`
+beside `action: "search" | "catalog" | "details"`; `GET /v1/search` and
+`GET /v1/catalog` accept `hl`, `gl` and `thumbnails` as query parameters and
+`GET /v1/video/{id}` accepts `hl`. A resolve request accepts `hl` (translated
+title and chapter titles where YouTube has them). Rows from these routes carry
+a boolean `is_short`. A library job with `action: "description"` is answered
+without the library worker.
+
+Resolve results (`/v1/resolve` and resolve jobs) add:
+
+- `loudness_db`: number or `null`. YouTube's loudness offset in decibels for
+  the video (`playerConfig.audioConfig.loudnessDb` of the matching player
+  response), finite and within ±60, otherwise `null`. A positive value means
+  the video is louder than YouTube's reference level. The usual rule is a
+  linear gain of `min(1, 10^(-loudness_db / 20))`; SmartTube's own conversion
+  lives in its service module, which is absent from the reference tree, so the
+  rule is not taken from it.
+- `is_short`: boolean, true when the extractor marks the video as a Short.
+- `chapters`: unchanged shape, restated because the native side kept start
+  times only: at most 128 entries `{"title": "<at most 96 characters>",
+  "start": seconds, "end": seconds}`; `title` may be empty.
+- `storyboards`: at most four seek-preview levels, smallest first, empty for
+  live streams or when the extractor returns none:
+
+  ```json
+  {"width":160,"height":90,"columns":5,"rows":5,"count":120,"sheets":5,
+   "interval_ms":1000,"url":"http://HOST/media/<session>/sb1-$M.jpg"}
+  ```
+
+  `width`/`height` are one thumbnail's pixels (1–1024), a sheet is a JPEG grid
+  of `columns` × `rows` thumbnails (1–32 each) filled row by row, `count` is the
+  number of thumbnails, `sheets` the number of sheet images (1–512; the last
+  one may be partly filled) and `interval_ms` the time between thumbnails
+  (video duration divided by `count`). Replace the literal `$M` in `url` with
+  a sheet number from 0 to `sheets - 1`. Thumbnail *n* (0-based, at
+  `n * interval_ms`) is in sheet `n / (columns*rows)`, cell
+  `n % (columns*rows)`, row `cell / columns`, column `cell % columns`. Each
+  sheet is an expiring relay capability of the playback session like captions
+  and media: no bearer header, the signed upstream address stays on the
+  companion, no account cookie is sent upstream, and fetching a sheet renews
+  the session lease. Levels with more than 512 sheets, inconsistent counts or a
+  non-YouTube image origin are omitted.
+
+`GET /v1/sponsor/{id}` accepts `alt=true`. When the host started the companion
+with `--sponsorblock-server https://HOST` (a bare HTTPS origin: default port, no
+path, query or credentials; anything else is refused at start-up), such a
+request queries that server instead of `sponsor.ajay.app`, with the same
+hashed-prefix request, validation and one-hour cache (cached per server).
+Without the option `alt` is ignored and the primary server is used. The
+alternative host SmartTube's own service uses could not be established from the
+reference tree, so it is host configuration rather than a built-in address.

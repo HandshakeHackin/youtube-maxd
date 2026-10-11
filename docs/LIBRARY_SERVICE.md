@@ -1001,7 +1001,7 @@ are omitted. Rows carry the usual retained-group `playback_context`; a video
 named by two notifications appears twice. Continue with `continue`.
 Notification identifiers, menus and click-tracking endpoints stay private. An
 unsupported menu fails with `upstream_format` (502). Hiding a notification is
-not implemented.
+not implemented (the pinned menu exposes no feedback token).
 
 ### Recommendation feedback
 
@@ -1027,8 +1027,9 @@ card. Errors: `account_required` (401) for Guest or a signed-out session,
 reference/choice pair permits one attempt: a confirmed repeat returns the same
 result, an unconfirmed or in-flight one is never resubmitted. The Python
 supervisor keeps that gate for 30 minutes across worker restarts, timeouts and
-cancellation, and clears it when the profile is removed. Shorts and
-Subscriptions cards do not carry feedback references.
+cancellation, and clears it when the profile is removed. Shorts cards do not
+carry feedback references; Subscriptions cards carry the `hide` choice described
+under [Hide a Subscriptions entry](#hide-a-subscriptions-entry).
 
 ### Fixture mode
 
@@ -1036,3 +1037,235 @@ The offline fixture library answers `topics` for `trending`, `shorts` and
 (account profiles only) `my_videos`, `search_suggestions` and `description` for
 its generated videos. `search`, `channels`, `notifications` and `feedback`
 report `unknown_operation` there.
+
+
+## Locale, content filters, channel pages and account changes
+
+Second batch of library contracts. Transport, page shape, cursors and limits are
+those of the previous section. Every new request field is optional and its
+default is the behaviour of earlier clients; every new response field is
+additive. A companion that supports them lists `locale`, `thumbnail_source` and
+`storyboards` (always) and `content_filters` and `channel_pages` (with the
+library worker) in `GET /v1/health` `features`. An older companion rejects the
+unknown fields with HTTP 422, so check `features` before sending them. Offline
+tests cover these contracts with the pinned parser; none has been run against
+the live service, an account or a PS5.
+
+### Content language and country: `hl`, `gl`
+
+Accepted on every library action, on the top-level `search`, `catalog` and
+`details` jobs, on `GET /v1/search`, `GET /v1/catalog` (query parameters `hl`,
+`gl`) and `GET /v1/video/{id}` (`hl`), and `hl` alone on a resolve request
+(`/v1/resolve` and the `playback` object of a resolve job). Empty string (the
+default) keeps the service default.
+
+- `hl` — one of the 49 tags SmartTube ships (its `languages.xml` plus the `fa`
+  and `th` resource folders), case-sensitive:
+  `ar az bg bn ca cs da de el en en-NZ es et fa fi fr gl he hi hr hu hy id it ja
+  ko lt lv mo nb nl pl pt-BR pt-PT ro ru sk sl sq sr sv te th tjl tr uk vi zh-CN
+  zh-TW`. The companion sends YouTube's own code: identical except
+  `he`→`iw`, `nb`→`no`, `mo`→`ro`, `pt-BR`→`pt`, `en-NZ`→`en-GB`. `tjl` is
+  accepted but changes nothing, because YouTube has no such interface language.
+- `gl` — one of 89 upper-case ISO country codes from SmartTube's `countries.xml`
+  (its `GB-SCT`, `nl_BE` and `fr_BE` entries are covered by `GB` and `BE`, and
+  its Armenia entry is sent as `AM`): `US GB HR CA UA RU BY KZ AZ AM RS EE BG DE
+  RO ES PL FI LV FR HU NL BE NO CZ IT GR DK LT MD SK SI SE SG NZ NG AU CH IL SA
+  MA BD BR PT AR MX HK MY JP IN KE TR EG VN CN TW ID KR PK BO CL CO CR EC SV GT
+  HN NI PA PR PY PE DO UY VE IE PH IQ AT TZ NP ZA ZW DZ TH MK TN LK JO`.
+
+Any other value fails: HTTP 422 on JSON bodies, HTTP 400 `invalid_locale` on
+query parameters, worker code `invalid_locale`.
+
+The worker keeps one InnerTube client per profile and locale (`hl`/`gl` become
+the client context language and location; at most 16 localized clients are
+retained, oldest dropped first). A page, cursor, section folder or retained
+group stays bound to the client that opened it, so `continue`, `topic_open`,
+`suggestions_filter` and the window actions ignore `hl`/`gl` and can never mix
+locales. An OAuth profile signs each localized client in separately. Worker
+catalog caches in the Python service are keyed by `hl`, `gl` and `hide`. On the
+yt-dlp path only `hl` has an equivalent (its `lang` extractor argument, applied
+when yt-dlp lists the code; every tag above except `tjl` qualifies); `gl` is
+ignored there, and the extraction cache is partitioned by `hl`.
+
+### Hide-content switches: `hide`
+
+`hide` is a list of distinct names (at most 16) on library list actions and on
+the top-level `search`/`catalog` jobs. The names are SmartTube's sixteen
+"Hide unwanted content" switches:
+
+| Name | Applies to |
+| --- | --- |
+| `shorts_all` | Shorts in every list |
+| `shorts_home`, `shorts_search`, `shorts_subscriptions`, `shorts_history`, `shorts_channel`, `shorts_trending` | Shorts in that section |
+| `mixes` | mix playlist cards (playlist ID starting with `RD`) in every list |
+| `watched_home` | watched cards in the primary Home grid |
+| `watched_subscriptions`, `watched_watch_later`, `watched_notifications` | watched videos in that list |
+| `streams_subscriptions` | live streams in Subscriptions |
+| `upcoming_subscriptions`, `upcoming_home`, `upcoming_channel` | upcoming videos in that section |
+
+Sections follow the action: `home`; `search`; `subscriptions`; `history`;
+`watch_later`; `notifications`; `channel` for `channel`, `channel_search` and
+the `channel:UC…` catalog parent; `trending` for `topics`/`topic_open` with
+`section: "trending"`. A Home or channel shelf opened with `suggestions_filter`
+keeps the section of the page that listed it. Other lists honour only
+`shorts_all` and `mixes`.
+
+**Default.** When `hide` is absent (or `null`) nothing new is hidden and Home
+keeps its earlier hard-wired rule (watched cards are dropped from the primary
+grid). When `hide` is present — even `[]` — it is the complete selection: Home
+drops watched cards only if `watched_home` is listed. "Watched" is the existing
+rule: marked played, more than 95 % watched, or exactly 10 %. Notification rows
+carry no watch state, so `watched_notifications` currently hides nothing.
+
+The selection is stored with the cursor, so continuation pages apply it without
+the client resending it; `continue` ignores `hide`. Hidden rows keep their
+source and retained-group positions (`playback_context` indices are sparse), and
+a page can be empty while `has_more` is true — keep following the cursor.
+Unknown or repeated names fail with HTTP 422 / worker code `invalid_filter`.
+On a companion without the library worker (pure yt-dlp catalogs) `hide` is
+accepted and ignored.
+
+Video rows now carry `is_short: true` when the card is a Short (omitted
+otherwise; `false` on rows from the top-level jobs). The evidence is structural:
+a Shorts tile type, a `SHORT` lockup, a reel/`/shorts/` watch endpoint or the
+`SHORTS` time-status overlay; never the title or the duration.
+
+### Channel pages: `channel` and `channel_search`
+
+`{"action":"channel","channel":"UC…","tab":…,"channel_sort":…}`
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `channel` | channel ID (`UC` + 22 characters) | required |
+| `tab` | `home`, `videos`, `shorts`, `live`, `playlists` | `videos` |
+| `channel_sort` | `newest`, `popular`, `oldest` | `newest` |
+
+`{"action":"channel_search","channel":"UC…","query":"1–200 characters"}`
+searches inside the channel; `tab` and `channel_sort` are not accepted there.
+Both work for Guest and account profiles and accept `hl`, `gl`, `hide` and
+`thumbnails`. `id` and `playlist` must be empty.
+
+The response is an ordinary catalog page plus, on the first page only, a
+`channel` object:
+
+```json
+{"id":"UC…","title":"…","tabs":["home","videos","shorts","playlists"],
+ "search":true,"tab":"videos","sort":"newest","sorts":["newest","popular","oldest"]}
+```
+
+`tabs` lists the sections this channel offers (in the order above), `search`
+whether `channel_search` is available, `tab` the opened section (`"search"` for
+`channel_search`), `sorts` the orders offered for it and `sort` the applied one
+(empty when no order is offered). Rows by section:
+
+- `videos` in the default order: video rows with the channel position
+  `playback_context: {"channel":"UC…","index":n}`, exactly like the
+  `channel:UC…` catalog parent, so `channel_window` navigation applies.
+- `videos` in another order, `live`, `shorts` and `channel_search`: video rows
+  with the retained-group context `{group, index}`. Shorts rows have
+  `is_short: true`, the channel as `subtitle`/`channel_id` and no duration.
+- `playlists` (and playlists found by `channel_search`): playlist folder rows
+  `library:playlist:<id>`.
+- `home`: one folder row per titled shelf (`id` `library:filter:<uuid>`,
+  `subtitle` `"Channel section"`, opened with `suggestions_filter`, two-minute
+  lifetime, video and playlist rows inside), followed by video cards that are
+  not inside a shelf. No continuation. Shorts shelves and featured-channel
+  shelves are not listed.
+
+Continue with `continue`. Errors: `channel_tab_unavailable` (404) for a section
+the channel lacks, `channel_sort_unavailable` (404) for an order that is not
+offered, `channel_search_unavailable` (404), `invalid_search` for the query,
+`invalid_identity`/`invalid_request` for a malformed request.
+
+Orders are recognized by position, because their labels are localized: a chip
+bar of two or three chips whose first chip is selected is read as newest,
+popular, oldest. Any other layout (drop-down, four chips, another selection)
+reports `sorts: []`. This mapping is inferred, not verified against the live
+service. The Playlists section has no order option here.
+
+### Save or remove another channel's playlist
+
+`{"action":"playlist_save","profile":…,"playlist":"<playlist id>","session":"<confirmation>"}`
+adds the playlist to the account library; `playlist_unsave` removes it.
+`session` is a caller-chosen confirmation identifier (1–64 of
+`A-Za-z0-9_-`), unique per intended change, as for `mark_watched`. `WL` and
+`LL` are rejected. Success:
+`{"api_version":1,"success":true,"playlist_id":"…","saved":true|false}`.
+
+One confirmation permits one attempt: a confirmed repeat returns the same
+result; a different target under the same `session`, an in-flight or an
+unconfirmed attempt returns `playlist_unconfirmed` (409, or 502 for the attempt
+that was not confirmed) and is never sent again — reload the Playlists list to
+see the actual state. Other errors: `account_required` (401), `unknown_profile`
+(404), `invalid_request` (400), `account_busy` (429, 256 retained
+confirmations). The Python supervisor keeps the gate for 30 minutes across
+worker restarts, timeouts and cancellation, and clears it with the profile.
+The worker uses the pinned `playlist.addToLibrary` / `removeFromLibrary`.
+
+### Pause, resume and clear the account watch history
+
+`{"action":"history_pause"|"history_resume"|"history_clear","profile":…,"session":"<confirmation>"}`
+with the same one-attempt `session` gate. Success:
+`{"api_version":1,"success":true,"history":"paused"|"active"|"cleared"}`.
+`history_clear` removes the whole account watch history; ask the user first.
+
+The `history` list page gains `history_paused: true|false` on its first page
+when YouTube offers exactly one of the pause and resume controls (the field is
+absent when the state is unknown).
+
+Errors: `history_control_unavailable` (404) when the account's History page does
+not offer that control — nothing was sent, and the same `session` may be used
+again; `history_unconfirmed` (409/502) when the result is unknown or the
+`session` was already used; `account_required`, `unknown_profile`,
+`invalid_request`, `account_busy` as above.
+
+The pinned YouTube.js 18.1.0 has no method for these controls. The worker reads
+them from the parsed History page: a feed-action button whose confirmation
+dialog's confirm button carries one feedback token, recognized by the button
+icon (`DELETE` = clear, `PAUSE` = pause, `PLAY` = resume), never by its label;
+duplicates with different tokens, disabled buttons and direct (unconfirmed)
+buttons are ignored. The token is submitted once to `/feedback` and YouTube's
+processed confirmation is required. The icon names are inferred from the web
+client's layout and have not been verified against a live account; an
+unrecognized layout reports `history_control_unavailable` and changes nothing.
+
+### Hide a Subscriptions entry
+
+`subscriptions` rows for an account profile now use the recommendation-feedback
+reference of the previous section: a card whose menu carries a hide token gets
+`feedback_cursor` and `feedback_hide: true` (plus `feedback_not_interested` /
+`feedback_channel`, normally false there). Submit it with
+`{"action":"feedback","profile":…,"id":"<video id>","cursor":"<feedback_cursor>","feedback":"hide"}`;
+success is `{"api_version":1,"success":true,"video_id":…,"feedback":"hide"}`
+and the client should then remove the card. Lifetime, one-attempt rule and
+errors are those of recommendation feedback. `feedback_hide` appears only when
+true (Home rows may carry it too). The token is recognized by the menu icon
+`HIDE` (inferred, unverified live). Hiding a notification is not implemented:
+the pinned notification menu exposes no feedback token.
+
+### Thumbnail source: `thumbnails`
+
+`thumbnails` is `default` (unchanged), `start`, `middle` or `end`, accepted on
+every library action, the top-level `search`/`catalog`/`details` jobs and
+`GET /v1/search` / `GET /v1/catalog`. For the last three values each video
+row's `art_url` becomes `https://i.ytimg.com/vi/<id>/hq1.jpg`, `hq2.jpg` or
+`hq3.jpg` (SmartTube's start/middle/end frames). Live and upcoming rows,
+folders, and rows whose image is not a YouTube thumbnail keep theirs. Because
+the DeArrow decoration runs afterwards, `dearrow_art_url` is unchanged when a
+submission exists, a video without a submission shows the chosen frame, and a
+failed generated DeArrow thumbnail falls back to the chosen frame.
+
+### `description` without the worker
+
+When the companion runs without the library worker, `/v1/library` and library
+jobs still answer `description` (and only that action) from one yt-dlp video
+extraction, with the response shape of the previous section. `published` comes
+from the upload date and `views` from the view count; `hl` selects translated
+metadata. List `overview` fields stay bounded as before.
+
+### Fixture mode
+
+The offline fixture library ignores `hl`, `gl` and `hide`, applies `thumbnails`
+only to YouTube image addresses (its generated thumbnails are local), and
+reports `unknown_operation` for `channel`, `channel_search`, `playlist_save`,
+`playlist_unsave` and the three history controls.
