@@ -1,0 +1,1166 @@
+{
+ "items": [
+  {
+   "id": "VideoMenuPresenter.localVideoActions",
+   "title": "Remove from history (video menu)",
+   "status": "done",
+   "smarttube": "Context-menu action on History items: removes the video from YouTube history via feedback token and drops the local resume state.",
+   "ps5_evidence": [
+    "native/tube_provider.c: local_catalog() 'local:video:%u:forget' -> tube_remove_history(), label \"Remove from local history\"",
+    "native/tube_provider.c: g_account_actions {\"history_remove\",\"Remove from YouTube history\"} with history_remove_cursor scope/deadline checks",
+    "companion/innertube/history_actions.mjs (feedback endpoint)",
+    "tests/test_history_remove.c, tests/test_video_actions.c, tests/test_history_actions.py, companion/innertube/history_actions.test.mjs"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Local and account removal are two separate actions; SmartTube does both in one. Live-account acceptance pending."
+  },
+  {
+   "id": "behavior.BrowsePresenter",
+   "title": "Main browse screen / sidebar",
+   "status": "partial",
+   "smarttube": "Sidebar of enable-able, reorderable sections (rows/grids/multi-grid), boot section, pinned items, password-locked sections, pagination on scroll, long-press menus for cards and sections, channel sorting and playlists row/grid style.",
+   "ps5_evidence": [
+    "native/tube_provider.c: local_catalog() root folders (discover, history, favorites, queue, subscriptions, blocked-channels, settings) and 'discover' / 'library' folders",
+    "native/tube_provider.c: catalog() paged 'library:*' and 'section:*' requests with g_library_cursors",
+    "scripts/discussion_overlay.py: Touchpad pushes 'account:menu:<id>' / 'playlist:menu:<id>'",
+    "tests/test_native.c, tests/test_topic_catalog.c, tests/test_group_navigation.c"
+   ],
+   "gaps": [
+    "No Shorts, Trending, Kids, Notifications, My videos or account Channels sections",
+    "Sections are a fixed two-level folder tree (Discover > ...), not a flat sidebar; no per-section enable/disable, reorder (move up/down) or boot-section choice",
+    "No pinned playlists/channels in the sidebar",
+    "No section long-press menu (refresh, unpin, move, rename, mark all channels watched)",
+    "No channel-section sorting (new content / name / last viewed) and no playlists rows-vs-grid style",
+    "No password-protected sections"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "Individual gaps are tracked as extra.Section.* / extra.Menu.* items below."
+  },
+  {
+   "id": "behavior.ChannelPresenter",
+   "title": "Channel page",
+   "status": "partial",
+   "smarttube": "Opens a channel as multiple rows (uploads, playlists, live, shorts, etc.) with pagination, in-channel search bar, sort options and card context menu; reachable from any video via Open channel.",
+   "ps5_evidence": [
+    "companion/prosperotube/catalog.py: page_for() parent 'channel:<UC id>' -> /channel/<id>/videos",
+    "companion/innertube/library.mjs: kind 'channel' -> client.getChannel(id).getVideos(); action 'channel_window'",
+    "native/tube_provider.c: valid_catalog_id() accepts 'channel:UC...'; 'subscriptions' folder emits 'channel:%.24s' rows",
+    "tests/test_group_block_window.c, companion/innertube/channel_window.test.mjs"
+   ],
+   "gaps": [
+    "Channel shows only the uploads list; no rows/tabs for playlists, live streams, Shorts, releases or featured shelves",
+    "No in-channel search (ChannelPresenter.onSearchSubmit) and no channel sort options (onSearchSettingsClicked)",
+    "A channel can only be opened from locally followed channels or by typing channel:<id>; no Open channel action from a video (see extra.Menu.OpenChannel)",
+    "Channel results are not returned by search, so channels cannot be discovered by name"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": ""
+  },
+  {
+   "id": "behavior.ChannelUploadsPresenter",
+   "title": "Playlist / uploads grid",
+   "status": "partial",
+   "smarttube": "Opens a playlist or a channel's uploads as a paged grid, with card context menu; also used to resolve a group (first item, playlist id) for other actions.",
+   "ps5_evidence": [
+    "companion/prosperotube/catalog.py: page_for() parent 'playlist:<id>' with playlist_context()",
+    "native/tube_provider.c: catalog() 'library:playlist:<id>' / 'playlist:<id>' paging; parse_playlist_context / tube_select_playlist_context",
+    "tests/test_playlist_context.c, tests/test_playlist_window.c, tests/test_playlist_context.py, companion/innertube/playlist_context.test.mjs"
+   ],
+   "gaps": [
+    "No way to open the containing playlist or the channel uploads from a video card (Open playlist / Open channel uploads actions absent)",
+    "No subscribed-channel uploads entry with new-content marker (Channels section missing)"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "The grid itself, pagination and occurrence-preserving playback context are implemented."
+  },
+  {
+   "id": "behavior.DetailsPresenter",
+   "title": "Video details screen",
+   "status": "missing",
+   "smarttube": "Stub presenter that opens a DetailsView for a video (legacy Leanback details page).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No video details screen (title, channel, full description, stats) before playback"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Low priority: the SmartTube presenter is a 38-line stub that is hardly reachable in the UI. Covered in practice by extra.Menu.OpenDescription."
+  },
+  {
+   "id": "behavior.SearchPresenter",
+   "title": "Search screen",
+   "status": "partial",
+   "smarttube": "Query search with paged result groups, search tags (suggestions + history) with long-press remove/clear, voice search, filter dialog (upload date, duration, type, features, sort), play-first-result mode.",
+   "ps5_evidence": [
+    "native/tube_provider.c: search() -> catalog('search:<query>') with page",
+    "native/tube_search_query.h: tube_search_query_valid() (UTF-8, 200 code points)",
+    "companion/prosperotube/catalog.py: page_for() ytsearch paging, URL / video: / channel: / playlist: forms",
+    "native/tube_voice.c + scripts/voice_controls_overlay.py (L3 push-to-talk)",
+    "tests/test_native.c, tests/test_companion.py, tests/test_voice_search_provider.c"
+   ],
+   "gaps": [
+    "No search suggestions / autocomplete tags",
+    "No search history (recent queries, remove one, clear all)",
+    "No search filters or sort order",
+    "Search results contain videos and playlists only; channel results are dropped",
+    "No play-first-result mode (startPlay)"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "See extra.Search.* for the breakdown."
+  },
+  {
+   "id": "behavior.PlaybackPresenter",
+   "title": "Playback entry point",
+   "status": "partial",
+   "smarttube": "Opens a video (optionally incognito / at a time / finish-on-end), forwards player events to controllers, tracks background/PIP state, exposes setPosition and suggestion click/long-click.",
+   "ps5_evidence": [
+    "native/tube_provider.c: resolve(), chosen(), progress() (resume position, played flag)",
+    "native/tube_provider.c: tube_manual_navigation_begin (Next/Previous), tube_chapter_target",
+    "tests/test_manual_navigation.c, tests/test_resume_timeline.cpp, tests/test_catalog_progress.c"
+   ],
+   "gaps": [
+    "No incognito open (video.incognito suppressing history/progress)",
+    "No background playback while browsing with a Return to background video action (isRunningInBackground)",
+    "No open-at-time entry (openVideo(videoId, finishOnEnded, timeMs)) from links such as ?t="
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Player-controller behaviour is outside this scope; only the presenter-level entry points were assessed. PIP is Android-only."
+  },
+  {
+   "id": "behavior.WebBrowserPresenter",
+   "title": "Embedded web browser",
+   "status": "not_applicable",
+   "smarttube": "Loads an arbitrary URL in an Android WebView activity.",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "L",
+   "notes": "Android WebView activity; the PS5 title has no embeddable web view and sign-in uses the device-code flow instead."
+  },
+  {
+   "id": "extra.Section.Home",
+   "title": "Home section",
+   "status": "done",
+   "smarttube": "Home recommendations as rows, with pagination and watched-suggestion filtering.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('library:home', \"Home recommendations\") and library 'home' action",
+    "companion/innertube/home_feed.mjs: HomeCatalog rows/filters, watchedSuggestion()",
+    "companion/innertube/home_feed.test.mjs, tests/test_library.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Lives under Discover rather than as the boot section; needs the companion library worker. Other Home layouts are listed as open in docs/STATUS.md."
+  },
+  {
+   "id": "extra.Section.Shorts",
+   "title": "Shorts section",
+   "status": "missing",
+   "smarttube": "Dedicated Shorts grid (getShortsObserve) with paging.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No Shorts feed in the worker (topic_catalog.mjs sections = music, gaming, news, sports, live, movies)",
+    "No native 'section:shorts' folder; only /shorts/ URLs are accepted in search"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Trending",
+   "title": "Trending section",
+   "status": "missing",
+   "smarttube": "Trending rows (getTrendingObserve).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No trending browse in companion/innertube/topic_catalog.mjs and no native folder"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Would reuse the existing topic-section plumbing."
+  },
+  {
+   "id": "extra.Section.Kids",
+   "title": "Kids section",
+   "status": "missing",
+   "smarttube": "Kids home rows (getKidsHomeObserve).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No kids home browse in the worker and no native folder"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Sports",
+   "title": "Sports section",
+   "status": "done",
+   "smarttube": "Sports rows.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('section:sports', \"Sports\"); topic_section()",
+    "companion/innertube/topic_catalog.mjs: sections set",
+    "tests/test_topic_catalog.c, companion/innertube/topic_catalog.test.mjs"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Live",
+   "title": "Live section",
+   "status": "done",
+   "smarttube": "Live rows.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('section:live', \"Live\")",
+    "companion/innertube/topic_catalog.mjs: sections set",
+    "tests/test_topic_catalog.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Gaming",
+   "title": "Gaming section",
+   "status": "done",
+   "smarttube": "Gaming rows.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('section:gaming', \"Gaming\")",
+    "companion/innertube/topic_catalog.mjs",
+    "tests/test_topic_catalog.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.News",
+   "title": "News section",
+   "status": "done",
+   "smarttube": "News rows (hidden in some regions).",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('section:news', \"News\")",
+    "companion/innertube/topic_catalog.mjs",
+    "tests/test_topic_catalog.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Music",
+   "title": "Music section",
+   "status": "done",
+   "smarttube": "Music rows; playlist cards from Music start their first item directly.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('section:music', \"Music\"); g_browse_music / music_origin",
+    "companion/innertube/topic_catalog.mjs (incl. liked-music continuation)",
+    "tests/test_music_context.c, tests/test_topic_catalog.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Direct start of the first item of a Music playlist card was not verified."
+  },
+  {
+   "id": "extra.Section.MyVideos",
+   "title": "My videos section",
+   "status": "missing",
+   "smarttube": "Grid of the signed-in user's own uploads (getMyVideosObserve).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No 'my videos' library action in companion/innertube/library.mjs and no native folder under Accounts & library"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Channels",
+   "title": "Channels section (subscribed channels)",
+   "status": "partial",
+   "smarttube": "List of subscribed channels with new-content marker, sorting by new content / name / last viewed, optional filter field, multi-grid with the selected channel's uploads, per-channel menu.",
+   "ps5_evidence": [
+    "native/tube_provider.c: root 'subscriptions' folder \"Followed channels\" lists locally followed channels as 'channel:<id>' folders",
+    "native/tube_provider.c: tube_toggle_subscription()"
+   ],
+   "gaps": [
+    "Only local follows are listed; the account's subscribed-channel list is not fetched",
+    "No new-content marker, no sorting options, no filter field",
+    "No channel menu (unsubscribe, mark channel as watched, pin)"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Subscriptions",
+   "title": "Subscriptions section",
+   "status": "done",
+   "smarttube": "Grid of latest videos from subscriptions with paging.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('library:subscriptions', \"Subscriptions\")",
+    "companion/innertube/library.mjs: case 'subscriptions' -> getSubscriptionsFeed()",
+    "companion/innertube/worker.test.mjs (pagination), tests/test_fixture_library.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Live-account acceptance pending."
+  },
+  {
+   "id": "extra.Section.History",
+   "title": "History section",
+   "status": "done",
+   "smarttube": "Account watch history grid with paging; local fallback when signed out.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('library:history', \"YouTube history\") and root 'history' (\"Continue watching & history\")",
+    "companion/innertube/library.mjs: case 'history'",
+    "tests/test_history_remove.c, tests/test_native.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.BlockedChannels",
+   "title": "Blocked channels section",
+   "status": "done",
+   "smarttube": "Section listing blocked channels, shown only when at least one channel is blocked; selecting unblocks.",
+   "ps5_evidence": [
+    "native/tube_provider.c: if(channel_blocks_active()) CATALOG_FOLDER('blocked-channels', ...); 'block:%u:%u:%d' rows unblock",
+    "tests/test_channel_block.c, tests/test_channel_block_name.c, tests/test_channel_block_window.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Playlists",
+   "title": "Playlists section",
+   "status": "done",
+   "smarttube": "User playlists (rows or grid), including Watch later and Liked, each openable and editable.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('library:playlists', \"Your playlists\"), 'library:watch_later', 'library:playlist:<id>' (WL/LL accepted)",
+    "companion/innertube/library.mjs: case 'playlists' / 'playlist' / 'watch_later'",
+    "companion/innertube/worker.test.mjs: 'account playlists retain a separate navigation namespace'"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Rows-vs-grid style and custom playlist order are separate items (settings scope / extra.Menu.PlaylistOrder)."
+  },
+  {
+   "id": "extra.Section.Notifications",
+   "title": "Notifications section",
+   "status": "missing",
+   "smarttube": "Grid of account notifications (getNotificationItemsObserve) with hide-notification action.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No notifications fetch in the worker, no native folder, no hide action"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.PlaybackQueue",
+   "title": "Playback queue section",
+   "status": "done",
+   "smarttube": "Local playback queue shown as a section (most recent first).",
+   "ps5_evidence": [
+    "native/tube_provider.c: root 'queue' folder \"Play queue\", ordered by queue_order; 'settings:clear-queue'",
+    "tests/test_native.c, tests/test_queue_failure.c, tests/test_channel_block_queue.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Section.Settings",
+   "title": "Settings section",
+   "status": "done",
+   "smarttube": "Settings grid as the last sidebar section (always enabled).",
+   "ps5_evidence": [
+    "native/tube_provider.c: root 'settings' (\"YouTube preferences\") and 'app:settings' (\"Player settings\")",
+    "tests/test_profile_settings.c, tests/test_player_preferences.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Completeness of the settings themselves is audited elsewhere."
+  },
+  {
+   "id": "extra.Section.Pinned",
+   "title": "Pinned playlists / channels in the sidebar",
+   "status": "missing",
+   "smarttube": "Any playlist or channel can be pinned as its own sidebar section (rows or grid), renamed, moved and unpinned.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No pin storage in the per-profile state",
+    "No pin/unpin action in 'account:menu:' / 'playlist:menu:'",
+    "No pinned folders emitted at the catalog root"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Favorites are per-video only and do not cover this."
+  },
+  {
+   "id": "extra.Section.EnableAndOrder",
+   "title": "Show/hide and reorder sidebar sections, boot section",
+   "status": "missing",
+   "smarttube": "Each section can be enabled/disabled and moved up/down; the start (boot) section is selectable.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Root and Discover folder lists are hard-coded in local_catalog(); no per-profile visibility, order or start folder"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.PlayVideo",
+   "title": "Play video",
+   "status": "done",
+   "smarttube": "Menu entry that starts playback of the card.",
+   "ps5_evidence": [
+    "native/tube_provider.c: resolve()",
+    "README.md: Controls table 'D-pad / Cross: Focus / open or watch'"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Not a menu row; Cross on the card plays."
+  },
+  {
+   "id": "extra.Menu.PlayVideoIncognito",
+   "title": "Play video incognito",
+   "status": "missing",
+   "smarttube": "Plays the video without recording it in history or saved state.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No incognito flag: progress() always writes the record and watch_flush() reports to the account when history sync is on"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Implement as a 'local:video:<scope>:incognito:<id>' action that sets a one-shot flag consumed by resolve()/progress()."
+  },
+  {
+   "id": "extra.Menu.PlayFromStart",
+   "title": "Play from start",
+   "status": "missing",
+   "smarttube": "Resets the saved position to 0 and opens the video.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No action that clears resume_pos_sec before launching; only 'Remove from local history' (which also clears the watched marker)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.StreamReminder",
+   "title": "Set / unset stream reminder",
+   "status": "missing",
+   "smarttube": "For upcoming streams: toggles a reminder that starts playback when the stream goes live.",
+   "ps5_evidence": [],
+   "gaps": [
+    "is_upcoming is produced by companion/innertube/library.mjs but not used natively; no reminder list, poller or menu entry"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.AddToRecentPlaylist",
+   "title": "Add to / remove from most recent playlist",
+   "status": "missing",
+   "smarttube": "One-tap add/remove for the last playlist used, with membership state.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Last-used playlist id/title is not remembered; menu has no shortcut row"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.AddToWatchLater",
+   "title": "Add to Watch later",
+   "status": "done",
+   "smarttube": "Adds the video to the account's Watch later playlist.",
+   "ps5_evidence": [
+    "native/tube_provider.c: g_account_actions 'watch_later_add' / 'watch_later_remove'",
+    "companion/innertube/library.mjs: case 'watch_later_add'",
+    "tests/test_native.c, companion/innertube/worker.test.mjs ('mutations use the requested stable IDs')"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.AddToPlaylist",
+   "title": "Add to / remove from playlist",
+   "status": "done",
+   "smarttube": "Dialog listing the user's playlists with checkboxes to add/remove the video.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'playlist:pick:add:<id>' / 'playlist:pick:remove:<id>' -> 'playlist:confirm:*' -> account_intent('playlist_add'|'playlist_remove')",
+    "tests/test_native.c, tests/test_fixture_library.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Two pickers with confirmation instead of one checkbox list; current membership is not shown in the add picker."
+  },
+  {
+   "id": "extra.Menu.CreatePlaylist",
+   "title": "Create playlist",
+   "status": "done",
+   "smarttube": "Creates an empty playlist from the Playlists section menu.",
+   "ps5_evidence": [
+    "native/tube_provider.c: CATALOG_FOLDER('playlist:prompt:create:', \"Create YouTube playlist\"); tube_submit_playlist_name()",
+    "companion/innertube/worker.test.mjs: 'playlist creation explicitly requests private visibility'"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.RenamePlaylist",
+   "title": "Rename playlist",
+   "status": "done",
+   "smarttube": "Renames an owned playlist from the Playlists section.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'playlist:menu:<id>' -> 'playlist:prompt:rename:<id>' (\"Rename YouTube playlist\")",
+    "tests/test_native.c (playlist:menu:PL...)"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.AddToNewPlaylist",
+   "title": "Add video to new playlist",
+   "status": "done",
+   "smarttube": "Creates a playlist containing the selected video.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'playlist:prompt:create:<video id>' (\"Create playlist with this video\")",
+    "companion/innertube/library.mjs: case 'playlist_create' with videoIds"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.SaveRemovePlaylist",
+   "title": "Save playlist to library / remove playlist",
+   "status": "partial",
+   "smarttube": "Saves someone else's playlist to the user's library, or deletes/removes a playlist from the Playlists section (with confirmation).",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'playlist:confirm:delete:<id>' (\"Delete YouTube playlist\") -> 'playlist_delete'",
+    "companion/innertube/library.mjs: case 'playlist_delete'"
+   ],
+   "gaps": [
+    "No Save playlist action for a foreign playlist (no like/save-playlist call in the worker)",
+    "playlist:menu is offered only for account playlists; saved foreign playlists cannot be removed distinctly from deletion"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.PlaylistOrder",
+   "title": "Playlist order",
+   "status": "missing",
+   "smarttube": "Per-playlist sort order chooser (date added, popularity, published, manual...) in the Playlists section.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No per-playlist order preference and no sort parameter on the 'playlist' library action"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.NotInterested",
+   "title": "Not interested",
+   "status": "missing",
+   "smarttube": "On Home/Shorts cards: sends the feedback token (optionally a reason) and removes the card.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Home rows do not retain feedback tokens (only History does, in history_actions.mjs)",
+    "No 'not_interested' library action or native menu row"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "The private-token retention pattern of history_actions.mjs can be reused."
+  },
+  {
+   "id": "extra.Menu.NotRecommendChannel",
+   "title": "Don't recommend channel",
+   "status": "missing",
+   "smarttube": "On Home/Shorts cards: sends the second feedback token so the channel stops being recommended.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No feedback-token retention for Home rows; no action. Local Block channel hides rows on this PS5 only"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Small once extra.Menu.NotInterested exists."
+  },
+  {
+   "id": "extra.Menu.RemoveFromSubscriptions",
+   "title": "Hide from Subscriptions / Notifications feed",
+   "status": "missing",
+   "smarttube": "Removes a video from the Subscriptions feed (feedback token) or hides a notification.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No hide action for Subscriptions rows; Notifications section absent"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.BlockChannel",
+   "title": "Block / unblock channel",
+   "status": "done",
+   "smarttube": "Toggles a local channel block; blocked channels disappear from lists and a Blocked channels section appears.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'local:video:%u:block|unblock:<id>' -> change_channel_block(); blocked_identity()",
+    "scripts/channel_block_ui_overlay.py",
+    "tests/test_channel_block.c, test_channel_block_name.c, test_channel_block_next.c, test_channel_block_queue.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.MarkAsWatched",
+   "title": "Mark as watched",
+   "status": "done",
+   "smarttube": "Marks the video fully viewed locally and reports it to account history.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'local:video:%u:watched:<id>' -> tube_mark_watched(); g_account_actions 'mark_watched'",
+    "companion/prosperotube/library.py: mark_watched handling",
+    "tests/test_video_actions.c, tests/test_history_actions.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Two separate rows (local / YouTube)."
+  },
+  {
+   "id": "extra.Menu.AddToQueue",
+   "title": "Add to / remove from playback queue",
+   "status": "done",
+   "smarttube": "Adds the video to the local queue, or removes it when already queued.",
+   "ps5_evidence": [
+    "native/tube_provider.c: tube_toggle_queue()",
+    "README.md: 'R2 / L2: Toggle queue / follow the video's channel'",
+    "tests/test_native.c, tests/test_queue_failure.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Bound to R2 rather than listed in the Touchpad menu."
+  },
+  {
+   "id": "extra.Menu.PlayNext",
+   "title": "Play next",
+   "status": "done",
+   "smarttube": "Inserts the video at the head of the queue.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'local:video:%u:next:<id>' -> tube_queue_play_next() (\"Video will play next\")",
+    "tests/test_video_actions.c, tests/test_channel_block_next.c"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.ShowQueue",
+   "title": "Show playback queue",
+   "status": "done",
+   "smarttube": "Opens the queue dialog from the menu and plays the chosen entry.",
+   "ps5_evidence": [
+    "native/tube_provider.c: root 'queue' folder \"Play queue\"; g_browse_queue / queue_origin in resolve()"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Reachable as a root folder, not from the video menu."
+  },
+  {
+   "id": "extra.Menu.OpenChannel",
+   "title": "Open channel (and channel uploads)",
+   "status": "missing",
+   "smarttube": "From any video or channel card: opens the channel page; ChannelUploads menu offers the same.",
+   "ps5_evidence": [],
+   "gaps": [
+    "'account:menu:<id>' has no row that navigates to 'channel:<parent_id>' although the record stores the channel id (Record.item.parent_id) and 'channel:UC...' is a valid catalog id",
+    "Videos without a channel id (subscription feed rows) need a metadata lookup first"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Workaround today: L2 follows the channel, then open it under Followed channels."
+  },
+  {
+   "id": "extra.Menu.OpenPlaylist",
+   "title": "Open playlist",
+   "status": "missing",
+   "smarttube": "For a card that belongs to a playlist: opens that playlist as a grid.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No menu row to open the playlist of a video (playlist context is kept for playback only: tube_playback_playlist_context)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Playlist cards themselves open as folders."
+  },
+  {
+   "id": "extra.Menu.Subscribe",
+   "title": "Subscribe / unsubscribe",
+   "status": "done",
+   "smarttube": "Toggles the channel subscription (syncing metadata first when the state is unknown).",
+   "ps5_evidence": [
+    "native/tube_provider.c: g_account_actions 'subscribe' / 'unsubscribe' (channel=1); tube_toggle_subscription() for local follows",
+    "companion/innertube/library.mjs: case 'subscribe' / 'unsubscribe'",
+    "tests/test_native.c, companion/innertube/worker.test.mjs"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Both rows are always listed; the current subscription state is not reflected in the label."
+  },
+  {
+   "id": "extra.Menu.ExcludeFromContentBlock",
+   "title": "Exclude channel from SponsorBlock",
+   "status": "partial",
+   "smarttube": "From a video/channel card: toggles the channel in the SponsorBlock exclusion list.",
+   "ps5_evidence": [
+    "native/tube_provider.c: settings \"Excluded channels\" ('Toggle the current channel or a followed channel'), \"The excluded channel list is full.\"",
+    "tests/test_sponsor.c"
+   ],
+   "gaps": [
+    "Not available from the video actions menu; only the current channel and locally followed channels can be toggled in settings"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.PinToSidebar",
+   "title": "Pin playlist / channel to sidebar",
+   "status": "missing",
+   "smarttube": "Toggles a pinned sidebar section for the card's playlist or channel.",
+   "ps5_evidence": [],
+   "gaps": [
+    "See extra.Section.Pinned"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.OpenDescription",
+   "title": "Open description",
+   "status": "missing",
+   "smarttube": "Loads the video's metadata and shows the full description in a long-text dialog.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Only a 320-character overview is carried (companion/prosperotube/catalog.py item(): overview=text(description, 320)); no full-description fetch and no description row in 'account:menu:'",
+    "A long-text reader already exists for comments (g_comments[].content, L2/R2 scrolling) and could be reused"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.OpenComments",
+   "title": "Open comments",
+   "status": "done",
+   "smarttube": "Opens the comments reader for the card (not for live/upcoming).",
+   "ps5_evidence": [
+    "scripts/discussion_overlay.py: pushes 'discussion:top:<id>' on R3",
+    "native/tube_provider.c: catalog() 'discussion:top|newest|replies:'",
+    "tests/test_comment_ratings.py, companion/innertube/worker.test.mjs (comment normalization, replies)"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.ShareLink",
+   "title": "Share link",
+   "status": "missing",
+   "smarttube": "Shares the video/channel/playlist URL (Android share sheet / copy).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No row that displays the youtu.be URL of the selected item"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "On PS5 this reduces to showing the URL as text; pair it with the QR item."
+  },
+  {
+   "id": "extra.Menu.ShareQRLink",
+   "title": "Share link as QR code",
+   "status": "missing",
+   "smarttube": "Shows a QR code of the video URL to open it on a phone.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No QR encoder or QR view in native/ or scripts/"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Encoder is host-testable; rendering needs a small image/RML element."
+  },
+  {
+   "id": "extra.Menu.ShareEmbedLink",
+   "title": "Share embed link",
+   "status": "missing",
+   "smarttube": "Shares the youtube.com/embed/ URL of the video.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No share actions at all"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Trivial once ShareLink exists."
+  },
+  {
+   "id": "extra.Menu.SelectAccount",
+   "title": "Select account",
+   "status": "done",
+   "smarttube": "Opens the account chooser from any menu.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'library:profiles' (\"Profile: %s\") and 'library:profile:<name>' -> profile_settings_select()",
+    "scripts/device_auth_overlay.py",
+    "tests/test_profile_settings.c, tests/test_profile_playback.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Reached through Accounts & library, not from the card menu."
+  },
+  {
+   "id": "extra.Menu.ToggleHistory",
+   "title": "Pause / resume watch history",
+   "status": "partial",
+   "smarttube": "Pauses or resumes YouTube watch history on the account and stops local history recording.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'settings:history-sync' (\"Sync YouTube history: on/off\"), watch_flush()",
+    "docs/LIBRARY_SERVICE.md: 'Playback history reports'"
+   ],
+   "gaps": [
+    "The toggle only stops this client's reports; it does not pause watch history on the account, and local history keeps recording"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.ClearHistory",
+   "title": "Clear history",
+   "status": "partial",
+   "smarttube": "Clears the whole account watch history (with confirmation) and refreshes the History section.",
+   "ps5_evidence": [
+    "native/tube_provider.c: 'settings:clear-history' (\"Clear local history\")",
+    "tests/test_native.c: list_catalog('settings:clear-history')"
+   ],
+   "gaps": [
+    "No account-level clear of YouTube history (worker has only per-video history_remove)",
+    "No confirmation step on the local clear was found"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.ReturnToBackgroundVideo",
+   "title": "Return to background video",
+   "status": "missing",
+   "smarttube": "When playback continues in the background while browsing, any menu offers a jump back to the player.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No background playback while browsing; opening the browser stops the player"
+   ],
+   "offline_feasible": false,
+   "size": "L",
+   "notes": "Needs player/browser coexistence in EVO and console validation."
+  },
+  {
+   "id": "extra.Menu.RefreshSection",
+   "title": "Refresh section",
+   "status": "partial",
+   "smarttube": "Section menu entry that reloads the current section and focuses its content.",
+   "ps5_evidence": [
+    "native/tube_provider.c: catalog() issues a new request and resets g_library_cursors whenever a folder is opened at page 0"
+   ],
+   "gaps": [
+    "No explicit refresh action for the folder being shown; the user must leave and re-enter"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.MoveSection",
+   "title": "Move section up / down",
+   "status": "missing",
+   "smarttube": "Reorders sidebar sections from the section menu.",
+   "ps5_evidence": [],
+   "gaps": [
+    "See extra.Section.EnableAndOrder"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.RenameSection",
+   "title": "Rename pinned section",
+   "status": "missing",
+   "smarttube": "Renames a pinned (non-default) section.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Depends on extra.Section.Pinned"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.UnpinSection",
+   "title": "Unpin / hide section from sidebar",
+   "status": "missing",
+   "smarttube": "Hides a default section or unpins a pinned one from the section menu.",
+   "ps5_evidence": [],
+   "gaps": [
+    "See extra.Section.EnableAndOrder / extra.Section.Pinned"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.MarkAllChannelsWatched",
+   "title": "Mark all channels as watched / mark channel as watched",
+   "status": "missing",
+   "smarttube": "Channels section: clears the new-content marker for all channels, or for one channel from its menu.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Depends on the account Channels section with new-content markers (extra.Section.Channels)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Menu.UpdateCheck",
+   "title": "Check for updates (section menu)",
+   "status": "missing",
+   "smarttube": "Section menu entry that starts the app update check.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No update check or self-update code in ProsperoTube"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Belongs with the About settings audit; the owner's boilerplate update-check kit applies."
+  },
+  {
+   "id": "extra.Search.Query",
+   "title": "Text search with paged results",
+   "status": "done",
+   "smarttube": "Submitting a query loads result groups; scrolling continues them; cards have the normal click / long-press behaviour.",
+   "ps5_evidence": [
+    "native/tube_provider.c: search() / catalog() action 'search' with page",
+    "companion/prosperotube/catalog.py: page_for(query=...)",
+    "companion/innertube/library.mjs: kind 'search' -> client.search()",
+    "scripts/prepare_native.py: evo_keyboard_open(\"Search YouTube videos...\")",
+    "tests/test_native.c, tests/test_companion.py"
+   ],
+   "gaps": [],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Also accepts YouTube URLs and video:/channel:/playlist: forms."
+  },
+  {
+   "id": "extra.Search.TypingCommit",
+   "title": "Typing / commit behaviour",
+   "status": "partial",
+   "smarttube": "Custom search bar: tags update while typing, results load on submit or tag click; options for keyboard auto-show, autofocus on results, typing corrections.",
+   "ps5_evidence": [
+    "scripts/prepare_native.py: evo_keyboard_open(\"Search YouTube videos...\") (PS5 system keyboard, search on confirm)"
+   ],
+   "gaps": [
+    "The query is not kept editable on a search screen: no visible search field to refine, and nothing happens while typing",
+    "No re-run of the last query without retyping"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Keyboard-related options (auto show, G20s fix, corrections) are Android-specific."
+  },
+  {
+   "id": "extra.Search.Suggestions",
+   "title": "Search suggestions / autocomplete (incl. popular searches)",
+   "status": "missing",
+   "smarttube": "Search tags provider returns completions for the typed text and popular/recent queries when empty; clicking a tag searches.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No suggestion endpoint in companion (companion/innertube/suggestions.mjs is related videos, not query completion)",
+    "No tag list in the native search flow"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Search.History",
+   "title": "Search history",
+   "status": "missing",
+   "smarttube": "Recent queries shown as tags; long-press removes one or clears all; setting to disable history.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Queries are not stored in the profile state; no recent-searches folder, no remove/clear actions"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Fits the per-profile JSON state and local_catalog() folders."
+  },
+  {
+   "id": "extra.Search.Voice",
+   "title": "Voice search",
+   "status": "done",
+   "smarttube": "Voice recognition fills the query and searches; optional instant voice search on opening search.",
+   "ps5_evidence": [
+    "native/tube_voice.c, native/tube_microphone.c",
+    "scripts/voice_controls_overlay.py: L3 hold-to-talk, toast \"VOICE SEARCH\"",
+    "companion/prosperotube/voice.py (/v1/voice)",
+    "tests/test_voice_search_provider.c, tests/test_voice.py, docs/VOICE_SEARCH.md"
+   ],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "Physical microphone acceptance is still open; no instant-voice-on-open option. Needs the companion whisper service."
+  },
+  {
+   "id": "extra.Search.FilterUploadDate",
+   "title": "Filter: upload date",
+   "status": "missing",
+   "smarttube": "Any / last hour / today / this week / this month / this year.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Search request carries only query and page; client.search(query) is called without filters; yt-dlp path uses plain ytsearch"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "One shared change covers all five filter/sort items."
+  },
+  {
+   "id": "extra.Search.FilterDuration",
+   "title": "Filter: duration",
+   "status": "missing",
+   "smarttube": "Any / under 4 min / 4-20 min / over 20 min.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No search options in the request or UI"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Part of the shared search-options change."
+  },
+  {
+   "id": "extra.Search.FilterType",
+   "title": "Filter: content type",
+   "status": "missing",
+   "smarttube": "Any / video / channel / playlist / movie.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No search options; channel results are not normalised at all (library.mjs page() maps feed.videos and feed.playlists only)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Needs a channel row normaliser that emits 'channel:<id>' folders."
+  },
+  {
+   "id": "extra.Search.FilterFeatures",
+   "title": "Filter: features (Live, 4K, HDR)",
+   "status": "missing",
+   "smarttube": "Multi-select feature filters.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No search options in the request or UI"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Part of the shared search-options change."
+  },
+  {
+   "id": "extra.Search.Sort",
+   "title": "Sort results",
+   "status": "missing",
+   "smarttube": "Relevance / upload date / view count / rating.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No search options in the request or UI"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Part of the shared search-options change."
+  },
+  {
+   "id": "extra.Search.ChannelAndPlaylistResults",
+   "title": "Channel and playlist cards in results",
+   "status": "partial",
+   "smarttube": "Results include channels (open channel page) and playlists (open grid).",
+   "ps5_evidence": [
+    "companion/innertube/library.mjs: normalizePlaylist() -> is_folder rows in page()"
+   ],
+   "gaps": [
+    "Channel results are dropped",
+    "The yt-dlp guest path (catalog.py item()) keeps only 11-character video ids"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "extra.Search.PlayFirstResult",
+   "title": "Search and play first result",
+   "status": "missing",
+   "smarttube": "startPlay(): runs the search and immediately plays the first video (used by external 'play X' requests).",
+   "ps5_evidence": [],
+   "gaps": [
+    "No search-then-play entry, e.g. for phone or voice 'play ...' commands"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Low priority; mainly driven by Android intents."
+  }
+ ]
+}

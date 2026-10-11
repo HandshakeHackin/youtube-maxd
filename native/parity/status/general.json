@@ -1,0 +1,854 @@
+{
+ "items": [
+  {
+   "id": "GeneralSettingsPresenter.appendEnabledSections",
+   "title": "Set-up sections (show/hide sidebar sections)",
+   "status": "missing",
+   "smarttube": "Checked list of every default sidebar section (all except Settings); each toggle shows/hides that section.",
+   "ps5_evidence": [
+    "native/tube_provider.c: list_catalog root branch (`if (!parent || !*parent)`) emits a fixed CATALOG_FOLDER list (discover, history, favorites, queue, subscriptions, settings, app:settings, app:exit); `discover` branch is also fixed"
+   ],
+   "gaps": [
+    "Per-profile enabled-sections bitmask and a `settings:sections` checklist",
+    "Root and `discover` menus must filter by that mask",
+    "SmartTube sections with no PS5 entry at all (Shorts, Trending, Kids, Notifications, My videos, Channels uploads) cannot be toggled until they exist"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Toggle plumbing is S; missing sections themselves belong to the browse audit."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendHideContent",
+   "title": "Hide content (16 toggles)",
+   "status": "partial",
+   "smarttube": "16 toggles: shorts everywhere / from subscriptions / search / home / channel / history / trending; mixes; watched from Watch later / Home / Subscriptions / Notifications; streams from Subscriptions; upcoming from Subscriptions / Home / Channel.",
+   "ps5_evidence": [
+    "companion/innertube/home_feed.mjs: filterHomeFeed/watchedSuggestion always drops watched cards from the primary Home grid (no switch)",
+    "companion/innertube/library.mjs: cards carry is_upcoming, is_live, played, watch_percent (data needed for filters is present)",
+    "docs/STATUS.md: 'Home watched filtering'"
+   ],
+   "gaps": [
+    "No user toggle for any of the 16 options (Home watched filter is hard-wired on)",
+    "No shorts detection/filter in any feed (only catalog.py URL parsing mentions /shorts/)",
+    "No mixes filter",
+    "No watched filter for Subscriptions, Notifications, Watch later",
+    "No streams/upcoming filters for Subscriptions, Home, Channel",
+    "Per-profile storage + request field so the companion applies the mask"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "Needs a hide-mask in ProfileSettings, forwarded in the library job JSON and applied in library.mjs/home_feed.mjs; unit-testable with the existing *.test.mjs fixtures."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendContextMenuItemsCategory",
+   "title": "Context menu items on/off",
+   "status": "missing",
+   "smarttube": "Checked list of ~40 context-menu entries (play next, queue, mark watched, open channel, not interested, share, pin, block channel, playlist ops, etc.); enabling one also opens its position dialog.",
+   "ps5_evidence": [
+    "native/tube_provider.c: actions menu is hard-coded (labels 'Play next', 'Mark as watched locally', 'Remove from local history', 'Related videos', 'Block channel', playlist:pick/prompt entries)"
+   ],
+   "gaps": [
+    "Per-profile enabled mask for action-menu entries",
+    "settings checklist UI",
+    "Action menu builder must honour the mask"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Only meaningful for entries ProsperoTube actually has."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendContextMenuSortingCategory",
+   "title": "Context menu sorting",
+   "status": "missing",
+   "smarttube": "Radio list of enabled menu items; choosing one opens 'Position of <item>' with numbered slots to reorder.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Persisted order of action-menu entries and a reorder UI"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Depends on the item above."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendBootToSection",
+   "title": "Boot to section",
+   "status": "missing",
+   "smarttube": "Radio: any default section or any pinned sidebar item to open at start.",
+   "ps5_evidence": [
+    "scripts/prepare_native.py: app always lands on ScreenId::EmbyBrowse at the provider root"
+   ],
+   "gaps": [
+    "Per-profile boot section id",
+    "Provider host must open that catalog id at start (ProviderHostScreen overlay)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendAppExitCategory",
+   "title": "Exit from the app shortcut",
+   "status": "missing",
+   "smarttube": "Radio: Don't exit / Double back / Single back.",
+   "ps5_evidence": [
+    "native/tube_provider.c: root entry `app:exit` 'Close ProsperoTube'; scripts/prepare_native.py routes it to Application::requestSoftClose()"
+   ],
+   "gaps": [
+    "Setting with three values",
+    "Circle at provider root: nothing / confirm-on-second-press / immediate soft close"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Exit itself exists; only the back-button policy is missing."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendBackgroundPlaybackCategory",
+   "title": "Background playback mode",
+   "status": "missing",
+   "smarttube": "Radio: Off / Picture-in-picture (on Home, Home+Back, Back) / Play behind / Audio only, with the triggering shortcut.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No background mode at all: leaving the player stops playback",
+    "In-app equivalent (keep audio/video while browsing, return-to-video entry) not implemented"
+   ],
+   "offline_feasible": false,
+   "size": "L",
+   "notes": "Android PiP has no PS5 counterpart, but 'keep playing while browsing' is an in-app feature; needs hardware validation of decoder/audio lifetime."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendKeyRemappingCategory",
+   "title": "Key remapping",
+   "status": "partial",
+   "smarttube": "25 toggles: OK->toggle speed; skip Shorts with left/right or up/down; skip regular videos with left/right or up/down; Play/Pause->OK; D-pad left/right->volume; D-pad up/down->volume or speed; numbers->speed; Next/Previous->FF/RW or speed; FF/RW->next/previous, speed, speed toggle; S->speed toggle; Page Up/Down->next/prev, like/dislike, speed up/down, speed down/up; Channel Up/Down->volume, next/prev, like/dislike, speed, speed toggle, search.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `settings:player-ok` option 3 'Toggle playback speed' (tube_player_set_ok_mode) = 'OK -> toggle speed'",
+    "tests/test_player_preferences.c"
+   ],
+   "gaps": [
+    "D-pad left/right or up/down -> next/previous video (regular and Shorts variants)",
+    "D-pad up/down -> speed up/down; D-pad -> volume",
+    "Shoulder/trigger remaps equivalent to Next/Previous, FF/RW, Page, Channel keys (L1/R1/L2/R2 -> next/previous, speed, like/dislike, search)",
+    "No generic remap table"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Keys that do not exist on a DualSense (numbers, S, Page, Channel) only map by analogy; scripts/test_controller_dispatch.py is the host test pattern."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendScreenDimmingCategory",
+   "title": "Screen dimming (entry)",
+   "status": "missing",
+   "smarttube": "Button opening a dialog with dimming amount and dimming timeout.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No idle dimming overlay in browser or paused player"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Counted with the two items below."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendScreenDimmingAmountCategory",
+   "title": "Screen dimming amount",
+   "status": "missing",
+   "smarttube": "Radio: 10..80% step 10, 85..100% step 5.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Setting + full-screen black quad with that alpha after idle timeout"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendScreenDimmingTimeoutCategory",
+   "title": "Screen dimming timeout",
+   "status": "missing",
+   "smarttube": "Radio: Never / 5, 15, 30 sec / 1..15 min.",
+   "ps5_evidence": [
+    "native/tube_provider.c: sleep timer (`settings:sleep-timer`, tests/test_sleep_timer.c) already tracks input inactivity and could share its idle clock"
+   ],
+   "gaps": [
+    "Timeout setting and idle detection driving the dimmer"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendTimeFormatCategory",
+   "title": "Time format (General; disabled upstream)",
+   "status": "missing",
+   "smarttube": "Radio: 24 hours / 12 hours (AM/PM). Method is commented out in the pinned revision.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `settings:time-display` only chooses total / remaining / estimated finish; no 12/24 h choice found"
+   ],
+   "gaps": [
+    "12/24 h preference applied to finish time and any clock"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Dead code upstream; live equivalent is MainUI misc '24 hours Time format'."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendHistoryCategory",
+   "title": "History state",
+   "status": "partial",
+   "smarttube": "Radio: Auto (use account settings) / Enable history / Disable history.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `settings:history-sync` toggle 'Sync YouTube history: on/off' (g_history_sync)",
+    "native/tube_profile_settings.h: history_sync",
+    "tests/test_profile_settings.c: asserts history_sync persists per profile"
+   ],
+   "gaps": [
+    "No 'Auto (use account settings)' state (tri-state)",
+    "Disable only stops account reports; local history/resume is still recorded"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendMiscCategory",
+   "title": "General misc (12 toggles)",
+   "status": "partial",
+   "smarttube": "Toggles: disable screensaver; separate settings per account; protect settings with password; master password; child mode; disable OK long press; player exit = double back; search exit = double back; return to launcher from ATV channels; remember position in Subscriptions; remember position in pinned playlists; open matching section when launched from ATV channels.",
+   "ps5_evidence": [
+    "native/tube_profile_settings.h: ProfileSettings per profile (always on) = 'separate settings per account'; tests/test_profile_settings.c"
+   ],
+   "gaps": [
+    "Per-profile settings cannot be switched off (single shared settings mode)",
+    "Settings password and master password",
+    "Child mode (locks search/suggestions, restricted sections/buttons)",
+    "Disable screensaver switch",
+    "Disable long-press switch",
+    "Player exit double-back; search exit double-back",
+    "Remember last position in Subscriptions / pinned playlists"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "'Return to launcher' and 'select channel section' are Android TV launcher integrations: not applicable."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendInternetCensorship",
+   "title": "Network settings category",
+   "status": "missing",
+   "smarttube": "Checked category holding 'Use Web Proxy' and 'Enable Conscrypt'.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No network settings group"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Container only; see proxy item."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendProxyManager",
+   "title": "Web proxy",
+   "status": "missing",
+   "smarttube": "Toggle 'Use Web Proxy' opening a proxy dialog (host/port/credentials) and switching the player data source to OkHttp.",
+   "ps5_evidence": [
+    "PS5 talks only to the LAN companion (native/tube_provider.c g_source); no proxy option in companion/prosperotube/__main__.py searches"
+   ],
+   "gaps": [
+    "Proxy URL setting on the console forwarded to the companion, or a companion proxy option applied to yt-dlp/youtubei.js and media relays"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Belongs in the companion while the companion is required."
+  },
+  {
+   "id": "GeneralSettingsPresenter.appendConscrypt",
+   "title": "Enable Conscrypt",
+   "status": "not_applicable",
+   "smarttube": "Toggle swapping Android's TLS provider for Conscrypt.",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "Android security-provider switch; no PS5 counterpart. Inventory labels for this id are polluted by the context-menu name map that follows it in the file."
+  },
+  {
+   "id": "LanguageSettingsPresenter.appendLanguageCategory",
+   "title": "App/content language",
+   "status": "missing",
+   "smarttube": "Radio: Default (system) + 47 languages (res/values/languages.xml); sets UI locale and YouTube hl, restarts.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `settings:languages` / `settings:audio-languages` only choose caption and audio track language from 10 codes (en fr es de it pt ja ko zh ru)"
+   ],
+   "gaps": [
+    "UI language setting (needs extra.Localization)",
+    "Content language (hl) sent to the companion for feeds/search/titles; no hl/lang field exists in companion requests",
+    "Default = PS5 system language"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "Content-language half (hl plumbing) is M and independent of UI translation."
+  },
+  {
+   "id": "LanguageSettingsPresenter.appendCountryCategory",
+   "title": "Country",
+   "status": "missing",
+   "smarttube": "Radio: Default + 92 countries (res/values/countries.xml); sets YouTube gl, restarts.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Per-profile country code setting",
+    "Forward as gl/location in companion library/search/catalog jobs (no such field today)"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendTopButtonsCategory",
+   "title": "Buttons at the top of the main window",
+   "status": "missing",
+   "smarttube": "Checked: Search, Language/Country, Accounts buttons.",
+   "ps5_evidence": [
+    "README.md controls table: Square = Search, Options = companion address; no on-screen top buttons"
+   ],
+   "gaps": [
+    "No top-button row, hence nothing to toggle"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Low value until a top bar exists."
+  },
+  {
+   "id": "MainUISettingsPresenter.appendColorScheme",
+   "title": "Color scheme",
+   "status": "partial",
+   "smarttube": "Radio of 8 schemes: Teal, Dark grey, Red, Dark grey OLED, Teal OLED, Dark grey monochrome, Dark blue, Dark blue OLED.",
+   "ps5_evidence": [
+    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: SettingKey::Theme 'THEME' (evo_theme_count/evo_theme_name)",
+    "native/tube_provider.c: root entry `app:settings` 'Player settings' -> ScreenId::Settings (scripts/prepare_native.py)"
+   ],
+   "gaps": [
+    "Palettes are EVO's, not SmartTube's eight (no OLED/monochrome equivalents verified)",
+    "Device-wide (evo_player_settings.cfg), not per profile",
+    "native/youtube.rcss adoption of theme tokens not verified"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendCardPreviews",
+   "title": "Card preview",
+   "status": "missing",
+   "smarttube": "Radio: Disabled / Video with sound / Video without sound (plays focused card).",
+   "ps5_evidence": [],
+   "gaps": [
+    "Focused-card video preview and its setting"
+   ],
+   "offline_feasible": false,
+   "size": "L",
+   "notes": "Needs a second decode path in the browser; hardware-dependent."
+  },
+  {
+   "id": "MainUISettingsPresenter.appendCardStyle",
+   "title": "Cards style",
+   "status": "missing",
+   "smarttube": "Checked: multiline titles, multiline subtitles, auto-scroll cropped title, unlocalized video titles, rounded card corners.",
+   "ps5_evidence": [],
+   "gaps": [
+    "All five toggles; card layout is fixed in native/youtube.rml / youtube.rcss"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "RCSS class switches driven by a setting; preview via scripts/preview_native.sh."
+  },
+  {
+   "id": "MainUISettingsPresenter.appendCardTitleLines",
+   "title": "Card title lines number (disabled upstream)",
+   "status": "missing",
+   "smarttube": "Radio 1/2/3/4 lines; not called from show() in the pinned revision.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Title line-count setting"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Dead upstream."
+  },
+  {
+   "id": "MainUISettingsPresenter.appendThumbSource",
+   "title": "Where to grab card thumbnails",
+   "status": "missing",
+   "smarttube": "Radio: Default / Start of the video / Middle / End (clickbait remover).",
+   "ps5_evidence": [
+    "native/tube_provider.c: only DeArrow thumbnails (`settings:dearrow:thumbnails`) alter art_url"
+   ],
+   "gaps": [
+    "Setting with four values and art_url rewrite to the start/middle/end frame thumbnails"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendChannelSortingCategory",
+   "title": "Channels section sorting",
+   "status": "missing",
+   "smarttube": "Radio: Last viewed / Alphabetically / New content.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `subscriptions` branch sorts local follows by `updated` only"
+   ],
+   "gaps": [
+    "Sorting setting and the three orders for the channels list"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendPlaylistsCategoryStyle",
+   "title": "Playlists section style (disabled upstream)",
+   "status": "missing",
+   "smarttube": "Radio: Grid / Rows; superseded by the misc toggle 'Show Playlists section as rows'.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Grid vs rows presentation of Your playlists"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendScaleUI",
+   "title": "UI scale",
+   "status": "missing",
+   "smarttube": "Radio 0.4x..1.4x (19 values), restart.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Scale setting applied as RmlUi dp ratio for provider/player documents"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendCardTextScrollSpeed",
+   "title": "Card text scroll speed",
+   "status": "missing",
+   "smarttube": "Radio 1x..8x step 0.5.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Depends on auto-scrolled titles, which do not exist"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendVideoGridScale",
+   "title": "Video grid scale",
+   "status": "missing",
+   "smarttube": "Radio 0.5x..1.5x (13 values), restart.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Card-size/columns scale for catalog grids"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "MainUISettingsPresenter.appendTimeFormatCategory",
+   "title": "Time format (Main UI; disabled upstream)",
+   "status": "missing",
+   "smarttube": "Radio: 24 hours / 12 hours; commented out of show().",
+   "ps5_evidence": [],
+   "gaps": [
+    "12/24 h preference"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "See MainUI misc."
+  },
+  {
+   "id": "MainUISettingsPresenter.appendMiscCategory",
+   "title": "Main UI misc (12 toggles)",
+   "status": "partial",
+   "smarttube": "Toggles: unlocalized video titles; 24-hour time format; Home corner clock; player corner clock; player corner ending time; old look of Channels section; fullscreen mode; pinned channel as rows; Playlists as rows; channels filter field; search bar inside channel page; auto-load Channels content.",
+   "ps5_evidence": [
+    "native/tube_provider.c: `settings:time-display` 'Estimated finish time' (tube_player_set_time_mode); scripts/time_display_overlay.py; tests/test_time_display.cpp — ending time shown in the time readout rather than a corner label"
+   ],
+   "gaps": [
+    "Unlocalized titles",
+    "24-hour toggle",
+    "Clock in browser corner; clock in player corner",
+    "Ending time as an independent toggle alongside duration",
+    "Channels old look, pinned-channel rows, playlists rows",
+    "Channels filter field; in-channel search bar",
+    "Channels auto-load"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "'Fullscreen mode (without system bars)' is Android-only."
+  },
+  {
+   "id": "UIScaleSettingsPresenter.appendVideoGridScale",
+   "title": "Video grid scale (stand-alone dialog)",
+   "status": "missing",
+   "smarttube": "Radio 0.5x..1.5x (11 values).",
+   "ps5_evidence": [],
+   "gaps": [
+    "Same as MainUISettingsPresenter.appendVideoGridScale"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Duplicate entry point."
+  },
+  {
+   "id": "UIScaleSettingsPresenter.appendScaleUI",
+   "title": "UI scale (stand-alone dialog)",
+   "status": "missing",
+   "smarttube": "Radio 0.6x..1.2x step 0.05.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Same as MainUISettingsPresenter.appendScaleUI"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Duplicate entry point."
+  },
+  {
+   "id": "SearchSettingsPresenter.appendSpeechRecognizerCategory",
+   "title": "Voice search engine",
+   "status": "not_applicable",
+   "smarttube": "Radio: System / External 1 (intent) / External 2 (gotev) Android recognizers.",
+   "ps5_evidence": [
+    "native/tube_voice.c + companion/prosperotube/voice.py: single engine (companion whisper.cpp); docs/VOICE_SEARCH.md"
+   ],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "The three choices are Android speech services; ProsperoTube has exactly one recognizer."
+  },
+  {
+   "id": "SearchSettingsPresenter.appendMiscCategory",
+   "title": "Search misc (8 toggles)",
+   "status": "missing",
+   "smarttube": "Toggles: disable typing auto-correction; search exit = double back; disable search history; background play while searching/browsing a channel; instant voice search; autofocus on search results; show keyboard automatically; prevent OK from opening keyboard.",
+   "ps5_evidence": [
+    "scripts/prepare_native.py: Square opens evo_keyboard_open('Search YouTube videos...'); scripts/voice_controls_overlay.py: L3 hold = voice; no search settings, no search history found"
+   ],
+   "gaps": [
+    "Search history (and its disable switch)",
+    "Search exit double-back",
+    "Instant voice search on opening search",
+    "Autofocus results / auto-show keyboard switches",
+    "Background play while searching/browsing"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Typing-correction and the G20s keyboard fix are Android IME workarounds."
+  },
+  {
+   "id": "AboutSettingsPresenter.appendAutoUpdateSwitch",
+   "title": "Notify about updates",
+   "status": "missing",
+   "smarttube": "Radio: Disabled / Show notification in sidebar / Notify via pop-up dialog.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No update check of any kind in native/ or scripts/"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "GitHub-release check; host-testable with a fixture response."
+  },
+  {
+   "id": "AboutSettingsPresenter.appendUpdateCheckButton",
+   "title": "Check for updates",
+   "status": "missing",
+   "smarttube": "Button running the update check now.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Manual update check entry"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "After the item above."
+  },
+  {
+   "id": "AboutSettingsPresenter.appendUpdateChangelogButton",
+   "title": "Changelog",
+   "status": "missing",
+   "smarttube": "List of changes for the installed version.",
+   "ps5_evidence": [
+    "scripts/prepare_native.py: AboutSupportScreen 'ScreenId::Changelog' is rewritten to ScreenId::EmbyBrowse, i.e. EVO's ChangelogScreen is disabled"
+   ],
+   "gaps": [
+    "ProsperoTube changelog data (EVO has include/evo_changelog.h + assets/rml/changelog.rml to reuse)"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "AboutSettingsPresenter.appendLinks",
+   "title": "Releases / Sources links",
+   "status": "missing",
+   "smarttube": "Buttons opening QR codes for the releases and sources URLs.",
+   "ps5_evidence": [
+    "scripts/prepare_native.py: About screen shows name, tagline and a licence line only"
+   ],
+   "gaps": [
+    "Releases and source links shown as text/QR"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "AboutSettingsPresenter.appendDonation",
+   "title": "Donation",
+   "status": "not_applicable",
+   "smarttube": "QR links to the SmartTube author's donation addresses (hidden for RU/UA).",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "Project-specific links of another author, not a client feature."
+  },
+  {
+   "id": "AboutSettingsPresenter.appendUpdateSource",
+   "title": "Select update source",
+   "status": "not_applicable",
+   "smarttube": "Radio of APK update hosts when more than one update URL exists.",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "APK mirror selection."
+  },
+  {
+   "id": "AboutSettingsPresenter.appendFeedback",
+   "title": "Feedback",
+   "status": "missing",
+   "smarttube": "QR links to feedback channels.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Issue-tracker link in About"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "AboutSettingsPresenter.appendInstallBridge",
+   "title": "Install ATV/Amazon bridge",
+   "status": "not_applicable",
+   "smarttube": "Installs a bridge APK replacing the official app for global search.",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "Android bridge APK install."
+  },
+  {
+   "id": "AboutSimpleSettingsPresenter.appendAutoUpdateSwitch",
+   "title": "Notify about updates (simple)",
+   "status": "missing",
+   "smarttube": "Single on/off switch.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Same as AboutSettingsPresenter.appendAutoUpdateSwitch"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Duplicate."
+  },
+  {
+   "id": "AboutSimpleSettingsPresenter.appendUpdateCheckButton",
+   "title": "Check for updates (simple)",
+   "status": "missing",
+   "smarttube": "Button.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Same as AboutSettingsPresenter.appendUpdateCheckButton"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Duplicate."
+  },
+  {
+   "id": "AboutSimpleSettingsPresenter.appendInstallBridge",
+   "title": "Enable global search (bridge)",
+   "status": "not_applicable",
+   "smarttube": "Installs the ATV/Amazon bridge APK.",
+   "ps5_evidence": [],
+   "gaps": [],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": "Android bridge APK install."
+  },
+  {
+   "id": "BackupSettingsPresenter.appendGDriveBackupCategory",
+   "title": "Google Drive backup (entry)",
+   "status": "missing",
+   "smarttube": "Button opening Drive backup / restore / auto backup / device-only / sign in.",
+   "ps5_evidence": [],
+   "gaps": [
+    "No cloud backup"
+   ],
+   "offline_feasible": false,
+   "size": "L",
+   "notes": "Would run in the companion with a Google device-code sign-in; needs a live account to validate."
+  },
+  {
+   "id": "BackupSettingsPresenter.appendGDriveRestoreSettings",
+   "title": "Google Drive: restore app data",
+   "status": "missing",
+   "smarttube": "Button.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Drive restore"
+   ],
+   "offline_feasible": false,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "BackupSettingsPresenter.appendGDriveBackupSettings",
+   "title": "Google Drive: backup app data",
+   "status": "missing",
+   "smarttube": "Button.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Drive backup"
+   ],
+   "offline_feasible": false,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "BackupSettingsPresenter.appendLocalAutoBackupOption",
+   "title": "Local auto backup",
+   "status": "missing",
+   "smarttube": "Radio: None / Once a day / Once a week / Once a month.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Frequency setting and a dated copy at start when due"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "After local backup exists."
+  },
+  {
+   "id": "BackupSettingsPresenter.appendGDriveAutoBackupButton",
+   "title": "Google Drive auto backup",
+   "status": "missing",
+   "smarttube": "Radio: None / Once a day / Once a week / Once a month.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Drive auto backup"
+   ],
+   "offline_feasible": false,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "BackupSettingsPresenter.appendGDriveMiscButtons",
+   "title": "Google Drive: device-only backup + sign in",
+   "status": "missing",
+   "smarttube": "Switch 'Backup for this device only' and a 'Sign in' button.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Drive sign-in and device scoping"
+   ],
+   "offline_feasible": false,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "BackupSettingsPresenter.appendLocalBackupCategory",
+   "title": "Local backup (category)",
+   "status": "missing",
+   "smarttube": "Category with backup, restore and auto backup.",
+   "ps5_evidence": [
+    "native/tube_provider.c: save() writes all state atomically to evo_data_path('youtube.json') — a single file to back up"
+   ],
+   "gaps": [
+    "Backup/restore menu"
+   ],
+   "offline_feasible": true,
+   "size": "S",
+   "notes": ""
+  },
+  {
+   "id": "BackupSettingsPresenter.appendLocalBackupRestoreOptions",
+   "title": "Local backup / restore app data",
+   "status": "missing",
+   "smarttube": "'Backup app data' (zip to a shown path, with confirmation) and 'Restore app data' (pick one of the found backups, with confirmation).",
+   "ps5_evidence": [],
+   "gaps": [
+    "Write dated copy of youtube.json (+ evo_player_settings.cfg) to /data/prosperotube/backup or USB",
+    "List backups, validate (version, records array) and restore, then re-run init()",
+    "Confirmation steps"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "Host-testable with EVO_DATA_DIR_OVERRIDE exactly like tests/test_profile_settings.c. Token/remote identity handling on restore needs a decision."
+  },
+  {
+   "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",
+   "title": "Import subscriptions (GrayJay/PocketTube/NewPipe)",
+   "status": "missing",
+   "smarttube": "Button opening a file picker to import a subscriptions group file.",
+   "ps5_evidence": [],
+   "gaps": [
+    "Parser for the three export formats",
+    "File source (USB path or upload through the companion)",
+    "Merge into local follows (Record.subscribed)"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": ""
+  },
+  {
+   "id": "extra.Localization",
+   "title": "UI localization",
+   "status": "missing",
+   "smarttube": "46 translated strings.xml catalogs plus default English (47 UI languages; languages.xml lists 47 selectable languages, countries.xml 92 countries).",
+   "ps5_evidence": [
+    "native/tube_provider.c: every label is an English literal inside CATALOG_FOLDER(...)/snprintf/tube_set_error",
+    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: upper-case English literals; no catalog, no TranslateString override, no system-language query found anywhere in projects/evoplayer",
+    "third_party/evo/projects/evoplayer/assets/fonts: Lato, Roboto, NotoSans, DejaVuSans (Latin/Cyrillic/Greek coverage; no CJK, Arabic, Hebrew, Thai, Devanagari faces)"
+   ],
+   "gaps": [
+    "String catalog mechanism (EVO offers none): key table + per-language files + lookup helper used by tube_provider.c, overlays and RML",
+    "Language selection (PS5 system language default + setting)",
+    "Catalogs converted from SmartTube strings.xml for shared labels; new strings for PS5-only labels",
+    "Fonts/shaping for non-Latin scripts and RTL",
+    "Toasts/errors in scripts/*_overlay.py are inline literals too"
+   ],
+   "offline_feasible": true,
+   "size": "L",
+   "notes": "RmlUi's SystemInterface::TranslateString is the natural hook for RML text but EVO does not implement it; provider strings need their own lookup."
+  },
+  {
+   "id": "extra.SettingsScreenStructure",
+   "title": "How ProsperoTube exposes settings",
+   "status": "partial",
+   "smarttube": "Settings section with per-topic dialogs (AppDialogPresenter radio/checked/button categories).",
+   "ps5_evidence": [
+    "native/tube_provider.c: list_catalog() branch `else if (!strncmp(parent, \"settings\", 8))` — first half (`if (!page) {...}`) applies the action encoded in the catalog id, second half emits rows with CATALOG_FOLDER(id,title,detail); final `else` is the top-level list",
+    "native/tube_provider.c: root row CATALOG_FOLDER(\"settings\",\"YouTube preferences\",...) and `app:settings` -> EVO SettingsScreen (scripts/prepare_native.py)",
+    "native/tube_profile_settings.h: ProfileSettings struct, profile_settings_defaults/capture/apply/read/write",
+    "native/tube_provider.c: save() (legacy top-level keys + profile_settings_write) and init() (legacy read, defaults reset)",
+    "scripts/prepare_native.py: evo_rmlui_provider.cpp patch — ids starting `settings:` reload in place instead of pushing a folder (except settings:languages / settings:audio-languages)",
+    "tests/test_profile_settings.c + scripts/test_native.sh case `profile_settings`"
+   ],
+   "gaps": [
+    "Flat list of ~35 rows, no categories mirroring SmartTube's dialogs",
+    "Two parallel per-profile stores (ProfileSettings and g_player_preferences) plus device-wide EVO cfg",
+    "No description of options beyond 'Selected' in the detail text; no radio/check widgets"
+   ],
+   "offline_feasible": true,
+   "size": "M",
+   "notes": "See the reply for the step-by-step pattern."
+  }
+ ]
+}

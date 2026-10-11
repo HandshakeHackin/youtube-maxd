@@ -10,13 +10,15 @@ Latest implementation commit: [`3420686`](https://github.com/blackbearreloaded/P
 on `codex/first-version` in [draft PR #1](https://github.com/blackbearreloaded/ProsperoTube/pull/1).
 The validation below covers that implementation; it is not a new frozen release.
 
-The phone fallback adapter from `891ddf8` now has provider lookup and application
-callbacks. Remote-only next metadata can return a verified suggestion group; native
-traversal skips blocked identities and names without changing saved queue records.
-Host integration covers receiver commands through EOF, service jobs and a new launch
-ticket. Full occurrence-context parity still needs work: the callback currently
-returns a video ID and does not carry a returned playlist occurrence or permit a
-same-ID successor at a distinct playlist position. No new release package is ready.
+The phone recommendation handoff now carries the returned YouTube playlist
+occurrence: the adapter reports the new playlist and position to the phone, can
+refill from it, and accepts a same-ID successor only at a distinct occurrence.
+Catalog group keys are never exposed as phone playlists. No new release package is ready.
+
+Feature-by-feature completion against SmartTube is tracked in [PARITY.md](PARITY.md)
+(generated from `native/parity/status/*.json`): 60 done, 55 partial, 119 missing and
+11 not applicable of 245 audited surfaces on 2026-10-11. That page defines the
+remaining offline work; this document keeps the evidence summary.
 
 ## Implemented
 
@@ -47,7 +49,7 @@ Implemented does not mean accepted on hardware or equivalent in every SmartTube 
 - Standalone/on-console service and SABR/proof-token integration; companion dependence remains.
 - Remaining SmartTube settings/localization, other Home/suggestion layouts and controls, group/recommendation semantics and remote-playback fallback selection. The pinned baseline only substitutes a suggestion when a remote video's next metadata is absent; generic replacement of blocked autoplay is not established by that source.
 - Secondary-account/brand-channel context and broad real-account/history/localized-layout validation.
-- Preserve returned recommendation playlist contexts and distinct same-ID successor occurrences through the phone handoff; real phone, microphone and physical-controller acceptance.
+- Real phone, microphone and physical-controller acceptance.
 - Broader codec/HDR/live/DVR, recovery/timing, GPU transform presentation and long-session acceptance.
 - Remaining integrated/candidate checks, a rebuilt and frozen final package, then bounded PS5 acceptance. The last fully frozen package is `c9721611`; subsequent scoped checks do not refresh that package.
 - UI polish after YouTube functionality is accepted.
