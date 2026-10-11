@@ -98,7 +98,7 @@ def apply_qr_overlay(replace, player, work, root):
 
     replace(rml, '<div id="tube-discussion-text" data-if="discussion || review">{{ selected_overview }}</div>\n',
             '<div id="tube-discussion-text" data-if="discussion || review" data-class-with-qr="qr">{{ selected_overview }}</div>\n' + RML_PANEL)
-    replace(rml, '<div id="tube-review-footer" data-if="review &amp;&amp; !auth">', '<div id="tube-review-footer" data-if="review &amp;&amp; !auth &amp;&amp; !link">')
+    replace(rml, '<div id="tube-review-footer" data-if="review &amp;&amp; !auth &amp;&amp; !description">', '<div id="tube-review-footer" data-if="review &amp;&amp; !auth &amp;&amp; !description &amp;&amp; !link">')
     replace(rml, '        <div id="tube-auth-footer" data-if="auth">', RML_FOOTER + '        <div id="tube-auth-footer" data-if="auth">')
     style = rcss.read_text(encoding="utf-8")
     if "#tube-qr-box" not in style:
