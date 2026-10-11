@@ -145,3 +145,21 @@ test('failed concurrent catalog continuation can be retried without duplicating 
   assert.equal(result.items[0].playback_context.index,1);
   assert.strictEqual(await library.execute(request),result);
 });
+
+test('retained scheduled entries become eligible at their timestamp without rebuilding the group',async()=>{
+  let now=1000;const store=groups(()=>now);
+  const {key}=store.attach('guest',{has_continuation:false},[row(id),row(other,{is_upcoming:true,upcoming_start_ms:2000}),row(last)]);
+  const input={group:key,id,index:0,target:1,direction:1};
+  assert.equal((await store.window('guest',input,{})).index,2);
+  now=2000;assert.equal((await store.window('guest',input,{})).index,1);
+  assert.equal(store.groups.get(key).rows[1].playback_context.index,1);
+});
+test('unknown scheduled timestamps remain upcoming and future timestamps override stale flags',async()=>{
+  const store=groups(()=>1000);
+  for(const upcoming_start_ms of [undefined,NaN,Infinity,'2000',-1]) {
+    const {key}=store.attach('guest',{has_continuation:false},[row(id),row(other,{is_upcoming:true,upcoming_start_ms}),row(last)]);
+    assert.equal((await store.window('guest',{group:key,id,index:0,target:1,direction:1},{})).index,2);
+  }
+  const {key}=store.attach('guest',{has_continuation:false},[row(id),row(other,{is_upcoming:false,upcoming_start_ms:2000}),row(last)]);
+  assert.equal((await store.window('guest',{group:key,id,index:0,target:1,direction:1},{})).index,2);
+});

@@ -84,12 +84,14 @@ export function normalizeVideo(node, playlist = '') {
   if (node.content_type && !['VIDEO', 'MOVIE', 'SHORT', 'STATION'].includes(node.content_type)) return null;
   const author = cardAuthor(node);
   const context = playbackContext(node, id, playlist);
+  const scheduled=node.upcoming instanceof Date?node.upcoming.getTime():NaN;
   return { id, title: text(node.title ?? node.metadata?.title), subtitle: text(author.name),
     overview: text(node.description_snippet, 1024),
     art_url: imageUrl(node.thumbnails?.[0]?.url ?? cardImage(node)?.image?.[0]?.url),
     channel_id: channelId(author.id) ? author.id : '',
     duration_sec: cardDuration(node),
     is_folder: false, is_upcoming: !!node.is_upcoming, is_live: !!node.is_live, played: !!node.is_watched, watch_percent: watchPercent(node),
+    ...(Number.isFinite(scheduled) && scheduled>0?{upcoming_start_ms:scheduled}:{}),
     ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {

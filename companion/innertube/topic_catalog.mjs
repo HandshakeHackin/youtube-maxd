@@ -125,6 +125,7 @@ export class TopicCatalog {
     const start=(typeof rawStart==='number' || (typeof rawStart==='string' && /^\d+$/.test(rawStart)))?Number(rawStart):NaN;
     return {is_live:status?.style==='LIVE' || (video.badges ?? []).some(value=>value.metadataBadgeRenderer?.style==='BADGE_STYLE_TYPE_LIVE_NOW'),
       is_upcoming:Number.isFinite(start) && start>this.clock()/1000,
+      upcoming:Number.isFinite(start)?new Date(start*1000):undefined,
       is_watched:video.isWatched===true,
       thumbnail_overlays:overlays.filter(value=>value.thumbnailOverlayResumePlaybackRenderer).map(value=>({
         type:'ThumbnailOverlayResumePlayback',percent_duration_watched:value.thumbnailOverlayResumePlaybackRenderer.percentDurationWatched}))};

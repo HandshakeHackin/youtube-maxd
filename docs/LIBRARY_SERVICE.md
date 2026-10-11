@@ -859,3 +859,9 @@ Topic TV tiles and raw web video rows preserve structured live markers, schedule
 start times and resume overlays. Future scheduled videos stay visible but are
 excluded from automatic source-group traversal; progress uses the same catalog
 resume path. Live detection uses structured styles, independent of badge labels.
+
+
+Retained source groups keep valid parsed upcoming timestamps and reevaluate them
+when navigating. An occurrence becomes eligible at its scheduled time without
+rebuilding the group or changing positions. Unknown timestamps retain the
+explicit upcoming flag; stream resolution still determines actual availability.

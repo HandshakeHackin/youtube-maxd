@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Scheduled entries in retained groups — 2026-10-11
+
+Normalized cards now retain valid parsed upcoming timestamps, including raw-topic
+adapters. Source-group navigation evaluates those timestamps against the service
+clock instead of permanently retaining the initial upcoming flag. At the scheduled
+time the occurrence becomes eligible without changing its source index; entries
+with no valid timestamp retain their explicit upcoming state. This follows the
+pinned Video getter's timestamp comparison and does not guarantee that YouTube
+will already provide a playable stream.
+
+All 123 worker tests and the worker bundle pass. Cases cover the exact scheduled
+boundary, preserved occurrence identity, stale flags, malformed timestamps and
+normalization of valid/invalid parsed dates. No native bytes changed or console
+was contacted. Real upcoming-to-live transitions remain unverified.
+
 ## Topic-feed video state — 2026-10-11
 
 TV tile and raw web-video adapters now preserve resume overlays, explicit watched

@@ -55,3 +55,9 @@ test('pinned modern Home cards retain progress and share watched filtering thres
     assert.equal(feed.videos.length,expected===10||expected>95?0:1);
   }
 });
+
+test('catalog normalization retains only valid parsed upcoming dates',()=>{
+  assert.equal(normalizeVideo({id,upcoming:new Date(2000),is_upcoming:true}).upcoming_start_ms,2000);
+  for(const upcoming of [new Date(NaN),new Date(-1),'2000',2000])
+    assert.equal(normalizeVideo({id,upcoming,is_upcoming:true}).upcoming_start_ms,undefined);
+});

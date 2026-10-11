@@ -54,7 +54,9 @@ export class PlaybackGroups {
       this.fail('invalid_request','Group navigation requires an anchored source occurrence.');
     const group=this.get(owner,input.group),target=input.target??input.index,direction=input.direction??0;
     if(group.rows[input.index]?.id!==input.id)this.fail('group_changed','The source occurrence is no longer available.');
-    const playable=row=>row && !row.is_folder && !row.is_upcoming && videoId(row.id);
+    const upcoming=row=>typeof row.upcoming_start_ms==='number' && Number.isFinite(row.upcoming_start_ms) && row.upcoming_start_ms>0
+      ? row.upcoming_start_ms>this.clock() : !!row.is_upcoming;
+    const playable=row=>row && !row.is_folder && !upcoming(row) && videoId(row.id);
     let selected=-1,continued=false;
     for(;;) {
       if(direction<0) {for(let i=Math.min(target,group.rows.length-1);i>=0;--i)if(playable(group.rows[i])){selected=i;break;}}
