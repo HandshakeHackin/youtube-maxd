@@ -2845,3 +2845,41 @@ folder/PFS/ZIP packaging, then immutable freeze: build
 `/home/denis/.cache/prosperotube/candidates/8d660737-offline-profile-settings/PPSA99142`.
 Both `.deps/offline-profile-settings-{ps5-build,freeze}.result` files are 0.
 Full SmartTube parity and remaining offline work are still active.
+
+
+### Offline local unavailable-video advance (2026-10-11)
+
+The native local queue now advances after a classified `video_unavailable`
+resolver failure, following SmartTube VideoLoaderController's five-second delay.
+It requires the matching current request, profile and queue origin with autoplay
+on. Skipped records retain queue membership, resume position and watched state.
+A bounded per-run ID set prevents retries within the same run, including after a
+later playable item reaches EOF. Terminal exhaustion displays the original error.
+Authentication/challenge/rate-limit/network/unknown failures, failed pairing and
+arbitrary error text cannot start this path. Stale replies are rejected.
+
+The actual generated ProviderHostScreen schedules the next item, clears old
+choices and cancels on any new button, browser exit, profile/source/search change,
+autoplay disable or new phone launch. Successful player navigation retains the
+run's failed-ID set; fresh manual playback resets it. Phone playlist failure
+advancement remains separate unfinished work; this batch adds only a scoped
+pending-launch query for phone priority over the local countdown.
+
+Focused shipping-provider sanitizer checks and extracted shipping host blocks
+passed (`.deps/queue-failure-focused.result` 0 and host log). Expanded final
+provider/phone/PS5 checks are recorded separately below. A test compiled against
+an earlier object caught missing immediate autoplay-off retirement; the shipping
+branch now cancels its pending advance explicitly, and stale/pairing/off-toggle
+fixtures verify the final source. No console connection occurred.
+
+
+All fifteen provider cases passed in `.deps/queue-failure-provider-verified.log`.
+After the queued-membership guard was tightened, the affected queue, Music,
+recovery and SponsorBlock cases, shipping host blocks, actual phone adapter and
+PS5 provider/phone/ProviderHostScreen compilation passed again:
+`.deps/queue-failure-connected.result` is 0. The queued candidate is revalidated
+before launch; removing it during the delay cannot launch it. Compilation caught
+an incorrectly placed C++ chrono include inside the host's C linkage block; it
+was moved beside the C++ headers, then all three affected PS5 objects compiled.
+SDK compilation retained 208 qualified-math warnings without errors. Earlier
+failed iteration logs/results remain diagnostic evidence, not acceptance.

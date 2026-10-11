@@ -39,6 +39,7 @@ int tube_phone_launch_current(unsigned value) { return value && value == ticket 
 static void prune(void) {
     if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
 }
+int tube_phone_launch_pending(void) { prune(); return phase == 1; }
 static int find(const PhoneQueue *q, const char *id) {
     for (int i = 0; i < q->count; ++i) if (!strcmp(q->videos[i], id)) return i;
     return -1;

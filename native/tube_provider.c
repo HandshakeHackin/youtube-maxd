@@ -44,7 +44,7 @@ typedef struct Request {
     void *ud;
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
-    int page, music_origin;
+    int page, music_origin, queue_origin;
     unsigned intent;
     char parent[160];
     char profile[33];
@@ -60,6 +60,9 @@ static int g_count;
 static int g_store_writable = 1;
 static Request g_requests[REQUESTS];
 static unsigned g_generation = 1;
+static struct { unsigned generation; int unavailable, queue_origin; char id[12], profile[33]; } g_resolve_failure;
+static char g_queue_failed[RECORDS][12];
+static int g_queue_failed_count;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
@@ -77,7 +80,7 @@ static char g_active_profile[33], g_next_profile[33];
 /* Navigation origin, not a content classifier. Resolve snapshots the origin
  * before asynchronous work; queue entries retain the origin of their insertion. */
 static int g_browse_music, g_browse_queue, g_resolved_music;
-static struct { char id[160], profile[33]; int music; } g_launch_origin;
+static struct { char id[160], profile[33]; int music, automatic; } g_launch_origin;
 static int g_height = 1080, g_codec, g_auto_captions, g_captions = 1;
 static int g_speed = 100;
 /* Modes: all videos, per channel, per video, this session only. */
@@ -806,6 +809,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init(void) {
+    memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel();
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
     ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
@@ -951,6 +955,7 @@ static int set_source(const char *value) {
     if (strcmp(normalized, g_source)) profile_settings_select("guest");
     if (strcmp(normalized, g_source) || *pin) g_token[0] = 0;
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
+    tube_queue_retry_cancel();
     ++g_generation; save(); return 0;
 }
 
@@ -1526,6 +1531,19 @@ static void resolved(Request *r, const cJSON *root) {
     complete(r, 1);
 }
 
+static void resolve_failure(Request *r, const cJSON *error) {
+    if (r->kind != 2 || r->stage < 1 || r->generation != g_generation ||
+        strcmp(r->profile,g_library_profile) || strcmp(str(error,"code"),"video_unavailable")) return;
+    g_resolve_failure.generation = r->generation; g_resolve_failure.unavailable = 1;
+    g_resolve_failure.queue_origin = r->queue_origin;
+    copy(g_resolve_failure.id,sizeof g_resolve_failure.id,r->parent);
+    copy(g_resolve_failure.profile,sizeof g_resolve_failure.profile,r->profile);
+}
+int tube_resolve_unavailable(const char *id) {
+    return id && g_resolve_failure.unavailable && g_resolve_failure.generation == g_generation &&
+        !strcmp(id,g_resolve_failure.id) && !strcmp(g_resolve_failure.profile,g_library_profile);
+}
+
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
     Request *r = ud; r->inflight = 0;
     if (!r->used) return;
@@ -1542,6 +1560,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     cJSON *root = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
+        if (status == 404 || status == 410) resolve_failure(r,error);
         tube_set_error(*str(error, "message") ? str(error, "message") : "Could not reach the companion. Check that it is running and the LAN address is correct.");
         if (status == 401) { g_token[0] = 0; save(); }
         cJSON_Delete(root); complete(r, 0); return;
@@ -1575,6 +1594,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     if (strcmp(state, "done")) {
         const cJSON *error = cJSON_GetObjectItemCaseSensitive(root, "error");
+        if (!strcmp(state,"failed")) resolve_failure(r,error);
         tube_set_error(*str(error, "message") ? str(error, "message") : "The request was cancelled or could not be completed.");
         cJSON_Delete(root); complete(r, 0); return;
     }
@@ -1777,7 +1797,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 static void cancel_requests(int preserve_chat) {
     if (!preserve_chat) tube_chat_stop();
     tube_auth_cancel();
-    ++g_generation;
+    ++g_generation; memset(&g_resolve_failure,0,sizeof g_resolve_failure);
     for (int i = 0; i < REQUESTS; ++i) {
         Request *r = &g_requests[i];
         if (!r->used) continue;
@@ -2127,7 +2147,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             } else { tube_set_error("The excluded channel list is full."); cb(0, NULL, 0, 0, ud); return 1; }
             g_sb_prompt = -1; g_sb_finish_target = -1; g_highlight_guard = -1; save();
         }
-        else if (!strcmp(parent, "settings:autoplay")) { g_autoplay = !g_autoplay; save(); }
+        else if (!strcmp(parent, "settings:autoplay")) {
+            g_autoplay = !g_autoplay; if (!g_autoplay) tube_queue_retry_cancel(); save();
+        }
         else if (!strcmp(parent, "settings:player-chat")) {
             tube_player_chat_set_mode((g_player_chat_mode + 1) % 3);
         }
@@ -2573,6 +2595,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
 
 static int search(const char *query, int page, evo_provider_items_cb cb, void *ud) {
     if (!tube_search_query_valid(query) || !cb) return -1;
+    tube_queue_retry_cancel();
     char parent[808]; snprintf(parent, sizeof parent, "search:%s", query);
     return catalog(parent, page, cb, ud);
 }
@@ -2580,11 +2603,15 @@ static int search(const char *query, int page, evo_provider_items_cb cb, void *u
 static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     if (!valid_id(id) || !cb) return -1;
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
+    int automatic = g_launch_origin.automatic && !strcmp(g_launch_origin.id,id) &&
+        !strcmp(g_launch_origin.profile,g_library_profile);
+    if (!automatic && !recovering) g_queue_failed_count = 0;
     if (recovering) cancel_requests(0); else { g_paid_text[0] = 0; g_paid_shown = 0; tube_cancel(); }
     Request *r = request_new(2, ud); if (!r) return -1;
     r->resolve_cb = cb;
     copy(r->parent, sizeof r->parent, id); copy(r->profile, sizeof r->profile, g_library_profile);
     const Record *origin_record = record(id, 0);
+    r->queue_origin = automatic || (g_browse_queue && origin_record && origin_record->queued);
     r->music_origin = g_browse_music || (g_browse_queue && origin_record && origin_record->queued_music);
     if (!strcmp(g_launch_origin.id, id) && !strcmp(g_launch_origin.profile, g_library_profile))
         r->music_origin = g_launch_origin.music;
@@ -2951,18 +2978,44 @@ int tube_playback_at_end(double position, double duration) {
     return duration > 0 && position >= duration - fmin(0.1, duration * 0.01);
 }
 
+int tube_queue_retry_pending(void) {
+    Record *r = record_for(g_next_id,g_next_profile,0);
+    return g_autoplay && r && r->queued && !strcmp(g_next_profile,g_library_profile);
+}
+void tube_queue_retry_cancel(void) {
+    g_next_id[0] = g_next_profile[0] = 0; g_queue_failed_count = 0;
+    memset(&g_resolve_failure,0,sizeof g_resolve_failure);
+    memset(&g_launch_origin,0,sizeof g_launch_origin);
+}
+static int queue_failed(const char *id) {
+    for (int i = 0; i < g_queue_failed_count; ++i) if (!strcmp(id,g_queue_failed[i])) return 1;
+    return 0;
+}
+static int queue_next(void) {
+    Record *next = NULL;
+    for (int i = 0; i < g_count; ++i)
+        if (current_record(&g_records[i]) && g_records[i].queued && !queue_failed(g_records[i].item.id) &&
+            (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
+    if (!next) return 0;
+    copy(g_next_id,sizeof g_next_id,next->item.id);
+    copy(g_next_profile,sizeof g_next_profile,next->profile); return 1;
+}
+int tube_queue_skip_unavailable(const char *id) {
+    if (!g_autoplay || !tube_resolve_unavailable(id) || !g_resolve_failure.queue_origin) return 0;
+    Record *failed = record_for(id,g_library_profile,0);
+    if (!failed || !failed->queued || queue_failed(id) || g_queue_failed_count == RECORDS) return 0;
+    copy(g_queue_failed[g_queue_failed_count++],sizeof g_queue_failed[0],id);
+    memset(&g_resolve_failure,0,sizeof g_resolve_failure);
+    return queue_next(); /* Unavailable is not watched: retain queue/resume/history. */
+}
+
 static int finish_and_next(void) {
     if (g_finished || !*g_active_id) return 0;
     g_finished = 1;
     Record *r = record_for(g_active_id, g_active_profile, 0);
     if (r) { r->queued = 0; r->item.played = 1; r->item.resume_pos_sec = 0; save(); }
     if (!g_autoplay || strcmp(g_active_profile, g_library_profile)) return 0;
-    Record *next = NULL;
-    for (int i = 0; i < g_count; ++i)
-        if (current_record(&g_records[i]) && g_records[i].queued && (!next || g_records[i].queue_order < next->queue_order)) next = &g_records[i];
-    if (!next) return 0;
-    copy(g_next_id, sizeof g_next_id, next->item.id);
-    copy(g_next_profile, sizeof g_next_profile, next->profile); return 1;
+    return queue_next();
 }
 
 int tube_sponsor_finish(double target, double duration) {
@@ -2992,10 +3045,10 @@ int tube_finish_drained_and_next(double position) {
 int tube_take_next(evo_provider_item_t *item) {
     if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
     Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
-    if (!r || !item) return 0;
+    if (!r || !r->queued || !item) return 0;
     copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
     copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
-    g_launch_origin.music = r->queued_music;
+    g_launch_origin.music = r->queued_music; g_launch_origin.automatic = 1;
     *item = r->item; dearrow_item(item, r); return 1;
 }
 
@@ -3037,7 +3090,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); save(); }
+static void tube_shutdown(void) { tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save(); }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
     .caps = EVO_PROVIDER_CAP_CATALOG | EVO_PROVIDER_CAP_SEARCH | EVO_PROVIDER_CAP_RESOLVE |

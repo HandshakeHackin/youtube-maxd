@@ -118,6 +118,11 @@ typedef struct { unsigned ticket; char label[64], initial[801]; } tube_chat_prom
 int tube_take_chat_prompt(tube_chat_prompt_t *prompt);
 int tube_submit_chat_message(unsigned ticket, const char *text, char *parent, size_t capacity);
 void tube_cancel_chat_prompt(unsigned ticket);
+/* Current request's allowlisted unplayability; not transport/auth/engine failure. */
+int tube_resolve_unavailable(const char *video_id);
+int tube_queue_skip_unavailable(const char *video_id);
+int tube_queue_retry_pending(void);
+void tube_queue_retry_cancel(void);
 void tube_set_error(const char *message);
 #ifdef __cplusplus
 }

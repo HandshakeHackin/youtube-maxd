@@ -57,7 +57,9 @@ static void feed(const char *commands) {
     tube_remote_tick(test_clock + 1); poll_reply(0,commands); assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
 }
 static unsigned take_start(const char *id, double position) {
+    assert(tube_phone_launch_pending());
     char video[12]; double offset = -1; unsigned value = tube_phone_take(video,&offset);
+    assert(!tube_phone_launch_pending());
     assert(value && !strcmp(video,id) && offset == position);
     assert(tube_phone_launch_current(value)); assert(!tube_phone_take(video,&offset)); return value;
 }

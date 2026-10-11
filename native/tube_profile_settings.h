@@ -65,6 +65,7 @@ static void profile_settings_store(void) {
 }
 static int profile_settings_select(const char *profile) {
     int i = profile_settings_slot(profile,1); if (i < 0) return 0;
+    if (strcmp(profile,g_library_profile)) tube_queue_retry_cancel();
     profile_settings_store(); copy(g_library_profile,sizeof g_library_profile,profile);
     profile_settings_apply(&g_profile_settings[i].value); return 1;
 }

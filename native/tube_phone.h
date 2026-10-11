@@ -30,6 +30,7 @@ typedef struct {
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */
 unsigned tube_phone_take(char video[12], double *position);
+int tube_phone_launch_pending(void);
 int tube_phone_launch_current(unsigned ticket);
 int tube_phone_launch_bind(unsigned ticket, unsigned selection);
 int tube_phone_launch_finish(unsigned ticket, int success);

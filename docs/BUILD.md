@@ -335,7 +335,7 @@ They use the shipping provider with a controlled monotonic clock under ASan/UBSa
 and cover persistence, exact expiry, activity, disabled/idle behavior and one-shot
 pause admission. `bash scripts/test_phone_player.sh` checks that deliberate phone
 commands count as input while queries/status and automatic refills do not.
-`bash scripts/test_native.sh` now runs thirteen provider regression executables,
+`bash scripts/test_native.sh` now runs fifteen provider regression executables,
 including the stationary replay reader. Serialize native preparations.
 
 Offline player-input checks: `bash scripts/test_native.sh player_preferences profile_settings`
@@ -353,3 +353,13 @@ chat/phone feedback, hold acceleration and competing ownership. Follow with
 `bash scripts/test_seek_handoff.sh` for actual mailbox/demux/media timing and
 `bash scripts/test_sponsor_player.sh` for EOF priority. Native preparations must
 remain serialized. PS5 physical controller/render/audio acceptance is separate.
+
+
+Local unavailable-video advance checks: `bash scripts/test_native.sh queue_failure`
+executes typed resolver errors and shipping queue state. It covers non-playability
+versus transport/authentication failures, stale replies, account/source/autoplay
+changes, bounded exhaustion and retained history/queue state. Follow with
+`bash scripts/test_queue_failure_host.sh` for the actual generated host's
+five-second timer, input/exit cancellation, recovery/phone admission and new-phone
+priority. `bash scripts/test_phone_player.sh` checks the real pending-launch
+adapter. Serialize native preparations. Physical PS5 acceptance remains separate.
