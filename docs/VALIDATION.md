@@ -1,5 +1,38 @@
 # Offline validation record — 0.1.0
 
+## Recovery retains quality preferences and frame rate — 2026-10-11
+
+The native provider snapshots resolution, frame-rate and codec preferences when
+starting resolution and carries that snapshot through the returned choice into
+recovery. Changing preferences after resolution returns no longer alters a
+later automatic reopen; subsequent ordinary resolution uses the new settings.
+The generated EVO choice structure now carries FPS, parsed from the companion,
+and native recovery requires exact known/unknown and fractional-rate matching
+alongside the existing dimensions/codecs/audio checks. In particular, 29.97 fps
+cannot silently become 30/60 fps or unknown during recovery.
+
+Validation:
+- All fifteen provider ASan/UBSan regressions pass, including changed preferences
+  between resolve completion and selection, three bounded recovery attempts,
+  exact fractional-rate matching, rejected mismatched/unknown/NaN replacements,
+  and new preferences on the next ordinary resolution.
+- 35 existing VOD/live renewal tests pass; service renewal already includes FPS
+  in its immutable representation identity and rejects changed formats.
+- Extracted shipping callback/pthread/completion tests pass after updating their
+  harness dependencies for previously introduced unavailable-queue branches.
+  The first regression fixture intentionally changed settings during an active
+  resolution and triggered the provider's cancellation guard; the final fixture
+  exercises the post-resolution/pre-selection boundary without bypassing it.
+- PS5 provider, provider manager, launch host, playback controller and provider
+  UI compile. Existing SDK/compiler warnings remain. Ignored evidence:
+  `.deps/recovery-quality-native.log`, `.deps/recovery-quality-service.log`,
+  `.deps/recovery-quality-host-final.log`, `.deps/recovery-quality-sdk-final.log`
+  and `.deps/recovery-quality-followup.result` (`0`).
+
+The added field is an overlay of the generated provider ABI; pinned EVO sources
+are unchanged. The full candidate must rebuild its provider consumers together.
+No new full package freeze, console connection or hardware acceptance is claimed.
+
 ## Resolution and frame-rate preferences — 2026-10-11
 
 The maximum-quality cycle is replaced by an explicit eight-choice submenu:

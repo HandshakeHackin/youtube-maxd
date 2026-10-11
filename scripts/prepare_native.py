@@ -51,7 +51,7 @@ def main():
         raise RuntimeError("Native work directory has a different upstream pin.")
     player = "projects/evoplayer/"
     overlay_files = [player + name for name in (
-        "Makefile", "addons/src/evo_provider_mgr.c", "src/evo_data_path.c", "include/evo_data_path.h",
+        "Makefile", "addons/src/evo_provider_mgr.c", "addons/include/evo_provider.h", "src/evo_data_path.c", "include/evo_data_path.h",
         "core/src/Application.cpp", "core/include/evo/Application.hpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp", "core/include/evo/screens/ProviderHostScreen.hpp",

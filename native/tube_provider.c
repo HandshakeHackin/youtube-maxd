@@ -34,6 +34,8 @@ typedef struct {
     long long updated, queue_order;
 } Record;
 
+typedef struct { int height, max_fps, codec; } ResolveQuality;
+
 typedef struct Request {
     int used, kind, stage, inflight;
     unsigned generation;
@@ -44,6 +46,7 @@ typedef struct Request {
     void *ud;
     evo_stream_choice_t choices[CHOICES];
     int choice_count;
+    ResolveQuality quality;
     int page, music_origin, queue_origin;
     unsigned intent;
     char parent[160];
@@ -116,6 +119,7 @@ static int g_dearrow_titles, g_dearrow_thumbnails;
 static char g_paid_text[256];
 static int g_paid_shown;
 static char g_resolved_id[160], g_resolved_profile[33];
+static ResolveQuality g_resolved_quality;
 static unsigned g_watch_serial;
 static struct { unsigned serial; char id[160], profile[33], session[64];
     int dirty, stopped, failed, status, sent;
@@ -160,7 +164,7 @@ static struct { char profile[33]; int ok_mode, hide_ms, seek_mode, seek_seconds;
 static int g_player_preferences_count;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
-    evo_stream_choice_t choice; } g_recovery;
+    evo_stream_choice_t choice; ResolveQuality quality; } g_recovery;
 void tube_recovery_finish(void) { g_recovery.phase = 0; }
 static int recovery_scope(void) {
     return *g_recovery.id && !strcmp(g_recovery.id, g_active_id) &&
@@ -1478,6 +1482,7 @@ static void resolved(Request *r, const cJSON *root) {
         out->width = (int)num(c, "width"); out->height = (int)num(c, "height");
         out->bitrate_bps = (int64_t)num(c, "bitrate_bps"); out->is_live = boolean(c, "is_live");
         out->audio_channels = (int)num(c, "audio_channels");
+        double fps = num(c,"fps"); out->fps = isfinite(fps) && fps > 0 ? fps : 0;
     }
     if (!r->choice_count) { tube_set_error("The companion returned no supported playback choices."); complete(r, 0); return; }
     if (!tube_recovery_active()) {
@@ -1486,6 +1491,7 @@ static void resolved(Request *r, const cJSON *root) {
     copy(g_resolved_id, sizeof g_resolved_id, r->parent);
     copy(g_resolved_profile, sizeof g_resolved_profile, r->profile);
     g_resolved_music = r->music_origin;
+    g_resolved_quality = r->quality;
     Record *cached = record(str(root, "id"), 1);
     if (cached) {
         copy(cached->item.title, sizeof cached->item.title, str(root, "title"));
@@ -2693,9 +2699,10 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
     if (!strcmp(g_launch_origin.id, id) && !strcmp(g_launch_origin.profile, g_library_profile))
         r->music_origin = g_launch_origin.music;
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
+    r->quality = recovering ? g_recovery.quality : (ResolveQuality){g_height,g_max_fps,g_codec};
     snprintf(r->payload, sizeof r->payload,
         "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"max_fps\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
-        id, g_library_profile, g_height, g_max_fps, g_codec == 1 ? "avc" : g_codec == 2 ? "vp9" : g_codec == 3 ? "av1" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
+        id, g_library_profile, r->quality.height, r->quality.max_fps, r->quality.codec == 1 ? "avc" : r->quality.codec == 2 ? "vp9" : r->quality.codec == 3 ? "av1" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
     begin(r); return 0;
 }
 
@@ -2738,6 +2745,8 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     if (!recovering) memset(&g_recovery, 0, sizeof g_recovery);
     if (choice) {
         g_recovery.choice = *choice;
+        if (!recovering) g_recovery.quality = !strcmp(id,g_resolved_id) && !strcmp(g_active_profile,g_resolved_profile)
+            ? g_resolved_quality : (ResolveQuality){g_height,g_max_fps,g_codec};
         copy(g_recovery.id, sizeof g_recovery.id, id);
         copy(g_recovery.profile, sizeof g_recovery.profile, g_active_profile);
         copy(g_recovery.source, sizeof g_recovery.source, g_source);
@@ -3157,7 +3166,8 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     int found = -1;
     for (int i = 0; i < count; ++i) {
         const evo_stream_choice_t *c = &choices[i];
-        if (!companion_url(c->url) || c->width != old->width || c->height != old->height ||
+        if (!companion_url(c->url) || !isfinite(c->fps) || c->fps != old->fps ||
+            c->width != old->width || c->height != old->height ||
             !!c->is_live != !!old->is_live || c->audio_channels != old->audio_channels ||
             strcmp(c->container, old->container) || strcmp(c->video_codec, old->video_codec) ||
             strcmp(c->audio_codec, old->audio_codec) || strcmp(c->video_range, old->video_range)) continue;

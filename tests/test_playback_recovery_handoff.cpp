@@ -42,6 +42,11 @@ int prospero_subtitle_delay_ms=0, prospero_secondary_delay_ms=0;
 double prospero_subtitle_time_scale=1;
 unsigned g_phone_ticket=0;
 double g_phone_resume=0;
+static int64_t g_queue_retry_deadline;
+static int64_t queue_retry_now_ms() { return 1000; }
+extern "C" int tube_queue_skip_unavailable(const char*) { return 0; }
+extern "C" int tube_resolve_unavailable(const char*) { return 0; }
+extern "C" int tube_phone_launch_unavailable(unsigned,const char*,int64_t) { assert(false);return 0; }
 extern "C" int tube_phone_launch_current(unsigned) { assert(false);return 0; }
 extern "C" int tube_phone_launch_finish(unsigned,int) { assert(false);return 0; }
 extern "C" void tube_phone_sync_scope(void) {}

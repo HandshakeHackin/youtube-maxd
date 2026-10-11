@@ -137,7 +137,9 @@ Maximum resolution is selectable per profile: 144p, 240p, 360p, 480p, 720p,
 1080p, 1440p or 2160p. Frame rate can be Automatic, up to 30 fps or up to 60 fps.
 An explicit frame-rate limit requires known stream metadata; Automatic also
 permits streams that do not report their frame rate. These settings apply when
-opening the next video. Stream labels show frame rate when available.
+opening the next video. Stream labels show frame rate when available. Automatic
+recovery keeps the playing video's original quality preferences and frame rate;
+new settings take effect on the next video.
 
 Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;
