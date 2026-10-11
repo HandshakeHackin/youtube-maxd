@@ -67,7 +67,12 @@
             <span class="tube-key">Touchpad</span> Comments
             <span class="tube-key">○</span> Back
         </div>
-        <div id="tube-review-footer" data-if="review &amp;&amp; !auth">
+        <div id="tube-description-footer" data-if="description">
+            <span class="tube-key">L2 / R2</span> Scroll description
+            <span class="tube-key">✕</span> Open channel
+            <span class="tube-key">○</span> Back
+        </div>
+        <div id="tube-review-footer" data-if="review &amp;&amp; !auth &amp;&amp; !description">
             <span class="tube-key">✕</span> Confirm account change
             <span class="tube-key">L2 / R2</span> Scroll details
             <span class="tube-key">○</span> Back without submitting

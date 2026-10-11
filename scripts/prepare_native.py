@@ -254,6 +254,8 @@ def main():
     apply_playlist_context_overlay(replace, player, host)
     from channel_block_ui_overlay import apply_channel_block_ui_overlay
     apply_channel_block_ui_overlay(replace, player)
+    from browse_sections_overlay import apply_browse_sections_overlay
+    apply_browse_sections_overlay(replace, player, host)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
