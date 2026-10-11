@@ -22,7 +22,9 @@ last fully frozen candidate. The worker now retains ordinary browsing-group
 positions and exposes scoped group windows. Native selection and supplied OAuth
 catalog contexts are connected. Guest catalogs now use worker continuations when
 the library is enabled, preserving group context while public video resolution
-stays on the Guest extractor. See the service and native validation entries.
+stays on the Guest extractor. Primary cookie-account catalogs also retain worker
+groups, with video resolution and revocation owned by the selected profile. See
+the service and native validation entries.
 
 Latest accepted caption package: `879b1281` rendered French and English together
 on PS5, retained them across a paused 1.25x decoder reopen, and cleared French

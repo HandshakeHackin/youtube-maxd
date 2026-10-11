@@ -146,6 +146,9 @@ class ProfileExtractors:
             resolver = Extractor(timeout=self.guest.timeout, cookie_header=configured["cookie"],
                                  extractor_args=self.guest.extractor_args, js_runtimes=self.guest.js_runtimes)
             resolver.semaphore = self.guest.semaphore
+            if self.library is not None:
+                from .guest_catalog import CatalogExtractor
+                resolver = CatalogExtractor(profile, self.library, resolver)
             self.extractors[profile] = resolver
         return self.extractors[profile]
 

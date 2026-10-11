@@ -811,3 +811,11 @@ yt-dlp extractor; Guest cannot request account credentials. Worker failures are
 reported rather than replacing a retained group with unrelated extractor rows.
 Without the library worker, the original Guest catalog behavior remains available
 without retained browsing groups. PS5 and live-service acceptance remain pending.
+
+
+Primary cookie-account catalog searches now use the worker continuation/group
+adapter too. Its requests carry the selected profile ID, while video extraction
+continues through that profile's cookie-backed resolver. Revoking the adapter
+also invalidates that resolver and its subprocesses. Catalog operations cannot
+request OAuth credentials. Existing secondary-account/brand-channel video
+restrictions remain; this change does not claim those playback contexts work.

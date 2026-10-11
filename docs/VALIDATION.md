@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Cookie-profile browsing groups — 2026-10-11
+
+Primary cookie-account catalogs now retain worker group contexts just like Guest
+and OAuth catalogs. The adapter keeps catalog requests profile-owned and delegates
+video resolution to the existing cookie-backed extractor. Profile invalidation
+revokes both the adapter and the underlying resolver, preserving cancellation
+and stale-reference rejection.
+
+The focused catalog/profile regression run covers two independent cookie
+accounts, opaque group propagation, credential-free catalog requests, correct
+per-account video credentials and revocation of retained resolver references.
+All 55 focused Python tests pass. No native bytes changed or
+console connection occurred. Secondary-account/brand-channel video context,
+real-account catalogs and PS5 acceptance remain open.
+
 ## Guest browsing-group routing — 2026-10-11
 
 With the library worker enabled, Guest catalogs now use the same bounded opaque
