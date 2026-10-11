@@ -1605,10 +1605,11 @@
       "offline_status": "partial",
       "evidence": [
         "native/tube_provider.c: profile-scoped Play next, Mark as watched locally, and Remove from local history in the video-actions menu",
-        "tests/test_video_actions.c: priority ordering, persistence, unchanged favorites/queue membership, source music context and stale menu rejection"
+        "tests/test_video_actions.c: priority ordering, persistence, unchanged favorites/queue membership, source music context and stale menu rejection",
+        "companion/innertube/history_actions.mjs and tests: account-history removal references retain profile/video/page ownership, confirm processed feedback through pinned History.removeVideo, and reject repeated uncertain submissions; HTTP/job schema tests pass"
       ],
       "remaining": [
-        "Implement account history updates and feedback-token removal corresponding to the reference's remote history actions",
+        "Connect account-history removal references to native confirmation/menu actions; implement account mark-as-watched updates",
         "Validate physical menu actions, queue order and persistence on PS5"
       ]
     },

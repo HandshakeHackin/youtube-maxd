@@ -6,6 +6,7 @@ import { TopicCatalog } from './topic_catalog.mjs';
 import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow } from './channel_window.mjs';
+import { HistoryActions } from './history_actions.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -122,6 +123,7 @@ export class Library {
     }
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
     this.commentRatings = new Map();
+    this.historyActions = new HistoryActions(LibraryError,clock);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
@@ -159,7 +161,7 @@ export class Library {
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
     return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '');
   }
-  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0) {
+  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0, history = false) {
     const comments = kind === 'comments';
     const items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
       [...Array.from(feed.videos ?? []).map((node, offset) => {
@@ -172,7 +174,10 @@ export class Library {
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
     const output = items.slice(0, 24).map(thread => {
-      if (!comments) return thread;
+      if (!comments) {
+        const cursor=history?this.historyActions.register(owner,feed,thread.id):'';
+        return cursor?{...thread,history_remove_cursor:cursor}:thread;
+      }
       const item = normalizeComment(thread);
       if (thread.has_replies && typeof thread.getReplies === 'function') {
         if (this.threads.size >= 256) this.threads.delete(this.threads.keys().next().value);
@@ -204,7 +209,7 @@ export class Library {
     if (remaining.length || feed.has_continuation) {
       if (this.cursors.size >= 64) this.cursors.delete(this.cursors.keys().next().value);
       cursor = randomUUID();
-      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, deadline: this.clock() + 120000 });
+      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, history, deadline: this.clock() + 120000 });
     }
     return { api_version: 1, kind, items: output, cursor, has_more: !!cursor };
   }
@@ -234,7 +239,7 @@ export class Library {
         throw new LibraryError('cursor_expired', 'Reload this page to continue.', 409);
       if (entry.result) return entry.result;
       const feed = entry.remaining.length ? entry.feed : await entry.feed.getContinuation();
-      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex);
+      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history);
       entry.result = result;
       return result;
     }
@@ -255,18 +260,19 @@ export class Library {
     }
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
-      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate']);
+      'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
     if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
-    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress'].includes(input.action))
+    if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
     if (input.action === 'playlist') requireId(input.id, playlistId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
     const client = await this.client(owner);
+    if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
     if (input.action === 'topics' || input.action === 'topic_open') {
       const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client,
         authenticated && client.session?.logged_in === true) :
@@ -339,7 +345,7 @@ export class Library {
       default: break;
     }
     if (feed) return this.page(owner, 'catalog', feed, null,
-      input.action === 'playlist' ? input.id : input.action === 'watch_later' ? 'WL' : '');
+      input.action === 'playlist' ? input.id : input.action === 'watch_later' ? 'WL' : '', '', 0, input.action==='history');
     let response;
     switch (input.action) {
       case 'like': response = await client.interact.like(requireId(input.id, videoId)); break;

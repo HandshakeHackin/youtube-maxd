@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Account-history removal service — 2026-10-11
+
+History catalogs now issue bounded profile/video/page-owned removal references.
+The worker keeps feedback tokens private, submits through the pinned History
+method with a one-page bound, caches confirmed results and rejects repeated
+uncertain attempts. Continuation pages retain the proper removal feed.
+
+All 89 worker tests pass, including the actual pinned Video/History parser-method
+path and processed-feedback confirmation. Seventy Python transport/context tests
+pass, including direct/job removal schema validation and preservation of the
+account/video/reference tuple. The worker bundle rebuilt successfully. These
+tests use fixtures; no account was modified. Native confirmation/menu integration,
+account mark-as-watched, and real/localized history acceptance remain unfinished.
+
 ## Local video actions — 2026-10-11
 
 Guest and account video menus expose Play next, Mark as watched locally, and

@@ -5,6 +5,7 @@ import './remote_playlist.test.mjs';
 import './playback_next.test.mjs';
 import './playlist_context.test.mjs';
 import './channel_window.test.mjs';
+import './history_actions.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Library, normalizeVideo, imageUrl } from './library.mjs';

@@ -654,6 +654,22 @@ remain stationary between seeks and reject composition. Native/provider and
 actual generated reader tests pass. This is retained-window timeline browsing;
 unlimited historical-message pagination and hardware acceptance remain open.
 
+## Account history removal
+
+Account-history pages now include `history_remove_cursor` where the retained
+YouTube.js history page supports removal. `history_remove` accepts that `cursor`,
+the same video `id`, and owning `profile`. References expire after two minutes,
+remain private to their account/page/video, and never expose feedback tokens.
+The worker retains at most 256 references. Local pagination retains the original
+feed; upstream continuation pages receive their own feed-owned references.
+
+Removal calls the pinned history page's `removeVideo(id, 1)` and requires its
+processed-feedback confirmation. Confirmed retries return the cached result;
+failed or in-flight attempts cannot be repeated through the same reference.
+Expired, foreign and mismatched references fail before submission. The PS5
+confirmation/menu wiring is still pending, as are real-account and localized
+history-layout acceptance. Existing PS5 history actions remain local only.
+
 ## Channel playback windows
 
 `channel_window` accepts `profile`, source `channel` (`UC` ID), current video
