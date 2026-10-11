@@ -88,6 +88,8 @@ void tube_recovery_finish(void);
 const char *tube_comment_text(const char *id);
 const char *tube_comment_rating(const char *id);
 int tube_chat_due(const char *parent);
+double tube_chat_reader_position(const char *parent);
+int tube_chat_reader_seek(const char *parent, double position_sec);
 void tube_chat_stop(void);
 /* Main/UI thread: request-driven live-chat sidebar, independent of controls fade. */
 typedef struct { char author[128], message[1024]; } tube_player_chat_row_t;

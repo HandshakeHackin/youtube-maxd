@@ -1,5 +1,31 @@
 # Offline validation record — 0.1.0
 
+## Offline replay reader — 2026-10-10
+
+The browser now opens chat replay from top/newest comments with Triangle. L1/R1
+seek by one minute while D-pad browses the retained message snapshot. The reader
+supplies an explicit fractional timeline position, remains stationary between
+seeks, reuses the owned cursor for ended rewinds and preserves position through
+mode changes. A seek cannot race an in-flight update, and a response for another
+time is rejected. Native replay composition is rejected before opening a prompt.
+This does not implement unlimited historical-message pagination.
+
+The new shipping-provider sanitizer case and existing player/sidebar tests pass.
+Existing native chat/compose regressions and the actual generated RmlUi reader
+pass, including opening replay, forward/backward time controls and rejected rapid
+seeks; connected provider, provider-screen and RML objects compile with the PS5
+SDK. The final reader also passes mode-change position retention and the updated
+shipping RML (`.deps/replay-reader-ui-final.result`, exit 0). All 55 worker and
+82 companion chat/receiver regressions passed (`.deps/offline-service-final.result`,
+exit 0). Evidence: `.deps/replay-reader-batch.result` and
+`.deps/replay-reader-final.result` (both exit 0). The earlier UI fixture crash was
+an empty navigation-stack access after setup reset, corrected in the fixture;
+no console run occurred. Packaging and hardware acceptance remain open.
+
+The prior recovery/sparse candidate `bc3ff150` built and froze: 216 objects, 126
+files, eboot SHA-256 prefix `443a3fa6532b45a9`. Build/freeze exited 0. All 55
+InnerTube worker tests passed after the sparse-window change. No deployment.
+
 ## Caption recovery and sparse queue batch — 2026-10-10
 
 Candidate `879b1281` completed PS5 packaging (216 objects, 126 frozen files).

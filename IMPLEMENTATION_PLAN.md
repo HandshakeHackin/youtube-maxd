@@ -8,7 +8,11 @@ on PS5, retained them across a paused 1.25x decoder reopen, and cleared French
 independently. Exact release and original state/sidecar restoration passed.
 Moving playback after that reopen and real-language timing remain unassessed.
 Fresh-stream caption/timing recovery and occurrence-preserving sparse phone
-playlist windows are the current offline batch; see `docs/VALIDATION.md`.
+playlist windows are implemented and packaged in frozen candidate `bc3ff150`.
+The next offline batch adds a stationary replay reader with explicit time
+navigation, ended rewind and read-only enforcement. Provider, actual RmlUi and
+PS5 object checks pass; unlimited historical-message pagination and hardware
+acceptance remain open. See `docs/VALIDATION.md`.
 - Date: 2026-10-08 (America/New_York)
 - Status: full PS5 SmartTube parity is the active objective; implementation and console/live-service acceptance remain incomplete. See [current goal](GOAL.md).
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.

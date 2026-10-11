@@ -34,12 +34,14 @@ extern "C" int evo_failure_reason(char*, size_t) { return 0; }
 extern "C" int evo_provider_art_ready(const char*) { return 0; }
 extern "C" int evo_provider_art_request(const char*,const char*,char*,size_t) { return -1; }
 static void reply(const char* value) { assert(!pending.empty()); auto p=pending.front(); pending.erase(pending.begin()); p.callback(1,200,value,strlen(value)+1,p.data); }
-static void frame(int first, const char* mode, const char* cursor, int total=24) {
+static void frame(int first, const char* mode, const char* cursor, int total=24, int replay_position=-1) {
     auto root=cJSON_CreateObject(); auto rows=cJSON_CreateArray();
     cJSON_AddNumberToObject(root,"api_version",1); cJSON_AddStringToObject(root,"kind","live_chat");
     cJSON_AddStringToObject(root,"id","abcdefghijk"); cJSON_AddStringToObject(root,"chat_mode",mode);
     cJSON_AddStringToObject(root,"cursor",cursor); cJSON_AddBoolToObject(root,"has_more",0);
-    cJSON_AddBoolToObject(root,"is_replay",0); cJSON_AddBoolToObject(root,"ended",0); cJSON_AddNumberToObject(root,"poll_after_ms",2000);
+    cJSON_AddBoolToObject(root,"is_replay",replay_position>=0);
+    if(replay_position>=0) cJSON_AddNumberToObject(root,"position_ms",replay_position);
+    cJSON_AddBoolToObject(root,"ended",0); cJSON_AddNumberToObject(root,"poll_after_ms",2000);
     cJSON_AddItemToObject(root,"items",rows);
     for(int i=first;i<first+total;++i) {
         auto row=cJSON_CreateObject(); std::string id="message-"+std::to_string(i), body="Literal <b id='chat-injection'>text</b>.\n";
@@ -122,6 +124,27 @@ int main(int argc,char**argv) {
     assert(!host.m_doc->GetElementById("send-injection") && pending.empty());
     host.ShowSetupScreen();assert(!model.chat && !model.discussion && !pending.empty());reply("{}");
     assert(pending.empty() && !tube_chat_due("chat:live:abcdefghijk"));
+    model.discussion=true;model.chat=false;host.m_stack.push_back("discussion:top:abcdefghijk");
+    host.m_crumbs.push_back("Top comments");
+    assert(host.DiscussionKey(6)==1 && host.m_stack.back()=="chat:top:abcdefghijk");
+    assert(pending.size()==1 && pending[0].body.find("\"chat_position_sec\":0.000")!=std::string::npos);
+    frame(0,"top","ui-replay-zero",24,0);pump();
+    assert(model.chat && host.m_all_rows.size()==24);
+    clock_ms+=5000;host.RefreshChat();assert(pending.empty());
+    assert(host.HandleKey(EvoRmlProviderHost::KeyPageDown));
+    assert(pending.size()==1 && pending[0].body.find("\"chat_position_sec\":60.000")!=std::string::npos);
+    assert(host.HandleKey(EvoRmlProviderHost::KeyPageDown));
+    assert(pending.size()==1 && tube_chat_reader_position(host.m_stack.back().c_str())==60);
+    assert(model.status.find("Wait for the replay update")!=std::string::npos);
+    frame(60,"top","ui-replay-minute",24,60000);pump();
+    assert(host.DiscussionKey(0)==1 && host.m_stack.back()=="chat:live:abcdefghijk");
+    assert(pending.size()==2 && pending[0].body.find("chat_close")!=std::string::npos);
+    reply("{}");assert(pending[0].body.find("\"chat_position_sec\":60.000")!=std::string::npos);
+    frame(60,"live","ui-replay-minute",24,60000);pump();
+    assert(host.HandleKey(EvoRmlProviderHost::KeyPageUp));
+    assert(pending.size()==1 && pending[0].body.find("ui-replay-minute")!=std::string::npos);
+    frame(0,"live","ui-replay-rewind",24,0);pump();
+    host.ShowSetupScreen();assert(pending.size()==1);reply("{}");
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);
     puts("PASS: actual provider callbacks preserve current focus/scroll across polls, handle removal/mode/setup, and bind literal shipping chat RML");

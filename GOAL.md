@@ -28,7 +28,12 @@ configuration, localization and persistence; packaging, clean lifecycle and
 console validation. Hardware-dependent limits must be measured and disclosed,
 not silently removed from the objective.
 
-Complete offline development and testing, then use the authorized PS5 and
+Current instruction (2026-10-10): complete all remaining offline implementation,
+tests and packaging. **Do not connect to either console**, including read-only
+checks, until the user explicitly authorizes console testing again. Pending
+hardware gates remain recorded separately and do not block independent offline work.
+
+After renewed authorization, use the PS5 and
 `ps5-homebrew-dev-protocol` for bounded hardware cases. Preserve exact candidate
 hashes, use the shared console lock, avoid unrelated running titles, and stop on
 a service/health anomaly. Keep private environment details and raw logs ignored.

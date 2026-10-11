@@ -13,7 +13,7 @@
             <div class="empty-title">Nothing here yet</div>
             <div class="empty-note" data-if="!discussion">Square to search. Triangle saves a video. Options pairs your companion.</div>
             <div class="empty-note" data-if="discussion &amp;&amp; !chat">No comments returned. Circle to return. R3 changes comment sorting.</div>
-            <div class="empty-note" data-if="chat">No messages in the current chat snapshot. Updates are automatic. R3 changes mode; Circle returns.</div>
+            <div class="empty-note" data-if="chat">No messages at the current time. Live chat refreshes automatically; L1 / R1 move replay by one minute. R3 changes mode; Circle returns.</div>
             <button id="tv-card-setup-url" class="tv-setup-card" data-if="!discussion" data-event-click="setup_url()">PAIR COMPANION</button>
         </div>
         <div id="tube-grid" data-if="!empty" data-class-discussion="discussion || review">
@@ -55,12 +55,13 @@
             <span class="tube-key">L2 / R2</span> Scroll comment
             <span class="tube-key">L1 / R1</span> Page
             <span class="tube-key">R3</span> Top / newest
+            <span class="tube-key">△</span> Chat replay
             <span class="tube-key">Touchpad</span> Rate comment
             <span class="tube-key">○</span> Back
         </div>
         <div id="tube-chat-footer" data-if="chat">
             <span class="tube-key">L2 / R2</span> Scroll message
-            <span class="tube-key">L1 / R1</span> Page
+            <span class="tube-key">L1 / R1</span> Page / replay time
             <span class="tube-key">R3</span> Top / live
             <span class="tube-key">Touchpad</span> Comments
             <span class="tube-key">○</span> Back

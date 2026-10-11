@@ -188,12 +188,12 @@ static void chat_cleanup_request(Request *r, const cJSON *root);
 static void cancel_requests(int preserve_chat);
 static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
 static struct { int state, player, replay, seek; unsigned serial; long long next_poll;
-    int64_t position_ms, seek_position_ms;
+    int64_t position_ms, seek_position_ms, reader_position_ms;
     char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
 static struct { int phase, pending; unsigned ticket, chat_serial;
     char text[801], session[65], cursor[65], video[12], profile[33]; } g_message;
 static int message_scope(void) {
-    return g_message.ticket && g_message.chat_serial == g_chat.serial && g_chat.state == 2 &&
+    return g_message.ticket && g_message.chat_serial == g_chat.serial && g_chat.state == 2 && !g_chat.replay &&
         !strcmp(g_message.profile, g_library_profile) && !strcmp(g_message.profile, g_chat.profile) &&
         !strcmp(g_message.video, g_chat.video) && !strcmp(g_message.cursor, g_chat.cursor) &&
         !strcmp(g_chat.source, g_source) && !strcmp(g_chat.token, g_token);
@@ -242,6 +242,20 @@ int tube_chat_due(const char *parent) {
     if (!parent || g_chat.state != 2 || strcmp(parent, g_chat.parent) ||
         strcmp(g_chat.profile, g_library_profile) || !valid_cursor(g_chat.cursor) || now_ms() < g_chat.next_poll) return 0;
     for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) return 0;
+    if (g_chat.replay && !g_chat.player && !g_chat.seek) return 0;
+    return 1;
+}
+
+double tube_chat_reader_position(const char *parent) {
+    return parent && !g_chat.player && g_chat.replay && (g_chat.state == 2 || g_chat.state == 3) &&
+        !strcmp(parent, g_chat.parent) && !strcmp(g_chat.profile, g_library_profile) &&
+        !strcmp(g_chat.source, g_source) && !strcmp(g_chat.token, g_token) ? g_chat.reader_position_ms / 1000.0 : -1;
+}
+int tube_chat_reader_seek(const char *parent, double position_sec) {
+    if (tube_chat_reader_position(parent) < 0 || !isfinite(position_sec) || position_sec < 0 || position_sec > 1000000) return 0;
+    for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) return 0;
+    g_chat.reader_position_ms = (int64_t)floor(position_sec * 1000 + .000001);
+    g_chat.seek = 1; g_chat.state = 2; g_chat.next_poll = 0;
     return 1;
 }
 
@@ -946,7 +960,7 @@ static void chat_result(Request *r, const cJSON *result) {
     int count = cJSON_GetArraySize(rows);
     const cJSON *replay = cJSON_GetObjectItemCaseSensitive(result, "is_replay");
     const cJSON *position = cJSON_GetObjectItemCaseSensitive(result, "position_ms");
-    int replay_valid = cJSON_IsFalse(replay) || (cJSON_IsTrue(replay) && g_chat.player &&
+    int replay_valid = cJSON_IsFalse(replay) || (cJSON_IsTrue(replay) &&
         r->has_chat_position && cJSON_IsNumber(position) && isfinite(position->valuedouble) &&
         position->valuedouble == (double)r->chat_position_ms);
     int valid = num(result, "api_version") == 1 && !strcmp(str(result, "kind"), "live_chat") &&
@@ -995,6 +1009,7 @@ static void chat_result(Request *r, const cJSON *result) {
     g_chat.state = cJSON_IsTrue(ended) ? 3 : 2;
     g_chat.replay = cJSON_IsTrue(replay);
     g_chat.position_ms = g_chat.replay ? r->chat_position_ms : 0;
+    if (!g_chat.player) g_chat.seek = 0;
     g_chat.next_poll = now_ms() + (delay->valuedouble < 1000 ? 1000 : (long long)delay->valuedouble);
     evo_provider_items_cb callback = r->items_cb; void *data = r->ud;
     memset(r, 0, sizeof *r);
@@ -1658,6 +1673,9 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[LOCAL_PAGE]; int n = 0;
     if (parent && !strncmp(parent, "message:", 8)) {
+        if (g_chat.replay) {
+            tube_set_error("Chat replay is read-only."); cb(0, NULL, 0, 0, ud); return 1;
+        }
         if (page || !strcmp(g_library_profile, "guest") || g_chat.state != 2 || !valid_cursor(g_chat.cursor) ||
             strcmp(g_chat.profile, g_library_profile) || strcmp(g_chat.source, g_source) || strcmp(g_chat.token, g_token)) {
             tube_set_error("Open an active chat with an account profile before composing a message."); cb(0, NULL, 0, 0, ud); return 1;
@@ -2207,17 +2225,21 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         }
         int reuse = (g_chat.state == 2 || g_chat.state == 3) && !strcmp(parent, g_chat.parent) &&
             !strcmp(g_chat.profile, g_library_profile) && valid_cursor(g_chat.cursor);
+        int64_t reader_position = !g_chat.player && !strcmp(id, g_chat.video) &&
+            !strcmp(g_chat.profile, g_library_profile) ? g_chat.reader_position_ms : 0;
         cancel_requests(reuse);
         if (!reuse) {
             g_chat.state = 1;
             copy(g_chat.parent, sizeof g_chat.parent, parent); copy(g_chat.video, sizeof g_chat.video, id);
             copy(g_chat.mode, sizeof g_chat.mode, mode); copy(g_chat.profile, sizeof g_chat.profile, g_library_profile);
         }
+        g_chat.reader_position_ms = reader_position;
         Request *r = request_new(10, ud); if (!r) { g_chat.state = -1; return -1; }
         r->items_cb = cb; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_library_profile);
+        r->has_chat_position = 1; r->chat_position_ms = reader_position;
         snprintf(r->payload, sizeof r->payload,
-            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":true}",
-            reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "");
+            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":true,\"chat_position_sec\":%.3f}",
+            reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "", reader_position / 1000.0);
         begin(r); return 0;
     }
     if (parent && !strncmp(parent, "message:", 8)) {

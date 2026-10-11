@@ -4,6 +4,36 @@
 def apply_live_chat_overlay(replace, player):
     header = player + 'ui_rml/include/evo_rmlui_provider.h'
     ui = player + 'ui_rml/src/evo_rmlui_provider.cpp'
+    host = player + 'core/src/screens/ProviderHostScreen.cpp'
+    replace(host, '        if ((pressed & PadButtons::TouchPad) && evo_rmlui_provider_discussion_key(4)) return true;',
+            '        if ((pressed & PadButtons::Triangle) && evo_rmlui_provider_discussion_key(6)) return true;\n        if ((pressed & PadButtons::TouchPad) && evo_rmlui_provider_discussion_key(4)) return true;')
+    replace(ui, '    switch (k) {\n    case KeyPageUp: {', '''    if (m_model.chat && !m_stack.empty() && (k == KeyPageUp || k == KeyPageDown)) {
+        const double position = tube_chat_reader_position(m_stack.back().c_str());
+        if (position >= 0) {
+            const double target = std::max(0.0, std::min(1000000.0, position + (k == KeyPageUp ? -60.0 : 60.0)));
+            if (!tube_chat_reader_seek(m_stack.back().c_str(), target)) {
+                SetStatus("Wait for the replay update before seeking again", false); return true;
+            }
+            RefreshChat();
+            char status[160];
+            std::snprintf(status, sizeof status, "Chat replay %d:%02d: L1 / R1 move one minute; D-pad browses messages", (int)target / 60, (int)target % 60);
+            SetStatus(status, false);
+            return true;
+        }
+    }
+    switch (k) {
+    case KeyPageUp: {''')
+    replace(ui, '    if (key == 1 || key == 2) {', '''    if (key == 6) {
+        if (!m_model.discussion || m_model.chat || m_stack.empty()) return 0;
+        const auto parent = m_stack.back();
+        const size_t prefix = parent.rfind("discussion:top:", 0) == 0 ? 15 : parent.rfind("discussion:newest:", 0) == 0 ? 18 : 0;
+        if (!prefix || parent.size() != prefix + 11) return 0;
+        m_pos_stack.push_back({m_row_offset, FocusedRowIndex()});
+        m_stack.push_back(std::string("chat:top:") + parent.substr(prefix));
+        m_crumbs.push_back("Chat replay"); m_page = 0;
+        RequestPage(m_stack.back().c_str(), 0); return 1;
+    }
+    if (key == 1 || key == 2) {''')
     replace(header, '    bool auth = false;', '    bool auth = false;\n    bool chat = false;')
     replace(header, '    void ReplaceFolder(const char* parent, const char* title);',
             '    void ReplaceFolder(const char* parent, const char* title);\n    void RefreshChat();')

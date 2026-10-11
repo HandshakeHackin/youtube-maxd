@@ -564,3 +564,9 @@ an uncertain result cannot reuse the send action. Native compose/review controls
 are implemented with offline evidence; physical keyboard/controller behavior
 and real-account posting acceptance remain pending. No real chat messages were
 sent during development tests.
+
+The PS5 browser can open a replay from top/newest comments with Triangle.
+Replay snapshots use an explicit selected time, support L1/R1 minute navigation,
+remain stationary between seeks and reject composition. Native/provider and
+actual generated reader tests pass. This is retained-window timeline browsing;
+unlimited historical-message pagination and hardware acceptance remain open.
