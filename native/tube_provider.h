@@ -94,6 +94,10 @@ int tube_sleep_minutes(void);
 int tube_sleep_set_minutes(int minutes);
 void tube_sleep_activity(void);
 int tube_sleep_tick(int playback_active);
+int tube_player_ok_mode(void);
+int tube_player_set_ok_mode(int mode);
+int tube_player_hide_ms(void);
+int tube_player_set_hide_seconds(int seconds);
 void tube_chat_stop(void);
 /* Main/UI thread: request-driven live-chat sidebar, independent of controls fade. */
 typedef struct { char author[128], message[1024]; } tube_player_chat_row_t;

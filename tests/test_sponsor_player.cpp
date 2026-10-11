@@ -31,6 +31,8 @@ static bool complete, seeking, pb_prebuffer_hold, engine_paused;
 static struct { bool seek_discarding; } g_pp_pb;
 static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures, idle_retries;
 static bool finish_allowed, show_message, accepted;
+static bool phone_finished, phone_owns, local_finished;
+static int local_finish_calls;
 static double next_target;
 static const char* prompt;
 static bool m_showStatsForNerds;
@@ -38,7 +40,9 @@ static void toast(const char*, const char*) { ++notices; }
 static int evo_pb_is_complete() { return complete; }
 static int evo_pb_is_paused() { return engine_paused || state.paused; }
 static int evo_demux_is_seeking() { return seeking; }
-static int tube_finish_drained_and_next(double) { return 0; }
+static int tube_phone_finished() { return phone_finished; }
+static int tube_phone_owns_media() { return phone_owns; }
+static int tube_finish_drained_and_next(double) { ++local_finish_calls; return local_finished; }
 static double evo_audio_rate() { return 1.75; }
 static double tube_skip_target_at_rate(double, double rate) { assert(rate == 1.75); ++skip_calls; return next_target; }
 static double tube_highlight_target(double, double) { ++highlight_calls; return next_target; }
@@ -66,9 +70,17 @@ static void reset() {
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
+    phone_finished = phone_owns = local_finished = false; local_finish_calls = 0;
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    // EOF is owned by the phone queue or local queue, before SponsorBlock runs.
+    reset(); complete=true; phone_finished=true; local_finished=true; tick();
+    assert(state.stops==1 && manager.returns==1 && !local_finish_calls && !skip_calls);
+    reset(); complete=true; phone_owns=true; local_finished=true; tick();
+    assert(!state.stops && !local_finish_calls && !skip_calls);
+    reset(); complete=true; local_finished=true; tick();
+    assert(state.stops==1 && manager.returns==1 && local_finish_calls==1 && !skip_calls);
     // Automatic skips cannot compete with pause, scrub, live or seek ownership.
     for (int gate = 0; gate < 8; ++gate) {
         reset(); next_target = 100; finish_allowed = true;

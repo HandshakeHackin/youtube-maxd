@@ -84,7 +84,8 @@ playback mapping and live account acceptance remain unfinished. Playback history
 reports now use the selected account, with a saved sync toggle, throttled position
 updates and no retry after an unconfirmed report; see the library service.
 Local favorites, queue, follows and resume/history state are now stored by profile.
-Existing global state migrates to Guest. Player preferences remain console-wide.
+Existing global state migrates to Guest. Hidden-Cross behavior and controls timeout
+are saved per profile. Other player preferences remain console-wide.
 
 **Validation boundary:** host tests and generated-media decoding verify offline
 behavior. A bounded PS5 run passed native browser startup, pairing/search,
@@ -94,6 +95,16 @@ broader caption behavior and live YouTube playback still need the
 [hardware checklist](docs/HARDWARE_ACCEPTANCE.md).
 Format support is not a claim that arbitrary current YouTube videos or every
 resolution will play on a PS5.
+
+YouTube preferences and in-player playback options now offer four Cross behaviors
+when controls are hidden: show controls, show and pause, pause only, or toggle
+normal/last speed. When controls are visible, Cross retains play/pause. Each
+profile can select Never or a 1–15 second controls timeout. Existing profiles
+retain the previous Cross pause and 3.5 second timeout until changed; new
+profiles default to show controls and three seconds. Buffering, seek, end and
+stats overlays remain visible when needed. Speed selection still uses the
+existing scoped memories and console-wide last-speed toggle. PS5 acceptance of
+these preferences remains pending.
 
 Selecting a video plays the preferred quality directly. Enable **Choose stream
 before playback** in YouTube preferences to show the available choices first;

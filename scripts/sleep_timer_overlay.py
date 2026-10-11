@@ -2,6 +2,8 @@
 
 
 def apply_sleep_timer_overlay(replace, player):
+    replace(player + 'ui_rml/src/evo_rmlui_provider.cpp', 'id != "settings:audio-languages"',
+            'id != "settings:audio-languages" && id != "settings:sleep-timer"')
     picker = player + 'core/src/screens/AudioTrackPickerScreen.cpp'
     replace(player + 'core/include/evo/screens/AudioTrackPickerScreen.hpp',
             'KindAudio, KindSpeed, KindChat };', 'KindAudio, KindSpeed, KindChat, KindSleep };')

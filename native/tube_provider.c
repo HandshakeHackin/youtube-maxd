@@ -161,6 +161,9 @@ static void sponsor_invalidate(void) {
 }
 static long long g_last_save, g_queue_order;
 static char g_library_profile[33] = "guest", g_library_parent[160];
+#define PLAYER_PROFILES 64
+static struct { char profile[33]; int ok_mode, hide_ms; } g_player_preferences[PLAYER_PROFILES];
+static int g_player_preferences_count;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
     evo_stream_choice_t choice; } g_recovery;
@@ -324,6 +327,55 @@ static int valid_id(const char *id) {
 static int valid_profile(const char *id) {
     return id && *id && strlen(id) <= 32 &&
         strspn(id, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(id);
+}
+
+static int player_preference(const char *profile, int create) {
+    for (int i = 0; i < g_player_preferences_count; ++i)
+        if (!strcmp(profile, g_player_preferences[i].profile)) return i;
+    if (!create || !valid_profile(profile) || g_player_preferences_count == PLAYER_PROFILES) return -1;
+    int i = g_player_preferences_count++;
+    copy(g_player_preferences[i].profile,sizeof g_player_preferences[i].profile,profile);
+    g_player_preferences[i].ok_mode = 0; g_player_preferences[i].hide_ms = 3000; return i;
+}
+int tube_player_ok_mode(void) {
+    int i = player_preference(g_library_profile,0); return i < 0 ? 0 : g_player_preferences[i].ok_mode;
+}
+int tube_player_hide_ms(void) {
+    int i = player_preference(g_library_profile,0); return i < 0 ? 3000 : g_player_preferences[i].hide_ms;
+}
+int tube_player_set_ok_mode(int mode) {
+    if (mode < 0 || mode > 3) return 0;
+    int i = player_preference(g_library_profile,1); if (i < 0) return 0;
+    g_player_preferences[i].ok_mode = mode; save(); return 1;
+}
+int tube_player_set_hide_seconds(int seconds) {
+    if (seconds < 0 || seconds > 15) return 0;
+    int i = player_preference(g_library_profile,1); if (i < 0) return 0;
+    g_player_preferences[i].hide_ms = seconds * 1000; save(); return 1;
+}
+static void player_preferences_load(const cJSON *root) {
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"player_preferences"), *row;
+    if (!rows) {
+        /* Existing PS5 profiles retain Cross pause and the original 3.5s hide. */
+        player_preference("guest",1); player_preference(g_library_profile,1);
+        cJSON_ArrayForEach(row,cJSON_GetObjectItemCaseSensitive(root,"records"))
+            player_preference(str(row,"profile"),1);
+        for (int i = 0; i < g_player_preferences_count; ++i) {
+            g_player_preferences[i].ok_mode = 1; g_player_preferences[i].hide_ms = 3500;
+        }
+        return;
+    }
+    if (!cJSON_IsArray(rows)) return;
+    cJSON_ArrayForEach(row,rows) {
+        const char *profile = str(row,"profile");
+        const cJSON *ok = cJSON_GetObjectItemCaseSensitive(row,"ok_mode"), *hide = cJSON_GetObjectItemCaseSensitive(row,"hide_ms");
+        double mode = num(row,"ok_mode"), ms = num(row,"hide_ms");
+        if (!valid_profile(profile) || !cJSON_IsNumber(ok) || !cJSON_IsNumber(hide) ||
+            mode < 0 || mode > 3 || floor(mode) != mode || ms < 0 || ms > 15000 ||
+            (ms != 3500 && fmod(ms,1000) != 0) || player_preference(profile,0) >= 0) continue;
+        int i = player_preference(profile,1); if (i < 0) break;
+        g_player_preferences[i].ok_mode = (int)mode; g_player_preferences[i].hide_ms = (int)ms;
+    }
 }
 
 static const char *topic_section(const char *id) {
@@ -584,6 +636,16 @@ static void save(void) {
     cJSON_AddBoolToObject(root, "sponsorblock", g_sponsor);
     cJSON_AddNumberToObject(root, "player_chat_mode", g_player_chat_mode);
     cJSON_AddNumberToObject(root, "sleep_timer_minutes", g_sleep_minutes);
+    cJSON *player_preferences = cJSON_CreateArray();
+    cJSON_AddItemToObject(root,"player_preferences",player_preferences);
+    for (int i = 0; player_preferences && i < g_player_preferences_count; ++i) {
+        cJSON *preference = cJSON_CreateObject();
+        if (!preference) break;
+        cJSON_AddStringToObject(preference,"profile",g_player_preferences[i].profile);
+        cJSON_AddNumberToObject(preference,"ok_mode",g_player_preferences[i].ok_mode);
+        cJSON_AddNumberToObject(preference,"hide_ms",g_player_preferences[i].hide_ms);
+        cJSON_AddItemToArray(player_preferences,preference);
+    }
     cJSON_AddBoolToObject(root, "remote_enabled", g_remote_enabled);
     cJSON_AddBoolToObject(root, "remote_stop_on_disconnect", g_remote_stop_on_disconnect);
     cJSON_AddBoolToObject(root, "remote_close_on_disconnect", g_remote_close_on_disconnect);
@@ -725,6 +787,7 @@ static int init(void) {
     g_browse_music = g_browse_queue = 0;
     g_store_writable = 0;
     g_sleep_minutes = g_sleep_armed = g_sleep_fired = 0;
+    g_player_preferences_count = 0; memset(g_player_preferences,0,sizeof g_player_preferences);
     watch_reset(1);
     g_active_id[0] = 0; g_active_profile[0] = 0; g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_recovery, 0, sizeof g_recovery);
@@ -749,6 +812,7 @@ static int init(void) {
     copy(g_token, sizeof g_token, str(root, "token"));
     const char *profile = str(root, "library_profile");
     copy(g_library_profile, sizeof g_library_profile, valid_profile(profile) ? profile : "guest");
+    player_preferences_load(root);
     int height = (int)num(root, "max_height");
     if (height >= 144 && height <= 2160) g_height = height;
     double speed = num(root, "speed_percent");
@@ -2025,6 +2089,15 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 tube_set_error("Select a valid sleep timer duration."); cb(0,NULL,0,0,ud); return 1;
             }
         }
+        else if (!strncmp(parent,"settings:player-ok:",19) || !strncmp(parent,"settings:player-hide:",21)) {
+            int ok = !strncmp(parent,"settings:player-ok:",19);
+            const char *value = parent + (ok ? 19 : 21); char *end = NULL;
+            long selection = strtol(value,&end,10);
+            if (!*value || *end || selection < 0 || selection > (ok ? 3 : 15) ||
+                !(ok ? tube_player_set_ok_mode((int)selection) : tube_player_set_hide_seconds((int)selection))) {
+                tube_set_error("Select a valid player preference for this profile."); cb(0,NULL,0,0,ud); return 1;
+            }
+        }
         else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
             if (!g_store_writable || !*g_source || !*g_token) {
                 tube_set_error("Pair with the companion and check local storage before linking a phone.");
@@ -2150,6 +2223,19 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             folder(&out[n++], "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             folder(&out[n++], "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             folder(&out[n++], "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
+        } else if (!strcmp(parent,"settings:player-ok")) {
+            const char *labels[] = {"Show controls", "Show controls and pause", "Pause only", "Toggle playback speed"};
+            for (int i = 0; i < 4; ++i) {
+                char id[64]; snprintf(id,sizeof id,"settings:player-ok:%d",i);
+                folder(&out[n++],id,labels[i],tube_player_ok_mode()==i ? "Selected" : "Cross behavior while controls are hidden; saved for this profile");
+            }
+        } else if (!strcmp(parent,"settings:player-hide")) {
+            for (int seconds = 0; seconds <= 15; ++seconds) {
+                char id[64],label[96]; snprintf(id,sizeof id,"settings:player-hide:%d",seconds);
+                if (!seconds) copy(label,sizeof label,"Never hide player controls");
+                else snprintf(label,sizeof label,"Hide player controls after %d seconds",seconds);
+                folder(&out[n++],id,label,tube_player_hide_ms()==seconds*1000 ? "Selected" : "Saved for this profile");
+            }
         } else if (!strcmp(parent, "settings:sleep-timer")) {
             for (int minutes = 0; minutes <= 600; minutes += 30) {
                 char id[64], label[96]; snprintf(id,sizeof id,"settings:sleep:%d",minutes);
@@ -2184,6 +2270,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (g_sleep_minutes) snprintf(label,sizeof label,"Sleep timer: %.1f hours",g_sleep_minutes/60.0);
             else copy(label,sizeof label,"Sleep timer: disabled");
             folder(&out[n++],"settings:sleep-timer",label,"Choose inactivity duration; expiry pauses playback");
+            const char *ok_labels[] = {"show controls", "show controls and pause", "pause only", "toggle speed"};
+            snprintf(label,sizeof label,"Cross when controls are hidden: %s",ok_labels[tube_player_ok_mode()]);
+            folder(&out[n++],"settings:player-ok",label,"Choose confirm-button behavior for this profile");
+            if (tube_player_hide_ms()) snprintf(label,sizeof label,"Hide controls after %.1f seconds",tube_player_hide_ms()/1000.0);
+            else copy(label,sizeof label,"Hide controls: never");
+            folder(&out[n++],"settings:player-hide",label,"Choose controls timeout for this profile");
             folder(&out[n++], "settings:remote", "Phone pairing", "Link the YouTube app with a TV code");
             folder(&out[n++], "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             folder(&out[n++], "settings:autoplay", g_autoplay ? "Queue autoplay: on" : "Queue autoplay: off", "Play the next queued video at the end");

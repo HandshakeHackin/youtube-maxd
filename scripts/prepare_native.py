@@ -217,6 +217,8 @@ def main():
     apply_phone_exit_overlay(replace, player)
     from sleep_timer_overlay import apply_sleep_timer_overlay
     apply_sleep_timer_overlay(replace, player)
+    from player_controls_overlay import apply_player_controls_overlay
+    apply_player_controls_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
     from secondary_captions_overlay import apply_secondary_captions_overlay
@@ -229,7 +231,9 @@ def main():
     param_path.write_text(json.dumps(param, indent=2) + "\n")
     (WORK / player / "VERSION").write_text("0.1.0\n")
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--short=8", "HEAD"], text=True).strip()
-    dirty = subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "HEAD"], check=False).returncode
+    # Dependency trees are regenerated from checked pins above, so their working
+    # files do not contribute to this package. Avoid recursively scanning them.
+    dirty = subprocess.run(["git", "-C", str(ROOT), "diff", "--ignore-submodules=all", "--quiet", "HEAD"], check=False).returncode
     fingerprint = "prosperotube-" + revision + ("-dirty" if dirty else "")
     replace("scripts/package-app.sh", 'BUILD_SHA="$(git -C "${EVO}" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)"\n    git -C "${EVO}" diff --quiet -- "${EVO}" 2>/dev/null || BUILD_SHA="${BUILD_SHA}-dirty"', f'BUILD_SHA="{fingerprint}"')
     # Include helpers and notices before PFS and ZIP creation.

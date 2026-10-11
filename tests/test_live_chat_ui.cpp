@@ -145,6 +145,28 @@ int main(int argc,char**argv) {
     assert(pending.size()==1 && pending[0].body.find("ui-replay-minute")!=std::string::npos);
     frame(0,"live","ui-replay-rewind",24,0);pump();
     host.ShowSetupScreen();assert(pending.size()==1);reply("{}");
+    /* Settings choosers push a real folder; selection retains its parent level. */
+    host.m_stack.push_back("settings"); host.m_crumbs.push_back("Preferences");
+    for (const auto& chooser : std::vector<std::pair<std::string,std::string>>{
+            {"settings:player-ok","settings:player-ok:2"},
+            {"settings:player-hide","settings:player-hide:0"},
+            {"settings:sleep-timer","settings:sleep:30"}}) {
+        host.RequestPage("settings",0); pump();
+        const auto depth=host.m_stack.size();
+        auto entry=std::find_if(host.m_all_rows.begin(),host.m_all_rows.end(),
+            [&](const EvoProviderRow& r) { return r.id==chooser.first.c_str(); });
+        assert(entry!=host.m_all_rows.end());
+        const auto index=static_cast<size_t>(entry-host.m_all_rows.begin());
+        host.SetPageOffset((index/EVO_PROVIDER_PAGE_SIZE)*EVO_PROVIDER_PAGE_SIZE,
+                           static_cast<int>(index%EVO_PROVIDER_PAGE_SIZE)); pump();
+        host.m_pending_activation=chooser.first; host.ApplyPendingActivation(); pump();
+        assert(host.m_stack.size()==depth+1 && host.m_stack.back()==chooser.first);
+        host.m_pending_activation=chooser.second; host.ApplyPendingActivation(); pump();
+        assert(host.m_stack.size()==depth+1 && host.m_stack.back()==chooser.first);
+        host.m_stack.pop_back(); host.m_crumbs.pop_back(); host.m_pos_stack.pop_back();
+    }
+    assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
+    assert(pending.empty());
     host.m_doc->Close();Rml::RemoveContext("chat-ui");host.m_context=nullptr;host.m_doc=nullptr;host.m_model_handle={};
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);
     puts("PASS: actual provider callbacks preserve current focus/scroll across polls, handle removal/mode/setup, and bind literal shipping chat RML");

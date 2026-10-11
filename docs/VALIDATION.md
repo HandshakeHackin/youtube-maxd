@@ -2730,3 +2730,30 @@ service probe, directory preparation, upload, launch, input, close or retry
 occurred. Evidence: `.deps/video-resume-storage-primary-console.log` /
 `.result` (1). Both owned locks were released. These are no-run results;
 neither establishes PR50 helper execution or native startup.
+
+
+### Per-profile hidden Cross and controls timeout (offline, 2026-10-10)
+
+The pinned SmartTube OK-button and UI-auto-hide settings now reach the actual
+PS5 PlayerScreen, provider chooser and playback options. Four hidden-Cross modes
+are supported; visible Cross retains play/pause. Never/1–15 second hiding is
+profile-scoped. Valid legacy profiles retain pause/3.5s; new profiles default
+to show/3s. Pause-only and speed-only suppress the regular HUD, preserving
+buffering, scrub, end, music and stats overlays. Last-speed selection still uses
+the existing console-wide toggle; this batch does not complete all profile settings.
+
+All thirteen real-provider sanitizer regressions pass, including new defaults,
+persistence, profile isolation, legacy migration, corrupt/duplicate rows and the
+64-profile storage bound. Extracted shipping input/visibility, speed-reopen,
+SponsorBlock and chat renderer/picker checks pass. Evidence: ignored
+`.deps/player-controls-{provider,input,speed,sponsor,chat}.log`. The initial
+combined runner stopped at outdated phone-queue mocks; the corrected SponsorBlock
+test also verifies phone/local EOF precedence. The first chooser fixture tried
+to activate a row outside the published page; the fixture now navigates the
+actual eight-row page before activation. Those diagnostic logs remain retained.
+Console acceptance remains pending; no console connection was made.
+
+The corrected actual RmlUi chooser/chat test and affected PS5 provider,
+PlayerScreen, playback picker and RML provider objects pass:
+`.deps/player-controls-ui-sdk.result` (0), UI-final/SDK logs. The existing
+199 qualified-math warnings remain; this is not a warning-free build claim.

@@ -335,5 +335,12 @@ They use the shipping provider with a controlled monotonic clock under ASan/UBSa
 and cover persistence, exact expiry, activity, disabled/idle behavior and one-shot
 pause admission. `bash scripts/test_phone_player.sh` checks that deliberate phone
 commands count as input while queries/status and automatic refills do not.
-`bash scripts/test_native.sh` now runs twelve provider regression executables,
+`bash scripts/test_native.sh` now runs thirteen provider regression executables,
 including the stationary replay reader. Serialize native preparations.
+
+Offline player-input checks: `bash scripts/test_native.sh player_preferences`
+checks real storage, profile isolation, old-state migration and malformed rows.
+`bash scripts/test_player_controls.sh` extracts the shipping input/visibility
+blocks and checks hidden/visible Cross behavior, debounce, speed admission,
+timeouts and urgent overlays under ASan/UBSan. The actual RmlUi test also checks
+settings chooser folder ownership and selection. Serialize preparations.

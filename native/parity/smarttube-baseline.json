@@ -820,7 +820,18 @@
         "player_ui_and_pause": "UI and pause"
       },
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_provider.c: per-profile preferences and legacy migration",
+        "scripts/player_controls_overlay.py: actual PlayerScreen and playback picker integration",
+        "tests/test_player_preferences.c",
+        "tests/test_player_controls.cpp",
+        "tests/test_live_chat_ui.cpp"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "PS5 physical controller and visibility acceptance",
+        "Complete profile scoping of other player preferences; last-speed toggle currently console-wide"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendUIAutoHideCategory",
@@ -832,7 +843,18 @@
         "ui_hide_timeout_sec": "%s sec"
       },
       "ps5_status": "unverified",
-      "evidence": []
+      "evidence": [
+        "native/tube_provider.c: per-profile preferences and legacy migration",
+        "scripts/player_controls_overlay.py: actual PlayerScreen and playback picker integration",
+        "tests/test_player_preferences.c",
+        "tests/test_player_controls.cpp",
+        "tests/test_live_chat_ui.cpp"
+      ],
+      "offline_status": "implemented-host-tested",
+      "remaining": [
+        "PS5 physical controller and visibility acceptance",
+        "Complete profile scoping of other player preferences; last-speed toggle currently console-wide"
+      ]
     },
     {
       "id": "PlayerSettingsPresenter.appendVideoBufferCategory",
