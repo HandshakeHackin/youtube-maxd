@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Partial phone queue expansion — 2026-10-10
+
+The companion now connects confirmed Lounge playback to the selected profile's
+WatchNext library client. Raw WEB/TV panel parsing retains occurrence indices and
+duplicates in bounded native windows. Infinite Radio/Mix responses may reset
+service indices; these are rebased and merged with preceding phone queue items.
+Stale results after replacement, stop, receiver failure or changed player identity
+are discarded; unavailable expansion preserves the supplied queue. Owned tasks
+are canceled and joined at shutdown, and failures back off without failing the
+receiver. Non-Guest PS5 registration supplies the selected profile explicitly;
+Guest registration preserves its previous request shape.
+
+The batch passed 54 InnerTube tests, 125 companion tests, actual native
+receiver/player sanitizer checks and connected PS5 object compilation. The
+shipping worker bundle was rebuilt. A real Guest Mix returned 25 IDs initially
+and a second window at global index 20; current ID and occurrence mapping were
+checked through the shipping JSON-lines worker. A first probe exposed deep video
+menus, now excluded from panel traversal; a second exposed Radio index resets,
+now covered by explicit tests. Evidence: `.deps/remote-expansion-python.*`,
+`.deps/remote-playlist-public.json`, `.deps/phone-window-tests.*`,
+`.deps/voice-capability-connected-ps5-objects.*`. Real private/TV playlists,
+inaccessible/sparse entries and PS5 expansion acceptance remain open.
+
 ## Local speech-recognition service — 2026-10-10
 
 The native PS5 microphone worker passed ASan/UBSan lifecycle tests and strict PS5

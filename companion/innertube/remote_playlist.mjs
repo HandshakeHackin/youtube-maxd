@@ -1,0 +1,64 @@
+// Original bounded WatchNext queue adapter. SPDX-License-Identifier: GPL-3.0-or-later
+const videoId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{11}$/.test(value);
+const playlistId = value => typeof value === 'string' && /^(WL|LL|[A-Za-z0-9_-]{10,100})$/.test(value);
+const index = value => Number.isInteger(value) && value >= 0 && value <= 100000;
+
+export async function remotePlaylist(client, input, ErrorType) {
+  const fail = () => { throw new ErrorType('remote_playlist_unavailable', 'YouTube did not return a usable playback queue.', 502); };
+  if (!videoId(input.id) || !playlistId(input.playlist) || !index(input.index))
+    throw new ErrorType('invalid_request', 'The playback queue request is invalid.');
+  const response = await client.actions.execute('/next', { videoId: input.id,
+    playlistId: input.playlist, playlistIndex: input.index, racyCheckOk: true, contentCheckOk: true });
+  if (!response?.success || !response.data || typeof response.data !== 'object') fail();
+  // WEB embeds playlist.playlist; TV and continuation responses use a panel.
+  // Inspect raw nodes to retain endpoint indices and duplicate occurrences.
+  const pending = [{ node: response.data, depth: 0 }], panels = [];
+  let visited = 0;
+  while (pending.length) {
+    const { node, depth } = pending.pop();
+    if (++visited > 100000) fail();
+    if (depth > 40) continue;
+    if (!node || typeof node !== 'object') continue;
+    if (!Array.isArray(node) && node.playlistId === input.playlist && Array.isArray(node.contents)) {
+      if (panels.length >= 16) fail();
+      panels.push(node);
+      continue; // Deep video menus are irrelevant to queue discovery.
+    }
+    for (const value of Object.values(node)) if (value && typeof value === 'object') pending.push({ node: value, depth: depth + 1 });
+  }
+  const matches = [];
+  for (const panel of panels) {
+    if (!panel.contents.length || panel.contents.length > 4096) continue;
+    const rows = [];
+    let invalid = false;
+    for (const item of panel.contents) {
+      if (item.continuationItemRenderer) continue;
+      const row = item.playlistPanelVideoRenderer ?? item.playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer;
+      const endpoint = row?.navigationEndpoint?.watchEndpoint;
+      if (!row || !videoId(row.videoId) || endpoint?.videoId !== row.videoId ||
+          (endpoint.playlistId !== undefined && endpoint.playlistId !== input.playlist)) { invalid = true; break; }
+      const global = endpoint.index ?? endpoint.playlistIndex;
+      if (global !== undefined && !index(global)) { invalid = true; break; }
+      rows.push({ id: row.videoId, index: global, selected: row.selected === true });
+    }
+    if (invalid || !rows.length) continue;
+    const selected = rows.findIndex(row => row.selected);
+    const selectedRows = rows.filter(row => row.selected);
+    const current = panel.currentIndex ?? input.index;
+    const radio = panel.isInfinite === true && input.playlist.startsWith('RD');
+    if (selectedRows.length > 1 || !index(current) || (current !== input.index && (!radio || current > input.index))) continue;
+    // Radio/Mix can restart its service-relative indices at the selected video.
+    const shift = input.index - current;
+    const anchor = rows.findIndex(row => row.index !== undefined && row.index + shift === input.index && row.id === input.id);
+    const at = anchor >= 0 ? anchor : selected >= 0 && rows[selected].id === input.id ? selected : -1;
+    if (at < 0) continue;
+    const base = input.index - at;
+    if (!index(base) || base + rows.length - 1 > 100000 ||
+        rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset)) continue;
+    const start = Math.max(0, Math.min(at - 32, rows.length - 128));
+    matches.push({ api_version: 1, playlist: input.playlist, index: input.index,
+      video_id: input.id, window_start: base + start, video_ids: rows.slice(start, start + 128).map(row => row.id), radio_rebased: shift !== 0 });
+  }
+  if (matches.length !== 1) fail();
+  return matches[0];
+}

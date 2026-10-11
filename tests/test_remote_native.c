@@ -41,6 +41,15 @@ static void remote_bind(int64_t now) {
     tube_remote_tick(now); cJSON *root=request("start"); cJSON_Delete(root); reply(0,200,started);
     assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
 }
+static void test_profile_selection(void) {
+    configure(1,"account",identity,"screen-123"); tube_remote_tick(37000);
+    cJSON *root=request("start");
+    assert(!strcmp(cJSON_GetObjectItem(root,"profile")->valuestring,"account"));
+    cJSON_Delete(root); reply(0,200,started); tube_remote_shutdown(); clear_stop();
+    configure(1,"guest",identity,"screen-123"); tube_remote_tick(37001); root=request("start");
+    assert(!cJSON_GetObjectItem(root,"profile")); cJSON_Delete(root);
+    reply(0,200,started); tube_remote_shutdown(); clear_stop();
+}
 static char *poll(int ack,const char *commands) {
     char *body=malloc(strlen(commands)+256); assert(body);
     sprintf(body,"{\"api_version\":1,\"session\":\"%s\",\"state\":\"listening\",\"ack\":%d,\"commands\":%s}",session,ack,commands); return body;
@@ -160,7 +169,7 @@ static void test_voice_capability(void) {
     reply(0,200,started); tube_remote_shutdown(); clear_stop();
 }
 int main(void) { test_commands_and_feedback(); test_scope_and_late_start_cleanup(); test_atomic_validation();
-    test_all_commands_and_pending_invalidation(); test_original_source_cleanup(); test_voice_capability();
+    test_all_commands_and_pending_invalidation(); test_original_source_cleanup(); test_voice_capability(); test_profile_selection();
     configure(1,"guest",identity,"screen-123"); reject=1; tube_remote_tick(30000);
     assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
     tube_remote_voice_available(1); assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);

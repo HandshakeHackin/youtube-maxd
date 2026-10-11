@@ -12,7 +12,9 @@ then stopped on a malformed fixture packet; microphone capture remains open.
 Exact release and original state restoration passed. Large phone queues retain
 up to 10,000 IDs on the companion and
 send/refill bounded native windows; 142 companion checks, native sanitizer tests
-and connected PS5 compilation passed. Fetching beyond partial phone queues,
+and connected PS5 compilation passed. Partial phone queues now expand through
+profile-scoped WatchNext windows, including rebased infinite Mix responses;
+Guest initial and index-20 reads passed. Private/TV and PS5 expansion acceptance,
 real-phone/account acceptance and remaining SmartTube parity are still open.
 
 Earlier playback milestone (2026-10-10): the native PS5 package has played the real public

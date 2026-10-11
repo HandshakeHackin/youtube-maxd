@@ -74,8 +74,15 @@ ignored. Known commands expose only validated fields, including a queue of at
 most 128 video IDs per native window. The companion can retain up to 10,000 IDs
 from a phone-supplied queue and refill windows after confirmed player feedback.
 Global indices and repeated videos retain their positions; refills update the
-queue without reopening playback. Fetching beyond a partial phone-supplied queue
-remains pending. Phone state alone does not prove native playback occurred.
+queue without reopening playback. When the library worker is enabled, confirmed
+playback can expand partial phone queues through profile-scoped WatchNext reads.
+Finite playlists retain absolute indices; infinite Radio/Mix responses that reset
+their indices are rebased at the current occurrence, keeping up to 32 preceding
+items. Only contiguous, validated windows are accepted. Queue replacement, stop,
+receiver failure and changed player identity retire delayed expansion results.
+Failures retain the phone-supplied queue with bounded retry. Live Guest initial
+and index-20 Mix reads passed; private/TV playlists and PS5 window expansion
+acceptance remain open. Phone state alone does not prove native playback occurred.
 
 The native integration must apply each command on the main thread before
 acknowledging its sequence. Polling does not consume commands. Acknowledgments
@@ -130,8 +137,9 @@ authenticated bounded PCM upload, asynchronous query results and cancellation.
 Real whisper.cpp inference passed the host API. Native capture, local/phone
 controls, scoped upload/job lifecycle and actual search navigation are connected;
 the first package built/froze. Availability negotiation passes host/native tests
-and PS5 object compilation, but its full package and physical microphone/phone
-acceptance remain open.
+and PS5 object compilation. Its full package built/froze, and the console case
+established startup/UI/capability before a malformed fixture command stopped the
+case. Physical microphone/phone acceptance remains open.
 
 The driver keeps receiving/renewing the lease while commands wait for application.
 It validates an entire response before changing its command queue. If local

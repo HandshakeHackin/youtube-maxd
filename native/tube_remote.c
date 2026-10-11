@@ -249,6 +249,7 @@ void tube_remote_tick(int64_t now_ms) {
     if (kind == START) {
         cJSON_AddStringToObject(root,"device_id",device); cJSON_AddStringToObject(root,"screen_id",screen);
         cJSON_AddStringToObject(root,"name","ProsperoTube PS5");
+        if (strcmp(profile,"guest")) cJSON_AddStringToObject(root,"profile",profile);
         if (voice_enabled) cJSON_AddBoolToObject(root,"voice_enabled",1);
     } else cJSON_AddStringToObject(root,"session",session);
     if (kind == POLL) { r->ack = ack; cJSON_AddNumberToObject(root,"ack",ack); }

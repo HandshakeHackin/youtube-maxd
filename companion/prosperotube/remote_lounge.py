@@ -206,6 +206,7 @@ class RemoteRequest(BaseModel):
     update_id: int = Field(default=0, strict=True, ge=0, le=2_147_483_647)
     player: PlayerState | None = None
     voice_enabled: bool = Field(default=False, strict=True)
+    profile: str = Field(default="guest", pattern=r"^[A-Za-z0-9_-]{1,32}$")
 
 
 @dataclass
@@ -233,15 +234,21 @@ class Receiver:
     touched: float = field(default_factory=time.monotonic)
     voice_enabled: bool = False
     full_playlist: dict | None = field(default=None, repr=False)
+    profile: str = "guest"
+    playlist_anchor: dict | None = field(default=None, repr=False)
+    playlist_task: asyncio.Task | None = field(default=None, repr=False)
+    playlist_retry: float = 0
 
 
 class Lounge:
-    def __init__(self, client=None):
+    def __init__(self, client=None, *, playlist_loader=None):
         self.http = client or httpx.AsyncClient(timeout=httpx.Timeout(65, connect=5), follow_redirects=False)
         self.owns_http = client is None
         self.receivers = {}
         self.lock = asyncio.Lock()
         self.closed = False
+        self.playlist_loader = playlist_loader
+        self.playlist_tasks = set()
 
     def status(self, receiver):
         return {"api_version": 1, "session": receiver.session, "device_id": receiver.device_id,
@@ -305,8 +312,16 @@ class Lounge:
                         receiver.sequence += 1
                         receiver.queue.append({"sequence": receiver.sequence, **typed})
                         if name in ("setPlaylist", "updatePlaylist"):
+                            self.retire_playlist(receiver)
                             receiver.full_playlist = queue_state or None
+                            if not queue_state:
+                                ids = typed['video_ids'] or ([typed['video_id']] if typed['video_id'] else [])
+                                anchor = typed['index'] if typed['index'] < len(ids) and ids[typed['index']] == typed['video_id'] else ids.index(typed['video_id']) if typed['video_id'] in ids else -1
+                                if anchor >= 0 and typed['index'] >= anchor:
+                                    receiver.playlist_anchor = dict(typed, sequence=receiver.sequence,
+                                        video_ids=ids, window_start=typed['index']-anchor)
                         elif name == "stopVideo":
+                            self.retire_playlist(receiver)
                             receiver.full_playlist = None
                 receiver.aid = index
 
@@ -317,6 +332,7 @@ class Lounge:
             raise failure()
 
     def fail(self, receiver, code):
+        self.retire_playlist(receiver)
         receiver.error = code
         receiver.full_playlist = None
         receiver.queue.clear()  # Never apply stale commands after a failed channel.
@@ -350,6 +366,10 @@ class Lounge:
             self.fail(receiver, "remote_upstream")
 
     async def stop(self, receiver):
+        playlist_task = receiver.playlist_task
+        self.retire_playlist(receiver)
+        if playlist_task is not None:
+            await asyncio.gather(playlist_task, return_exceptions=True)
         receiver.error = "remote_stopped"
         if receiver.task is not None:
             receiver.task.cancel()
@@ -379,13 +399,13 @@ class Lounge:
                 if time.monotonic() - receiver.touched > LEASE_SECONDS or receiver.error:
                     await self.stop(receiver)
                 elif payload.device_id and receiver.device_id == payload.device_id:
-                    if receiver.name != payload.name or receiver.voice_enabled != payload.voice_enabled or (payload.screen_id and receiver.screen_id != payload.screen_id):
+                    if receiver.name != payload.name or receiver.profile != payload.profile or receiver.voice_enabled != payload.voice_enabled or (payload.screen_id and receiver.screen_id != payload.screen_id):
                         raise failure("remote_identity_conflict", 409)
                     receiver.touched = time.monotonic()
                     return self.status(receiver)
             if len(self.receivers) >= MAX_RECEIVERS:
                 raise failure("remote_capacity", 429)
-            receiver = Receiver(secrets.token_hex(16), payload.device_id or str(uuid.uuid4()), payload.name, payload.screen_id, voice_enabled=payload.voice_enabled)
+            receiver = Receiver(secrets.token_hex(16), payload.device_id or str(uuid.uuid4()), payload.name, payload.screen_id, voice_enabled=payload.voice_enabled, profile=payload.profile)
             try:
                 if not receiver.screen_id:
                     raw = await self.response("GET", "/pairing/generate_screen_id")
@@ -472,6 +492,7 @@ class Lounge:
                 receiver.ofs += len(packets)
                 receiver.update_id, receiver.last_player = payload.update_id, player
                 self.refresh_playlist_window(receiver, player)
+                self.schedule_playlist(receiver, player)
                 return self.status(receiver)
             except ServiceError as exc:
                 if exc.status >= 500:
@@ -483,6 +504,80 @@ class Lounge:
             except (httpx.HTTPError, ValueError, UnicodeError, RecursionError):
                 self.fail(receiver, "remote_upstream")
                 raise failure("remote_upstream") from None
+
+    @staticmethod
+    def retire_playlist(receiver):
+        receiver.playlist_anchor = None
+        receiver.playlist_retry = 0
+        if receiver.playlist_task is not None:
+            receiver.playlist_task.cancel()
+            receiver.playlist_task = None
+
+    def schedule_playlist(self, receiver, player):
+        anchor = receiver.playlist_anchor
+        if (self.playlist_loader is None or not anchor or receiver.full_playlist or receiver.playlist_task or
+            time.monotonic() < receiver.playlist_retry or receiver.ack < anchor['sequence'] or
+            not re.fullmatch(r'(WL|LL|[A-Za-z0-9_-]{10,100})', anchor['playlist']) or
+            any(c['action'] in ('setPlaylist', 'updatePlaylist') for c in receiver.queue)):
+            return
+        offset = player['index'] - anchor['window_start']
+        if (player['playlist'] != anchor['playlist'] or player['ctt'] != anchor['ctt'] or
+            not 0 <= offset < len(anchor['video_ids']) or anchor['video_ids'][offset] != player['video_id']):
+            return
+        if anchor.get('expanded'):
+            margin = min(16, max(1, len(anchor['video_ids'])//4))
+            near_left = anchor['window_start'] > 0 and offset < margin and not player['playlist'].startswith('RD')
+            if anchor.get('checked_index') == player['index'] or (not near_left and offset < len(anchor['video_ids'])-margin):
+                return
+        receiver.playlist_task = asyncio.create_task(self.load_playlist(receiver, anchor, player))
+        self.playlist_tasks.add(receiver.playlist_task)
+        receiver.playlist_task.add_done_callback(self.playlist_tasks.discard)
+
+    async def load_playlist(self, receiver, anchor, player):
+        task = asyncio.current_task()
+        try:
+            result = await self.playlist_loader(dict(action='remote_playlist', profile=receiver.profile,
+                id=player['video_id'], playlist=player['playlist'], index=player['index']))
+            ids, start = result.get('video_ids'), result.get('window_start')
+            if (result.get('api_version') != 1 or result.get('playlist') != player['playlist'] or
+                result.get('index') != player['index'] or result.get('video_id') != player['video_id'] or
+                not isinstance(ids, list) or not 1 <= len(ids) <= 128 or
+                any(not isinstance(v, str) or not VIDEO_ID.fullmatch(v) for v in ids) or
+                type(start) is not int or not 0 <= start <= 100001-len(ids) or
+                not 0 <= player['index']-start < len(ids) or ids[player['index']-start] != player['video_id']):
+                raise failure('remote_playlist_unavailable')
+            async with receiver.lock:
+                current = receiver.last_player
+                if (self.receivers.get(receiver.session) is not receiver or receiver.error or
+                    receiver.playlist_anchor is not anchor or not current or
+                    any(current[k] != player[k] for k in ('video_id','playlist','index','ctt')) or
+                    any(c['action'] in ('setPlaylist','updatePlaylist') for c in receiver.queue)):
+                    return
+                if ids == anchor['video_ids'] and start == anchor['window_start']:
+                    anchor['expanded'] = True
+                    anchor['checked_index'] = player['index']
+                    return
+                if result.get('radio_rebased') is True and player['playlist'].startswith('RD') and anchor['window_start'] <= start <= player['index']:
+                    prefix = anchor['video_ids'][:start-anchor['window_start']][-32:]
+                    start -= len(prefix)
+                    combined = prefix + ids
+                    crop = max(0, min(player['index']-start-32, len(combined)-128))
+                    start += crop
+                    ids = combined[crop:crop+128]
+                if len(receiver.queue) >= MAX_QUEUE or receiver.sequence >= 2_147_483_647:
+                    return
+                receiver.sequence += 1
+                update = dict(sequence=receiver.sequence, action='updatePlaylist', video_id=current['video_id'],
+                    playlist=current['playlist'], ctt=current['ctt'], index=current['index'],
+                    position_sec=current['position_sec'], video_ids=ids, window_start=start)
+                receiver.queue.append(update)
+                receiver.playlist_anchor = dict(update, expanded=True, checked_index=player['index'])
+        except (ServiceError, ValueError, TypeError, AttributeError):
+            pass  # Preserve the supplied queue when optional expansion is unavailable.
+        finally:
+            if receiver.playlist_task is task:
+                receiver.playlist_task = None
+                receiver.playlist_retry = time.monotonic() + 10
 
     @staticmethod
     def refresh_playlist_window(receiver, player):
@@ -529,5 +624,9 @@ class Lounge:
             self.closed = True
             for receiver in list(self.receivers.values()):
                 await self.stop(receiver)
+            tasks = list(self.playlist_tasks)
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
             if self.owns_http:
                 await self.http.aclose()

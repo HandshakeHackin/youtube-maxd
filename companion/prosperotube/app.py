@@ -227,7 +227,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         if app.state.remote is None:
             if payload.action != "start":
                 raise ServiceError("remote_session", "Enable phone connection first.", 404)
-            app.state.remote = Lounge()
+            app.state.remote = Lounge(playlist_loader=app.state.library.execute if app.state.library is not None else None)
         return await app.state.remote.execute(payload)
 
     def signin():
