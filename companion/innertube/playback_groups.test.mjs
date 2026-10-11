@@ -106,3 +106,42 @@ test('retired groups reject metadata that completes after owner removal',async()
   }});
   store.removeOwner('guest');finish();await assert.rejects(pending,{code:'group_expired'});
 });
+
+
+test('concurrent browser continuation returns one identical successor cursor',async()=>{
+  let calls=0;
+  const tail={videos:[{id:other}],has_continuation:true,async getContinuation(){return {videos:[{id:last}],has_continuation:false};}};
+  const feed={videos:[{id}],has_continuation:true,async getContinuation(){calls++;await new Promise(resolve=>setImmediate(resolve));return tail;}};
+  const library=new Library(async()=>({getHomeFeed:async()=>feed}));
+  const first=await library.execute({action:'home'});
+  const [a,b]=await Promise.all([library.execute({action:'continue',cursor:first.cursor}),library.execute({action:'continue',cursor:first.cursor})]);
+  assert.strictEqual(a,b);assert.equal(calls,1);assert.ok(a.cursor);
+  assert.deepEqual(a.items[0].playback_context,{group:first.items[0].playback_context.group,index:1});
+  const final=await library.execute({action:'continue',cursor:a.cursor});
+  assert.equal(final.items[0].playback_context.index,2);
+});
+test('catalog continuations reject expired ownership after upstream completion',async()=>{
+  let now=0,finish;
+  const waiting=new Promise(resolve=>finish=resolve);
+  const feed={videos:[{id}],has_continuation:true,async getContinuation(){await waiting;return {videos:[{id:other}],has_continuation:false};}};
+  const library=new Library(async()=>({getHomeFeed:async()=>feed}),[],()=>now);
+  const first=await library.execute({action:'home'});
+  const pending=library.execute({action:'continue',cursor:first.cursor});
+  now=120001;finish();await assert.rejects(pending,{code:'cursor_expired'});
+  assert.equal(library.groups.groups.get(first.items[0].playback_context.group).rows.length,1);
+});
+
+test('failed concurrent catalog continuation can be retried without duplicating rows',async()=>{
+  let calls=0;
+  const feed={videos:[{id}],has_continuation:true,async getContinuation(){
+    calls++;await new Promise(resolve=>setImmediate(resolve));if(calls===1)throw Error('temporary');
+    return {videos:[{id:other}],has_continuation:false};
+  }};
+  const library=new Library(async()=>({getHomeFeed:async()=>feed}));
+  const first=await library.execute({action:'home'}),request={action:'continue',cursor:first.cursor};
+  const failures=await Promise.allSettled([library.execute(request),library.execute(request)]);
+  assert.ok(failures.every(result=>result.status==='rejected'));assert.equal(calls,1);
+  const result=await library.execute(request);assert.equal(calls,2);
+  assert.equal(result.items[0].playback_context.index,1);
+  assert.strictEqual(await library.execute(request),result);
+});

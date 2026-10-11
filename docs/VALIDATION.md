@@ -1,5 +1,18 @@
 # Offline validation record — 0.1.0
 
+## Catalog continuation consistency — 2026-10-11
+
+Concurrent requests for one catalog cursor now share the completed page and its
+successor cursor, in addition to sharing the upstream fetch. Source ownership and
+expiry are checked again after the upstream response. An expired continuation
+cannot append rows to a retained group. Failed requests release their pending
+operation and permit a later retry without duplicating positions.
+
+The worker regression suite covers concurrent successor identity, expiry while
+an upstream call is pending, and concurrent failure followed by a successful
+retry. All 112 worker tests and the worker bundle build pass. No console access
+or native implementation changes were involved.
+
 ## Retained-group filtering and metadata reuse — 2026-10-11
 
 Ordinary group windows no longer transmit unrequested display names, avoiding

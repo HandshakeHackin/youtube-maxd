@@ -827,3 +827,9 @@ not update retained rows. Repeated occurrences share verified identities, reduci
 repeat lookups across adjacent windows. Unrequested display names are omitted
 from window responses; requesting name verification still requires complete,
 valid names for native filtering.
+
+
+Concurrent requests for the same catalog cursor share one resulting page and
+successor cursor. Ownership/expiry is rechecked after fetching, before exposing
+new rows. Upstream failure releases the pending operation so a later request can
+retry; a completed request retains its exact result for idempotent retries.

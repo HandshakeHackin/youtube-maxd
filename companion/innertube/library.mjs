@@ -245,10 +245,18 @@ export class Library {
       if (!entry || entry.owner !== owner || entry.deadline <= this.clock())
         throw new LibraryError('cursor_expired', 'Reload this page to continue.', 409);
       if (entry.result) return entry.result;
-      const feed = entry.remaining.length ? entry.feed : await this.groups.continuation(entry.feed);
-      const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history, entry.group);
-      entry.result = result;
-      return result;
+      if (!entry.pending) {
+        entry.pending = (async()=>{
+          const feed = entry.remaining.length ? entry.feed : await this.groups.continuation(entry.feed);
+          if(this.cursors.get(input.cursor)!==entry || entry.deadline<=this.clock())
+            throw new LibraryError('cursor_expired','Reload this page to continue.',409);
+          const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history, entry.group);
+          entry.result = result;
+          return result;
+        })();
+      }
+      const pending=entry.pending;
+      try {return await pending;} finally {if(entry.pending===pending)entry.pending=null;}
     }
     const profile = this.profiles.get(owner);
     if (!profile) throw new LibraryError('unknown_profile', 'Select an available profile.', 404);
