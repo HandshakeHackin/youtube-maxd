@@ -264,8 +264,11 @@ Resolve results (`/v1/resolve` and resolve jobs) add:
    "interval_ms":1000,"url":"http://HOST/media/<session>/sb1-$M.jpg"}
   ```
 
-  `width`/`height` are one thumbnail's pixels (1–1024), a sheet is a JPEG grid
-  of `columns` × `rows` thumbnails (1–32 each) filled row by row, `count` is the
+  `width`/`height` are one thumbnail's pixels (1–1024), a sheet is an image grid
+  of `columns` × `rows` thumbnails (1–32 each) filled row by row (the address
+  ends in `.jpg`, but YouTube serves WebP whatever the request asks for, and
+  the relay passes the bytes and their `image/webp` type on unchanged; checked
+  live on 2026-10-11, so a client must decode by content), `count` is the
   number of thumbnails, `sheets` the number of sheet images (1–512; the last
   one may be partly filled) and `interval_ms` the time between thumbnails
   (video duration divided by `count`). Replace the literal `$M` in `url` with
@@ -330,4 +333,13 @@ language.
 A translated track is downloaded exactly like any other caption: its `url` is
 an expiring `/media/<session>/c<n>.srt` capability converted to SubRip by the
 companion. Translations exist only where YouTube's web player response lists
-translation languages; OAuth TV resolutions return none.
+translation languages; OAuth TV resolutions return none. "Requested language
+first" covers the plain code and every `<requested>-<source>` translation, so
+those are never cut by the limit of 128.
+
+Checked live on 2026-10-11 as Guest without a proof-of-origin token provider:
+the translated tracks are listed, but YouTube refuses their download with HTTP
+429, which the relay reports as `upstream_media` (502). Human-made and
+untranslated automatic tracks download normally. A resolver result keeps one
+WebVTT address per caption language; a video with dubbed audio otherwise lists
+each language once per audio track and exceeds the 8 MiB result limit.

@@ -981,7 +981,10 @@ rows. `"section":"my_videos"` lists the signed-in profile's own uploads the same
 way; Guest, a profile without credentials or an expired session fails with
 `account_required` (401) before any request. The three sections use YouTube's
 TV browse identities `FEtrending`, `FEshorts` and `FEmy_videos`, taken from the
-SmartTube service; their live layouts are unverified.
+SmartTube service. Checked live on 2026-10-11 as Guest: YouTube answers
+`FEtrending` and `FEshorts` with HTTP 400 on the TV and the web client, so both
+sections fail with `catalog_unavailable` (404) and nothing is listed. Their
+layouts for a signed-in profile and `FEmy_videos` remain unverified.
 
 ### `channels`
 
@@ -1181,8 +1184,17 @@ offered, `channel_search_unavailable` (404), `invalid_search` for the query,
 Orders are recognized by position, because their labels are localized: a chip
 bar of two or three chips whose first chip is selected is read as newest,
 popular, oldest. Any other layout (drop-down, four chips, another selection)
-reports `sorts: []`. This mapping is inferred, not verified against the live
-service. The Playlists section has no order option here.
+reports `sorts: []`. Checked live on 2026-10-11 as Guest on the Videos, Shorts
+and Live sections of a large channel: three chips, and the second and third
+return the most viewed and the oldest uploads. The Playlists section has no
+order option here.
+
+Cards of a channel's own Videos and Live sections name no channel upstream
+(their first metadata part is the view count), so the companion fills
+`subtitle` and `channel_id` from the page owner; a card that links another
+channel keeps it. The same holds for the top-level `catalog` of a channel.
+Scheduled streams of the Live section carry only a localized "Upcoming" badge,
+so `is_upcoming` stays false for them.
 
 ### Save or remove another channel's playlist
 
@@ -1284,8 +1296,10 @@ response field is additive. `GET /v1/health` `features` lists
 worker, not in fixture mode), `dislikes` (only with `--return-youtube-dislike`)
 and `proxy` (only with `--proxy`). An older companion rejects the unknown
 fields and actions with HTTP 422. Offline tests cover these contracts with the
-pinned parser and synthetic responses; none has been run against the live
-service, an account or a PS5. Statements marked *inferred* describe upstream
+pinned parser and synthetic responses; none has been run against an account
+or a PS5. The Guest reads (Kids, `video_details`, `first_playable`,
+`translated_captions`) were checked live on 2026-10-11, see
+[Guest live check](#guest-live-check-of-2026-10-11). Statements marked *inferred* describe upstream
 layouts that the pinned YouTube.js 18.1.0 does not parse and that could not be
 checked offline; an unrecognised layout sends nothing and returns the stated
 error.
@@ -1549,3 +1563,57 @@ section and `unknown_operation` for `video_details`, `stream_reminder`,
 `playlist_order`, `subscribe_notifications`, `comment_post` and
 `comment_reply`, and ignores `notifications`, `first_playable` and
 `new_content`.
+
+## Guest live check of 2026-10-11
+
+The Guest read paths were run once against YouTube from a companion bound to
+loopback, with yt-dlp 2026.08.19, the pinned YouTube.js 18.1.0 and no
+proof-of-origin token provider. No account, console or change on YouTube was
+involved. `scripts/probe_live_guest.py` repeats the check against a running
+companion (`--base`, `--code` or `--token-file`); it prints one pass/fail line
+per area and no tokens or media addresses.
+
+Working as specified: pairing, both searches with every option group and two
+pages, `search_suggestions`, `first_playable`, the Music, Gaming, News, Sports,
+Live, Movies and Kids sections, channel sections with orders and
+`channel_search`, playlists with their positions, `playback_queue`,
+`playback_at`, `playback_next`, `channel_window`, `group_window`,
+`suggestions`, `video_details`, `description`, comments in both orders, live
+chat in both modes, chat replay with seeks, `hl`/`gl`, `hide`, `thumbnails`,
+SponsorBlock and DeArrow.
+
+What the live service does differently from the offline assumptions:
+
+- **Home is empty for Guest.** YouTube returns only a "start searching" notice
+  to a signed-out session without history, on the web and the TV client. The
+  action answers an empty page.
+- **Trending and Shorts sections do not exist** for Guest (HTTP 400 upstream),
+  reported as `catalog_unavailable`.
+- **Shorts in search** arrive as grid shelves of Shorts tiles. They are video
+  rows with `is_short`; a `type: "shorts"` search holds nothing else. The
+  tile image comes from the tile's watch endpoint.
+- **Replies** are opened through the continuation in the reply renderer's
+  contents; the pinned thread parser looks elsewhere and failed on every
+  thread. The first upstream reply page held ten comments.
+- **Section shelves hold few rows.** A News, Sports or Live shelf lists five
+  tiles and a continuation that returns nothing more, so `has_more` can be
+  true before an empty last page.
+- **Movies** are posters whose title sits in a header overlay; they open a
+  purchase page upstream and do not resolve for Guest.
+- **Related-video filter chips** are absent for Guest; `suggestions` returns
+  the plain list.
+- **Country.** `gl` changes search results; the TV section shelves kept
+  following the network location of the companion.
+- **Live chat custom emoji** arrive as their identifier text, not an image or
+  a shortcut.
+
+Media resolution without a token provider: the web clients offer no direct
+addresses (YouTube forces its streaming protocol there), yet yt-dlp still
+returned complete direct lists from its other clients. Through the relay, with
+byte ranges anywhere in the file: H.264 up to 1080p60, VP9 and AV1 up to
+2160p60, AAC audio, live HLS (H.264 up to 1080p60 with separate audio and a
+DVR window), human-made and automatic captions, and storyboard sheets. HEVC
+was offered for none of the tested videos, so `codec: "hevc"` fails with
+`unsupported_media`. **Machine-translated captions are listed but their
+download is refused** (HTTP 429 upstream, relayed as `upstream_media`): the
+translation address needs a proof-of-origin token.
