@@ -42,8 +42,9 @@ export function filterHomeFeed(feed) {
 
 // Home rows after the primary grid keep watched cards (SmartTube group position > 0).
 export class HomeCatalog {
-  constructor(ErrorType,normalizeVideo,normalizePlaylist,references) {
+  constructor(ErrorType,normalizeVideo,normalizePlaylist,references,label='Home',area='home') {
     this.ErrorType=ErrorType;this.video=normalizeVideo;this.playlist=normalizePlaylist;this.references=references;
+    this.label=label;this.area=area;
   }
   unwrap(node) {return ['RichItem','RichSection'].includes(node?.type)?node.content:node;}
   shelf(node) {
@@ -77,11 +78,13 @@ export class HomeCatalog {
       if(!title || !shelf.rows.length)continue;
       if(folders.length>=64)throw new this.ErrorType('upstream_limit','Too many Home sections.',502);
       const children=Array.from(shelf.rows);
-      folders.push(this.references.register(owner,title,'Home section',()=>this.section(owner,children,client,depth+1)));
+      folders.push(this.references.register(owner,title,this.label+' section',()=>this.section(owner,children,client,depth+1),this.area));
     }
     return {folders,nested};
   }
-  root(owner,feed,client,withFilters=true) {
+  // hideWatched false keeps watched cards in the primary grid (an explicit
+  // content-filter selection without watched_home).
+  root(owner,feed,client,withFilters=true,hideWatched=true) {
     const rows=homeRows(feed);
     const {folders,nested}=this.folders(owner,rows,client,0);
     if(withFilters && typeof feed.applyFilter==='function') {
@@ -91,7 +94,7 @@ export class HomeCatalog {
         if(!['ChipCloudChip','ChipView','ListItemView'].includes(chip?.type) || chip.is_disabled || chip.is_selected || chip.selected)continue;
         const title=String(chip.text ?? chip.title ?? '').replaceAll('\0','').slice(0,192);
         if(title)folders.push(this.references.register(owner,title,'Home filter',async()=>
-          this.root(owner,await feed.applyFilter(chip),client)));
+          this.root(owner,await feed.applyFilter(chip),client,true,hideWatched),this.area));
       }
       const secondary=feed.filter_nodes?.secondary_filters ?? [];
       if(!Array.isArray(secondary) || secondary.length>64)throw new this.ErrorType('upstream_limit','Too many secondary Home filters.',502);
@@ -102,18 +105,18 @@ export class HomeCatalog {
         const title=String(chip.text ?? '').replaceAll('\0','').slice(0,192);
         if(title)folders.push(this.references.register(owner,title,'Home secondary filter',async()=>{
           const filtered=await feed.getFilteredFeed(selected[0],chip);
-          return this.root(owner,new YT.HomeFeed(feed.actions,filtered.page,true),client);
-        }));
+          return this.root(owner,new YT.HomeFeed(feed.actions,filtered.page,true),client,true,hideWatched);
+        },this.area));
       }
     }
-    const filtered=filterHomeFeed(feed);
+    const filtered=hideWatched?filterHomeFeed(feed):{videos:Array.from(feed?.videos ?? [])};
     const primary=rows.filter(node=>node?.type==='RichItem').map(node=>node.content),primarySet=new Set(primary);
     const available=new Set(filtered.videos);
     const ordered=[...primary.filter(node=>available.has(node)),...filtered.videos.filter(node=>!primarySet.has(node))];
     const items=[...folders,...ordered.filter(node=>!nested.has(node)).map(node=>this.video(node,owner)).filter(Boolean),
       ...Array.from(feed.playlists ?? []).filter(node=>!nested.has(node)).map(this.playlist).filter(Boolean)];
     return {catalog_items:items,has_continuation:!!feed.has_continuation,
-      ...(typeof feed.getContinuation==='function'?{getContinuation:async()=>this.root(owner,await feed.getContinuation(),client,false)}:{})};
+      ...(typeof feed.getContinuation==='function'?{getContinuation:async()=>this.root(owner,await feed.getContinuation(),client,false,hideWatched)}:{})};
   }
   section(owner,rows,client,depth) {
     const {folders}=this.folders(owner,rows,client,depth);

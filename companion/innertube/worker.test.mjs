@@ -598,3 +598,6 @@ import './search_catalog.test.mjs';
 import './sections.test.mjs';
 import './feedback_actions.test.mjs';
 import './locale.test.mjs';
+import './content_filters.test.mjs';
+import './channel_page.test.mjs';
+import './account_actions.test.mjs';

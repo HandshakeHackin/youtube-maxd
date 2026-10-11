@@ -5,7 +5,7 @@ import { ChatReader } from './live_chat.mjs';
 import { TopicCatalog } from './topic_catalog.mjs';
 import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
-import { channelWindow } from './channel_window.mjs';
+import { channelWindow, channelPage, channelHome, mappedFeed } from './channel_window.mjs';
 import { PlaybackGroups } from './playback_groups.mjs';
 import { HomeCatalog, watchPercent } from './home_feed.mjs';
 import { HistoryActions } from './history_actions.mjs';
@@ -16,6 +16,8 @@ import { videoDescription } from './video_description.mjs';
 import { channelsFeed, notificationsFeed } from './account_sections.mjs';
 import { FeedbackActions } from './feedback_actions.mjs';
 import { requestLocale } from './locale.mjs';
+import { hideSet, hideSection, hides, isShort, shortsCard } from './content_filters.mjs';
+import { AccountActions, historyPaused } from './account_actions.mjs';
 
 export class LibraryError extends Error {
   constructor(code, message, status = 400) { super(message); this.code = code; this.status = status; }
@@ -112,6 +114,7 @@ export function normalizeVideo(node, playlist = '') {
     duration_sec: cardDuration(node),
     is_folder: false, is_upcoming: !!node.is_upcoming, is_live: cardLive(node), played: !!node.is_watched, watch_percent: watchPercent(node),
     ...(Number.isFinite(scheduled) && scheduled>0?{upcoming_start_ms:scheduled}:{}),
+    ...(isShort(node)?{is_short:true}:{}),
     ...(context ? {playback_context: context} : {}) };
 }
 function normalizePlaylist(node) {
@@ -157,6 +160,8 @@ export class Library {
       const profile=this.profiles.get(owner),item=normalizeVideo(node);
       return profile?.cookie || profile?.oauth?this.feedback.decorate(owner,node,item):item;
     },normalizePlaylist,this.suggestionFilters);
+    this.channelCatalog = new HomeCatalog(LibraryError,node=>normalizeVideo(node),normalizePlaylist,this.suggestionFilters,'Channel','channel');
+    this.account = new AccountActions(LibraryError,clock);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
   }
@@ -201,20 +206,25 @@ export class Library {
     else if (input.kind === 'channel' && channelId(input.id)) feed = await (await client.getChannel(input.id)).getVideos();
     else if (input.kind === 'playlist' && playlistId(input.id)) feed = await client.getPlaylist(input.id);
     else throw new LibraryError('invalid_request', 'The catalog operation is invalid.');
-    return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '');
+    return this.page(owner, 'catalog', feed, null, input.kind === 'playlist' ? input.id : '', input.kind === 'channel' ? input.id : '',
+      0, false, '', { hide: hides(hideSet(input.hide, LibraryError), hideSection(input)) });
   }
-  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0, history = false, group = '') {
+  // extra.video decorates a parsed card; extra.hide drops normalized rows. Both
+  // stay with the cursor, so continuation pages apply the same selection.
+  page(owner, kind, feed, pending = null, playlist = '', channel = '', channelIndex = 0, history = false, group = '', extra = null) {
     const comments = kind === 'comments';
     let items = pending ?? feed.catalog_items ?? (comments ? Array.from(feed.contents ?? feed.replies ?? []).filter(thread => normalizeComment(thread)) :
       [...Array.from(feed.videos ?? []).map((node, offset) => {
         const item=normalizeVideo(node,playlist);
         if(item && channel && channelIndex+offset<=100000)
           item.playback_context={channel,index:channelIndex+offset};
-        return item;
+        return item && extra?.video?extra.video(node,item):item;
       }), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean));
     if(!comments && !playlist && !channel && !pending) {
       const attached=this.groups.attach(owner,feed,items,group,true);group=attached.key;items=attached.items;
     }
+    // Hidden rows keep their source and group positions; they are only not shown.
+    if(!comments && !pending && extra?.hide)items=items.filter(item=>!extra.hide(item));
     const nextChannelIndex=channel && !pending ? channelIndex+Array.from(feed.videos ?? []).length : channelIndex;
     if (items.length > 4096) throw new LibraryError('upstream_limit', 'The returned page exceeds the item limit.', 502);
     for (const [key, value] of this.threads) if (value.deadline <= this.clock()) this.threads.delete(key);
@@ -254,7 +264,7 @@ export class Library {
     if (remaining.length || feed.has_continuation) {
       if (this.cursors.size >= 64) this.cursors.delete(this.cursors.keys().next().value);
       cursor = randomUUID();
-      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, history, group, deadline: this.clock() + 120000 });
+      this.cursors.set(cursor, { owner, kind, feed, remaining, playlist, channel, channelIndex:nextChannelIndex, history, group, extra, deadline: this.clock() + 120000 });
     }
     return { api_version: 1, kind, items: output, cursor, has_more: !!cursor };
   }
@@ -264,9 +274,12 @@ export class Library {
     const where = requestLocale(input, LibraryError);
     if (input.action === 'suggestions_filter') {
       if(!this.profiles.has(owner))throw new LibraryError('unknown_profile','Select an available profile.',404);
+      const flags=hideSet(input.hide,LibraryError),area=this.suggestionFilters.area(owner,input.id);
       const feed=await this.suggestionFilters.open(owner,input.id);
-      if(!this.suggestionPages.has(feed))this.suggestionPages.set(feed,this.page(owner,'catalog',feed));
-      return this.suggestionPages.get(feed);
+      const signature=flags?Array.from(flags).sort().join(','):'-';
+      if(this.suggestionPages.get(feed)?.signature!==signature)
+        this.suggestionPages.set(feed,{signature,page:this.page(owner,'catalog',feed,null,'','',0,false,'',{hide:hides(flags,area)})});
+      return this.suggestionPages.get(feed).page;
     }
     if (input.action === 'group_window') return this.groups.window(owner,input,await this.client(owner, where));
     if (input.action === 'channel_window') return channelWindow(await this.client(owner, where),input,normalizeVideo,LibraryError);
@@ -297,7 +310,7 @@ export class Library {
           const feed = entry.remaining.length ? entry.feed : await this.groups.continuation(entry.feed);
           if(this.cursors.get(input.cursor)!==entry || entry.deadline<=this.clock())
             throw new LibraryError('cursor_expired','Reload this page to continue.',409);
-          const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history, entry.group);
+          const result = this.page(owner, entry.kind, feed, entry.remaining.length ? entry.remaining : null, entry.playlist, entry.channel, entry.channelIndex, entry.history, entry.group, entry.extra);
           entry.result = result;
           return result;
         })();
@@ -323,11 +336,12 @@ export class Library {
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched',
-      'channels', 'notifications', 'feedback']);
+      'channels', 'notifications', 'feedback', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear']);
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description', 'channel', 'channel_search'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
+    if (['channel', 'channel_search'].includes(input.action)) requireId(input.channel, channelId);
     if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched', 'description', 'feedback'].includes(input.action))
       requireId(input.id, videoId);
     if (['subscribe', 'unsubscribe'].includes(input.action)) requireId(input.id, channelId);
@@ -335,11 +349,22 @@ export class Library {
     if (input.action === 'suggestions') requireId(input.id, videoId);
     if (['playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete'].includes(input.action))
       requireId(input.playlist, playlistId);
-    const query = input.action === 'search' ? searchQuery(input.query, LibraryError) : '';
+    const query = ['search', 'channel_search'].includes(input.action) ? searchQuery(input.query, LibraryError) : '';
+    const flags = hideSet(input.hide, LibraryError);
+    const extra = { hide: hides(flags, hideSection(input)) };
     const filters = input.action === 'search' ? searchFilters(input, LibraryError) : null;
     if (input.action === 'search_suggestions') searchQuery(input.query ?? '', LibraryError, true);
     const client = await this.client(owner, where);
     if (input.action === 'feedback') return this.feedback.submit(owner, client, input);
+    if (['playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear'].includes(input.action))
+      return this.account.run(owner, client, input);
+    if (input.action === 'channel' || input.action === 'channel_search') {
+      const opened = await channelPage(client, input, LibraryError, query);
+      const author = { name: opened.info.title, id: input.channel };
+      const feed = opened.info.tab === 'home' ? channelHome(owner, opened.feed, client, this.channelCatalog, node => normalizeVideo(node)) :
+        opened.info.tab === 'shorts' ? mappedFeed(opened.feed, node => normalizeVideo(shortsCard(node, author)), normalizePlaylist) : opened.feed;
+      return { ...this.page(owner, 'catalog', feed, null, '', opened.indexed ? input.channel : '', 0, false, '', extra), channel: opened.info };
+    }
     if (input.action === 'search_suggestions') return searchSuggestions(client, input, LibraryError);
     if (input.action === 'description') return videoDescription(client, input, LibraryError);
     if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
@@ -348,7 +373,7 @@ export class Library {
       const feed = input.action === 'topics' ? await this.topics.root(owner, input.section, client,
         authenticated && client.session?.logged_in === true) :
         await this.topics.open(owner, input.section, input.id);
-      return this.page(owner, 'catalog', feed);
+      return this.page(owner, 'catalog', feed, null, '', '', 0, false, '', extra);
     }
     if (input.action === 'comment_rate') {
       const entry = this.commentRatings.get(input.cursor);
@@ -402,7 +427,7 @@ export class Library {
     }
     let feed;
     switch (input.action) {
-      case 'home': feed = this.homeCatalog.root(owner,await client.getHomeFeed(),client); break;
+      case 'home': feed = this.homeCatalog.root(owner,await client.getHomeFeed(),client,true,!flags || flags.has('watched_home')); break;
       case 'suggestions': {
         const info=await client.getInfo(input.id);
         if(info?.basic_info?.id!==input.id)
@@ -413,7 +438,9 @@ export class Library {
         node=>normalizeChannel(node, imageUrl), LibraryError); break;
       case 'channels': feed = channelsFeed(await client.getChannelsFeed(), node=>normalizeChannel(node, imageUrl), LibraryError); break;
       case 'notifications': feed = notificationsFeed(await client.getNotifications(), node=>normalizeVideo(node), LibraryError); break;
-      case 'subscriptions': feed = await client.getSubscriptionsFeed(); break;
+      // Subscriptions cards keep their private hide token behind a feedback reference.
+      case 'subscriptions': feed = await client.getSubscriptionsFeed();
+        extra.video = (node, item) => this.feedback.decorate(owner, node, item); break;
       case 'history': feed = await client.getHistory(); break;
       case 'library': feed = await client.getLibrary(); break;
       case 'playlists': feed = await client.getPlaylists(); break;
@@ -425,8 +452,12 @@ export class Library {
         return this.page(owner, 'comments', feed);
       default: break;
     }
-    if (feed) return this.page(owner, 'catalog', feed, null,
-      input.action === 'playlist' ? input.id : input.action === 'watch_later' ? 'WL' : '', '', 0, input.action==='history');
+    if (feed) {
+      const page = this.page(owner, 'catalog', feed, null,
+        input.action === 'playlist' ? input.id : input.action === 'watch_later' ? 'WL' : '', '', 0, input.action==='history', '', extra);
+      const paused = input.action === 'history' ? historyPaused(feed) : undefined;
+      return paused === undefined ? page : { ...page, history_paused: paused };
+    }
     let response;
     switch (input.action) {
       case 'like': response = await client.interact.like(requireId(input.id, videoId)); break;

@@ -1,5 +1,61 @@
 // Channel Videos navigation uses source positions, never synthesized playlist IDs.
+import {YT} from 'youtubei.js';
 import {hydrateWindowChannels} from './video_channels.mjs';
+
+// Channel page sections the pinned Channel parser can open, in display order.
+const tabs={home:['has_home','getHome'],videos:['has_videos','getVideos'],shorts:['has_shorts','getShorts'],
+  live:['has_live_streams','getLiveStreams'],playlists:['has_playlists','getPlaylists']};
+const orders=['newest','popular','oldest'];
+const label=value=>String(value ?? '').replaceAll('\0','').slice(0,192);
+// Order chips are recognized by position (newest, popular, oldest) because
+// their labels are localized; any other chip layout offers no order.
+function orderChips(feed) {
+  let chips;
+  try {chips=Array.from(feed?.filter_nodes?.primary_filters ?? []);} catch {return [];}
+  const selected=chip=>chip.type==='ChipView'?chip.selected===true:chip.is_selected===true;
+  if(chips.length<2 || chips.length>3 || chips.some(chip=>!['ChipView','ChipCloudChip'].includes(chip?.type) ||
+     typeof chip.endpoint?.call!=='function') || !selected(chips[0]) || chips.slice(1).some(selected))return [];
+  return chips;
+}
+export function mappedFeed(feed,video,playlist) {
+  return {catalog_items:[...Array.from(feed?.videos ?? []).map(video),...Array.from(feed?.playlists ?? []).map(playlist)].filter(Boolean),
+    has_continuation:!!feed?.has_continuation,
+    ...(typeof feed?.getContinuation==='function'?{getContinuation:async()=>mappedFeed(await feed.getContinuation(),video,playlist)}:{})};
+}
+// The Home section becomes one folder per shelf; cards outside shelves follow.
+export function channelHome(owner,feed,client,catalog,video) {
+  const rows=[];
+  for(const section of Array.from(feed?.current_tab?.content?.contents ?? []).slice(0,256))
+    rows.push(...(section?.type==='ItemSection'?Array.from(section.contents ?? []):[section]));
+  const {folders,nested}=catalog.folders(owner,rows,client,0);
+  return {catalog_items:[...folders,...Array.from(feed?.videos ?? []).filter(node=>!nested.has(node)).map(video).filter(Boolean)],
+    has_continuation:false};
+}
+// Opens one section (or an in-channel search) and reports what the channel offers.
+export async function channelPage(client,input,ErrorType,query='',
+    wrap=(actions,page)=>new YT.ChannelListContinuation(actions,page,true)) {
+  const search=input.action==='channel_search',tab=input.tab || 'videos',order=input.channel_sort || 'newest';
+  if(typeof input.channel!=='string' || !/^UC[A-Za-z0-9_-]{22}$/.test(input.channel) || input.id || input.playlist ||
+     (search?!!(input.tab || input.channel_sort):!Object.hasOwn(tabs,tab) || !orders.includes(order)))
+    throw new ErrorType('invalid_request','Select a channel and one of its sections.');
+  const channel=await client.getChannel(input.channel);
+  const available=Object.keys(tabs).filter(name=>channel[tabs[name][0]]===true);
+  const info={id:input.channel,title:label(channel.metadata?.title),tabs:available,search:channel.has_search===true};
+  if(search) {
+    if(!info.search)throw new ErrorType('channel_search_unavailable','This channel cannot be searched.',404);
+    return {feed:await channel.search(query),indexed:false,info:{...info,tab:'search',sort:'',sorts:[]}};
+  }
+  if(!available.includes(tab))throw new ErrorType('channel_tab_unavailable','This channel has no such section.',404);
+  let feed=await channel[tabs[tab][1]]();
+  const chips=['videos','shorts','live'].includes(tab)?orderChips(feed):[],sorts=orders.slice(0,chips.length);
+  if(order!=='newest') {
+    if(!sorts.includes(order))
+      throw new ErrorType('channel_sort_unavailable','This channel section does not offer that order.',404);
+    feed=wrap(client.actions,await chips[orders.indexOf(order)].endpoint.call(client.actions,{parse:true}));
+  }
+  // Only the default Videos order matches the positions channel_window walks.
+  return {feed,indexed:tab==='videos' && order==='newest',info:{...info,tab,sort:sorts.length?order:'',sorts}};
+}
 export async function channelWindow(client,input,normalize,ErrorType) {
   if(input.require_channel!==undefined && typeof input.require_channel!=='boolean')
     throw new ErrorType('invalid_request','Channel verification must be a boolean.');

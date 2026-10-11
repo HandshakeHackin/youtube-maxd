@@ -8,9 +8,10 @@ export class SuggestionFilters {
     this.ErrorType=ErrorType;this.normalize=normalize;this.clock=clock;this.entries=new Map();
   }
   prune() {for(const [key,entry] of this.entries)if(entry.deadline<=this.clock())this.entries.delete(key);}
-  register(owner,title,subtitle,load) {
+  // area names the content-filter section the opened rows belong to.
+  register(owner,title,subtitle,load,area='') {
     this.prune();while(this.entries.size>=256)this.entries.delete(this.entries.keys().next().value);
-    const key=randomUUID();this.entries.set(key,{owner,load,deadline:this.clock()+120000});
+    const key=randomUUID();this.entries.set(key,{owner,load,area,deadline:this.clock()+120000});
     return {id:'library:filter:'+key,title,subtitle,is_folder:true};
   }
   decorate(owner,feed,client,depth=0) {
@@ -45,6 +46,7 @@ export class SuggestionFilters {
     }
     return {...feed,catalog_items:[...folders,...feed.catalog_items]};
   }
+  area(owner,key) {const entry=this.entries.get(key);return entry?.owner===owner?entry.area:'';}
   async open(owner,key) {
     this.prune();const entry=this.entries.get(key);
     if(!entry || entry.owner!==owner)throw new this.ErrorType('cursor_expired','Reload the source screen to open this section or filter.',409);

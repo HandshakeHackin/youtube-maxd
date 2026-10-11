@@ -3,7 +3,8 @@ import {randomUUID} from 'node:crypto';
 // Recommendation feedback tokens stay inside the worker. A Home card exposes
 // only an expiring, profile-owned reference and the available choices.
 // Choices are recognized by structured icon identity, never by localized text.
-const icons={not_interested:'NOT_INTERESTED',dont_recommend_channel:'REMOVE'};
+// HIDE is the Subscriptions card choice that removes one entry from the feed.
+const icons={not_interested:'NOT_INTERESTED',dont_recommend_channel:'REMOVE',hide:'HIDE'};
 const token=value=>typeof value==='string' && value.length>0 && value.length<=8192;
 function sheetItems(root) {
   const found=[],stack=[[root,0]];
@@ -54,12 +55,12 @@ export class FeedbackActions {
   decorate(owner,node,item) {
     const entry=item && !item.is_folder?this.register(owner,node,item.id):null;
     return entry?{...item,feedback_cursor:entry.cursor,feedback_not_interested:!!entry.tokens.not_interested,
-      feedback_channel:!!entry.tokens.dont_recommend_channel}:item;
+      feedback_channel:!!entry.tokens.dont_recommend_channel,...(entry.tokens.hide?{feedback_hide:true}:{})}:item;
   }
   async submit(owner,client,input) {
     const entry=this.entries.get(input.cursor),kind=input.feedback;
     if(!entry || entry.owner!==owner || entry.id!==input.id || entry.deadline<=this.clock())
-      throw new this.ErrorType('cursor_expired','Reload Home before sending this feedback.',409);
+      throw new this.ErrorType('cursor_expired','Reload the list before sending this feedback.',409);
     if(typeof kind!=='string' || !Object.hasOwn(icons,kind) || !entry.tokens[kind])
       throw new this.ErrorType('invalid_feedback','Select an available feedback choice.');
     if(!client.session?.logged_in)
@@ -67,7 +68,7 @@ export class FeedbackActions {
     const previous=entry.attempts[kind];
     if(previous) {
       if(previous.result)return previous.result;
-      throw new this.ErrorType('feedback_unconfirmed','Check Home before repeating this feedback.',409);
+      throw new this.ErrorType('feedback_unconfirmed','Check the list before repeating this feedback.',409);
     }
     const attempt=entry.attempts[kind]={};
     // Submit exactly the token retained for this card and choice.

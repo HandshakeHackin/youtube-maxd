@@ -123,7 +123,8 @@ export class TopicCatalog {
     const parts = /^\d{1,3}:\d{2}(?::\d{2})?$/.test(durationText) ? durationText.split(':').map(Number) : [];
     const duration = parts.length && parts.slice(1).every(value => value < 60) ? parts.reduce((n, v) => n * 60 + v, 0) : 0;
     return this.normalizeVideo({ id, title, author: { name: author, id: channel }, duration,
-      thumbnails: [{ url: image }], ...this.videoState(tile,overlays) });
+      thumbnails: [{ url: image }], ...this.videoState(tile,overlays),
+      is_short: tile.contentType === 'TILE_CONTENT_TYPE_SHORTS' || !!tile.onSelectCommand?.reelWatchEndpoint });
   }
   videoState(video, overlays) {
     const status=overlays.map(value=>value.thumbnailOverlayTimeStatusRenderer).find(Boolean);
