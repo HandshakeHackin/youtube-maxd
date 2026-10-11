@@ -8,7 +8,9 @@
 static int mode=1;
 static double rate=1;
 static time_t wall=1704067200;
+static int time_flags=0;
 static int tube_player_time_mode(){return mode;}
+static int tube_extra_time_flags(){return time_flags;}
 static int tube_player_set_time_mode(int value){if(value<0 || value>2)return 0;mode=value;return 1;}
 static double evo_audio_rate(){return rate;}
 static time_t test_wall(time_t*){return wall;}
@@ -67,6 +69,11 @@ int main(){
     char small[3]={'x','x','x'};tube_time_display(small,sizeof small,2,40,100,1,0,wall);assert(small[2]==0);
     tube_time_display(nullptr,0,0,0,0,1,0,wall);
     for(mode=0;mode<3;++mode){rate=2;rml();hui();assert(element.text==list.text);}
+    // The 12-hour preference reaches both shipping finish-time labels.
+    time_flags=TUBE_TIME_12H;mode=2;rate=1;rml();hui();
+    assert(element.text=="Ends 12:01 AM / 01:40" && list.text==element.text);
+    mode=1;rml();hui();assert(element.text=="-01:00 / 01:40" && list.text==element.text);
+    time_flags=0;rate=2;
     mode=2;rml();int writes=element.writes;m_frame_dirty=false;rml();assert(element.writes==writes && !m_frame_dirty);
     wall+=60;rml();assert(element.writes==writes+1 && m_frame_dirty); // Paused state does not change.
     mode=1;rate=2;state.scrub_active=raw_.scrub_active=true;state.scrub_target=raw_.scrub_target=80;

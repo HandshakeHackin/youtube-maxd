@@ -15,8 +15,8 @@ static double prospero_subtitle_time_scale=1.25;
 static int evo_pb_is_complete() { return complete; }
 static int evo_demux_is_seeking() { return seeking; }
 static double evo_audio_rate() { return engine_rate/100.0; }
-static int tube_speed_count() { return 3; }
-static int tube_speed_at(int i) { const int rates[]={25,100,125}; return rates[i]; }
+static int tube_extra_speed_count() { return 3; }
+static int tube_extra_speed_at(int i) { const int rates[]={25,100,125}; return rates[i]; }
 static int tube_remember_playback_speed(const char *id, int percent) { assert(std::string(id)=="abcdefghijk"); saved_rate=percent; return 1; }
 static int provider_stops;
 enum { EVO_PROVIDER_CAP_PROGRESS=1, EVO_PROVIDER_PLAY_STOP=3 };
