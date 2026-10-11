@@ -64,7 +64,10 @@ Natural drain in repeat-one seeks to zero once, retains the current queued entry
 and rearms completion only after playback leaves EOF and the seek is idle. Failed
 seeks pause with a message instead of retrying each frame. Exhausted continuation
 pauses explicitly, while phone-owned completion remains under phone control.
-SponsorBlock-induced completion still needs the same mode integration.
+Acknowledged SponsorBlock end skips pause the current frame and enter the same
+completion path, preserving phone ownership and asynchronous playlist waits.
+A successful repeat/manual seek retires that explicit completion only after the
+idle playback position reaches the target; a failed seek keeps it paused.
 Continuous and playlist-only
 currently share queue/playlist behavior; recommendation context is still missing.
 

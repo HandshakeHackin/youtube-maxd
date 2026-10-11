@@ -5,7 +5,7 @@ import sys
 source = Path(sys.argv[1]).read_text()
 destination = Path(sys.argv[2])
 destination.mkdir(parents=True, exist_ok=True)
-tick_start = source.index("    const bool ended = evo_pb_is_complete() != 0;")
+tick_start = source.index("    tube_completion_seek_observe(")
 tick_end = source.index("    /*\n     * Ask the playback engine", tick_start)
 input_start = source.index("    if (!m_showStatsForNerds && !playback->isScrubbing() &&")
 input_end = source.index("    // Scrub hold update", input_start)

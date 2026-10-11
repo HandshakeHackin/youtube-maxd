@@ -4,6 +4,7 @@
 #include <limits>
 #include <initializer_list>
 #include <pthread.h>
+#include <string>
 using std::isfinite;
 
 static void *play_fmt = reinterpret_cast<void *>(1);
@@ -20,6 +21,8 @@ static bool hold, complete_before_return;
 static void pp_playback_notify_seek_begin(int *, int64_t) { ++begins; hold = true; }
 static void pp_playback_resume(int *) { ++resumes; }
 static void evo_boot_log(const char *, ...) {}
+static int completion_seeks;
+static void tube_completion_seek_started(double) { ++completion_seeks; }
 
 #define prospero_request_inplace_seek shipping_request
 #include "seek_request.inc"
@@ -39,6 +42,7 @@ static int prospero_request_inplace_seek(double target, int paused) {
 
 class PlaybackController {
 public:
+    struct { std::string provider="youtube"; } m_source;
     bool active = true;
     double m_resumeBaseOffset = 11.5;
     bool isActive() const { return active; }
@@ -53,6 +57,7 @@ static void reset() {
     controls_last_used_ms = 777;
     resume_base_offset_seconds = 11.5; begins = resumes = request_calls = 0;
     hold = complete_before_return = false;
+    completion_seeks=0;
 }
 
 int main() {
@@ -60,9 +65,11 @@ int main() {
     reset(); play_fmt = nullptr;
     ui.seekTo(45.25);
     assert(request_calls == 1 && !prospero_seek_pending && resumes == 1);
+    assert(!completion_seeks);
     assert(resume_base_offset_seconds == 11.5 && ui.m_resumeBaseOffset == 11.5 && !hold && begins == 0);
 
     reset(); ui.seekTo(45.25);
+    assert(completion_seeks==1);
     assert(prospero_seek_pending && prospero_seek_target_seconds == 45.25 && player_paused);
     assert(resume_base_offset_seconds == 11.5 && ui.m_resumeBaseOffset == 11.5 && begins == 0);
     // A later rejected av_seek_frame leaves the previous base untouched.

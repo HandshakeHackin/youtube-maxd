@@ -125,6 +125,9 @@ static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
 static int g_completion_action, g_completion_consumed;
 static unsigned g_completion_scope;
+static int g_sponsor_completed;
+static int g_sponsor_seek_pending;
+static double g_sponsor_seek_target;
 static int g_queue_respects_mode;
 static int queue_mode_allows_advance(void) {
     return g_autoplay || ((g_playback_mode==TUBE_MODE_PAUSE || g_playback_mode==TUBE_MODE_CLOSE) && !g_queue_respects_mode);
@@ -3109,7 +3112,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     } else if (state != EVO_PROVIDER_PLAY_START || pos > 0) r->item.resume_pos_sec = pos > 0 ? pos : 0;
     r->updated = (long long)time(NULL);
     if (dur > 0 && pos >= dur * 0.95 && pos >= dur - 10) { r->item.played = 1; r->item.resume_pos_sec = 0; }
-    if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; g_completion_action=g_completion_consumed=0; }
+    if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; g_completion_action=g_completion_consumed=0; g_sponsor_completed=g_sponsor_seek_pending=0; }
     if (!strcmp(id, g_watch.id) && !g_watch.failed && !g_watch.stopped && pos >= 0 && pos <= 1000000 &&
         (state == EVO_PROVIDER_PLAY_UPDATE || state == EVO_PROVIDER_PLAY_STOP)) {
         g_watch.position = pos; g_watch.stopped = state == EVO_PROVIDER_PLAY_STOP;
@@ -3124,6 +3127,7 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     if (!recovering && !++g_selection_serial) ++g_selection_serial;
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     g_completion_action=g_completion_consumed=0;
+    g_sponsor_completed=g_sponsor_seek_pending=0;
     g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;
     g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
@@ -3595,14 +3599,36 @@ int tube_sponsor_finish(double target, double duration) {
     /* An acknowledged optional skip may reach (or overrun) the known end.
      * Finish deliberately instead of asking the demuxer to seek past its last
      * decodable frame. This is separate from natural presentation drain. */
-    if (!sponsor_scope() || g_finished || g_sb_active_serial != g_sb_serial ||
+    if (!sponsor_scope() || g_finished || tube_sponsor_completed() || g_sb_active_serial != g_sb_serial ||
         strcmp(g_active_id, g_resolved_id) || strcmp(g_active_profile, g_sb_profile) ||
         g_recovery.choice.is_live || !isfinite(target) || !isfinite(duration) ||
         duration <= 0 || duration > 1000000 || target < duration ||
         target != g_sb_finish_target || target != g_skip_until || g_skip_guard < 0) return 0;
     g_sb_finish_target = -1;
-    (void)finish_and_next(0);
-    return 1; /* The caller stops and returns even with autoplay disabled. */
+    g_sponsor_completed=1;
+    g_completion_scope=g_playlist_scope;
+    return 1; /* Acknowledge the skip; the player's completion path owns mode actions. */
+}
+
+int tube_sponsor_completed(void) {
+    return g_sponsor_completed && g_completion_scope==g_playlist_scope &&
+        !strcmp(g_active_profile,g_library_profile);
+}
+void tube_completion_seek_started(double target) {
+    if(tube_sponsor_completed() && isfinite(target) && target>=0) {
+        g_sponsor_seek_pending=1;g_sponsor_seek_target=target;
+    }
+}
+void tube_completion_seek_observe(double position,int busy) {
+    if(!g_sponsor_seek_pending || busy) return;
+    g_sponsor_seek_pending=0;
+    if(!tube_sponsor_completed()) return;
+    if(isfinite(position) && fabs(position-g_sponsor_seek_target)<=1.0) {
+        g_sponsor_completed=g_sponsor_seek_pending=0;
+        tube_playlist_eof_cancel();g_finished=0;g_skip_guard=-1;
+    } else {
+        g_completion_consumed=0;g_completion_action=TUBE_COMPLETION_PAUSE;
+    }
 }
 
 int tube_finish_and_next(double position, double duration) {
@@ -3610,7 +3636,7 @@ int tube_finish_and_next(double position, double duration) {
 }
 
 int tube_finish_drained_and_next(double position) {
-    /* Called only with the engine's natural EOF + audio/video retirement proof.
+    /* Called with natural EOF + retirement proof, or an acknowledged end skip.
      * Unknown/inaccurate metadata duration must not prevent a clean completion. */
     if (!isfinite(position) || position<0) return 0;
     int next=finish_and_next(1);

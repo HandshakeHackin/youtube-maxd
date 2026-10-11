@@ -13,8 +13,7 @@ def apply_sponsor_overlay(replace, player):
         double target = tube_sponsor_confirm(playback->getPositionSeconds(), accept);
         toast("SPONSORBLOCK", accept ? "Skipping segment" : "Keeping this segment");
         if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
-            playback->stopPlayback();
-            if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
+            playback->setPaused(true);
             return true;
         }
         if (target >= 0 && target < playback->getDurationSeconds() &&
@@ -54,8 +53,7 @@ def apply_sponsor_overlay(replace, player):
         if (target >= 0 && target < playback->getDurationSeconds()) {''', '''        double target = tube_skip_target(playback->getPositionSeconds());
         if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
             if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped the final segment");
-            playback->stopPlayback();
-            if (auto sm = Application::getInstance().getScreenManager()) sm->returnFromPlayback();
+            playback->setPaused(true);
             return;
         }
         if (target >= 0 && target < playback->getDurationSeconds()) {''')

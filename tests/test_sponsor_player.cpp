@@ -34,6 +34,9 @@ static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, hi
 static bool finish_allowed, show_message, accepted;
 static bool phone_finished, phone_owns, local_finished;
 static int local_finish_calls, phone_finish_calls;
+static bool sponsor_completed;
+static int tube_sponsor_completed() { return sponsor_completed; }
+static void tube_completion_seek_observe(double,int) {}
 enum { TUBE_COMPLETION_PAUSE=1, TUBE_COMPLETION_REPEAT=2 };
 static int completion_action, completion_taken;
 static int tube_take_completion_action() { ++completion_taken; int a=completion_action;completion_action=0;return a; }
@@ -65,7 +68,8 @@ static double tube_sponsor_confirm(double, int accept) {
 static int tube_sponsor_show_message() { return show_message; }
 static int tube_sponsor_finish(double target, double duration) {
     ++finish_calls;
-    return finish_allowed && target >= duration;
+    sponsor_completed=finish_allowed && target>=duration;
+    return sponsor_completed;
 }
 static void tick() {
 #include "tick.inc"
@@ -77,6 +81,7 @@ static bool input(unsigned pressed) {
 static void reset() {
     state = Playback{}; manager.returns = 0;
     completion_action=completion_taken=0;
+    sponsor_completed=false;
     playlist_wait=false; playlist_cancels=0;
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
@@ -135,16 +140,24 @@ int main() {
     assert(state.seeks == 1 && notices == 1 && !manager.returns);
     for (double end : {100.0, 105.0}) {
         reset(); next_target = end; finish_allowed = true; show_message = true; tick();
-        assert(state.stops == 1 && manager.returns == 1 && !state.seeks && notices == 1);
+        assert(state.paused && !state.stops && !manager.returns && !state.seeks && notices == 1);
         reset(); next_target = end; finish_allowed = true; tick();
-        assert(state.stops == 1 && manager.returns == 1 && !state.seeks && !notices);
+        assert(state.paused && !state.stops && !manager.returns && !state.seeks && !notices);
+        local_finished=true;tick();assert(state.stops==1 && manager.returns==1);
     }
+    reset();next_target=100;finish_allowed=true;tick();
+    completion_action=TUBE_COMPLETION_REPEAT;tick();assert(state.seeks==1 && state.sought==0 && !state.stops);
+    reset();sponsor_completed=true;phone_owns=true;phone_finished=true;tick();
+    assert(state.stops==1 && manager.returns==1 && !local_finish_calls);
+    reset();sponsor_completed=true;playlist_wait=true;tick();
+    assert(!state.stops && local_finish_calls==1);
+    local_finished=true;tick();assert(state.stops==1 && manager.returns==1);
     // A rejected/stale completion cannot fall through into a clamped end seek.
     reset(); next_target = 100; tick();
     assert(!state.stops && !state.seeks && !manager.returns);
     reset(); next_target = 100; finish_allowed = true; prompt = "Skip outro?";
     assert(input(PadButtons::Cross));
-    assert(accepted && confirm_calls == 1 && state.stops == 1 && manager.returns == 1 && !state.seeks);
+    assert(accepted && confirm_calls == 1 && state.paused && !state.stops && !manager.returns && !state.seeks);
     reset(); next_target = 90; prompt = "Skip sponsor?";
     assert(input(PadButtons::Cross));
     assert(accepted && state.seeks == 1 && state.sought == 90 && !state.stops);

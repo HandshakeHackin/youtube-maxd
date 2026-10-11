@@ -126,6 +126,7 @@ int main(void) {
     assert(!tube_sponsor_finish(target, 110)); // In-video targets must seek instead.
     assert(tube_sponsor_finish(target, 100));
     assert(!tube_sponsor_finish(target, 100)); // One completion, even without autoplay.
+    assert(!tube_finish_drained_and_next(80));
     provider->report_progress("abcdefghijk", 80, 100, EVO_PROVIDER_PLAY_STOP);
     provider->list_catalog("history", 0, items_cb, NULL);
     assert(last_ok && last_count == 1 && last_items[0].played && !last_items[0].resume_pos_sec);
@@ -142,12 +143,35 @@ int main(void) {
     target = tube_sponsor_confirm(80, 1); assert(target == 100);
     assert(tube_sponsor_finish(target, 100));
     evo_provider_item_t next;
+    assert(tube_finish_drained_and_next(80));
     assert(tube_take_next(&next) && !strcmp(next.id, "12345678901"));
     assert(!tube_take_next(&next));
     provider->report_progress("abcdefghijk", 80, 100, EVO_PROVIDER_PLAY_STOP);
     provider->list_catalog("queue", 0, items_cb, NULL);
     assert(last_count == 1 && !strcmp(last_items[0].id, "12345678901"));
     // Resolving again invalidates completion authorization from the old instance.
+    assert(tube_set_playback_mode(TUBE_MODE_ONE));
+    for(int failed=0;failed<2;++failed) {
+        action("sponsor",0);
+        segments("{\"segments\":[{\"start\":80,\"end\":100,\"category\":\"sponsor\"}]}");
+        provider->stream_chosen("abcdefghijk",&selected);
+        assert(tube_skip_target(80)==100 && tube_sponsor_finish(100,100));
+        assert(!tube_finish_drained_and_next(80));
+        assert(tube_sponsor_completed() && tube_take_completion_action()==TUBE_COMPLETION_REPEAT);
+        tube_completion_seek_started(0);
+        tube_completion_seek_observe(80,1);assert(tube_sponsor_completed());
+        tube_completion_seek_observe(failed?80:0,0);
+        assert(tube_sponsor_completed()==failed);
+        if(failed) {
+            assert(tube_take_completion_action()==TUBE_COMPLETION_PAUSE);
+            assert(!tube_take_completion_action());
+        } else {
+            tube_completion_playback_state(0,0);
+            assert(!tube_finish_drained_and_next(100));
+            assert(tube_take_completion_action()==TUBE_COMPLETION_REPEAT);
+        }
+    }
+    assert(tube_set_playback_mode(TUBE_MODE_ALL));
     action("sponsor", 0);
     segments("{\"segments\":[{\"start\":80,\"end\":100,\"category\":\"sponsor\"}]}");
     provider->stream_chosen("abcdefghijk", &selected);

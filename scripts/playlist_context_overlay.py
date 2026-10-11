@@ -1,6 +1,10 @@
 """Carry playlist occurrence metadata through actual provider rows and launch staging."""
 def apply_playlist_context_overlay(replace, player, host):
     replace(player+'core/src/services/PlaybackController.cpp',
+        '    /* The demux thread owns seek begin/end. Announcing begin here, after',
+        '''    if (m_source.provider=="youtube") tube_completion_seek_started(targetSeconds);
+    /* The demux thread owns seek begin/end. Announcing begin here, after''')
+    replace(player+'core/src/services/PlaybackController.cpp',
         '        .addTransition(PlaybackState::Finished, PlaybackEvent::Open, PlaybackState::Opening)',
         '''        .addTransition(PlaybackState::Finished, PlaybackEvent::Pause, PlaybackState::Paused,
                        [this]() { return isActive(); })
@@ -23,7 +27,9 @@ def apply_playlist_context_overlay(replace, player, host):
         if (tube_set_playback_mode(e.streamIndex)) toast("PLAYBACK MODE",e.label.c_str());
     } else if (e.kind == KindSleep) {''')
     screen=player+'core/src/screens/PlayerScreen.cpp'
-    replace(screen, '    const bool ended = evo_pb_is_complete() != 0;', '''    const bool ended = evo_pb_is_complete() != 0;
+    replace(screen, '    const bool ended = evo_pb_is_complete() != 0;', '''    tube_completion_seek_observe(playback->getPositionSeconds(), playback->isScrubbing() ||
+        evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold);
+    const bool ended = evo_pb_is_complete() != 0 || tube_sponsor_completed();
     const bool completionBusy=playback->isScrubbing() || evo_demux_is_seeking() ||
         g_pp_pb.seek_discarding || pb_prebuffer_hold;
     if (!tube_phone_owns_media()) tube_completion_playback_state(ended,completionBusy);''')
@@ -33,7 +39,7 @@ def apply_playlist_context_overlay(replace, player, host):
             if (!playback->seekTo(0.0,false)) {
                 playback->setPaused(true);
                 toast("PLAYBACK", "Could not restart this video");
-            }
+            } else playback->setPaused(false);
         } else if (action==TUBE_COMPLETION_PAUSE) playback->setPaused(true);
     }
     if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&''')

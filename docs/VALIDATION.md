@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## SponsorBlock completion modes — 2026-10-11
+
+An acknowledged final-segment skip now pauses the current frame and presents
+explicit completion to the same player path as natural EOF. That path retains
+phone queue ownership, waits for local playlist windows and dispatches the chosen
+pause/repeat/close/advance policy. It avoids requesting a frame beyond the end.
+Manual/repeat seek acceptance alone does not retire explicit completion: an idle
+position within one second of the requested target is required. Failed seeks
+retain the completion and pause; successful seeks cancel a pending playlist advance.
+
+Final native SponsorBlock, playlist-window and profile suites passed, including
+repeat after end skip and successful/failed seek observation. Extracted shipping
+player paths passed paused end acknowledgement, subsequent advance/repeat, phone
+ownership and pending playlist cases (`.deps/sponsor-modes-final-{native,player}.log`).
+The seek handoff, generated-media demux, failed-seek clock, audio-only and video
+discard regressions passed. PS5 provider, PlayerScreen and PlaybackController
+objects compiled successfully; SDK qualified-math warnings remain. Logs:
+`.deps/sponsor-modes-final-seek.log` and `.deps/sponsor-modes-final-sdk.log`.
+Hardware acceptance remains pending; no console connections occurred.
+
 ## Natural EOF repeat, pause and player mode controls — 2026-10-11
 
 All seven playback-mode choices are now present in browser settings and the
