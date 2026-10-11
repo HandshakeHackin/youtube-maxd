@@ -1,5 +1,26 @@
 # Offline validation record — 0.1.0
 
+## Playlist window-edge continuation — 2026-10-11
+
+Natural EOF now makes one index-only lookup for the immediately following
+occurrence when the anchored WatchNext window ends at the current video. It
+stages that confirmed target, rather than the item after it, and retains the
+same playback owner across both requests. Repeated EOF ticks do not duplicate
+the lookup. Failed/mismatched results stop the attempt; cancellation or a new
+selection (including the same video ID) retires it immediately.
+
+The native window fixture passed normal edge continuation, cancellation,
+replacement and wrong-index cases; the queue-failure suite also passed. Full
+playback modes, traversal across unavailable target slots, radio continuations, channel/recommendation
+context and console acceptance remain open. No console connections occurred.
+Retired lookup responses are rejected before HTTP error handling, so an old
+401 cannot clear current credentials or replace the current error message.
+The final window/context, recovery and queue-failure sanitizer batch passed,
+including that stale-401 regression. The phone-provider suite and PS5 provider
+object compilation also passed; existing SDK qualified-math warnings remain.
+Logs: `.deps/playlist-edge-{native,phone,sdk}.log`. This is not yet a complete
+frozen application candidate.
+
 ## Index-only playlist lookup — 2026-10-11
 
 The `playback_at` direct/job operation requests WatchNext with playlist and
@@ -7,7 +28,8 @@ index, without inventing a video ID. Selected playable identity and explicit
 upstream index evidence are required; ambiguous selections, missing position
 proof, conflicting indices and infinite/radio panels fail. Native indexed
 requests retain the currently playing occurrence as owner while validating the
-different target. Existing natural-EOF autoplay rejects a retargeted window.
+different target. Natural-EOF autoplay rejects unrelated retargeted windows;
+the window-edge follow-up permits its specifically requested next occurrence.
 
 The service library/context/window selection passed 50 Python tests and all 68
 worker tests passed; the production worker rebuilt. Logs:
@@ -38,8 +60,7 @@ The expanded native fixture covers queue priority, one-shot playlist handoff,
 controller-side cancellation API and profile retirement while waiting. Actual
 generated player input/tick, recovery handoff and phone failure host tests pass.
 This is the first continuous-playlist path, not the seven-mode policy: reverse,
-shuffle, repeat, pause/close, channel/recommendation context, continuation beyond
-an exhausted returned window and SponsorBlock-induced playlist completion still
+shuffle, repeat, pause/close, channel/recommendation context and SponsorBlock-induced playlist completion still
 need integration. Final packaging and console acceptance remain pending.
 The native phone-provider regression and PS5 compilation of the provider,
 PlayerScreen and ProviderHostScreen passed. Logs are

@@ -36,11 +36,15 @@ begin/status/cancel operations for these windows, validates their contents and
 discards retired responses. With queue/playlist autoplay enabled, natural EOF
 consumes the next returned occurrence after giving explicit queues priority.
 Any controller press cancels the window wait. The full seven-mode policy,
-whole-playlist shuffle and continuation beyond an exhausted window remain open.
+whole-playlist shuffle remain open. At an exhausted window edge, autoplay makes
+one indexed lookup for the immediately following occurrence and stages it only
+if confirmed. Traversal across unavailable target slots and radio continuations
+remain incomplete.
 Index-only `playback_at` requests can retrieve a different occurrence and its
 window while keeping native playback ownership unchanged. This requires an
 explicit selected position from upstream; radio rebasing is not accepted for
-index-only navigation. Mode policy and controls have not yet consumed this path.
+index-only navigation. Window-edge autoplay uses this path; the remaining mode
+policy and controls are still incomplete.
 
 
 ### Live-chat service reader

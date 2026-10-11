@@ -12,7 +12,9 @@ static cJSON *window(void) {
 static void result(cJSON *value) {
     cJSON *root=cJSON_CreateObject();cJSON_AddStringToObject(root,"state","done");
     cJSON_AddItemToObject(root,"result",value);char *text=cJSON_PrintUnformatted(root);
-    poll_job(text);free(text);cJSON_Delete(root);
+    if (pending_count && !strcmp(pending[0].method,"GET")) reply(0,1,200,text);
+    else poll_job(text);
+    free(text);cJSON_Delete(root);
 }
 int main(void) {
     char dir[]="/tmp/tube-window-XXXXXX";
@@ -95,9 +97,13 @@ int main(void) {
     reply(1,1,200,text);assert(tube_playlist_window_status(&out)==1 && out.current==1);
     reply(0,1,200,text);assert(tube_playlist_window_status(&out)==1 && out.current==1);
     free(text);cJSON_Delete(root); // retired completion cannot overwrite the newer window
-    assert(tube_playlist_window_begin());tube_playlist_window_cancel();result(window());
+    assert(tube_playlist_window_begin());tube_playlist_window_cancel();
+    reply(0,1,401,"{\"error\":{\"message\":\"retired credentials\"}}");
+    assert(!strstr(error_text,"retired credentials"));
     assert(tube_playlist_window_status(NULL)==-1);
-    assert(tube_playlist_window_begin());p->stream_chosen("abcdefghijk",&choice);result(window());
+    assert(tube_playlist_window_begin() && pending_count==1 && strstr(pending[0].url,"/v1/jobs"));
+    p->stream_chosen("abcdefghijk",&choice);
+    reply(0,1,200,"{\"job\":\"retired_selection\",\"state\":\"pending\"}");
     assert(tube_playlist_window_status(NULL)==-1); // same ID, distinct selection
     assert(tube_playlist_window_begin());result(window());
     p->list_catalog("settings:autoplay",0,items_cb,NULL);
@@ -110,8 +116,40 @@ int main(void) {
     assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==20 && next.playback_scope==scope);
     assert(!next.resume_pos_sec && !strcmp(next.playback_playlist,"PLabcdefghijk"));
     assert(!tube_take_next(&next) && !tube_playlist_eof_pending());
+    for(int action=0;action<4;++action) {
+        p->stream_chosen("abcdefghijk",&choice);
+        assert(!tube_finish_drained_and_next(100));
+        cJSON *tail=window();
+        cJSON_DeleteItemFromArray(cJSON_GetObjectItem(tail,"video_ids"),2);
+        cJSON_DeleteItemFromArray(cJSON_GetObjectItem(tail,"video_indices"),2);
+        result(tail);assert(!tube_finish_drained_and_next(100) && tube_playlist_eof_pending());
+        assert(pending_count==1 && strstr(pending[0].body,"\"action\":\"playback_at\"") && strstr(pending[0].body,"\"index\":10"));
+        assert(!tube_finish_drained_and_next(100) && pending_count==1);
+        cJSON *following=window();
+        cJSON_ReplaceItemInObject(following,"index",cJSON_CreateNumber(action==3 ? 9 : 10));
+        cJSON_ReplaceItemInObject(following,"video_id",cJSON_CreateString("bcdefghijkl"));
+        cJSON_ReplaceItemInArray(cJSON_GetObjectItem(following,"video_indices"),2,cJSON_CreateNumber(10));
+        if(action==1 || action==2) {
+            reply(0,1,200,"{\"job\":\"retiring_edge\",\"state\":\"pending\"}");
+            usleep(300000);tube_poll();assert(pending_count==1);
+        }
+        if(action==1)tube_playlist_eof_cancel();
+        if(action==2)p->stream_chosen("abcdefghijk",&choice);
+        result(following);
+        if(!action) {
+            assert(tube_finish_drained_and_next(100) && tube_take_next(&next));
+            assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==10 && next.playback_scope==scope);
+        } else if(action!=2) {
+            assert(!tube_finish_drained_and_next(100) && !tube_take_next(&next) && !tube_playlist_eof_pending());
+        } else {
+            assert(tube_playlist_window_status(NULL)==-1 && !tube_take_next(&next) && !tube_playlist_eof_pending());
+            tube_playlist_eof_cancel();
+        }
+        assert(!pending_count);
+    }
     p->stream_chosen("abcdefghijk",&choice);
-    assert(!tube_finish_drained_and_next(100));tube_playlist_eof_cancel();result(window());
+    assert(!tube_finish_drained_and_next(100));tube_playlist_eof_cancel();
+    reply(0,1,200,"{\"job\":\"retired_end\",\"state\":\"pending\"}");
     assert(!tube_finish_drained_and_next(100) && !tube_take_next(&next));
     p->stream_chosen("abcdefghijk",&choice);
     assert(tube_toggle_queue("abcdefghijk"));

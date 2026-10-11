@@ -1839,6 +1839,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         auth_cleanup_request(r, late); cJSON_Delete(late); complete(r, 0); return;
     }
     if (r->generation != g_generation) { complete(r, 0); return; }
+    if (r->kind == 12 && (r->intent != g_playlist_window.serial || !playlist_window_current())) {
+        complete(r,0); return;
+    }
     if (r->kind == 8 && r->intent != g_watch.serial) { complete(r, 0); return; }
     cJSON *root = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
     if (!ok || status < 200 || status >= 300 || !root) {
@@ -3073,7 +3076,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
-    if (!recovering) tube_sleep_activity();
+    if (!recovering) { tube_sleep_activity(); tube_playlist_eof_cancel(); }
     if (!recovering && !++g_selection_serial) ++g_selection_serial;
     (void)choice; copy(g_active_id, sizeof g_active_id, id); g_finished = 0; g_skip_guard = -1;
     g_sb_active_serial = !strcmp(id, g_resolved_id) ? g_sb_serial : 0;
@@ -3451,14 +3454,23 @@ void tube_playlist_eof_cancel(void) {
 int tube_playlist_eof_pending(void) { return g_playlist_eof_wait || g_playlist_next_ready; }
 static int playlist_eof_advance(void) {
     if (!g_playlist_eof_wait) return 0;
-    if (!g_autoplay || !playlist_window_current() || g_playlist_window.lookup) { tube_playlist_eof_cancel(); return 0; }
+    if (!g_autoplay || !playlist_window_current() ||
+        g_playlist_window.lookup != (g_playlist_eof_wait == 2) ||
+        (g_playlist_eof_wait == 2 && g_playlist_window.target_index != g_active_playlist.index+1)) {
+        tube_playlist_eof_cancel(); return 0;
+    }
     int state=tube_playlist_window_status(NULL);
     if (!state) return 0;
+    int lookup=g_playlist_eof_wait == 2;
     g_playlist_eof_wait=0;
     if (state != 1) return 0;
     const tube_playlist_window_t *window=&g_playlist_window.value;
-    int at=window->current+1;
-    if (at >= window->count) return 0;
+    int at=window->current+(lookup ? 0 : 1);
+    if (at >= window->count) {
+        if (!lookup && g_active_playlist.index < 100000 &&
+            tube_playlist_window_at(g_active_playlist.index+1)) g_playlist_eof_wait=2;
+        return 0;
+    }
     const Record *cached=record_for(window->ids[at],g_active_profile,0);
     memset(&g_playlist_next,0,sizeof g_playlist_next);
     if (cached) { g_playlist_next=cached->item; dearrow_item(&g_playlist_next,cached); }
