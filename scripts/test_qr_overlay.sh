@@ -50,7 +50,7 @@ assert layout.index('id="tube-discussion-text"') < layout.index('id="tube-qr"') 
 assert style.count("#tube-qr-symbol div") == 1
 PY
 copy="${destination}/projects/evoplayer"
-for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do
+for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${root}/native/tube_player_extra.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do
   cc -std=c11 -D_DEFAULT_SOURCE -Dclock_gettime=tube_test_clock_gettime -O1 -g -ffunction-sections -fdata-sections \
     -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include" -c "${source}" \
     -o "${destination}/objects/$(basename "${source}" .c).o"
