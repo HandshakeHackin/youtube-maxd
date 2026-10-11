@@ -58,6 +58,11 @@ class ChannelContext(BaseModel):
     index: int = Field(ge=0, le=100000, strict=True)
 
 
+class GroupContext(BaseModel):
+    group: str = Field(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+    index: int = Field(ge=0, le=4095, strict=True)
+
+
 class Item(BaseModel):
     id: str
     title: str
@@ -70,7 +75,7 @@ class Item(BaseModel):
     is_live: bool = False
     resume_pos_sec: int = 0
     played: bool = False
-    playback_context: PlaylistContext | ChannelContext | None = None
+    playback_context: PlaylistContext | ChannelContext | GroupContext | None = None
 
 
 class Page(BaseModel):

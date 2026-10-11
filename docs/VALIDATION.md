@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Native browsing-group handoff — 2026-10-11
+
+The provider now validates retained group keys, accepts source contexts, and
+requests anchored `group_window` data. Manual directions preserve occurrence,
+profile and selection ownership. Continuous EOF can advance through the group;
+playlist-only completion excludes it. Failed forward windows can fall back to
+next metadata. Group requests never use the remote playlist request format.
+Catalog models/conversion retain supplied group contexts and repeated IDs.
+
+Four native ASan/UBSan suites pass (group navigation, manual playlist navigation,
+playlist windows and recommendations), with additional group cases for natural
+EOF, playlist-only pause, malformed anchors and failed-window autoplay fallback. Sixty-three Python catalog,
+OAuth playback and action/API checks pass. The PS5 provider object compiles with
+the existing 262 SDK math-header qualifier warnings. Guest extractor group creation and real console behavior
+remain unverified; no console connection was made.
+
 ## Browsing-group service groundwork — 2026-10-11
 
 The pinned SmartTube source selects explicit queue entries first, then applicable

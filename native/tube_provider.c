@@ -594,8 +594,17 @@ static int valid_playlist(const char *id) {
 static int valid_channel_group(const char *id) {
     return id && !strncmp(id,"channel:UC",10) && strlen(id)==32 && valid_catalog_id(id);
 }
+static int valid_retained_group(const char *id) {
+    if(!id || strncmp(id,"group:",6) || strlen(id)!=42)return 0;
+    for(int i=0;i<36;++i) {
+        char c=id[i+6];
+        if(i==8 || i==13 || i==18 || i==23) {if(c!='-')return 0;}
+        else if(!((c>='0' && c<='9') || (c>='a' && c<='f')))return 0;
+    }
+    return 1;
+}
 static int valid_playback_group(const char *id) {
-    return valid_playlist(id) || valid_channel_group(id);
+    return valid_playlist(id) || valid_channel_group(id) || valid_retained_group(id);
 }
 
 int tube_select_playlist_context(const char *id, const char *playlist, int index, unsigned scope) {
@@ -620,8 +629,15 @@ static void parse_playlist_context(evo_provider_item_t *item, const cJSON *root,
     const cJSON *context=cJSON_GetObjectItemCaseSensitive(root,"playback_context");
     const char *playlist=str(context,"playlist");
     const cJSON *channel=cJSON_GetObjectItemCaseSensitive(context,"channel");
+    const cJSON *retained=cJSON_GetObjectItemCaseSensitive(context,"group");
     char group[101];
-    if (!channel && !valid_playlist(playlist)) return;
+    if(retained) {
+        if(channel || cJSON_GetObjectItemCaseSensitive(context,"playlist") || !cJSON_IsString(retained))return;
+        snprintf(group,sizeof group,"group:%s",retained->valuestring);
+        if(!valid_retained_group(group))return;
+        playlist=group;
+    }
+    if (!channel && !retained && !valid_playlist(playlist)) return;
     if (channel) {
         if (!cJSON_IsString(channel) || cJSON_GetObjectItemCaseSensitive(context,"playlist")) return;
         snprintf(group,sizeof group,"channel:%s",channel->valuestring);
@@ -1435,7 +1451,10 @@ static int playlist_window_begin_at(int target,int direction) {
     copy(g_playlist_window.id,sizeof g_playlist_window.id,g_active_id);
     g_playlist_window.state=0;
     r->intent=g_playlist_window.serial;
-    if(valid_channel_group(playlist)) snprintf(r->payload,sizeof r->payload,
+    if(valid_retained_group(playlist)) snprintf(r->payload,sizeof r->payload,
+        "{\"action\":\"library\",\"library\":{\"action\":\"group_window\",\"profile\":\"%s\",\"id\":\"%s\",\"group\":\"%s\",\"index\":%d,\"target\":%d,\"direction\":%d,\"require_channel\":%s,\"require_name\":%s}}",
+        g_active_profile,g_active_id,playlist+6,index,target>=0?target:index,direction,channel_blocks_active()?"true":"false",channel_name_blocks_active()?"true":"false");
+    else if(valid_channel_group(playlist)) snprintf(r->payload,sizeof r->payload,
         "{\"action\":\"library\",\"library\":{\"action\":\"channel_window\",\"profile\":\"%s\",\"id\":\"%s\",\"channel\":\"%s\",\"index\":%d,\"target\":%d,\"direction\":%d,\"require_channel\":true,\"require_name\":%s}}",
         g_active_profile,g_active_id,playlist+8,index,target>=0?target:index,direction,channel_name_blocks_active()?"true":"false");
     else if (g_playlist_window.lookup) snprintf(r->payload,sizeof r->payload,
@@ -1466,7 +1485,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
         int next=requested+g_playlist_window.direction*skipped;
         int end=next==-1 || next==size;
         int valid=r->intent==g_playlist_window.serial && playlist_window_current() &&
-            (!valid_channel_group(g_playlist_window.context.playlist) ||
+            (!(valid_channel_group(g_playlist_window.context.playlist) || valid_retained_group(g_playlist_window.context.playlist)) ||
                 (!strcmp(str(root,"anchor_video_id"),g_playlist_window.id) &&
                  playlist_index(cJSON_GetObjectItemCaseSensitive(root,"anchor_index"))==g_playlist_window.context.index)) &&
             g_playlist_window.lookup && g_playlist_window.direction && num(root,"api_version")==1 &&
@@ -1499,7 +1518,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
     value.count=cJSON_GetArraySize(ids); value.current=-1;
     int valid=r->intent == g_playlist_window.serial && playlist_window_current() &&
         num(root,"api_version") == 1 && !strcmp(str(root,"playlist"),g_playlist_window.context.playlist) &&
-        (!valid_channel_group(g_playlist_window.context.playlist) ||
+        (!(valid_channel_group(g_playlist_window.context.playlist) || valid_retained_group(g_playlist_window.context.playlist)) ||
             (!strcmp(str(root,"anchor_video_id"),g_playlist_window.id) &&
              playlist_index(cJSON_GetObjectItemCaseSensitive(root,"anchor_index"))==g_playlist_window.context.index)) &&
         valid_id(selected_id) && (g_playlist_window.lookup || !strcmp(selected_id,g_playlist_window.id)) &&
@@ -3892,7 +3911,10 @@ static int playlist_eof_advance(void) {
         g_playlist_window.state=1; g_playlist_eof_wait=1;
         return playlist_eof_advance();
     }
-    if (state != 1) return 0;
+    if (state != 1) {
+        if(valid_retained_group(g_active_playlist.playlist) && (mode==TUBE_MODE_ALL || mode==TUBE_MODE_SHUFFLE))recommendation_begin(0);
+        return 0;
+    }
     const tube_playlist_window_t *window=&g_playlist_window.value;
     if(!lookup && mode==TUBE_MODE_SHUFFLE && !g_playlist_shuffle_attempted && valid_playlist(g_active_playlist.playlist)) {
         g_playlist_shuffle_attempted=1;
@@ -4018,7 +4040,7 @@ static int finish_and_next(int playlist) {
         return 0;
     }
     if (queue_next()) return 1;
-    if(g_playback_mode==TUBE_MODE_LIST && valid_channel_group(g_active_playlist.playlist))return 0;
+    if(g_playback_mode==TUBE_MODE_LIST && (valid_channel_group(g_active_playlist.playlist) || valid_retained_group(g_active_playlist.playlist)))return 0;
     if (playlist && tube_playlist_window_begin()) g_playlist_eof_wait=1;
     else if(playlist && !*g_active_playlist.playlist && g_playback_mode!=TUBE_MODE_LIST) recommendation_begin(0);
     return 0;

@@ -798,6 +798,10 @@ anchors fail without returning another group's data.
 Retention is bounded to 32 groups, 4096 records each, with six hours of inactivity
 expiry. Browsing starts a new group after capacity/eviction; navigation beyond a
 retained group's capacity reports failure. These bounds and long-session behavior
-still require acceptance. Native recognition/selection of these references and
-Guest extractor catalogs remain pending; this service step alone does not enable
-source-group navigation on PS5.
+still require acceptance. Native selection now recognizes these references and sends anchored group-window
+requests without treating the opaque reference as a YouTube playlist ID. Manual
+Next/Previous preserve group positions; continuous completion traverses the group,
+and playlist-only completion excludes ordinary browsing groups. Failed forward
+group lookup falls back to next-video metadata. OAuth search/catalog conversion
+preserves supplied group occurrences without deduplicating repeated video IDs.
+Guest extractor group creation and PS5 acceptance remain pending.

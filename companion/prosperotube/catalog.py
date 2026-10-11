@@ -1,8 +1,18 @@
 """Search, channels, and playlists; pagination keeps opaque stable identities."""
-from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, PlaylistContext, ChannelContext, ServiceError, number, safe_remote, text
+from .models import CHANNEL_ID, PLAYLIST_ID, VIDEO_ID, Item, Page, PlaylistContext, ChannelContext, GroupContext, ServiceError, number, safe_remote, text
 from urllib.parse import urlsplit, parse_qs
 
 PAGE_SIZE = 24
+
+
+def group_context(info):
+    supplied=info.get("playback_context")
+    if not isinstance(supplied,dict) or set(supplied)!={"group","index"}:
+        return None
+    try:
+        return GroupContext.model_validate(supplied)
+    except ValueError:
+        return None
 
 
 def channel_context(info, channel):
@@ -111,7 +121,9 @@ async def page_for(extractor, *, query="", parent="", page=0):
             row.playback_context = playlist_context(raw, playlist)
         if row and channel:
             row.playback_context = channel_context(raw, channel)
-        if row and (playlist or channel or row.id not in seen):
+        if row and not playlist and not channel:
+            row.playback_context = group_context(raw)
+        if row and (playlist or channel or row.playback_context or row.id not in seen):
             rows.append(row)
             seen.add(row.id)
     more = result.get("_has_more") if getattr(extractor, "uses_explicit_catalog_pages", False) else len(entries) > PAGE_SIZE

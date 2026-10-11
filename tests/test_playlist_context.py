@@ -87,3 +87,22 @@ def test_catalog_http_and_job_responses_keep_occurrence_context(kind,key):
             assert [row['id'] for row in response['items']]==[ID,ID]
             assert [row['playback_context'] for row in response['items']]==[
                 {kind:key,'index':0},{kind:key,'index':6}]
+
+@pytest.mark.parametrize('context',[
+    {'group':'12345678-1234-1234-1234-123456789abc','index':True},
+    {'group':'invalid','index':0},
+    {'group':'12345678-1234-1234-1234-123456789abc','index':4096},
+    {'group':'12345678-1234-1234-1234-123456789abc','index':0,'playlist':PLAYLIST}])
+def test_invalid_group_context(context):
+    from prosperotube.catalog import group_context
+    assert group_context({'playback_context':context}) is None
+
+
+def test_search_retains_group_occurrences_without_deduplicating_video_ids():
+    key='12345678-1234-1234-1234-123456789abc'
+    class Source:
+        async def extract(self,*args,**kwargs):
+            return {'entries':[{'id':ID,'playback_context':{'group':key,'index':i}} for i in [0,2]]}
+    page=asyncio.run(page_for(Source(),query='sample'))
+    assert [item.id for item in page.items]==[ID,ID]
+    assert [item.playback_context.model_dump() for item in page.items]==[{'group':key,'index':i} for i in [0,2]]
