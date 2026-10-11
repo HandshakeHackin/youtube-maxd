@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Library } from './library.mjs';
+import {TopicCatalog} from './topic_catalog.mjs';
+import { Library, normalizeVideo, imageUrl } from './library.mjs';
 const tile = n => ({ tileRenderer: { contentType: 'TILE_CONTENT_TYPE_VIDEO', contentId: String(n).padStart(11, '0'),
   onSelectCommand: { watchEndpoint: { videoId: String(n).padStart(11, '0') } },
   header: { tileHeaderRenderer: { thumbnail: { thumbnails: [{ url: 'https://i.ytimg.com/vi/test/default.jpg' }] },
@@ -184,4 +185,27 @@ test('an empty storefront reports the upstream explanation instead of an unsuppo
   const row=await library.execute({action:'topic_open',section:'movies',id:root.items[0].id.split(':')[2]});
   await assert.rejects(library.execute({action:'topic_open',section:'movies',id:row.items[0].id.split(':')[2]}),
     {code:'catalog_unavailable',status:404,message:'Videos you purchase or rent will appear here'});
+});
+
+test('topic raw video adapters preserve structured live upcoming and watch-progress metadata',()=>{
+  const topics=new TopicCatalog(Error,normalizeVideo,imageUrl,()=>1000000);
+  const raw={videoId:'abcdefghijk',title:{simpleText:'Future video'},upcomingEventData:{startTime:'1001'},
+    thumbnailOverlays:[{thumbnailOverlayResumePlaybackRenderer:{percentDurationWatched:45}}],
+    badges:[{metadataBadgeRenderer:{style:'BADGE_STYLE_TYPE_LIVE_NOW',label:'Localized label'}}]};
+  const row=topics.webVideo(raw);assert.equal(row.watch_percent,45);assert.equal(row.is_upcoming,true);assert.equal(row.is_live,true);
+  const past=topics.webVideo({...raw,upcomingEventData:{startTime:'999'},badges:[]});assert.equal(past.is_upcoming,false);assert.equal(past.is_live,false);
+  const invalid=topics.webVideo({...raw,upcomingEventData:{startTime:true},thumbnailOverlays:[],badges:[{metadataBadgeRenderer:{label:'LIVE'}}]});
+  assert.equal(invalid.watch_percent,-1);assert.equal(invalid.is_upcoming,false);assert.equal(invalid.is_live,false);
+});
+test('TV topic progress survives normalization and upcoming items remain ineligible for group Next',async()=>{
+  const first=tile(1),upcoming=tile(2),last=tile(3);
+  upcoming.tileRenderer.upcomingEventData={startTime:'9999999999'};
+  last.tileRenderer.header.tileHeaderRenderer.thumbnailOverlays.push({thumbnailOverlayResumePlaybackRenderer:{percentDurationWatched:65}});
+  const library=new Library(async()=>({actions:{execute:async()=>response({sectionListRenderer:{contents:[shelf([first,upcoming,last])]}})}}));
+  const root=await library.execute({action:'topics',section:'music'});
+  const page=await library.execute({action:'topic_open',section:'music',id:root.items[0].id.split(':')[2]});
+  assert.equal(page.items[1].is_upcoming,true);assert.equal(page.items[2].watch_percent,65);
+  const context=page.items[0].playback_context;
+  const next=await library.execute({action:'group_window',group:context.group,id:page.items[0].id,index:0,target:1,direction:1});
+  assert.equal(next.video_id,page.items[2].id);assert.equal(next.index,2);
 });

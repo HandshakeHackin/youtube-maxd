@@ -853,3 +853,9 @@ happens before this local-state merge, following the pinned source order.
 Watch progress also supports modern Lockup thumbnail bottom overlays through the
 pinned parser's progress-bar model. These values follow the same numeric bounds,
 Home filtering and native resume path as legacy resume overlays.
+
+
+Topic TV tiles and raw web video rows preserve structured live markers, scheduled
+start times and resume overlays. Future scheduled videos stay visible but are
+excluded from automatic source-group traversal; progress uses the same catalog
+resume path. Live detection uses structured styles, independent of badge labels.

@@ -117,7 +117,17 @@ export class TopicCatalog {
     const parts = /^\d{1,3}:\d{2}(?::\d{2})?$/.test(durationText) ? durationText.split(':').map(Number) : [];
     const duration = parts.length && parts.slice(1).every(value => value < 60) ? parts.reduce((n, v) => n * 60 + v, 0) : 0;
     return this.normalizeVideo({ id, title, author: { name: author, id: channel }, duration,
-      thumbnails: [{ url: image }], is_live: status?.style === 'LIVE' });
+      thumbnails: [{ url: image }], ...this.videoState(tile,overlays) });
+  }
+  videoState(video, overlays) {
+    const status=overlays.map(value=>value.thumbnailOverlayTimeStatusRenderer).find(Boolean);
+    const rawStart=video.upcomingEventData?.startTime;
+    const start=(typeof rawStart==='number' || (typeof rawStart==='string' && /^\d+$/.test(rawStart)))?Number(rawStart):NaN;
+    return {is_live:status?.style==='LIVE' || (video.badges ?? []).some(value=>value.metadataBadgeRenderer?.style==='BADGE_STYLE_TYPE_LIVE_NOW'),
+      is_upcoming:Number.isFinite(start) && start>this.clock()/1000,
+      is_watched:video.isWatched===true,
+      thumbnail_overlays:overlays.filter(value=>value.thumbnailOverlayResumePlaybackRenderer).map(value=>({
+        type:'ThumbnailOverlayResumePlayback',percent_duration_watched:value.thumbnailOverlayResumePlaybackRenderer.percentDurationWatched}))};
   }
   webVideo(video) {
     if (!video || video.isPlayable === false || video.isAd || video.adSlotMetadata) return null;
@@ -127,7 +137,7 @@ export class TopicCatalog {
     const duration = parts.length && parts.slice(1).every(value => value < 60) ? parts.reduce((n, v) => n * 60 + v, 0) : 0;
     return this.normalizeVideo({ id: video.videoId, title: text(video.title),
       author: { name: text(author), id: find(author, 'browseEndpoint')?.browseId }, duration,
-      thumbnails: video.thumbnail?.thumbnails ?? [] });
+      thumbnails: video.thumbnail?.thumbnails ?? [], ...this.videoState(video,video.thumbnailOverlays ?? []) });
   }
   feed(owner, section, client, raw, root, continuationResponse = false, clientType = 'TV') {
     let node = root ? find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation') :

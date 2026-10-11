@@ -1,5 +1,19 @@
 # Offline validation record — 0.1.0
 
+## Topic-feed video state — 2026-10-11
+
+TV tile and raw web-video adapters now preserve resume overlays, explicit watched
+flags, structured LIVE styles and upcoming-event timestamps before normalization.
+This connects topic watch progress to the existing native resume path and keeps
+future scheduled entries out of retained-group Next traversal. Visible catalog
+entries remain available for explicit selection. Localized badge labels do not
+determine live state; malformed timestamps do not become upcoming events.
+
+All 120 worker tests and the rebuilt bundle pass, including future/past/invalid
+timestamps, localized labels, TV progress propagation and topic-group navigation
+past a scheduled video. No native bytes changed or console was contacted.
+Modern Lockup live/upcoming markers and real-service acceptance remain open.
+
 ## Modern-card watch progress — 2026-10-11
 
 Modern Lockup cards expose progress through ThumbnailBottomOverlayView and its
