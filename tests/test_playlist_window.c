@@ -40,6 +40,17 @@ int main(void) {
     assert(tube_playlist_window_status(&out)==1 && out.count==3 && out.current==1);
     assert(out.indices[0]==3 && out.indices[2]==20 && !strcmp(out.ids[0],out.ids[1]));
     assert(out.scope==scope && out.selection==tube_phone_selection());
+    for(int kind=0;kind<10;++kind) {
+        cJSON *sized=window();
+        const double sizes[]={21,20,0,-1,100001,100002,21.5,21,21,21};
+        cJSON_AddNumberToObject(sized,"playlist_size",sizes[kind]);
+        if(kind==7)cJSON_AddTrueToObject(sized,"is_infinite");
+        if(kind==8)cJSON_ReplaceItemInObject(sized,"playlist_size",cJSON_CreateString("21"));
+        if(kind==9)cJSON_AddStringToObject(sized,"is_infinite","false");
+        assert(tube_playlist_window_begin());result(sized);
+        assert(tube_playlist_window_status(&out)==1);
+        assert(out.playlist_size==(kind==0?21:kind==4?100001:0));
+    }
     assert(!tube_playlist_window_at(-1) && !tube_playlist_window_at(100001) && !pending_count);
     assert(tube_playlist_window_at(20));
     assert(strstr(pending[0].body,"\"action\":\"playback_at\"") && !strstr(pending[0].body,"\"id\":"));
@@ -116,12 +127,21 @@ int main(void) {
     assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==20 && next.playback_scope==scope);
     assert(!next.resume_pos_sec && !strcmp(next.playback_playlist,"PLabcdefghijk"));
     assert(!tube_take_next(&next) && !tube_playlist_eof_pending());
+    p->stream_chosen("abcdefghijk",&choice);
+    assert(!tube_finish_drained_and_next(100));
+    cJSON *last=window();
+    cJSON_DeleteItemFromArray(cJSON_GetObjectItem(last,"video_ids"),2);
+    cJSON_DeleteItemFromArray(cJSON_GetObjectItem(last,"video_indices"),2);
+    cJSON_AddNumberToObject(last,"playlist_size",10);result(last);
+    assert(!tube_finish_drained_and_next(100) && !tube_playlist_eof_pending() && !pending_count);
+    assert(!tube_take_next(&next));
     for(int action=0;action<4;++action) {
         p->stream_chosen("abcdefghijk",&choice);
         assert(!tube_finish_drained_and_next(100));
         cJSON *tail=window();
         cJSON_DeleteItemFromArray(cJSON_GetObjectItem(tail,"video_ids"),2);
         cJSON_DeleteItemFromArray(cJSON_GetObjectItem(tail,"video_indices"),2);
+        if(!action)cJSON_AddNumberToObject(tail,"playlist_size",100);
         result(tail);assert(!tube_finish_drained_and_next(100) && tube_playlist_eof_pending());
         assert(pending_count==1 && strstr(pending[0].body,"\"action\":\"playback_at\"") && strstr(pending[0].body,"\"index\":10"));
         assert(!tube_finish_drained_and_next(100) && pending_count==1);

@@ -85,7 +85,7 @@ int tube_playback_playlist_context(char *playlist, size_t capacity, int *index);
  * A window edge does not establish the end of the upstream playlist. */
 typedef struct {
     char playlist[101], ids[128][12];
-    int indices[128], count, current;
+    int indices[128], count, current, playlist_size; /* size 0 = unknown */
     unsigned scope, selection;
 } tube_playlist_window_t;
 int tube_playlist_window_begin(void);

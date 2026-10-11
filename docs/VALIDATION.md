@@ -1,5 +1,32 @@
 # Offline validation record — 0.1.0
 
+## Finite playlist size — 2026-10-11
+
+WatchNext windows now optionally expose validated `playlist_size` separately
+from the bounded video list. Numeric counts and plain decimal source strings
+are accepted only when positive, within the index limit, and greater than all
+observed positions. Missing, localized, inconsistent, infinite/radio and
+malformed metadata remains unknown. The native parser revalidates counts and
+boolean flags. Natural EOF stops without an extra lookup at a confirmed final
+occurrence; unknown sizes and partial windows retain indexed continuation.
+
+All 70 worker tests and 48 service/phone-playlist transport tests passed; the
+production worker rebuilt. The 500-entry/128-row worker case checks that size
+does not collapse to window length. Logs: `.deps/playlist-size-worker.log` and
+`.deps/playlist-size-python.log`.
+Native window/context and queue-failure regressions passed; the final window
+suite also covers strict flag validation, known-end suppression and continuation
+when a known playlist extends beyond the returned window. PS5 provider-object
+compilation passed with existing SDK qualified-math warnings. Native logs:
+`.deps/playlist-size-native-base.log`, `.deps/playlist-size-native.log`, and
+`.deps/playlist-size-sdk.log`.
+
+Field reference: the author's [VLC playlist parser discussion](https://gist.github.com/Daniel-Mendes/21cff1d94b584769fa05a4905bd272b5#comments)
+reads raw WEB `playlist.totalVideos`; this is historical format evidence,
+not live acceptance of every current client response. Missing current metadata
+continues to work as unknown. Shuffle policy, full playback modes and hardware
+acceptance remain incomplete. No console connections occurred.
+
 ## Playlist window-edge continuation — 2026-10-11
 
 Natural EOF now makes one index-only lookup for the immediately following

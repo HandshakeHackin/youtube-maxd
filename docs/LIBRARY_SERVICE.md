@@ -45,6 +45,10 @@ window while keeping native playback ownership unchanged. This requires an
 explicit selected position from upstream; radio rebasing is not accepted for
 index-only navigation. Window-edge autoplay uses this path; the remaining mode
 policy and controls are still incomplete.
+Validated finite `playlist_size` metadata is retained separately from the loaded
+window size. Missing or inconsistent counts remain unknown. A confirmed final
+occurrence stops autoplay without probing past the playlist; other window edges
+continue through indexed lookup. Infinite/radio queues do not supply finite sizes.
 
 
 ### Live-chat service reader

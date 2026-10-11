@@ -47,6 +47,13 @@ endpoint or panel index must prove the result; ambiguous, unpositioned and
 infinite/radio results fail. This permits navigation outside the currently
 loaded window without guessing which video occupies a playlist position.
 
+Windows may include `playlist_size` (a finite count, 1–100001). It is accepted
+only from explicit numeric `totalVideos` metadata consistent with every returned
+source position; it is never inferred from window length or localized text.
+Invalid/missing counts stay unknown. Infinite/radio windows do not advertise a
+finite size; `is_infinite: true` is included when supplied by the source panel.
+The native consumer revalidates this metadata and represents unknown size as 0.
+
 `/media/{random-session}/{resource}` is an expiring capability for FFmpeg and
 captions, requiring no bearer header. The relay preserves single byte ranges,
 scopes sensitive headers to origins, limits redirects and restricts resolver

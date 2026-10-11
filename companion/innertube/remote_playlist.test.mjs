@@ -7,6 +7,36 @@ const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{vi
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
 
+test('Finite playlist size is explicit metadata, never the bounded or sparse window length',async()=>{
+  for(const totalVideos of [21,'21',100001]) {
+    const library=new Library(async()=>({actions:{execute:async()=>response([row(3),row(9,true),row(20)],{totalVideos})}}));
+    const result=await library.execute({action:'playback_queue',playlist,id:video(9),index:9});
+    assert.equal(result.playlist_size,Number(totalVideos));assert.equal(result.video_ids.length,3);
+  }
+  for(const totalVideos of [undefined,null,0,-1,20,21.5,true,'21 videos','021','2e2','1,000',100002]) {
+    const library=new Library(async()=>({actions:{execute:async()=>response([row(3),row(9,true),row(20)],{totalVideos})}}));
+    const result=await library.execute({action:'playback_queue',playlist,id:video(9),index:9});
+    assert.ok(!Object.hasOwn(result,'playlist_size'));assert.equal(result.video_ids.length,3);
+  }
+});
+
+test('Infinite and radio queues never advertise a finite size',async()=>{
+  for(const isInfinite of [null,0,'false','true']) {
+    const library=new Library(async()=>({actions:{execute:async()=>response([row(9,true)],{totalVideos:100,isInfinite})}}));
+    const result=await library.execute({action:'playback_queue',playlist,id:video(9),index:9});
+    assert.ok(!Object.hasOwn(result,'playlist_size'));
+  }
+  for(const radio of [false,true]) {
+    const list=radio?'RDsyntheticqueue':playlist;
+    const entry=row(9,true);entry.playlistPanelVideoRenderer.navigationEndpoint.watchEndpoint.playlistId=list;
+    const library=new Library(async()=>({actions:{execute:async()=>({success:true,data:{playlistPanelRenderer:{
+      playlistId:list,contents:[entry],totalVideos:100,isInfinite:!radio,currentIndex:9}}})}}));
+    const result=await library.execute({action:'playback_queue',playlist:list,id:video(9),index:9});
+    assert.ok(!Object.hasOwn(result,'playlist_size'));
+    if(!radio)assert.equal(result.is_infinite,true);
+  }
+});
+
 test('Index-only navigation requests the exact occurrence without inventing a video ID',async()=>{
   const calls=[];
   const library=new Library(async()=>({actions:{execute:async(path,args)=>{
@@ -76,13 +106,14 @@ test('Both queue consumers reject contradictory endpoint indices and selected oc
 test('WatchNext preserves global indices, repeats and bounded windows in the selected profile',async()=>{
   const calls=[]; const profiles=[];
   const library=new Library(async profile=>{profiles.push(profile.id);return {actions:{execute:async(path,args)=>{
-    calls.push({path,args}); return response(Array.from({length:500},(_,i)=>row(i,i===250,i===250?video(1):video(i))),{currentIndex:250});
+    calls.push({path,args}); return response(Array.from({length:500},(_,i)=>row(i,i===250,i===250?video(1):video(i))),{currentIndex:250,totalVideos:'500'});
   }}}},[{id:'account',name:'Account',cookie:'synthetic'}]);
   const result=await library.execute({action:'remote_playlist',profile:'account',id:video(1),playlist,index:250});
   assert.deepEqual(profiles,['account']);assert.equal(calls[0].path,'/next');
   assert.equal(calls[0].args.playlistIndex,250);assert.equal(calls[0].args.playlistId,playlist);
   assert.equal(result.window_start,218);assert.equal(result.video_ids.length,128);assert.equal(result.video_ids[32],video(1));
   assert.equal(result.index,250);
+  assert.equal(result.playlist_size,500);
 });
 test('TV panel, wrapped rows and absent endpoint indices retain the selected occurrence',async()=>{
   const rows=[row(100),row(101,true),row(102)];

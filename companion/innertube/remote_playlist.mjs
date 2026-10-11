@@ -76,8 +76,15 @@ export async function remotePlaylist(client, input, ErrorType) {
     const start = Math.max(0, Math.min(selectedPlayable - 32, playable.length - 128));
     const window = playable.slice(start, start + 128);
     const sparse = window.some((row, offset) => row.index !== window[0].index + offset);
+    // The raw WEB panel exposes totalVideos separately from this bounded window.
+    // Localized display text and the loaded row count are not playlist lengths.
+    const rawSize = panel.totalVideos;
+    const size = typeof rawSize === 'string' && /^[1-9][0-9]{0,5}$/.test(rawSize) ? Number(rawSize) : rawSize;
+    const finiteSize = (panel.isInfinite === undefined || panel.isInfinite === false) && !input.playlist.startsWith('RD') &&
+      Number.isInteger(size) && size > positioned[positioned.length - 1].index && size <= 100001;
     matches.push({ api_version: 1, playlist: input.playlist, index: input.index,
       video_id: selectedId, window_start: window[0].index, video_ids: window.map(row => row.id),
+      ...(finiteSize ? {playlist_size: size} : {}), ...(panel.isInfinite === true ? {is_infinite: true} : {}),
       ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });
   }
   if (matches.length !== 1) fail();

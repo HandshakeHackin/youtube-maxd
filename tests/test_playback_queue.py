@@ -14,7 +14,7 @@ class Library:
         self.calls.append(request)
         return dict(api_version=1, playlist=request["playlist"], index=request["index"],
                     video_id=request["id"] or "abcdefghijk", window_start=40,
-                    video_ids=["abcdefghijk"] * 3, video_indices=[40, 42, 47], radio_rebased=False)
+                    video_ids=["abcdefghijk"] * 3, video_indices=[40, 42, 47], playlist_size=48, radio_rebased=False)
     async def close(self): pass
 
 @pytest.mark.parametrize("action", ["playback_queue", "playback_at"])
@@ -34,6 +34,7 @@ def test_direct_and_job_windows_keep_profile_sparse_indices_and_repeats(action):
             time.sleep(.001)
         assert result["state"] == "done" and result["result"] == direct.json()
         assert direct.json()["video_indices"] == [40, 42, 47]
+        assert direct.json()["playlist_size"] == 48
         assert len(library.calls) == 2
         assert all(all(call[key] == value for key, value in request.items()) for call in library.calls)
 

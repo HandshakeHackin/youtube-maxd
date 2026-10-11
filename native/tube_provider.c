@@ -1312,6 +1312,13 @@ static void playlist_window_result(Request *r,const cJSON *root) {
         if (position == g_playlist_window.target_index && !strcmp(id->valuestring,selected_id)) value.current=i;
     }
     if (!valid || value.current < 0) { complete(r,0); return; }
+    const cJSON *size=cJSON_GetObjectItemCaseSensitive(root,"playlist_size");
+    const cJSON *infinite=cJSON_GetObjectItemCaseSensitive(root,"is_infinite");
+    const cJSON *rebased=cJSON_GetObjectItemCaseSensitive(root,"radio_rebased");
+    if (cJSON_IsNumber(size) && size->valuedouble == (double)size->valueint &&
+        size->valueint > value.indices[value.count-1] && size->valueint <= 100001 &&
+        (!infinite || cJSON_IsFalse(infinite)) && (!rebased || cJSON_IsFalse(rebased)) &&
+        strncmp(g_playlist_window.context.playlist,"RD",2)) value.playlist_size=size->valueint;
     copy(value.playlist,sizeof value.playlist,g_playlist_window.context.playlist);
     value.scope=g_playlist_window.context.scope; value.selection=g_playlist_window.selection;
     g_playlist_window.value=value; g_playlist_window.state=1;
@@ -3467,6 +3474,7 @@ static int playlist_eof_advance(void) {
     const tube_playlist_window_t *window=&g_playlist_window.value;
     int at=window->current+(lookup ? 0 : 1);
     if (at >= window->count) {
+        if (window->playlist_size && g_active_playlist.index >= window->playlist_size-1) return 0;
         if (!lookup && g_active_playlist.index < 100000 &&
             tube_playlist_window_at(g_active_playlist.index+1)) g_playlist_eof_wait=2;
         return 0;
