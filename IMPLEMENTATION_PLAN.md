@@ -639,7 +639,9 @@ are still open; caption
 language switching is now implemented in the local picker and phone adapter, with
 staged SRT loading, timeout/failure preservation and same-ID playback retirement.
 Host provider, real subtitle-engine and phone adapter tests pass. Caption switching
-still needs a fresh PS5 candidate and console acceptance. Secondary YouTube caption
+candidate `b1adb57c` built/froze (214 objects, 126 files). Both consoles were busy
+at the initial check; no upload, binding or launch occurred. Console acceptance
+remains open. Secondary YouTube caption
 selection, voice, full app-exit behavior and long playlists remain open.
 
 Previous receiver batch: the authenticated Lounge receiver backend is implemented and

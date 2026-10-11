@@ -20,8 +20,15 @@ Application, PlayerScreen and SubtitlePickerScreen compiled with the pinned PS5 
 (`.deps/caption-switch-ps5-objects.*`, exit 0). All nine provider regressions and
 PS5 pairing/storage sanitizer tests passed after the final scope edits
 (`.deps/caption-switch-native-regression.*` and
-`.deps/caption-switch-phone-provider.*`, exit 0). Full packaging and console
-acceptance remain pending; secondary YouTube caption selection remains open.
+`.deps/caption-switch-phone-provider.*`, exit 0). Candidate `b1adb57c` built and
+froze successfully: 214 objects, 126 files, build
+`prosperotube-b1adb57c_1011-0024`, eboot prefix `1af06866881f2a9d`
+(`.deps/caption-selection-{ps5-build,freeze}.*`, exit 0). The isolated fixture
+resolved English/French tracks and served valid converted SRT. Both console cases
+stopped at the initial running-title check, before any upload, binding or launch
+(`.deps/caption-phone-hardware.*` and `.deps/caption-phone-fallback-hardware.*`).
+The owned fixture server was stopped and the shared lock released. Console
+acceptance and secondary YouTube caption selection remain open.
 
 Remote playback ownership survives receiver retirement so natural EOF cannot
 consume a saved local queue item. Manual reopening of the same video starts a new
