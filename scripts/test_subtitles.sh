@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-evo="${root}/third_party/evo/projects/evoplayer"
+evo="${PROSPEROTUBE_NATIVE_WORK:-${HOME}/.cache/prosperotube/native}/projects/evoplayer"
 out="${root}/build/tests/subtitles"
 mkdir -p "${out}"
 cc -O1 -g -Wall -Wextra -Wno-unused-parameter \

@@ -63,6 +63,7 @@ def main():
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h", "ui_rml/src/evo_rmlui_provider_art.cpp",
         "ui/src/evo_keyboard.c",
+        "media/src/evo_subtitle.c", "media/include/evo_subtitle.h",
         "media/src/evo_audio_out.c", "media/include/evo_audio_out.h", "media/src/evo_demux.c", "media/include/evo_demux.h",
         "media/src/evo_playback.c", "media/include/evo_playback.h",
         "media/src/evo_vdec_ffmpeg.c", "media/src/evo_vdec_native.c", "media/src/evo_vdec_native.h", "media/include/evo_vdec.h",
@@ -216,6 +217,8 @@ def main():
     apply_phone_exit_overlay(replace, player)
     from caption_controls_overlay import apply_caption_controls_overlay
     apply_caption_controls_overlay(replace, player)
+    from secondary_captions_overlay import apply_secondary_captions_overlay
+    apply_secondary_captions_overlay(replace, player, WORK, ROOT)
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())

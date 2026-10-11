@@ -54,6 +54,20 @@ int main(void) {
     expired.cb(1,200,cue,strlen(cue),expired.ud); assert(tube_caption_switch_status(&media)==0);
     reply(0,1,200,cue); assert(tube_caption_switch_status(&media)==1); tube_caption_switch_finish(1);
     assert(!strcmp(tube_phone_caption_language(),"en"));
+    /* Independent staging cannot overwrite primary/active secondary files. */
+    assert(!tube_caption_secondary_begin("en"));
+    assert(tube_caption_secondary_begin("fr")==2 && tube_caption_switch_secondary());
+    reply(0,1,200,cue); assert(tube_caption_switch_status(&media)==1);
+    assert(strstr(media,"caption-secondary-a.mp4")); tube_caption_switch_finish(1);
+    assert(!strcmp(tube_caption_secondary_language(),"fr") && !strcmp(tube_phone_caption_language(),"en"));
+    assert(tube_caption_secondary_begin("de")==2); reply(0,1,200,cue);
+    assert(tube_caption_switch_status(&media)==1 && strstr(media,"caption-secondary-b.mp4"));
+    tube_caption_switch_finish(0); assert(!strcmp(tube_caption_secondary_language(),"fr"));
+    assert(tube_caption_switch_begin("fr",0,0)==2); reply(0,1,200,cue);
+    assert(tube_caption_switch_status(&media)==1); tube_caption_switch_finish(1);
+    assert(!*tube_caption_secondary_language());
+    assert(tube_caption_switch_begin("en",0,0)==2); reply(0,1,200,cue);
+    assert(tube_caption_switch_status(&media)==1); tube_caption_switch_finish(1);
     /* Same-ID manual playback is a new selection; old callbacks cannot apply. */
     assert(tube_caption_switch_begin("de",0,0)==2); Pending reopened=pending[0]; pending_count=0;
     unsigned selection=tube_phone_selection();
@@ -71,6 +85,8 @@ int main(void) {
     resolved_tracks(); assert(!*tube_phone_caption_language() && tube_caption_track_count()==3);
     evo_provider_youtube.shutdown(); assert(!tube_caption_track_count());
     assert(!unlink(evo_data_path("youtube.json"))); assert(!unlink(evo_data_path("caption-a.srt")));
-    assert(!unlink(evo_data_path("caption-b.srt"))); assert(!rmdir(dir));
+    assert(!unlink(evo_data_path("caption-b.srt")));
+    assert(!unlink(evo_data_path("caption-secondary-a.srt")));
+    assert(!unlink(evo_data_path("caption-secondary-b.srt"))); assert(!rmdir(dir));
     puts("Caption catalogs, staged switching, failure preservation, timeout and scope retirement passed"); return 0;
 }

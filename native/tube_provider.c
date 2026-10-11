@@ -63,6 +63,7 @@ static unsigned g_generation = 1;
 static char g_source[512], g_token[128], g_pin[7];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
+static char g_secondary_caption_path[512], g_secondary_caption_language[33];
 #define CAPTION_TRACKS 256
 static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic; } g_caption_tracks[CAPTION_TRACKS];
 static int g_caption_track_count;
@@ -70,7 +71,7 @@ static unsigned g_caption_revision, g_caption_serial;
 static unsigned g_selection_serial;
 static char g_caption_video[12], g_caption_profile[33], g_caption_source[512], g_caption_token[128];
 static struct { int phase, sequence; unsigned owner, serial, selection; long long deadline;
-    char language[33], media[512]; } g_caption_switch;
+    char language[33], media[512]; int secondary; } g_caption_switch;
 static void caption_switch_tick(void);
 static char g_active_profile[33], g_next_profile[33];
 /* Navigation origin, not a content classifier. Resolve snapshots the origin
@@ -672,6 +673,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 static int init(void) {
     tube_remote_shutdown();
     g_caption_path[0] = g_caption_language[0] = 0;
+    g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
     g_remote_enabled = g_remote_identity_saved = g_remote_write_failed = g_remote_entropy_failed = 0; g_remote_device[0] = g_remote_screen[0] = 0;
     g_remote_stop_on_disconnect = 0;
@@ -1289,6 +1291,7 @@ static void resolved(Request *r, const cJSON *root) {
         cached->item.is_live = r->choices[0].is_live;
     }
     g_caption_path[0] = g_caption_language[0] = 0; g_segment_count = 0; g_skip_guard = -1;
+    g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0;
     tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision;
     copy(g_caption_video, sizeof g_caption_video, r->parent);
     copy(g_caption_profile, sizeof g_caption_profile, r->profile);
@@ -2461,16 +2464,19 @@ static void caption_switch_response(int ok, int status, const char *body, size_t
     if (success && rename(temporary, path) == 0) g_caption_switch.phase = 2;
     else remove(temporary);
 }
-int tube_caption_switch_begin(const char *language, unsigned owner, int sequence) {
+static int caption_switch_begin(const char *language, unsigned owner, int sequence, int secondary) {
     if (!language || !caption_scope() || g_caption_switch.phase ||
         (owner ? !tube_remote_command_current(owner, sequence) : sequence != 0)) return 0;
     int index = -1;
     for (int i = 0; i < g_caption_track_count; ++i) if (!strcmp(language, g_caption_tracks[i].language)) { index = i; break; }
     if (index < 0) return 0;
-    char first[512]; copy(first, sizeof first, evo_data_path("caption-a.mp4"));
+    if (secondary && !strcmp(language, tube_phone_caption_language())) return 0;
+    char first[512]; copy(first, sizeof first, evo_data_path(secondary ? "caption-secondary-a.mp4" : "caption-a.mp4"));
     tube_caption_switch_cancel();
+    g_caption_switch.secondary = secondary;
     copy(g_caption_switch.media, sizeof g_caption_switch.media,
-        !strcmp(g_caption_path, first) ? evo_data_path("caption-b.mp4") : first);
+        !strcmp(secondary ? g_secondary_caption_path : g_caption_path, first) ?
+        evo_data_path(secondary ? "caption-secondary-b.mp4" : "caption-b.mp4") : first);
     if (strlen(g_caption_switch.media) > sizeof g_caption_switch.media - 9) { tube_caption_switch_cancel(); return 0; }
     copy(g_caption_switch.language, sizeof g_caption_switch.language, language);
     g_caption_switch.owner = owner; g_caption_switch.sequence = sequence; g_caption_switch.selection = g_selection_serial;
@@ -2478,6 +2484,17 @@ int tube_caption_switch_begin(const char *language, unsigned owner, int sequence
     if (evo_net_request_async("GET", g_caption_tracks[index].url, NULL, NULL, 0,
         caption_switch_response, (void *)(size_t)g_caption_serial)) { tube_caption_switch_cancel(); return 0; }
     return 2;
+}
+int tube_caption_switch_begin(const char *language, unsigned owner, int sequence) {
+    return caption_switch_begin(language, owner, sequence, 0);
+}
+int tube_caption_secondary_begin(const char *language) { return caption_switch_begin(language, 0, 0, 1); }
+int tube_caption_switch_secondary(void) { return g_caption_switch.phase && g_caption_switch.secondary; }
+const char *tube_caption_switch_language(void) { return g_caption_switch.phase ? g_caption_switch.language : ""; }
+const char *tube_caption_secondary_language(void) { return caption_scope() ? g_secondary_caption_language : ""; }
+void tube_caption_secondary_clear(void) {
+    if (g_caption_switch.secondary) tube_caption_switch_cancel();
+    g_secondary_caption_path[0] = g_secondary_caption_language[0] = 0; ++g_caption_revision;
 }
 static void caption_switch_tick(void) {
     if (g_caption_switch.phase && !caption_switch_current()) tube_caption_switch_cancel();
@@ -2497,8 +2514,14 @@ int tube_caption_switch_status(const char **media_path) {
 }
 void tube_caption_switch_finish(int applied) {
     if (applied && g_caption_switch.phase == 2 && caption_switch_current()) {
-        copy(g_caption_path, sizeof g_caption_path, g_caption_switch.media);
-        copy(g_caption_language, sizeof g_caption_language, g_caption_switch.language);
+        if (g_caption_switch.secondary) {
+            copy(g_secondary_caption_path, sizeof g_secondary_caption_path, g_caption_switch.media);
+            copy(g_secondary_caption_language, sizeof g_secondary_caption_language, g_caption_switch.language);
+        } else {
+            copy(g_caption_path, sizeof g_caption_path, g_caption_switch.media);
+            copy(g_caption_language, sizeof g_caption_language, g_caption_switch.language);
+            if (!strcmp(g_caption_language, g_secondary_caption_language)) tube_caption_secondary_clear();
+        }
         ++g_caption_revision;
     }
     tube_caption_switch_cancel();

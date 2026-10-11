@@ -28,6 +28,11 @@ int tube_caption_track_automatic(int index);
 unsigned tube_caption_revision(void);
 /* 2=pending, 0=rejected. owner/sequence=0 for a local picker operation. */
 int tube_caption_switch_begin(const char *language, unsigned owner, int sequence);
+int tube_caption_secondary_begin(const char *language);
+int tube_caption_switch_secondary(void);
+const char *tube_caption_switch_language(void);
+const char *tube_caption_secondary_language(void);
+void tube_caption_secondary_clear(void);
 /* 0=pending, 1=ready, -1=failed/retired. Only apply ready files on the main thread. */
 int tube_caption_switch_status(const char **media_path);
 void tube_caption_switch_finish(int applied);

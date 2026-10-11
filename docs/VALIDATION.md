@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Independent secondary YouTube captions — 2026-10-10
+
+The YouTube subtitle picker now uses Square to choose or clear a second language.
+Primary and secondary downloads stage in separate alternating sidecars; validated
+source/profile/selection ownership and the existing bounded request lifecycle apply
+to both. Metadata changes only after actual engine application. A failed secondary
+download/parse preserves both active lines. Taking the secondary language as the
+primary clears its duplicate designation.
+
+Pinned EVO's bounded SRT reader now accepts a destination cue buffer, preserving
+the original primary loader. A separately allocated secondary buffer is published
+only after successful parsing. It renders against the media clock with its own
+delay, survives primary-caption changes, and retires on media teardown. The actual
+generated engine passes 104 ASan/UBSan checks, including repeated replacements,
+failed files, primary preservation, delay, forward seek/rewind and media identity.
+The actual primary/secondary application bridge passes 92 checks. The provider
+staging/scope tests also pass. Evidence: `scripts/test_secondary_captions.sh`,
+`scripts/test_subtitles.sh`, `scripts/test_caption_switch.sh` and
+`.deps/secondary-{engine,primary,provider}-tests.log` (the expanded 104-check engine
+case also passed directly). Full packaging and PS5 secondary-caption visual/input
+acceptance remain open.
+The final connected PS5 Application/provider/picker/subtitle objects, all 11
+provider regressions, caption-identity tests and shipping controller/checked-exit
+tests passed (`.deps/secondary-final.result`, exit 0).
+
 ## Whole-app close on phone disconnect — 2026-10-10
 
 The saved preference cycles keep playing / stop phone playback / close the app,

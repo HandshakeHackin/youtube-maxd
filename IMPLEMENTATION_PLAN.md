@@ -5,7 +5,12 @@
 - Implementation: see [README](README.md), [decisions](docs/DECISIONS.md) and [acceptance](docs/HARDWARE_ACCEPTANCE.md). The milestone descriptions below preserve the original proposal; the first version uses a required LAN companion.
 - Repository: private `blackbearreloaded/ProsperoTube`
 
-Latest implementation batch: availability-gated native voice capture, local ASR
+Latest caption batch: independent secondary YouTube captions are connected to
+the native picker through Square, separate staged sidecars and an independently
+parsed/rendered EVO buffer. Engine and application tests pass; full packaging and
+PS5 visual/input acceptance remain open. See `docs/VALIDATION.md`.
+
+Earlier implementation batch: availability-gated native voice capture, local ASR
 and provider search are connected and packaged (`0b06bc66`, 216 objects, 126
 frozen files). A `.40` case established native startup/UI/microphone capability,
 then stopped on a malformed fixture packet; microphone capture remains open.
@@ -629,7 +634,7 @@ is implementation evidence, not full PS5 or live-account acceptance.
 | DeArrow | Host-tested independent title/thumbnail toggles, originals, cache/fallback, queue/recovery display; live replacement-title lookup passed | PS5 package passed; image/title acceptance pending |
 | Accounts and private library | Device-code, per-profile resolver and library flows host-tested | Real sign-in, brand/secondary accounts, private playback and account-state acceptance |
 | Comments, playlists and live chat | Retained history passed worker/native/UI tests; PS5 fixture paging, stable refresh and top/live switch accepted; saved left/right player sidebar, R2 Hide/Left/Right controls with explicit error retry and reference author filter host-tested; playback-clock replay passed worker/native/HUD tests and live Guest seek/rewind checks; replay candidates `6097d274` and corrected `9ac95e69` PS5 build/freeze passed; candidates `112dadf8` and `88f28929` PS5 build/freeze passed; latest console cases stopped when another title started during upload, before binding or launch | Player-sidebar/R2/replay PS5 acceptance and readability, replay-history browser, real accounts/chat and complete live/DVR behavior |
-| Casting and remote integration | Authentic Lounge backend host/live-tested; native pairing/reset, checked PS5 entropy and Lapy identity storage tested; controller/resolver/worker adapter covers play/pause, fractional seek, remote queue/EOF, next/previous, stop, PCM volume, D-pad and current-track captions; saved disconnect choice and ownership tests passed; corrected PS5 packages built/froze; PS5 fixture UUID/screen persistence, receiver registration and remote video startup passed | Native fixture controls and primary caption switching passed on PS5; real phone/physical acceptance remains; secondary YouTube captions, native voice capture/search (local ASR service tested), full app exit on disconnect and long playlist continuation |
+| Casting and remote integration | Authentic Lounge backend host/live-tested; native pairing/reset, checked PS5 entropy and Lapy identity storage tested; controller/resolver/worker adapter covers play/pause, fractional seek, remote queue/EOF, next/previous, stop, PCM volume, D-pad and current-track captions; saved disconnect choice and ownership tests passed; corrected PS5 packages built/froze; PS5 fixture UUID/screen persistence, receiver registration and remote video startup passed | Native fixture controls and primary caption switching passed on PS5; real phone/physical acceptance remains; secondary captions are implemented; PS5 visual/input, physical voice capture/search, real-phone disconnect and long-playlist continuation acceptance remain open |
 | Settings, localization and UI | Existing native controls/preferences; baseline inventory retained | Complete settings/localization; polish after broad YouTube acceptance |
 | Standalone YouTube service | LAN companion currently required | SABR/proof-token/service feasibility and native integration |
 
@@ -668,7 +673,8 @@ next/previous, queue replacement, EOF advance, stop, both disconnect choices and
 saved local queue preservation. Original provider/sidecar bytes were restored
 following exact GPU/process/title release; services remained healthy. Real phone
 casting and physical sound/caption appearance remain unassessed. Secondary
-YouTube captions and real-phone/physical acceptance remain open. Native voice,
+YouTube captions are now implemented; their PS5 visual/input acceptance and
+real-phone/physical checks remain open. Native voice,
 whole-app disconnect close and long/partial queue windows are now implemented;
 their remaining hardware/account gates are tracked above and in validation.
 

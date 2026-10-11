@@ -125,9 +125,11 @@ void ProviderHostScreen::startSelected()''')
             };
             if (tube_caption_switch_local()) {
                 tube_remote_player current{};
+                const bool secondary = tube_caption_switch_secondary() != 0;
                 int result = phone.snapshot(this, &current) ? tube_caption_apply_ready() : -1;
                 if (result < 0) { tube_caption_switch_cancel(); toast("CAPTIONS", "Couldn't load this language"); }
-                else if (result > 0) toast("CAPTIONS", tube_phone_caption_language());
+                else if (result > 0) toast(secondary ? "SECONDARY CAPTIONS" : "CAPTIONS",
+                    secondary ? tube_caption_secondary_language() : tube_phone_caption_language());
             }
             tube_phone_tick(&phone);
         }''')

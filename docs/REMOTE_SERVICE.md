@@ -137,8 +137,11 @@ retain the sender's global index and click-tracking parameters.
 
 Volume scales the final S16 output with an atomic main/audio-thread gain; mute
 does not change the media clock or retirement accounting. Unknown caption
-languages are not silently acknowledged. Secondary YouTube caption selection
-remains open. Supplied queues and partial-queue expansion use the bounded windows
+languages are not silently acknowledged. The local picker now stages a second
+YouTube language through Square into an independent EVO cue buffer; primary
+changes and failed replacements preserve the other line. Phone caption commands
+continue to select the primary language. PS5 secondary-caption visual/input
+acceptance remains open. Supplied queues and partial-queue expansion use the bounded windows
 described above. The saved disconnect choice defaults to keeping
 playback running; opt-in stop applies only to the current phone-owned video and
 clears its ephemeral queue. It returns to the browser. The separate close choice

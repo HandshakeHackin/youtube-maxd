@@ -23,6 +23,7 @@ def apply_caption_controls_overlay(replace, player):
             const char* name = tube_caption_track_name(i);
             track.label = *name ? name : language;
             track.detail = language;
+            track.isSecondary = prospero_secondary_subtitle_active() && !std::strcmp(language, tube_caption_secondary_language());
             if (tube_caption_track_automatic(i)) track.detail += " (automatic)";
             if (prospero_subtitle_enabled && prospero_subtitle_count && !std::strcmp(language, tube_phone_caption_language()))
                 m_activeTrackIndex = static_cast<int>(m_tracks.size());
@@ -41,9 +42,17 @@ def apply_caption_controls_overlay(replace, player):
         toast("CAPTIONS", result == 2 ? "Loading..." : language);
     } else if (trackId == -2) {''')
     replace(picker, '    if (entry.trackId == kAutoSyncTrack) {', '''    if (entry.trackId <= -1000) {
-        evo_feedback(EVO_FB_ERROR); toast("CAPTIONS", "Select one primary language"); return;
+        const char* language = tube_caption_track_language(-1000 - entry.trackId);
+        if (entry.isSecondary) {
+            tube_caption_secondary_clear(); tube_secondary_subtitle_clear();
+        } else if (!tube_caption_secondary_begin(language)) {
+            evo_feedback(EVO_FB_ERROR); toast("CAPTIONS", "Couldn't select a second language"); return;
+        } else toast("CAPTIONS", "Loading second language...");
+        evo_feedback(EVO_FB_CONFIRM); refreshTracks(); return;
     }
     if (entry.trackId == kAutoSyncTrack) {''')
+    replace(picker, '        prospero_secondary_subtitle_select(PROSPERO_SECONDARY_NONE);',
+        '        tube_caption_secondary_clear();\n        prospero_secondary_subtitle_select(PROSPERO_SECONDARY_NONE);')
     replace(picker, '    StatefulScreen::update(deltaMs);', '''    StatefulScreen::update(deltaMs);
     if (m_tubeRevision != tube_caption_revision() || m_tubeTracks != tube_caption_track_count() ||
         m_tubeEnabled != (prospero_subtitle_enabled != 0)) {
