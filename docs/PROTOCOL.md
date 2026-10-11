@@ -286,3 +286,48 @@ hashed-prefix request, validation and one-hour cache (cached per server).
 Without the option `alt` is ignored and the primary server is used. The
 alternative host SmartTube's own service uses could not be established from the
 reference tree, so it is host configuration rather than a built-in address.
+
+## Third-batch request and response fields
+
+All fields below are optional; without them a request behaves as before, and a
+client may ignore the added response fields. `GET /v1/health` adds a boolean
+`proxy` and lists the new capabilities in `features`: `translated_captions`,
+`video_details`, `subscriptions_import`; with the library worker `kids`,
+`stream_reminder`, `playlist_order`, `subscribe_notifications`, `comment_post`,
+`search_first`, `channel_new_content`; `dislikes` and `proxy` when the host
+enabled them. The library actions (`video_details`, `stream_reminder`,
+`playlist_order`, `subscribe_notifications`, `comment_post`, `comment_reply`,
+the `kids` section) and the fields `reminder`, `playlist_order`,
+`notifications`, `first_playable`, `new_content`, as well as the two new
+routes `GET /v1/dislikes/{id}` and `POST /v1/subscriptions/import` (request
+body limit 1 MiB instead of 8 KiB), are specified in
+[LIBRARY_SERVICE.md](LIBRARY_SERVICE.md#kids-reminders-playlist-order-details-comment-posting-and-host-options).
+A library job with `action: "video_details"` is answered without the library
+worker, like `description`. The `text` field of a library request now accepts
+up to 1,000 characters for the two comment actions only; chat messages keep
+their 200-character limit.
+
+A resolve request (`/v1/resolve` and the `playback` object of a resolve job)
+accepts `translated_captions` (boolean, default `false`). Each entry of the
+result's `captions` list gains `translated` (boolean): true for a
+machine-translated track, i.e. one whose upstream address carries a target
+language.
+
+- With `translated_captions: true` and `automatic_captions: false` the list
+  holds the human-made tracks plus the machine translations only (no
+  untranslated automatic track), at most 128 translations chosen in language
+  order with the requested `caption_language` first, 256 tracks in total as
+  before.
+- With `automatic_captions: true` the list is what it was (automatic tracks,
+  including the translations YouTube derives from the automatic track), now
+  with `translated` set on the translated ones.
+- `translated_captions: true` also asks the resolver for translations of
+  human-made tracks, which yt-dlp otherwise skips. Their `language` is
+  `<target>-<source>` (for example `fr-en`); translations of the automatic
+  track use the plain target code. `automatic` is true for every translated
+  track. This fuller listing is slower to build and is cached separately.
+
+A translated track is downloaded exactly like any other caption: its `url` is
+an expiring `/media/<session>/c<n>.srt` capability converted to SubRip by the
+companion. Translations exist only where YouTube's web player response lists
+translation languages; OAuth TV resolutions return none.

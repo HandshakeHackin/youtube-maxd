@@ -989,7 +989,8 @@ Account action, no fields besides `profile`. Returns a catalog page of the
 profile's subscribed channels as `kind: "channel"` folder rows (the shape under
 `search`), each channel once, continued with `continue`. Guest fails with
 `account_required` (401). The pinned parser does not expose a new-content
-marker, so none is returned.
+marker; the opt-in `new_content` field of the third batch reads it from the
+raw guide response instead.
 
 ### `notifications`
 
@@ -1269,3 +1270,282 @@ The offline fixture library ignores `hl`, `gl` and `hide`, applies `thumbnails`
 only to YouTube image addresses (its generated thumbnails are local), and
 reports `unknown_operation` for `channel`, `channel_search`, `playlist_save`,
 `playlist_unsave` and the three history controls.
+
+
+## Kids, reminders, playlist order, details, comment posting and host options
+
+Third batch of contracts. Transport, page shape, cursors, limits and the
+one-attempt `session` rule are those of the two previous sections. Every new
+request field is optional with the earlier behaviour as its default; every new
+response field is additive. `GET /v1/health` `features` lists
+`translated_captions`, `video_details` and `subscriptions_import` (always),
+`kids`, `stream_reminder`, `playlist_order`, `subscribe_notifications`,
+`comment_post`, `search_first` and `channel_new_content` (with the library
+worker, not in fixture mode), `dislikes` (only with `--return-youtube-dislike`)
+and `proxy` (only with `--proxy`). An older companion rejects the unknown
+fields and actions with HTTP 422. Offline tests cover these contracts with the
+pinned parser and synthetic responses; none has been run against the live
+service, an account or a PS5. Statements marked *inferred* describe upstream
+layouts that the pinned YouTube.js 18.1.0 does not parse and that could not be
+checked offline; an unrecognised layout sends nothing and returns the stated
+error.
+
+### Kids section
+
+`{"action":"topics","section":"kids"}` returns one folder row per YouTube Kids
+category: `{"id":"section:kids:<uuid>","title":"<category>","subtitle":"YouTube
+Kids","art_url":"","is_folder":true}`. Open one with
+`{"action":"topic_open","section":"kids","id":"<uuid>"}`; it returns ordinary
+video rows with the retained-group `playback_context`, paged with `continue`
+(the companion pages the category locally; YouTube's own Kids continuation is
+not requested). References belong to the profile and expire after ten minutes
+(`cursor_expired`, 409). Guest is allowed. The worker uses the pinned Kids
+client (`kids.getHomeFeed()`, browse identity `FEkids_home`, client `YTKIDS`)
+and its `selectCategoryTab()`. Errors: `upstream_format` (502) when the page has
+no category tabs, `catalog_unavailable` (404) when the Kids client is missing.
+
+### Stream reminder: `stream_reminder`
+
+`{"action":"stream_reminder","profile":…,"id":"<video id>","reminder":"status"|"set"|"unset","session":"<confirmation>"}`
+
+- `status` (any profile, no `session`):
+  `{"api_version":1,"kind":"stream_reminder","id":…,"upcoming":bool,"available":bool,"reminder_set":bool}`.
+  `available` is true only when YouTube offers the "Notify me" control to this
+  profile; `reminder_set` is its current state (false when unavailable).
+- `set` / `unset` (account profile, `session` required):
+  `{"api_version":1,"success":true,"id":…,"reminder_set":true|false}`. When the
+  reminder already has the requested state nothing is sent.
+
+Errors: `reminder_unavailable` (404) when no control is offered — nothing was
+sent and the same `session` may be used again; `reminder_unconfirmed` (409, or
+502 for the attempt that was not confirmed) — never sent again;
+`account_required` (401), `unknown_profile` (404), `invalid_request` /
+`invalid_identity` (400), `account_busy` (429), `upstream_format` (502) for a
+reply about another video.
+
+*Inferred:* the pinned parser keeps neither the watch-page toggle nor its
+state, so the worker reads the raw `/player` response: exactly one
+`toggleButtonRenderer` under `playabilityStatus` whose default endpoint is
+`addUpcomingEventReminderEndpoint` and whose toggled endpoint is
+`removeUpcomingEventReminderEndpoint`, each with `params`, plus a boolean
+`isToggled`; the change posts those `params` to
+`notification/add_upcoming_event_reminder` or
+`notification/remove_upcoming_event_reminder`. SmartTube's own reminder is
+local (it polls the video and starts playback when it goes live); a native
+client can build that from `status` and the existing `is_upcoming` /
+`upcoming_start_ms` row fields without this account change.
+
+List rows: the existing `is_upcoming` flag marks upcoming videos (no separate
+`upcoming` field was added). A row gains `reminder_set: true|false` only when
+the parsed card states it, which in the pinned parser is the legacy grid card
+(`GridVideo`); search, Subscriptions and channel rows leave it out (unknown).
+
+### Playlist order: `playlist_order`
+
+`{"action":"playlist_order","profile":…,"playlist":"<playlist id, WL or LL>","playlist_order":…,"session":"<confirmation>"}`
+for an account profile. `id` must be empty.
+
+- Without `playlist_order` (or `""`): the offered orders,
+  `{"api_version":1,"kind":"playlist_order","playlist_id":…,"editable":bool,"orders":["added_newest",…],"order":"<selected>"|""}`.
+  `editable` is false and `orders` empty for a playlist the account cannot
+  sort (another channel's playlist, or an unrecognised layout).
+- With `playlist_order` one of `added_newest`, `added_oldest`, `popular`,
+  `published_newest`, `published_oldest` and a `session`:
+  `{"api_version":1,"success":true,"playlist_id":…,"order":…}`. YouTube stores
+  the order with the playlist; reload the `playlist` list afterwards.
+
+These are SmartTube's five choices (date added newest/oldest, popularity, date
+published newest/oldest); it offers no manual order. Errors:
+`playlist_order_unavailable` (404) when the page does not offer that order —
+nothing was sent, the `session` stays usable; `playlist_unconfirmed` (409/502);
+`account_required`, `unknown_profile`, `invalid_request`, `account_busy`.
+
+*Inferred:* the pinned playlist parser drops the sort menu, so the worker reads
+the raw browse response (`VL<playlist>`): `sortFilterSubMenuRenderer` items
+whose `playlistEditEndpoint` targets this playlist with exactly one
+`ACTION_SET_PLAYLIST_VIDEO_ORDER` action. Its numeric `playlistVideoOrder` is
+mapped 1–5 to the five names in the order above (SmartTube's
+`PLAYLIST_ORDER_*` constants, recalled rather than read: its service module is
+absent from the reference tree). Only a value the page itself offered is sent,
+through the pinned `browse/edit_playlist` path, and
+`status: "STATUS_SUCCEEDED"` is required. Viewing another channel's playlist
+has no order option: the browse endpoint offers none there.
+
+### Notification level on subscriptions
+
+`subscribe` accepts `notifications`: `all`, `personalized` or `none` (default
+`""` = unchanged behaviour). The response then carries
+`"notifications":"<level>"` when the level was applied, or `""` when the
+subscription succeeded but the level was not confirmed (do not subscribe
+again; send `subscribe_notifications`).
+
+`{"action":"subscribe_notifications","profile":…,"id":"UC…","notifications":"all"|"personalized"|"none"}`
+changes the level of an existing subscription:
+`{"api_version":1,"success":true,"playlist_id":"","notifications":…}`, or
+`operation_failed` (502). Both use the pinned
+`interact.setNotificationPreferences`. No `session` is needed: the change is
+idempotent. `notifications` on any other action is rejected.
+
+### Likes and dislikes
+
+`description` gains `like_count`: `"<digits>"` or `""`. The worker's
+`description` reads player metadata only, which has no like count, so it is
+filled on the yt-dlp path (companion without the worker) and by
+`video_details` below.
+
+`GET /v1/dislikes/{video id}` (bearer token) relays Return YouTube Dislike,
+which is where SmartTube takes dislikes from (recalled; its service module is
+absent from the reference tree). It is off unless the host starts the
+companion with `--return-youtube-dislike`:
+
+- disabled: `{"api_version":1,"enabled":false}` and no outbound request;
+- enabled: `{"api_version":1,"enabled":true,"id":…,"available":true,"likes":n,"dislikes":n}`
+  or `{…,"available":false}` when the service fails or its answer is invalid.
+
+The companion sends only `GET https://returnyoutubedislikeapi.com/votes?videoId=<id>`
+(no account data) and accepts only a JSON object of at most 64 KiB whose `id`
+equals the requested video and whose `likes` and `dislikes` are plain integers
+from 0 to 10^12. Known counts are cached for one hour, unavailable answers for
+five minutes, 128 videos at most. Enabling it discloses watched video IDs to
+that third party; say so in the native setting.
+
+### Video details: `video_details`
+
+`{"action":"video_details","profile":…,"id":"<video id>"}`, Guest allowed:
+
+```json
+{"api_version":1,"kind":"video_details","id":"…","title":"…",
+ "channel":{"id":"UC…","name":"…","subscribers":"1.2M subscribers","art_url":"https://yt3.ggpht.com/…"},
+ "published":"YYYY-MM-DD","views":"1234567","like_count":"4321",
+ "description":"<at most 600 UTF-16 units>","description_truncated":true,
+ "duration_sec":125,"badges":["live","upcoming","4k"],"has_related":true}
+```
+
+`title` and `channel.name` are at most 192 characters; `channel.id`,
+`published`, `views`, `like_count` and `channel.subscribers` (display text, at
+most 64 characters) are `""` when unknown. `channel.art_url` is an HTTPS
+`ytimg.com` / `ggpht.com` / `googleusercontent.com` address like other artwork,
+or `""`. `description` is the excerpt for the screen (the full text stays with
+`description`). `badges` holds any of `live`, `upcoming`, `4k`; `4k` appears
+when the watch response lists a format of at least 2160 lines. `has_related`
+says whether `suggestions` for this video would list anything. The worker makes
+one pinned `getInfo` request (player + watch-next); a reply for another video
+fails with `upstream_format` (502).
+
+Without the library worker the action is answered from one yt-dlp extraction
+with the same shape: `channel.subscribers` is then a plain number string,
+`channel.art_url` is `""` and `has_related` is `false`.
+
+### Comments: state, count and posting
+
+Comment rows (`comments`, `replies`) gain `liked`, `disliked` (the viewer's own
+rating), `hearted` (creator heart), `member` (channel member) and
+`respond_cursor` (opaque reference for replying, at most 64 characters, `""`
+when the profile cannot reply to that comment). `pinned`, `owner` and the
+author avatar `art_url` already existed. The first `comments` page also carries
+`comment_count` (YouTube's display text, at most 32 characters, `""` when
+absent) and `can_post` (the signed-in profile may post a top-level comment).
+
+`{"action":"comment_post","profile":…,"id":"<video id>","text":…,"session":"<confirmation>"}`
+posts a top-level comment;
+`{"action":"comment_reply","profile":…,"id":"<video id>","cursor":"<respond_cursor>","text":…,"session":"<confirmation>"}`
+replies to the comment the reference came from. `text` is 1–1000 characters
+after trimming, newlines allowed, no other control characters; the whole
+request must still fit the 8 KiB request limit. Success:
+`{"api_version":1,"success":true,"id":…,"session":…,"reply":false|true}`.
+Reload the list to see the new comment; its ID is not returned.
+
+One `session` permits one attempt for one exact video, reference and text: a
+confirmed repeat returns the same result, anything else returns
+`comment_unconfirmed` (409, or 502 for the attempt that was not confirmed) and
+is never sent again. Other errors: `invalid_comment` (400), `cursor_expired`
+(409; reply references belong to the profile, expire after 30 minutes and 256
+are retained), `account_required`, `unknown_profile`, `account_busy`. The
+worker uses the pinned `interact.comment` and the pinned comment `reply()`;
+confirmation requires `actionResult.status: "STATUS_SUCCEEDED"` (*inferred*
+reply shape). Like/dislike of a comment remains `comment_rate`.
+
+### First playable search result
+
+`search` accepts `first_playable: true` (all search options still apply). The
+response is then not a page:
+`{"api_version":1,"kind":"search_first","query":"<trimmed query>","found":bool,"item":{video row}|null}`.
+`item` is the first row of the first result page that is a video and not
+upcoming (live is playable), with the usual retained-group `playback_context`;
+no cursor is retained. `found: false` means the first page had no such row.
+
+### New-content mark of subscribed channels
+
+`channels` accepts `new_content: true`. Channel rows whose state YouTube's
+guide reports then carry `has_new: true|false`; rows without the field are
+unknown. The mark costs one extra guide request and its failure never fails
+the list. *Inferred:* the pinned guide parser drops the marker, so the worker
+reads the raw `/guide` response (`guideEntryRenderer.presentationStyle` =
+`GUIDE_ENTRY_PRESENTATION_STYLE_NEW_CONTENT` / `…_NONE`, keyed by the entry's
+channel ID).
+
+There is no "mark as watched" action: the pinned library has no call for it.
+SmartTube clears the mark by loading the channel's uploads, so open the
+existing `channel` action (`tab: "videos"`) under the account profile for
+"mark channel as watched", and keep a local last-seen marker per channel if
+the native list must be reliable.
+
+### Subscriptions import
+
+`POST /v1/subscriptions/import` (bearer token) takes the export file itself as
+the request body (any content type, UTF-8 with or without a byte-order mark,
+at most 1 MiB; larger bodies get HTTP 413) and returns
+
+```json
+{"api_version":1,"kind":"subscriptions_import","format":"newpipe",
+ "channels":[{"channel_id":"UC…","title":"…"}],"skipped":0,"truncated":false}
+```
+
+`format` is `newpipe`, `pockettube` or `grayjay`. `channels` holds each channel
+once, in file order, at most 2,048 (`truncated` says more were present);
+`title` is at most 192 characters and `""` when the file has none; a `group`
+field appears only for PocketTube (its group name, at most 64 characters).
+`skipped` counts entries without a usable `UC…` identity (handles, user names,
+other services). Nothing is stored and no account is touched: the native
+client adds the list to its local follows. It works without the library worker
+and in fixture mode. An unrecognised file fails with `invalid_import` (400).
+
+Formats (*inferred* from the applications' export files; SmartTube's importer
+is in its absent service module):
+
+- NewPipe: `{"subscriptions":[{"service_id":0,"url":"https://www.youtube.com/channel/UC…","name":"…"}]}`;
+  entries of other services are skipped.
+- PocketTube: `{"<group>":["UC…",…],…}`; keys starting with `ysc_` are ignored.
+- GrayJay: a JSON list whose entries are channel addresses, or subscription
+  records (objects, or JSON text of one) with `channel.url` / `channel.name`
+  or `url` / `name`.
+
+### Host options: `--proxy` and `--return-youtube-dislike`
+
+`--proxy URL` sends every YouTube connection of the companion through one web
+proxy: the yt-dlp resolvers (including the OAuth TV adapter), the library
+worker's requests, the media/caption/storyboard relay, DeArrow, SponsorBlock,
+the dislike relay and the phone-connection client. `URL` is
+`http://[user:password@]host[:port]` or `https://…` (default ports 80 and 443;
+no path, query or fragment; percent-encode special characters in the
+credentials). SOCKS is refused at start-up: the relay's HTTP client has no
+SOCKS support here, and media addresses only work from the address that
+resolved them, so all components must share the proxy. The address is never
+printed or returned: a start-up error does not repeat it, the worker receives
+it through its environment (not its arguments), and `GET /v1/health` reports
+only `"proxy": true|false` (plus `proxy` in `features` when enabled). The
+worker opens one CONNECT tunnel per request and never falls back to a direct
+connection; a malformed setting stops the worker (`library_transport`), a
+failing proxy returns `proxy_failed` (502).
+
+`--return-youtube-dislike` enables the dislike relay described above.
+
+### Fixture mode
+
+The offline fixture library answers `description` with `like_count`, and the
+companion answers `POST /v1/subscriptions/import`, `GET /v1/dislikes/{id}` and
+`translated_captions` there. It reports `invalid_catalog` for the `kids`
+section and `unknown_operation` for `video_details`, `stream_reminder`,
+`playlist_order`, `subscribe_notifications`, `comment_post` and
+`comment_reply`, and ignores `notifications`, `first_playable` and
+`new_content`.
