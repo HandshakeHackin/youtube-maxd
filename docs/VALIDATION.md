@@ -69,6 +69,14 @@ ASan/UBSan tests and compilation of connected PS5 objects
 `.deps/voice-capability-connected-ps5-objects.*`, exit 0). Partial-queue service
 expansion and hardware acceptance of window refills remain open.
 
+The window batch then completed the full PS5 build and immutable freeze:
+source `c2e8f032`, 216 objects, 126 files, eboot SHA-256 prefix
+`a636ecbced4f1ecd` (`.deps/phone-window-{ps5-build,freeze}.*`, exit 0).
+The controller routing check now includes the actual voice input block and
+verifies local start/release/cancel, unavailable admission, chat precedence,
+keyboard/browser ownership and screenshot routing under ASan/UBSan
+(`scripts/test_controller_dispatch.py`, exit 0).
+
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
 S16 PCM, permits one transcription at a time, enforces bounded streaming uploads

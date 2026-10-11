@@ -12,6 +12,9 @@ end = app.index("            lastButtons = padData.buttons;", start)
 dispatch = app[start:end]
 host = (player / "core/src/screens/ProviderHostScreen.cpp").read_text()
 input_start = host.index("bool ProviderHostScreen::handleInput(")
+voice_start = host.index("    (void)held;", input_start)
+voice_end = host.index("    /* Discovery takes", voice_start)
+voice_controls = host[voice_start:voice_end]
 stick_start = host.index("        if ((pressed & PadButtons::L3)", input_start)
 start = host.rindex('    if (m_providerId == "youtube") {', input_start, stick_start)
 end = host.index("    if (pressed & PadButtons::Square)", start)
@@ -28,15 +31,17 @@ scaffold = r'''
 #include <cstring>
 #include <string>
 #include <vector>
+#include <chrono>
 enum class ScreenId { EmbyBrowse, Player, Settings };
 namespace PadButtons {
-constexpr uint32_t L3=2, R3=4, Cross=16, TouchPad=32, L2=64, R2=128;
+constexpr uint32_t L3=2, R3=4, Cross=16, TouchPad=32, L2=64, R2=128, Circle=256;
 }
 static bool keyboard, web, capture_ok=true;
 static unsigned captures, key_updates, key_calls, screen_calls;
 static uint32_t key_pressed, screen_pressed, screen_held, screen_released;
 static std::vector<int> discussion;
-static int evo_rmlui_provider_discussion_key(int key) { discussion.push_back(key); return 1; }
+static bool discussion_handles=true;
+static int evo_rmlui_provider_discussion_key(int key) { discussion.push_back(key); return discussion_handles; }
 static int evo_keyboard_is_open() { return keyboard; }
 static int evo_webui_active() { return web; }
 static void evo_keyboard_update() { ++key_updates; }
@@ -49,9 +54,26 @@ static void notifyOnScreen(const char*) {}
 static void evo_feedback(int) {}
 enum { EVO_FB_CONFIRM, EVO_FB_BOUNDARY };
 static std::string m_providerId="youtube";
-static bool providerInput(uint32_t pressed) {
+enum { TUBE_VOICE_IDLE, TUBE_VOICE_RECORDING, TUBE_VOICE_TRANSCRIBING };
+static int voice_state;
+static bool m_voiceHeld, voice_admitted=true;
+static unsigned voice_begins, voice_finishes, voice_cancels, voice_pauses;
+static int tube_voice_state() { return voice_state; }
+static bool tube_voice_begin(unsigned owner, long long) {
+    assert(owner==0); ++voice_begins;
+    if (!voice_admitted) return false;
+    voice_state=TUBE_VOICE_RECORDING; return true;
+}
+static void tube_voice_finish() { ++voice_finishes; voice_state=TUBE_VOICE_TRANSCRIBING; }
+static void tube_voice_cancel() { ++voice_cancels; voice_state=TUBE_VOICE_IDLE; }
+struct VoicePlayback { bool isActive() { return true; } void setPaused(bool value) { assert(value); ++voice_pauses; } };
+struct Application {
+    static Application& getInstance() { static Application app; return app; }
+    VoicePlayback* getPlaybackController() { static VoicePlayback pb; return &pb; }
+};
+static bool providerInput(uint32_t pressed,uint32_t held,uint32_t released) {
 '''
-scaffold += bindings + r'''
+scaffold += voice_controls + bindings + r'''
     return false;
 }
 static unsigned highlights, seeks;
@@ -83,7 +105,7 @@ struct Manager {
     ScreenId getCurrentScreenId() { return id; }
     void handleInput(uint32_t pressed,uint32_t held,uint32_t released) {
         ++screen_calls; screen_pressed=pressed; screen_held=held; screen_released=released;
-        if (id==ScreenId::EmbyBrowse) providerInput(pressed);
+        if (id==ScreenId::EmbyBrowse) providerInput(pressed,held,released);
         if (id==ScreenId::Player) playerInput(pressed);
     }
 };
@@ -99,6 +121,8 @@ static void reset(ScreenId id=ScreenId::EmbyBrowse) {
     captures=key_updates=key_calls=screen_calls=highlights=seeks=0;
     key_pressed=screen_pressed=screen_held=screen_released=0;
     discussion.clear(); m_providerId="youtube";
+    discussion_handles=voice_admitted=true; m_voiceHeld=false; voice_state=TUBE_VOICE_IDLE;
+    voice_begins=voice_finishes=voice_cancels=voice_pauses=0;
 }
 int main() {
     reset(); route(PadButtons::R3,0x100,0x200);
@@ -137,6 +161,16 @@ int main() {
     reset(); keyboard=true; route(PadButtons::L3);
     assert(!captures && !screen_calls && key_pressed==PadButtons::L3);
     reset(); route(0); assert(!captures && !screen_calls && discussion.empty());
+    reset(); discussion_handles=false; route(PadButtons::L3);
+    assert(!captures && voice_begins==1 && voice_pauses==1 && m_voiceHeld);
+    discussion.clear(); route(0,0,PadButtons::L3);
+    assert(voice_finishes==1 && !m_voiceHeld && voice_state==TUBE_VOICE_TRANSCRIBING && discussion.empty());
+    route(PadButtons::R3); assert(discussion.empty());
+    route(PadButtons::Circle); assert(voice_cancels==1 && voice_state==TUBE_VOICE_IDLE);
+    reset(); discussion_handles=false; voice_admitted=false; route(PadButtons::L3);
+    assert(voice_begins==1 && !voice_pauses && !m_voiceHeld);
+    reset(); discussion_handles=false; route(PadButtons::L3); route(PadButtons::Circle);
+    assert(voice_cancels==1 && !voice_finishes && !m_voiceHeld);
     return 0;
 }
 '''
