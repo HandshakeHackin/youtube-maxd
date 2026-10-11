@@ -79,6 +79,7 @@ class LibraryService:
         self.chat_sends = {}
         self.watched_intents = {}
         self.feedback_states = {}
+        self.account_intents = {}
         self.on_profile_removed = lambda identity: None
 
     def has_profile(self, identity):
@@ -103,6 +104,7 @@ class LibraryService:
         self.chat_sends = {k: v for k, v in self.chat_sends.items() if k[0] != identity}
         self.watched_intents = {k: v for k, v in self.watched_intents.items() if k[0] != identity}
         self.feedback_states = {k: v for k, v in self.feedback_states.items() if k[0] != identity}
+        self.account_intents = {k: v for k, v in self.account_intents.items() if k[0] != identity}
         self.on_profile_removed(identity)
         await self._stop()  # retire all cached Node credentials/continuations
         if not confirmed:
@@ -294,7 +296,7 @@ class LibraryService:
         if (not isinstance(owner, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', owner)
                 or not isinstance(cursor, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', cursor)
                 or not isinstance(video, str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', video)
-                or choice not in ('not_interested', 'dont_recommend_channel')):
+                or choice not in ('not_interested', 'dont_recommend_channel', 'hide')):
             raise ServiceError('invalid_feedback', 'Select an available feedback choice.', 400)
         if owner == 'guest':
             raise ServiceError('account_required', 'Select an account profile first.', 401)
@@ -304,12 +306,46 @@ class LibraryService:
         self.feedback_states = {k: v for k, v in self.feedback_states.items() if v['deadline'] > now}
         state = self.feedback_states.get((owner, cursor, choice))
         if state and (state['id'] != video or state['result'] is None):
-            raise ServiceError('feedback_unconfirmed', 'Check Home before repeating this feedback.', 409)
+            raise ServiceError('feedback_unconfirmed', 'Check the list before repeating this feedback.', 409)
         if state is None and create:
             if len(self.feedback_states) >= 256:
                 raise ServiceError('feedback_busy', 'Too many feedback intents are retained.', 429)
             state = {'id': video, 'result': None, 'deadline': now + 1800}
             self.feedback_states[(owner, cursor, choice)] = state
+        return state
+
+    ACCOUNT_RESULTS = {'playlist_save': ('saved', True), 'playlist_unsave': ('saved', False),
+                       'history_pause': ('history', 'paused'), 'history_resume': ('history', 'active'),
+                       'history_clear': ('history', 'cleared')}
+
+    def _account_intent(self, request, *, create=False):
+        """Playlist library membership and history controls: one attempt per confirmation session."""
+        action = request.get('action')
+        if action not in self.ACCOUNT_RESULTS:
+            return None
+        owner, session, playlist = request.get('profile', 'guest'), request.get('session', ''), request.get('playlist', '')
+        saving = action.startswith('playlist_')
+        if (not isinstance(owner, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,32}', owner)
+                or not isinstance(session, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', session)
+                or (saving and (not isinstance(playlist, str) or playlist in ('WL', 'LL')
+                                or not re.fullmatch(r'[A-Za-z0-9_-]{10,100}', playlist)))):
+            raise ServiceError('invalid_request', 'The account change needs a confirmation session and a valid target.', 400)
+        if owner == 'guest':
+            raise ServiceError('account_required', 'Select an account profile first.', 401)
+        if not self.has_profile(owner):
+            raise ServiceError('unknown_profile', 'Select an available profile.', 404)
+        now = time.monotonic()
+        self.account_intents = {k: v for k, v in self.account_intents.items() if v['deadline'] > now}
+        identity = (action, playlist if saving else '')
+        state = self.account_intents.get((owner, session))
+        if state and (state['identity'] != identity or state['result'] is None):
+            raise ServiceError('playlist_unconfirmed' if saving else 'history_unconfirmed',
+                               'Check the account before repeating this change.', 409)
+        if state is None and create:
+            if len(self.account_intents) >= 256:
+                raise ServiceError('account_busy', 'Too many account changes are retained.', 429)
+            state = {'identity': identity, 'result': None, 'deadline': now + 1800}
+            self.account_intents[(owner, session)] = state
         return state
 
     async def execute(self, request, *, operation="execute"):
@@ -342,7 +378,11 @@ class LibraryService:
                     feedback_state = self._feedback_state(request) if operation == 'execute' else None
                     if feedback_state is not None:
                         return dict(feedback_state['result'])
+                    account_intent = self._account_intent(request) if operation == 'execute' else None
+                    if account_intent is not None:
+                        return dict(account_intent['result'])
                     await self._start()
+                    account_intent = self._account_intent(request, create=True) if operation == 'execute' else None
                     feedback_state = self._feedback_state(request, create=True) if operation == 'execute' else None
                     watched_intent = self._watched_intent(request, create=True) if operation == 'execute' else None
                     chat_state = self._chat_send_state(request, create=True) if operation == 'execute' else None
@@ -351,6 +391,17 @@ class LibraryService:
                     if watch_state is not None:
                         watch_state["blocked"] = True
                     result = await self._exchange({"operation": operation, "request": request})
+                    if account_intent is not None:
+                        field, expected = self.ACCOUNT_RESULTS[request['action']]
+                        saving = field == 'saved'
+                        if (result.get('api_version') != 1 or result.get('success') is not True
+                                or result.get(field) != expected or type(result.get(field)) is not type(expected)
+                                or (saving and result.get('playlist_id') != request['playlist'])):
+                            raise ServiceError('playlist_unconfirmed' if saving else 'history_unconfirmed',
+                                               'YouTube did not confirm the account change.', 502)
+                        keys = ('api_version', 'success', 'playlist_id', 'saved') if saving else ('api_version', 'success', 'history')
+                        account_intent['result'] = {key: result[key] for key in keys}
+                        result = dict(account_intent['result'])
                     if feedback_state is not None:
                         if (result.get('api_version') != 1 or result.get('success') is not True
                                 or result.get('video_id') != request['id'] or result.get('feedback') != request['feedback']):
@@ -394,6 +445,9 @@ class LibraryService:
         except ServiceError as error:
             if owned and error.code == "library_transport":
                 await self._stop()
+            if owned and error.code == "history_control_unavailable":
+                # The worker sent nothing, so this confirmation may be used again.
+                self.account_intents.pop((request.get("profile", "guest"), request.get("session", "")), None)
             raise
         except (OSError, ValueError, ConnectionError):
             if owned:

@@ -17,6 +17,7 @@ def main():
     parser.add_argument("--cookies", type=Path, help="Explicitly supplied test-account cookie file; never reads browser cookies")
     parser.add_argument("--extractor-args", type=Path, help="Optional JSON yt-dlp extractor arguments, including a configured token provider")
     parser.add_argument("--sponsorblock", action="store_true", help="Enable optional hashed-prefix SponsorBlock queries")
+    parser.add_argument("--sponsorblock-server", help="Alternative SponsorBlock API origin (https://host) used when the PS5 asks for it")
     parser.add_argument("--js-runtime", choices=("deno", "node", "bun", "quickjs"), help="Explicit yt-dlp JavaScript runtime (default: deno)")
     parser.add_argument("--js-runtime-path", help="Optional path to the chosen JavaScript executable")
     parser.add_argument("--fixtures", type=Path, help="Explicit offline mode using media from scripts/generate_fixtures.py")
@@ -26,6 +27,12 @@ def main():
     parser.add_argument("--voice-model", type=Path, help="Local whisper.cpp GGML speech model")
     parser.add_argument("--voice-language", default="auto", help="Speech language code or auto (default)")
     args = parser.parse_args()
+    if args.sponsorblock_server:
+        from .app import sponsorblock_origin
+        try:
+            args.sponsorblock_server = sponsorblock_origin(args.sponsorblock_server)
+        except ValueError as error:
+            parser.error(str(error))
     if bool(args.voice_cli) != bool(args.voice_model):
         parser.error("--voice-cli and --voice-model must be supplied together")
     voice = None
@@ -79,7 +86,8 @@ def main():
                                      lambda: len(library.profiles) < 8)
             from .extractor import ProfileExtractors
             extractor = ProfileExtractors(extractor, lambda: library.profiles, library)
-        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth, voice=voice)
+        app = create_app(extractor=extractor, token=token, public_base=args.public_base, sponsorblock=args.sponsorblock, library=library, device_auth=device_auth, voice=voice,
+                         sponsorblock_server=args.sponsorblock_server)
     print("ProsperoTube companion 0.1.0")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")

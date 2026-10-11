@@ -2,7 +2,7 @@
 import math
 import re
 from urllib.parse import urlsplit
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 CHANNEL_ID = re.compile(r"^UC[A-Za-z0-9_-]{22}$")
@@ -73,6 +73,7 @@ class Item(BaseModel):
     duration_sec: int = 0
     is_folder: bool = False
     is_live: bool = False
+    is_short: bool = False
     resume_pos_sec: int = 0
     played: bool = False
     watch_percent: float = Field(default=-1, ge=-1, le=100, allow_inf_nan=False, strict=True)
@@ -96,6 +97,13 @@ class ResolveRequest(BaseModel):
     audio_language: str = Field(default="", max_length=16, pattern="^[A-Za-z0-9_-]*$")
     automatic_captions: bool = False
     fresh: bool = Field(default=False, strict=True)
+    hl: str = Field(default="", max_length=8)
+
+    @model_validator(mode="after")
+    def content_language(self):
+        from .content_locale import check_locale
+        check_locale(self.hl, "")
+        return self
 
 
 class Choice(BaseModel):
@@ -120,6 +128,18 @@ class Caption(BaseModel):
     automatic: bool = False
 
 
+class Storyboard(BaseModel):
+    """One seek-preview level: `count` thumbnails in sheets of `columns` x `rows`."""
+    width: int
+    height: int
+    columns: int
+    rows: int
+    count: int
+    sheets: int
+    interval_ms: int
+    url: str
+
+
 class Playback(BaseModel):
     api_version: int = 1
     id: str
@@ -130,3 +150,6 @@ class Playback(BaseModel):
     captions: list[Caption] = Field(default_factory=list)
     chapters: list[dict] = Field(default_factory=list)
     paid_content_text: str = Field(default="", max_length=240)
+    loudness_db: float | None = None
+    is_short: bool = False
+    storyboards: list[Storyboard] = Field(default_factory=list, max_length=4)

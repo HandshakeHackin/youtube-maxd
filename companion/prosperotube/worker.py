@@ -41,6 +41,15 @@ def attach_media_cookies(ydl, info):
             record["http_headers"] = {**(record.get("http_headers") or {}), "Cookie": cookie}
 
 
+def language_arguments(arguments, hl, supported):
+    """Add the content language without mutating the configured arguments."""
+    from .content_locale import extractor_language
+    language = extractor_language(hl, supported)
+    if not language:
+        return arguments
+    return {**arguments, "youtube": {**(arguments.get("youtube") or {}), "lang": [language]}}
+
+
 class Quiet:
     def debug(self, *_): pass
     def warning(self, *_): pass
@@ -55,7 +64,10 @@ def main():
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="strict")
     from yt_dlp import YoutubeDL
+    from yt_dlp.extractor.youtube import YoutubeIE
     request = json.load(sys.stdin)
+    request["extractor_args"] = language_arguments(request.get("extractor_args") or {}, request.get("hl", ""),
+                                                   YoutubeIE._SUPPORTED_LANG_CODES)
     opts = {"quiet": True, "no_warnings": True, "logger": Quiet(), "skip_download": True,
             "extract_flat": "in_playlist" if request["flat"] else False,
             "playliststart": request["start"], "playlistend": request["end"],

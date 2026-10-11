@@ -22,6 +22,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from . import __version__
 from .catalog import item, page_for
+from .content_locale import check_locale, locale_options
+from .description import describe
+from . import thumbnail_source
 from .captions import vtt_to_srt
 from .extractor import Extractor
 from .hls import rewrite as hls_rewrite
@@ -54,6 +57,29 @@ class DeviceSessionRequest(BaseModel):
     session: str = Field(pattern="^[0-9a-f]{32}$")
 
 
+HideFlag = Literal["shorts_all", "mixes", "watched_watch_later", "watched_home", "watched_subscriptions",
+                   "watched_notifications", "shorts_subscriptions", "shorts_search", "shorts_home", "shorts_channel",
+                   "shorts_history", "shorts_trending", "streams_subscriptions", "upcoming_subscriptions",
+                   "upcoming_home", "upcoming_channel"]
+ThumbnailSource = Literal["default", "start", "middle", "end"]
+ACCOUNT_INTENTS = {"playlist_save", "playlist_unsave", "history_pause", "history_resume", "history_clear"}
+
+
+def sponsorblock_origin(value):
+    """An alternative SponsorBlock server is a bare HTTPS origin chosen by the host."""
+    try:
+        parts = urlsplit(value)
+        port = parts.port
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError("The SponsorBlock server must be an https:// origin.") from None
+    host = parts.hostname or ""
+    if (parts.scheme != "https" or not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?", host.lower())
+            or parts.username or parts.password or port not in (None, 443) or parts.path not in ("", "/")
+            or parts.query or parts.fragment or len(value) > 300):
+        raise ValueError("The SponsorBlock server must be an https:// origin.")
+    return "https://" + host.lower()
+
+
 class LibraryRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     action: Literal["profiles", "home", "subscriptions", "history", "library", "playlists", "suggestions", "suggestions_filter",
@@ -62,7 +88,9 @@ class LibraryRequest(BaseModel):
                     "playlist_remove", "playlist_rename", "playlist_delete", "watch_later_add",
                     "watch_later_remove", "watch_progress", "profile_remove", "comment_rate", "mark_watched",
                     "live_chat", "chat_poll", "chat_close", "chat_send", "topics", "topic_open", "playback_queue", "playback_at", "playback_next", "channel_window", "group_window", "history_remove",
-                    "search", "search_suggestions", "description", "channels", "notifications", "feedback"]
+                    "search", "search_suggestions", "description", "channels", "notifications", "feedback",
+                    "channel", "channel_search", "playlist_save", "playlist_unsave",
+                    "history_pause", "history_resume", "history_clear"]
     section: Literal["", "music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"] = ""
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
     id: str = Field(default="", max_length=100)
@@ -93,7 +121,31 @@ class LibraryRequest(BaseModel):
     type: Literal["all", "video", "channel", "playlist", "movie", "shorts"] = "all"
     features: list[Literal["hd", "subtitles", "creative_commons", "3d", "live", "purchased", "4k", "360", "location", "hdr", "vr180"]] = Field(default_factory=list, max_length=11)
     order: Literal["relevance", "view_count"] = "relevance"
-    feedback: Literal["", "not_interested", "dont_recommend_channel"] = ""
+    feedback: Literal["", "not_interested", "dont_recommend_channel", "hide"] = ""
+    hl: str = Field(default="", max_length=8)
+    gl: str = Field(default="", max_length=2)
+    hide: list[HideFlag] | None = Field(default=None, max_length=16)
+    tab: Literal["", "home", "videos", "shorts", "live", "playlists"] = ""
+    channel_sort: Literal["", "newest", "popular", "oldest"] = ""
+    thumbnails: ThumbnailSource = "default"
+
+    @model_validator(mode="after")
+    def locale_filters_channels_and_intents(self):
+        check_locale(self.hl, self.gl)
+        if self.hide is not None and len(set(self.hide)) != len(self.hide):
+            raise ValueError("Content filters must be distinct.")
+        if (self.tab or self.channel_sort) and self.action != "channel":
+            raise ValueError("Channel sections and orders require the channel action.")
+        if self.action in {"channel", "channel_search"} and (
+                not re.fullmatch(r"UC[A-Za-z0-9_-]{22}", self.channel) or self.id or self.playlist):
+            raise ValueError("Channel pages require a channel identity.")
+        if self.action in ACCOUNT_INTENTS:
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.session):
+                raise ValueError("Account changes require a confirmation session.")
+            if self.action.startswith("playlist_") and (self.playlist in {"WL", "LL"}
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{10,100}", self.playlist)):
+                raise ValueError("Saving a playlist requires another channel's playlist identity.")
+        return self
 
     @model_validator(mode="after")
     def search_and_feedback(self):
@@ -103,9 +155,9 @@ class LibraryRequest(BaseModel):
             raise ValueError("Search options require the search action.")
         if len(set(self.features)) != len(self.features):
             raise ValueError("Search features must be distinct.")
-        if self.query and self.action not in {"search", "search_suggestions"}:
+        if self.query and self.action not in {"search", "search_suggestions", "channel_search"}:
             raise ValueError("Query text requires a search action.")
-        if re.search(r"[\x00-\x1f\x7f]", self.query) or (self.action == "search" and not self.query.strip()):
+        if re.search(r"[\x00-\x1f\x7f]", self.query) or (self.action in {"search", "channel_search"} and not self.query.strip()):
             raise ValueError("Enter search text without control characters.")
         if self.action == "description" and not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id):
             raise ValueError("A description requires a video identity.")
@@ -144,7 +196,8 @@ class LibraryRequest(BaseModel):
             if (not re.fullmatch(r"UC[A-Za-z0-9_-]{22}",self.channel)
                     or not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id) or self.index is None or self.playlist):
                 raise ValueError("Channel navigation requires a channel and anchored video occurrence.")
-        elif self.channel or (self.target is not None and self.action != "group_window"):
+        elif (self.channel and self.action not in {"channel", "channel_search"}) or (
+                self.target is not None and self.action != "group_window"):
             raise ValueError("Channel positions require channel_window.")
         if self.action == "playback_next" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
                 or (not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})",self.playlist) or self.index is None
@@ -180,10 +233,22 @@ class JobRequest(BaseModel):
     auth: DeviceJobRequest | None = None
     id: str = Field(default="", max_length=11)
     profile: str = Field(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")
+    hl: str = Field(default="", max_length=8)
+    gl: str = Field(default="", max_length=2)
+    hide: list[HideFlag] | None = Field(default=None, max_length=16)
+    thumbnails: ThumbnailSource = "default"
+
+    @model_validator(mode="after")
+    def locale_and_filters(self):
+        check_locale(self.hl, self.gl)
+        if self.hide is not None and len(set(self.hide)) != len(self.hide):
+            raise ValueError("Content filters must be distinct.")
+        return self
 
 
 def create_app(*, extractor=None, token=None, pairing_code=None, public_base=None,
-               http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None, voice=None):
+               http_client=None, sponsorblock=False, library=None, device_auth=None, remote=None, voice=None,
+               sponsorblock_server=None):
     @asynccontextmanager
     async def lifespan(app):
         try:
@@ -213,6 +278,7 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     app.state.public_base = public_base.rstrip("/") if public_base else None
     app.state.pair_attempts = defaultdict(list)
     app.state.sponsorblock = sponsorblock
+    app.state.sponsorblock_server = sponsorblock_origin(sponsorblock_server) if sponsorblock_server else None
     app.state.sponsor_cache = {}
     app.state.jobs = {}
     app.state.retired_tasks = set()
@@ -294,14 +360,28 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     async def health():
         return {"api_version": 1, "version": __version__, "service": "ProsperoTube",
                 "mode": "fixtures" if getattr(app.state.extractor, "fixture_mode", False) else "youtube",
-                "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow"] + (["library"] if library is not None else []) + (["device_auth"] if device_auth is not None else []) + (["voice"] if voice is not None else []),
-                "sponsorblock": app.state.sponsorblock}
+                "features": ["search", "channels", "playlists", "dash", "relay", "captions", "dearrow",
+                             "locale", "thumbnail_source", "storyboards"] + (["library", "content_filters", "channel_pages"] if library is not None else []) + (["device_auth"] if device_auth is not None else []) + (["voice"] if voice is not None else []),
+                "sponsorblock": app.state.sponsorblock,
+                "sponsorblock_alt": app.state.sponsorblock_server is not None}
+
+    async def library_result(operation):
+        if app.state.library is None:
+            # The full description needs no worker: one video extraction has it.
+            if operation.action != "description":
+                raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
+            info = await resolver(operation.profile).extract(
+                f"https://www.youtube.com/watch?v={video_id(operation.id)}", **locale_options(operation.hl))
+            return describe(info, operation.id)
+        result = await app.state.library.execute(operation.model_dump(exclude={"thumbnails"}))
+        return thumbnail_source.apply(result, operation.thumbnails)
+
+    def catalog_options(hl, gl, hide=None):
+        return {**locale_options(hl, gl), **({"hide": list(hide)} if hide is not None else {})}
 
     @app.post("/v1/library")
     async def library_operation(payload: LibraryRequest):
-        if app.state.library is None:
-            raise ServiceError("library_unavailable", "Enable the library worker on the companion first.", 503)
-        return await app.state.library.execute(payload.model_dump())
+        return await library_result(payload)
 
     @app.post("/v1/remote")
     async def remote_operation(payload: RemoteRequest):
@@ -356,28 +436,36 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
     @app.get("/v1/search")
     async def search(q: str = Query(min_length=1, max_length=200), page: int = Query(default=0, ge=0, le=1000),
                      profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$"),
-                     dearrow_titles: bool = False, dearrow_thumbnails: bool = False, request: Request = None):
-        result = await page_for(resolver(profile), query=q, page=page)
+                     dearrow_titles: bool = False, dearrow_thumbnails: bool = False,
+                     hl: str = Query(default="", max_length=8), gl: str = Query(default="", max_length=2),
+                     thumbnails: ThumbnailSource = "default", request: Request = None):
+        result = await page_for(resolver(profile), query=q, page=page, options=catalog_options(hl, gl))
+        result = thumbnail_source.apply(result, thumbnails)
         return await app.state.dearrow.decorate(result, dearrow_titles, dearrow_thumbnails, base(request))
 
     @app.get("/v1/catalog")
     async def catalog(parent: str = Query(min_length=1, max_length=160), page: int = Query(default=0, ge=0, le=1000),
                       profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$"),
-                      dearrow_titles: bool = False, dearrow_thumbnails: bool = False, request: Request = None):
-        result = await page_for(resolver(profile), parent=parent, page=page)
+                      dearrow_titles: bool = False, dearrow_thumbnails: bool = False,
+                      hl: str = Query(default="", max_length=8), gl: str = Query(default="", max_length=2),
+                      thumbnails: ThumbnailSource = "default", request: Request = None):
+        result = await page_for(resolver(profile), parent=parent, page=page, options=catalog_options(hl, gl))
+        result = thumbnail_source.apply(result, thumbnails)
         return await app.state.dearrow.decorate(result, dearrow_titles, dearrow_thumbnails, base(request))
 
     @app.get("/v1/video/{identifier}")
-    async def details(identifier: str, profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$")):
+    async def details(identifier: str, profile: str = Query(default="guest", pattern="^[A-Za-z0-9_-]{1,32}$"),
+                      hl: str = Query(default="", max_length=8)):
         video_id(identifier)
-        info = await resolver(profile).extract(f"https://www.youtube.com/watch?v={identifier}")
+        info = await resolver(profile).extract(f"https://www.youtube.com/watch?v={identifier}", **locale_options(hl))
         return {"api_version": 1, "item": item(info), "chapters": info.get("chapters") or [],
                 "caption_languages": sorted((info.get("subtitles") or {}).keys())[:32]}
 
     @app.post("/v1/resolve")
     async def resolve(payload: ResolveRequest, request: Request):
         video_id(payload.id)
-        info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}", fresh=payload.fresh)
+        info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={payload.id}", fresh=payload.fresh,
+                                                       **locale_options(payload.hl))
         resolver(payload.profile)  # profile may have been removed while awaiting extraction
         return app.state.sessions.create(info, payload, base(request))
 
@@ -424,7 +512,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise ServiceError("job_limit", "The companion is busy. Wait for the current request or cancel it.", 503)
         if payload.action == "resolve" and payload.playback is None:
             raise ServiceError("invalid_job", "A playback request is required.", 400)
-        if payload.action == "library" and (payload.library is None or app.state.library is None):
+        if payload.action == "library" and (payload.library is None or (
+                app.state.library is None and payload.library.action != "description")):
             raise ServiceError("invalid_job", "An enabled library and operation are required.", 400)
         if payload.action == "auth":
             if payload.auth is None or app.state.device_auth is None:
@@ -444,16 +533,19 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         async def work():
             try:
                 if payload.action == "search":
-                    result = await page_for(resolver(payload.profile), query=payload.query, page=payload.page)
+                    result = await page_for(resolver(payload.profile), query=payload.query, page=payload.page,
+                                            options=catalog_options(payload.hl, payload.gl, payload.hide))
                 elif payload.action == "catalog":
-                    result = await page_for(resolver(payload.profile), parent=payload.parent, page=payload.page)
+                    result = await page_for(resolver(payload.profile), parent=payload.parent, page=payload.page,
+                                            options=catalog_options(payload.hl, payload.gl, payload.hide))
                 elif payload.action == "resolve":
                     identifier = video_id(payload.playback.id)
-                    info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}", fresh=payload.playback.fresh)
+                    info = await resolver(payload.playback.profile).extract(f"https://www.youtube.com/watch?v={identifier}", fresh=payload.playback.fresh,
+                                                                            **locale_options(payload.playback.hl))
                     resolver(payload.playback.profile)
                     result = app.state.sessions.create(info, payload.playback, base(request))
                 elif payload.action == "library":
-                    result = await app.state.library.execute(payload.library.model_dump())
+                    result = await library_result(payload.library)
                 elif payload.action == "auth":
                     if payload.auth.action == "start":
                         result = await signin().start(payload.auth.name)
@@ -463,8 +555,11 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
                         result = signin().cancel(payload.auth.session)
                 else:
                     identifier = video_id(payload.id)
-                    info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}")
+                    info = await resolver(payload.profile).extract(f"https://www.youtube.com/watch?v={identifier}",
+                                                                   **locale_options(payload.hl))
                     result = {"item": item(info).model_dump(), "chapters": info.get("chapters") or []}
+                if payload.action in ("search", "catalog", "details"):
+                    result = thumbnail_source.apply(result, payload.thumbnails)
                 if payload.action in ("search", "catalog", "details", "library"):
                     result = await app.state.dearrow.decorate(result, payload.dearrow_titles, payload.dearrow_thumbnails, base(request))
                 if payload.action == "auth" and isinstance(result, dict) and result.get("state") == "authorized":
@@ -710,7 +805,8 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
         return StreamingResponse(body(), status_code=reply.status_code, headers=outgoing, media_type=content_type)
 
     @app.get("/v1/sponsor/{identifier}")
-    async def sponsor(identifier: str, categories: str = Query(default="sponsor,selfpromo", max_length=160)):
+    async def sponsor(identifier: str, categories: str = Query(default="sponsor,selfpromo", max_length=160),
+                      alt: bool = False):
         video_id(identifier)
         allowed = {"sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "music_offtopic", "filler", "poi_highlight"}
         chosen = set(categories.split(","))
@@ -718,14 +814,16 @@ def create_app(*, extractor=None, token=None, pairing_code=None, public_base=Non
             raise ServiceError("invalid_categories", "An unsupported SponsorBlock category was requested.", 400)
         if not app.state.sponsorblock:
             return {"segments": [], "enabled": False}
-        cache_key = (identifier, tuple(sorted(chosen)))
+        # The alternative server is used only on request and only when the host configured one.
+        server = app.state.sponsorblock_server if alt and app.state.sponsorblock_server else "https://sponsor.ajay.app"
+        cache_key = (identifier, tuple(sorted(chosen)), server)
         cached = app.state.sponsor_cache.get(cache_key)
         if cached and cached[0] > time.monotonic():
             return {"segments": cached[1], "enabled": True}
         prefix = hashlib.sha256(identifier.encode()).hexdigest()[:4]
         segments = []
         try:
-            reply = await app.state.http.get(f"https://sponsor.ajay.app/api/skipSegments/{prefix}",
+            reply = await app.state.http.get(f"{server}/api/skipSegments/{prefix}",
                                             params={"categories": json.dumps(sorted(chosen)),
                                                     "actionTypes": json.dumps(["skip", "poi"] if "poi_highlight" in chosen else ["skip"])}, timeout=5)
             if reply.status_code == 200 and len(reply.content) <= 1024 * 1024:

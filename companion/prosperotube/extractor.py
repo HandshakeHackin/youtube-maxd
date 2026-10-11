@@ -42,9 +42,12 @@ class Extractor:
         for process in tuple(self.processes):
             self._kill_worker(process)
 
-    async def extract(self, target: str, *, flat=False, start=1, end=24, fresh=False, _oauth_access_token=None):
+    async def extract(self, target: str, *, flat=False, start=1, end=24, fresh=False, _oauth_access_token=None,
+                      hl="", gl="", hide=None):
+        # yt-dlp has a language setting only; country and content filters
+        # belong to the worker-backed catalog adapters.
         self.ensure_active()
-        key = (target, flat, start, end)
+        key = (target, flat, start, end, hl) if hl else (target, flat, start, end)
         cached = self.cache.get(key)
         if not fresh and cached and cached[0] > time.monotonic():
             return cached[1]
@@ -61,7 +64,7 @@ class Extractor:
                 payload = json.dumps({"target": target, "flat": flat, "start": start, "end": end,
                                   "cookies": self.cookies, "extractor_args": self.extractor_args,
                                   "cookie_header": self.cookie_header,
-                                  "js_runtimes": self.js_runtimes,
+                                  "js_runtimes": self.js_runtimes, **({"hl": hl} if hl else {}),
                                   **({"oauth_access_token": _oauth_access_token} if _oauth_access_token else {})}).encode()
                 async with asyncio.timeout(self.timeout):
                     process.stdin.write(payload)

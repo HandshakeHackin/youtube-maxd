@@ -21,10 +21,10 @@ class CatalogExtractor(OAuthExtractor):
         self.ensure_active()
         return result
 
-    async def _extract_authorized(self, target, *, flat, start, end, fresh=False):
+    async def _extract_authorized(self, target, *, flat, start, end, fresh=False, hl="", gl="", hide=None):
         if flat:
-            return await self._catalog(target, start, end)
-        return await self.video.extract(target, fresh=fresh)
+            return await self._catalog(target, start, end, hl=hl, gl=gl, hide=hide)
+        return await self.video.extract(target, fresh=fresh, **({"hl": hl} if hl else {}))
 
 
 class GuestCatalogExtractor(CatalogExtractor):

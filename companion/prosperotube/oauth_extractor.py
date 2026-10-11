@@ -29,17 +29,19 @@ class OAuthExtractor(Extractor):
         self.ensure_active()
         return result
 
-    async def extract(self, target, *, flat=False, start=1, end=24, fresh=False):
+    async def extract(self, target, *, flat=False, start=1, end=24, fresh=False, hl="", gl="", hide=None):
         self.ensure_active()
+        # Locale and content filters are part of the catalog identity below.
+        options = {key: value for key, value in (("hl", hl), ("gl", gl), ("hide", hide)) if value or value == []}
         try:
             async with asyncio.timeout(self.timeout):
-                return await self._extract_authorized(target, flat=flat, start=start, end=end, fresh=fresh)
+                return await self._extract_authorized(target, flat=flat, start=start, end=end, fresh=fresh, **options)
         except TimeoutError:
             raise ServiceError("timeout", "YouTube took too long to respond. Retry from the video screen.", 504) from None
 
-    async def _extract_authorized(self, target, *, flat, start, end, fresh=False):
+    async def _extract_authorized(self, target, *, flat, start, end, fresh=False, hl="", gl="", hide=None):
         if flat:
-            return await self._catalog(target, start, end)
+            return await self._catalog(target, start, end, hl=hl, gl=gl, hide=hide)
         if not re.fullmatch(r"https://www\.youtube\.com/watch\?v=[A-Za-z0-9_-]{11}", target):
             raise ServiceError("invalid_video", "Select a YouTube video.", 400)
         credentials = await self._private({"action": "credentials"})
@@ -52,9 +54,9 @@ class OAuthExtractor(Extractor):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403) from None
         if not isinstance(token, str) or not 1 <= len(token) <= 8192 or re.search(r"[^\x21-\x7e]", token):
             raise ServiceError("authentication_required", "Sign in to the YouTube account again.", 403)
-        return await super().extract(target, fresh=fresh, _oauth_access_token=token)
+        return await super().extract(target, fresh=fresh, _oauth_access_token=token, **({"hl": hl} if hl else {}))
 
-    async def _catalog(self, target, start, end):
+    async def _catalog(self, target, start, end, *, hl="", gl="", hide=None):
         if type(start) is not int or type(end) is not int or start < 1 or (start - 1) % 24 or end != start + 24 or end > 24025:
             raise ServiceError("invalid_page", "Select a valid catalog page.", 400)
         parsed = urlsplit(target)
@@ -71,6 +73,9 @@ class OAuthExtractor(Extractor):
         else:
             raise ServiceError("invalid_parent", "Select a YouTube catalog.", 400)
         page = (start - 1) // 24
+        operation.update({key: value for key, value in (("hl", hl), ("gl", gl)) if value})
+        if hide is not None:
+            operation["hide"] = sorted(hide)
         key = json.dumps(operation, sort_keys=True)
         async with self.catalog_lock:
             now = time.monotonic()
@@ -115,6 +120,6 @@ class OAuthExtractor(Extractor):
                     "channel": record.get("subtitle", ""), "channel_id": record.get("channel_id", ""),
                     "description": record.get("overview", ""), "thumbnail": record.get("art_url", ""),
                     "duration": record.get("duration_sec", 0), "is_live": record.get("is_live", False),
-                    "watch_percent": record.get("watch_percent", -1),
+                    "watch_percent": record.get("watch_percent", -1), "is_short": record.get("is_short") is True,
                     "playback_context": record.get("playback_context")})
             return {"entries": values, "_has_more": entry["pages"][page]["has_more"]}
