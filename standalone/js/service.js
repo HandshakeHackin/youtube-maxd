@@ -1,71 +1,21 @@
-// Entry of the embedded service: the companion's library modules and the
-// playback resolver behind one command function. SPDX-License-Identifier: GPL-3.0-or-later
-//
-// `tubeMain()` is what the host calls. On the console the same `handle()`
-// would be reached through an in-process request queue instead of argv.
-import { cacheDirectory } from './platform.js';
-import { Constants, Innertube, Log, Player, UniversalCache } from 'youtubei.js';
-import { Library, LibraryError } from '../../companion/innertube/library.mjs';
-import { createProfileClient } from '../../companion/innertube/device_auth.mjs';
-import { CLIENTS, PLAYBACK_ORDER, SCRIPTLESS, captionTracks, formatRow, playback, playerResponse, printablePlayback, rangeCheck,
-  redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
+// Bundle entry. Defines what the host calls: `__tubeRequest` (the embedded
+// companion, see companion.js) and `tubeMain` (one-shot commands for tests,
+// probes and diagnosis). SPDX-License-Identifier: GPL-3.0-or-later
+import './platform.js';
+import { Constants } from 'youtubei.js';
+import './companion.js';
+import { LibraryError, catalog, config, extractVideo, libraryExecute, mediaFetch, playbackClient, prepare, youtubeFetch } from './core.js';
+import { ServiceError } from './errors.js';
+import { resolveRequest } from './schema.js';
+import { CLIENTS, PLAYBACK_ORDER, captionMaps, createPlayback, formatRow, playerResponse, rangeCheck, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
 import { selfTest } from './selftest.js';
 
 const host = globalThis.__host;
-Log.setLevel(host.getenv('TUBE_JS_VERBOSE') ? Log.Level.INFO : Log.Level.NONE);
-
-// Same rule as the companion worker: HTTPS to known origins only, and API
-// redirects are errors so no header ever follows one to another origin.
-const origins = ['youtube.com', 'google.com', 'googleapis.com', 'gstatic.com'];
-const within = (hostname, list) => list.some(name => hostname === name || hostname.endsWith(`.${name}`));
-async function scopedFetch(input, init = {}) {
-  const request = new Request(input, init);
-  const url = new URL(request.url);
-  if (url.protocol !== 'https:' || url.username || url.password || url.port || !within(url.hostname, origins))
-    throw new LibraryError('unsupported_origin', 'The service returned an unsupported origin.', 502);
-  const response = await fetch(request, { redirect: 'manual', signal: AbortSignal.timeout(15000), max_bytes: 8 * 1024 * 1024 });
-  if (response.status >= 300 && response.status < 400)
-    throw new LibraryError('upstream_redirect', 'The service requested an unsupported redirect.', 502);
-  return response;
-}
-// Media reads go to the video servers and may be redirected between them.
-async function mediaFetch(input, init = {}) {
-  const url = new URL(typeof input === 'string' ? input : input.url);
-  if (url.protocol !== 'https:' || !within(url.hostname, ['googlevideo.com', 'youtube.com']))
-    throw new LibraryError('unsupported_origin', 'The resolver returned an unsupported media origin.', 502);
-  return fetch(input, { ...init, signal: AbortSignal.timeout(20000) });
-}
-
 const timing = {};
 async function timed(name, work) {
   const started = host.now();
   try { return await work(); } finally { timing[name] = Math.round(host.now() - started); }
 }
-
-let library = null;
-function catalog() {
-  library ??= new Library((profile, locale) => createProfileClient(profile, Innertube, scopedFetch, () => {}, locale), []);
-  return library;
-}
-// The playback client takes its session (visitor identity) from YouTube: with
-// a locally generated one the app clients answered "Sign in to confirm you're
-// not a bot" (checked live on 2026-10-11). It starts without the player script. Clients whose
-// addresses arrive ready (SCRIPTLESS) never need it; for the others it is
-// fetched and analysed once per player version and cached on disk, because
-// that analysis is by far the most expensive step in this engine.
-let playbackSession = null;
-const cache = () => new UniversalCache(true, cacheDirectory());
-function playbackClient() {
-  playbackSession ??= timed('playback_client_ms', () => Innertube.create({ cache: cache(), retrieve_player: false,
-    retrieve_innertube_config: false, generate_session_locally: !!host.getenv('TUBE_JS_LOCAL_SESSION'),
-    enable_session_cache: false, fetch: scopedFetch }));
-  return playbackSession;
-}
-async function prepare(yt, client) {
-  if (SCRIPTLESS.includes(client) || yt.session.player) return;
-  yt.session.player = await timed('player_script_ms', () => Player.create(cache(), scopedFetch));
-}
-
 const videoId = value => { if (!/^[A-Za-z0-9_-]{11}$/.test(value ?? '')) throw new LibraryError('invalid_video', 'Enter an eleven-character video ID.'); return value; };
 const clientList = value => {
   const list = !value || value === 'all' ? CLIENTS : value.toUpperCase().split(',');
@@ -73,11 +23,11 @@ const clientList = value => {
   return list;
 };
 
-async function library_(requests) {
+async function library(requests) {
   const results = [];
   for (const text of requests) {
     const request = JSON.parse(text.replaceAll('$cursor', results.at(-1)?.cursor ?? ''));
-    results.push(await timed(`library_${results.length}_ms`, () => catalog().execute({ profile: 'guest', ...request })));
+    results.push(await timed(`library_${results.length}_ms`, () => libraryExecute({ profile: 'guest', ...request })));
   }
   return results.length === 1 ? results[0] : results;
 }
@@ -91,20 +41,27 @@ async function info(id, mode) {
     category: basic.category ?? '', keywords: (basic.keywords ?? []).slice(0, 8), description: String(basic.short_description ?? '').slice(0, 240),
     thumbnails: (basic.thumbnail ?? []).length, playability: data.playability_status?.status ?? '',
     ...(mode === 'full' ? { like_count: basic.like_count ?? null, published: String(data.primary_info?.published ?? ''),
-      suggestions: (data.watch_next_feed ?? []).length, has_comments_section: !!data.comments_entry_point_header || undefined } : {}) };
+      suggestions: (data.watch_next_feed ?? []).length } : {}) };
 }
 
+// The `Playback` record as the service would answer it, with every address
+// described instead of printed (TUBE_JS_SHOW_URLS=1 prints the manifests).
 async function resolve(id, client) {
-  const yt = await playbackClient();
-  const record = await timed('resolve_ms', () => playback(yt, { id, max_height: Number(host.getenv('TUBE_JS_MAX_HEIGHT')) || 1080,
-    codec: host.getenv('TUBE_JS_CODEC') || 'auto' }, client ? clientList(client) : PLAYBACK_ORDER, name => prepare(yt, name)));
-  return printablePlayback(record);
+  const request = resolveRequest({ id, max_height: Number(host.getenv('TUBE_JS_MAX_HEIGHT')) || 1080, codec: host.getenv('TUBE_JS_CODEC') || 'auto' });
+  const source = await timed('extract_ms', () => extractVideo(id, { order: client ? clientList(client) : PLAYBACK_ORDER }));
+  const session = { tracks: new Map(), manifests: new Map(), hls_manifests: new Map() };
+  const playback = await createPlayback(source, request, 'http://127.0.0.1:0/media/session', session, 1800);
+  const shown = !!host.getenv('TUBE_JS_SHOW_URLS');
+  return { ...playback, client: source.client, served: {
+    manifests: Object.fromEntries(Array.from(session.manifests, ([name, text]) => [name, shown ? text : `${text.length} bytes, ${redact(/<BaseURL>([^<]+)/.exec(text)?.[1]?.replaceAll('&amp;', '&') ?? '')}`])),
+    playlists: Object.fromEntries(Array.from(session.hls_manifests, ([name, text]) => [name, shown ? text : `${text.length} bytes`])),
+    tracks: Object.fromEntries(Array.from(session.tracks, ([name, track]) => [name, `${track.kind} ${shown ? track.url : redact(track.url)}`]).slice(0, 12)) } };
 }
 
 // Evidence run: every client's answer, and for the first `ranged` playable
-// ones the transforms, direct ranged reads, the generated manifests, captions.
+// ones direct ranged reads, the generated manifest and captions.
 async function probe(id, clients, ranged = 2) {
-  const yt = await playbackClient();
+  const yt = await timed('playback_client_ms', () => playbackClient());
   const report = { id, clients: [] };
   let captionsDone = false;
   for (const name of clientList(clients)) {
@@ -120,38 +77,29 @@ async function probe(id, clients, ranged = 2) {
     const audio = selectAudio(answer.list)[0];
     if (entry.status !== 'OK' || !video || ranged <= 0) continue;
     ranged--;
-    const chosen = { video: formatRow(video), audio: audio ? formatRow(audio) : '' };
     const started = host.now();
     let videoUrl, audioUrl;
     try { videoUrl = await video.decipher(yt.session.player); audioUrl = audio ? await audio.decipher(yt.session.player) : ''; }
     catch (error) { entry.transform = { ok: false, error: String(error.message).slice(0, 160) }; continue; }
     const before = new URL(video.url ?? `https://x.invalid/?${video.signature_cipher ?? video.cipher}`), after = new URL(videoUrl);
-    entry.transform = { ok: true, ms: Math.round(host.now() - started), needed_signature: !video.url,
-      n_present: after.searchParams.has('n'), n_changed: !!video.url && before.searchParams.get('n') !== after.searchParams.get('n'),
-      address: redact(videoUrl) };
+    entry.transform = { ok: true, ms: Math.round(host.now() - started), needed_signature: !video.url, n_present: after.searchParams.has('n'),
+      n_changed: !!video.url && before.searchParams.get('n') !== after.searchParams.get('n'), address: redact(videoUrl) };
     const length = video.content_length || 0;
-    entry.ranges = { chosen,
+    entry.ranges = { chosen: { video: formatRow(video), audio: audio ? formatRow(audio) : '' },
       video_first_256k: await rangeCheck(mediaFetch, videoUrl, 0, 262143),
       video_middle_64k: length > 1048576 ? await rangeCheck(mediaFetch, videoUrl, length >> 1, (length >> 1) + 65535) : 'skipped (short file)',
       audio_first_256k: audioUrl ? await rangeCheck(mediaFetch, audioUrl, 0, 262143) : 'none' };
-    // Does the untransformed address work too? One small read answers it.
-    if (entry.transform.n_changed) entry.ranges.video_untransformed_64k = await rangeCheck(mediaFetch, video.url, 0, 65535);
     try {
-      const began = host.now();
-      const manifest = await answer.info.toDash();
-      entry.to_dash = { bytes: manifest.length, representations: manifest.split('<Representation').length - 1,
-        segment_base: manifest.includes('<SegmentBase'), ms: Math.round(host.now() - began) };
+      const began = host.now(), manifest = await answer.info.toDash();
+      entry.to_dash = { bytes: manifest.length, representations: manifest.split('<Representation').length - 1, segment_base: manifest.includes('<SegmentBase'), ms: Math.round(host.now() - began) };
     } catch (error) { entry.to_dash = { error: String(error.message).slice(0, 160) }; }
-    const tracks = captionTracks(answer.info);
-    entry.caption_tracks = tracks.map(track => `${track.language}${track.automatic ? ' (automatic)' : ''}`);
+    const tracks = Array.from(captionMaps(answer.info, false).subtitles);
+    entry.caption_tracks = tracks.map(([language]) => language);
     if (tracks.length && !captionsDone) {
       captionsDone = true;
       try {
-        const response = await scopedFetch(tracks[0].url);
-        const text = await response.text();
-        const srt = response.ok ? vttToSrt(text) : '';
-        entry.caption_download = { status: response.status, bytes: text.length, webvtt: text.startsWith('WEBVTT'),
-          srt_cues: srt ? srt.split('\n\n').length : 0, first_cue: srt.split('\n\n')[0]?.split('\n').slice(1).join(' | ').slice(0, 80) ?? '' };
+        const response = await youtubeFetch(tracks[0][1].url), text = await response.text(), srt = response.ok ? vttToSrt(text) : '';
+        entry.caption_download = { status: response.status, bytes: text.length, webvtt: text.startsWith('WEBVTT'), srt_cues: srt ? srt.split('\n\n').length : 0 };
       } catch (error) { entry.caption_download = { error: String(error.message).slice(0, 160) }; }
     }
   }
@@ -159,8 +107,9 @@ async function probe(id, clients, ranged = 2) {
   return report;
 }
 
-// How a player may ask for bytes deeper in a file: Range header with and
-// without the client's User-Agent, and the `range` query parameter.
+// How a player may ask for bytes deeper in a file. Each step: a fraction of
+// the file (0..1), optional suffix `a` (send the client's User-Agent) or `q`
+// (use the `range` query parameter instead of the header).
 async function ranges(id, client, itag, steps) {
   const yt = await playbackClient();
   await prepare(yt, client);
@@ -174,8 +123,6 @@ async function ranges(id, client, itag, steps) {
   const report = { ...answer.summary, format: formatRow(format), content_length: length,
     transform: { ms: Math.round(host.now() - started), needed_signature: !format.url, n_present: n(address) !== null,
       n_changed: !!format.url && n(format.url) !== n(address), n_failed: String(n(address)).startsWith('enhanced_except_') }, reads: [] };
-  // Each step: a fraction of the file (0..1), optional suffix `a` (send the
-  // client's User-Agent) or `q` (use the `range` query parameter instead).
   for (const step of (steps ?? '0.5,0.004,0.5a,0.5q,0.999').split(',')) {
     const first = Math.min(Math.max(0, length - 65536), Math.floor(length * parseFloat(step))), last = Math.min(length - 1, first + 65535);
     let read;
@@ -188,22 +135,22 @@ async function ranges(id, client, itag, steps) {
   return report;
 }
 
-const usage ='usage: tube_js search <query> [more] | info <id> [full] | comments <id> | channel <UC…> | ' +
-  'resolve <id> [client] | probe <id> [client,…|all] [ranged] | ranges <id> [client] [itag] | library <json>… | version | selftest';
+const usage = 'usage: tube_js serve --state-dir DIR [--host 127.0.0.1] [--port N] [--token T] [--sponsorblock] | search <query> [more] | ' +
+  'info <id> [full] | comments <id> | channel <UC…> | resolve <id> [client] | probe <id> [client,…|all] [ranged] | ' +
+  'ranges <id> [client] [itag] [steps] | library <json>… | version | selftest';
 
 export async function handle(argv) {
   const [command, first, second, third] = argv;
   switch (command) {
     case 'version': return { engine: `quickjs-ng ${host.engine}`, library: 'youtubei.js 18.1.0', clients: CLIENTS };
-    case 'selftest': return selfTest({ catalog, handle });
-    case 'search': return library_([JSON.stringify({ action: 'search', query: first }),
-      ...(second === 'more' ? ['{"action":"continue","cursor":"$cursor"}'] : [])]);
-    case 'comments': return library_([JSON.stringify({ action: 'comments', id: videoId(first) })]);
-    case 'channel': return library_([JSON.stringify({ action: 'channel', channel: first, ...(second ? { tab: second } : {}) })]);
-    case 'library': return library_(argv.slice(1));
+    case 'selftest': return selfTest();
+    case 'search': return library([JSON.stringify({ action: 'search', query: first }), ...(second === 'more' ? ['{"action":"continue","cursor":"$cursor"}'] : [])]);
+    case 'comments': return library([JSON.stringify({ action: 'comments', id: videoId(first) })]);
+    case 'channel': return library([JSON.stringify({ action: 'channel', channel: first, ...(second ? { tab: second } : {}) })]);
+    case 'library': return library(argv.slice(1));
     case 'info': return info(videoId(first), second);
     case 'resolve': return resolve(videoId(first), second);
-    case 'ranges': return ranges(videoId(first), clientList(second ?? 'ANDROID_VR')[0], third, argv[4]);
+    case 'ranges': return ranges(videoId(first), clientList(second ?? 'VISIONOS')[0], third, argv[4]);
     case 'probe': return probe(videoId(first), second, third === undefined ? 2 : Number(third));
     default: throw new LibraryError('usage', usage);
   }
@@ -212,18 +159,17 @@ export async function handle(argv) {
 globalThis.tubeMain = async () => {
   const started = host.now();
   let output;
-  try { output = await handle(host.argv); }
+  try { output = await handle(config.argv ?? []); }
   catch (error) {
     if (host.getenv('TUBE_JS_TRACE')) console.error(error?.stack ?? error);
-    const known = error instanceof LibraryError;
-    output = { error: { code: known ? error.code : error?.code ?? 'upstream_failure',
-      message: known || error?.code || host.getenv('TUBE_JS_TRACE') ? String(error.message) : 'YouTube could not complete this operation.' } };
+    const known = error instanceof LibraryError || error instanceof ServiceError;
+    output = { error: { code: known ? error.code : 'upstream_failure',
+      message: known || host.getenv('TUBE_JS_TRACE') ? String(error.message) : 'YouTube could not complete this operation.' } };
   }
   if (host.getenv('TUBE_JS_STATS')) {
     const stats = host.stats();
-    output = { result: output, timing: { ...timing, total_ms: Math.round(host.now() - started), bundle_ms: Math.round(stats.bundle_ms),
-      network_ms: Math.round(stats.network_ms) }, requests: stats.requests, bytes_in: stats.bytes_in,
-      peak_rss_kb: stats.peak_rss_kb, js_heap_kb: Math.round(stats.js_heap_kb) };
+    output = { result: output, timing: { ...timing, total_ms: Math.round(host.now() - started), bundle_ms: Math.round(stats.bundle_ms) },
+      requests: stats.requests, bytes_in: stats.bytes_in, peak_rss_kb: stats.peak_rss_kb, js_heap_kb: Math.round(stats.js_heap_kb) };
   }
   return JSON.stringify(output);
 };

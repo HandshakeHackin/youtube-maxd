@@ -1,8 +1,12 @@
-// Offline checks of the engine, the shims and one parser path, answered from
-// canned responses (TUBE_JS_FIXTURES). SPDX-License-Identifier: GPL-3.0-or-later
+// Offline checks of the engine, the shims and the pure parts of the service,
+// answered from canned responses (TUBE_JS_FIXTURES). The HTTP routes are
+// tested from outside by test/service_test.py. SPDX-License-Identifier: GPL-3.0-or-later
 import { Player, Platform } from 'youtubei.js';
 import { createHash } from './node_crypto.js';
-import { codecName, dashManifest, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
+import { catalog } from './core.js';
+import { branding, thumbnails } from './extras.js';
+import { chaptersOf, codecName, dashManifest, hlsVariants, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
+import { Invalid, jobRequest, libraryRequest, resolveRequest } from './schema.js';
 
 const host = globalThis.__host;
 
@@ -20,13 +24,17 @@ class Address {
 }
 const exportedVars = { nsigFunction: (url, sp, s) => new Address(url, sp, s) };`;
 
-export async function selfTest({ catalog }) {
+// What companion/prosperotube/sessions.py, dash_manifest, prints for the same input.
+const PYTHON_MANIFEST = `<?xml version='1.0' encoding='utf-8'?>\n<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" mediaPresentationDuration="PT635.200S" minBufferTime="PT1S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011"><Period duration="PT635.200S"><AdaptationSet contentType="video" mimeType="video/mp4" codecs="avc1.64002a"><Representation id="video" bandwidth="3248500" width="1920" height="1080"><BaseURL>https://v.example/x?a=1&amp;b=&lt;2&gt;"</BaseURL><SegmentList duration="635200" timescale="1000"><SegmentURL media="https://v.example/x?a=1&amp;b=&lt;2&gt;&quot;" /></SegmentList></Representation></AdaptationSet><AdaptationSet contentType="audio" mimeType="audio/mp4" codecs="mp4a.40.2" lang="en"><Representation id="audio" bandwidth="129500" audioSamplingRate="44100"><BaseURL>https://a.example/y?c=3</BaseURL><SegmentList duration="635200" timescale="1000"><SegmentURL media="https://a.example/y?c=3" /></SegmentList></Representation></AdaptationSet></Period></MPD>`;
+
+export async function selfTest() {
   const failed = [], passed = [];
   const check = async (name, work) => {
     try { if (await work() === false) throw new Error('unexpected result'); passed.push(name); }
     catch (error) { failed.push(`${name}: ${error?.message ?? error}`); }
   };
   const same = (actual, expected) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`got ${JSON.stringify(actual)}`); };
+  const refused = work => { try { work(); return false; } catch (error) { return error instanceof Invalid; } };
 
   await check('engine has no host modules', () => typeof std === 'undefined' && typeof os === 'undefined');
   await check('sha1', () => host.sha1('abc') === 'a9993e364706816aba3e25717850c26c9cd0d89d');
@@ -36,8 +44,14 @@ export async function selfTest({ catalog }) {
   await check('random', () => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(crypto.randomUUID()) && crypto.randomUUID() !== crypto.randomUUID());
   await check('timers', async () => {
     const order = [];
-    await new Promise(done => { setTimeout(() => { order.push('late'); done(); }, 20); setTimeout(() => order.push('early'), 5); const never = setTimeout(() => order.push('never'), 1); clearTimeout(never); });
-    same(order, ['early', 'late']);
+    let ticks = 0;
+    await new Promise(done => {
+      setTimeout(() => { order.push('late'); done(); }, 40);
+      setTimeout(() => order.push('early'), 5);
+      clearTimeout(setTimeout(() => order.push('never'), 1));
+      const repeat = setInterval(() => { if (++ticks === 2) clearInterval(repeat); }, 5);
+    });
+    same([order, ticks], [['early', 'late'], 2]);
   });
   await check('structuredClone', () => { const source = { a: [1, { b: new Date(5) }], m: new Map([[1, 2]]) }; const copy = structuredClone(source);
     return copy !== source && copy.a[1] !== source.a[1] && copy.a[1].b.getTime() === 5 && copy.m.get(1) === 2; });
@@ -68,29 +82,63 @@ export async function selfTest({ catalog }) {
     const format = (itag, mime, height, fps, bitrate, extra = {}) => ({ itag, mime_type: mime, height, width: height * 16 / 9, fps, bitrate, url: 'https://x', has_video: height > 0, has_audio: height === 0, ...extra });
     const list = [format(399, 'video/mp4; codecs="av01.0.08M.08"', 1080, 30, 2e6), format(137, 'video/mp4; codecs="avc1.640028"', 1080, 30, 4e6),
       format(248, 'video/webm; codecs="vp9"', 1080, 30, 3e6), format(313, 'video/webm; codecs="vp9"', 2160, 30, 9e6),
-      format(140, 'audio/mp4; codecs="mp4a.40.2"', 0, 0, 128e3), format(251, 'audio/webm; codecs="opus"', 0, 0, 160e3)];
-    same(selectVideo(list, { max_height: 1080 }).map(row => row.itag), [137, 248, 399]);
+      format(299, 'video/mp4; codecs="avc1.64002a"', 1080, 60, 6e6), format(337, 'video/webm; codecs="vp09.02.51.10"', 2160, 60, 2e7, { quality_label: '2160p60 HDR' }),
+      format(140, 'audio/mp4; codecs="mp4a.40.2"', 0, 0, 128e3), format(141, 'audio/mp4; codecs="mp4a.40.2"', 0, 0, 128e3, { is_drc: true, itag: 141 }),
+      format(251, 'audio/webm; codecs="opus"', 0, 0, 160e3), format(999, 'audio/mp4; codecs="mp4a.40.2"', 0, 0, 96e3, { language: 'fr', is_original: false })];
+    same(selectVideo(list, { max_height: 1080 }).map(row => row.itag), [299, 137, 248, 399]);
+    same(selectVideo(list, { max_height: 1080, max_fps: 30 }).map(row => row.itag), [137, 248, 399]);
     same(selectVideo(list, { max_height: 2160, codec: 'vp9' }).map(row => row.itag), [313, 248]);
-    same(selectAudio(list).map(row => row.itag), [140, 251]);
-    same(codecName('video/mp4; codecs="hvc1.2.4.L120"'), 'hevc');
+    same(selectVideo(list, { max_height: 2160, codec: 'hevc' }), []);
+    same(selectAudio(list).map(row => row.itag), [140, 251, 141, 999]);
+    same(selectAudio(list, { audio_language: 'fr' })[0].itag, 999);
+    same(['hvc1.2.4.L120', 'avc1.64002a,mp4a.40.2', 'vp09.00.40.08', 'av01.0.09M.08', 'opus', 'ec-3'].map(codecName), ['hevc', 'h264', 'vp9', 'av1', 'opus', '']);
   });
-  await check('manifest and captions', () => {
-    const video = { mime_type: 'video/mp4; codecs="avc1.640028"', width: 1920, height: 1080, bitrate: 4e6 };
-    const audio = { mime_type: 'audio/mp4; codecs="mp4a.40.2"', audio_sample_rate: 44100, bitrate: 128e3, language: 'en' };
-    const manifest = dashManifest(19.2, video, audio, 'https://v/?a=1&b=2', 'https://a/');
-    if (!manifest.includes('mediaPresentationDuration="PT19.200S"') || !manifest.includes('<BaseURL>https://v/?a=1&amp;b=2</BaseURL>') || !manifest.includes('lang="en"')) return false;
+  await check('manifest equals the Python generator', () => {
+    const video = { mime_type: 'video/mp4; codecs="avc1.64002a"', width: 1920, height: 1080, average_bitrate: 3248500, bitrate: 6e6 };
+    const audio = { mime_type: 'audio/mp4; codecs="mp4a.40.2"', audio_sample_rate: 44100, average_bitrate: 129500, language: 'en' };
+    same(dashManifest(635.2, video, audio, 'https://v.example/x?a=1&b=<2>"', 'https://a.example/y?c=3'), PYTHON_MANIFEST);
+  });
+  await check('captions, chapters, playlists', () => {
     same(vttToSrt('WEBVTT\n\n00:01.000 --> 00:04.000 align:start\n<c>All right</c>, so &amp; here\n\n00:00:04.000 --> 00:00:06.500\n\n'),
       '1\n00:00:01,000 --> 00:00:04,000\nAll right, so & here\n');
+    same(chaptersOf('Intro text\n0:00 Start\n1:30 - Middle\n[1:02:03] End\n99:99:99 nothing', 4000),
+      [{ start_time: 0, title: 'Start', end_time: 90 }, { start_time: 90, title: 'Middle', end_time: 3723 }, { start_time: 3723, title: 'End', end_time: 4000 }]);
+    same(chaptersOf('1:00 not from zero\n2:00 two', 300), []);
+    const variants = hlsVariants('#EXTM3U\n#EXT-X-MEDIA:URI="a/audio.m3u8",TYPE=AUDIO,GROUP-ID="g"\n#EXT-X-STREAM-INF:BANDWIDTH=5,CODECS="avc1.640028,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=60,AUDIO="g"\nv/video.m3u8\n',
+      'https://manifest.googlevideo.com/api/master.m3u8');
+    same([variants.length, variants[0].height, variants[0].fps, variants[0].video_codec, variants[0].audio_codec, variants[0].url],
+      [1, 1080, 60, 'h264', 'aac', 'https://manifest.googlevideo.com/api/v/video.m3u8']);
+    if (!variants[0].master.includes('URI="https://manifest.googlevideo.com/api/a/audio.m3u8"')) return false;
     return !redact('https://rr1---sn-a.googlevideo.com/videoplayback?expire=99&sig=SECRET').includes('SECRET');
+  });
+  await check('request models', () => {
+    same(libraryRequest({ action: 'search', query: 'x' }).sort, 'top');
+    same(Object.keys(libraryRequest({ action: 'home' })).length, 43);
+    same(resolveRequest({ id: 'jNQXAC9IVRw' }), { id: 'jNQXAC9IVRw', profile: 'guest', max_height: 1080, max_fps: 0, codec: 'auto',
+      caption_language: 'en', audio_language: '', automatic_captions: false, translated_captions: false, fresh: false, hl: '' });
+    same(jobRequest({ action: 'search', query: 'x', unknown: 1 }).page, 0);
+    return refused(() => libraryRequest({ action: 'search' })) && refused(() => libraryRequest({ action: 'home', extra: 1 })) &&
+      refused(() => libraryRequest({ action: 'channel', channel: 'nope' })) && refused(() => libraryRequest({ action: 'home', hl: 'xx' })) &&
+      refused(() => libraryRequest({ action: 'search', query: 'x', hide: ['mixes', 'mixes'] })) && refused(() => resolveRequest({ id: 'short' })) &&
+      refused(() => resolveRequest({ id: 'jNQXAC9IVRw', max_height: 100 })) && refused(() => jobRequest({ action: 'delete' })) &&
+      refused(() => jobRequest({ action: 'search', page: 1001 }));
+  });
+  await check('thumbnail frames and DeArrow rules', () => {
+    const page = { kind: 'catalog', items: [{ id: 'jNQXAC9IVRw', art_url: 'https://i.ytimg.com/vi/jNQXAC9IVRw/hq720.jpg?sqp=x' },
+      { id: 'AAAAAAAAAAA', art_url: 'https://i.ytimg.com/vi/AAAAAAAAAAA/x.jpg', is_live: true }, { id: 'library:playlist:PLx', is_folder: true, art_url: 'https://i.ytimg.com/a.jpg' }] };
+    same(thumbnails(page, 'middle').items.map(row => row.art_url), ['https://i.ytimg.com/vi/jNQXAC9IVRw/hq2.jpg', 'https://i.ytimg.com/vi/AAAAAAAAAAA/x.jpg', 'https://i.ytimg.com/a.jpg']);
+    same(thumbnails(page, 'default'), page);
+    same(branding({ titles: [{ title: 'original', original: true, votes: 9 }, { title: ' A  > better\ttitle ', original: false, votes: 0 }], thumbnails: [{ timestamp: 3, original: false, votes: -1 }] }),
+      { title: 'A better title', stamp: null });
   });
   // The library adapter, the youtubei.js session and its search parser, fed
   // from the canned InnerTube answers.
   await check('search parser on a canned response', async () => {
     const page = await catalog().execute({ action: 'search', query: 'me at the zoo', profile: 'guest' });
-    same(page.items.map(item => [item.id, item.title, item.subtitle, item.channel_id, item.duration_sec, item.art_url]),
+    same(page.items.slice(0, 2).map(item => [item.id, item.title, item.subtitle, item.channel_id, item.duration_sec, item.art_url]),
       [['jNQXAC9IVRw', 'Me at the zoo', 'jawed', 'UC4QobU6STFB0P71PMvOGN5A', 19, 'https://i.ytimg.com/vi/jNQXAC9IVRw/hq720.jpg'],
         ['AAAAAAAAAAA', 'Second canned row', 'Canned channel', 'UCaaaaaaaaaaaaaaaaaaaaaa', 3723, '']]);
-    same([page.api_version, page.kind, page.has_more], [1, 'catalog', false]);
+    same([page.api_version, page.kind, page.items.length, page.has_more], [1, 'catalog', 24, true]);
   });
   await check('unknown origins are refused', async () => {
     try { await fetch('https://example.org/'); return false; } catch (error) { return /no canned response/.test(error.message); }

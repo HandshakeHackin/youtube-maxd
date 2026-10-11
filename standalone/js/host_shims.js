@@ -12,32 +12,26 @@ const quiet = !host.getenv('TUBE_JS_VERBOSE');
 const line = (...values) => host.log(values.map(show).join(' '));
 globalThis.console = { log: line, info: quiet ? () => {} : line, debug: quiet ? () => {} : line, warn: quiet ? () => {} : line, error: line, trace: line };
 
+// The native timer queue holds the deadlines; this table holds the functions.
 const timers = new Map();
-let timerId = 0;
 const arm = (callback, delay, repeat, values) => {
-  const id = ++timerId;
-  timers.set(id, { callback, at: host.now() + Math.max(0, Number(delay) || 0), every: repeat ? Math.max(1, Number(delay) || 0) : 0, values });
+  const wait = Math.max(0, Number(delay) || 0);
+  const id = host.timerAdd(wait, repeat ? Math.max(1, wait) : 0);
+  timers.set(id, { callback, repeat, values });
   return id;
 };
+const disarm = id => { if (timers.delete(id)) host.timerCancel(id); };
 define('setTimeout', (callback, delay, ...values) => arm(callback, delay, false, values));
 define('setInterval', (callback, delay, ...values) => arm(callback, delay, true, values));
-define('clearTimeout', id => { timers.delete(id); });
-define('clearInterval', id => { timers.delete(id); });
+define('clearTimeout', disarm);
+define('clearInterval', disarm);
 define('queueMicrotask', callback => { Promise.resolve().then(callback); });
-// Called by the host loop: runs due timers, returns the wait until the next
-// one in milliseconds, or -1 when none is armed.
-globalThis.__tubeTimers = () => {
-  const now = host.now();
-  let next = -1;
-  for (const [id, timer] of Array.from(timers)) {
-    if (!timers.has(id)) continue;
-    if (timer.at <= now) {
-      if (timer.every) timer.at = now + timer.every; else timers.delete(id);
-      timer.callback(...timer.values);
-      next = 0;
-    } else if (next < 0 || timer.at - now < next) next = timer.at - now;
-  }
-  return next;
+// Called by the host loop for each timer that is due.
+globalThis.__tubeTimer = id => {
+  const timer = timers.get(id);
+  if (!timer) return;
+  if (!timer.repeat) timers.delete(id);
+  timer.callback(...timer.values);
 };
 define('performance', { now: () => host.now(), timeOrigin: Date.now() });
 

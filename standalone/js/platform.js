@@ -7,8 +7,10 @@ import { fetch, Request, Response, Headers } from './fetch_shim.js';
 import { Platform } from 'youtubei-utils';
 
 const host = globalThis.__host;
-export const cacheDirectory = () => host.getenv('TUBE_JS_CACHE_DIR') ||
-  `${host.getenv('HOME') || '.'}/.cache/prosperotube/tube_js`;
+// The service keeps its small caches in its state directory; commands use a
+// directory of their own.
+export const cacheDirectory = () => host.config?.state_dir ? `${host.config.state_dir}/cache` :
+  host.getenv('TUBE_JS_CACHE_DIR') || `${host.getenv('HOME') || '.'}/.cache/prosperotube/tube_js`;
 
 // One file per key under the cache directory (player analysis, session data,
 // later the account credentials).

@@ -1,9 +1,9 @@
-// fetch, Request, Response and Headers over the host's blocking HTTPS call.
-// SPDX-License-Identifier: GPL-3.0-or-later
+// fetch, Request, Response and Headers over the host's non-blocking HTTPS
+// client. SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Bodies are whole buffers: nothing in the catalog or resolve paths streams.
 // With TUBE_JS_FIXTURES set, requests are answered from canned files and the
-// network is never touched (the offline test).
+// network is never touched (the offline tests).
 import { URL, URLSearchParams } from './url_shim.js';
 const host = globalThis.__host;
 
@@ -31,8 +31,18 @@ export class Headers {
   [Symbol.iterator]() { return this.#map.entries(); }
 }
 
+// "name: value\n" lines, as the host hands headers over.
+export function headerLines(text) {
+  const headers = new Headers();
+  for (const line of String(text ?? '').split('\n')) {
+    const at = line.indexOf(':');
+    if (at > 0) headers.append(line.slice(0, at).trim(), line.slice(at + 1).trim());
+  }
+  return headers;
+}
+
 // A body is kept as a string or bytes until someone reads it.
-function bytesOf(body) {
+export function bytesOf(body) {
   if (body === undefined || body === null) return null;
   if (typeof body === 'string') return new Uint8Array(host.utf8Encode(body));
   if (body instanceof ArrayBuffer) return new Uint8Array(body);
@@ -73,7 +83,7 @@ export class Response extends reader(Object) {
     this._body = body;
     this.status = init.status ?? 200;
     this.statusText = init.statusText ?? '';
-    this.headers = new Headers(init.headers);
+    this.headers = init.headers instanceof Headers ? init.headers : new Headers(init.headers);
     this.url = init.url ?? '';
     this.redirected = !!init.redirected;
     this.type = 'basic';
@@ -85,21 +95,41 @@ export class Response extends reader(Object) {
   }
 }
 
+// Canned answers: index.json maps "METHOD host/path" to one entry or a list;
+// an entry may require a text in the address (`url_contains`) or the request
+// body (`body_contains`); the first that fits answers.
 let fixtures = null;
+export const fixtureLog = [];
 function canned(request) {
   const directory = host.getenv('TUBE_JS_FIXTURES');
   if (!directory) return null;
   fixtures ??= JSON.parse(host.utf8Decode(host.readFile(`${directory}/index.json`)));
-  const url = new URL(request.url);
-  const entry = fixtures[`${request.method} ${url.hostname}${url.pathname}`];
-  if (!entry) throw new TypeError(`fetch failed: no canned response for ${request.method} ${url.hostname}${url.pathname}`);
-  const body = entry.file ? host.readFile(`${directory}/${entry.file}`) : new ArrayBuffer(0);
-  if (body === undefined) throw new TypeError(`fetch failed: missing fixture ${entry.file}`);
-  return new Response(body, { status: entry.status ?? 200, headers: { 'content-type': entry.type ?? 'application/json' }, url: request.url });
+  const url = new URL(request.url), key = `${request.method} ${url.hostname}${url.pathname}`;
+  const body = typeof request._body === 'string' ? request._body : request._body ? host.utf8Decode(bytesOf(request._body)) : '';
+  const entry = [fixtures[key] ?? []].flat().find(candidate =>
+    (!candidate.body_contains || body.includes(candidate.body_contains)) && (!candidate.url_contains || request.url.includes(candidate.url_contains)));
+  if (fixtureLog.length < 256) fixtureLog.push(key);
+  if (!entry) throw new TypeError(`fetch failed: no canned response for ${key}`);
+  const data = entry.file ? host.readFile(`${directory}/${entry.file}`) : new ArrayBuffer(0);
+  if (data === undefined) throw new TypeError(`fetch failed: missing fixture ${entry.file}`);
+  return new Response(data, { status: entry.status ?? 200, headers: { 'content-type': entry.type ?? 'application/json' }, url: request.url });
 }
 
-// Headers a script may not choose; libcurl negotiates encoding and decodes it.
-const managed = new Set(['accept-encoding', 'content-length', 'host', 'connection', 'transfer-encoding']);
+// Transfers in flight: id -> settle functions. The host calls back once each.
+const pending = new Map();
+globalThis.__tubeHttpDone = (id, answer, error) => {
+  const transfer = pending.get(id);
+  if (!transfer) return;
+  pending.delete(id);
+  transfer.signal?.removeEventListener('abort', transfer.abort);
+  if (!answer) transfer.reject(new TypeError(`fetch failed: ${error}`));
+  else transfer.resolve(new Response(answer.body, { status: answer.status, headers: answer.headers, url: answer.url, redirected: answer.redirected }));
+};
+
+// Headers a script may not choose; the client negotiates encoding (whatever
+// its build can decode: never brotli on the console) and decodes it.
+const managed = new Set(['accept-encoding', 'content-length', 'host', 'connection', 'transfer-encoding', 'expect']);
+const REDIRECT = { follow: 0, manual: 1, error: 2 };
 
 export async function fetch(input, init) {
   const request = new Request(input, init);
@@ -109,14 +139,14 @@ export async function fetch(input, init) {
   const headers = [];
   request.headers.forEach((value, name) => { if (!managed.has(name)) headers.push([name, value]); });
   const deadline = request.signal?.deadline;
-  const answer = host.http({
-    method: request.method, url: request.url, headers, body: bytesOf(request._body) ?? undefined,
-    follow: request.redirect === 'follow' ? 1 : 0,
-    timeout_ms: deadline === undefined ? 15000 : Math.max(1, Math.round(deadline - host.now())),
-    max_bytes: init?.max_bytes
+  return new Promise((resolve, reject) => {
+    const id = host.httpStart({ method: request.method, url: request.url, headers, body: bytesOf(request._body) ?? undefined,
+      redirect: REDIRECT[request.redirect] ?? 0,
+      timeout_ms: deadline === undefined ? 15000 : Math.max(1, Math.round(deadline - host.now())), max_bytes: init?.max_bytes });
+    const abort = () => { if (pending.delete(id)) { host.httpCancel(id); reject(request.signal.reason); } };
+    pending.set(id, { resolve, reject, signal: request.signal, abort });
+    request.signal?.addEventListener('abort', abort, { once: true });
   });
-  if (request.redirect === 'error' && answer.status >= 300 && answer.status < 400) throw new TypeError('fetch failed: redirect');
-  return new Response(answer.body, { status: answer.status, headers: answer.headers, url: answer.url, redirected: answer.url !== request.url });
 }
 
 for (const [name, value] of Object.entries({ fetch, Request, Response, Headers }))

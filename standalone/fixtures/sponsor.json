@@ -1,0 +1,52 @@
+[
+ {
+  "videoID": "anotherVID1",
+  "segments": [
+   {
+    "category": "sponsor",
+    "actionType": "skip",
+    "segment": [
+     1,
+     2
+    ]
+   }
+  ]
+ },
+ {
+  "videoID": "fixtureVID1",
+  "segments": [
+   {
+    "category": "sponsor",
+    "actionType": "skip",
+    "segment": [
+     12.5,
+     40
+    ]
+   },
+   {
+    "category": "selfpromo",
+    "actionType": "skip",
+    "segment": [
+     100,
+     90
+    ]
+   },
+   {
+    "category": "intro",
+    "actionType": "skip",
+    "segment": [
+     0,
+     5
+    ]
+   },
+   {
+    "category": "poi_highlight",
+    "actionType": "poi",
+    "segment": [
+     60,
+     60
+    ]
+   }
+  ]
+ }
+]

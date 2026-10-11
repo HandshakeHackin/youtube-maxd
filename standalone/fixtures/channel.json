@@ -1,0 +1,236 @@
+{
+ "header": {
+  "c4TabbedHeaderRenderer": {
+   "channelId": "UCffffffffffffffffffffff",
+   "title": "Fixture channel"
+  }
+ },
+ "metadata": {
+  "channelMetadataRenderer": {
+   "title": "Fixture channel",
+   "description": "",
+   "externalId": "UCffffffffffffffffffffff",
+   "channelUrl": "https://www.youtube.com/channel/UCffffffffffffffffffffff",
+   "vanityChannelUrl": "http://www.youtube.com/@fixture",
+   "avatar": {
+    "thumbnails": [
+     {
+      "url": "https://yt3.ggpht.com/fixture=s88",
+      "width": 88,
+      "height": 88
+     }
+    ]
+   },
+   "isFamilySafe": true,
+   "keywords": "",
+   "availableCountryCodes": [
+    "US"
+   ],
+   "androidDeepLink": "",
+   "androidAppindexingLink": "",
+   "iosAppindexingLink": "",
+   "rssUrl": ""
+  }
+ },
+ "contents": {
+  "twoColumnBrowseResultsRenderer": {
+   "tabs": [
+    {
+     "tabRenderer": {
+      "title": "Videos",
+      "selected": true,
+      "endpoint": {
+       "browseEndpoint": {
+        "browseId": "UCffffffffffffffffffffff",
+        "params": "EgZ2aWRlb3M",
+        "canonicalBaseUrl": "/@fixture"
+       },
+       "commandMetadata": {
+        "webCommandMetadata": {
+         "url": "/@fixture/videos"
+        }
+       }
+      },
+      "content": {
+       "richGridRenderer": {
+        "contents": [
+         {
+          "richItemRenderer": {
+           "content": {
+            "videoRenderer": {
+             "videoId": "fixture0100",
+             "thumbnail": {
+              "thumbnails": [
+               {
+                "url": "https://i.ytimg.com/vi/fixture0100/hq720.jpg",
+                "width": 720,
+                "height": 404
+               }
+              ]
+             },
+             "title": {
+              "runs": [
+               {
+                "text": "Channel video 0"
+               }
+              ]
+             },
+             "ownerText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "longBylineText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "lengthText": {
+              "simpleText": "1:00"
+             },
+             "navigationEndpoint": {
+              "watchEndpoint": {
+               "videoId": "fixture0100"
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "richItemRenderer": {
+           "content": {
+            "videoRenderer": {
+             "videoId": "fixture0101",
+             "thumbnail": {
+              "thumbnails": [
+               {
+                "url": "https://i.ytimg.com/vi/fixture0101/hq720.jpg",
+                "width": 720,
+                "height": 404
+               }
+              ]
+             },
+             "title": {
+              "runs": [
+               {
+                "text": "Channel video 1"
+               }
+              ]
+             },
+             "ownerText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "longBylineText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "lengthText": {
+              "simpleText": "1:00"
+             },
+             "navigationEndpoint": {
+              "watchEndpoint": {
+               "videoId": "fixture0101"
+              }
+             }
+            }
+           }
+          }
+         },
+         {
+          "richItemRenderer": {
+           "content": {
+            "videoRenderer": {
+             "videoId": "fixture0102",
+             "thumbnail": {
+              "thumbnails": [
+               {
+                "url": "https://i.ytimg.com/vi/fixture0102/hq720.jpg",
+                "width": 720,
+                "height": 404
+               }
+              ]
+             },
+             "title": {
+              "runs": [
+               {
+                "text": "Channel video 2"
+               }
+              ]
+             },
+             "ownerText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "longBylineText": {
+              "runs": [
+               {
+                "text": "Fixture channel",
+                "navigationEndpoint": {
+                 "browseEndpoint": {
+                  "browseId": "UCffffffffffffffffffffff"
+                 }
+                }
+               }
+              ]
+             },
+             "lengthText": {
+              "simpleText": "1:00"
+             },
+             "navigationEndpoint": {
+              "watchEndpoint": {
+               "videoId": "fixture0102"
+              }
+             }
+            }
+           }
+          }
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ }
+}
