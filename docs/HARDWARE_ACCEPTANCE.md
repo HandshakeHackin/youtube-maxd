@@ -1,5 +1,15 @@
 # Hardware acceptance — in progress
 
+- 2026-10-10 | secondary captions | 225b5858 | PS5 | failed observation: expected toast absent; primary visible, clean release/restore | .deps/console/secondary-caption-225b5858-hardware/ | native tag gate
+
+The single launch established paused native playback, the English primary
+caption and French picker focus. It stopped after Square because the fixture
+waited for a toast missing from the UI snapshot. Secondary rendering remains
+unproven. Exact owned teardown, healthy services and original provider/sidecar
+restoration passed; the fixture stopped and lock released. The observer was
+corrected offline to read the widget's existing PRIMARY/SECONDARY tags. No
+relaunch followed this anomaly.
+
 - 2026-10-10 | disconnect close | 9340ab5a | PS5 | pass: fixture playback/pause, native self-exit, exact release/restore | .deps/console/phone-exit-9340ab5a-hardware/ | real phone/browsing
 
 The frozen 126-file package passed full install readback, 130-second settling and

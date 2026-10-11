@@ -12,6 +12,11 @@ files); PS5 visual/input acceptance remains open. The follow-up reloads selected
 secondary cues after decoder teardown and preserves both delays and the primary
 timing ratio through speed reopens; extracted controller and actual engine tests
 pass. See `docs/VALIDATION.md`.
+The single `225b5858` console case established paused playback and visible English
+captions, then stopped at an incorrect toast observation gate after French
+selection. Exact release and original state restoration passed. The corrected
+offline observer reads native PRIMARY/SECONDARY tags; secondary hardware
+acceptance remains open, and no relaunch followed.
 
 Earlier implementation batch: availability-gated native voice capture, local ASR
 and provider search are connected and packaged (`0b06bc66`, 216 objects, 126

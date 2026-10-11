@@ -1,5 +1,10 @@
 """Extend pinned EVO with a separately parsed secondary external caption bank."""
 def apply_secondary_captions_overlay(replace, player, work, root):
+    # The native widget draws these tags already. Include them in its dev
+    # snapshot so hardware cases observe successful engine application directly.
+    replace(player + 'ui_kit/src/evo_hui_modals.cpp',
+        'out->text = tracks_[i].label + (tracks_[i].current ? " (current)" : "");',
+        'out->text = tracks_[i].label + (tracks_[i].current ? " (current)" : "") +\n            (tracks_[i].tag.empty() ? "" : " [" + tracks_[i].tag + "]");')
     engine = player + 'media/src/evo_subtitle.c'
     header = player + 'media/include/evo_subtitle.h'
     source = (work / engine).read_text()

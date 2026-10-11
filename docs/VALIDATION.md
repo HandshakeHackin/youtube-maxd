@@ -1,5 +1,28 @@
 # Offline validation record — 0.1.0
 
+## Secondary-caption console observation gate — 2026-10-10
+
+Candidate `225b5858` passed full installed-byte verification, 130-second settling
+and full readback, native startup/first frame, UI pairing and paused AVC/AAC
+playback. Its primary-only scanout visibly shows the English fixture caption.
+The case focused French and sent Square, then stopped because its expected
+secondary-caption toast was absent from the UI snapshot. Secondary application
+and appearance are unproven. Exact owned GPU/process/video/mount release, healthy
+services and original provider/sidecar restoration passed. The fixture stopped
+and the shared lock was released; no relaunch followed. Evidence:
+`.deps/console/secondary-caption-225b5858-hardware/`,
+`.deps/secondary-hardware.result` (exit 1).
+
+The native widget already draws PRIMARY/SECONDARY tags, but its developer focus
+snapshot previously omitted them; the case incorrectly depended on a toast.
+The overlay now exposes the existing tag in focused text, retaining the original
+focusable labels. The corrected case waits for the engine-derived SECONDARY tag
+and its removal, then captures both player states for visual inspection. This
+observer change does not establish hardware acceptance.
+The actual generated snapshot function passes compiled ASan/UBSan tag/focus
+checks (`scripts/test_caption_picker_snapshot.py`), and the modified native
+widget compiles with the PS5 SDK (`.deps/caption-picker-snapshot.result`, exit 0).
+
 ## Caption preservation across decoder reopens — 2026-10-10
 
 The connected startup bridge reloads the provider-scoped second-language sidecar

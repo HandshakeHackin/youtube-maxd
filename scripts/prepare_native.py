@@ -58,7 +58,7 @@ def main():
         "core/src/screens/AudioTrackPickerScreen.cpp", "core/include/evo/screens/AudioTrackPickerScreen.hpp",
         "core/src/screens/SubtitlePickerScreen.cpp", "core/include/evo/screens/SubtitlePickerScreen.hpp",
         "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
-        "ui_kit/src/evo_hui_osd.cpp", "ui_rml/src/evo_rmlui_app.cpp",
+        "ui_kit/src/evo_hui_osd.cpp", "ui_kit/src/evo_hui_modals.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h", "ui_rml/src/evo_rmlui_provider_art.cpp",
