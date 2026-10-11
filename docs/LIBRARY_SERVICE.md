@@ -43,8 +43,9 @@ unavailable target slots within the returned panel, retaining occurrence indices
 When a finite bound is known, an unavailable-only window returns a validated
 next scan index or explicit exhaustion. The native client follows those steps
 as cancellable asynchronous jobs without changing playback ownership. Each step
-must make progress in the requested direction. Unobserved gaps, unknown-size
-unavailable windows and radio continuations still stop traversal.
+must make progress in the requested direction. Unobserved gaps and unknown-size
+unavailable windows stop indexed traversal. Mix window edges use scoped next-video
+metadata instead of attempting index-only radio navigation.
 Index-only `playback_at` requests can retrieve a different occurrence and its
 window while keeping native playback ownership unchanged. This requires an
 explicit selected position from upstream; radio rebasing is not accepted for
@@ -84,10 +85,16 @@ Outside playlist context, continuous playback uses the authenticated
 also use this fallback when no playlist is active; playlist-only does not.
 The adapter reads the first WEB autoplay endpoint, following the pinned
 YouTube.js `VideoInfo.autoplay_video_endpoint` policy, and never substitutes an
-arbitrary suggestion card. Missing/self-referencing endpoints stop playback.
+arbitrary suggestion card. Missing/self-referencing endpoints stop playback;
+the same ID at a different validated playlist occurrence remains playable.
 Native jobs retain source/profile/selection ownership, support controller
 cancellation and reject retired errors before credential handling. Channel
-context and continuation beyond an exhausted selected playlist remain pending.
+context remains pending. Continuous/shuffle modes consult next-video metadata
+after confirmed finite playlist exhaustion. At finite ends and Mix edges,
+playlist-only also consults that metadata but accepts only a target in the same
+playlist, including an explicit wrap to its first occurrence. Requests
+retain the active playlist/index, and validated target context survives native
+handoff. Real YouTube/PS5 acceptance of these transitions remains pending.
 
 
 ### Live-chat service reader

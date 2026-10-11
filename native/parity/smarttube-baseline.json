@@ -1089,13 +1089,14 @@
         "All seven mode choices are exposed in browser and player settings; natural-drain repeat seeks once, exhausted continuation pauses, and completion rearms after an idle non-EOF state",
         "Acknowledged SponsorBlock end skips use the common completion path, retain phone ownership and playlist waits, and retire explicit completion only after an idle seek reaches its target; console acceptance remains pending",
         "Directional playlist-edge lookup crosses consecutive proven unavailable slots; finite unavailable-only windows continue through cancellable monotonic scan steps or explicit exhaustion, while exact-index shuffle stays strict",
-        "Continuous/shuffle/reverse modes without playlist context use profile-owned WEB autoplay endpoint jobs after explicit queues; playlist-only remains isolated, and stale or cancelled replies cannot change current credentials or launch another video"
+        "Continuous/shuffle/reverse modes without playlist context use profile-owned WEB autoplay endpoint jobs after explicit queues; playlist-only remains isolated, and stale or cancelled replies cannot change current credentials or launch another video",
+        "Confirmed finite playlist exhaustion and Mix window edges use occurrence-scoped next metadata; validated target playlist context and duplicate occurrences survive handoff, and playlist-only rejects cross-playlist targets"
       ],
       "offline_status": "partial",
       "remaining": [
-        "Implement continuous, repeat-one, playlist shuffle, playlist-only, reverse-playlist, pause and close modes with source playlist/channel context",
+        "Complete channel-group next/previous context and remaining source-specific playback-mode policies",
         "Validate implemented stop/close explicit queue exceptions and profile-owned queue-respects-playback-mode preference on PS5",
-        "Integrate native and phone EOF ownership, both selectors, persistence and PS5 acceptance"
+        "Validate integrated natural/SponsorBlock completion, Mix/playlist handoff, both selectors and persistence on PS5"
       ]
     },
     {

@@ -84,8 +84,9 @@ class LibraryRequest(BaseModel):
     @model_validator(mode="after")
     def playback_occurrence(self):
         if self.action == "playback_next" and (not re.fullmatch(r"[A-Za-z0-9_-]{11}",self.id)
-                or self.playlist or self.index is not None):
-            raise ValueError("Next-video requests require only a playing video ID.")
+                or (not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})",self.playlist) or self.index is None
+                    if self.playlist else self.index is not None)):
+            raise ValueError("Next-video requests require a video ID and optional playlist occurrence.")
         if self.direction and self.action != "playback_at":
             raise ValueError("Directional navigation requires playback_at.")
         if self.action in {"playback_queue", "playback_at"} and (

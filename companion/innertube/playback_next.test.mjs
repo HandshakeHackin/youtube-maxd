@@ -21,6 +21,21 @@ test('Missing and self-referencing autoplay endpoints stop without substituting 
 });
 test('Next playback rejects invalid identity and playlist context before upstream execution',async()=>{
   const library=new Library(async()=>({actions:{execute:async()=>assert.fail('unexpected upstream request')}}));
-  for(const patch of [{id:'bad'},{playlist:'PLabcdefghijk'},{index:0},{direction:1}])
+  for(const patch of [{id:'bad'},{playlist:'PLabcdefghijk'},{playlist:false},{index:0},{direction:1}])
     await assert.rejects(library.execute({action:'playback_next',id,...patch}),{code:'invalid_request'});
+});
+
+test('Playlist next lookup preserves request occurrence and a distinct repeated target occurrence',async()=>{
+  const playlist='RDabcdefghijk',calls=[];
+  let targetIndex=10;
+  const library=new Library(async()=>({actions:{execute:async(path,args)=>{
+    calls.push(args);return {success:true,data:{contents:{twoColumnWatchNextResults:{autoplay:{autoplay:{sets:[{
+      autoplayVideo:{watchEndpoint:{videoId:id,playlistId:playlist,index:targetIndex}}
+    }]}}}}}};
+  }}}));
+  const request={action:'playback_next',id,playlist,index:9};
+  const result=await library.execute(request);
+  assert.equal(calls[0].playlistId,playlist);assert.equal(calls[0].playlistIndex,9);
+  assert.equal(result.next_video_id,id);assert.deepEqual(result.playback_context,{playlist,index:10});
+  targetIndex=9;assert.equal((await library.execute(request)).next_video_id,null);
 });

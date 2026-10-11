@@ -17,13 +17,14 @@ class Library:
                     video_ids=["abcdefghijk"] * 3, video_indices=[40, 42, 47], playlist_size=48, radio_rebased=False)
     async def close(self): pass
 
-def test_next_video_direct_and_job_transport_preserves_profile_and_terminal_result():
+@pytest.mark.parametrize("context", [{},{"playlist":"RDabcdefghijk","index":9}])
+def test_next_video_direct_and_job_transport_preserves_profile_and_terminal_result(context):
     class NextLibrary(Library):
         async def execute(self, request):
             self.calls.append(request)
             return dict(api_version=1,video_id=request["id"],next_video_id=None)
     library=NextLibrary()
-    request=dict(action="playback_next",profile="account",id="abcdefghijk")
+    request=dict(action="playback_next",profile="account",id="abcdefghijk",**context)
     with TestClient(create_app(library=library,token="playback-window-fixture")) as client:
         direct=client.post("/v1/library",json=request,headers=AUTH)
         assert direct.status_code==200 and direct.json()["next_video_id"] is None
@@ -34,8 +35,10 @@ def test_next_video_direct_and_job_transport_preserves_profile_and_terminal_resu
             time.sleep(.001)
         assert result["state"]=="done" and result["result"]==direct.json()
         for patch in [dict(id="bad"),dict(playlist="PLabcdefghijk"),dict(index=0),dict(direction=1)]:
-            assert client.post("/v1/library",json={**request,**patch},headers=AUTH).status_code==422
+            bare=dict(action="playback_next",profile="account",id="abcdefghijk")
+            assert client.post("/v1/library",json={**bare,**patch},headers=AUTH).status_code==422
         assert len(library.calls)==2 and all(call["profile"]=="account" for call in library.calls)
+        assert all(all(call[key]==value for key,value in context.items()) for call in library.calls)
 
 @pytest.mark.parametrize("action,direction", [("playback_queue",0),("playback_at",0),("playback_at",-1),("playback_at",1)])
 def test_direct_and_job_windows_keep_profile_sparse_indices_and_repeats(action,direction):

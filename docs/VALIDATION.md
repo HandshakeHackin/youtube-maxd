@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Playlist-end and Mix next context — 2026-10-11
+
+Next-video requests now optionally include the active playlist and occurrence.
+The worker preserves validated target playlist/index metadata, allowing a repeated
+video ID at a distinct occurrence while rejecting a self-reference to the same
+occurrence. Native parsing validates this context before handoff. Continuous and
+shuffle modes consult metadata after confirmed finite playlist exhaustion; Mix
+window edges use metadata instead of unsupported index-only radio navigation.
+Playlist-only accepts metadata targets only within the same playlist, including
+an explicit wrap at a finite end. This follows
+the pinned SmartTube SuggestionsController's use of next-media metadata after
+queue/group selection; channel-group context remains incomplete.
+
+All 77 worker tests and 60 targeted service/phone-playlist transport tests passed;
+the production worker rebuilt. Logs: `.deps/playlist-next-worker.log` and
+`.deps/playlist-next-python.log`. Real YouTube/PS5 acceptance remains pending.
+The recommendation, playlist-window/context and queue-failure sanitizer batch
+passed. After extending same-playlist constraints to finite-end wrap, the final
+recommendation/window suites passed again, covering repeated IDs, Mix and finite
+boundaries, accepted context handoff and cross-playlist rejection. Logs:
+`.deps/playlist-next-native.log` and `.deps/playlist-next-final-native.log`.
+Both PS5 provider-object builds passed with existing SDK warnings; final log:
+`.deps/playlist-next-final-sdk.log`.
+No console connections occurred.
+
 ## Continuous playback recommendations — 2026-10-11
 
 The new authenticated direct/job `playback_next` operation reads the WEB autoplay
