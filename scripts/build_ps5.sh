@@ -16,6 +16,13 @@ fi
 mkdir -p "${root}/.deps"
 exec 9>"${root}/.deps/native-build.lock"
 flock -n 9 || { echo 'Another ProsperoTube native build is already running.' >&2; exit 2; }
+# Every application package must include the renderer used by its display controls.
+# An explicit artifact is preflighted by prepare_native; otherwise compile/reuse
+# the complete verified set. A missing compiler or failed pipeline stops the build.
+if [[ -z "${PROSPEROTUBE_TRANSFORM_ARTIFACT:-}" ]]; then
+    PROSPEROTUBE_TRANSFORM_ARTIFACT="$(python3 "${root}/scripts/build_video_transform_shaders.py")"
+    export PROSPEROTUBE_TRANSFORM_ARTIFACT
+fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
 lapy_options=()
 if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then

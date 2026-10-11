@@ -18,7 +18,8 @@ def replace(path,old,new,count=1):
     text=target.read_text()
     assert text.count(old)==count,(path,old)
     target.write_text(text.replace(old,new))
-apply_video_transform_overlay(replace,'')
+if 'g_tube_frame_geometry' not in (work/relative).read_text():
+    apply_video_transform_overlay(replace,'')
 PY
 sdk="${PS5_PAYLOAD_SDK:-${HOME}/.cache/prosperotube/sdk}"
 export PS5_PAYLOAD_SDK="$sdk"
@@ -29,4 +30,4 @@ cd "$evo"
   -I"$sdk/target/user/homebrew/include" -DPP_4K_PRODUCT_STAGE=4 -DEVO_AGC_DEVICE=1 \
   -DEVO_AGC_HAVE_VIDEO_PIPES=1 -Ishaders/agc -c \
   -o "$work/runtime.o" "$work/media/src/evo_agc_runtime.c"
-echo 'PASS: staged rotation/mirror AGC runtime compiles with the PS5 SDK'
+echo 'PASS: rotation/mirror AGC runtime compiles with the PS5 SDK'

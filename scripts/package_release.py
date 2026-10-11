@@ -23,7 +23,7 @@ def companion_entries(root, revision):
             if member.isfile():
                 yield member.name, archive.extractfile(member).read()
     fixtures = root / "fixtures/generated"
-    names = ["video.mp4", "audio.m4a", "video.webm", "audio.webm", "muxed.mp4",
+    names = ["video.mp4", "video-av1.mp4", "video-hevc.mp4", "audio.m4a", "video.webm", "audio.webm", "muxed.mp4",
              "fixture.m3u8", "thumb.png", "captions.vtt"]
     names.extend(f"fixture{index}.ts" for index in range(1000)
                  if (fixtures / f"fixture{index}.ts").exists())

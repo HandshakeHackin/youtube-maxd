@@ -1,5 +1,21 @@
 # Offline validation record — 0.1.0
 
+## Packaging completeness — 2026-10-11
+
+The companion fixture allowlist now includes AV1 and HEVC media. Three release
+selection tests pass, including every demo catalog item's media/captions and
+exclusion of dirty source, private files and redirected fixture symlinks.
+
+Application packaging now requires the verified transform artifact before native
+preparation. Its compiler command emits only the artifact path on stdout; progress
+uses stderr. Explicit artifact selection retains the existing preflight. The
+runtime compile check also accepts already-activated sources without reapplying
+the overlay. Fourteen artifact cases and five subtests pass; shell syntax and the
+staged runtime's actual PS5 SDK compilation pass. Full compilation, activation
+and application packaging remain pending the live compiler bootstrap. This does
+not constitute GPU or final-candidate acceptance. No console access occurred.
+
+
 ## SDR HEVC selection and relay — 2026-10-11
 
 HEVC is selectable per profile and participates in automatic selection after

@@ -5,12 +5,14 @@ The existing application shader tree is never changed by this command.
 """
 from pathlib import Path
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import importlib.util
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from prepare_video_transform_shaders import generate, EVO, PIN
 
@@ -96,4 +98,7 @@ if __name__ == "__main__":
     parser.add_argument("--compiler", type=Path, default=tools/"bin/amdllpc")
     parser.add_argument("--spvgen", type=Path, default=tools/"lib/libspvgen.so")
     args = parser.parse_args()
-    print(build(args.cache, args.compiler, args.spvgen))
+    # Keep stdout machine-readable for the PS5 build; progress belongs on stderr.
+    with contextlib.redirect_stdout(sys.stderr):
+        artifact = build(args.cache, args.compiler, args.spvgen)
+    print(artifact)

@@ -442,9 +442,12 @@ and quad positions together. Pass constants preserve UV/interpolation fields
 and reserve 48 bytes; direct video uses the existing 32-byte block.
 `bash scripts/test_video_transform_runtime.sh` applies this overlay to an
 isolated copy of already prepared native sources and compiles it with the PS5
-SDK. This compile passes. Activation is opt-in through
-`PROSPEROTUBE_TRANSFORM_ARTIFACT=<compiled-artifact-directory>` when running
-`prepare_native.py`. Complete real shader compilation/activation is still pending. Profile-owned
+SDK. This compile passes; already-activated sources are compiled without applying
+the overlay twice. Direct `prepare_native.py` runs opt in through
+`PROSPEROTUBE_TRANSFORM_ARTIFACT=<compiled-artifact-directory>`. Application
+packaging through `build_ps5.sh` always requires these shaders: without an explicit
+artifact it compiles or reuses the complete verified set before native preparation.
+Build the shader compiler first; missing tools or failed pipelines stop packaging. Complete real shader compilation/activation is still pending. Profile-owned
 rotation/mirror settings and both menu controls now pass native, actual UI and
 PS5 object checks; they have not yet been accepted end to end.
 
@@ -475,3 +478,7 @@ of the same transform overlay. It extracts the real capture/sizing statements,
 checks all orientation/aspect/pixel/resize combinations and zooms, and verifies
 that settings changed after capture cannot tear the frame. When real transform
 artifacts are activated, the same checks use the generated active runtime.
+
+The companion fixture archive includes AVC, VP9, AV1, HEVC, HLS, audio and
+captions. Its catalog-to-archive regression checks every advertised demo URL;
+only allowlisted generated assets and committed companion source are distributed.
