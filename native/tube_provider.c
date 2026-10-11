@@ -50,6 +50,7 @@ typedef struct Request {
     char profile[33];
     int64_t watch_position;
     int has_chat_position;
+    int chat_page;
     int64_t chat_position_ms;
     char auth_source[512], auth_token[128];
     char caption_language[33];
@@ -186,6 +187,7 @@ static void chat_cleanup_request(Request *r, const cJSON *root);
 static void cancel_requests(int preserve_chat);
 static void chat_close_remote(const char *source, const char *token, const char *profile, const char *cursor);
 static struct { int state, player, replay, seek; unsigned serial; long long next_poll;
+    int reader_page, reader_more;
     int64_t position_ms, seek_position_ms, reader_position_ms;
     char parent[160], video[12], mode[8], profile[33], cursor[65], source[512], token[128]; } g_chat;
 static struct { int phase, pending; unsigned ticket, chat_serial;
@@ -270,6 +272,14 @@ int tube_chat_reader_seek(const char *parent, double position_sec) {
     if (tube_chat_reader_position(parent) < 0 || !isfinite(position_sec) || position_sec < 0 || position_sec > 1000000) return 0;
     for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) return 0;
     g_chat.reader_position_ms = (int64_t)floor(position_sec * 1000 + .000001);
+    g_chat.reader_page = 0; g_chat.reader_more = 0;
+    g_chat.seek = 1; g_chat.state = 2; g_chat.next_poll = 0;
+    return 1;
+}
+int tube_chat_reader_next(const char *parent) {
+    if (tube_chat_reader_position(parent) < 0 || !g_chat.reader_more || g_chat.reader_page >= 1000000) return 0;
+    for (int i = 0; i < REQUESTS; ++i) if (g_requests[i].used && g_requests[i].kind == 10) return 0;
+    ++g_chat.reader_page; g_chat.reader_more = 0;
     g_chat.seek = 1; g_chat.state = 2; g_chat.next_poll = 0;
     return 1;
 }
@@ -1097,13 +1107,18 @@ static void chat_result(Request *r, const cJSON *result) {
     int count = cJSON_GetArraySize(rows);
     const cJSON *replay = cJSON_GetObjectItemCaseSensitive(result, "is_replay");
     const cJSON *position = cJSON_GetObjectItemCaseSensitive(result, "position_ms");
+    const cJSON *page = cJSON_GetObjectItemCaseSensitive(result, "chat_page");
+    const cJSON *more = cJSON_GetObjectItemCaseSensitive(result, "has_more");
+    int page_valid = cJSON_IsFalse(more) && !page && !r->chat_page;
+    if (!g_chat.player && cJSON_IsTrue(replay) && cJSON_IsNumber(page) &&
+        page->valuedouble == r->chat_page && (cJSON_IsTrue(more) || cJSON_IsFalse(more))) page_valid = 1;
     int replay_valid = cJSON_IsFalse(replay) || (cJSON_IsTrue(replay) &&
         r->has_chat_position && cJSON_IsNumber(position) && isfinite(position->valuedouble) &&
         position->valuedouble == (double)r->chat_position_ms);
     int valid = num(result, "api_version") == 1 && !strcmp(str(result, "kind"), "live_chat") &&
         !strcmp(str(result, "id"), g_chat.video) && !strcmp(str(result, "chat_mode"), g_chat.mode) &&
         replay_valid &&
-        cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(result, "has_more")) &&
+        page_valid &&
         valid_cursor(str(result, "cursor")) && (cJSON_IsTrue(ended) || cJSON_IsFalse(ended)) &&
         cJSON_IsNumber(delay) && isfinite(delay->valuedouble) && delay->valuedouble >= 0 && delay->valuedouble <= 30000 &&
         floor(delay->valuedouble) == delay->valuedouble && cJSON_IsArray(rows) && count <= CHAT_HISTORY;
@@ -1145,6 +1160,7 @@ static void chat_result(Request *r, const cJSON *result) {
     copy(g_chat.source, sizeof g_chat.source, r->auth_source); copy(g_chat.token, sizeof g_chat.token, r->auth_token);
     g_chat.state = cJSON_IsTrue(ended) ? 3 : 2;
     g_chat.replay = cJSON_IsTrue(replay);
+    g_chat.reader_more = !g_chat.player && g_chat.replay && cJSON_IsTrue(more);
     g_chat.position_ms = g_chat.replay ? r->chat_position_ms : 0;
     if (!g_chat.player) g_chat.seek = 0;
     g_chat.next_poll = now_ms() + (delay->valuedouble < 1000 ? 1000 : (long long)delay->valuedouble);
@@ -2450,6 +2466,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         cancel_requests(reuse);
         if (!reuse) {
             g_chat.state = 1;
+            g_chat.reader_page = 0; g_chat.reader_more = 0;
             copy(g_chat.parent, sizeof g_chat.parent, parent); copy(g_chat.video, sizeof g_chat.video, id);
             copy(g_chat.mode, sizeof g_chat.mode, mode); copy(g_chat.profile, sizeof g_chat.profile, g_library_profile);
         }
@@ -2457,9 +2474,10 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         Request *r = request_new(10, ud); if (!r) { g_chat.state = -1; return -1; }
         r->items_cb = cb; r->intent = g_chat.serial; copy(r->profile, sizeof r->profile, g_library_profile);
         r->has_chat_position = 1; r->chat_position_ms = reader_position;
+        r->chat_page = g_chat.reader_page;
         snprintf(r->payload, sizeof r->payload,
-            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":true,\"chat_position_sec\":%.3f}",
-            reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "", reader_position / 1000.0);
+            "{\"action\":\"%s\",\"id\":\"%s\",\"chat_mode\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\",\"chat_history\":true,\"chat_position_sec\":%.3f,\"chat_page\":%d}",
+            reuse ? "chat_poll" : "live_chat", id, mode, g_library_profile, reuse ? g_chat.cursor : "", reader_position / 1000.0, r->chat_page);
         begin(r); return 0;
     }
     if (parent && !strncmp(parent, "message:", 8)) {

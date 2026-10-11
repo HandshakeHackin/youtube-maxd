@@ -23,6 +23,18 @@ int main(void) {
     replay(0,"reader-zero",0);
     assert(last_ok && last_count==1 && tube_chat_reader_position(parent)==0);
     assert(!tube_chat_due(parent)); /* Replay reader is stationary until a seek. */
+    assert(!tube_chat_reader_next(parent)); /* Legacy snapshots have no page capability. */
+    assert(tube_chat_reader_seek(parent,1));p->list_catalog(parent,0,items_cb,NULL);
+    reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":true,\"position_ms\":1000,\"chat_page\":0,\"has_more\":true,\"ended\":false,\"poll_after_ms\":1000,\"cursor\":\"page-zero\",\"items\":[]}");
+    assert(last_ok && tube_chat_reader_next(parent) && tube_chat_due(parent));
+    p->list_catalog(parent,0,items_cb,NULL);
+    assert(strstr(pending[0].body,"\"chat_page\":1") && strstr(pending[0].body,"page-zero"));
+    assert(!tube_chat_reader_next(parent));
+    reply(0,1,200,"{\"api_version\":1,\"kind\":\"live_chat\",\"id\":\"abcdefghijk\",\"chat_mode\":\"top\",\"is_replay\":true,\"position_ms\":1000,\"chat_page\":1,\"has_more\":false,\"ended\":true,\"poll_after_ms\":0,\"cursor\":\"page-one\",\"items\":[]}");
+    assert(last_ok && !tube_chat_reader_next(parent) && !tube_chat_due(parent));
+    assert(tube_chat_reader_seek(parent,0));p->list_catalog(parent,0,items_cb,NULL);
+    assert(strstr(pending[0].body,"\"chat_page\":0"));replay(0,"reader-zero",0);
+
     p->list_catalog("message:compose",0,items_cb,NULL);
     assert(!last_ok && !pending_count); tube_chat_prompt_t prompt;
     assert(!tube_take_chat_prompt(&prompt));

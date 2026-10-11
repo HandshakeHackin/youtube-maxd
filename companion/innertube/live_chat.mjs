@@ -71,8 +71,9 @@ export class ChatReader {
     items.reverse();
     return { api_version: 1, kind: 'live_chat', id: context.id, chat_mode: context.mode,
       items,
-      cursor, has_more: false, ended: !context.token && !(context.replay && context.pending.length),
+      cursor, has_more: !!context.page_more, ended: !context.token && !(context.replay && context.pending.length),
       is_replay: !!context.replay, poll_after_ms: delay,
+      ...(context.paginated ? { chat_page: context.page } : {}),
       ...(context.replay ? { position_ms: context.position } : {}) };
   }
   commitReplayCursor(context) {
@@ -96,6 +97,9 @@ export class ChatReader {
   }
   async execute(input, owner, client) {
     this.prune();
+    if (input.chat_page !== undefined && input.chat_page !== null &&
+        (!Number.isInteger(input.chat_page) || input.chat_page < 0 || input.chat_page > 1000000))
+      this.fail('invalid_chat_page', 'Select a valid replay message page.', 400);
     if (input.action === 'live_chat') {
       if (input.chat_history !== undefined && typeof input.chat_history !== 'boolean')
         this.fail('invalid_chat_history', 'Select a valid chat history mode.', 400);
@@ -107,7 +111,10 @@ export class ChatReader {
         messages: new Map(), token: info.livechat.continuation,
         sender: typeof info.getLiveChat === 'function' ? info.getLiveChat() : null, sends: new Map() };
       if (info.livechat.is_replay) {
-        Object.assign(context, { replay: true, pending: [], seed: context.token, seek_token: '', position: -1 });
+        if ((input.chat_page ?? 0) !== 0 || (input.chat_page != null && !context.history))
+          this.fail('invalid_chat_page', 'Open the replay reader before paging messages.', 400);
+        Object.assign(context, { replay: true, pending: [], seed: context.token, seek_token: '', position: -1,
+          paginated: input.chat_page != null, page: 0, page_more: false });
         const result = await this.replay.advance(context, this.replay.position(input), true);
         this.contexts.add(context);
         return result;
@@ -154,10 +161,15 @@ export class ChatReader {
     }
     if (context.replay) {
       const position = this.replay.position(input);
-      if (entry.result && entry.position === position) return entry.result;
+      const page = input.chat_page ?? 0;
+      if (!context.paginated && page) this.fail('invalid_chat_page', 'Reopen the replay reader to page messages.', 400);
+      if (entry.result && entry.position === position && entry.page === page) return entry.result;
       if (input.cursor !== context.current_cursor) this.fail('cursor_expired', 'Use the latest replay view to seek.');
-      const result = await this.replay.advance(context, position);
-      entry.position = position; entry.result = result;
+      if (context.paginated && (position !== context.position ? page !== 0 :
+          page !== 0 && page !== context.page && (page !== context.page + 1 || !context.page_more)))
+        this.fail('invalid_chat_page', 'Read replay pages in order or seek to a new time.', 400);
+      const result = await this.replay.advance(context, position, false, page);
+      entry.position = position; entry.page = page; entry.result = result;
       return result;
     }
     if (entry.result) return entry.result;

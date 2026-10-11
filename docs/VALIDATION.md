@@ -1,5 +1,38 @@
 # Offline validation record — 0.1.0
 
+## Historical replay continuation paging — 2026-10-11
+
+The stationary replay reader no longer discards dense replay intervals merely
+because they contain more than 256 messages. An opt-in, owner-scoped page index
+consumes pending replay events in order, keeping each response within both the
+message and byte budgets. Further upstream continuations are fetched on demand,
+with at most four requests per operation and the existing 4,096-action/1 MiB
+pending-buffer guard. Future events stay withheld until the selected time reaches
+them. Pages are read in sequence; seeks (including a page-zero restart at the same
+time) reset the timeline. Repeated requests return the same delivered page, and a
+failed fetch leaves the prior cursor, messages and pending events unchanged.
+This is bounded access to upstream replay history, not an unbounded local archive.
+
+The PS5 reader sends the requested page and validates the returned page number,
+time, scope and message bounds. Triangle loads the next page; L1 / R1 seek by one
+minute and reset to page zero. Pending requests block further page actions. The
+footer/empty view advertise these controls. Existing live chat and synchronized
+player chat retain their rolling behavior. Older companion responses remain
+readable but do not advertise page navigation.
+
+Evidence: 58 worker tests pass, including 700 messages in one dense interval,
+1,500 across five upstream continuations, exact sequence/no loss, byte bounds,
+repeated requests, same-time restart, short seeks, profile ownership and staged
+failure recovery. All fifteen shipping provider sanitizer regressions pass;
+actual RmlUi tests exercise Triangle, pending/terminal page behavior, time reset,
+existing live refresh/focus/scroll, and literal message rendering. The provider,
+RmlUi host and ProviderHostScreen compile with the PS5 SDK; existing header/UI
+warnings remain (`.deps/chat-history-native.result`, exit 0). The updated RML was
+rechecked with the built UI executable (`.deps/chat-history-ui-final.log`).
+Service/API results are retained in `.deps/chat-history-{worker,api-final}.log`.
+No console traffic, full package or hardware acceptance is claimed. Real YouTube
+history continuity and long sessions still need acceptance on the final candidate.
+
 ## Natural-EOF phone playlist window continuation — 2026-10-11
 
 Drained phone playback at a loaded-window boundary now retains the exact global

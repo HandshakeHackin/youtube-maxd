@@ -34,11 +34,12 @@ extern "C" int evo_failure_reason(char*, size_t) { return 0; }
 extern "C" int evo_provider_art_ready(const char*) { return 0; }
 extern "C" int evo_provider_art_request(const char*,const char*,char*,size_t) { return -1; }
 static void reply(const char* value) { assert(!pending.empty()); auto p=pending.front(); pending.erase(pending.begin()); p.callback(1,200,value,strlen(value)+1,p.data); }
-static void frame(int first, const char* mode, const char* cursor, int total=24, int replay_position=-1) {
+static void frame(int first, const char* mode, const char* cursor, int total=24, int replay_position=-1, int page=-1, bool more=false) {
     auto root=cJSON_CreateObject(); auto rows=cJSON_CreateArray();
     cJSON_AddNumberToObject(root,"api_version",1); cJSON_AddStringToObject(root,"kind","live_chat");
     cJSON_AddStringToObject(root,"id","abcdefghijk"); cJSON_AddStringToObject(root,"chat_mode",mode);
-    cJSON_AddStringToObject(root,"cursor",cursor); cJSON_AddBoolToObject(root,"has_more",0);
+    cJSON_AddStringToObject(root,"cursor",cursor); cJSON_AddBoolToObject(root,"has_more",more);
+    if(page>=0)cJSON_AddNumberToObject(root,"chat_page",page);
     cJSON_AddBoolToObject(root,"is_replay",replay_position>=0);
     if(replay_position>=0) cJSON_AddNumberToObject(root,"position_ms",replay_position);
     cJSON_AddBoolToObject(root,"ended",0); cJSON_AddNumberToObject(root,"poll_after_ms",2000);
@@ -128,7 +129,11 @@ int main(int argc,char**argv) {
     host.m_crumbs.push_back("Top comments");
     assert(host.DiscussionKey(6)==1 && host.m_stack.back()=="chat:top:abcdefghijk");
     assert(pending.size()==1 && pending[0].body.find("\"chat_position_sec\":0.000")!=std::string::npos);
-    frame(0,"top","ui-replay-zero",24,0);pump();
+    frame(0,"top","ui-replay-zero",24,0,0,true);pump();
+    assert(host.DiscussionKey(6)==1 && pending.size()==1 && pending[0].body.find("\"chat_page\":1")!=std::string::npos);
+    assert(host.DiscussionKey(6)==1 && pending.size()==1);
+    frame(24,"top","ui-replay-page-one",24,0,1,false);pump();
+    assert(host.DiscussionKey(6)==1 && pending.empty());
     assert(model.chat && host.m_all_rows.size()==24);
     clock_ms+=5000;host.RefreshChat();assert(pending.empty());
     assert(host.HandleKey(EvoRmlProviderHost::KeyPageDown));

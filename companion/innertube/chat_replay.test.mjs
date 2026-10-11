@@ -115,3 +115,54 @@ test('signed pre-stream replay offsets are visible at frame zero while later act
   assert.equal(first.items[0].offset_ms,-2000);
   assert.equal(first.position_ms,0);assert.equal(first.ended,false);
 });
+
+test('historical replay pages dense intervals without dropping occurrences or exposing tokens',async()=>{
+  const {library,calls}=fixture(()=>response([event(0,Array.from({length:700},(_,i)=>add('message-'+i)))]));
+  let result=await open(library,0,{chat_history:true,chat_page:0});
+  const ids=[];
+  for(let page=0;page<3;++page){
+    assert.equal(result.chat_page,page);ids.push(...result.items.map(item=>item.id));
+    assert.equal(result.has_more,page<2);assert.equal(result.ended,page===2);
+    assert.equal(JSON.stringify(result).includes('private-'),false);
+    if(page<2){
+      const cursor=result.cursor;
+      result=await poll(library,cursor,0,{chat_page:page+1});
+      assert.deepEqual(await poll(library,cursor,0,{chat_page:page+1}),result);
+    }
+  }
+  assert.deepEqual(ids,Array.from({length:700},(_,i)=>'message-'+i));assert.equal(calls.length,1);
+  await assert.rejects(poll(library,result.cursor,0,{chat_page:3}),{code:'invalid_chat_page'});
+  const restart=await poll(library,result.cursor,0,{chat_page:0});
+  assert.equal(restart.chat_page,0);assert.equal(restart.items[0].id,'message-0');assert.equal(restart.has_more,true);
+});
+
+test('history pages follow upstream continuations and reset even for short seeks',async()=>{
+  const {library,calls}=fixture((options,n)=>response([event(Number(options.currentPlayerState.playerOffsetMs),
+    Array.from({length:300},(_,i)=>add(`batch-${n}-${i}`)))],n<5?'private-page-'+n:''));
+  let result=await open(library,0,{chat_history:true,chat_page:0});const all=[];
+  while(true){all.push(...result.items.map(item=>item.id));if(!result.has_more)break;
+    result=await poll(library,result.cursor,0,{chat_page:result.chat_page+1});}
+  assert.equal(all.length,1500);assert.equal(new Set(all).size,1500);assert.equal(calls.length,5);
+  await assert.rejects(poll(library,result.cursor,1,{chat_page:1}),{code:'invalid_chat_page'});
+  const seek=await poll(library,result.cursor,1,{chat_page:0});
+  assert.equal(seek.chat_page,0);assert.equal(calls.at(-1).continuation,'private-seek');
+  assert.equal(seek.items[0].id,'batch-6-0');
+});
+
+test('history page byte bounds, ownership and failed fetch preserve the current cursor',async()=>{
+  let fail=false;
+  const {library}=fixture((_,n)=>{
+    if(fail)throw new Error('offline');
+    const actions=Array.from({length:100},(_,i)=>{const action=add(`long-${n}-${i}`);
+      action.addChatItemAction.item.liveChatTextMessageRenderer.message={runs:[{text:'x'.repeat(3000)}]};return action;});
+    return response([event(0,actions)],'private-next-'+n);
+  });
+  const first=await open(library,0,{chat_history:true,chat_page:0});
+  assert(first.items.length<256 && first.has_more);assert(Buffer.byteLength(JSON.stringify(first))<768*1024);
+  await assert.rejects(poll(library,first.cursor,0,{chat_page:2}),{code:'invalid_chat_page'});
+  await assert.rejects(poll(library,first.cursor,0,{chat_page:1,profile:'another'}));
+  fail=true;await assert.rejects(poll(library,first.cursor,0,{chat_page:1}));
+  const context=library.chats.cursors.get(first.cursor).context;
+  assert.equal(context.current_cursor,first.cursor);assert.equal(context.page,0);
+  fail=false;const second=await poll(library,first.cursor,0,{chat_page:1});assert.equal(second.chat_page,1);
+});

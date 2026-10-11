@@ -54,25 +54,37 @@ export class ReplayTimeline {
     const due = [], future = [];
     for (const event of context.pending) (event.offset <= position ? due : future).push(event);
     due.sort((a, b) => a.offset - b.offset);
+    let consumed = 0;
     for (const { offset, action } of due) {
-      context.messages = this.reader.update(context.messages, [action]);
+      if (context.paginated) {
+        const item = this.reader.normalize(action.item ?? action.replacement_item);
+        if (item && !context.messages.has(item.id) && context.messages.size >= 256) break;
+      }
+      const updated = this.reader.update(context.messages, [action]);
+      if (context.paginated && Buffer.byteLength(JSON.stringify([...updated.values()])) > 700 * 1024) break;
+      context.messages = updated;
       const node = action.item ?? action.replacement_item;
       if (node?.id && context.messages.has(node.id)) context.messages.get(node.id).offset_ms = offset;
+      ++consumed;
     }
-    context.pending = future;
+    context.pending = [...due.slice(consumed), ...future];
   }
-  async advance(context, position, initial = false) {
+  async advance(context, position, initial = false, page = 0) {
     // Stage every change: malformed/failed responses must not erase the last good view.
     const staged = { ...context, messages: new Map(context.messages), pending: [...context.pending] };
-    const seek = !initial && (position < context.position || position - context.position > 10000);
+    const seek = !initial && (context.paginated ? position !== context.position || (page === 0 && context.page > 0) :
+      position < context.position || position - context.position > 10000);
+    const nextPage = context.paginated && !seek && page > context.page;
+    if (nextPage) staged.messages = new Map();
+    staged.page = page;
     if (seek) {
       staged.messages = new Map(); staged.pending = [];
       staged.token = context.seek_token || context.seed;
     }
     this.apply(staged, position);
     let selected = !initial;
-    const mayFetch = initial || seek || (!staged.pending.length &&
-      (position !== context.position || !context.messages.size || context.catching_up) && this.reader.clock() >= context.next_at);
+    const mayFetch = initial || seek || (context.paginated ? nextPage && !staged.pending.length : (!staged.pending.length &&
+      (position !== context.position || !context.messages.size || context.catching_up) && this.reader.clock() >= context.next_at));
     if (mayFetch) {
       staged.catching_up = false;
       for (let request = 0; staged.token && request < 4; ++request) {
@@ -103,6 +115,8 @@ export class ReplayTimeline {
         if (request === 3) staged.catching_up = true;
       }
     }
+    staged.page_more = !!staged.paginated && (staged.pending.some(event => event.offset <= position) ||
+      (!!staged.token && !staged.pending.length && !!staged.catching_up));
     staged.position = position; staged.next_at = this.reader.clock() + 1000;
     staged.deadline = this.reader.clock() + 1800000;
     Object.assign(context, staged);

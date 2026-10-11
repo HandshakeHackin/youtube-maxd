@@ -53,7 +53,12 @@ and send flow have offline coverage, including generated account fixtures;
 real-account posting, complete scrollback and PS5 acceptance remain pending.
 The player sidebar now supports playback-clock chat replay, including pause,
 seek and rewind; service/native host checks and live Guest replay checks passed.
-PS5 replay acceptance remains pending.
+PS5 replay acceptance remains pending. The stationary replay reader now pages
+through dense historical intervals: Triangle loads the next message page at the
+selected time, and L1 / R1 seek by one minute and restart paging. Each response
+keeps at most 256 messages and a bounded byte size; upstream continuations remain
+private to the companion. Live chat and playback-synchronized chat keep their
+existing rolling behavior.
 The [phone receiver backend](docs/REMOTE_SERVICE.md) now supports authentic
 YouTube TV-code pairing, typed commands and playback-state feedback. Offline
 tests and a live temporary-receiver check passed. Native pairing settings and

@@ -153,3 +153,24 @@ def test_fixture_chat_history_retains_and_bounds_previous_messages():
         finally:
             await library.close()
     asyncio.run(run())
+
+def test_replay_page_boundary_rejects_invalid_indices_and_forwards_owned_read():
+    calls = []
+    class Library:
+        async def close(self): pass
+        async def execute(self, request):
+            calls.append(request)
+            return {'api_version': 1, 'kind': 'live_chat', 'items': [],
+                    'cursor': 'next-page', 'chat_page': request['chat_page'], 'has_more': True}
+    with TestClient(create_app(token='page-token', library=Library())) as client:
+        headers = {'Authorization': 'Bearer page-token'}
+        for page in (-1, 1000001, True, '1', 1.5):
+            response = client.post('/v1/library', headers=headers, json={
+                'action': 'chat_poll', 'cursor': 'owned-page', 'chat_page': page})
+            assert response.status_code == 422 and not calls
+        response = client.post('/v1/library', headers=headers, json={
+            'action': 'chat_poll', 'cursor': 'owned-page', 'profile': 'one',
+            'chat_position_sec': 60, 'chat_page': 1})
+        assert response.status_code == 200 and response.json()['chat_page'] == 1
+        assert calls[0]['cursor'] == 'owned-page' and calls[0]['profile'] == 'one'
+        assert calls[0]['chat_page'] == 1 and calls[0]['chat_position_sec'] == 60

@@ -16,7 +16,7 @@ def apply_live_chat_overlay(replace, player):
             }
             RefreshChat();
             char status[160];
-            std::snprintf(status, sizeof status, "Chat replay %d:%02d: L1 / R1 move one minute; D-pad browses messages", (int)target / 60, (int)target % 60);
+            std::snprintf(status, sizeof status, "Chat replay %d:%02d: L1 / R1 move one minute; Triangle loads more messages", (int)target / 60, (int)target % 60);
             SetStatus(status, false);
             return true;
         }
@@ -24,6 +24,12 @@ def apply_live_chat_overlay(replace, player):
     switch (k) {
     case KeyPageUp: {''')
     replace(ui, '    if (key == 1 || key == 2) {', '''    if (key == 6) {
+        if (m_model.chat && !m_stack.empty() && tube_chat_reader_position(m_stack.back().c_str()) >= 0) {
+            if (tube_chat_reader_next(m_stack.back().c_str())) {
+                RefreshChat(); SetStatus("Loading the next replay messages at this time", false);
+            } else SetStatus("No further messages at this time, or a request is pending. L1 / R1 change time.", false);
+            return 1;
+        }
         if (!m_model.discussion || m_model.chat || m_stack.empty()) return 0;
         const auto parent = m_stack.back();
         const size_t prefix = parent.rfind("discussion:top:", 0) == 0 ? 15 : parent.rfind("discussion:newest:", 0) == 0 ? 18 : 0;
@@ -133,7 +139,7 @@ void EvoRmlProviderHost::ReplaceFolder(const char* parent, const char* title)'''
     replace(ui, '    m_stack.push_back(parent); m_crumbs.push_back("Top comments");',
             '    m_stack.push_back(parent); m_crumbs.push_back(row->is_live ? "Top chat" : "Top comments");')
     replace(ui, '    if (m_provider_id == "youtube" && hit->id == "account:notice") {', '''    if (m_provider_id == "youtube" && hit->id.rfind("chat:leaf:", 0) == 0) {
-        SetStatus("L2 / R2 scroll this message. R3 changes chat mode. Touchpad opens comments.", false); return;
+        SetStatus("L2 / R2 scroll. Triangle loads more replay messages. R3 changes chat mode. Touchpad opens comments.", false); return;
     }
     if (m_provider_id == "youtube" && hit->id == "account:notice") {''')
     reset = '''    if (m_provider_id == "youtube") {
