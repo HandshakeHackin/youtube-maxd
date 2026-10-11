@@ -55,12 +55,13 @@ int main(int argc, char** argv) {
     row.RegisterMember("progress", &EvoProviderRow::progress);
     row.RegisterMember("progress_w", &EvoProviderRow::progress_w);
     row.RegisterMember("played", &EvoProviderRow::played);
+    row.RegisterMember("selection_key", &EvoProviderRow::selection_key);
     constructor.RegisterArray<std::vector<EvoProviderRow>>();
 #define BIND(name) constructor.Bind(#name, &model.name)
     BIND(provider_name); BIND(breadcrumb); BIND(page_info); BIND(status); BIND(has_error);
     BIND(loading); BIND(empty); BIND(rows); BIND(has_selected); BIND(selected_title);
     BIND(selected_subtitle); BIND(selected_resume); BIND(selected_overview);
-    BIND(discussion); BIND(review); BIND(auth); BIND(chat);
+    BIND(discussion); BIND(review); BIND(auth); BIND(chat); BIND(description);
 #undef BIND
     Rml::String activated;
     constructor.BindEventCallback("activate", [&activated](Rml::DataModelHandle, Rml::Event& event, const Rml::VariantList&) {
