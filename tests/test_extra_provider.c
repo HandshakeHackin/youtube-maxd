@@ -54,16 +54,17 @@ int main(void) {
         screens+=(find("settings:extra:captions")>=0)+(find("settings:extra:audio")>=0)+(find("settings:extra:player")>=0);
     }
     assert(screens==3);
-    show("settings:extra:captions");assert(last_count==3 && !strcmp(last_items[0].id,"settings:subtitle-style") && !strcmp(last_items[0].title,"Subtitle style: Default"));
-    assert(!strcmp(last_items[1].title,"Subtitle size: 1.0x") && !strcmp(last_items[2].title,"Subtitle position: Default"));groups+=last_count;
+    show("settings:extra:captions");assert(last_count==5 && !strcmp(last_items[0].id,"settings:subtitle-style") && !strcmp(last_items[0].title,"Subtitle style: Default"));
+    assert(!strcmp(last_items[1].title,"Subtitle size: 1.0x") && !strcmp(last_items[2].title,"Subtitle position: Default"));groups+=last_count-2;
+    assert(!strcmp(last_items[3].id,"settings:more-subtitles") && !strcmp(last_items[4].id,"settings:caption-memory")); /* two switches of the provider */
     show("settings:extra:audio");assert(last_count==5 && !strcmp(last_items[0].title,"Player volume: 100%") && !strcmp(last_items[1].title,"Mute: Off"));groups+=last_count;
     show("settings:extra:player");assert(last_count==24 && last_more && !strcmp(last_items[11].id,"settings:player-suggestions"));groups+=last_count;
     assert(!strcmp(last_items[8].title,"Speed list: Long speed list") && !strcmp(last_items[10].title,"Remember position of short videos: On"));
     assert(!strcmp(last_items[15].title,"Screen dimming: Never") && !strcmp(last_items[19].title,"Button: Like: On"));
-    /* The player buttons continue on the next page, before the section switch. */
+    /* The player buttons continue on the next page, before the two provider switches. */
     p->list_catalog("settings:extra:player",1,items_cb,NULL);
-    assert(last_ok && !last_more && !strcmp(last_items[last_count-1].id,"settings:use-section-playlist"));groups+=last_count-1;
-    assert(groups==TUBE_EXTRA_GROUPS && !strcmp(last_items[last_count-2].title,"Button: Mirror video: On") && find("settings:button-share")>=0);
+    assert(last_ok && !last_more && !strcmp(last_items[last_count-2].id,"settings:use-section-playlist") && !strcmp(last_items[last_count-1].id,"settings:dislikes"));groups+=last_count-2;
+    assert(groups==TUBE_EXTRA_GROUPS && !strcmp(last_items[last_count-3].title,"Button: Mirror video: On") && find("settings:button-share")>=0);
     /* A group lists its choices with the selection mark; a choice acts in place and is saved. */
     show("settings:subtitle-style");assert(last_count==7 && !strcmp(last_items[0].subtitle,"Selected") && strcmp(last_items[4].subtitle,"Selected"));
     show("settings:subtitle-style:4");

@@ -16,7 +16,7 @@ int main(void) {
     assert(!tube_player_seek_mode());
     p->list_catalog("settings",0,items_cb,NULL);assert(last_ok && last_count==24 && last_more);
     p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count>0 && last_count<=24 && !last_more);
-    assert(!strcmp(last_items[last_count-1].id,"settings:accounts"));
+    assert(!strcmp(last_items[last_count-1].id,"settings:about") && !strcmp(last_items[last_count-3].id,"settings:accounts"));
     p->list_catalog("settings",2,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     p->list_catalog("settings:autoplay",0,items_cb,NULL);assert(last_ok && last_more);
     p->list_catalog("settings:autoplay",1,items_cb,NULL);assert(last_ok && !last_more);

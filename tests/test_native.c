@@ -179,7 +179,7 @@ int main(void) {
     assert(!strstr(error_text, "secret"));
     /* Remote library navigation is asynchronous and retains only opaque cursors. */
     p->list_catalog("discover", 0, items_cb, NULL);
-    assert(last_count == 14 && !strcmp(last_items[0].id, "library:home"));
+    assert(last_count == 15 && !strcmp(last_items[0].id, "library:home"));
     assert(!strcmp(last_items[12].id, "section:trending") && !strcmp(last_items[13].id, "section:shorts"));
     assert(!strcmp(last_items[4].id, "section:gaming") && !strcmp(last_items[5].id, "section:news") &&
            !strcmp(last_items[6].id, "section:music"));
@@ -258,7 +258,7 @@ int main(void) {
     assert(!last_ok);
     /* Account actions require a deliberate confirmation and submit only once. */
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 13 && strstr(last_items[0].title, "profile first"));
+    assert(last_ok && last_count == 14 && strstr(last_items[0].title, "profile first"));
     assert(!pending_count);
     p->list_catalog("library:profile:fixture", 0, items_cb, NULL);
     /* Displayed comment capabilities are profile-bound and require review. */
@@ -297,7 +297,7 @@ int main(void) {
     p->search("account fixture", 0, items_cb, NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Account fixture\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}");
     p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 23 && !pending_count);
+    assert(last_ok && last_count == 24 && last_more && !pending_count); /* the menu continues on a second page */
     char account_choices[7][160];
     for (int i = 0; i < 7; ++i) snprintf(account_choices[i], sizeof account_choices[i], "%s", last_items[i].id);
     const char *operations[] = {"like", "dislike", "unrate", "watch_later_add", "watch_later_remove", "subscribe", "unsubscribe"};
@@ -368,7 +368,7 @@ int main(void) {
         p->list_catalog(account_apply, 0, items_cb, NULL); assert(!pending_count);
     }
     p->list_catalog("playlist:menu:PLabcdefghijk", 0, items_cb, NULL);
-    assert(last_ok && last_count == 4 && strstr(last_items[0].id, "rename") && !strcmp(last_items[2].title, "Pin to main menu"));
+    assert(last_ok && last_count == 6 && strstr(last_items[0].id, "rename") && !strcmp(last_items[2].title, "Pin to main menu"));
     assert(!strcmp(last_items[3].id, "playlist:confirm:unsave:PLabcdefghijk"));
     p->list_catalog("playlist:prompt:rename:PLabcdefghijk", 0, items_cb, NULL);
     tube_playlist_prompt_t prompt;

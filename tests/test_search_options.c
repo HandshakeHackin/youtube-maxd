@@ -60,7 +60,7 @@ int main(void) {
     assert(last_count==1 && !search_lead); /* a Discover topic is not a typed search */
     /* The options page cycles each filter and rejects unknown rows. */
     p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && find("Search options")>=0 && !strcmp(row,"settings:search"));
-    show("settings:search");assert(last_count==19 && find("Search again: cats")==0 && find("Suggestions")==1);
+    show("settings:search");assert(last_count==20 && find("Search again: cats")==0 && find("Suggestions")==1 && find("Play the first result: cats")==19);
     snprintf(again,sizeof again,"%s",last_items[0].id);
     assert(find("Upload date: Any time")==2 && find("Duration: Any duration")==3 && find("Type: All types")==4 && find("Sort by: Relevance")==5);
     assert(find("Live: any")==6 && find("Channels and playlists in results: off")==17 && find("Reset search filters")==18 && !strcmp(last_items[18].subtitle,"No filter is set"));
