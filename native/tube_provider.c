@@ -4219,11 +4219,12 @@ static void prompt_arm(const char *label) {
     copy(g_playlist_prompt.profile, sizeof g_playlist_prompt.profile, g_library_profile);
     g_playlist_prompt.pending = g_playlist_prompt.active = 1;
 }
-/* Player extras by settings screen: captions, sound, then controls and keys. */
-static const char *const g_extra_screens[] = {"settings:extra:captions", "settings:extra:audio", "settings:extra:player"};
-static int extra_screen(int group) {
-    return group <= TUBE_EXTRA_SUBTITLE_POSITION ? 0 : group <= TUBE_EXTRA_AUDIO_DELAY_ENABLED ? 1 : 2;
-}
+/* Player extras by settings screen, in the order of tube_extra_group_screen():
+ * captions, sound, controls and keys, player buttons, screen dimming. */
+static const char *const g_extra_screens[] = {"settings:extra:captions", "settings:extra:audio", "settings:extra:player",
+    "settings:extra:buttons", "settings:extra:dimming"};
+#define EXTRA_SCREENS ((int)(sizeof g_extra_screens / sizeof g_extra_screens[0]))
+static int extra_screen(int group) { return tube_extra_group_screen(group); }
 /* "settings:<group>" or "settings:<group>:<choice>" -> the group, -1 when the
  * id names none. choice is -1 for the group itself and -2 for a malformed one. */
 static int extra_group_parent(const char *parent, int *choice) {
@@ -5294,12 +5295,16 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "settings:extra:", 15) || !strcmp(parent, "settings:use-section-playlist") ||
                    !strcmp(parent, "settings:more-subtitles") || !strcmp(parent, "settings:caption-memory") || !strcmp(parent, "settings:dislikes")) {
             int screen = !strcmp(parent, "settings:more-subtitles") || !strcmp(parent, "settings:caption-memory") ? 0 : 2;
-            for (int i = 0; i < 3; ++i) if (!strcmp(parent, g_extra_screens[i])) screen = i;
+            for (int i = 0; i < EXTRA_SCREENS; ++i) if (!strcmp(parent, g_extra_screens[i])) screen = i;
             for (int group = 0; group < TUBE_EXTRA_GROUPS; ++group) if (extra_screen(group) == screen) {
                 char label[192], value[96] = "other";
                 if (tube_extra_group_selected(group) >= 0) tube_extra_group_label(group, tube_extra_group_selected(group), value, sizeof value);
                 snprintf(label, sizeof label, "%s: %s", tube_extra_group_title(group), value);
                 CATALOG_FOLDER( tube_extra_group_id(group), label, tube_extra_group_detail(group));
+            }
+            if (screen == 2) { /* its two long lists are screens of their own */
+                CATALOG_FOLDER( "settings:extra:buttons", "Player buttons", "Choose the actions the in-player options show");
+                CATALOG_FOLDER( "settings:extra:dimming", "Screen dimming and screen off", "Dim the picture while idle; timeout and strength of screen off");
             }
             if (screen == 2) CATALOG_FOLDER( "settings:use-section-playlist", g_section_playlist ? "Use current section as playlist: on" : "Use current section as playlist: off",
                 "On: after a video from a section, shelf or channel, continue with the next one listed there");
@@ -5859,7 +5864,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:clear-queue", "Clear play queue", "Remove this profile's queued videos; keep favorites");
             CATALOG_FOLDER( "settings:extra:captions", "Caption style, size and position", "How captions look in the player, translated captions and per-channel memory");
             CATALOG_FOLDER( "settings:extra:audio", "Player volume and audio delay", "Volume up to 300%, auto volume and sound delay");
-            CATALOG_FOLDER( "settings:extra:player", "Player controls, keys and Shorts", "Clock, quality info, exit, D-pad, seek preview, speed list, Shorts rules and dislikes");
+            CATALOG_FOLDER( "settings:extra:player", "Player controls, keys and Shorts", "Clock, quality info, exit, D-pad, seek preview, speed list, Shorts rules, player buttons, screen dimming and dislikes");
             snprintf(label, sizeof label, "Content language: %s", language_index(g_hl) >= 0 ? g_languages[language_index(g_hl)].name : "default");
             CATALOG_FOLDER( "settings:content-language", label, "Language YouTube uses for titles and sections");
             snprintf(label, sizeof label, "Content country: %s", country_index(g_gl) >= 0 ? g_countries[country_index(g_gl)].name : "default");
@@ -7261,15 +7266,15 @@ static struct { evo_provider_item_t item; char profile[33]; unsigned scope; int 
 static struct { char parent[EVO_PROVIDER_MAX_ITEM_ID], title[EVO_PROVIDER_MAX_TITLE], profile[33]; unsigned scope; int kind; } g_player_browse;
 static struct { char id[160]; int attempts, relaxed; } g_player_fix;
 static evo_provider_item_t g_player_root[64];
-static int g_player_root_count;
+static int g_player_root_count, g_player_root_more;
 
 int tube_player_menu_calling(void) { return g_player_menu.calling; }
 static const char *player_video(void) {
     return valid_id(g_active_id) && recovery_scope() ? g_active_id : "";
 }
 static void player_root_items(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
-    (void)more; (void)ud;
-    g_player_root_count = 0;
+    (void)ud;
+    g_player_root_count = 0; g_player_root_more = ok && more;
     for (int i = 0; ok && items && i < count && i < 64; ++i) g_player_root[g_player_root_count++] = items[i];
 }
 /* Rows of the actions menu that mean nothing while their video is playing. */
@@ -7285,7 +7290,7 @@ static int player_row_matches(int action, const char *id) {
     case TUBE_PLAYER_PLAYLIST_ADD: return !strncmp(id, "playlist:pick:add:", 18);
     case TUBE_PLAYER_SUGGESTIONS: return !strncmp(id, "library:suggestions:", 20);
     case TUBE_PLAYER_DESCRIPTION: return !strncmp(id, "description:", 12);
-    case TUBE_PLAYER_SHARE: return !strncmp(id, "local:video:", 12) && strstr(id, ":share:");
+    case TUBE_PLAYER_SHARE: return !strncmp(id, "link:video:", 11);
     case TUBE_PLAYER_SPONSOR: return !strncmp(id, "local:video:", 12) && (strstr(id, ":sbexclude:") || strstr(id, ":sbinclude:"));
     case TUBE_PLAYER_CHANNEL: return !strncmp(id, "channel:", 8);
     case TUBE_PLAYER_PLAYLIST: return !strncmp(id, "library:playlist:", 17) || (!strncmp(id, "playlist:", 9) && !strchr(id + 9, ':'));
@@ -7304,10 +7309,14 @@ static const evo_provider_item_t *player_action_row(int action) {
         return &fixed;
     }
     char parent[64]; snprintf(parent, sizeof parent, "account:menu:%s", video);
-    g_player_root_count = 0;
-    if (!local_catalog(parent, 0, player_root_items, NULL)) return NULL;
-    for (int i = 0; i < g_player_root_count; ++i)
-        if (player_row_matches(action, g_player_root[i].id)) return &g_player_root[i];
+    /* The menu spans more than one page for an account profile. */
+    for (int page = 0; page < 4; ++page) {
+        g_player_root_count = g_player_root_more = 0;
+        if (!local_catalog(parent, page, player_root_items, NULL)) return NULL;
+        for (int i = 0; i < g_player_root_count; ++i)
+            if (player_row_matches(action, g_player_root[i].id)) return &g_player_root[i];
+        if (!g_player_root_more) break;
+    }
     return NULL;
 }
 int tube_player_action(int action, char *label, size_t label_size, char *detail, size_t detail_size) {
@@ -7384,7 +7393,10 @@ static void player_menu_items(int ok, const evo_provider_item_t *items, int coun
             player_menu_add("account:notice", items[i].title, "Description", 1);
             continue;
         }
-        tube_player_menu_row_t *row = player_menu_add(items[i].id, items[i].title, items[i].subtitle, items[i].is_folder);
+        /* A link is listed as its address; the codes are on the browser's page. */
+        const int link = !strncmp(items[i].id, "link:row:", 9) && *items[i].overview;
+        tube_player_menu_row_t *row = link ? player_menu_add(items[i].id, items[i].overview, items[i].title, 1) :
+            player_menu_add(items[i].id, items[i].title, items[i].subtitle, items[i].is_folder);
         if (!row) break;
         copy(row->playlist, sizeof row->playlist, items[i].playback_playlist);
         row->index = items[i].playback_index; row->scope = items[i].playback_scope;
@@ -7395,6 +7407,8 @@ static void player_menu_items(int ok, const evo_provider_item_t *items, int coun
         player_menu_add("account:notice", line, "", 1);
     }
     if (more && g_player_menu.page + 1 < LIBRARY_PAGES) player_menu_add("more:", "More results", "Load the next page of this list", 1);
+    if (!strncmp(g_player_menu.parent, "link:", 5) && g_player_menu.count)
+        player_menu_add(g_player_menu.parent, "Show QR codes", "Stops this video and opens these links with their QR codes", 1);
     if (!g_player_menu.count) player_menu_add("account:notice", "Nothing is listed here", "Circle returns", 1);
     g_player_menu.state = 1;
 }
@@ -7412,7 +7426,13 @@ static int player_menu_list(const char *parent, int page, const char *title, int
     player_menu_snapshot();
     char target[EVO_PROVIDER_MAX_ITEM_ID]; copy(target, sizeof target, g_player_menu.parent);
     g_player_menu.calling = 1;
-    const int result = catalog(target, page, player_menu_items, (void *)(uintptr_t)g_player_menu.serial);
+    int result = catalog(target, page, player_menu_items, (void *)(uintptr_t)g_player_menu.serial);
+    /* The actions menu is local and short: its further pages join at once. */
+    while (!strncmp(target, "account:menu:", 13) && g_player_menu.state == 1 && g_player_menu.count &&
+           !strcmp(g_player_menu.rows[g_player_menu.count - 1].id, "more:")) {
+        g_player_menu.base = --g_player_menu.count; g_player_menu.page = ++page; g_player_menu.state = 0;
+        result = catalog(target, page, player_menu_items, (void *)(uintptr_t)g_player_menu.serial);
+    }
     g_player_menu.calling = 0;
     if (result < 0 && !g_player_menu.state) {
         copy(g_player_menu.message, sizeof g_player_menu.message, "The companion is not ready for this action.");
@@ -7440,7 +7460,9 @@ int tube_player_menu_open(int index) {
     if (index < 0 || index >= g_player_menu.count || g_player_menu.state != 1 || !*player_video()) return TUBE_MENU_NOTHING;
     const tube_player_menu_row_t *row = &g_player_menu.rows[index];
     if (!strcmp(row->id, "more:")) return player_menu_list(g_player_menu.parent, g_player_menu.page + 1, g_player_menu.title, g_player_menu.root);
-    if (!strncmp(row->id, "account:notice", 14) || !strncmp(row->id, "settings:", 9)) return TUBE_MENU_NOTHING;
+    if (!strncmp(row->id, "account:notice", 14) || !strncmp(row->id, "settings:", 9) || !strncmp(row->id, "link:row:", 9)) return TUBE_MENU_NOTHING;
+    /* The QR codes are drawn by the browser's link page: the row of a links list leaves for it. */
+    if (!strncmp(row->id, "link:", 5) && !strcmp(row->id, g_player_menu.parent)) return player_browse(1, row->id, "Share link");
     if (!strncmp(row->id, "channel:", 8)) return player_browse(1, row->id, row->folder && strcmp(row->title, "Open channel") ? row->title : *row->detail ? row->detail : "Channel");
     if (!row->folder) {
         if (!valid_id(row->id)) return TUBE_MENU_NOTHING;

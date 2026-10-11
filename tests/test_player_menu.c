@@ -70,11 +70,21 @@ int main(void) {
     assert(tube_player_menu_open(row_of("Choose an account profile first")) == TUBE_MENU_NOTHING && tube_player_menu_root());
     assert(tube_player_menu_open(-1) == TUBE_MENU_NOTHING && tube_player_menu_open(tube_player_menu_count()) == TUBE_MENU_NOTHING);
     assert(!tube_player_menu_row(tube_player_menu_count()));
-    /* A row opens its page in place: the links are inert rows. */
+    /* A row opens its page in place: the links are inert rows that show their address. */
     assert(tube_player_menu_open(row_of("Share link")) == TUBE_MENU_OPENED && tube_player_menu_status() == 1 && !tube_player_menu_root());
-    assert(tube_player_menu_count() == 4 && !strcmp(tube_player_menu_row(0)->title, "https://youtu.be/abcdefghijk"));
+    assert(tube_player_menu_count() == 5 && !strcmp(tube_player_menu_row(0)->title, "https://youtu.be/abcdefghijk"));
     assert(!strcmp(tube_player_menu_row(0)->detail, "Video link") && !strcmp(tube_player_menu_title(), "Share link"));
-    assert(tube_player_menu_open(0) == TUBE_MENU_NOTHING && tube_player_menu_count() == 4);
+    assert(!strcmp(tube_player_menu_row(1)->title, "https://www.youtube.com/embed/abcdefghijk") && !strcmp(tube_player_menu_row(1)->detail, "Embed link"));
+    assert(!strcmp(tube_player_menu_row(2)->title, "https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa"));
+    assert(!strcmp(tube_player_menu_row(3)->title, "https://www.youtube.com/playlist?list=PLfixture01"));
+    for (int i = 0; i < 4; ++i) assert(tube_player_menu_open(i) == TUBE_MENU_NOTHING && tube_player_menu_count() == 5);
+    /* The QR codes are on the browser's link page: the last row leaves for it. */
+    assert(!strcmp(tube_player_menu_row(4)->title, "Show QR codes") && tube_player_menu_open(4) == TUBE_MENU_LEAVE);
+    assert(tube_player_take_browse(parent, sizeof parent, title, sizeof title) == 1);
+    assert(!strcmp(parent, "link:video:abcdefghijk") && !strcmp(title, "Share link"));
+    /* The direct action opens the same list. */
+    assert(tube_player_menu_begin(TUBE_PLAYER_SHARE) == TUBE_MENU_OPENED && tube_player_menu_status() == 1 && !tube_player_menu_root());
+    assert(tube_player_menu_count() == 5 && !strcmp(tube_player_menu_row(4)->id, "link:video:abcdefghijk"));
     /* SponsorBlock for this channel acts at once and the row names the way back. */
     assert(tube_player_menu_begin(TUBE_PLAYER_SPONSOR) == TUBE_MENU_OPENED && tube_player_menu_status() == 1);
     assert(!strcmp(tube_player_menu_row(0)->title, "SponsorBlock is off for this channel"));
@@ -165,6 +175,23 @@ int main(void) {
     tube_player_menu_close();
     p->list_catalog("library:profile:another", 0, items_cb, NULL);
     assert(!tube_player_take_launch(&item));
+    /* An account profile's menu spans two pages of the browser: the player lists it
+     * whole, and the direct actions find the rows of its second page. */
+    p->list_catalog("playlist:PLfixture01", 0, items_cb, NULL); poll_job(listed); assert(last_ok && last_count == 2);
+    p->list_catalog("account:menu:abcdefghijk", 0, items_cb, NULL);
+    assert(last_ok && last_count == 24 && last_more && !strcmp(last_items[23].title, "Share link"));
+    p->list_catalog("account:menu:abcdefghijk", 1, items_cb, NULL);
+    assert(last_ok && last_count == 2 && !last_more && strstr(last_items[0].id, ":sbinclude:") && !strcmp(last_items[1].id, "settings:refresh"));
+    resolve_to("1080", "60", "vp9", NULL); start();
+    assert(tube_player_menu_begin(TUBE_PLAYER_ACTIONS) == TUBE_MENU_OPENED && tube_player_menu_status() == 1 && tube_player_menu_root());
+    assert(!pending_count && tube_player_menu_count() == 21 && row_of("More results") < 0 && row_of("Like video") == 0);
+    assert(row_of("Play next") < 0 && row_of("Create playlist with this video") < 0 && row_of("Refresh section") < 0);
+    assert(row_of("Open playlist") == 18 && row_of("Share link") == 19 && row_of("Use SponsorBlock on this channel") == 20);
+    assert(tube_player_action(TUBE_PLAYER_SPONSOR, label, sizeof label, NULL, 0) && !strcmp(label, "Use SponsorBlock on this channel"));
+    assert(tube_player_action(TUBE_PLAYER_SHARE, label, sizeof label, NULL, 0) && !strcmp(label, "Share link"));
+    assert(tube_player_action(TUBE_PLAYER_LIKE, label, sizeof label, NULL, 0) && !strcmp(label, "Like video"));
+    assert(tube_player_menu_begin(TUBE_PLAYER_SHARE) == TUBE_MENU_OPENED && !strcmp(tube_player_menu_row(0)->title, "https://youtu.be/abcdefghijk"));
+    tube_player_menu_close();
     p->list_catalog("library:profile:guest", 0, items_cb, NULL);
 
     /* Quality limits behind the presets. */

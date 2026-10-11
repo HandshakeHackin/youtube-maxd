@@ -11,7 +11,8 @@ def screens():
     groups = re.findall(r'\{ "(settings:[a-z-]+)", "', (ROOT / "native/tube_player_extra.c").read_text(encoding="utf-8"))
     if len(groups) != 48 or len(set(groups)) != 48:
         raise RuntimeError("Player-extras groups changed: update the settings screens")
-    return ["settings:extra:captions", "settings:extra:audio", "settings:extra:player", "settings:content-language",
+    return ["settings:extra:captions", "settings:extra:audio", "settings:extra:player", "settings:extra:buttons",
+            "settings:extra:dimming", "settings:content-language",
             "settings:content-country", "settings:hide", "settings:thumbnails", "settings:accounts",
             "settings:channel-sort", "settings:about", "settings:about:credits", "settings:about:changelog",
             "settings:backup", "settings:backup:list", "settings:backup:import"] + groups
