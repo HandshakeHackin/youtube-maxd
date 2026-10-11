@@ -894,3 +894,145 @@ Retained source groups keep valid parsed upcoming timestamps and reevaluate them
 when navigating. An occurrence becomes eligible at its scheduled time without
 rebuilding the group or changing positions. Unknown timestamps retain the
 explicit upcoming flag; stream resolution still determines actual availability.
+
+
+## Search, sections, description and feedback contracts
+
+These library actions use `POST /v1/library` or a `POST /v1/jobs` request with
+`action: "library"` and the nested `library` object. Every request accepts the
+usual `profile` (default `guest`). Unknown fields and values are rejected with
+HTTP 422 before the worker is reached; the worker repeats the validation. List
+responses use the ordinary page shape `{"api_version":1,"kind":"catalog",
+"items":[?],"cursor":"?","has_more":bool}` with at most 24 items; pass `cursor`
+to the ordinary `continue` action with the same profile. Cursors are opaque,
+profile-owned and expire after two minutes; YouTube continuation tokens never
+leave the companion. Offline tests cover these contracts with the pinned parser;
+none has been run against the live service, an account or a PS5.
+
+### `search`
+
+Request fields:
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `query` | 1?200 characters, not blank, no control characters | required |
+| `upload_date` | `any`, `today`, `week`, `month`, `year` | `any` |
+| `duration` | `any`, `short` (under 3 min), `medium` (3?20 min), `long` (over 20 min) | `any` |
+| `type` | `all`, `video`, `channel`, `playlist`, `movie`, `shorts` | `all` |
+| `features` | list of distinct `hd`, `subtitles`, `creative_commons`, `3d`, `live`, `purchased`, `4k`, `360`, `location`, `hdr`, `vr180` (at most 11) | `[]` |
+| `order` | `relevance`, `view_count` | `relevance` |
+
+These are exactly the values the pinned YouTube.js 18.1.0 search-filter encoder
+offers. It has no "last hour" upload date and no upload-date or rating order, so
+`hour`, `upload_date` and `rating` are rejected like any other unknown value
+(HTTP 422, worker code `invalid_search`). The option fields are accepted only
+with `action: "search"`. Guest and account profiles can search.
+
+The response is a catalog page in upstream order. Each item has a `kind`:
+
+- `video`: the ordinary video row (`id` is the 11-character video ID, `title`,
+  `subtitle`, `overview`, `art_url`, `channel_id`, `duration_sec`, `is_live`,
+  `is_upcoming`, `played`, `watch_percent`, `is_folder: false`) with the
+  retained-group `playback_context: {group, index}`.
+- `channel`: `{"kind":"channel","id":"channel:UC?","channel_id":"UC?",
+  "title":?,"subtitle":?,"overview":?,"art_url":?,"is_folder":true}`.
+  `title` is at most 192 characters, `subtitle` is the subscriber text (at most
+  64, may be empty), `overview` the description snippet (at most 320). Open it
+  with the existing `channel:UC?` catalog parent.
+- `playlist`: the existing playlist folder row (`id` is
+  `library:playlist:<playlist id>`, `title`, `subtitle`, `art_url`,
+  `is_folder: true`) plus `kind`.
+
+Advertisements are omitted, one level of result shelves is flattened in place,
+and a repeated identity appears once per page. Continuation pages come from the
+retained filtered feed, so they keep the query and all options without the
+client resending them. The top-level `search` job and `GET /v1/search` are
+unchanged: they return videos only and take no options.
+
+### `search_suggestions`
+
+Request: `query`, 0?200 characters without control characters (an empty query
+returns the service's default completions). Response:
+`{"api_version":1,"kind":"search_suggestions","query":"<trimmed query>",
+"suggestions":["?"]}` with at most 15 distinct strings of at most 200
+characters each, control characters removed. The request uses the selected
+profile's client and YouTube's completion origin. An unreadable reply fails with
+`upstream_format` (502). There is no cursor.
+
+### `description`
+
+Request: `id` (11-character video ID). Response:
+`{"api_version":1,"kind":"description","id":?,"title":?,"channel":?,
+"channel_id":"UC?"|"","published":"YYYY-MM-DD"|"","views":"<digits>"|"",
+"description":?,"truncated":bool}`. `description` is the complete plain text
+with newlines, cut to 20,000 UTF-16 code units without splitting a surrogate
+pair; `truncated` is true only when text was cut. `title` and `channel` are at
+most 192 characters. `published` and `views` are empty when the player metadata
+lacks them. A reply for another video fails with `upstream_format` (502). The
+adapter makes one pinned `getBasicInfo` player request; Guest is allowed.
+
+### Trending, Shorts and own uploads
+
+`{"action":"topics","section":"trending"}` and `"section":"shorts"` follow the
+existing curated-section contract: shelf folders `section:<section>:<id>` opened
+with `topic_open`, or ? when YouTube returns one grid without shelves ? a flat
+page of videos, both continued with `continue`. Shorts tiles are ordinary video
+rows. `"section":"my_videos"` lists the signed-in profile's own uploads the same
+way; Guest, a profile without credentials or an expired session fails with
+`account_required` (401) before any request. The three sections use YouTube's
+TV browse identities `FEtrending`, `FEshorts` and `FEmy_videos`, taken from the
+SmartTube service; their live layouts are unverified.
+
+### `channels`
+
+Account action, no fields besides `profile`. Returns a catalog page of the
+profile's subscribed channels as `kind: "channel"` folder rows (the shape under
+`search`), each channel once, continued with `continue`. Guest fails with
+`account_required` (401). The pinned parser does not expose a new-content
+marker, so none is returned.
+
+### `notifications`
+
+Account action, no fields besides `profile`. Returns a catalog page of video
+rows (`kind: "video"`), one per notification that opens a video: `id` is the
+video ID, `title` the notification message, `subtitle` the sent-time text,
+`art_url` the video thumbnail, and `unread` a boolean. Other notification types
+are omitted. Rows carry the usual retained-group `playback_context`; a video
+named by two notifications appears twice. Continue with `continue`.
+Notification identifiers, menus and click-tracking endpoints stay private. An
+unsupported menu fails with `upstream_format` (502). Hiding a notification is
+not implemented.
+
+### Recommendation feedback
+
+`home` pages (including Home rows and filters) for a configured account profile
+add three fields to a video row when YouTube supplied feedback for that card:
+`feedback_cursor` (opaque reference, at most 64 characters),
+`feedback_not_interested` and `feedback_channel` (which choices exist). Guest
+rows never carry them. The feedback tokens stay in the worker; choices are
+recognized by the card menu's structured icon, not by localized labels, and an
+ambiguous menu exposes no choice. References belong to the profile and card,
+expire after 30 minutes, and at most 1,024 are retained (oldest dropped first).
+
+`{"action":"feedback","profile":?,"id":"<video id>","cursor":"<feedback_cursor>",
+"feedback":"not_interested"|"dont_recommend_channel"}` submits that card's
+retained token once. Success is
+`{"api_version":1,"success":true,"video_id":?,"feedback":?}` and requires
+YouTube's processed confirmation; the native client should then remove the
+card. Errors: `account_required` (401) for Guest or a signed-out session,
+`cursor_expired` (409) for an expired, foreign or mismatched reference,
+`invalid_feedback` (400) for a choice the card does not offer,
+`feedback_unconfirmed` (409 or 502) when the result is unknown, and
+`feedback_busy` (429) when 256 intents are already retained. Each
+reference/choice pair permits one attempt: a confirmed repeat returns the same
+result, an unconfirmed or in-flight one is never resubmitted. The Python
+supervisor keeps that gate for 30 minutes across worker restarts, timeouts and
+cancellation, and clears it when the profile is removed. Shorts and
+Subscriptions cards do not carry feedback references.
+
+### Fixture mode
+
+The offline fixture library answers `topics` for `trending`, `shorts` and
+(account profiles only) `my_videos`, `search_suggestions` and `description` for
+its generated videos. `search`, `channels`, `notifications` and `feedback`
+report `unknown_operation` there.

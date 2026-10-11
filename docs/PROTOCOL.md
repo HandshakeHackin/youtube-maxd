@@ -214,3 +214,11 @@ capabilities use `/art/dearrow/{token}`, with bounded HTTPS image reads and orig
 YouTube-image fallback. Credentials never accompany these third-party requests.
 Native preferences and original/title metadata persist; expiring image capabilities
 do not survive a restart. DeArrow cache keys contain public video hashes only.
+
+Library requests also accept `search` (validated upload-date, duration, type,
+feature and order options; channel and playlist cards with a `kind` field),
+`search_suggestions`, `description`, `channels`, `notifications`, `feedback`,
+and the `trending`, `shorts` and `my_videos` sections of `topics`. Their request
+and response fields, bounds and errors are specified in
+[LIBRARY_SERVICE.md](LIBRARY_SERVICE.md#search-sections-description-and-feedback-contracts).
+The top-level `search` job and `GET /v1/search` are unchanged.
