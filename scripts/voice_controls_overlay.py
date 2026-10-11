@@ -15,11 +15,11 @@ def apply_voice_controls_overlay(replace, player, host):
         if (voice == TUBE_VOICE_RECORDING || voice == TUBE_VOICE_TRANSCRIBING) {
             if (pressed & PadButtons::Circle) {
                 m_voiceHeld = false; tube_voice_cancel();
-                toast("VOICE SEARCH", "Cancelled"); return true;
+                toast("VOICE SEARCH (EXPERIMENTAL)", "Cancelled"); return true;
             }
             if (m_voiceHeld && (released & PadButtons::L3)) {
                 m_voiceHeld = false; tube_voice_finish();
-                toast("VOICE SEARCH", "Recognizing… Circle cancels");
+                toast("VOICE SEARCH (EXPERIMENTAL)", "Recognizing… Circle cancels");
             }
             return true;
         }
@@ -31,8 +31,8 @@ def apply_voice_controls_overlay(replace, player, host):
             m_voiceHeld = true;
             if (auto pb = Application::getInstance().getPlaybackController())
                 if (pb->isActive()) pb->setPaused(true);
-            toast("VOICE SEARCH", "Speak while holding L3; release to search. Circle cancels.");
-        } else toast("VOICE SEARCH", "Pair your companion and enable local speech recognition first.");
+            toast("VOICE SEARCH (EXPERIMENTAL)", "Speak while holding L3; release to search. Circle cancels.");
+        } else toast("VOICE SEARCH (EXPERIMENTAL)", "Pair your companion and enable local speech recognition first.");
         return true;
     }
     if (pressed & PadButtons::Square) {
@@ -65,7 +65,7 @@ void ProviderHostScreen::openSearch()""")
         tube_voice_tick(voiceTime);
         tube_remote_voice_available(tube_voice_available() == 1);
         if (tube_voice_state() == TUBE_VOICE_FAILED) {
-            toast("VOICE SEARCH", "No speech recognized. Check the microphone and companion, then retry.");
+            toast("VOICE SEARCH (EXPERIMENTAL)", "No speech recognized. Check the microphone and companion, then retry.");
             tube_voice_cancel();
         } else if (tube_voice_state() == TUBE_VOICE_READY && m_screenManager &&
                    m_screenManager->getCurrentScreenId() == ScreenId::EmbyBrowse) {
@@ -89,7 +89,7 @@ void ProviderHostScreen::openSearch()""")
                     std::chrono::steady_clock::now().time_since_epoch()).count();
                 if (!tube_voice_begin(owner, time)) return 0;
                 if (auto pb = app->getPlaybackController()) if (pb->isActive()) pb->setPaused(true);
-                toast("VOICE SEARCH", "Speak now. Recording up to six seconds; Circle cancels.");
+                toast("VOICE SEARCH (EXPERIMENTAL)", "Speak now. Recording up to six seconds; Circle cancels.");
                 return 1;
             };
             phone.captions_status =""")

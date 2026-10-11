@@ -11,12 +11,12 @@ def apply_chat_compose_overlay(replace, player, host):
             SetStatus("Wait for the chat update before composing a message.", false); return 1;
         }
         m_pos_stack.push_back({m_row_offset, FocusedRowIndex()});
-        m_stack.push_back("message:compose"); m_crumbs.push_back("Compose chat message");
+        m_stack.push_back("message:compose"); m_crumbs.push_back("Compose chat message (experimental)");
         m_page = 0; RequestPage(m_stack.back().c_str(), 0); return 1;
     }
     if (key == 4) {''')
     replace(ui, 'R3 changes chat mode. Touchpad opens comments.',
-            'R3 changes chat mode. Touchpad opens comments. L3 composes a message.')
+            'R3 changes chat mode. Touchpad opens comments. L3 composes a message (experimental).')
     replace(host, '        if ((pressed & PadButtons::TouchPad) && evo_rmlui_provider_discussion_key(4)) return true;',
             '        if ((pressed & PadButtons::L3) && evo_rmlui_provider_discussion_key(5)) return true;\n        if ((pressed & PadButtons::TouchPad) && evo_rmlui_provider_discussion_key(4)) return true;')
     replace(host, '''        tube_playlist_prompt_t prompt;

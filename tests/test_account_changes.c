@@ -96,34 +96,35 @@ int main(void) {
     refused("playlist:confirm:save:WL");refused("playlist:confirm:unsave:LL");refused("playlist:confirm:save:short");refused("playlist:confirm:save:");
     refused("playlist:confirm:save:PL bad id");
     /* Pause, resume and clear the account watch history; the History row opens the controls. */
-    show("account:history");assert(last_count==3 && find("Pause watch history")==0 && find("Resume watch history")==1 && find("Clear watch history")==2);
+    show("account:history");assert(last_count==3 && find("Pause watch history (experimental)")==0 && find("Resume watch history (experimental)")==1 && find("Clear watch history (experimental)")==2);
     assert(!strcmp(last_items[2].id,"account:history:clear"));
+    for(int i=0;i<3;++i)assert(strstr(last_items[i].overview,"Experimental: tested offline only"));
     p->list_catalog("library:history",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false,\"history_paused\":false}}");
-    show("account:history");assert(last_count==2 && find("Pause watch history")==0 && find("Resume watch history")<0);
-    confirm("account:history:pause","Pause watch history");assert(strstr(last_items[0].overview,"stops recording") && strstr(last_items[0].overview,"fixture"));
+    show("account:history");assert(last_count==2 && find("Pause watch history (experimental)")==0 && find("Resume watch history (experimental)")<0);
+    confirm("account:history:pause","Pause watch history (experimental)");assert(strstr(last_items[0].overview,"stops recording") && strstr(last_items[0].overview,"fixture"));
     assert(!strcmp(tube_comment_text(apply),last_items[0].overview));
     press();assert(direct() && !strcmp(field("action"),"history_pause") && !strcmp(field("profile"),"fixture") && session_ok() && !*field("id") && !*field("playlist"));
     press();assert(pending_count==1);
     done("{\"api_version\":1,\"success\":true,\"history\":\"paused\"}");assert(last_ok && !strcmp(last_items[0].title,"YouTube account updated"));
     press();assert(!pending_count);
-    show("account:history");assert(last_count==2 && find("Resume watch history")==0 && find("Pause watch history")<0);
-    confirm("account:history:resume","Resume watch history");press();assert(!strcmp(field("action"),"history_resume"));
+    show("account:history");assert(last_count==2 && find("Resume watch history (experimental)")==0 && find("Pause watch history (experimental)")<0);
+    confirm("account:history:resume","Resume watch history (experimental)");press();assert(!strcmp(field("action"),"history_resume"));
     done("{\"api_version\":1,\"success\":true,\"history\":\"paused\"}");assert(!last_ok && strstr(error_text,"history change"));
-    show("account:history");assert(find("Resume watch history")==0); /* an unconfirmed change leaves the known state */
-    confirm("account:history:resume","Resume watch history");press();
+    show("account:history");assert(find("Resume watch history (experimental)")==0); /* an unconfirmed change leaves the known state */
+    confirm("account:history:resume","Resume watch history (experimental)");press();
     done("{\"api_version\":1,\"success\":true,\"history\":\"active\"}");assert(last_ok);
-    show("account:history");assert(find("Pause watch history")==0 && find("Resume watch history")<0);
+    show("account:history");assert(find("Pause watch history (experimental)")==0 && find("Resume watch history (experimental)")<0);
     p->list_catalog("library:history",0,items_cb,NULL);
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false,\"history_paused\":true}}");
-    show("account:history");assert(find("Resume watch history")==0 && find("Pause watch history")<0);
+    show("account:history");assert(find("Resume watch history (experimental)")==0 && find("Pause watch history (experimental)")<0);
     p->list_catalog("library:history",0,items_cb,NULL);poll_job(none); /* YouTube offers neither control: the state is unknown */
     show("account:history");assert(last_count==3);
     assert(tube_mark_watched("abcdefghijk")==-1); /* no local record yet */
-    confirm("account:history:clear","Clear watch history");assert(strstr(last_items[0].overview,"whole watch history"));
+    confirm("account:history:clear","Clear watch history (experimental)");assert(strstr(last_items[0].overview,"whole watch history"));
     press();assert(direct() && !strcmp(field("action"),"history_clear") && session_ok());
     done("{\"api_version\":1,\"success\":true,\"history\":\"cleared\"}");assert(last_ok);
-    confirm("account:history:clear","Clear watch history");press();
+    confirm("account:history:clear","Clear watch history (experimental)");press();
     poll_job("{\"state\":\"failed\",\"error\":{\"code\":\"history_control_unavailable\",\"message\":\"This account's History page does not offer that control.\"}}");
     assert(!last_ok && strstr(error_text,"does not offer that control"));
     refused("account:history:bogus");refused("account:history:");p->list_catalog("account:history",1,items_cb,NULL);assert(!last_ok && !pending_count);
@@ -135,34 +136,34 @@ int main(void) {
     show("library:profile:fixture");show("account:history");assert(last_count==3);
     /* Hide a Subscriptions card: offered only with a valid reference, submitted once, removed at once. */
     list("library:subscriptions");assert(last_count==3);
-    assert(menu_offers("abcdefghijk","Hide from this list") && !menu_offers("bcdefghijkl","Hide from this list") && !menu_offers("cdefghijklm","Hide from this list"));
-    assert(!menu_offers("abcdefghijk","Not interested"));
+    assert(menu_offers("abcdefghijk","Hide from this list (experimental)") && !menu_offers("bcdefghijkl","Hide from this list (experimental)") && !menu_offers("cdefghijklm","Hide from this list (experimental)"));
+    assert(!menu_offers("abcdefghijk","Not interested (experimental)"));
     refused("account:confirm:hide:bcdefghijkl");refused("account:confirm:hide:cdefghijklm");
-    confirm("account:confirm:hide:abcdefghijk","Hide from this list");
+    confirm("account:confirm:hide:abcdefghijk","Hide from this list (experimental)");
     press();assert(direct() && !strcmp(field("action"),"feedback") && !strcmp(field("feedback"),"hide") && !strcmp(field("cursor"),"hide-ref-1") && !strcmp(field("id"),"abcdefghijk"));
     assert(!strcmp(field("session"),"<absent>"));
     done("{\"api_version\":1,\"success\":true,\"video_id\":\"abcdefghijk\",\"feedback\":\"not_interested\"}");assert(!last_ok && strstr(error_text,"feedback"));
     list("library:subscriptions");assert(last_count==3); /* nothing was removed */
-    confirm("account:confirm:hide:abcdefghijk","Hide from this list");press();
+    confirm("account:confirm:hide:abcdefghijk","Hide from this list (experimental)");press();
     done("{\"api_version\":1,\"success\":true,\"video_id\":\"abcdefghijk\",\"feedback\":\"hide\"}");assert(last_ok && !strcmp(last_items[0].title,"YouTube account updated"));
     press();assert(!pending_count);
     list("library:subscriptions");assert(last_count==2 && !strcmp(last_items[0].id,"bcdefghijkl") && !strcmp(last_items[1].id,"cdefghijklm"));
-    assert(!menu_offers("abcdefghijk","Hide from this list")); /* the hidden card gets no new reference */
+    assert(!menu_offers("abcdefghijk","Hide from this list (experimental)")); /* the hidden card gets no new reference */
     list("library:home");assert(last_count==2); /* Home rows may carry the same reference */
     list("library:watch_later");assert(last_count==3); /* other lists keep the video */
     list("library:subscriptions");list("library:watch_later");
-    assert(!menu_offers("bcdefghijkl","Hide from this list"));refused("account:confirm:hide:abcdefghijk");
+    assert(!menu_offers("bcdefghijkl","Hide from this list (experimental)"));refused("account:confirm:hide:abcdefghijk");
     /* Another profile and a restart forget the removal: YouTube's own list decides. */
-    show("library:profile:other");list("library:subscriptions");assert(last_count==3 && menu_offers("abcdefghijk","Hide from this list"));
+    show("library:profile:other");list("library:subscriptions");assert(last_count==3 && menu_offers("abcdefghijk","Hide from this list (experimental)"));
     show("library:profile:fixture");
     /* A companion whose worker predates these actions is not sent them. */
     assert(!p->set_source("http://127.0.0.1:8765#123456"));show("library:profile:fixture");
     confirm("playlist:confirm:save:PLfixture0001","Save this playlist to your library");
     press();pair();health(basic);assert(!last_ok && !pending_count && strstr(error_text,"does not offer"));
-    confirm("account:history:pause","Pause watch history");press();assert(!last_ok && !pending_count && strstr(error_text,"does not offer"));
+    confirm("account:history:pause","Pause watch history (experimental)");press();assert(!last_ok && !pending_count && strstr(error_text,"does not offer"));
     /* Nor is a companion that could not be asked what it offers. */
     assert(!p->set_source("http://127.0.0.1:8765#123456"));
-    confirm("account:history:clear","Clear watch history");press();pair();
+    confirm("account:history:clear","Clear watch history (experimental)");press();pair();
     assert(pending_count==1 && strstr(pending[0].url,"/v1/health"));reply(0,0,0,"");
     assert(!last_ok && !pending_count && strstr(error_text,"did not report"));
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));

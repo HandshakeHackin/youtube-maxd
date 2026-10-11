@@ -81,7 +81,7 @@ int main(void) {
     p=&evo_provider_youtube;assert(!p->init());
     /* A new installation shares one settings set between all profiles. */
     show("settings:accounts");assert(last_count==2 && !strcmp(last_items[0].id,"settings:separate-settings") && !strcmp(last_items[0].title,"Separate settings per account: off"));
-    assert(!strcmp(last_items[1].title,"Password protection") && find("settings:lock:set")<0); /* Guest has no account to protect */
+    assert(!strcmp(last_items[1].title,"Password protection (experimental)") && find("settings:lock:set")<0); /* Guest has no account to protect */
     show("settings:quality:720");assert(tube_player_set_hide_seconds(7) && tube_extra_set_volume(150) && tube_set_playback_speed(125));
     show("settings:hide:mixes");show("settings:content-language:de");
     assert(separate()==0 && height_of("*")==720 && height_of("guest")==-1);
@@ -133,6 +133,7 @@ int main(void) {
     refused("settings:lock:set");refused("settings:lock:change");refused("settings:lock:remove"); /* Guest */
     show("library:profile:alice");
     show("settings:accounts");assert(last_count==2 && !strcmp(last_items[1].id,"settings:lock:set"));
+    assert(!strcmp(last_items[1].title,"Protect this profile with a password (experimental)") && strstr(last_items[1].overview,"Experimental: tested offline only"));
     refused("settings:lock:change");refused("settings:lock:remove");refused("settings:lock:new:1");refused("settings:lock:bogus");
     show("settings:lock:set");assert(last_count==1 && !strcmp(last_items[0].title,"Enter the password"));
     assert(answer("New password of this profile","  ")==-1 && !strcmp(tube_prompt_error(),"Enter a password of 1 to 150 characters.") && !locks(NULL));

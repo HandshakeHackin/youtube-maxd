@@ -17,6 +17,15 @@ int main(void) {
     p->list_catalog("settings",0,items_cb,NULL);assert(last_ok && last_count==24 && last_more);
     p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && last_count>0 && last_count<=24 && !last_more);
     assert(!strcmp(last_items[last_count-1].id,"settings:about") && !strcmp(last_items[last_count-3].id,"settings:accounts"));
+    /* The first-release label: its own row, and the phone row carries it. */
+    assert(!strcmp(last_items[last_count-4].id,"settings:experimental") && !strcmp(last_items[last_count-4].title,"Experimental features"));
+    { int phone=-1; p->list_catalog("settings",0,items_cb,NULL);
+      for(int i=0;i<last_count;++i) if(!strcmp(last_items[i].id,"settings:remote")) phone=i;
+      if(phone<0){p->list_catalog("settings",1,items_cb,NULL);for(int i=0;i<last_count;++i) if(!strcmp(last_items[i].id,"settings:remote")) phone=i;}
+      assert(phone>=0 && !strcmp(last_items[phone].title,"Phone pairing (experimental)") && strstr(last_items[phone].overview,"Experimental: tested offline only")); }
+    p->list_catalog("settings:experimental",0,items_cb,NULL);assert(last_ok && last_count==3 && !last_more);
+    for(int i=0;i<3;++i) assert(!strncmp(last_items[i].id,"account:notice:experimental:",28) && strstr(last_items[i].overview,"Experimental: tested offline only"));
+    assert(strstr(last_items[0].title,"(experimental)") && strstr(last_items[2].subtitle,"voice search") && strstr(last_items[2].subtitle,"profile password"));
     p->list_catalog("settings",2,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     p->list_catalog("settings:autoplay",0,items_cb,NULL);assert(last_ok && last_more);
     p->list_catalog("settings:autoplay",1,items_cb,NULL);assert(last_ok && !last_more);

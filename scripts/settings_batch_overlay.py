@@ -14,7 +14,7 @@ def screens():
     return ["settings:extra:captions", "settings:extra:audio", "settings:extra:player", "settings:extra:buttons",
             "settings:extra:dimming", "settings:content-language",
             "settings:content-country", "settings:hide", "settings:thumbnails", "settings:accounts",
-            "settings:channel-sort", "settings:about", "settings:about:credits", "settings:about:changelog",
+            "settings:channel-sort", "settings:experimental", "settings:about", "settings:about:credits", "settings:about:changelog",
             "settings:backup", "settings:backup:list", "settings:backup:import"] + groups
 
 

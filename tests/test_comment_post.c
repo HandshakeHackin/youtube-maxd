@@ -63,7 +63,7 @@ int main(void) {
     comments(plain);assert(last_count==1);refused("comment:post:abcdefghijk"); /* the page did not say the profile may post */
     /* The first page leads with the count and the way to write; rows show the viewer's own state. */
     comments(page);
-    assert(last_count==4 && !strcmp(last_items[0].title,"Write a comment") && !strcmp(last_items[0].id,"comment:post:abcdefghijk"));
+    assert(last_count==4 && !strcmp(last_items[0].title,"Write a comment (experimental)") && !strcmp(last_items[0].id,"comment:post:abcdefghijk"));
     assert(!strcmp(last_items[0].subtitle,"1,234 Comments"));
     assert(strstr(last_items[1].subtitle,"Pinned") && strstr(last_items[1].subtitle,"Creator") && strstr(last_items[1].subtitle,"Member"));
     assert(strstr(last_items[1].subtitle,"Creator's heart") && strstr(last_items[1].subtitle,"You like it") && !strstr(last_items[1].subtitle,"You dislike it"));
@@ -86,8 +86,8 @@ int main(void) {
     press();assert(last_ok && !pending_count);
     refused(parent); /* the reviewed text is spent */
     /* A reply names the comment's reference; a comment without a usable one offers none. */
-    show("comment:menu:rate-1");assert(find("Like comment")==0 && find("Reply to comment")==1 && !strcmp(last_items[1].id,"comment:reply:respond-1"));
-    show("comment:menu:rate-2");assert(find("Reply to comment")<0);
+    show("comment:menu:rate-1");assert(find("Like comment")==0 && find("Reply to comment (experimental)")==1 && !strcmp(last_items[1].id,"comment:reply:respond-1"));
+    show("comment:menu:rate-2");assert(find("Reply to comment (experimental)")<0);
     show("comment:reply:respond-1");assert(!strcmp(last_items[0].title,"Enter your reply"));
     snprintf(parent,sizeof parent,"%s",typed("Thanks"));review(parent,"Post this reply","Thanks");
     press();assert(direct() && !strcmp(field("action"),"comment_reply") && !strcmp(field("id"),A) && !strcmp(field("cursor"),"respond-1") && !strcmp(field("text"),"Thanks"));
@@ -128,7 +128,7 @@ int main(void) {
     poll_job("{\"state\":\"done\",\"result\":{\"kind\":\"comments\",\"comment_count\":\"9\",\"can_post\":true,\"items\":["
         "{\"id\":\"r1\",\"author\":\"Dee\",\"content\":\"Reply\",\"published\":\"now\",\"likes\":\"0\",\"replies\":\"0\",\"rating_cursor\":\"rate-9\",\"rating_like\":true,\"respond_cursor\":\"respond-9\"}],\"has_more\":false}}");
     assert(last_ok && last_count==1 && !strcmp(last_items[0].title,"Dee"));
-    show("comment:menu:rate-9");assert(find("Reply to comment")==1);
+    show("comment:menu:rate-9");assert(find("Reply to comment (experimental)")==1);
     show("comment:reply:respond-9");snprintf(parent,sizeof parent,"%s",typed("To Dee"));review(parent,"Post this reply","To Dee");
     press();assert(direct() && !strcmp(field("id"),A) && !strcmp(field("cursor"),"respond-9"));reply(0,0,500,"{}");
     /* A companion without comment posting is never sent the action. */

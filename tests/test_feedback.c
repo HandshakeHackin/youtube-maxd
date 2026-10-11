@@ -22,8 +22,8 @@ static int offers(const char *id) {
     for(int page=0;more;++page) { /* with both choices the menu runs onto a second page */
         p->list_catalog(parent,page,items_cb,NULL);assert(last_ok && !pending_count);
         for(int i=0;i<last_count;++i) {
-            if(!strcmp(last_items[i].title,"Not interested")){found|=1;assert(!strncmp(last_items[i].id,"account:confirm:not_interested:",31));}
-            if(!strcmp(last_items[i].title,"Don't recommend channel")){found|=2;assert(!strncmp(last_items[i].id,"account:confirm:dont_recommend_channel:",39));}
+            if(!strcmp(last_items[i].title,"Not interested (experimental)")){found|=1;assert(!strncmp(last_items[i].id,"account:confirm:not_interested:",31));}
+            if(!strcmp(last_items[i].title,"Don't recommend channel (experimental)")){found|=2;assert(!strncmp(last_items[i].id,"account:confirm:dont_recommend_channel:",39));}
             if(!strcmp(last_items[i].title,"Refresh section"))found|=4;
         }
         rows+=last_count;more=last_more;

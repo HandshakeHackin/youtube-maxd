@@ -40,7 +40,7 @@
         <div id="tube-footer" data-if="!discussion &amp;&amp; !review">
             <span class="tube-key">✕</span> Watch / open
             <span class="tube-key">□</span> Search
-            <span class="tube-key">HOLD L3</span> Voice search
+            <span class="tube-key">HOLD L3</span> Voice search (experimental)
             <span class="tube-key">△</span> Favorite
             <span class="tube-key">R2</span> Queue
             <span class="tube-key">L2</span> Follow channel
