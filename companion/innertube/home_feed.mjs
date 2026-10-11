@@ -110,7 +110,7 @@ export class HomeCatalog {
     const primary=rows.filter(node=>node?.type==='RichItem').map(node=>node.content),primarySet=new Set(primary);
     const available=new Set(filtered.videos);
     const ordered=[...primary.filter(node=>available.has(node)),...filtered.videos.filter(node=>!primarySet.has(node))];
-    const items=[...folders,...ordered.filter(node=>!nested.has(node)).map(this.video).filter(Boolean),
+    const items=[...folders,...ordered.filter(node=>!nested.has(node)).map(node=>this.video(node,owner)).filter(Boolean),
       ...Array.from(feed.playlists ?? []).filter(node=>!nested.has(node)).map(this.playlist).filter(Boolean)];
     return {catalog_items:items,has_continuation:!!feed.has_continuation,
       ...(typeof feed.getContinuation==='function'?{getContinuation:async()=>this.root(owner,await feed.getContinuation(),client,false)}:{})};
@@ -124,7 +124,7 @@ export class HomeCatalog {
     const continuations=nodes.filter(node=>node?.type==='ContinuationItem');
     if(continuations.length>1 || (continuations.length && typeof continuations[0].endpoint?.call!=='function'))
       throw new this.ErrorType('upstream_format','Unsupported Home section continuation.',502);
-    return {catalog_items:[...folders,...videos.map(this.video).filter(Boolean),...playlists.map(this.playlist).filter(Boolean)],
+    return {catalog_items:[...folders,...videos.map(node=>this.video(node,owner)).filter(Boolean),...playlists.map(this.playlist).filter(Boolean)],
       has_continuation:continuations.length===1,...(continuations.length?{getContinuation:async()=>{
         const response=await continuations[0].endpoint.call(client.actions,{parse:true});
         const updates=response?.on_response_received_actions ?? response?.on_response_received_endpoints;
