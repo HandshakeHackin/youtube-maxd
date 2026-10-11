@@ -17,7 +17,7 @@ ProsperoLight and ProsperoTV are integration references.
 Hardware status: the PS5 build has played the real public video "Me at the zoo"
 through the LAN companion, with native AVC, rendered English captions and
 saved Guest history. Lapy PR50 storage access and graceful GPU park/close passed.
-The current package also reloaded Guest history and pairing, paused/resumed,
+Earlier PS5 packages also reloaded Guest history and pairing, paused/resumed,
 and completed a ten-second seek with the native engine reporting success.
 The user also watched Big Buck Bunny at native 1080p60 AVC/AAC for over two
 minutes and confirmed smooth video and synchronized sound; zero late drops and

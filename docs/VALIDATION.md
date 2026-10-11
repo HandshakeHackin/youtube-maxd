@@ -2801,3 +2801,13 @@ it was corrected to the foundation's inclusive duration boundary. This was a
 fixture failure, not a shipping decoder failure. Physical PS5 controller feel,
 playing-preview sound/motion, cancellation, voice/phone/timer interaction and
 full seeking-thumbnail behavior remain unaccepted. No console connection occurred.
+
+
+Source `e72ea7a9` completed all 216 PS5 object builds, link, container conversion,
+folder/PFS/ZIP packaging and immutable freeze: build
+`prosperotube-e72ea7a9_1011-0409`, 126 files, eboot SHA-256 prefix
+`f781c88de0150ef7`. Candidate:
+`/home/denis/.cache/prosperotube/candidates/e72ea7a9-offline-seek-controls/PPSA99142`.
+Evidence: `.deps/offline-seek-controls-{ps5-build,freeze}.log` and result files
+(both 0). No deployment, console check, launch or input was performed. The full
+SmartTube objective and remaining offline work are still active.
