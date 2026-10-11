@@ -35,7 +35,8 @@ unsigned tube_phone_take(char video[12], double *position);
 int tube_phone_launch_pending(void);
 int tube_phone_retry_waiting(void);
 /* Call only for the provider's typed, current-scope video_unavailable result.
- * 0=not current/invalid, 1=next occurrence after five seconds, 2=queue exhausted. */
+ * 0=not current/invalid, 1=next occurrence after five seconds, 2=queue exhausted,
+ * 3=waiting up to thirty seconds for a scoped playlist window refill. */
 int tube_phone_launch_unavailable(unsigned ticket, const char *video, int64_t now_ms);
 int tube_phone_launch_current(unsigned ticket);
 int tube_phone_launch_bind(unsigned ticket, unsigned selection);

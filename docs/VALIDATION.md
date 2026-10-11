@@ -1,5 +1,35 @@
 # Offline validation record — 0.1.0
 
+## Unavailable phone window continuation — 2026-10-11
+
+When the last supplied occurrence is unavailable, the adapter retains its
+receiver/profile, playlist, click token and global index for up to thirty seconds.
+It reports an ended occurrence with no bound media or fabricated playback clock.
+Matching refill windows advance strictly beyond that occurrence, preserve sparse
+indices and duplicate IDs, and retain the original five-second minimum delay.
+A matching window without a successor terminates immediately; no response times
+out. Stop/replacement/disconnect, user cancellation, scope changes and new local
+playback retire the wait. Late or mismatched refills cannot restart it. Saved
+local queue/history records remain untouched.
+
+The service can refill a large supplied playlist using this ended anchor without
+claiming previous/next media is playing. An unchanged loader result is returned
+as an explicit terminal window for ended feedback; checked-index ownership still
+prevents a reload loop. Active queue updates now require the existing phone-owned
+selection and playlist/click scope, preventing late refills from adopting unrelated
+local playback.
+
+Validation: 73 remote service/playlist tests passed; the real native receiver and
+phone adapter passed ASan/UBSan, including duplicate sparse continuation, minimum
+delay, timeout, terminal response, cancellation, profile/local-playback retirement,
+Stop with intervening volume, wrong click token, ended feedback and stale tickets.
+Extracted shipping host blocks passed for all three unavailable dispositions and
+any-button cancellation. The phone adapter and ProviderHostScreen compiled with
+the PS5 SDK (`.deps/phone-refill-final.result`, exit 0). The host retains existing
+SDK/header warnings. No new full package or console acceptance is claimed. Normal
+successful-EOF window-boundary continuation and broader restricted-video error
+classification remain separate gaps.
+
 ## Offline inactivity sleep timer — 2026-10-10
 
 The pinned SmartTube VideoStateController pauses after configured inactivity and

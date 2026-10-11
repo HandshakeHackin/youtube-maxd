@@ -12,6 +12,8 @@ typedef struct {
     char videos[128][12], video[12], playlist[101], ctt[513];
 } PhoneQueue;
 static PhoneQueue current, proposed;
+static PhoneQueue refill;
+static int64_t refill_deadline, refill_not_before;
 static tube_remote_command pending;
 static unsigned serial, ticket, caption_selection;
 static int phase; /* 1 ready, 2 resolving/starting, 3 caption, 4 unavailable delay */
@@ -23,6 +25,7 @@ static unsigned last_owner;
 static char remote_video[12];
 static unsigned remote_selection;
 static void clear_queue(void) {
+    memset(&refill, 0, sizeof refill); refill_deadline = refill_not_before = 0;
     memset(&current, 0, sizeof current); memset(&proposed, 0, sizeof proposed);
     memset(&pending, 0, sizeof pending); phase = 0; ticket = 0; retry_deadline = 0; retry_run = 0;
     memset(&last, 0, sizeof last); last_owner = 0;
@@ -44,11 +47,12 @@ static int launch_valid(void) {
 static void prune(void);
 int tube_phone_launch_current(unsigned value) { prune(); return value && value == ticket && launch_valid(); }
 static void prune(void) {
+    if (refill.owner && (!tube_remote_owner_current(refill.owner) || tube_remote_launch_interrupted(refill.owner,0))) clear_queue();
     if (retry_run && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) clear_queue();
     if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
 }
 int tube_phone_launch_pending(void) { prune(); return phase == 1; }
-int tube_phone_retry_waiting(void) { prune(); return phase == 4; }
+int tube_phone_retry_waiting(void) { prune(); return phase == 4 || refill.owner; }
 static int find(const PhoneQueue *q, const char *id) {
     for (int i = 0; i < q->count; ++i) if (!strcmp(q->videos[i], id)) return i;
     return -1;
@@ -83,11 +87,18 @@ unsigned tube_phone_take(char video[12], double *position) {
 }
 int tube_phone_launch_unavailable(unsigned value, const char *video, int64_t now_ms) {
     if (phase != 2 || !video || !tube_phone_launch_current(value) || strcmp(video,proposed.video) ||
-        now_ms < 0 || now_ms > INT64_MAX - 5000) return 0;
+        now_ms < 0 || now_ms > INT64_MAX - 30000) return 0;
     if (proposed.cursor < 0 || proposed.cursor + 1 >= proposed.count) {
         unsigned owner = pending.owner; int sequence = pending.sequence;
+        PhoneQueue anchor = proposed;
         clear_queue(); remote_video[0] = 0; remote_selection = 0;
         if (sequence) tube_remote_retire_launch(owner,sequence);
+        if (anchor.cursor >= 0 && anchor.cursor < anchor.count && *anchor.playlist &&
+            tube_remote_owner_current(owner)) {
+            refill = anchor; refill.selection = 0;
+            refill_not_before = now_ms + 5000; refill_deadline = now_ms + 30000;
+            return 3;
+        }
         return 2;
     }
     ++proposed.cursor; memcpy(proposed.video,proposed.videos[proposed.cursor],12);
@@ -137,6 +148,7 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
     prune();
     tube_remote_player p; memset(&p, 0, sizeof p); p.volume = 100; p.state = -1;
     int active = ctl->snapshot(ctl->context, &p);
+    if (refill.owner && (active || now_ms >= refill_deadline)) clear_queue();
     if (!active) {
         if (last_owner && tube_remote_owner_current(last_owner) && *last.video) {
             int volume = p.volume, muted = p.muted;
@@ -154,6 +166,16 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         p.index = current.cursor < 0 ? current.base : current.indices[current.cursor];
         if (p.index > 100000) p.index = 100000;
         p.previous = current.cursor > 0; p.next = current.cursor >= 0 && current.cursor + 1 < current.count;
+    }
+    if (refill.owner) {
+        /* Ended occurrence, never a fictitious playing selection. This scoped
+         * anchor lets the service return the next bounded playlist window. */
+        int volume = p.volume, muted = p.muted;
+        memset(&p, 0, sizeof p); p.volume = volume; p.muted = muted; p.state = 0;
+        memcpy(p.video, refill.video, sizeof p.video);
+        memcpy(p.playlist, refill.playlist, sizeof p.playlist);
+        memcpy(p.ctt, refill.ctt, sizeof p.ctt);
+        p.index = refill.indices[refill.cursor];
     }
     last = p;
     last_owner = tube_remote_current_owner();
@@ -177,7 +199,27 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         return;
     }
     case TUBE_REMOTE_QUEUE:
-        if (active) { current = playlist(&c, p.video); current.selection = p.selection; }
+        if (refill.owner == c.owner && !strcmp(c.playlist,refill.playlist) &&
+            !strcmp(c.ctt,refill.ctt) && !strcmp(c.video,refill.video) &&
+            c.index == refill.indices[refill.cursor]) {
+            PhoneQueue q = playlist(&c,refill.video);
+            if (q.cursor >= 0 && q.cursor + 1 < q.count &&
+                q.indices[q.cursor + 1] > c.index) {
+                ++q.cursor; memcpy(q.video,q.videos[q.cursor],12);
+                int64_t delay = refill_not_before;
+                memset(&refill,0,sizeof refill);
+                begin(&c,&q,0); retry_run = 1;
+                if (now_ms < delay) { phase = 4; retry_deadline = delay; }
+                if (ctl->browser) ctl->browser(ctl->context);
+                return;
+            }
+            /* A matching window without a successor is a terminal response. */
+            clear_queue();
+        }
+        if (active && current.owner == c.owner && current.selection == p.selection &&
+            !strcmp(current.playlist,c.playlist) && !strcmp(current.ctt,c.ctt)) {
+            current = playlist(&c, p.video); current.selection = p.selection;
+        }
         applied = 1; break;
     case TUBE_REMOTE_NEXT: case TUBE_REMOTE_PREVIOUS:
         if (active && !strcmp(p.video, current.video) && advance(&c, c.action == TUBE_REMOTE_NEXT ? 1 : -1)) {

@@ -36,6 +36,8 @@ int main() {
     assert(std::strstr(status,"5 seconds") && std::strstr(status,"cancels"));
     g_phone_ticket=11;p.choice_count=4;disposition=2;failure(&p);
     assert(continued==3 && calls==3 && !g_phone_ticket && !p.choice_count && std::strstr(status,"No further"));
+    g_phone_ticket=11;p.choice_count=4;disposition=3;failure(&p);
+    assert(continued==3 && calls==4 && !g_phone_ticket && !p.choice_count && std::strstr(status,"30 seconds") && std::strstr(status,"cancels"));
     launch();assert(continued==4);waiting=true;launch();assert(continued==4);
     pressed=0;input();assert(waiting && !cancelled);
     pressed=1;g_phone_ticket=11;input();assert(!waiting && cancelled==1 && !g_phone_ticket && std::strstr(status,"cancelled"));

@@ -11,6 +11,7 @@ def apply_phone_queue_failure_overlay(replace, host):
                 evo_rmlui_provider_set_tuning(0); evo_rmlui_provider_set_loading(0, "");
                 evo_rmlui_provider_set_status(disposition == 1 ?
                     "Video unavailable. Next phone playlist item in 5 seconds; any button cancels." :
+                    disposition == 3 ? "Video unavailable. Checking the next playlist window (up to 30 seconds); any button cancels." :
                     "Video unavailable. No further phone playlist item.", 0);
                 return;
             }

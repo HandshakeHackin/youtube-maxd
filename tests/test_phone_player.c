@@ -270,7 +270,8 @@ static void test_unavailable_terminal_and_cancel(void) {
     feed(commands);tube_phone_tick_at(&controls,test_clock);unsigned first=take_start("abcdefghijk",0);
     assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==1);
     test_clock+=5000;tube_phone_tick_at(&controls,test_clock);unsigned second=take_start("zyxwvutsrqp",0);
-    assert(tube_phone_launch_unavailable(second,"zyxwvutsrqp",test_clock)==2);
+    assert(tube_phone_launch_unavailable(second,"zyxwvutsrqp",test_clock)==3);
+    assert(tube_phone_retry_waiting()); test_clock+=30000; tube_phone_tick_at(&controls,test_clock);
     assert(tube_remote_state()==TUBE_REMOTE_LISTENING && !tube_phone_launch_pending() && !tube_phone_retry_waiting());
     assert(!tube_phone_launch_finish(second,1));tube_phone_tick(&controls);tube_remote_command c;assert(!tube_remote_take(&c));
     assert(!tube_phone_finished() && !tube_phone_owns_media());
@@ -342,9 +343,70 @@ static void test_unavailable_late_stop(void) {
     tube_remote_command c;assert(!tube_remote_take(&c) && tube_remote_state()==TUBE_REMOTE_LISTENING);
 }
 
+static void test_unavailable_window_refill(void) {
+    const char *initial="[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLrefilltest\",\"index\":105,\"window_start\":105,\"position_sec\":0,\"ctt\":\"click\"}";
+    const char *update=",{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"abcdefghijk\",\"zyxwvutsrqp\"],\"video_indices\":[100,105,110],\"playlist\":\"PLrefilltest\",\"index\":105,\"window_start\":100,\"position_sec\":0,\"ctt\":\"click\"}]";
+    char commands[2048];snprintf(commands,sizeof commands,"%s%s",initial,update);
+    feed(commands);tube_phone_tick_at(&controls,test_clock);
+    unsigned first=take_start("abcdefghijk",0);
+    assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+    assert(tube_phone_retry_waiting() && !tube_phone_launch_current(first));
+    tube_phone_tick_at(&controls,test_clock); /* Consumes refill but observes original delay. */
+    assert(tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    tube_phone_tick_at(&controls,test_clock+4999);assert(!tube_phone_launch_pending());
+    test_clock+=5000;tube_phone_tick_at(&controls,test_clock);
+    unsigned next=take_start("zyxwvutsrqp",0);assert(next!=first);
+    started_video(next,"zyxwvutsrqp");tube_phone_tick_at(&controls,test_clock);feedback(110,1,0);
+
+    /* Cancellation and scope loss cannot let a late refill reopen playback. */
+    for(int mode=0;mode<4;++mode) {
+        feed(commands);tube_phone_tick_at(&controls,test_clock);first=take_start("abcdefghijk",0);
+        assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+        if(mode==0)tube_phone_cancel();
+        if(mode==1)configure(1,"other-profile",identity,"screen-123");
+        if(mode==2)test_clock+=30000;
+        if(mode==3){active=1;strcpy(engine.video,"12345678901");engine.selection=++selection_serial;}
+        tube_phone_tick_at(&controls,test_clock);
+        assert(!tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    }
+    /* A matching terminal response ends the wait without replaying the anchor. */
+    snprintf(commands,sizeof commands,"%s,{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLrefilltest\",\"index\":105,\"window_start\":105,\"position_sec\":0,\"ctt\":\"click\"}]",initial);
+    feed(commands);tube_phone_tick_at(&controls,test_clock);first=take_start("abcdefghijk",0);
+    assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+    tube_phone_tick_at(&controls,test_clock);assert(!tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
+
+    /* Stopped feedback carries the failed occurrence, never a media binding. */
+    snprintf(commands,sizeof commands,"%s]",initial);feed(commands);
+    tube_phone_tick_at(&controls,test_clock);first=take_start("abcdefghijk",0);
+    assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+    tube_phone_tick_at(&controls,test_clock);tube_remote_tick(test_clock+3000);
+    cJSON *r=request("update"), *p=cJSON_GetObjectItem(r,"player");
+    assert(cJSON_GetObjectItem(p,"state")->valueint==0);
+    assert(cJSON_GetObjectItem(p,"index")->valueint==105);
+    assert(!strcmp(cJSON_GetObjectItem(p,"video_id")->valuestring,"abcdefghijk"));
+    assert(!cJSON_IsTrue(cJSON_GetObjectItem(p,"has_next")));
+    assert(!tube_phone_owns_media());cJSON_Delete(r);reply(0,200,accepted);
+
+    /* Pending Stop takes priority over refill, preserving intervening volume. */
+    snprintf(commands,sizeof commands,"%s,{\"sequence\":2,\"action\":\"setVolume\",\"volume\":17},{\"sequence\":3,\"action\":\"stopVideo\"}]",initial);
+    feed(commands);tube_phone_tick_at(&controls,test_clock);first=take_start("abcdefghijk",0);
+    assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+    tube_phone_tick_at(&controls,test_clock);assert(engine.volume==17 && !tube_phone_retry_waiting());
+    tube_phone_tick_at(&controls,test_clock);assert(!tube_phone_launch_pending());
+    assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
+
+    /* A response from another click/playlist cannot satisfy this wait. */
+    snprintf(commands,sizeof commands,"%s,{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLrefilltest\",\"index\":105,\"window_start\":105,\"position_sec\":0,\"ctt\":\"other\"}]",initial);
+    feed(commands);tube_phone_tick_at(&controls,test_clock);first=take_start("abcdefghijk",0);
+    assert(tube_phone_launch_unavailable(first,"abcdefghijk",test_clock)==3);
+    tube_phone_tick_at(&controls,test_clock);assert(tube_phone_retry_waiting() && !tube_phone_launch_pending());
+    tube_phone_cancel();assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
+}
+
 int main(void) {
     remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     test_sparse_occurrences(); cleanup();
-    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();cleanup();
+    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

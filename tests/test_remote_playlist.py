@@ -86,6 +86,41 @@ def test_unavailable_library_does_not_break_phone_receiver():
         await lounge.close();await lounge.http.aclose()
     asyncio.run(run())
 
+
+@pytest.mark.parametrize('successor', [False, True])
+def test_ended_unavailable_anchor_gets_refill_or_explicit_terminal_window(successor):
+    async def run():
+        async def load(request):
+            return dict(api_version=1, playlist=PLAYLIST, index=101, video_id=VIDEO,
+                        window_start=101, video_ids=[VIDEO, '00000000002'] if successor else [VIDEO])
+        lounge=Lounge(httpx.AsyncClient(),playlist_loader=load);receiver=seed(lounge)
+        receiver.last_player.update(state=0,position_sec=0,has_previous=False,has_next=False)
+        try:
+            lounge.schedule_playlist(receiver,receiver.last_player);await receiver.playlist_task
+            assert len(receiver.queue)==1
+            update=receiver.queue[0]
+            assert update['action']=='updatePlaylist' and update['index']==101
+            assert update['video_ids']==([VIDEO,'00000000002'] if successor else [VIDEO])
+            receiver.queue.clear();receiver.ack=2;receiver.playlist_retry=0
+            lounge.schedule_playlist(receiver,receiver.last_player)
+            assert receiver.playlist_task is None # Terminal confirmation cannot loop.
+        finally:
+            await lounge.close();await lounge.http.aclose()
+    asyncio.run(run())
+
+
+def test_ended_occurrence_refills_large_supplied_playlist_without_playing_flags():
+    ids=[f'v{i:010d}' for i in range(500)]
+    receiver=Receiver('0'*32,'device','PS5',profile='account',aid=0)
+    receiver.full_playlist=dict(ids=ids,base=0,playlist=PLAYLIST,ctt='click',window_start=0,window_end=127)
+    player=PlayerState(video_id=ids[127],playlist=PLAYLIST,ctt='click',index=127,state=0).model_dump()
+    Lounge.refresh_playlist_window(receiver,player)
+    assert len(receiver.queue)==1
+    update=receiver.queue[0]
+    assert update['index']==127 and update['window_start']==95 and update['video_ids']==ids[95:223]
+    Lounge.refresh_playlist_window(receiver,player)
+    assert len(receiver.queue)==1
+
 def test_radio_refill_preserves_previous_items_while_accepting_new_future():
     async def run():
         radio='RDsyntheticqueue'

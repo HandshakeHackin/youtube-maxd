@@ -563,7 +563,7 @@ class Lounge:
                     any(current[k] != player[k] for k in ('video_id','playlist','index','ctt')) or
                     any(c['action'] in ('setPlaylist','updatePlaylist') for c in receiver.queue)):
                     return
-                if ids == anchor['video_ids'] and indices == self.playlist_indices(anchor):
+                if ids == anchor['video_ids'] and indices == self.playlist_indices(anchor) and player['state'] != 0:
                     anchor['expanded'] = True
                     anchor['checked_index'] = player['index']
                     return
@@ -604,7 +604,7 @@ class Lounge:
         index = player["index"]
         local = index - saved["base"]
         ids = saved["ids"]
-        if (not player["video_id"] or not (player["has_previous"] or player["has_next"]) or
+        if (not player["video_id"] or not (player["has_previous"] or player["has_next"] or player["state"] == 0) or
             player["playlist"] != saved["playlist"] or player["ctt"] != saved["ctt"] or
             not 0 <= local < len(ids) or ids[local] != player["video_id"]):
             return
