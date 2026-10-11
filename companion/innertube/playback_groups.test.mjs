@@ -79,3 +79,30 @@ test('Guest search catalogs retain groups without enabling credential access',as
   await assert.rejects(library.playback({action:'credentials',profile:'guest'}),{code:'playback_account_context'});
   await assert.rejects(library.playback({action:'catalog',kind:'search',query:'sample',profile:'missing'}),{code:'unknown_profile'});
 });
+
+
+test('verified group metadata is reused only after complete successful lookup',async()=>{
+  const store=groups(),feed={has_continuation:false};let calls=0,bad=true;
+  const {key}=store.attach('guest',feed,[row(id,{channel_id:'',subtitle:''}),row(other,{channel_id:'',subtitle:''}),row(id,{channel_id:'',subtitle:''})]);
+  const client={getBasicInfo:async key=>{calls++;return {basic_info:{id:key,channel_id:'UC'+'a'.repeat(22),author:bad&&key===other?'':'Verified'}};}};
+  const input={group:key,id,index:0,require_channel:true,require_name:true};
+  await assert.rejects(store.window('guest',input,client),{code:'channel_unverified'});
+  assert.ok(store.groups.get(key).rows.every(row=>!row.channel_id));
+  bad=false;calls=0;
+  const result=await store.window('guest',input,client);assert.equal(calls,2);
+  assert.deepEqual(result.video_channel_names,['Verified','Verified','Verified']);
+  await store.window('guest',{...input,index:2},client);assert.equal(calls,2);
+});
+test('unrequested display names cannot invalidate ordinary group navigation',async()=>{
+  const store=groups(),{key}=store.attach('guest',{has_continuation:false},[row(id,{subtitle:'é'.repeat(192)})]);
+  const result=await store.window('guest',{group:key,id,index:0},{});
+  assert.equal(result.video_channel_names,undefined);assert.equal(result.video_id,id);
+});
+test('retired groups reject metadata that completes after owner removal',async()=>{
+  const store=groups(),{key}=store.attach('guest',{has_continuation:false},[row(id,{channel_id:'',subtitle:''})]);
+  let finish;const waiting=new Promise(resolve=>finish=resolve);
+  const pending=store.window('guest',{group:key,id,index:0,require_channel:true},{getBasicInfo:async()=>{
+    await waiting;return {basic_info:{id,channel_id:'UC'+'a'.repeat(22)}};
+  }});
+  store.removeOwner('guest');finish();await assert.rejects(pending,{code:'group_expired'});
+});

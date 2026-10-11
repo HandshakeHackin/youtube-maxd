@@ -819,3 +819,11 @@ continues through that profile's cookie-backed resolver. Revoking the adapter
 also invalidates that resolver and its subprocesses. Catalog operations cannot
 request OAuth credentials. Existing secondary-account/brand-channel video
 restrictions remain; this change does not claim those playback contexts work.
+
+
+Retained group windows reuse channel metadata only after the entire verification
+succeeds and the original group still belongs to the caller. Partial failures do
+not update retained rows. Repeated occurrences share verified identities, reducing
+repeat lookups across adjacent windows. Unrequested display names are omitted
+from window responses; requesting name verification still requires complete,
+valid names for native filtering.

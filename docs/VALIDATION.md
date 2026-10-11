@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Retained-group filtering and metadata reuse — 2026-10-11
+
+Ordinary group windows no longer transmit unrequested display names, avoiding
+native rejection of long multibyte subtitles when name filtering is disabled.
+When identity verification is required, a complete successful lookup updates
+retained occurrences for reuse by later windows. Failed partial verification
+commits nothing; metadata finishing after group retirement is rejected.
+
+All 109 worker tests and the worker bundle pass. A new native ASan/UBSan suite
+passes forward/reverse name and ID blocking, cross-window traversal, exact source
+positions and missing/malformed metadata in retained browsing groups. The source
+anchor remains separate from the destination target across window boundaries.
+This batch changes service behavior and tests; native implementation bytes are
+unchanged. Console and live-service acceptance remain pending.
+
 ## Cookie-profile browsing groups — 2026-10-11
 
 Primary cookie-account catalogs now retain worker group contexts just like Guest

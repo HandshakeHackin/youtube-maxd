@@ -47,8 +47,8 @@ export class PlaybackGroups {
   }
   async window(owner,input,client) {
     const position=n=>Number.isInteger(n)&&n>=0&&n<=4095;
-    if(typeof input.group!=='string' || !/^[0-9a-f-]{36}$/.test(input.group) || !videoId(input.id) ||
-        !position(input.index) || !position(input.target??input.index) || ![-1,0,1].includes(input.direction??0) ||
+    if(typeof input.group!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(input.group) || !videoId(input.id) ||
+        input.playlist || input.channel || !position(input.index) || !position(input.target??input.index) || ![-1,0,1].includes(input.direction??0) ||
         (input.require_channel!==undefined && typeof input.require_channel!=='boolean') ||
         (input.require_name!==undefined && (typeof input.require_name!=='boolean' || (input.require_name && !input.require_channel))))
       this.fail('invalid_request','Group navigation requires an anchored source occurrence.');
@@ -72,10 +72,22 @@ export class PlaybackGroups {
     const response={api_version:1,playlist:'group:'+input.group,anchor_video_id:input.id,anchor_index:input.index,
       video_id:group.rows[selected].id,index:selected,window_start:positions[0],video_indices:positions,
       video_ids:positions.map(i=>group.rows[i].id),video_channels:positions.map(i=>group.rows[i].channel_id||''),
-      video_channel_names:positions.map(i=>group.rows[i].subtitle||'')};
+      ...(input.require_name?{video_channel_names:positions.map(i=>group.rows[i].subtitle||'')}: {})};
     if(!group.tail.has_continuation)response.playlist_size=group.rows.length;
     if(selected!==target){response.requested_index=target;response.skipped_unavailable=Math.abs(selected-target);}
-    return input.require_channel?hydrateWindowChannels(client,response,this.ErrorType,!!input.require_name):response;
+    if(!input.require_channel)return response;
+    const verified=await hydrateWindowChannels(client,response,this.ErrorType,!!input.require_name);
+    if(this.get(owner,input.group)!==group)this.fail('group_expired','Reload the source group to continue.');
+    // Reuse verified identities on later windows and all repeated occurrences.
+    // Commit only after the whole verification succeeds and ownership survives.
+    const identities=new Map(verified.video_ids.map((id,i)=>[id,{channel:verified.video_channels[i],name:verified.video_channel_names?.[i]}]));
+    for(const row of group.rows) {
+      const identity=identities.get(row.id);
+      if(!identity || (row.channel_id && row.channel_id!==identity.channel))continue;
+      row.channel_id=identity.channel;
+      if(input.require_name)row.subtitle=identity.name;
+    }
+    return verified;
   }
   removeOwner(owner) {for(const [key,group] of this.groups)if(group.owner===owner)this.groups.delete(key);}
 }
