@@ -1,5 +1,30 @@
 # Offline validation record — 0.1.0
 
+## Natural-EOF phone playlist window continuation — 2026-10-11
+
+Drained phone playback at a loaded-window boundary now retains the exact global
+occurrence and its final position/duration while requesting a bounded refill.
+The existing PlayerScreen completion guard still requires presentation drain and
+no pending seek/scrub before this path runs; it stops the decoder and returns to
+the provider browser. A matching successor starts at zero without the unavailable
+video's five-second delay. The previous thirty-second bound, terminal response,
+scope/cancellation rules and sparse/duplicate occurrence checks are shared.
+A still-open finished selection does not cancel the wait; replay/seek, a new
+selection (including the same video ID), or unrelated media does.
+
+The service distinguishes a playing boundary probe from its later ended state.
+It permits one ended-state recheck and records that state to prevent reload loops.
+Validation: 74 remote service/playlist tests and real receiver/phone ASan/UBSan
+checks passed, including a delayed wire refill after actual startup acknowledgment,
+finished-clock feedback, immediate successor launch, cancellation, timeout, same-ID
+selection replacement and failed monotonic clock. The test fixture's first delayed
+reply used acknowledgment zero after consuming command one; the real receiver
+correctly rejected it. The corrected acknowledgment-one fixture passes.
+Phone adapter, generated PlayerScreen and Application compiled with the PS5 SDK
+(`.deps/phone-eof-refill.result`, exit 0). Existing header/unused-variable warnings
+remain. No console connection or new full-package claim; hardware acceptance and
+broader restricted-video classification remain open.
+
 ## Unavailable phone window continuation — 2026-10-11
 
 When the last supplied occurrence is unavailable, the adapter retains its

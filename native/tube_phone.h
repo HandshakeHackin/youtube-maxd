@@ -43,6 +43,8 @@ int tube_phone_launch_bind(unsigned ticket, unsigned selection);
 int tube_phone_launch_finish(unsigned ticket, int success);
 /* Called only after the decoder/presentation engine proves natural EOF. */
 int tube_phone_finished(void);
+/* Same drained-EOF contract, with explicit monotonic time for verification. */
+int tube_phone_finished_at(int64_t now_ms);
 int tube_phone_owns_media(void);
 void tube_phone_clear(void);
 void tube_phone_cancel(void);

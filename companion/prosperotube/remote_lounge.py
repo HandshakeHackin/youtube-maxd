@@ -532,7 +532,9 @@ class Lounge:
         if anchor.get('expanded'):
             margin = min(16, max(1, len(anchor['video_ids'])//4))
             near_left = anchor['window_start'] > 0 and offset < margin and not player['playlist'].startswith('RD')
-            if anchor.get('checked_index') == player['index'] or (not near_left and offset < len(anchor['video_ids'])-margin):
+            checked = anchor.get('checked_index') == player['index'] and (
+                player['state'] != 0 or anchor.get('checked_state') == 0)
+            if checked or (not near_left and offset < len(anchor['video_ids'])-margin):
                 return
         receiver.playlist_task = asyncio.create_task(self.load_playlist(receiver, anchor, player))
         self.playlist_tasks.add(receiver.playlist_task)
@@ -566,6 +568,7 @@ class Lounge:
                 if ids == anchor['video_ids'] and indices == self.playlist_indices(anchor) and player['state'] != 0:
                     anchor['expanded'] = True
                     anchor['checked_index'] = player['index']
+                    anchor['checked_state'] = player['state']
                     return
                 if result.get('radio_rebased') is True and player['playlist'].startswith('RD') and anchor['window_start'] <= start <= player['index']:
                     old_indices = self.playlist_indices(anchor)
@@ -586,7 +589,7 @@ class Lounge:
                 if indices != list(range(start, start + len(ids))):
                     update['video_indices'] = indices
                 receiver.queue.append(update)
-                receiver.playlist_anchor = dict(update, expanded=True, checked_index=player['index'])
+                receiver.playlist_anchor = dict(update, expanded=True, checked_index=player['index'], checked_state=player['state'])
         except (ServiceError, ValueError, TypeError, AttributeError):
             pass  # Preserve the supplied queue when optional expansion is unavailable.
         finally:

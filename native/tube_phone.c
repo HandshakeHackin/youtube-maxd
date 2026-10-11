@@ -14,6 +14,7 @@ typedef struct {
 static PhoneQueue current, proposed;
 static PhoneQueue refill;
 static int64_t refill_deadline, refill_not_before;
+static double refill_position, refill_duration;
 static tube_remote_command pending;
 static unsigned serial, ticket, caption_selection;
 static int phase; /* 1 ready, 2 resolving/starting, 3 caption, 4 unavailable delay */
@@ -26,6 +27,7 @@ static char remote_video[12];
 static unsigned remote_selection;
 static void clear_queue(void) {
     memset(&refill, 0, sizeof refill); refill_deadline = refill_not_before = 0;
+    refill_position = refill_duration = 0;
     memset(&current, 0, sizeof current); memset(&proposed, 0, sizeof proposed);
     memset(&pending, 0, sizeof pending); phase = 0; ticket = 0; retry_deadline = 0; retry_run = 0;
     memset(&last, 0, sizeof last); last_owner = 0;
@@ -85,6 +87,14 @@ unsigned tube_phone_take(char video[12], double *position) {
     prune(); if (phase != 1 || !video || !position) return 0;
     memcpy(video, proposed.video, 12); *position = resume; phase = 2; return ticket;
 }
+static int wait_window(const PhoneQueue *anchor, int64_t now_ms, int delay, double position, double duration) {
+    if (anchor->cursor < 0 || anchor->cursor >= anchor->count || !*anchor->playlist ||
+        !tube_remote_owner_current(anchor->owner) || now_ms < 0 || now_ms > INT64_MAX - 30000) return 0;
+    refill = *anchor;
+    refill_not_before = now_ms + delay; refill_deadline = now_ms + 30000;
+    refill_position = position; refill_duration = duration;
+    return 1;
+}
 int tube_phone_launch_unavailable(unsigned value, const char *video, int64_t now_ms) {
     if (phase != 2 || !video || !tube_phone_launch_current(value) || strcmp(video,proposed.video) ||
         now_ms < 0 || now_ms > INT64_MAX - 30000) return 0;
@@ -93,12 +103,8 @@ int tube_phone_launch_unavailable(unsigned value, const char *video, int64_t now
         PhoneQueue anchor = proposed;
         clear_queue(); remote_video[0] = 0; remote_selection = 0;
         if (sequence) tube_remote_retire_launch(owner,sequence);
-        if (anchor.cursor >= 0 && anchor.cursor < anchor.count && *anchor.playlist &&
-            tube_remote_owner_current(owner)) {
-            refill = anchor; refill.selection = 0;
-            refill_not_before = now_ms + 5000; refill_deadline = now_ms + 30000;
-            return 3;
-        }
+        anchor.selection = 0;
+        if (wait_window(&anchor,now_ms,5000,0,0)) return 3;
         return 2;
     }
     ++proposed.cursor; memcpy(proposed.video,proposed.videos[proposed.cursor],12);
@@ -126,29 +132,38 @@ static int advance(const tube_remote_command *c, int direction) {
     PhoneQueue q = current; q.cursor = cursor; memcpy(q.video, q.videos[cursor], 12);
     begin(c, &q, 0); return 1;
 }
-int tube_phone_finished(void) {
+static int64_t monotonic_ms(void) {
+    struct timespec now;
+    return clock_gettime(CLOCK_MONOTONIC,&now) == 0 ?
+        (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000 : -1;
+}
+int tube_phone_finished(void) { return tube_phone_finished_at(monotonic_ms()); }
+int tube_phone_finished_at(int64_t now_ms) {
     prune();
     if (phase || !*remote_video || strcmp(last.video, remote_video) || last.selection != remote_selection) return 0;
     if (!current.owner) { remote_video[0] = 0; return 1; }
     tube_remote_command c; memset(&c, 0, sizeof c); c.owner = current.owner;
-    if (!advance(&c, 1)) { memset(&current, 0, sizeof current); remote_video[0] = 0; }
+    if (!advance(&c, 1)) {
+        PhoneQueue anchor = current;
+        double position = last.position, duration = last.duration;
+        clear_queue(); remote_video[0] = 0; remote_selection = 0;
+        wait_window(&anchor,now_ms,0,position,duration);
+    }
     return 1; /* Remote EOF never removes an item from the saved local queue. */
 }
 int tube_phone_owns_media(void) {
     prune(); return *remote_video && !strcmp(last.video, remote_video) && last.selection == remote_selection;
 }
 void tube_phone_tick(const tube_phone_controls *ctl) {
-    struct timespec now;
-    int64_t now_ms = clock_gettime(CLOCK_MONOTONIC,&now) == 0 ?
-        (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000 : -1;
-    tube_phone_tick_at(ctl,now_ms);
+    tube_phone_tick_at(ctl,monotonic_ms());
 }
 void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
     if (!ctl || !ctl->snapshot) return;
     prune();
     tube_remote_player p; memset(&p, 0, sizeof p); p.volume = 100; p.state = -1;
     int active = ctl->snapshot(ctl->context, &p);
-    if (refill.owner && (active || now_ms >= refill_deadline)) clear_queue();
+    if (refill.owner && (now_ms >= refill_deadline || (active &&
+        (!refill.selection || p.selection != refill.selection || strcmp(p.video,refill.video) || p.state != 0)))) clear_queue();
     if (!active) {
         if (last_owner && tube_remote_owner_current(last_owner) && *last.video) {
             int volume = p.volume, muted = p.muted;
@@ -176,6 +191,7 @@ void tube_phone_tick_at(const tube_phone_controls *ctl, int64_t now_ms) {
         memcpy(p.playlist, refill.playlist, sizeof p.playlist);
         memcpy(p.ctt, refill.ctt, sizeof p.ctt);
         p.index = refill.indices[refill.cursor];
+        p.position = refill_position; p.duration = refill_duration;
     }
     last = p;
     last_owner = tube_remote_current_owner();

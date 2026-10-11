@@ -404,9 +404,46 @@ static void test_unavailable_window_refill(void) {
     tube_phone_cancel();assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
 }
 
+static void test_eof_window_refill(void) {
+    const char *initial="[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],\"playlist\":\"PLeofrefill\",\"index\":105,\"window_start\":105,\"position_sec\":0,\"ctt\":\"click\"}]";
+    for(int mode=0;mode<5;++mode) {
+        feed(initial);tube_phone_tick_at(&controls,test_clock);
+        started_video(take_start("abcdefghijk",0),"abcdefghijk");
+        engine.position=engine.duration=300;engine.state=0;tube_phone_tick_at(&controls,test_clock);
+        assert(tube_phone_finished_at(test_clock) && !tube_phone_finished_at(test_clock));
+        assert(tube_phone_retry_waiting() && !tube_phone_owns_media());
+        tube_phone_tick_at(&controls,test_clock); /* Still-open drained decoder must not cancel. */
+        assert(tube_phone_retry_waiting());
+        active=0;tube_phone_tick_at(&controls,test_clock);
+        if(mode==0)tube_phone_cancel();
+        if(mode==1)test_clock+=30000;
+        if(mode==2){active=1;engine.state=1;} /* Replay/seek of same selection retires EOF wait. */
+        if(mode==3){active=1;engine.selection=++selection_serial;} /* Same-ID new selection. */
+        if(mode<4){tube_phone_tick_at(&controls,test_clock);assert(!tube_phone_retry_waiting());continue;}
+        tube_remote_tick(test_clock+3000);cJSON *r=request("update"),*p=cJSON_GetObjectItem(r,"player");
+        assert(cJSON_GetObjectItem(p,"state")->valueint==0 && cJSON_GetObjectItem(p,"index")->valueint==105);
+        assert(cJSON_GetObjectItem(p,"position_sec")->valuedouble==300 && cJSON_GetObjectItem(p,"duration_sec")->valuedouble==300);
+        cJSON_Delete(r);reply(0,200,accepted);
+        const char *update="[{\"sequence\":2,\"action\":\"updatePlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"abcdefghijk\",\"zyxwvutsrqp\"],\"video_indices\":[100,105,110],\"playlist\":\"PLeofrefill\",\"index\":105,\"window_start\":100,\"position_sec\":300,\"ctt\":\"click\"}]";
+        int delivered=0;
+        for(int i=0;i<8 && !delivered;++i) {
+            tube_remote_tick(test_clock+3500+i*500);if(!count)continue;
+            r=cJSON_Parse(pending[0].body);assert(r);int poll=!strcmp(cJSON_GetObjectItem(r,"action")->valuestring,"poll");cJSON_Delete(r);
+            if(poll){poll_reply(1,update);delivered=1;}else reply(0,200,accepted);
+        }
+        assert(delivered);tube_phone_tick_at(&controls,test_clock+8000);
+        assert(!tube_phone_retry_waiting()); /* Natural EOF has no unavailable-video delay. */
+        started_video(take_start("zyxwvutsrqp",0),"zyxwvutsrqp");
+        tube_phone_tick_at(&controls,test_clock+8000);
+        assert(tube_phone_owns_media());
+    }
+    feed(initial);tube_phone_tick_at(&controls,test_clock);started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick_at(&controls,test_clock);assert(tube_phone_finished_at(-1));assert(!tube_phone_retry_waiting());
+}
+
 int main(void) {
     remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     test_sparse_occurrences(); cleanup();
-    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();cleanup();
+    test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();test_eof_window_refill();cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }

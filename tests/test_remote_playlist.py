@@ -121,6 +121,31 @@ def test_ended_occurrence_refills_large_supplied_playlist_without_playing_flags(
     Lounge.refresh_playlist_window(receiver,player)
     assert len(receiver.queue)==1
 
+
+def test_finished_occurrence_rechecks_once_after_playing_boundary_probe():
+    async def run():
+        calls=[]
+        async def load(request):
+            calls.append(request)
+            return dict(api_version=1,playlist=PLAYLIST,index=101,video_id=VIDEO,
+                        window_start=101,video_ids=[VIDEO])
+        lounge=Lounge(httpx.AsyncClient(),playlist_loader=load);receiver=seed(lounge)
+        receiver.last_player.update(state=1)
+        try:
+            lounge.schedule_playlist(receiver,receiver.last_player);await receiver.playlist_task
+            assert not receiver.queue and len(calls)==1
+            receiver.playlist_retry=0
+            lounge.schedule_playlist(receiver,receiver.last_player);assert receiver.playlist_task is None
+            receiver.last_player.update(state=0,position_sec=300,duration_sec=300)
+            lounge.schedule_playlist(receiver,receiver.last_player);await receiver.playlist_task
+            assert len(calls)==2 and len(receiver.queue)==1
+            assert receiver.queue[0]['position_sec']==300
+            receiver.queue.clear();receiver.ack=receiver.sequence;receiver.playlist_retry=0
+            lounge.schedule_playlist(receiver,receiver.last_player);assert receiver.playlist_task is None
+        finally:
+            await lounge.close();await lounge.http.aclose()
+    asyncio.run(run())
+
 def test_radio_refill_preserves_previous_items_while_accepting_new_future():
     async def run():
         radio='RDsyntheticqueue'
