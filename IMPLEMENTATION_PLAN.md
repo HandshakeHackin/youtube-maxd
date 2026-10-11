@@ -687,8 +687,9 @@ partway and requires complete verification before a later launch.
 player paths passed. New DeArrow/SponsorBlock hardware acceptance remains open.
 Native voice batch: AudioIn capture and the scoped PCM upload/job pipeline pass
 ASan/UBSan fault tests and PS5 SDK object compilation. The host recognizer already
-passes real whisper.cpp inference. App packaging, local/phone voice controls,
-native search navigation and physical microphone acceptance remain open; Lounge
+passes real whisper.cpp inference. Local/phone voice controls and native search
+navigation now compile with the actual Application and provider screen. Full
+packaging and physical microphone acceptance remain open; Lounge
 microphone capability is still withheld. See `docs/VOICE_SEARCH.md`.
 
 The objective remains complete SmartTube feature and behavior parity.

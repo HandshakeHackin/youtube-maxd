@@ -2,9 +2,9 @@
 
 The companion speech-recognition service is implemented and tested with real
 whisper.cpp inference. The native AudioIn capture worker and scoped upload/job
-pipeline pass host fault tests and PS5 SDK compilation. App packaging, UI/search
-integration and actual microphone acceptance remain open; voice search is not
-yet enabled on the console.
+pipeline pass host fault tests and PS5 SDK compilation. Local/phone controls and
+native search navigation are connected and compile with the actual Application
+and provider screen. Full package and physical microphone acceptance remain open.
 Lounge microphone capability remains withheld.
 
 `native/tube_microphone.c` records 0.5–10 seconds of 16 kHz signed-16 mono PCM
@@ -14,7 +14,7 @@ early finish supports push-to-talk, while cancellation discards even completed
 audio. Silence, input/open/user/close failures and a recording deadline reject the
 result. Samples stay in memory and are wiped on retirement. Shutdown joins the
 worker before freeing its storage; cancellation takes effect after the current
-AudioIn grain returns. Native capture code is not yet included in the app package.
+AudioIn grain returns.
 Run its deterministic lifecycle and fault tests with `bash scripts/test_microphone.sh`.
 
 `native/tube_voice.c` connects capture to authenticated `/v1/voice` uploads and
@@ -26,7 +26,17 @@ are deleted with their original credentials, including a late create response
 or a late poll when cancellation found all request slots occupied. A transport
 failure can prevent deletion; the service's 120-second job expiry remains the
 cleanup backstop. Run `bash scripts/test_voice_driver.sh` for the network/capture
-substitute tests. The pipeline is not yet included in the app package.
+substitute tests.
+
+On the YouTube browser, hold L3 while speaking and release it to search; Circle
+cancels recording or recognition. Recording stops automatically at six seconds.
+Phone `voiceCommand` INITIATED/CANCELED events use the same pipeline and retain
+receiver ownership. Starting voice search pauses active playback. Leaving the
+browser or changing source/profile retires the recording and any pending result.
+Recognized text enters the actual provider search handler, preserving the full
+UTF-8 query. If speech recognition is unavailable, the UI reports failure.
+Lounge microphone capability remains withheld until service availability is
+connected to receiver capability negotiation.
 
 The service uses a locally configured executable and model. It does not send
 recordings to a cloud speech service. Temporary WAV and transcript files are

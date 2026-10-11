@@ -20,6 +20,8 @@ typedef struct {
     /* Default keeps playback running if the phone disconnects. */
     int stop_on_disconnect;
     int (*captions_status)(void *);
+    /* 1=accepted; started=0 retires this owner's voice request only. */
+    int (*voice)(void *, int started, unsigned owner);
 } tube_phone_controls;
 void tube_phone_tick(const tube_phone_controls *controls);
 /* Consumed by the normal provider resolver, then acknowledged after startup. */

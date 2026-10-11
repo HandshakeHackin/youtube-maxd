@@ -11,6 +11,9 @@ void tube_poll(void);
 unsigned tube_phone_revision(void);
 /* Synchronize UI scope before callbacks can start a deferred phone launch. */
 void tube_phone_sync_scope(void);
+/* Copy the validated paired scope for native voice; never partial credentials. */
+int tube_voice_scope(char *source, size_t source_capacity, char *token,
+                     size_t token_capacity, char *profile, size_t profile_capacity);
 int tube_phone_stop_on_disconnect(void);
 /* Current successful choice must still belong to this source and profile. */
 int tube_phone_video(const char *url, char video[12]);

@@ -21,6 +21,23 @@ request-pool saturation and owned-job cleanup with original credentials. This
 pipeline still requires packaging and native UI/search integration; no new
 console acceptance is claimed.
 
+Connected voice controls compiled with the actual PS5 Application,
+ProviderHostScreen, provider, phone adapter, capture and transcription objects
+(`.deps/voice-connected-ps5-objects.*`, exit 0). Local hold/release L3, Circle
+cancellation, phone voice initiation/cancellation, playback pause, source/profile
+retirement before network callbacks, screen-exit retirement and the existing
+search handler are connected in the overlay. Phone adapter, transcription driver
+and capture sanitizer tests passed (`.deps/voice-{phone,driver-connected,
+microphone-connected}-tests.*`, exit 0). Full packaging and physical input remain
+open. The companion still withholds Lounge microphone capability.
+
+All ten shipping provider regressions passed after the search/scope changes
+(`.deps/voice-provider-regressions.*`, exit 0). The new case verifies exact paired
+source/token/profile copying, no partial credential output, rejection after a
+source change, and a 200-code-point/four-byte UTF-8 query reaching the actual
+companion request without truncation. Existing library, SponsorBlock, DeArrow,
+recovery, speed, Music, discovery and chat paths retain their passes.
+
 The authenticated voice upload/job/poll/delete API now invokes a locally configured
 whisper.cpp executable and GGML model. It validates 0.5–10 seconds of 16 kHz mono
 S16 PCM, permits one transcription at a time, enforces bounded streaming uploads

@@ -2,6 +2,7 @@
 #include "tube_voice.h"
 #include "tube_microphone.h"
 #include "tube_remote.h"
+#include "tube_search_query.h"
 #include "evo_net.h"
 #include "cJSON.h"
 #include <ctype.h>
@@ -40,25 +41,6 @@ static int printable(const char *value) {
 static const char *text(const cJSON *root, const char *key) {
     const cJSON *v = cJSON_GetObjectItemCaseSensitive(root, key);
     return cJSON_IsString(v) && v->valuestring ? v->valuestring : "";
-}
-static int valid_query(const char *value) {
-    const unsigned char *p = (const unsigned char *)value;
-    unsigned characters = 0; int visible = 0;
-    while (*p) {
-        unsigned c = *p++, tails = 0, minimum = 0;
-        if (c >= 0xc2 && c <= 0xdf) { tails = 1; c &= 31; minimum = 0x80; }
-        else if (c >= 0xe0 && c <= 0xef) { tails = 2; c &= 15; minimum = 0x800; }
-        else if (c >= 0xf0 && c <= 0xf4) { tails = 3; c &= 7; minimum = 0x10000; }
-        else if (c >= 0x80) return 0;
-        for (unsigned i = 0; i < tails; ++i) {
-            if ((*p & 0xc0) != 0x80) return 0;
-            c = (c << 6) | (*p++ & 63);
-        }
-        if (c < minimum || c < 32 || c == 127 || c > 0x10ffff || (c >= 0xd800 && c <= 0xdfff)) return 0;
-        if (++characters > 200) return 0;
-        if (c != 32) visible = 1;
-    }
-    return visible;
 }
 static cJSON *parse(const char *body, size_t bytes) {
     if (!body || bytes < 2 || bytes > 8192 || memchr(body, 0, bytes)) return NULL;
@@ -201,7 +183,7 @@ static void response(int ok, int status, const char *body, size_t bytes, void *c
     if (!root || (kind == CREATE && (!*job || strcmp(wire_state, "pending")))) goto failed;
     if (kind == POLL && !strcmp(wire_state, "done")) {
         const char *value = text(cJSON_GetObjectItemCaseSensitive(root, "result"), "query");
-        if (strlen(value) >= sizeof query || !valid_query(value)) goto failed;
+        if (strlen(value) >= sizeof query || !tube_search_query_valid(value)) goto failed;
         snprintf(query, sizeof query, "%s", value); state = TUBE_VOICE_READY;
         voice_send(r, DELETE, job, NULL); job[0] = 0;
     } else if (!strcmp(wire_state, "pending")) {
@@ -212,6 +194,8 @@ failed:
     wipe(r, sizeof *r); cJSON_Delete(root); fail();
 }
 int tube_voice_state(void) { return state; }
+unsigned tube_voice_owner(void) { return owner; }
+const char *tube_voice_result(void) { return state == TUBE_VOICE_READY && (!owner || tube_remote_owner_current(owner)) ? query : ""; }
 int tube_voice_take(char *destination, size_t capacity) {
     if (state != TUBE_VOICE_READY || !destination || strlen(query) >= capacity ||
         (owner && !tube_remote_owner_current(owner))) return 0;

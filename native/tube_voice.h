@@ -16,6 +16,9 @@ void tube_voice_finish(void);
 void tube_voice_cancel(void);
 void tube_voice_tick(int64_t now_ms);
 int tube_voice_state(void);
+unsigned tube_voice_owner(void);
+/* Ready result remains owned until cancelled or consumed; main thread only. */
+const char *tube_voice_result(void);
 /* Consumes the result only when the entire UTF-8 query fits the destination. */
 int tube_voice_take(char *query, size_t capacity);
 void tube_voice_shutdown(void);

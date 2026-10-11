@@ -155,6 +155,8 @@ void tube_phone_tick(const tube_phone_controls *ctl) {
         applied = ctl->volume && ctl->volume(ctl->context, (int)lround(v)); break;
     }
     case TUBE_REMOTE_DPAD: applied = ctl->key && ctl->key(ctl->context, c.key); break;
+    case TUBE_REMOTE_VOICE:
+        applied = ctl->voice && ctl->voice(ctl->context, !strcmp(c.voice, "INITIATED"), c.owner); break;
     case TUBE_REMOTE_CAPTIONS:
         if (active && (!*c.video || !strcmp(c.video, p.video)) && ctl->captions)
             applied = ctl->captions(ctl->context, c.language, c.owner, c.sequence);

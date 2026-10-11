@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include "tube_sponsor.h"
 #include "tube_remote.h"
+#include "tube_search_query.h"
 #include "tube_random.h"
 
 #define RECORDS 384
@@ -621,6 +622,17 @@ static void remote_configure(void) {
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
 void tube_phone_sync_scope(void) { remote_configure(); }
+int tube_voice_scope(char *source, size_t source_capacity, char *token,
+                     size_t token_capacity, char *profile, size_t profile_capacity) {
+    if (source && source_capacity) source[0] = 0;
+    if (token && token_capacity) token[0] = 0;
+    if (profile && profile_capacity) profile[0] = 0;
+    if (!source || !token || !profile || !g_store_writable || !*g_source || !*g_token ||
+        strlen(g_source) >= source_capacity || strlen(g_token) >= token_capacity ||
+        strlen(g_library_profile) >= profile_capacity) return 0;
+    copy(source, source_capacity, g_source); copy(token, token_capacity, g_token);
+    copy(profile, profile_capacity, g_library_profile); return 1;
+}
 int tube_phone_stop_on_disconnect(void) { return g_remote_stop_on_disconnect; }
 
 static void account_removed(void) {
@@ -2295,8 +2307,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
 }
 
 static int search(const char *query, int page, evo_provider_items_cb cb, void *ud) {
-    if (!query || strlen(query) > 200 || !cb) return -1;
-    char parent[208]; snprintf(parent, sizeof parent, "search:%s", query);
+    if (!tube_search_query_valid(query) || !cb) return -1;
+    char parent[808]; snprintf(parent, sizeof parent, "search:%s", query);
     return catalog(parent, page, cb, ud);
 }
 

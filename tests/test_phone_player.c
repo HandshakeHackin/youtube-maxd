@@ -7,6 +7,7 @@
 static tube_remote_player engine;
 static int active, browsed, stopped, keys, reject_seek;
 static int deferred_caption, caption_result, caption_polls;
+static int voice_starts, voice_cancels;
 static char deferred_language[33];
 static double sought;
 static unsigned selection_serial;
@@ -27,7 +28,12 @@ static int caption_status(void *ctx) {
     return caption_result;
 }
 static void browser(void *ctx) { (void)ctx; ++browsed; }
-static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status};
+static int voice_engine(void *ctx, int started, unsigned owner) {
+    (void)ctx; assert(tube_remote_owner_current(owner));
+    if (started) ++voice_starts; else ++voice_cancels;
+    return 1;
+}
+static tube_phone_controls controls = {NULL,snapshot,pause_engine,seek_engine,stop_engine,volume_engine,key_engine,caption_engine,browser,0,caption_status,voice_engine};
 static int64_t test_clock = 100000;
 static void cleanup(void) {
     tube_remote_shutdown(); tube_phone_clear();
@@ -41,6 +47,7 @@ static void feed(const char *commands) {
     cleanup(); memset(&engine,0,sizeof engine); engine.volume = 100; engine.duration = 300; engine.state = 1;
     active = browsed = stopped = keys = reject_seek = 0;
     deferred_caption = caption_result = caption_polls = 0;
+    voice_starts = voice_cancels = 0;
     test_clock += 10000; configure(1,"guest",identity,"screen-123"); remote_bind(test_clock);
     tube_remote_tick(test_clock + 1); poll_reply(0,commands); assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
 }
@@ -168,7 +175,14 @@ static void test_retired_receiver_eof(void) {
     tube_phone_tick(&controls); engine.selection = ++selection_serial; tube_phone_tick(&controls);
     assert(!tube_phone_owns_media() && !tube_phone_finished());
 }
+static void test_voice_controls(void) {
+    feed("[{\"sequence\":1,\"action\":\"voiceCommand\",\"status\":\"INITIATED\"},{\"sequence\":2,\"action\":\"voiceCommand\",\"status\":\"CANCELED\"}]");
+    active = 0; /* voice search does not require an already selected video */
+    tube_phone_tick(&controls); tube_phone_tick(&controls);
+    assert(voice_starts == 1 && voice_cancels == 1 && tube_remote_state() == TUBE_REMOTE_LISTENING);
+    tube_remote_command command; assert(!tube_remote_take(&command));
+}
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); cleanup();
+    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); cleanup();
     puts("Phone player/queue, deferred acknowledgements, fractional seek, EOF, ownership and PCM gain passed"); return 0;
 }
