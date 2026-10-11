@@ -44,7 +44,7 @@ static PlaylistContext g_resolved_playlist, g_active_playlist;
 static struct { char id[12]; PlaylistContext value; } g_selected_playlist;
 static struct {
     unsigned serial, selection;
-    int state, lookup, target_index;
+    int state, lookup, target_index, direction;
     PlaylistContext context;
     char id[12];
     tube_playlist_window_t value;
@@ -1282,7 +1282,7 @@ int tube_playlist_window_status(tube_playlist_window_t *out) {
     if (g_playlist_window.state == 1 && out) *out=g_playlist_window.value;
     return g_playlist_window.state;
 }
-static int playlist_window_begin_at(int target) {
+static int playlist_window_begin_at(int target,int direction) {
     char playlist[101]; int index;
     if (!tube_playback_playlist_context(playlist,sizeof playlist,&index)) return 0;
     if (playlist_window_current() && g_playlist_window.state == 0) return 0;
@@ -1291,21 +1291,22 @@ static int playlist_window_begin_at(int target) {
     g_playlist_window.selection=g_selection_serial;
     g_playlist_window.context=g_active_playlist;
     g_playlist_window.lookup=target >= 0;
+    g_playlist_window.direction=direction;
     g_playlist_window.target_index=target >= 0 ? target : index;
     copy(g_playlist_window.id,sizeof g_playlist_window.id,g_active_id);
     g_playlist_window.state=0;
     r->intent=g_playlist_window.serial;
     if (g_playlist_window.lookup) snprintf(r->payload,sizeof r->payload,
-        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
-        g_active_profile,playlist,target);
+        "{\"action\":\"library\",\"library\":{\"action\":\"playback_at\",\"profile\":\"%s\",\"playlist\":\"%s\",\"index\":%d,\"direction\":%d}}",
+        g_active_profile,playlist,target,direction);
     else snprintf(r->payload,sizeof r->payload,
         "{\"action\":\"library\",\"library\":{\"action\":\"playback_queue\",\"profile\":\"%s\",\"id\":\"%s\",\"playlist\":\"%s\",\"index\":%d}}",
         g_active_profile,g_active_id,playlist,index);
     begin(r); return 1;
 }
-int tube_playlist_window_begin(void) { return playlist_window_begin_at(-1); }
+int tube_playlist_window_begin(void) { return playlist_window_begin_at(-1,0); }
 int tube_playlist_window_at(int index) {
-    return index >= 0 && index <= 100000 ? playlist_window_begin_at(index) : 0;
+    return index >= 0 && index <= 100000 ? playlist_window_begin_at(index,0) : 0;
 }
 static int playlist_index(const cJSON *value) {
     return cJSON_IsNumber(value) && value->valuedouble >= 0 && value->valuedouble <= 100000 &&
@@ -1317,11 +1318,18 @@ static void playlist_window_result(Request *r,const cJSON *root) {
     const cJSON *indices=cJSON_GetObjectItemCaseSensitive(root,"video_indices");
     const int start=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"window_start"));
     const char *selected_id=str(root,"video_id");
+    int selected_index=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index"));
+    int skipped=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"skipped_unavailable"));
+    int requested=playlist_index(cJSON_GetObjectItemCaseSensitive(root,"requested_index"));
+    int matching_index=selected_index==g_playlist_window.target_index ||
+        (g_playlist_window.direction && skipped>0 && skipped<4096 &&
+         requested==g_playlist_window.target_index && selected_index>=0 &&
+         selected_index==requested+g_playlist_window.direction*skipped);
     value.count=cJSON_GetArraySize(ids); value.current=-1;
     int valid=r->intent == g_playlist_window.serial && playlist_window_current() &&
         num(root,"api_version") == 1 && !strcmp(str(root,"playlist"),g_playlist_window.context.playlist) &&
         valid_id(selected_id) && (g_playlist_window.lookup || !strcmp(selected_id,g_playlist_window.id)) &&
-        playlist_index(cJSON_GetObjectItemCaseSensitive(root,"index")) == g_playlist_window.target_index &&
+        matching_index &&
         cJSON_IsArray(ids) && value.count > 0 && value.count <= 128 && start >= 0 &&
         (!indices || (cJSON_IsArray(indices) && cJSON_GetArraySize(indices) == value.count));
     for (int i=0; valid && i<value.count; ++i) {
@@ -1331,7 +1339,7 @@ static void playlist_window_result(Request *r,const cJSON *root) {
             (!i ? position == start : position > value.indices[i-1]);
         if (!valid) break;
         copy(value.ids[i],sizeof value.ids[i],id->valuestring); value.indices[i]=position;
-        if (position == g_playlist_window.target_index && !strcmp(id->valuestring,selected_id)) value.current=i;
+        if (position == selected_index && !strcmp(id->valuestring,selected_id)) value.current=i;
     }
     if (!valid || value.current < 0) { complete(r,0); return; }
     const cJSON *size=cJSON_GetObjectItemCaseSensitive(root,"playlist_size");
@@ -3555,7 +3563,7 @@ static int playlist_eof_advance(void) {
         int target=g_active_playlist.index+direction;
         if (!lookup && target>=0 && target<=100000) {
             g_playlist_eof_target=target;
-            if(tube_playlist_window_at(target)) g_playlist_eof_wait=2;
+            if(playlist_window_begin_at(target,direction)) g_playlist_eof_wait=2;
         }
         return 0;
     }

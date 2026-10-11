@@ -7,6 +7,29 @@ const row = (i, selected=false, id=video(i)) => ({playlistPanelVideoRenderer:{vi
   navigationEndpoint:{watchEndpoint:{videoId:id, playlistId:playlist, index:i}}}});
 const response = (contents, extra={}) => ({success:true,data:{contents:{twoColumnWatchNextResults:{playlist:{playlist:{playlistId:playlist,contents,...extra}}}}}});
 
+test('Directional lookup skips only consecutive confirmed unavailable occurrences',async()=>{
+  for(const direction of [-1,1]) {
+    const rows=[row(1),row(2),row(3,true),row(4),row(5)];
+    for(const offset of [1,2,3])rows[offset].playlistPanelVideoRenderer.isPlayable=false;
+    const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:3})}}));
+    const result=await library.execute({action:'playback_at',playlist,index:3,direction});
+    assert.equal(result.index,direction===1?5:1);
+    assert.equal(result.requested_index,3);assert.equal(result.skipped_unavailable,2);
+    assert.equal(result.video_id,video(result.index));
+    await assert.rejects(library.execute({action:'playback_at',playlist,index:3}),{code:'remote_playlist_unavailable'});
+  }
+  const rows=[row(3,true),row(5)];rows[0].playlistPanelVideoRenderer.isPlayable=false;
+  const library=new Library(async()=>({actions:{execute:async()=>response(rows,{currentIndex:3})}}));
+  await assert.rejects(library.execute({action:'playback_at',playlist,index:3,direction:1}),{code:'remote_playlist_unavailable'});
+});
+
+test('Directional lookup rejects malformed directions and non-indexed use',async()=>{
+  const library=new Library(async()=>({actions:{execute:async()=>{assert.fail('must not request');}}}));
+  for(const direction of [null,true,'1',2,-2,0.5])
+    await assert.rejects(library.execute({action:'playback_at',playlist,index:3,direction}),{code:'invalid_request'});
+  await assert.rejects(library.execute({action:'playback_queue',playlist,index:3,id:video(3),direction:1}),{code:'invalid_request'});
+});
+
 test('Finite playlist size is explicit metadata, never the bounded or sparse window length',async()=>{
   for(const totalVideos of [21,'21',100001]) {
     const library=new Library(async()=>({actions:{execute:async()=>response([row(3),row(9,true),row(20)],{totalVideos})}}));

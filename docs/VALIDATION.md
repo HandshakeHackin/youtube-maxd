@@ -1,5 +1,24 @@
 # Offline validation record — 0.1.0
 
+## Directional unavailable playlist slots — 2026-10-11
+
+Forward/reverse window-edge lookup can cross consecutive explicitly unavailable
+rows in a returned WatchNext panel. It requires upstream proof of the requested
+occurrence and refuses gaps in source positions. Exact-index shuffle behavior
+is unchanged. The service validates strict direction values and action scope;
+native handoff validates requested index, bounded skip count, direction and the
+confirmed target. Entirely unavailable windows and radio continuation remain open.
+
+All 72 worker tests passed and the production worker rebuilt. All 58 targeted
+service/phone-playlist transport tests passed, covering direct/job direction
+forwarding and malformed input rejection. Logs:
+`.deps/playlist-direction-worker.log` and `.deps/playlist-direction-python.log`.
+Native window/context and queue-failure sanitizer suites passed, including forward
+and reverse unavailable-slot handoff and inconsistent skip metadata rejection.
+The PS5 provider object compiled with existing SDK warnings. Logs:
+`.deps/playlist-direction-native.log` and `.deps/playlist-direction-sdk.log`.
+No console connections occurred.
+
 ## SponsorBlock completion modes — 2026-10-11
 
 An acknowledged final-segment skip now pauses the current frame and presents

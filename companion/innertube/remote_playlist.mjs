@@ -5,6 +5,9 @@ const index = value => Number.isInteger(value) && value >= 0 && value <= 100000;
 
 export async function remotePlaylist(client, input, ErrorType) {
   const lookup = input.action === 'playback_at';
+  const direction=input.direction===undefined ? 0 : input.direction;
+  if (![0,-1,1].includes(direction) || (!lookup && direction))
+    throw new ErrorType('invalid_request','The playback direction is invalid.');
   const fail = () => { throw new ErrorType('remote_playlist_unavailable', 'YouTube did not return a usable playback queue.', 502); };
   if ((lookup ? input.id !== undefined && input.id !== '' : !videoId(input.id)) || !playlistId(input.playlist) || !index(input.index))
     throw new ErrorType('invalid_request', 'The playback queue request is invalid.');
@@ -54,7 +57,7 @@ export async function remotePlaylist(client, input, ErrorType) {
     if (lookup && (panel.isInfinite === true || selectedRows.length !== 1 ||
         (rows[selected].index !== input.index && panel.currentIndex !== input.index))) continue;
     const selectedId = lookup ? rows[selected].id : input.id;
-    if (!videoId(selectedId)) continue;
+    if (!videoId(selectedId) && !(lookup && direction && selectedId===null)) continue;
     const radio = panel.isInfinite === true && input.playlist.startsWith('RD');
     if (selectedRows.length > 1 || !index(current) || (current !== input.index && (!radio || current > input.index))) continue;
     // Radio/Mix can restart its service-relative indices at the selected video.
@@ -71,7 +74,17 @@ export async function remotePlaylist(client, input, ErrorType) {
         (!explicit && rows.some((row, offset) => row.index !== undefined && row.index + shift !== base + offset))) continue;
     if (selected >= 0 && (positioned[selected].id !== selectedId || positioned[selected].index !== input.index)) continue;
     const playable = positioned.filter(row => row.id !== null);
-    const selectedPlayable = playable.findIndex(row => row.index === input.index && row.id === selectedId);
+    let targetIndex=input.index, targetId=selectedId;
+    if(targetId===null && direction) {
+      let offset=at;
+      while(offset>=0 && offset<positioned.length) {
+        const candidate=positioned[offset];
+        if(candidate.index!==targetIndex) break; // Never skip an unobserved gap.
+        if(candidate.id!==null) {targetId=candidate.id;break;}
+        targetIndex+=direction;offset+=direction;
+      }
+    }
+    const selectedPlayable = playable.findIndex(row => row.index === targetIndex && row.id === targetId);
     if (selectedPlayable < 0) continue;
     const start = Math.max(0, Math.min(selectedPlayable - 32, playable.length - 128));
     const window = playable.slice(start, start + 128);
@@ -82,8 +95,9 @@ export async function remotePlaylist(client, input, ErrorType) {
     const size = typeof rawSize === 'string' && /^[1-9][0-9]{0,5}$/.test(rawSize) ? Number(rawSize) : rawSize;
     const finiteSize = (panel.isInfinite === undefined || panel.isInfinite === false) && !input.playlist.startsWith('RD') &&
       Number.isInteger(size) && size > positioned[positioned.length - 1].index && size <= 100001;
-    matches.push({ api_version: 1, playlist: input.playlist, index: input.index,
-      video_id: selectedId, window_start: window[0].index, video_ids: window.map(row => row.id),
+    matches.push({ api_version: 1, playlist: input.playlist, index: targetIndex,
+      video_id: targetId, window_start: window[0].index, video_ids: window.map(row => row.id),
+      ...(direction ? {requested_index:input.index,skipped_unavailable:Math.abs(targetIndex-input.index)} : {}),
       ...(finiteSize ? {playlist_size: size} : {}), ...(panel.isInfinite === true ? {is_infinite: true} : {}),
       ...(sparse ? {video_indices: window.map(row => row.index)} : {}), radio_rebased: shift !== 0 });
   }

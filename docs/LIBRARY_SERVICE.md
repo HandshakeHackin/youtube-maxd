@@ -38,13 +38,21 @@ consumes the next returned occurrence after giving explicit queues priority.
 Any controller press cancels the window wait. The full seven-mode policy
 remains incomplete. At an exhausted window edge, autoplay makes
 one indexed lookup for the immediately following occurrence and stages it only
-if confirmed. Traversal across unavailable target slots and radio continuations
-remain incomplete.
+if confirmed. Forward/reverse edge lookups now cross consecutive explicitly
+unavailable target slots within the returned panel, retaining occurrence indices.
+Unobserved gaps, an entirely unavailable window and radio continuations still
+stop traversal.
 Index-only `playback_at` requests can retrieve a different occurrence and its
 window while keeping native playback ownership unchanged. This requires an
 explicit selected position from upstream; radio rebasing is not accepted for
 index-only navigation. Window-edge autoplay uses this path; the remaining mode
 policy and controls are still incomplete.
+For edge traversal, `playback_at` accepts strict integer `direction` -1 or 1.
+The worker proves the selected requested position before following consecutive
+unavailable rows; it returns `requested_index` and `skipped_unavailable` with the
+confirmed playable target. The native client checks direction, distance and
+request ownership before staging it. Direction zero retains exact-index lookup
+for shuffle; unavailable shuffle targets continue to use its normal fallback.
 Validated finite `playlist_size` metadata is retained separately from the loaded
 window size. Missing or inconsistent counts remain unknown. A confirmed final
 occurrence stops autoplay without probing past the playlist; other window edges

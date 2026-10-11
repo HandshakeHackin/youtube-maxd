@@ -141,8 +141,9 @@ int main(void) {
     cJSON_DeleteItemFromArray(cJSON_GetObjectItem(reverse_edge,"video_indices"),0);
     cJSON_ReplaceItemInObject(reverse_edge,"window_start",cJSON_CreateNumber(9));result(reverse_edge);
     assert(!tube_finish_drained_and_next(100) && strstr(pending[0].body,"\"index\":8"));
-    result(cJSON_Parse("{\"api_version\":1,\"playlist\":\"PLabcdefghijk\",\"video_id\":\"bcdefghijkl\",\"index\":8,\"window_start\":8,\"video_ids\":[\"bcdefghijkl\"]}"));
-    assert(tube_finish_drained_and_next(100) && tube_take_next(&next) && next.playback_index==8);
+    assert(strstr(pending[0].body,"\"direction\":-1"));
+    result(cJSON_Parse("{\"api_version\":1,\"playlist\":\"PLabcdefghijk\",\"video_id\":\"bcdefghijkl\",\"index\":6,\"window_start\":6,\"requested_index\":8,\"skipped_unavailable\":2,\"video_ids\":[\"bcdefghijkl\"]}"));
+    assert(tube_finish_drained_and_next(100) && tube_take_next(&next) && next.playback_index==6);
     for(int pass=0;pass<2;++pass) {
         assert(tube_select_playlist_context("abcdefghijk","PLabcdefghijk",pass?9:0,scope));
         assert(!p->resolve("abcdefghijk",selected,NULL));
@@ -183,7 +184,7 @@ int main(void) {
     cJSON_AddNumberToObject(last,"playlist_size",10);result(last);
     assert(!tube_finish_drained_and_next(100) && !tube_playlist_eof_pending() && !pending_count);
     assert(!tube_take_next(&next));
-    for(int action=0;action<4;++action) {
+    for(int action=0;action<6;++action) {
         p->stream_chosen("abcdefghijk",&choice);
         assert(!tube_finish_drained_and_next(100));
         cJSON *tail=window();
@@ -197,6 +198,13 @@ int main(void) {
         cJSON_ReplaceItemInObject(following,"index",cJSON_CreateNumber(action==3 ? 9 : 10));
         cJSON_ReplaceItemInObject(following,"video_id",cJSON_CreateString("bcdefghijkl"));
         cJSON_ReplaceItemInArray(cJSON_GetObjectItem(following,"video_indices"),2,cJSON_CreateNumber(10));
+        if(action>=4) {
+            int actual=action==4?12:11;
+            cJSON_ReplaceItemInObject(following,"index",cJSON_CreateNumber(actual));
+            cJSON_ReplaceItemInArray(cJSON_GetObjectItem(following,"video_indices"),2,cJSON_CreateNumber(actual));
+            cJSON_AddNumberToObject(following,"requested_index",10);
+            cJSON_AddNumberToObject(following,"skipped_unavailable",2);
+        }
         if(action==1 || action==2) {
             reply(0,1,200,"{\"job\":\"retiring_edge\",\"state\":\"pending\"}");
             usleep(300000);tube_poll();assert(pending_count==1);
@@ -204,9 +212,9 @@ int main(void) {
         if(action==1)tube_playlist_eof_cancel();
         if(action==2)p->stream_chosen("abcdefghijk",&choice);
         result(following);
-        if(!action) {
+        if(!action || action==4) {
             assert(tube_finish_drained_and_next(100) && tube_take_next(&next));
-            assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==10 && next.playback_scope==scope);
+            assert(!strcmp(next.id,"bcdefghijkl") && next.playback_index==(action==4?12:10) && next.playback_scope==scope);
         } else if(action!=2) {
             assert(!tube_finish_drained_and_next(100) && !tube_take_next(&next) && !tube_playlist_eof_pending());
         } else {

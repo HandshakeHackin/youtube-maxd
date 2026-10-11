@@ -67,6 +67,7 @@ class LibraryRequest(BaseModel):
     id: str = Field(default="", max_length=100)
     playlist: str = Field(default="", max_length=100)
     index: int | None = Field(default=None, ge=0, le=100000, strict=True)
+    direction: int = Field(default=0, ge=-1, le=1, strict=True)
     title: str = Field(default="", max_length=150)
     sort: Literal["top", "newest"] = "top"
     rating: Literal["like", "dislike", "none"] = "none"
@@ -82,6 +83,8 @@ class LibraryRequest(BaseModel):
 
     @model_validator(mode="after")
     def playback_occurrence(self):
+        if self.direction and self.action != "playback_at":
+            raise ValueError("Directional navigation requires playback_at.")
         if self.action in {"playback_queue", "playback_at"} and (
             (not re.fullmatch(r"[A-Za-z0-9_-]{11}", self.id) if self.action == "playback_queue" else self.id != "")
             or not re.fullmatch(r"(?:WL|LL|[A-Za-z0-9_-]{10,100})", self.playlist)

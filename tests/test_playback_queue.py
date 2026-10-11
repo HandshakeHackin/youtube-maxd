@@ -17,9 +17,9 @@ class Library:
                     video_ids=["abcdefghijk"] * 3, video_indices=[40, 42, 47], playlist_size=48, radio_rebased=False)
     async def close(self): pass
 
-@pytest.mark.parametrize("action", ["playback_queue", "playback_at"])
-def test_direct_and_job_windows_keep_profile_sparse_indices_and_repeats(action):
-    request = {**REQUEST, "action": action, "id": "" if action == "playback_at" else REQUEST["id"]}
+@pytest.mark.parametrize("action,direction", [("playback_queue",0),("playback_at",0),("playback_at",-1),("playback_at",1)])
+def test_direct_and_job_windows_keep_profile_sparse_indices_and_repeats(action,direction):
+    request = {**REQUEST, "action": action, "direction":direction,"id": "" if action == "playback_at" else REQUEST["id"]}
     library = Library()
     with TestClient(create_app(library=library, token="playback-window-fixture")) as client:
         assert client.post("/v1/library", json=request).status_code == 401
@@ -40,7 +40,8 @@ def test_direct_and_job_windows_keep_profile_sparse_indices_and_repeats(action):
 
 @pytest.mark.parametrize("patch", [dict(index=None), dict(index=True), dict(index=-1),
     dict(index=100001), dict(index=1.5), dict(index="42"), dict(id="bad"),
-    dict(playlist="bad"), dict(playlist="PLabcdefghij/"), dict(profile="bad/profile")])
+    dict(playlist="bad"), dict(playlist="PLabcdefghij/"), dict(profile="bad/profile"),
+    dict(direction=True),dict(direction=None),dict(direction=2),dict(direction="1")])
 @pytest.mark.parametrize("action", ["playback_queue", "playback_at"])
 def test_invalid_occurrence_never_reaches_worker(patch, action):
     library = Library()
