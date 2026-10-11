@@ -79,7 +79,19 @@ def apply_qr_overlay(replace, player, work, root):
     rcss = work / player / "assets/rml/youtube.rcss"
 
     replace(header, "    bool auth = false;", "    bool auth = false;\n    bool link = false;\n    bool qr = false;\n    Rml::String qr_text;")
-    replace(header, "    void ReloadCurrentLevel();", "    void ReloadCurrentLevel();\n    void UpdateQr();\n    std::string m_qr_parent, m_qr_payload;")
+    replace(header, "    void ReloadCurrentLevel();", "    void ReloadCurrentLevel();\n    void UpdateQr();\n    bool QrShown() const { return IsOpen() && m_model.qr; }\n    std::string m_qr_parent, m_qr_payload;")
+    # A code being scanned gets no input: screen dimming leaves it alone.
+    replace(header, "void evo_rmlui_provider_replace_folder(const char* parent, const char* title);",
+            "void evo_rmlui_provider_replace_folder(const char* parent, const char* title);\n"
+            "/* 1 = a QR code is on screen. */\nint evo_rmlui_provider_qr_shown(void);")
+    replace(ui, "void evo_rmlui_provider_replace_folder(const char* parent, const char* title)\n{",
+            "int evo_rmlui_provider_qr_shown(void)\n{\n    return EvoRmlProviderHost::Instance().QrShown() ? 1 : 0;\n}\n\n"
+            "void evo_rmlui_provider_replace_folder(const char* parent, const char* title)\n{")
+    app = player + "core/src/Application.cpp"
+    if (work / app).exists():   # the host test of this overlay copies the provider screen alone
+        replace(app, "|| tube_player_dim_blocked()) context = TUBE_DIM_NONE;",
+                "|| tube_player_dim_blocked() ||\n"
+                "                (current == ScreenId::EmbyBrowse && evo_rmlui_provider_qr_shown())) context = TUBE_DIM_NONE;")
     replace(ui, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_qr_page.h"')
     replace(ui, '    c.Bind("auth", &m_model.auth);', '    c.Bind("auth", &m_model.auth);\n    c.Bind("link", &m_model.link);\n    c.Bind("qr", &m_model.qr);\n    c.Bind("qr_text", &m_model.qr_text);')
     # A link page uses the list-and-reader layout of the review pages.

@@ -117,7 +117,7 @@ int main(int argc,char**argv) {
     assert(model.auth && !model.qr && model.qr_text.empty() && !element("tube-qr")->IsVisible(true) && element("tube-qr-box")->GetNumChildren()==0);
     assert(!element("tube-discussion-text")->IsClassSet("with-qr"));
     show("auth:session", {row("auth:info:code","no code yet","","")});
-    assert(!model.qr);
+    assert(!model.qr && !host.QrShown());
 
     /* Link page built from the About table: the focused link is shown. */
     std::vector<evo_provider_item_t> links;
@@ -127,6 +127,7 @@ int main(int argc,char**argv) {
     }
     show("link:about", links);
     assert(model.link && model.review && !model.auth && !model.discussion && model.qr);
+    assert(host.QrShown()); /* what keeps screen dimming away from a code being scanned */
     assert(element("tube-link-footer")->IsVisible(true) && !element("tube-review-footer")->IsVisible(true) && !element("tube-auth-footer")->IsVisible(true));
     for(int i=0;i<tube_about_link_count();++i) {
         focus(i);

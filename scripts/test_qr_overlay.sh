@@ -39,6 +39,9 @@ if "UpdateQr" in (evo / names[1]).read_text():
     # prepare_native.py already applies the overlay: test the generated files.
     for name in ("tube_qr.h", "tube_qr_page.h"):
         shutil.copyfile(root / "native" / name, destination / player / "addons/include" / name)
+    # A code on screen is never dimmed while the browser shows it.
+    app = (evo / "core/src/Application.cpp").read_text()
+    assert app.count("(current == ScreenId::EmbyBrowse && evo_rmlui_provider_qr_shown())) context = TUBE_DIM_NONE;") == 1
 else:
     apply_qr_overlay(replace, player, destination, root)
 screen = (destination / player / names[1]).read_text()
