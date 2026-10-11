@@ -296,6 +296,32 @@ rename/delete controls. Accounts & library also creates an empty private playlis
 Names are entered with the keyboard and reviewed before submission. L2/R2 scroll
 the confirmation details; Circle returns without submitting.
 
+YouTube preferences end with the player and content screens. **Caption style,
+size and position**, **Player volume and audio delay** and **Player controls,
+keys and Shorts** hold the player extras (also changed from the player; saved
+with the profile), **Loop Shorts**, **Remember position of short videos** and
+**Use current section as playlist**. **Content language** and **Content
+country** choose what YouTube lists, **Hide content** has SmartTube's sixteen
+switches (until one is changed, only watched videos leave Home), and **Thumbnail
+source** picks the published thumbnail or a frame from the start, middle or end.
+Caption and audio languages use the same named list. These choices, channel
+pages and the alternative SponsorBlock server need a companion that advertises
+them; the PS5 reads its feature list once and otherwise keeps the earlier
+requests. A channel folder then leads with **Channel sections** (Home, Videos,
+Shorts, Live, Playlists, sort orders and **Search in channel**, as the channel
+offers them). Touchpad click on a public playlist also offers **Save playlist to
+your library** and its removal; on **YouTube history** it opens **Pause**,
+**Resume** and **Clear watch history**; a Subscriptions card that carries it
+gets **Hide from this list**. All of these are confirmed and sent once.
+
+**Account settings** has **Separate settings per account** (off on a new
+installation: every profile shares one set of preferences; installations from
+earlier versions keep one set per profile) and an optional password for the
+selected account profile. The password is asked before that profile is selected,
+is typed on the visible PS5 keyboard, and is stored only as a salted hash; it
+does not protect the profile that is already selected when ProsperoTube starts.
+None of this has run on a PS5 or against a live account yet.
+
 During playback: Cross pauses, Left/Right scrubs, L1/R1 changes chapter,
 Up toggles captions, Down opens the caption picker, R2 opens playback options
 (quality, audio tracks and 0.25×–4× speed for on-demand YouTube videos),
