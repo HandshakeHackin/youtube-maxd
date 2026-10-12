@@ -60,7 +60,7 @@ rm -f "$out/libquickjs.a"
 prospero-ar rcs "$out/libquickjs.a" "$out/obj/quickjs.o"
 
 # ---- 2. Bindings ------------------------------------------------------------
-for unit in tube_js_platform tube_js_http tube_js_console; do
+for unit in tube_js_platform tube_js_http tube_js_console tube_js_libc tube_service_stub; do
   prospero-clang "${EVO_CFLAGS[@]}" -Wall -Wextra -Werror -DCURL_STATICLIB -I"$here" \
     -c "$here/$unit.c" -o "$out/obj/$unit.o"
 done
@@ -139,7 +139,7 @@ PROBE_ARCHIVES=(--start-group "$out/libquickjs.a")
 for a in libssl libcrypto libz libzstd libm; do PROBE_ARCHIVES+=("$HB/lib/$a.a"); done
 PROBE_ARCHIVES+=(--end-group)
 if ! link_like_evo "$out/probe-pie.elf" "$out/probe-link.log" \
-    "$out/obj/link_probe.o" "$out/obj/link_probe_tail.o" "$out/obj/tube_js_platform.o" "$out/tube_js_net.o" \
+    "$out/obj/link_probe.o" "$out/obj/link_probe_tail.o" "$out/obj/tube_js_platform.o" "$out/obj/tube_js_libc.o" "$out/tube_js_net.o" \
     "${PROBE_ARCHIVES[@]}"; then
   echo "build_ps5: the probe did not link; undefined symbols:" >&2
   undefined_of "$out/probe-link.log" >&2
@@ -193,7 +193,7 @@ if evo_tree_complete "$EVO_TREE" && [ -f "$EVO_BUILD/pie-imports.txt" ]; then
   # ... then with the engine, the bindings and libcurl added as plain objects.
   if ! link_like_evo "$out/app-pie.elf" "$out/app-link.log" \
       "${EVO_OBJECTS[@]}" "$out/obj/quickjs.o" "$out/obj/link_probe_nomain.o" \
-      "$out/obj/tube_js_platform.o" "$out/tube_js_net.o" "$out/obj/tube_js_data.o" \
+      "$out/obj/tube_js_platform.o" "$out/obj/tube_js_libc.o" "$out/tube_js_net.o" "$out/obj/tube_js_data.o" \
       "${PRX_STUBS[@]}" "${EVO_ARCHIVES[@]}"; then
     echo "build_ps5: EVO plus the engine did not link; undefined symbols:" >&2
     undefined_of "$out/app-link.log" >&2

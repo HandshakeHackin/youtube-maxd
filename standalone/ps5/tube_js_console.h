@@ -6,7 +6,11 @@
 extern "C" {
 #endif
 
-/* tube_js_http_config.socket_setup for the console: switches the socket to
+/* The console's client configuration, in full:
+ *   {.ca_data = tube_js_ca_pem, .ca_length = tube_js_ca_pem_length,
+ *    .socket_setup = tube_js_console_socket_setup, .poll_slice_ms = 10}
+ *
+ * tube_js_http_config.socket_setup for the console: switches the socket to
  * non-blocking with the console's own option (SO_NBIO). Without it a transfer
  * returns only when the server closes the idle connection. */
 int tube_js_console_socket_setup(int socket);

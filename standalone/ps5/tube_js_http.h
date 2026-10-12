@@ -56,6 +56,12 @@ typedef struct tube_js_http_config {
     /* Called on each new socket before it connects (console: SO_NBIO, see
      * tube_js_console.c). A non-zero return is ignored. NULL = nothing. */
     int (*socket_setup)(int socket);
+    /* Console: 10. tube_js_http_poll() then waits in slices of this many
+     * milliseconds and moves the transfers along between them, because there
+     * the wait does not always end when a socket becomes ready, and a wake is
+     * seen at the next slice even if the wake-up pipe does not work. 0 = one
+     * plain wait (desktop). */
+    int poll_slice_ms;
 } tube_js_http_config;
 
 typedef struct tube_js_http_request {
@@ -107,8 +113,9 @@ void tube_js_http_response_free(tube_js_http_response *response);
 
 int tube_js_http_active(const tube_js_http *client);   /* requests not yet complete */
 
-/* The one call another thread may make: ends a tube_js_http_poll() wait early.
- * Returns 0 when the wake was delivered. */
+/* The one call another thread may make: ends a tube_js_http_poll() wait early,
+ * or the next one at once when none is in progress. Returns 0 when the wake
+ * was delivered. */
 int tube_js_http_wake(tube_js_http *client);
 
 const char *tube_js_http_error_name(int error);

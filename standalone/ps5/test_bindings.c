@@ -792,6 +792,41 @@ static void test_wake(tube_js_http *client) {
     CHECK(took >= 100 && took < 1000);             /* and without one it waits its time */
 }
 
+/* The console's way of waiting: short slices, the transfers moved along
+ * between them, and a wake seen without relying on the wake-up pipe. */
+static void test_slices(void) {
+    tube_js_http_config config = {.poll_slice_ms = 10};
+    tube_js_http *client = tube_js_http_new(&config);
+    char url[128];
+    snprintf(url, sizeof url, "%s/slow/300", base);
+    tube_js_http_request request = {.url = url};
+    uint32_t id = 0;
+    uint64_t start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    CHECK(tube_js_http_poll(client, 5000) == 1);   /* one call returns when the answer is there */
+    uint64_t took = tube_js_monotonic_ms() - start;
+    CHECK(took >= 250 && took < 2000);
+    tube_js_http_response *r = tube_js_http_take(client);
+    CHECK(r && r->id == id && r->error == TUBE_JS_HTTP_OK && r->body_length == 4);
+    tube_js_http_response_free(r);
+    start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_poll(client, 120) == 0);
+    took = tube_js_monotonic_ms() - start;
+    CHECK(took >= 100 && took < 1000);
+    pthread_t thread;
+    start = tube_js_monotonic_ms();
+    pthread_create(&thread, NULL, wake_thread, client);
+    CHECK(tube_js_http_poll(client, 5000) == 0);
+    took = tube_js_monotonic_ms() - start;
+    pthread_join(thread, NULL);
+    CHECK(took >= 100 && took < 2000);
+    CHECK(tube_js_http_wake(client) == 0);         /* a wake before the wait ends that wait at once */
+    start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_poll(client, 3000) == 0);
+    CHECK(tube_js_monotonic_ms() - start < 1000);
+    tube_js_http_free(client);
+}
+
 static char *read_file(const char *path, size_t *length) {
     FILE *file = fopen(path, "rb");
     if (!file) return NULL;
@@ -923,6 +958,7 @@ int main(int argc, char **argv) {
     tube_js_http_free(NULL);
     tube_js_http_response_free(NULL);
     test_concurrency();
+    test_slices();
     test_tls(argv[1], argv[3]);
     CHECK(!strcmp(tube_js_http_error_name(TUBE_JS_HTTP_TLS), "TLS failure") && *tube_js_http_error_name(99));
 

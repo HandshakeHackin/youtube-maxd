@@ -6,6 +6,7 @@
 
 #include <curl/curl.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,8 @@ struct tube_js_http {
     size_t max_response_bytes;
     int max_redirects, max_requests;
     int (*socket_setup)(int socket);
+    int poll_slice_ms;
+    atomic_int woken;
     transfer *active, *done_head, *done_tail;
     int active_count, done_count;
     uint32_t last_id;
@@ -288,6 +291,8 @@ static int configure(transfer *t) {
     SET(CURLOPT_PRIVATE, t);
     SET(CURLOPT_ERRORBUFFER, t->curl_error);
     SET(CURLOPT_NOSIGNAL, 1L);
+    SET(CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_1_1);   /* what the console's libcurl speaks; the same everywhere */
+    SET(CURLOPT_BUFFERSIZE, 256L * 1024L);
     SET(CURLOPT_QUICK_EXIT, 1L);            /* a cancel or shutdown never waits for a name lookup */
     SET(CURLOPT_FOLLOWLOCATION, 0L);       /* redirects are followed here, by fetch's rules */
     SET(CURLOPT_ACCEPT_ENCODING, "");       /* offer and decode every coding this libcurl has */
@@ -533,6 +538,8 @@ tube_js_http *tube_js_http_new(const tube_js_http_config *config) {
     client->max_redirects = config->max_redirects > 0 ? config->max_redirects : 20;
     client->max_requests = config->max_requests > 0 ? config->max_requests : 64;
     client->socket_setup = config->socket_setup;
+    client->poll_slice_ms = config->poll_slice_ms > 0 ? config->poll_slice_ms : 0;
+    atomic_init(&client->woken, 0);
     int failed = 0;
     if (config->ca_file) failed |= !(client->ca_file = copy_string(config->ca_file));
     if (config->ca_data && config->ca_length) {
@@ -660,9 +667,21 @@ int tube_js_http_poll(tube_js_http *client, int wait_ms) {
     if (!client) return 0;
     drive(client);
     if (wait_ms > 0 && !client->done_count) {
-        int ready = 0;
-        (void)curl_multi_poll(client->multi, NULL, 0, wait_ms, &ready);
-        drive(client);
+        uint64_t deadline = tube_js_monotonic_ms() + (uint64_t)wait_ms;
+        /* A wake that came before this wait ends it at once. */
+        while (!atomic_exchange(&client->woken, 0)) {
+            uint64_t now = tube_js_monotonic_ms();
+            if (now >= deadline) break;
+            int slice = (int)(deadline - now), ready = 0;
+            if (client->poll_slice_ms && slice > client->poll_slice_ms) slice = client->poll_slice_ms;
+            (void)curl_multi_poll(client->multi, NULL, 0, slice, &ready);
+            drive(client);
+            if (!client->poll_slice_ms) {   /* the one wait is over, whatever ended it */
+                atomic_store(&client->woken, 0);
+                break;
+            }
+            if (client->done_count) break;
+        }
     }
     return client->done_count;
 }
@@ -683,7 +702,11 @@ void tube_js_http_response_free(tube_js_http_response *response) { transfer_free
 int tube_js_http_active(const tube_js_http *client) { return client ? client->active_count : 0; }
 
 int tube_js_http_wake(tube_js_http *client) {
-    return client && curl_multi_wakeup(client->multi) == CURLM_OK ? 0 : -1;
+    if (!client) return -1;
+    atomic_store(&client->woken, 1);
+    int delivered = curl_multi_wakeup(client->multi) == CURLM_OK;
+    /* With slices the flag alone is enough: the wait sees it within one slice. */
+    return delivered || client->poll_slice_ms ? 0 : -1;
 }
 
 const char *tube_js_http_error_name(int error) {
