@@ -24,8 +24,7 @@ if [[ -z "${PROSPEROTUBE_TRANSFORM_ARTIFACT:-}" ]]; then
     export PROSPEROTUBE_TRANSFORM_ARTIFACT
 fi
 # The package carries the built-in YouTube service unless told otherwise:
-# TUBE_EMBEDDED_SERVICE=0 builds the companion-only app, and
-# PROSPEROTUBE_STUB_SERVICE=1 links a stand-in service (link check only).
+# TUBE_EMBEDDED_SERVICE=0 builds the companion-only app.
 # Host tests call prepare_native.py without this and keep the companion.
 export TUBE_EMBEDDED_SERVICE="${TUBE_EMBEDDED_SERVICE:-1}"
 # The service bundle is built here when it is missing or older than anything it
