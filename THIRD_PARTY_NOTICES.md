@@ -39,6 +39,26 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   and integrity hashes are in `companion/innertube/package-lock.json`.
   esbuild 0.25.10 (MIT) builds its host-side worker bundle. Dependency license
   files remain in the installed packages; keep them with binary distributions.
+* The built-in YouTube service (packages built with `TUBE_EMBEDDED_SERVICE=1`,
+  the default of `scripts/build_ps5.sh`) adds, all linked or embedded in
+  `eboot.bin`:
+  QuickJS-NG v0.17.0 (MIT), the release's `quickjs-amalgam.zip`, SHA-256
+  `a0955463c74809173a253ff87365095e6972e8b171cfb6aa8a1e781adf35cfeb`, fetched
+  by `standalone/ps5/fetch_quickjs.sh` and compiled unmodified;
+  libcurl 8.18.0 (curl license) and libpsl 0.21.5 (MIT), the static archives of
+  Pacbrew v0.39, on the OpenSSL 3.5.2 already linked;
+  the Mozilla root certificates as extracted by curl.se on 2026-09-25
+  (`cacert-2026-09-25.pem`, SHA-256
+  `a41b5d356aea97a529fe27e0f7316d2f9d946d75927476cf9cf1b90637d00505`, fetched by
+  `standalone/ps5/fetch_cacert.sh`); the certificate data is under MPL-2.0 and
+  is embedded unchanged, so that file is its source form;
+  YouTube.js 18.1.0 (MIT) and its dependencies inside the service bundle, with
+  the pins of `companion/innertube/package-lock.json`.
+  The license texts are in `native/licenses` and ship under
+  `assets/prosperotube-notices`. The console support for libcurl follows
+  ps5-native-app-boilerplate `examples/update-check/console_curl.c`
+  (GPL-3.0-or-later, same author); adapted source: `standalone/ps5/tube_js_console.c`,
+  `standalone/ps5/tube_js_libc.c`.
 * Optional segment information comes from the SponsorBlock community database
   and API by Ajay Ramachandran and contributors: https://sponsor.ajay.app/.
   The API/database license is CC BY-NC-SA 4.0:

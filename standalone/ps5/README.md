@@ -320,7 +320,10 @@ a name over the network or leaves the machine.
   the same amalgamation. Revisit only if a console measurement shows start-up
   compile above ~0.3 s.
 
-## 5. Package integration plan (not applied)
+## 5. Package integration
+
+Applied since by `scripts/embedded_service_overlay.py` (section 7); what
+follows is the plan it implements, kept for the reasoning.
 
 `scripts/package-app.sh` needs **no change**: OpenSSL, zlib and zstd are
 already in its archive group, libcurl and libpsl are inside `tube_js_net.o`,
@@ -365,7 +368,7 @@ Client set-up on the console:
 
 ```c
 tube_js_http_config config = {.ca_data = tube_js_ca_pem, .ca_length = tube_js_ca_pem_length,
-                              .socket_setup = tube_js_console_socket_setup};
+                              .socket_setup = tube_js_console_socket_setup, .poll_slice_ms = 10};
 ```
 
 Notices (`THIRD_PARTY_NOTICES.md`, texts copied to
@@ -412,3 +415,124 @@ it) from the relink of the app's own objects:
    not show it; `curl --http1.1 --compressed` with `br` removed would).
 8. **Shutdown inside the soft-close window**: stop, join and park with requests
    in flight and a name lookup pending.
+
+## 7. Checked against the hardware-proven libcurl reference
+
+Reference: `ps5-native-app-boilerplate/examples/update-check/console_curl.c`
+(line numbers below) and the written guide `ProsperoRadio-curl-guide/README.md`
+(sections). Both describe PacBrew libcurl 8.18.0 + OpenSSL 3.5.2 running on a
+console, elevated and sandboxed.
+
+| Item | Reference | Here | State |
+|---|---|---|---|
+| Name lookup | own `getaddrinfo`, `freeaddrinfo`, `gai_strerror`, `getnameinfo` on `sceNetResolver` (lines 173-269, guide 5): the SDK's come from `libScePosixForWebKit` and are null | The app already has them: EVO's `tools/native-app/stubs/evo_dns.c`, linked into every package. libcurl's lookup threads call that one (no `getaddrinfo` import remains in the relinked app) | covered |
+| `gethostbyname` | returns NULL (line 248) | was a null import of the app (OpenSSL `bio_sock.o`): now defined in `tube_js_libc.c` | **gap, closed** |
+| `isatty`, `mkstemp` | defined (lines 397-410, guide 4): they link from `libScePosixForWebKit` | were null imports of the app (FFmpeg `log.o`, `file_open.o`): now defined app-wide in `tube_js_libc.c` | **gap, closed** |
+| `SO_NBIO` | `CURLOPT_SOCKOPTFUNCTION` (lines 78-98, guide 6) | `tube_js_console_socket_setup` through `socket_setup` | same |
+| `NOSIGNAL` | line 95 | always set | same |
+| `fcntl` on sockets | `--wrap=fcntl` (lines 104-150) | the same function, wrapped inside `tube_js_net.o` only | same |
+| CA list | `/system/common/cert/CA_LIST.cer`, else under the sandbox word (lines 53-72, guide 7) | embedded Mozilla bundle; `tube_js_console_ca_file()` returns the reference's paths as the fallback | same, plus the pin |
+| `gmtime_r` | own, must be right (line 438) | the SDK's `libc.a(gmtime.o)`, a real one, as EVO's link already uses | covered |
+| `_setjmp`, `dladdr`, `recvmmsg`, `sendmmsg` | lines 309-378 | EVO's `stubs/libc_ext.c` | covered |
+| `getpwuid_r`, `if_nametoindex`, `pipe2`, `fnmatch`, `ZSTD_trace_*` | lines 271-356, 412-434 | `tube_js_console.c`, same bodies | same |
+| `openlog`, `closelog`, `popen`, `pclose` | lines 319-394 | nothing in this link refers to them | not needed |
+| Waiting | "`curl_multi_poll` does not always wake early" on the console; wait 10 ms and only after a pass without progress (guide 8 and 10.5) | `tube_js_http_poll` trusted one long wait | **gap, closed**: `poll_slice_ms = 10` waits in 10 ms slices and moves the transfers along between them |
+| Wake | `curl_multi_wakeup` (needs the pipe from `pipe2`) | relied on it alone | **gap, closed**: a flag set by `tube_js_http_wake()` and read every slice; the pipe is no longer needed for a wake to be seen |
+| HTTP version, buffer | `CURL_HTTP_VERSION_1_1`, 256 KiB (guide examples) | now set the same | aligned |
+
+Two more null imports of today's app turned up in the same scan and are **not**
+touched here, because nothing on the libcurl path calls them: `strcasestr`
+(EVO's `provider_xtream.o`, SDL) and `arc4random_buf` (FFmpeg
+`random_seed.o`).
+
+## 8. Wired into the app
+
+**Flag.** `TUBE_EMBEDDED_SERVICE`. `scripts/build_ps5.sh` exports it as 1
+unless told otherwise; `scripts/prepare_native.py` on its own (every host
+test) leaves it off, so those tests build and behave as before. At run time a
+file named `external-companion` in the app's data folder keeps the LAN
+companion in a package that carries the service (development).
+
+**Provider** (`native/tube_provider.c`, `tube_provider.h`):
+`tube_embedded_mode/start/stop/error`, `tube_art_url_allowed`.
+* `init()` decides the mode, reads the store, moves the stored companion
+  address and token aside (they are written back unchanged on every save and
+  never used) and calls `tube_service_start(evo_data_dir(), ...)`. The
+  provider's source becomes `http://127.0.0.1:<port>` with the returned token,
+  in memory only.
+* `begin()` never pairs in this mode: it makes sure the service runs (asking it
+  again after a refused token) or fails the request with the service's reason.
+* Failure: the app opens; the main menu's first row is "YouTube service did
+  not start - select to retry" with `tube_service_error()` under it; Options
+  retries too. The local library keeps working.
+* Stop: `tube_embedded_stop()` on the first soft-close frame
+  (`Application.cpp`, before "soft close: media released" is logged) and in
+  the provider's shutdown. It cancels requests, clears the address and token,
+  stops the service; afterwards requests fail quietly and nothing reaches the
+  network path. The parked loop of `Application.cpp` never returns to the
+  frame loop, so there is no resume today; `tube_embedded_start()` is the call
+  for one.
+* Hidden in this mode: the "Phone pairing" row, voice search (L3 does
+  nothing, its scope stays closed), the address keyboard on Options, and in the
+  package the on-screen texts that name the companion.
+* Artwork: the fetch (`evo_rmlui_provider_art.cpp`) now asks
+  `tube_art_url_allowed()`. External companion: unchanged. Built-in service:
+  its own loopback address, or `https://` on exactly `i.ytimg.com`,
+  `i9.ytimg.com`, `yt3.ggpht.com`, `yt3.googleusercontent.com`, default port,
+  no user part. Size bounds are EVO's, unchanged. (The fetch itself is EVO's
+  client, whose TLS does not verify; a wrong image is the worst case.)
+* Streams: a choice must still be an address of the source, i.e. the loopback
+  manifest. An optional `"headers"` text on a choice (`"Name: value\r\n"`
+  lines) is passed to the player; anything malformed is dropped.
+
+**Loopback.** EVO's client reaches `127.0.0.1` without a name lookup:
+`evo_dns.c` answers IPv4 literals itself (`parse_ipv4_literal`, lines 148 and
+399), and nothing in `evo_net.c` refuses loopback.
+
+**Player facts** (FFmpeg 7.1.1 as built by `third_party/evo/scripts/build-ffmpeg.sh`):
+* https is in: `--enable-openssl` (line 351), `--enable-protocol=https` and
+  `=tls` (549, 551), `--enable-demuxer=dash` with libxml2 (468-469); the
+  build's `config_components.h` has `CONFIG_HTTPS_PROTOCOL`,
+  `CONFIG_TLS_PROTOCOL`, `CONFIG_DASH_DEMUXER` 1. `tls_verify` defaults to 0
+  (`libavformat/tls.h:49`) and nothing sets it.
+* A manifest from `http://127.0.0.1` may name absolute `https` addresses:
+  `dashdec.c` resolves `BaseURL` with `ff_make_absolute_url` (493-500, 1703),
+  accepts any protocol whose name starts with `http` (434), and the http
+  protocol's default whitelist includes `https` and `tls` (`http.c:2073`).
+* What the app passes (`media/src/evo_stream_io.c:222-233`): `headers` from
+  the choice, `user_agent` (cleared for provider streams,
+  `ProviderHostScreen.cpp:201-202` of the prepared tree, so FFmpeg's
+  `Lavf/...` unless a `User-Agent:` line is among the headers), `reconnect*`,
+  `rw_timeout` and `timeout` 5 s. The manifest is a "playlist" for EVO and is
+  read by FFmpeg's own http, not the parallel reader (`:478-480`).
+* What reaches the segment requests: only what `ffio_copy_url_options` copies
+  from the manifest's connection (`dashdec.c:2043`) - `headers`, `user_agent`,
+  `cookies`, `http_proxy`, `referer`, `rw_timeout`, `icy`. So the choice's
+  headers and the read timeout do; **the reconnect options and `timeout` do
+  not**. Nothing was changed here: whether googlevideo needs a particular
+  `User-Agent` is the service's knowledge, and it can say so per choice.
+
+**Build.** `scripts/embedded_service_overlay.py`, called last by
+`prepare_native.py`: copies the engine, the bindings, `tube_js_libc.c` and
+the service, embeds the bundle and the roots (`tube_js_data.c`), edits the
+Makefile as in section 5, ships the license texts. The service is:
+
+| | sources | bundle |
+|---|---|---|
+| `PROSPEROTUBE_STUB_SERVICE=1` | `standalone/ps5/tube_service_stub.c` (never starts) | `standalone/ps5/stub_bundle.js` |
+| otherwise | every `standalone/src/*.c` except `main.c`, headers of `standalone/src` and `standalone/include` | `PROSPEROTUBE_JS_BUNDLE`, default `standalone/build/tube_js.bundle.js` |
+
+Without the stub, a missing `standalone/include/tube_service.h`, bundle or
+source stops the build with a message that names them.
+
+**Tests.** `scripts/test_embedded_service.sh` (ASan/UBSan): the provider built
+with the flag against a stand-in service and queued HTTP.
+
+**To plug in the real service:** put its sources in `standalone/src/` and its
+interface in `standalone/include/tube_service.h` (then delete
+`standalone/ps5/tube_service.h`), produce the bundle, and build without
+`PROSPEROTUBE_STUB_SERVICE`. It must create its client with the configuration
+of `tube_js_console.h` on the console, read `tube_js_bundle` /
+`tube_js_ca_pem` from `tube_js_data.h`, listen on a port between 20000 and
+40000 (the console refuses 49152 and above), and cap its own waits as section
+4 says.
