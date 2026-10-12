@@ -28,8 +28,25 @@
    "file": "player_live.json"
   },
   {
+   "body_contains": "\"videoId\":\"fixtureSHT1\"",
+   "file": "player_short.json"
+  },
+  {
+   "body_contains": "\"videoId\":\"fixtureDENY\"",
+   "file": "player_denied.json"
+  },
+  {
    "body_contains": "\"videoId\":\"fixtureGONE\"",
    "file": "player_gone.json"
+  }
+ ],
+ "POST www.youtube.com/youtubei/v1/next": [
+  {
+   "body_contains": "\"videoId\":\"fixtureVID1\"",
+   "file": "next.json"
+  },
+  {
+   "file": "next_empty.json"
   }
  ],
  "GET manifest.googlevideo.com/api/manifest/hls_variant/id/fixtureLIV1/file/index.m3u8": {
@@ -40,6 +57,10 @@
   "file": "sidx.bin",
   "status": 206,
   "type": "video/mp4"
+ },
+ "GET rr2---sn-fixture.googlevideo.com/videoplayback": {
+  "status": 403,
+  "type": "text/plain"
  },
  "GET www.youtube.com/api/timedtext": {
   "file": "captions.vtt",

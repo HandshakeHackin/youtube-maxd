@@ -4,7 +4,7 @@
 // Port of companion/prosperotube/catalog.py (item, page_for) and of the
 // catalog paging in oauth_extractor.py (_catalog).
 import { ServiceError, number, safeRemote, text } from './errors.js';
-import { captionMaps, chaptersOf } from './resolve.js';
+import { captionMaps, chapterList } from './resolve.js';
 
 const host = globalThis.__host;
 const VIDEO = /^[A-Za-z0-9_-]{11}$/, CHANNEL = /^UC[A-Za-z0-9_-]{22}$/, PLAYLIST = /^[A-Za-z0-9_-]{10,100}$/;
@@ -30,7 +30,7 @@ export function videoRecord(source) {
   const details = source.info.basic_info, duration = number(details.duration);
   return { id: details.id, title: details.title, channel: details.author, channel_id: details.channel_id,
     description: details.short_description, thumbnail: details.thumbnail?.[0]?.url ?? '', duration, is_live: details.is_live === true,
-    chapters: chaptersOf(details.short_description, duration),
+    chapters: chapterList(source.info, duration),
     caption_languages: Array.from(captionMaps(source.info, false).subtitles.keys()).sort().slice(0, 32) };
 }
 

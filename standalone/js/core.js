@@ -128,6 +128,30 @@ export async function libraryExecute(request, operation = 'execute') {
 // live on 2026-10-11). The player script is not loaded: the default client's
 // addresses arrive ready. Its analysis costs seconds and hundreds of megabytes
 // in this engine, so it only ever runs when the host allowed it explicitly.
+// The pinned parser drops a few facts of the player answer that the resolve
+// record carries (paid promotion, Shorts eligibility), so the playback client's
+// fetch keeps those from the raw JSON, by video.
+const playerFacts = new Map();
+export const rawPlayerFacts = id => playerFacts.get(id) ?? {};
+async function playbackFetch(input, init) {
+  const response = await youtubeFetch(input, init);
+  const url = typeof input === 'string' ? input : input.url ?? String(input);
+  if (!response.ok || !/\/youtubei\/v1\/player(\?|$)/.test(url)) return response;
+  const body = await response.text();
+  try {
+    const raw = JSON.parse(body), id = raw?.videoDetails?.videoId, micro = raw?.microformat?.playerMicroformatRenderer;
+    if (typeof id === 'string') {
+      const overlay = raw.paidContentOverlay?.paidContentOverlayRenderer?.text;
+      const paid = typeof overlay?.simpleText === 'string' ? overlay.simpleText : Array.isArray(overlay?.runs) ?
+        overlay.runs.slice(0, 64).map(run => typeof run?.text === 'string' ? run.text.slice(0, 512) : '').join('') : '';
+      if (playerFacts.size >= 32) playerFacts.delete(playerFacts.keys().next().value);
+      playerFacts.set(id, { paid, shorts: micro?.isShortsEligible === true || /\/shorts\//.test(String(micro?.canonicalUrl ?? '')) ? true : micro ? false : undefined,
+        keys: Object.keys(raw), micro: micro ? Object.keys(micro) : null });
+    }
+  } catch { /* the parser will report a malformed answer */ }
+  return new Response(body, { status: response.status, headers: response.headers, url: response.url });
+}
+
 const LANGUAGE = { 'en-NZ': 'en-GB', he: 'iw', mo: 'ro', nb: 'no', 'pt-BR': 'pt', tjl: '' };
 const cache = () => new UniversalCache(true, cacheDirectory());
 const clients = new Map();
@@ -136,7 +160,7 @@ export function playbackClient(hl = '') {
   if (!clients.has(lang)) {
     if (clients.size >= 4) clients.delete(clients.keys().next().value);
     const created = Innertube.create({ cache: cache(), retrieve_player: false, retrieve_innertube_config: false,
-      generate_session_locally: !!host.getenv('TUBE_JS_LOCAL_SESSION'), enable_session_cache: false, fetch: youtubeFetch, ...(lang ? { lang } : {}) });
+      generate_session_locally: !!host.getenv('TUBE_JS_LOCAL_SESSION'), enable_session_cache: false, fetch: playbackFetch, ...(lang ? { lang } : {}) });
     created.catch(() => { if (clients.get(lang) === created) clients.delete(lang); });
     clients.set(lang, created);
   }
@@ -163,7 +187,7 @@ export async function extractVideo(id, { hl = '', fresh = false, order = PLAYBAC
     running++;
     try {
       const yt = await playbackClient(hl).catch(() => { throw resolverError('resolver_network'); });
-      return await extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch });
+      return await extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch, facts: rawPlayerFacts });
     } finally { running--; waiters.shift()?.(); }
   })();
   const value = deadline(45000, work, () => new ServiceError('timeout', 'YouTube took too long to respond. Retry from the video screen.', 504));

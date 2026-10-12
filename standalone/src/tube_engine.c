@@ -461,7 +461,10 @@ static int interrupted(JSRuntime *runtime, void *opaque) { (void)runtime; return
  * `config` becomes `__host.config` (consumed). */
 static const char *engine_open(Engine *engine, const tube_service_options *options, JSValue (*settings)(JSContext *, void *), void *opaque) {
   engine->on_timer = engine->http_done = engine->on_request = JS_UNDEFINED;
-  tube_js_http_config http = { .ca_file = options->ca_file, .timeout_ms = 20000, .max_requests = 32 };
+  /* IPv4 only: media links are bound to the address that asked for them, and
+   * the player (FFmpeg) reaches the media servers over IPv4. With links
+   * obtained over IPv6 every read by the player was refused with 403. */
+  tube_js_http_config http = { .ca_file = options->ca_file, .timeout_ms = 20000, .max_requests = 32, .ipv4_only = 1 };
 #ifdef TUBE_SERVICE_EMBEDDED
   if (!options->ca_file) { http.ca_data = tube_js_ca_pem; http.ca_length = tube_js_ca_pem_length; }
   http.socket_setup = tube_js_console_socket_setup;

@@ -4,10 +4,11 @@
 import './platform.js';
 import { Constants } from 'youtubei.js';
 import './companion.js';
-import { LibraryError, catalog, config, extractVideo, libraryExecute, mediaFetch, playbackClient, prepare, youtubeFetch } from './core.js';
+import { LibraryError, catalog, config, extractVideo, libraryExecute, mediaFetch, playbackClient, prepare, rawPlayerFacts, youtubeFetch } from './core.js';
 import { ServiceError } from './errors.js';
 import { resolveRequest } from './schema.js';
-import { CLIENTS, PLAYBACK_ORDER, captionMaps, createPlayback, formatRow, playerResponse, rangeCheck, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
+import { fileIndex, rangedManifest } from './segments.js';
+import { CLIENTS, PLAYBACK_ORDER, captionMaps, createPlayback, dashManifest, formatRow, playerResponse, rangeCheck, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
 import { selfTest } from './selftest.js';
 
 const host = globalThis.__host;
@@ -136,7 +137,22 @@ async function ranges(id, client, itag, steps) {
   return report;
 }
 
-const usage = 'usage: tube_js serve --state-dir DIR [--host 127.0.0.1] [--port N] [--token T] [--sponsorblock] | search <query> [more] | ' +
+// A manifest for files on disk, for the seek laboratory (test/seek_lab.py):
+// {duration, shape: "classic" | "ranged", segment_seconds, tracks: [{kind, url, head_file, index_file, mime_type,
+// init_range, index_range, content_length, width, height, bitrate, audio_sample_rate}]}.
+async function manifest(text) {
+  const request = JSON.parse(text), [video, audio] = request.tracks;
+  if (request.shape !== 'ranged') return { manifest: dashManifest(request.duration, video, audio, video.url, audio.url) };
+  const tracks = [];
+  for (const track of request.tracks) {
+    // head_file: the file's first bytes; index_file: the bytes of index_range.
+    const head = new Uint8Array(host.readFile(track.head_file)), index = new Uint8Array(host.readFile(track.index_file));
+    tracks.push({ kind: track.kind, format: track, url: track.url, index: await fileIndex(async first => first === 0 ? head : index, track, request.duration, true) });
+  }
+  return { manifest: rangedManifest(request.duration, tracks, request.segment_seconds), segments: tracks.map(track => track.index.segments.length) };
+}
+
+const usage ='usage: tube_js serve --state-dir DIR [--host 127.0.0.1] [--port N] [--token T] [--sponsorblock] | search <query> [more] | ' +
   'info <id> [full] | comments <id> | channel <UC…> | resolve <id> [client] | probe <id> [client,…|all] [ranged] | ' +
   'ranges <id> [client] [itag] [steps] | library <json>… | version | selftest';
 
@@ -149,6 +165,15 @@ export async function handle(argv) {
     case 'comments': return library([JSON.stringify({ action: 'comments', id: videoId(first) })]);
     case 'channel': return library([JSON.stringify({ action: 'channel', channel: first, ...(second ? { tab: second } : {}) })]);
     case 'library': return library(argv.slice(1));
+    case 'manifest': return manifest(first);
+    case 'explore': {   // which facts a client's answers carry for one video (diagnosis)
+      const yt = await playbackClient(), data = await yt.getInfo(videoId(first), { client: second ?? 'VISIONOS' });
+      const markers = data.player_overlays?.decorated_player_bar?.player_bar?.markers_map ?? [];
+      return { facts: rawPlayerFacts(first), duration: data.basic_info?.duration, width: data.streaming_data?.adaptive_formats?.[0]?.width,
+        height: data.streaming_data?.adaptive_formats?.[0]?.height, overlays: data.player_overlays?.type ?? null,
+        markers: Array.from(markers, entry => ({ key: entry.marker_key, chapters: (entry.value?.chapters ?? []).slice(0, 3).map(chapter => [String(chapter.title), chapter.time_range_start_millis]) })),
+        panels: (data.page?.[1]?.engagement_panels ?? []).map(panel => panel.panel_identifier ?? panel.target_id ?? panel.type).slice(0, 8) };
+    }
     case 'info': return info(videoId(first), second);
     case 'resolve': return resolve(videoId(first), second);
     case 'ranges': return ranges(videoId(first), clientList(second ?? 'VISIONOS')[0], third, argv[4]);

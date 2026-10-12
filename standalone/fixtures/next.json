@@ -1,0 +1,70 @@
+{
+ "contents": {
+  "twoColumnWatchNextResults": {
+   "results": {
+    "results": {
+     "contents": []
+    }
+   },
+   "secondaryResults": {
+    "secondaryResults": {
+     "results": []
+    }
+   }
+  }
+ },
+ "playerOverlays": {
+  "playerOverlayRenderer": {
+   "decoratedPlayerBarRenderer": {
+    "decoratedPlayerBarRenderer": {
+     "playerBar": {
+      "multiMarkersPlayerBarRenderer": {
+       "markersMap": [
+        {
+         "key": "DESCRIPTION_CHAPTERS",
+         "value": {
+          "chapters": [
+           {
+            "chapterRenderer": {
+             "title": {
+              "simpleText": "Opening"
+             },
+             "timeRangeStartMillis": 0,
+             "thumbnail": {
+              "thumbnails": []
+             }
+            }
+           },
+           {
+            "chapterRenderer": {
+             "title": {
+              "simpleText": "Main part"
+             },
+             "timeRangeStartMillis": 120000,
+             "thumbnail": {
+              "thumbnails": []
+             }
+            }
+           },
+           {
+            "chapterRenderer": {
+             "title": {
+              "simpleText": "Credits"
+             },
+             "timeRangeStartMillis": 500000,
+             "thumbnail": {
+              "thumbnails": []
+             }
+            }
+           }
+          ]
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  }
+ }
+}

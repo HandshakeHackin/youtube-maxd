@@ -25,7 +25,7 @@ ROOT = HERE.parent
 TOKEN = "test-token-0123456789abcdef"
 CHANNEL = "UC" + "f" * 22
 PLAYLIST = "PLfixture0001"
-VIDEO, LIVE, GONE = "fixtureVID1", "fixtureLIV1", "fixtureGONE"
+VIDEO, LIVE, GONE, SHORT = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 failures, passed = [], 0
 
@@ -140,7 +140,7 @@ def basics(s):
     same("health status", (status, headers.get("content-type")), (200, "application/json"))
     same("health fields", {k: v for k, v in health.items() if k != "features"},
          {"api_version": 1, "version": "0.1.0", "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
-          "sponsorblock_alt": False, "proxy": False})
+          "sponsorblock_alt": False, "proxy": False, "embedded": True})
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",
                                           "video_details", "translated_captions", "locale", "thumbnail_source", "dearrow"} <= set(features), features)
@@ -309,8 +309,9 @@ def library(s):
 
 def playback(s):
     status, details = s.job({"action": "details", "id": VIDEO})
-    chapters = [{"start_time": 0, "title": "Intro", "end_time": 90}, {"start_time": 90, "title": "Middle part", "end_time": 300},
-                {"start_time": 300, "title": "The end", "end_time": 635}]
+    # Structured chapters of the watch page win over the timestamps in the description.
+    chapters = [{"start_time": 0, "title": "Opening", "end_time": 120}, {"start_time": 120, "title": "Main part", "end_time": 500},
+                {"start_time": 500, "title": "Credits", "end_time": 635}]
     same("details job", (status, sorted(details), details["item"]["id"], details["item"]["title"], details["item"]["duration_sec"], details["chapters"]),
          (200, ["chapters", "item"], VIDEO, "Fixture video", 635, chapters))
     status, _, video = s.call("GET", f"/v1/video/{VIDEO}")
@@ -332,7 +333,7 @@ def playback(s):
         "api_version": 1, "id": VIDEO, "title": "Fixture video", "duration_sec": 635, "expires_in": 1800,
         "choices": [choice(0, "1080p 60 fps H264 / AAC", "h264", 1920, 1080, 60, 3248000), choice(1, "720p 30 fps H264 / AAC", "h264", 1280, 720, 30, 1100000)],
         "captions": [{"language": "en", "name": "English", "url": f"{prefix}/c0.srt", "automatic": False, "translated": False}],
-        "chapters": [{"title": "Intro", "start": 0, "end": 90}, {"title": "Middle part", "start": 90, "end": 300}, {"title": "The end", "start": 300, "end": 635}],
+        "chapters": [{"title": "Opening", "start": 0, "end": 120}, {"title": "Main part", "start": 120, "end": 500}, {"title": "Credits", "start": 500, "end": 635}],
         "paid_content_text": "", "loudness_db": -3.5, "is_short": False,
         "storyboards": [{"width": 48, "height": 27, "columns": 10, "rows": 10, "count": 100, "sheets": 1, "interval_ms": 6350, "url": f"{prefix}/sb0-$M.jpg"},
                         {"width": 80, "height": 45, "columns": 10, "rows": 10, "count": 128, "sheets": 2, "interval_ms": 4961, "url": f"{prefix}/sb1-$M.jpg"},
@@ -381,9 +382,22 @@ def playback(s):
     same("unsupported media status", s.call("POST", "/v1/resolve", {"id": VIDEO, "codec": "hevc"})[0], 422)
     same("removed video", s.call("POST", "/v1/resolve", {"id": GONE})[::2],
          (404, {"api_version": 1, "error": {"code": "video_unavailable", "message": "This YouTube video is unavailable or has been removed. Choose another video."}}))
+    # Links that the media server refuses are found at resolve time (three tries), not by the player.
+    began = time.time()
+    same("refused links", s.call("POST", "/v1/resolve", {"id": "fixtureDENY"})[::2],
+         (502, {"api_version": 1, "error": {"code": "upstream_media", "message": "The media server could not provide this resource."}}))
+    check("refused links are retried with pauses", 1.5 < time.time() - began < 10, time.time() - began)
     same("resolve, other profile", s.call("POST", "/v1/resolve", {"id": VIDEO, "profile": "someone"})[0], 404)
     same("resolve, bad request", s.call("POST", "/v1/resolve", {"id": VIDEO, "max_height": 99})[0], 422)
 
+    # A manifest asked for again with ?refresh=1 is rebuilt from a new player answer, under the same names.
+    status, headers, again = s.call("GET", play["choices"][0]["url"] + "?refresh=1", token=None, raw=True)
+    same("refreshed manifest", (status, headers.get("content-type"), again == manifest), (200, "application/dash+xml", True))
+    same("captions after a refresh", s.call("GET", play["captions"][0]["url"], token=None, raw=True)[0], 200)
+    status, short = s.job({"action": "resolve", "playback": {"id": SHORT, "max_height": 2160}})
+    same("short, paid promotion, description chapters out of range", (status, short["is_short"], short["paid_content_text"], short["chapters"], short["choices"][0]["label"]),
+         (200, True, "Includes paid promotion", [], "1920p 30 fps H264 / AAC"))
+    same("an ordinary video is no short", (play["is_short"], play["paid_content_text"]), (False, ""))
     status, live = s.job({"action": "resolve", "playback": {"id": LIVE, "max_height": 1080}})
     same("live choices", (status, [(c["label"], c["container"], c["is_live"], c["video_codec"], c["audio_codec"], c["bitrate_bps"]) for c in live["choices"]],
                           live["storyboards"], live["duration_sec"]),

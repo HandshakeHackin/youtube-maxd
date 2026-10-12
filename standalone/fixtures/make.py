@@ -14,7 +14,7 @@ import struct
 HERE = Path(__file__).resolve().parent
 CHANNEL = "UC" + "f" * 22
 PLAYLIST = "PLfixture0001"
-VIDEO, LIVE, GONE = "fixtureVID1", "fixtureLIV1", "fixtureGONE"
+VIDEO, LIVE, GONE, SHORT, DENIED = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY"
 ZOO = "jNQXAC9IVRw"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 
@@ -137,6 +137,27 @@ def player():
             "playerConfig": {"audioConfig": {"loudnessDb": -3.5}}}
 
 
+def short_player():
+    """A portrait video of 23 seconds with a paid-promotion notice."""
+    answer = {"playabilityStatus": {"status": "OK"}, "videoDetails": {**details(SHORT, "Fixture short"), "lengthSeconds": "23"},
+              "streamingData": {"expiresInSeconds": "21540", "adaptiveFormats": [
+                  picture(299, 'video/mp4; codecs="avc1.64002a"', 1080, 1920, 30, 2000000, "1920p"),
+                  sound(140, 'audio/mp4; codecs="mp4a.40.2"', 129500, 44100)]},
+              "paidContentOverlay": {"paidContentOverlayRenderer": {"text": {"runs": [{"text": "Includes  paid\n"}, {"text": "promotion"}]}}}}
+    return answer
+
+
+def watch_next():
+    """The watch page's structured chapters (the uploader's)."""
+    chapters = [("Opening", 0), ("Main part", 120000), ("Credits", 500000)]
+    return {"contents": {"twoColumnWatchNextResults": {"results": {"results": {"contents": []}},
+                                                       "secondaryResults": {"secondaryResults": {"results": []}}}},
+            "playerOverlays": {"playerOverlayRenderer": {"decoratedPlayerBarRenderer": {"decoratedPlayerBarRenderer": {"playerBar": {
+        "multiMarkersPlayerBarRenderer": {"markersMap": [{"key": "DESCRIPTION_CHAPTERS", "value": {"chapters": [
+            {"chapterRenderer": {"title": {"simpleText": title}, "timeRangeStartMillis": start, "thumbnail": {"thumbnails": []}}}
+            for title, start in chapters]}}]}}}}}}}
+
+
 def live_player():
     return {"playabilityStatus": {"status": "OK"}, "videoDetails": details(LIVE, "Fixture live stream", live=True),
             "streamingData": {"expiresInSeconds": "21540", "adaptiveFormats": [],
@@ -176,6 +197,12 @@ def main():
     write("playlist.json", playlist())
     write("player.json", player())
     write("player_live.json", live_player())
+    write("player_short.json", short_player())
+    # The same video on a media host that refuses every read (links YouTube will not serve).
+    denied = json.loads(json.dumps(player()).replace("rr1---sn-fixture", "rr2---sn-fixture").replace(VIDEO, DENIED))
+    write("player_denied.json", denied)
+    write("next.json", watch_next())
+    write("next_empty.json", {})
     write("player_gone.json", {"playabilityStatus": {"status": "ERROR", "reason": "This video is unavailable"}})
     write("live.m3u8", MASTER)
     write("captions.vtt", VTT)
@@ -204,9 +231,14 @@ def main():
         "POST www.youtube.com/youtubei/v1/player": [
             {"body_contains": f'"videoId":"{VIDEO}"', "file": "player.json"},
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
+            {"body_contains": f'"videoId":"{SHORT}"', "file": "player_short.json"},
+            {"body_contains": f'"videoId":"{DENIED}"', "file": "player_denied.json"},
             {"body_contains": f'"videoId":"{GONE}"', "file": "player_gone.json"}],
+        "POST www.youtube.com/youtubei/v1/next": [
+            {"body_contains": f'"videoId":"{VIDEO}"', "file": "next.json"}, {"file": "next_empty.json"}],
         f"GET manifest.googlevideo.com/api/manifest/hls_variant/id/{LIVE}/file/index.m3u8": {"file": "live.m3u8", "type": "application/vnd.apple.mpegurl"},
         "GET rr1---sn-fixture.googlevideo.com/videoplayback": {"file": "sidx.bin", "status": 206, "type": "video/mp4"},
+        "GET rr2---sn-fixture.googlevideo.com/videoplayback": {"status": 403, "type": "text/plain"},
         "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},

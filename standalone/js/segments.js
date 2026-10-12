@@ -84,8 +84,10 @@ export function cueSegments(head, cues, length, durationSeconds) {
 // makes its first fragment the one that contains the time kF. A seek to t then
 // opens a segment that starts at or before t and at most 2F earlier; the
 // timestamps inside the fragments are the real ones.
-export function evenSegments({ segments: fragments }) {
-  const step = Math.max(...fragments.map(fragment => fragment.duration));
+// `minimum` (in the index's time units) makes the segments longer: fewer
+// requests, and fewer addresses for the player to try when YouTube refuses.
+export function evenSegments({ segments: fragments }, minimum = 0) {
+  const step = Math.max(minimum, ...fragments.map(fragment => fragment.duration));
   const segments = [];
   let time = 0;
   for (const fragment of fragments) {
@@ -101,11 +103,11 @@ const xmlText = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt
 const codecs = mime => /codecs="([^"]+)/.exec(mime ?? '')?.[1] ?? '';
 
 // tracks: [{ kind: 'video' | 'audio', format, url, index: { timescale, segments } }]
-export function rangedManifest(duration, tracks) {
+export function rangedManifest(duration, tracks, segmentSeconds = 0) {
   const seconds = Math.max(number(duration), 0.001).toFixed(3);
   const whole = Math.max(1, Math.trunc(Math.max(number(duration), 0.001) * 1000));
   const one = ({ kind, format, url, index: fragments }) => {
-    const { step, segments } = fragments ? evenSegments(fragments) : {}, index = { timescale: fragments?.timescale, segments };
+    const { step, segments } = fragments ? evenSegments(fragments, Math.round(segmentSeconds * fragments.timescale)) : {}, index = { timescale: fragments?.timescale, segments };
     const webm =/^[a-z]+\/webm/.test(format.mime_type ?? '');
     const size = kind === 'video' ? ` width="${Math.trunc(number(format.width))}" height="${Math.trunc(number(format.height))}"` :
       ` audioSamplingRate="${Math.trunc(number(format.audio_sample_rate, 48000))}"`;
@@ -128,17 +130,24 @@ export function rangedManifest(duration, tracks) {
     `<Period duration="PT${seconds}S">${tracks.map(one).join('')}</Period></MPD>`;
 }
 
-// Reads the index of one file (one small ranged request).
-export async function fileIndex(fetch, format, url) {
-  const range = async (first, last) => {
-    const response = await fetch(url, { headers: { Range: `bytes=${first}-${last}` }, max_bytes: 4 * 1024 * 1024 });
-    if (response.status !== 206) throw new Error(`index read answered ${response.status}`);
-    return new Uint8Array(await response.arrayBuffer());
-  };
+// Reads the index of one file: the `sidx` of an MP4, or the head and the Cues
+// of a WebM. `read(first, last)` returns those bytes of the file; the ranges
+// come from the format record, so nothing is probed.
+//
+// WebM is only indexed when `webm` is set (the seek laboratory does): FFmpeg
+// 7.1.1 and 8.0.1 play cluster ranges from the start but never return from a
+// seek into them, so the service keeps WebM tracks in the one-segment shape.
+export async function fileIndex(read, format, duration, webm = false) {
   const init = format.init_range, index = format.index_range;
   if (!init || !index || !(index.end > index.start) || index.end - index.start > 4 * 1024 * 1024) throw new Error('no index range');
-  // WebM is left out for now: with cluster ranges (cueSegments) host FFmpeg
-  // played from the start but a seek did not return within 40 s (2026-10-11).
-  if (/^[a-z]+\/webm/.test(format.mime_type ?? '')) throw new Error('WebM tracks keep the one-segment shape');
-  return sidxSegments(await range(index.start, index.end), index.start);
+  if (/^[a-z]+\/webm/.test(format.mime_type ?? '')) {
+    if (!webm) throw new Error('WebM tracks keep the one-segment shape');
+    return cueSegments(await read(0, Math.min(init.end, 65535)), await read(index.start, index.end), format.content_length, duration);
+  }
+  return sidxSegments(await read(index.start, index.end), index.start);
 }
+export const rangeReader = (fetch, url) => async (first, last) => {
+  const response = await fetch(url, { headers: { Range: `bytes=${first}-${last}` }, max_bytes: 4 * 1024 * 1024 });
+  if (response.status !== 206) throw new Error(`index read answered ${response.status}`);
+  return new Uint8Array(await response.arrayBuffer());
+};

@@ -60,14 +60,35 @@ export class Companion {
     const now = host.now();
     for (const [key, session] of this.sessions) if (session.deadline <= now) this.sessions.delete(key);
     if (this.sessions.size >= 32) throw new ServiceError('busy', 'The companion has too many active playback sessions. Retry shortly.', 503);
-    const session = { token: tokenUrlsafe(24), video_id: request.id, deadline: now + SESSION_TTL, profile: request.profile,
+    const session = { token: tokenUrlsafe(24), video_id: request.id, deadline: now + SESSION_TTL, profile: request.profile, request,
       tracks: new Map(), manifests: new Map(), hls_manifests: new Map() };
-    const playback = await createPlayback(source, request, `${this.origin}/media/${session.token}`, session, SESSION_TTL / 1000, this.ranged ? mediaFetch : null);
+    const playback = await this.fill(session, source);
     this.sessions.set(session.token, session);
     return playback;
   }
-  async media(token, key, method, headers) {
+  // Builds what /media serves for a session. Signed addresses last about six
+  // hours; `renew` is when the session's own are within ten minutes of that.
+  async fill(session, source) {
+    const playback = await createPlayback(source, session.request, `${this.origin}/media/${session.token}`, session, SESSION_TTL / 1000, this.ranged ? mediaFetch : null);
+    session.renew = Date.now() + (source.lifetime - 600) * 1000;
+    return playback;
+  }
+  // The same session with new signed addresses: same names, so a player that
+  // reopens its manifest address continues with links that work again.
+  async refresh(session) {
+    session.refreshing ??= (async () => {
+      const fresh = { ...session, tracks: new Map(), manifests: new Map(), hls_manifests: new Map() };
+      await this.fill(fresh, await extractVideo(session.video_id, { hl: session.request.hl, fresh: true }));
+      Object.assign(session, { tracks: fresh.tracks, manifests: fresh.manifests, hls_manifests: fresh.hls_manifests, renew: fresh.renew });
+    })().finally(() => { session.refreshing = null; });
+    return session.refreshing;
+  }
+  async media(token, key, method, headers, query) {
     const session = this.session(token);
+    // A manifest or playlist asked for with `?refresh=1`, or after its links
+    // aged out, is rebuilt from a new player answer first.
+    if ((session.manifests.has(key) || session.hls_manifests.has(key)) && method === 'GET' && session.request &&
+        (query.get('refresh') === '1' || Date.now() > session.renew)) await this.refresh(session);
     const text = (body, type) => ({ status: 200, type, headers: [['Cache-Control', 'no-store']], body: method === 'GET' ? body : '' });
     if (session.manifests.has(key) || session.hls_manifests.has(key)) {
       this.touch(session);
@@ -201,7 +222,9 @@ export class Companion {
     };
     const routes = [
       ['GET', /^\/v1\/health$/, () => json({ api_version: 1, version: VERSION, service: 'ProsperoTube', mode: 'youtube', features: FEATURES,
-        sponsorblock: this.sponsor.enabled, sponsorblock_alt: this.sponsor.server !== null, proxy: false })],
+        sponsorblock: this.sponsor.enabled, sponsorblock_alt: this.sponsor.server !== null, proxy: false,
+        // Media addresses in manifests and playlists are YouTube's own, not this service's.
+        embedded: true })],
       ['POST', /^\/v1\/pair$/, () => json(this.pair(posted()))],
       ['POST', /^\/v1\/library$/, async () => json(await this.library(libraryRequest(posted())))],
       ['POST', /^\/v1\/jobs$/, () => json(this.createJob(jobRequest(posted())))],
@@ -233,7 +256,7 @@ export class Companion {
         const image = /^[A-Za-z0-9_-]{32}$/.test(key) ? await this.dearrow.thumbnail(key) : null;
         return image ? { status: 200, type: image.type, headers: [['Cache-Control', 'private, max-age=300']], body: image.bytes } : { status: 404, type: 'text/plain', headers: [], body: '' };
       }],
-      ['GET HEAD', /^\/media\/([^/]+)\/([^/]+)$/, (token, key) => this.media(token, key, method, headers)],
+      ['GET HEAD', /^\/media\/([^/]+)\/([^/]+)$/, (token, key) => this.media(token, key, method, headers, query)],
       // Not offered by the embedded service: the existing "not available" answers.
       ['POST', /^\/v1\/auth\/(start|status|cancel)$/, () => { throw new ServiceError('auth_unavailable', 'Enable the library worker on the companion first.', 503); }],
       ['POST', /^\/v1\/voice$/, () => { throw new ServiceError('voice_unavailable', 'Enable local speech recognition on the companion first.', 503); }],

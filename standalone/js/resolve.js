@@ -7,7 +7,7 @@
 // and captions.py. The `Playback` record keeps its fields; what changes is
 // that manifests name YouTube's servers directly instead of relay addresses.
 import { ServiceError, classify, number, resolverError, safeRemote, text } from './errors.js';
-import { fileIndex, rangedManifest } from './segments.js';
+import { fileIndex, rangeReader, rangedManifest } from './segments.js';
 
 const host = globalThis.__host;
 
@@ -174,6 +174,43 @@ export function chaptersOf(description, duration) {
   return found.map((chapter, index) => ({ ...chapter, end_time: index + 1 < found.length ? found[index + 1].start_time : duration }));
 }
 
+// Chapters as yt-dlp orders its sources: the structured list of the watch
+// page (the uploader's, else YouTube's automatic one), else timestamps in the
+// description. Records are {start_time, title, end_time} in seconds.
+export function chapterList(info, duration) {
+  const maps = Array.from(info.player_overlays?.decorated_player_bar?.player_bar?.markers_map ?? []);
+  for (const key of ['DESCRIPTION_CHAPTERS', 'AUTO_CHAPTERS']) {
+    const rows = Array.from(maps.find(entry => entry?.marker_key === key)?.value?.chapters ?? []).slice(0, 512)
+      .map(chapter => ({ start_time: Number(chapter?.time_range_start_millis) / 1000, title: String(chapter?.title?.toString?.() ?? '') }))
+      .filter(chapter => Number.isFinite(chapter.start_time) && chapter.start_time >= 0 && chapter.start_time <= duration && chapter.title);
+    const ordered = rows.every((chapter, index) => !index || chapter.start_time > rows[index - 1].start_time);
+    if (rows.length && ordered) return rows.map((chapter, index) => ({ ...chapter, end_time: index + 1 < rows.length ? rows[index + 1].start_time : duration }));
+  }
+  return chaptersOf(info.basic_info?.short_description, duration);
+}
+
+// A Short: said by the player answer where it has a microformat; the client
+// used here sends none, so the shape decides (portrait, at most three minutes).
+export function isShort(info, list, facts = {}) {
+  if (typeof facts.shorts === 'boolean') return facts.shorts;
+  const pictures = list.filter(format => format.has_video && number(format.width) > 0), duration = number(info.basic_info?.duration);
+  return info.basic_info?.is_live !== true && duration > 0 && duration <= 180 && pictures.length > 0 && pictures.every(format => number(format.height) > number(format.width));
+}
+
+// paid_content.disclosure
+export function disclosure(value) {
+  if (typeof value !== 'string') return '';
+  const clean = Array.from(Array.from(value).slice(0, 2048).join('').replaceAll('\0', '').split(/\s+/).filter(Boolean).join(' '))
+    .filter(character => character.codePointAt(0) >= 32 && character.codePointAt(0) !== 127);
+  let out = '', used = 0;
+  for (const character of clean) {
+    const size = host.utf8Encode(character).byteLength;
+    if (used + size > 240) break;
+    out += character; used += size;
+  }
+  return out;
+}
+
 // HLS master playlist: variants with what the chooser needs, and the lines to
 // rebuild a master for one of them.
 export function hlsVariants(master, base) {
@@ -198,9 +235,11 @@ export function hlsVariants(master, base) {
 }
 
 // Ask one client for the player answer and say what came back.
-export async function playerResponse(yt, id, client) {
+// `full` also asks for the watch-next answer (structured chapters); if that
+// request fails the player answer alone is used.
+export async function playerResponse(yt, id, client, full = false) {
   const started = host.now();
-  const info = await yt.getBasicInfo(id, { client });
+  const info = (full ? await yt.getInfo(id, { client }).catch(() => null) : null) ?? await yt.getBasicInfo(id, { client });
   const list = formats(info);
   return { info, list, summary: {
     client, status: info.playability_status?.status ?? 'MISSING', reason: String(info.playability_status?.reason ?? '').slice(0, 120),
@@ -213,11 +252,19 @@ export async function playerResponse(yt, id, client) {
 
 // The video as the resolver sees it: the first client in `order` that answers
 // with something playable. Failures carry the companion's resolver codes.
-export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async () => {}, fetch } = {}) {
+export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async () => {}, fetch, facts = () => ({}) } = {}) {
   let failure = 'extraction_failed';
-  for (const client of order) {
+  // A client is asked again (twice at most) only when YouTube refuses the
+  // links it just handed out: seen live on 2026-10-11, where FFmpeg met 403 on
+  // a new address that was served normally seconds later.
+  const turns = order.flatMap(name => [0, 1, 2].map(attempt => ({ client: name, attempt })));
+  let refusedBy = '';
+  for (const { client, attempt } of turns) {
+    if (attempt && refusedBy !== client) continue;
+    if (attempt) await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+    refusedBy = '';
     let answer;
-    try { await prepare(client); answer = await playerResponse(yt, id, client); }
+    try { await prepare(client); answer = await playerResponse(yt, id, client, true); }
     catch (error) { if (error instanceof ServiceError) throw error; failure = classify(`${error?.message} ${error?.info?.reason ?? ''}`); continue; }
     const { info, list, summary } = answer;
     if (info.basic_info?.id !== id) { failure = 'extraction_failed'; continue; }
@@ -233,8 +280,18 @@ export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async 
       } catch (error) { if (!(error instanceof ServiceError)) failure = 'resolver_network'; }
     }
     if (!list.some(format => linkKind(format) !== 'none') && !hls.length) { failure = live ? failure : 'extraction_failed'; continue; }
-    return { id, client, info, list, hls, live, player: yt.session.player };
+    // One kilobyte of the first video file proves the links are served before
+    // a player is pointed at them.
+    const sample = live ? null : list.find(format => format.has_video && format.url);
+    if (sample && fetch) {
+      const reply = await fetch(safeRemote(sample.url), { headers: { Range: 'bytes=0-1023' }, max_bytes: 65536 }).catch(() => null);
+      if (reply && [401, 403, 410].includes(reply.status)) { refusedBy = client; failure = 'media_refused'; continue; }
+    }
+    // How long the signed addresses stay valid, as the answer says (about six hours).
+    const lifetime = number(info.streaming_data?.expires?.getTime?.() ? (info.streaming_data.expires.getTime() - Date.now()) / 1000 : 21600, 21600);
+    return { id, client, info, list, hls, live, player: yt.session.player, facts: facts(id), lifetime };
   }
+  if (failure === 'media_refused') throw new ServiceError('upstream_media', 'The media server could not provide this resource.', 502);
   throw resolverError(failure);
 }
 
@@ -286,7 +343,7 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
         const classic = dashManifest(duration, video, audio, videoUrl, audioUrl);
         let built = null;
         session.manifests.set(name, !ranged ? classic : () => built ??= (async () => {
-          const index = (format, url) => fileIndex(ranged, format, url, duration).catch(() => null);
+          const index = (format, url) => fileIndex(rangeReader(ranged, url), format, duration).catch(() => null);
           const tracks = [{ kind: 'video', format: video, url: videoUrl, index: await index(video, videoUrl) },
             { kind: 'audio', format: audio, url: audioUrl, index: await index(audio, audioUrl) }];
           return tracks.some(track => track.index) ? rangedManifest(duration, tracks) : classic;
@@ -329,13 +386,13 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     catch { continue; }
     storyboards.push({ width, height, columns, rows, count, sheets, interval_ms: Math.max(1, Math.round(duration * 1000 / count)), url: `${prefix}/sb${level}-$M.jpg` });
   }
-  const chapters = chaptersOf(details.short_description, duration).slice(0, 128)
+  const chapters = chapterList(info, duration).slice(0, 128)
     .map(chapter => ({ title: text(chapter.title, 96), start: number(chapter.start_time), end: number(chapter.end_time) }));
   // The player configuration names the loudness; some clients only put it on the audio formats.
   const loudness = info.player_config?.audio_config?.loudness_db ?? selectAudio(list, request)[0]?.loudness_db;
   return { api_version: 1, id: request.id, title: text(details.title), duration_sec: duration, expires_in: ttl, choices, captions, chapters,
-    paid_content_text: '', loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
-    is_short: false, storyboards };
+    paid_content_text: disclosure(source.facts?.paid), loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
+    is_short: isShort(info, list, source.facts), storyboards };
 }
 
 // One ranged read straight from the media server; reports facts, keeps no data.

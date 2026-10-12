@@ -75,9 +75,12 @@ than `guest` (`unknown_profile` 404).
 Known differences from the Python answers:
 
 - Every address inside a manifest or playlist is YouTube's, not the service's.
-- `paid_content_text` is always empty and `is_short` always false in the
-  resolve result (the pinned parser does not expose them from the player
-  answer); `chapters` come from timestamps in the description only.
+- `is_short` comes from the player answer's microformat when there is one; the
+  client used here sends none, so the shape decides (every picture portrait, at
+  most three minutes, not live). `paid_content_text` is read from the raw player
+  answer (`paidContentOverlay`). `chapters` come from the watch page's structured
+  list (the uploader's, else YouTube's automatic one) and only then from
+  timestamps in the description; this costs one more request (`next`) per resolve.
 - A codec that is not offered still answers `unsupported_media` (422), as the
   Python selection does; there is no silent fallback to another codec.
 - Audio: among equal candidates the original, uncompressed-dynamics track is
@@ -110,41 +113,96 @@ as a shim (`Buffer.byteLength`); `node:crypto` is aliased to `js/node_crypto.js`
 - Link lifetime: links last about six hours and carry the requesting IP
   address; the session lease is the companion's 30 minutes (`expires_in`).
 
-### Seeking, and the optional ranged manifest
+### Seeking
 
-FFmpeg's DASH demuxer cannot seek inside a segment (`pb.seekable = 0` in
-`dashdec.c`): with one segment per file a jump forward reads everything in
-between, and YouTube paces one long request at about twice real time.
-Measured on the host: a seek from 0 to 317 s took **152 s** (H.264 1080p60)
-and **169 s** (VP9 1080p60). Whether the console player shows the same today
-through the relay was not checked here; the cause is in FFmpeg and in the
-server, not in the relay.
+The console does not use stock FFmpeg. `scripts/patch_ffmpeg_dash_seek.py`
+changes two places in `dashdec.c` (7.1.1): a complete single-file VOD
+representation (one fragment from offset 0, no separate initialisation
+section, seekable input) keeps its inner I/O **seekable**, and a seek on it
+becomes a seek of the underlying HTTP input (a new ranged request), with the
+segment offset kept in step. The container's own index (`sidx`/`moof` in MP4,
+Cues in WebM) then takes the demuxer straight to the target. Without the patch
+the inner I/O is not seekable and a jump forward reads everything in between,
+which YouTube paces at about twice real time: that was the 152 s / 169 s
+measured in the previous stage with stock FFmpeg 8.0.1. It does not describe
+the console.
 
-`ranged_manifest` (`--ranged-manifest`) builds the manifest from each MP4
-file's `sidx` on first request (one small ranged read per track): fragments are
-grouped on a fixed grid so that FFmpeg's "time divided by segment duration"
-lands on or before the target. Same seek: **1.2 s**, nine requests. WebM
-tracks (VP9, Opus) keep the one-segment shape: with cluster ranges host FFmpeg
-played from the start but a seek did not return within 40 s. So today the
-ranged shape helps H.264/AV1 with AAC, not VP9. It is off by default because
-only the classic shape is proven on the console.
+`test/seek_lab.py` reproduces the console's demuxer on the host (FFmpeg 7.1.1
+built with and without the patch under `~/.cache/prosperotube/ffmpeg-host/`)
+against a local paced server with ten-minute H.264/AAC (fragmented MP4, one
+`sidx`) and VP9/Opus (WebM, Cues in front) files; three seconds copied after
+each seek, 25 s limit:
+
+| FFmpeg 7.1.1 | File | Manifest | 0 s | 300 s | 580 s | Media read for a seek |
+|---|---|---|---|---|---|---|
+| patched | MP4 | classic (Python shape) | ok | ok | ok | 2.3 MiB, 8 requests |
+| patched | WebM | classic | ok | ok | ok | 1.6 MiB, 4 requests |
+| patched | MP4 | ranged (`sidx`) | ok | ok | ok | 0.9 MiB, 7 requests |
+| patched | WebM | ranged (Cues) | ok | **no result in 25 s** | **no result** | 0.6 MiB |
+| stock | MP4 / WebM | classic | ok | **read-through, no result in 25 s** | **same** | 7 MiB and counting |
+| stock | MP4 | ranged (`sidx`) | ok | ok | ok | 0.9 MiB |
+| stock | WebM | ranged (Cues) | ok | **no result** | **no result** | 0.6 MiB |
+
+Every "ok" finished in well under a second locally. Live, once each, patched
+FFmpeg, classic manifest, 1080p60: H.264 start 1.4 s, middle 4.9 s, near the
+end 0.6 s; VP9 0.6 s / 5.6 s / 0.7 s. The two middle seeks each sat out one
+5-second read time-out (`rw_timeout`) before succeeding; nothing was read
+through. Why that one position waits was not pursued within this round's
+traffic limit.
+
+**Default: the classic manifest.** With the console's demuxer it seeks by byte
+range in both containers, needs no index read, and is the shape already proven
+there. `ranged_manifest` stays as an option for an unpatched FFmpeg and covers
+MP4 tracks only: FFmpeg (7.1.1 and 8.0.1) plays WebM cluster ranges from the
+start but never returns from a seek into them, so the service leaves WebM
+tracks in the one-segment shape (`cueSegments` is kept for the laboratory).
 
 Two FFmpeg facts found on the way: the `BaseURL` text loses its first `&`
 when FFmpeg re-parses it (hence the address repeated in attributes, as the
 Python manifest does), and a `SegmentTimeline` inside a `SegmentList` is not
 used for seeking.
 
-### Playback proof (host FFmpeg 8.0.1, options as `evo_stream_io.c` sets them)
+### Refused and expired links
 
-| Case | Result |
-|---|---|
-| H.264 1080p60 + AAC, classic manifest, from 0 | 3 s decoded in 0.4 s (184 video, 135 audio frames, 0 errors) |
-| same, seek to 317 s | decoded correctly, after 152 s (see above) |
-| VP9 1080p60 + AAC, classic manifest, from 0 | 3 s decoded in 0.5 s |
-| same, seek to 317 s | decoded correctly, after 169 s |
-| H.264 1080p60, ranged manifest, from 0 / seek to 317 s | 0.6 s / 1.2 s |
-| VP9, ranged manifest (cluster ranges, not shipped) | start 0.7 s; seek: no result in 40 s |
-| Live stream, HLS choice (720p30 H.264 + AAC) | 3 s decoded in 0.9 s |
+What FFmpeg does when the media server answers 403 (`seek_lab.py --only
+refuse`, patched and stock alike):
+
+| Manifest | Refused from the first request | Refused after six requests |
+|---|---|---|
+| classic | open fails at once, 1 request | 1 refused request, then the input ends |
+| ranged, 240 segments | open fails at once, 1 request | **119 refused requests in 0.1 s**: it walks the rest of the list |
+| ranged, 30 s segments (41) | open fails at once | 20 refused requests |
+
+So the classic shape is also the safe one: one refused request per event.
+
+- **Links refused when new.** Seen live: whole sessions whose every read by
+  FFmpeg was 403 while the service's own read succeeded. The likely cause is
+  the address family: YouTube binds links to the address that asked for them,
+  libcurl may ask over IPv6, FFmpeg connects over IPv4. The service's HTTPS
+  client is now IPv4-only (`ipv4_only` in `ps5/tube_js_http.h`, a small
+  addition to the shared layer that the other branch needs too); the run after
+  that change passed six of six. Independently, resolve now reads one kilobyte
+  of the first video file and asks the client again (three tries, short
+  pauses) before answering `upstream_media` (502).
+- **Links that expire or are refused during playback** (about six hours, or a
+  changed network address). The 403 arrives in FFmpeg, not in the service. The
+  app already has the path for it: `evo_demux_input_failed()` in the player
+  screen calls `tube_queue_recovery()` (three attempts), which resolves again
+  and reopens at the saved position (`scripts/playback_recovery_overlay.py`).
+  That works unchanged, because a new resolve returns new links. Two things the
+  app must make sure of: that a read ended by 403 counts as an input failure
+  and not as the natural end (FFmpeg's command line ended "successfully" in
+  the lab), and that the recovery resolve carries `fresh: true`.
+- **Service side, done:** `GET /media/<session>/<manifest>?refresh=1` rebuilds
+  the session's manifests, playlists, caption and storyboard sources from a new
+  player answer under the same names, and any manifest request does so on its
+  own once the links are within ten minutes of their end. An app that prefers
+  not to run a whole resolve can reopen the same address with `?refresh=1`.
+
+### Playback proof
+
+Stock host FFmpeg 8.0.1 (previous stage): H.264 and VP9 1080p60 with AAC from
+the start in 0.4–0.5 s; live HLS 720p in 0.9 s. Patched 7.1.1: the tables above.
 
 Headers FFmpeg sent to YouTube: `User-Agent` (its own `Lavf`), `Accept`,
 `Range`, `Connection`, `Host`, `Icy-MetaData`. None of them was needed beyond
@@ -153,19 +211,13 @@ token can reach YouTube. The manifest is fetched with one request per
 connection; FFmpeg needed neither keep-alive nor ranges on `/media`.
 `allowed_extensions=ALL` is required (EVO sets it).
 
-One run met 403 on every fragment after the seek; FFmpeg then asked for 114
-fragments in nine seconds before giving up. It did not happen again and a
-ranged read of the same file worked minutes later. It came after about half a
-gigabyte of test reads in ten minutes, so it may have been a limit; either
-way the player must stop, not walk the segment list, when YouTube refuses.
-
 ## Live check against `scripts/probe_live_guest.py`
 
 `tube_js serve --sponsorblock`, token from the state directory:
 
 | Check | Result |
 |---|---|
-| health, pairing (stored token) | pass |
+| health (now with `embedded: true`), pairing (stored token) | pass |
 | search job, two pages | pass |
 | library search, continuation | pass |
 | search filters | pass |
@@ -178,14 +230,17 @@ way the player must stop, not walk the segment list, when YouTube refuses.
 | video details, description, related | pass |
 | comments top, newest, replies | pass |
 | resolve per codec | pass: avc 1080p60, vp9 2160p60, av1 2160p60, hevc none |
-| DASH manifest and ranged media | **not applicable**: the probe refuses to follow an address outside the companion; the FFmpeg proof above covers it |
+| DASH manifest and ranged media | pass: manifest and 64 KiB of each track, read from YouTube directly |
 | loudness, chapters, storyboard, captions | pass (loudness -4.71, storyboard 32 KB JPEG, SubRip read) |
-| live HLS and chat | **not applicable**, same reason; covered by the FFmpeg live case |
+| live HLS and chat | pass: 1080p30 H.264 + AAC, 6 segments, chat 24 messages |
 | locale, content filters, thumbnail source | pass |
 | SponsorBlock, DeArrow | pass |
 
-23 of 25; the two others cannot pass by design. (The first run failed the six
-sections and the locale check on `Buffer.byteLength`; fixed with the shim.)
+The probe now follows `*.googlevideo.com` addresses when health says
+`embedded` (the strict check stays for the Python companion). The first 23
+checks passed in the full run of the previous stage; the last two were run on
+their own afterwards (4 of 4 with health and pairing), because a second full
+run would not fit this round's request limit. So: 25 of 25, over two runs.
 
 ## Measured
 
@@ -195,13 +250,13 @@ sections and the locale check on `Buffer.byteLength`; fixed with the shim.)
 | Service resident memory, after the probe and playback runs | 26–29 MB peak |
 | Bundle evaluation at start | about 80 ms |
 | Search job through the service (create + poll) | 494 ms; repeat within the page cache 3 ms; page 2: 541 ms |
-| Resolve job | 106 ms fresh; 200 ms with a new session; 11 ms within the 30 s extraction cache |
+| Resolve | 0.85–0.95 s fresh with a new session (player answer, watch-next for chapters, one-kilobyte link check); 10 ms within the 30 s extraction cache. Before chapters and the check: 106–200 ms |
 | Engine limits in use | 4 MiB thread stack, 3 MiB JS stack limit, 128 MiB heap limit (all tests and live runs fit) |
 
 ## Tests
 
 `test_host.sh` (also `scripts/test_standalone.sh`, picked up by
-`scripts/test_all.sh`): 20 engine checks and 126 HTTP checks against a running
+`scripts/test_all.sh`): 20 engine checks and 132 HTTP checks against a running
 `tube_js serve` with canned InnerTube answers: health, authorisation,
 unknown routes and methods, body/header/connection bounds, 24 parallel
 connections, pairing, job lifecycle and cancellation, search pages and
@@ -210,7 +265,8 @@ contexts), library actions and account refusals, details, resolve record,
 manifest text, HEAD, caption SRT, storyboard sheet, automatic and translated
 captions, frame-rate and codec limits, removed video, live playlist,
 SponsorBlock, DeArrow title and image, thumbnail source, ranged manifest,
-clean shutdown. Everything runs a second time under AddressSanitizer + UBSan
+structured chapters, a Short with a paid-promotion notice, manifest refresh,
+refused links, clean shutdown. Everything runs a second time under AddressSanitizer + UBSan
 with leak detection; shutdown must leave nothing on stderr.
 
 ## What the PS5 integration must provide
@@ -246,9 +302,10 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   as it did on two other app clients, playback stops until the bundle is
   updated (HLS from the same answer is the first fallback, already used for
   live). The bundle must be replaceable without a new package.
-- **Seeking** with the classic manifest (above); the ranged shape is unproven
-  on the console and does not cover WebM.
-- **Refused fragments** make FFmpeg walk the list (above).
+- **Seeking** rests on the repository's DASH patch being in the console's
+  FFmpeg; live, a seek to the middle waited one 5 s time-out (above).
+- **Address family**: the IPv4-only fix is supported by one passing run after
+  several failing sessions, not by a controlled comparison.
 - **Console unknowns**: everything in `ps5/README.md` section 6, plus the
   listener (loopback bind in the 20000–39999 range, the datagram wake socket,
   `poll` on it) and FFmpeg reading YouTube directly with the app's TLS setup.
@@ -270,10 +327,10 @@ transform: 22 ms with a cached player script), `TV`/`TV_SIMPLY`/embedded
 only `fetch`, a UUID, JSON and a credentials file; `device_auth.mjs` is already
 in the bundle.
 
-## Live requests made in this stage
+## Live requests
 
-About 175 requests to the service for the probe (some 250 upstream API
-requests), and the FFmpeg runs: roughly 0.45 GB of media, almost all of it
-from the two linear seeks and one run that read every fragment up to the seek
-point. That is far more than intended; the cause (the demuxer reading through
-to a seek target) was only visible by running it.
+Previous stage: about 250 upstream API requests and roughly 0.45 GB of media
+(two read-through seeks with stock FFmpeg, which the console does not use).
+This stage: about 65 API requests and about 40 MB of media; every FFmpeg run
+copied three seconds under a 20 s limit, and all seek and refusal measurements
+that did not need YouTube ran against the local server.
