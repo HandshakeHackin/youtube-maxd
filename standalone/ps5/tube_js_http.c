@@ -47,6 +47,7 @@ struct tube_js_http {
     size_t max_response_bytes;
     int max_redirects, max_requests;
     int (*socket_setup)(int socket);
+    int ipv4_only;
     transfer *active, *done_head, *done_tail;
     int active_count, done_count;
     uint32_t last_id;
@@ -288,6 +289,7 @@ static int configure(transfer *t) {
     SET(CURLOPT_PRIVATE, t);
     SET(CURLOPT_ERRORBUFFER, t->curl_error);
     SET(CURLOPT_NOSIGNAL, 1L);
+    if (client->ipv4_only) SET(CURLOPT_IPRESOLVE, (long)CURL_IPRESOLVE_V4);
     SET(CURLOPT_QUICK_EXIT, 1L);            /* a cancel or shutdown never waits for a name lookup */
     SET(CURLOPT_FOLLOWLOCATION, 0L);       /* redirects are followed here, by fetch's rules */
     SET(CURLOPT_ACCEPT_ENCODING, "");       /* offer and decode every coding this libcurl has */
@@ -533,6 +535,7 @@ tube_js_http *tube_js_http_new(const tube_js_http_config *config) {
     client->max_redirects = config->max_redirects > 0 ? config->max_redirects : 20;
     client->max_requests = config->max_requests > 0 ? config->max_requests : 64;
     client->socket_setup = config->socket_setup;
+    client->ipv4_only = config->ipv4_only;
     int failed = 0;
     if (config->ca_file) failed |= !(client->ca_file = copy_string(config->ca_file));
     if (config->ca_data && config->ca_length) {
