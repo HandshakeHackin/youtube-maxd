@@ -37,7 +37,7 @@ class SimConsole:
         self.clock = clock
         self.ops = OpLog(str(Path(evidence) / "ops.jsonl") if evidence else None, echo)
         self.scenario = {"busy": [], "busy_before_launch": [], "parks": True, "closes": True, "title": "Me at the zoo",
-                         "duration": 19.0, "state": None, "down_after": None, "storage": "ready", **scenario}
+                         "duration": 19.0, "state": None, "down_after": None, "storage": "ready", "service": "ready", **scenario}
         self.files = {}
         if self.scenario["state"] is not None:
             self.files[ob.STATE_FILE] = self.scenario["state"]
@@ -134,13 +134,9 @@ class SimConsole:
         if line.startswith("type "):
             app["typed"] = line[5:]
         elif line == "kbdone" and screen == "keyboard":
+            # The search goes to the built-in service; its address is never saved.
             state = json.loads(self.files.get(ob.STATE_FILE, b"{}"))
-            if app["keyboard"] == "source":
-                state["source"], state["token"] = app["typed"], ""
-            else:
-                state["source"] = re.sub(r"#.*", "", state.get("source", ""))
-                state["token"] = "t" * 43
-                app["rows"], app["focus"] = ["Another video", self.scenario["title"], "A third video"], 0
+            app["rows"], app["focus"] = ["Another video", self.scenario["title"], "A third video"], 0
             self.files[ob.STATE_FILE] = json.dumps(state).encode()
             app["screen"] = "browser"
         elif line == "quit":
@@ -161,8 +157,8 @@ class SimConsole:
     def _key(self, key, screen):
         app = self.app
         if screen == "browser":
-            if key in ("options", "square"):
-                app.update(screen="keyboard", keyboard="source" if key == "options" else "search", typed="")
+            if key == "square":   # Options opens nothing: there is no address to enter
+                app.update(screen="keyboard", keyboard="search", typed="")
             elif key == "right":
                 app["focus"] = min(app["focus"] + 1, len(app["rows"]) - 1)
             elif key == "cross" and app["rows"][app["focus"]] == self.scenario["title"]:
@@ -284,6 +280,10 @@ class SimConsole:
                         "active": False, "paused": False, "complete": False, "pos": 0.0, "since": 0.0, "seeks": 0,
                         "parked": False, "status_frozen": False, "quit_at": None, "keyboard": "", "typed": "", "menu": 0}
             self._log(f"Lapy: path=/download0/lapy status=0 storage={self.scenario['storage']}")
+            if self.scenario["service"] == "ready":
+                self._log("embedded service: listening on 127.0.0.1:23456")
+            else:
+                self._log(f"embedded service: did not start: {self.scenario['service']}")
             self._log("Application: entering frame loop")
             if self.scenario["storage"] != "ready":
                 self.app, self.running = None, []

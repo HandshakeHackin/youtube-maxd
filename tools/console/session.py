@@ -18,7 +18,6 @@ import shutil
 import subprocess
 import sys
 import time
-import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -31,9 +30,9 @@ SNAPSHOT_LIMIT = 16 << 20
 
 # Seconds. Every wait in the session is one of these: none is open-ended.
 T = {"launch": 45, "entry": 90, "storage_line": 15, "ready": 90, "register": 120, "keyboard": 10,
-     "submit": 15, "search": 60, "paired": 20, "focus": 5, "open": 90, "playing": 30,
+     "submit": 15, "search": 60, "service": 20, "focus": 5, "open": 90, "playing": 30,
      "toggle": 6, "picker": 8, "capture": 25, "seek": 20, "eof_margin": 45, "dialog": 8, "stopped": 20,
-     "stats": 20, "history": 30, "consume": 10, "park": 40, "release": 60, "code_age": 360,
+     "stats": 20, "history": 30, "consume": 10, "park": 40, "release": 60,
      "functional": 20 * 60}
 
 
@@ -54,14 +53,9 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def fetch_health(url, timeout=5):
-    with urllib.request.urlopen(url, timeout=timeout) as response:  # the companion, never the console
-        return json.loads(response.read(65536))
-
-
 class Session:
-    def __init__(self, args, console, clock, down_error, health=fetch_health):
-        self.args, self.console, self.clock, self.Down, self.health = args, console, clock, down_error, health
+    def __init__(self, args, console, clock, down_error):
+        self.args, self.console, self.clock, self.Down = args, console, clock, down_error
         self.out = Path(args.out)
         self.stages, self.steps, self.notes, self.obs = [], [], [], {}
         self.lock_path = None
@@ -71,7 +65,6 @@ class Session:
         self.errors_before = None
         self.log_pos, self.log_text = 0, ""
         self.last_ui_seq = None
-        self.code = args.pair_code
         self.functional_deadline = None
 
     # --- logging -----------------------------------------------------------------
@@ -163,7 +156,7 @@ class Session:
     def command(self, line):
         """One development command: written verified under a temporary name, renamed
         into place, and taken (deleted) by the app before the session goes on."""
-        shown = re.sub(r"#\d{6}\b", "#<code>", line)
+        shown = line
         if self.console.size(ob.CMD_FILE) is not None:
             raise Stop(f"an earlier command is still unread; not sending \"{shown}\"")
         code, output = self.console.put(ob.CMD_FILE, (line + "\n").encode(), note=f"command: {shown}")
@@ -214,9 +207,6 @@ class Session:
                 self.local_problem(f"the {mode} controller does not build: {built.stderr.strip()[-200:]}")
             else:
                 self.log(f"   {mode} controller builds for {ob.TITLE}: {built.stdout.strip()}")
-        self.check_companion()
-        if not (self.code or args.pair_code_file or args.companion_restart_cmd):
-            self.local_problem("no pairing code: give --pair-code-file, --pair-code or --companion-restart-cmd")
         lock = Path(args.lock_file)
         if args.dry_run:
             holder = ob.lock_holder(lock)
@@ -231,19 +221,6 @@ class Session:
             raise Stop(f"cannot create the lock {lock}: {error}", "STOP") from None
         self.lock_path = lock
         self.log(f"   lock acquired: {lock} (create-new, content \"{SESSION_NAME}\")")
-
-    def check_companion(self):
-        url = self.args.companion_health or self.args.companion.rstrip("/") + "/v1/health"
-        try:
-            health = self.health(url)
-        except Exception as error:  # noqa: BLE001 - any failure means the same: not reachable
-            self.local_problem(f"companion health {url}: {error}")
-            return
-        if health.get("service") != "ProsperoTube" or health.get("mode") != "youtube":
-            self.local_problem(f"{url} is not a ProsperoTube companion in YouTube mode: {health}")
-        self.obs["companion"] = {key: health.get(key) for key in ("version", "mode", "api_version")}
-        self.obs["companion"]["library"] = "library" in (health.get("features") or [])
-        self.log(f"   companion {url}: {self.obs['companion']}")
 
     # --- stage 1 -------------------------------------------------------------------
     def idle_check(self, when):
@@ -319,28 +296,6 @@ class Session:
                 raise Stop(f"the install did not survive settling: {output[-300:]}")
 
     # --- stage 4 -------------------------------------------------------------------
-    def fresh_code(self):
-        args = self.args
-        if args.companion_restart_cmd:
-            self.log("   restarting the companion for a fresh pairing code (local command)")
-            if not args.dry_run:
-                done = subprocess.run(args.companion_restart_cmd, shell=True, capture_output=True, text=True, timeout=180)
-                if done.returncode != 0:
-                    raise Stop(f"companion restart command failed: {(done.stdout + done.stderr)[-300:]}", "STOP")
-            self.check_companion()
-        if args.pair_code_file:
-            path = Path(args.pair_code_file)
-            if not path.is_file():
-                return self.local_problem(f"no pairing code file {path}")
-            age = time.time() - path.stat().st_mtime
-            self.code = path.read_text().strip()
-            if age > T["code_age"]:
-                self.local_problem(f"the pairing code is {age:.0f} s old (limit {T['code_age']} of its 600): "
-                                   "restart the companion, or pass --companion-restart-cmd")
-        if not re.fullmatch(r"\d{6}", self.code or ""):
-            self.local_problem("the pairing code is not six digits")
-            self.code = "000000"
-
     def launch(self):
         self.idle_check("before launch")
         for name, port in (("kernel log", self.console.klog_port), ("payload receiver", self.console.elf_port)):
@@ -359,7 +314,6 @@ class Session:
         self.shots_before = {name for name in listing if ob.SHOT.match(name)}
         self.log_pos = self.console.size(ob.LOG_FILE) or 0
         self.sm_pos = self.console.size(SHADOWMOUNT_LOG) or 0
-        self.fresh_code()
         self.console.klog_start(str(self.out / "klog.txt"))
         self.launched = True  # from here the teardown looks for the title, delivered or not
         code, output = self.console.controller("launch", ob.TITLE)
@@ -428,7 +382,6 @@ class Session:
     def functional(self):
         args = self.args
         self.functional_deadline = self.clock.now() + T["functional"]
-        base = args.companion.rstrip("/")
 
         # (a) browser
         snapshot = self.ui()
@@ -438,16 +391,17 @@ class Session:
         self.note("no scanout capture at the browser: there the stick click belongs to voice search, "
                   "so the UI snapshot (browser-ui.json) stands in for it")
 
-        # (b) pair
-        self.keyboard_entry("options", f"{base}#{self.code}", "(b) pairing")
+        # (b) the built-in service: nothing to pair, it must be listening
+        self.obs["service"] = self.step("(b) built-in service started", lambda: ob.pc_service(self.read_log()),
+                                        T["service"], interval=2)
 
         # (c) search
         self.keyboard_entry("square", args.search_query, "(c) search")
         self.step(f"(c) result rows include /{args.expect_title}/",
                   lambda: ob.pc_rows(self.ui(), args.expect_title), T["search"])
         self.obs["search_rows"] = ob.ui_rows(self.ui())
-        self.step("(b) paired: the companion's token is stored", lambda: ob.pc_paired(self.read_state(), base),
-                  T["paired"], interval=2)
+        self.step("(b) the service's address is kept out of the saved state", lambda: ob.pc_state_local(self.read_state()),
+                  T["service"], interval=2)
 
         # (d) play
         target = ob.find_row(self.ui(), args.expect_title)
@@ -667,7 +621,7 @@ class Session:
                 self.console.delete(f"{ob.DATA}/{name}")
         report = {"identical": [], "restored": [], "removed": [], "failed": [], "left": []}
         if self.args.keep_state:
-            self.note("--keep-state: the provider state of this session (pairing, history) stays on the console")
+            self.note("--keep-state: the provider state of this session (history) stays on the console")
         else:
             for name, digest in sorted(self.snapshot.items()):
                 path = f"{ob.DATA}/{name}"
@@ -823,11 +777,6 @@ def parse(argv=None):
     parser.add_argument("--host", default=os.environ.get("PS5_HOST"), help="console address (or PS5_HOST)")
     parser.add_argument("--lock-file", default=os.environ.get("PS5_LOCK"), help="this console's shared lock file (or PS5_LOCK)")
     parser.add_argument("--candidate", required=True, help="frozen candidate: <dir>/PPSA99142/ and <dir>/SHA256SUMS")
-    parser.add_argument("--companion", required=True, help="companion base as the PS5 reaches it: http://HOST:PORT")
-    parser.add_argument("--companion-health", help="health URL as this PC reaches it (default <companion>/v1/health)")
-    parser.add_argument("--pair-code", help="six-digit pairing code (prefer --pair-code-file: a code lasts 10 minutes)")
-    parser.add_argument("--pair-code-file", help="file holding the current pairing code, read just before the launch")
-    parser.add_argument("--companion-restart-cmd", help="local command run just before the launch for a fresh code")
     parser.add_argument("--protocol", default=str(home / "ps5-homebrew-dev-protocol"))
     parser.add_argument("--out", default=str(home / "pt-console" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
     parser.add_argument("--video-id", default="jNQXAC9IVRw")
@@ -837,7 +786,7 @@ def parse(argv=None):
     parser.add_argument("--end", choices=("auto", "eof", "stop"), default="auto")
     parser.add_argument("--open-presets", action="store_true",
                         help="also open the video presets list when the cursor reaches it (more key presses)")
-    parser.add_argument("--keep-state", action="store_true", help="leave the session's pairing and history on the console")
+    parser.add_argument("--keep-state", action="store_true", help="leave the session's history on the console")
     parser.add_argument("--allow-unparked-close", action="store_true",
                         help="send the close payload even when the app did not park (a forced close)")
     parser.add_argument("--dry-run", action="store_true", help="simulated console: prints the console operations, sends nothing")

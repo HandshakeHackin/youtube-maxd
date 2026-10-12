@@ -45,6 +45,13 @@ def apply_host(replace, player, host):
     # First soft-close frame, before the park: requests cancelled, service stopped and joined.
     replace(player + "core/src/Application.cpp", 'evo_boot_log("soft close: media released");',
             'tube_embedded_stop();\n                evo_boot_log("soft close: media released");')
+    # One log line says whether the service is up and where; the token is never logged.
+    replace(player + "core/src/Application.cpp", "    evo_provider_mgr_init();\n", """    evo_provider_mgr_init();
+    if (tube_embedded_mode()) {
+        if (*tube_embedded_address()) evo_boot_log("embedded service: listening on %s", tube_embedded_address());
+        else evo_boot_log("embedded service: did not start: %s", tube_embedded_error());
+    }
+""")
     # Artwork addresses pass the provider's check before anything is fetched.
     art = player + "ui_rml/src/evo_rmlui_provider_art.cpp"
     replace(art, '#include "evo_provider_bundle.h"', '#include "evo_provider_bundle.h"\n#include "tube_provider.h"')

@@ -1709,6 +1709,7 @@ static int companion_has(unsigned feature) { return companion_known() && (g_comp
 static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion); }
 
 int tube_embedded_mode(void) { return g_embedded; }
+const char *tube_embedded_address(void) { return g_embedded && !strncmp(g_source, "http://", 7) ? g_source + 7 : ""; }
 const char *tube_embedded_error(void) { return g_embedded_error; }
 /* Asks the service for its address and token; starting it is idempotent and
  * never waits for the network. 1 = requests may go out. */

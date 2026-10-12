@@ -116,7 +116,7 @@ def pc_heartbeat(previous, current, build):
 
 
 def pc_browser(snapshot):
-    """The provider screen is drawn with a cursor: rows, or the pairing card."""
+    """The provider screen is drawn with a cursor on its rows."""
     if ui_doc(snapshot) != "hui_provider":
         return False, f"doc {ui_doc(snapshot) or 'none'}"
     focus = ui_focus(snapshot)
@@ -267,17 +267,43 @@ def parse_state(data):
     return state if isinstance(state, dict) else None
 
 
-def pc_paired(data, base):
-    """The saved provider state names this companion and holds a token."""
+SERVICE_LINE = re.compile(r"embedded service: (listening on 127\.0\.0\.1:(\d+)|did not start: (.*))")
+
+
+def pc_service(log_text):
+    """The app's log says its built-in service listens on a loopback port in the
+    console's usable range, and no line about it shows a token."""
+    found = None
+    for line in log_text.splitlines():
+        match = SERVICE_LINE.search(line)
+        if not match:
+            continue
+        if re.search(r"[0-9A-Fa-f]{32,}|Bearer", line):
+            return False, "a service line in the log carries what looks like a token"
+        found = match
+    if found is None:
+        return False, "no service line in console.log yet"
+    if found.group(3) is not None:
+        return False, f"the service did not start: {found.group(3)[:80]}"
+    port = int(found.group(2))
+    if not 20000 <= port <= 39999:
+        return False, f"the service listens on port {port}, outside 20000-39999"
+    return True, f"listening on 127.0.0.1:{port}"
+
+
+def service_failed(log_text):
+    return any((match := SERVICE_LINE.search(line)) and match.group(3) is not None for line in log_text.splitlines())
+
+
+def pc_state_local(data):
+    """The saved provider state never holds the loopback address or its token:
+    the service's address lives in memory only."""
     state = parse_state(data)
     if state is None:
         return False, "no readable youtube.json"
-    source = str(state.get("source", ""))
-    if base.rstrip("/") not in source:
-        return False, "saved companion address is not this one"
-    if len(str(state.get("token", ""))) < 24:
-        return False, "address saved, no token yet"
-    return True, "address saved and a token stored"
+    if "127.0.0.1" in str(state.get("source", "")):
+        return False, "the loopback address was written to youtube.json"
+    return True, "youtube.json holds no service address"
 
 
 def history_record(data, video):

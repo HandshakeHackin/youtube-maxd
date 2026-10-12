@@ -136,14 +136,27 @@ def test_completion_dialog_rows_quality_and_captions():
     assert offered == ["English (current) [PRIMARY]", "French"] and current == ["English (current) [PRIMARY]"]
 
 
-def test_saved_state_pairing_history_and_redaction():
+def test_service_line_is_read_from_the_log_and_never_with_a_token():
+    assert ob.pc_service("boot\nembedded service: listening on 127.0.0.1:23456\nframe loop") == (True, "listening on 127.0.0.1:23456")
+    assert not ob.pc_service("boot\nframe loop")[0]
+    assert not ob.pc_service("embedded service: listening on 127.0.0.1:8765")[0]      # outside the console's range
+    assert not ob.pc_service("embedded service: listening on 127.0.0.1:49152")[0]
+    refused = ob.pc_service("embedded service: did not start: no free port")
+    assert not refused[0] and "no free port" in refused[1] and ob.service_failed("x\nembedded service: did not start: y")
+    assert not ob.service_failed("embedded service: listening on 127.0.0.1:23456")
+    leaked = ob.pc_service("embedded service: listening on 127.0.0.1:23456 token " + "ab" * 32)
+    assert not leaked[0] and "token" in leaked[1]
+    # a later start replaces an earlier failure
+    assert ob.pc_service("embedded service: did not start: x\nembedded service: listening on 127.0.0.1:20000")[0]
+
+
+def test_saved_state_history_and_redaction():
     state = json.dumps({"source": "http://pc.example:8765", "token": "s" * 43, "records": [
         {"id": "jNQXAC9IVRw", "played": True, "position": 0, "duration": 19, "title": "Me at the zoo"},
         {"id": "other", "played": False, "position": 7}]}).encode()
-    assert ob.pc_paired(state, "http://pc.example:8765/")[0]
-    assert not ob.pc_paired(state, "http://elsewhere.example:8765")[0]
-    assert not ob.pc_paired(json.dumps({"source": "http://pc.example:8765", "token": ""}).encode(), "http://pc.example:8765")[0]
-    assert not ob.pc_paired(b"not json", "http://pc.example:8765")[0]
+    assert ob.pc_state_local(state)[0] and ob.pc_state_local(b"{}")[0]      # an old companion address may stay stored
+    assert not ob.pc_state_local(json.dumps({"source": "http://127.0.0.1:23456", "token": "t" * 64}).encode())[0]
+    assert not ob.pc_state_local(b"not json")[0]
     assert ob.pc_history(state, "jNQXAC9IVRw", True)[0] and ob.pc_history(state, "other", False)[0]
     assert not ob.pc_history(state, "other", True)[0] and not ob.pc_history(state, "missing", False)[0]
     shown = json.dumps(ob.redact_state(json.dumps({"source": "http://pc.example:8765#123456", "token": "s" * 43}).encode()))
@@ -235,12 +248,11 @@ def run(tmp_path, monkeypatch, extra=(), instrumented=True, lock_text=None, **sc
     monkeypatch.setattr(se.shutil, "which", lambda name: f"/usr/bin/{name}")
     monkeypatch.setattr(se.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "built.elf\n", ""))
     args = se.parse(["--i-have-owner-approval", "--host", "console.invalid", "--lock-file", str(lock),
-                     "--candidate", str(candidate), "--companion", BASE, "--pair-code", "123456",
+                     "--candidate", str(candidate),
                      "--protocol", str(tmp_path / "protocol"), "--out", str(out), *extra])
     clock = sim.SimClock()
     console = sim.SimConsole(clock, echo=lambda line: None, evidence=out, **scenario)
-    health = lambda url: {"service": "ProsperoTube", "mode": "youtube", "version": "0.1.0", "features": ["library"]}
-    current = se.Session(args, console, clock, ConsoleDown, health=health)
+    current = se.Session(args, console, clock, ConsoleDown)
     verdict = current.run()
     ops = [json.loads(line) for line in (out / "ops.jsonl").read_text().splitlines()] if (out / "ops.jsonl").exists() else []
     return verdict, current, console, ops, lock, out
@@ -252,7 +264,7 @@ def payloads(ops):
 
 def test_refuses_without_the_owner_approval_flag(capsys):
     with pytest.raises(SystemExit) as refused:
-        se.parse(["--host", "console.invalid", "--lock-file", "x", "--candidate", "c", "--companion", BASE])
+        se.parse(["--host", "console.invalid", "--lock-file", "x", "--candidate", "c"])
     assert refused.value.code == 2 and "owner's approval" in capsys.readouterr().err
 
 
@@ -273,7 +285,18 @@ def test_full_session_passes_with_one_launch_and_one_close(tmp_path, monkeypatch
     assert (out / "playback-scanout.bmp").read_bytes()[:2] == b"BM"
     assert not any(name.startswith(("dev_", "evo_shot")) for name in (console.listdir(ob.DATA) or {}))
     assert ob.STATE_FILE not in console.files  # the console had none: the session's own is removed
-    assert "123456" not in (out / "session.log").read_text() + (out / "ops.jsonl").read_text()
+    assert result["observations"]["service"] == "listening on 127.0.0.1:23456"
+    assert not [op for op in ops if "options" in op["detail"]]  # nothing is typed into Options: there is no pairing
+    with pytest.raises(SystemExit):  # the companion's arguments are gone
+        se.parse(["--i-have-owner-approval", "--host", "h", "--lock-file", "x", "--candidate", "c", "--companion", "http://pc:8765"])
+
+
+def test_service_that_did_not_start_fails_before_any_search_and_closes_cleanly(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = run(tmp_path, monkeypatch, service="no free port between 20000 and 40000")
+    assert verdict == "fail" and payloads(ops) == ["launch", "close"] and not lock.exists()
+    assert current.teardown_clean is True and console.running == []
+    assert not [op for op in ops if "command: type" in op["detail"]]
+    assert any("did not start" in step["detail"] for step in current.steps if step["result"] == "FAIL")
 
 
 def test_busy_console_stops_after_the_first_read_only_operation(tmp_path, monkeypatch):
@@ -351,10 +374,11 @@ def test_original_provider_state_is_restored_byte_for_byte(tmp_path, monkeypatch
     assert json.loads((out / "state-after/youtube.json").read_text())["records"][0]["id"] == "jNQXAC9IVRw"
 
 
-def test_keep_state_leaves_the_new_pairing_and_still_removes_development_files(tmp_path, monkeypatch):
+def test_keep_state_leaves_the_session_history_and_still_removes_development_files(tmp_path, monkeypatch):
     original = json.dumps({"source": "http://old.example:8765", "token": "o" * 43}).encode()
     verdict, _, console, _, _, _ = run(tmp_path, monkeypatch, extra=["--keep-state"], state=original)
-    assert verdict == "pass" and BASE in json.loads(console.files[ob.STATE_FILE])["source"]
+    kept = json.loads(console.files[ob.STATE_FILE])
+    assert verdict == "pass" and kept["source"] == "http://old.example:8765" and kept["records"][0]["id"] == "jNQXAC9IVRw"
     assert not any(Path(path).name in ob.DEV_FILES or ob.SHOT.match(Path(path).name) for path in console.files)
 
 

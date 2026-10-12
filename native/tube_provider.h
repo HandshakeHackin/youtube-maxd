@@ -18,6 +18,8 @@ int tube_embedded_mode(void);
 int tube_embedded_start(void);
 void tube_embedded_stop(void);
 const char *tube_embedded_error(void);
+/* "127.0.0.1:<port>" while it runs, "" otherwise; for the log. Never the token. */
+const char *tube_embedded_address(void);
 /* Whether artwork at this address may be fetched (see tube_provider.c). */
 int tube_art_url_allowed(const char *url);
 unsigned tube_phone_revision(void);

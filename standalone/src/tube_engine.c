@@ -35,6 +35,10 @@
 extern const unsigned char tube_js_bundle[], tube_js_ca_pem[];
 extern const size_t tube_js_bundle_length, tube_js_ca_pem_length;
 #define TUBE_SERVICE_EMBEDDED 1
+/* The POSIX name is not part of the app's libc surface; EVO creates its own
+ * folders the same way (src/evo_data_path.c). */
+int sceKernelMkdir(const char *path, int mode);
+#define mkdir(path, mode) sceKernelMkdir(path, mode)
 #endif
 
 #define FILE_LIMIT ((size_t)16 << 20)
