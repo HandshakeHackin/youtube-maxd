@@ -350,6 +350,8 @@ static const char* tube_dev_path(unsigned index) {
     apply_qr_overlay(replace, player, WORK, ROOT)
     # The built-in service: host calls always (they ask the provider's mode at
     # run time), its sources and data only in a TUBE_EMBEDDED_SERVICE=1 package.
+    from refused_media_overlay import apply_refused_media_overlay
+    apply_refused_media_overlay(replace, player)
     import embedded_service_overlay
     embedded_service_overlay.apply_host(replace, player, host)
     if embedded_service_overlay.enabled():

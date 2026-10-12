@@ -129,6 +129,20 @@ static void run(const char *path) {
     assert(!evo_demux_input_failed() && !evo_demux_natural_eof() && !evo_pb_is_complete());
     tube_demux_terminal_input(AVERROR_EOF, AVERROR_EOF, 0);
     assert(!evo_demux_input_failed() && evo_pb_is_complete());
+    /* A media request the server refused: the read that ends afterwards is
+     * final at once (no in-place retry of the same links) and is a failed
+     * input, even though FFmpeg reports a plain end of file. */
+    demux_recover_tries = 0; evo_demux_reset_eof();
+    assert(!demux_read_is_final(AVERROR_EOF) && !tube_demux_refused(av_gettime_relative() / 1000));
+    evo_demux_note_refused(av_gettime_relative() / 1000);
+    assert(demux_read_is_final(AVERROR_EOF) && demux_recover_tries == 0);
+    tube_demux_terminal_input(AVERROR_EOF, 0, demux_recover_tries >= DEMUX_RECOVER_TRIES || tube_demux_refused(av_gettime_relative() / 1000));
+    assert(evo_demux_input_failed() && !evo_demux_natural_eof() && !evo_pb_is_complete());
+    assert(!tube_demux_refused(av_gettime_relative() / 1000 + 15000));   /* an old report no longer counts */
+    evo_demux_clear_refused(); evo_demux_reset_eof();                   /* a new playback starts clean */
+    assert(!demux_read_is_final(AVERROR_EOF) && !tube_demux_refused(av_gettime_relative() / 1000));
+    tube_demux_terminal_input(AVERROR_EOF, 0, 0);
+    assert(evo_demux_natural_eof());
     media_duration_sec = 0;
     demux_recover_tries = 0;
     audio_stream_index = 0; audio_drained = 0; assert(!evo_pb_is_complete());
