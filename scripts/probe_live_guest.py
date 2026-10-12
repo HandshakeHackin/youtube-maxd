@@ -4,13 +4,15 @@
 Read-only: search, sections, channel, playlist, video details, comments,
 resolution and the first bytes of media through the relay. It signs in to
 nothing, changes nothing on YouTube, never contacts a console and never prints
-the pairing token, relay capabilities or signed addresses. About fifty
+the pairing token, relay capabilities or signed addresses. For an embedded
+service (health says `embedded`) the media reads go to YouTube's own servers. About fifty
 sequential requests with a pause between them.
 
   PYTHONPATH=companion .venv/bin/python scripts/probe_live_guest.py \
       --base http://127.0.0.1:8765 --code 123456 --token-file ~/.cache/prosperotube/probe-token
 """
 import argparse
+import html
 import json
 import os
 from pathlib import Path
@@ -27,10 +29,16 @@ SECTIONS = ("music", "gaming", "news", "sports", "live", "movies", "kids")
 class Client:
     def __init__(self, base, pause):
         self.base, self.pause, self.token, self.requests = base.rstrip("/"), pause, "", 0
+        # An embedded service says so in its health answer: its manifests and playlists name
+        # YouTube's media servers directly, so those addresses are read from there.
+        self.embedded = False
 
     def call(self, method, path, body=None, *, headers=None, raw=False, limit=1 << 20):
         url = path if path.startswith("http") else self.base + path
-        if urlsplit(url).netloc != urlsplit(self.base).netloc:
+        target = urlsplit(url)
+        direct = (self.embedded and target.scheme == "https" and target.port is None and
+                  (target.hostname or "").endswith(".googlevideo.com"))
+        if target.netloc != urlsplit(self.base).netloc and not direct:
             raise ValueError("the probe only talks to the companion")
         request = urllib.request.Request(url, method=method, data=None if body is None else json.dumps(body).encode())
         if body is not None:
@@ -106,6 +114,7 @@ def checks(client, args):
         status, _, reply = client.call("GET", "/v1/health")
         need(status == 200 and reply.get("mode") == "youtube", "the companion is not in YouTube mode")
         need("library" in reply.get("features", []), "start the companion with --library-node")
+        client.embedded = reply.get("embedded") is True
         return f"{len(reply['features'])} features"
     yield "health", health
     yield "pairing", lambda: pair(client, args)
@@ -256,7 +265,7 @@ def checks(client, args):
         need(choice["container"] == "dash", f"first choice is {choice['container']}")
         status, headers, manifest = client.call("GET", choice["url"], raw=True)
         need(status == 200 and "dash+xml" in headers.get("content-type", ""), f"manifest HTTP {status}")
-        tracks = re.findall(r"<BaseURL>([^<]+)</BaseURL>", manifest.decode())
+        tracks = [html.unescape(track) for track in re.findall(r"<BaseURL>([^<]+)</BaseURL>", manifest.decode())]
         need(len(tracks) == 2, "the manifest does not name one video and one audio track")
         for track in tracks:
             status, headers, data = client.call("GET", track, headers={"Range": "bytes=0-65535"}, raw=True)
