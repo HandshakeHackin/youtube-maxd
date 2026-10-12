@@ -6,73 +6,48 @@ and service provider built on [EVO Player](https://github.com/sainsaji/EVO-PLAYE
 It is a native implementation of the SmartTube experience, not a port of the
 Android application: no SmartTube or MediaServiceCore source is incorporated.
 
-ProsperoTube **needs a companion program on a computer in the same network**.
-The PS5 application has no YouTube access of its own: the companion searches,
-resolves and relays everything, and keeps account credentials on that computer.
+ProsperoTube **runs on the console by itself**: no computer, no pairing. The
+application carries its own YouTube service (a small JavaScript engine running
+[YouTube.js](https://github.com/LuanRT/YouTube.js) inside the app) and plays
+video straight from YouTube's servers. Version 0.1.0 browses and plays as
+**Guest**; signing in to a YouTube account comes in a later version.
 
 Release 0.1.0 is being prepared. [docs/STATUS.md](docs/STATUS.md) states what is
 implemented, what was tested and where, and what is still open before release.
 Throughout this page, **host-tested** means covered by the offline test suite on
 a PC, and **checked on a console** means it ran on a PS5; most of 0.1.0 is
-host-tested only (see [What was checked on a console](#what-was-checked-on-a-console)).
+host-tested only (see [What was checked on a console](#what-was-checked-on-a-console)),
+and **the self-sufficient build has not run on a console yet**.
 
 ## What you need
 
 - A PS5 that runs homebrew, with [Lapy](native/elevation/README.md) available:
   ProsperoTube keeps its data under `/data/prosperotube` and stops at startup
   when it cannot get access to that folder.
-- A computer on the same private network (Linux or Windows with WSL) for the
-  companion, with Python 3 and, for Home, comments, sections and accounts,
-  Node.js 20 or newer.
+- An internet connection on the PS5. Nothing else: no computer is involved.
 - The package from the release: a `PPSA99142` folder title, a ZIP of it and a
   `.ffpfsc` image. Nothing in this repository deploys to a console.
 
-## Run the companion
+## How it works
 
-In WSL/Linux, from this repository:
+At start the app elevates through Lapy for its data folder, then starts its
+service: a QuickJS engine thread that runs the bundled service script, and a
+listener on `127.0.0.1`. The browser part of the app talks to that address
+exactly as it used to talk to a companion on a PC. A video is played from a
+small DASH manifest the service writes; the manifest names YouTube's media
+servers, and the player (FFmpeg) reads them directly. Closing ProsperoTube from
+its menu stops the service before the app parks.
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r companion/requirements.lock
-PYTHONPATH=companion .venv/bin/python -m prosperotube \
-  --host 0.0.0.0 --public-base http://YOUR-PC-LAN-IP:8765
-```
+If the service cannot start, the app still opens: the first row of the main
+menu says why, and selecting it (or pressing **Options**) tries again.
 
-Install a supported yt-dlp JavaScript runtime on the companion. Deno is its
-default; `--js-runtime node --js-runtime-path /path/to/node` selects Node.
-The dependency lock includes EJS support. Extraction may additionally need an
-explicitly configured proof-token provider; see
-[yt-dlp's YouTube guide](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#youtube)
-and [PO token guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide).
-Pass extractor arguments using `--extractor-args settings.json`.
-No browser cookies are read automatically. `--cookies file.txt` is explicit.
+### For developers: an external companion
 
-Home, Discover shelves, comments, live chat, search filters, channel sections
-and everything that uses an account need the **library worker**. Build it once
-and add `--library-node`:
-
-```sh
-cd companion/innertube
-npm ci --ignore-scripts
-npm run build
-cd ../..
-PYTHONPATH=companion .venv/bin/python -m prosperotube --library-node /path/to/node \
-  --host 0.0.0.0 --public-base http://YOUR-PC-LAN-IP:8765
-```
-
-[docs/LIBRARY_SERVICE.md](docs/LIBRARY_SERVICE.md) describes the worker, account
-profiles and the other host options. `--sponsorblock` enables the SponsorBlock
-lookup; also turn skipping on in YouTube preferences on the PS5. Both are off
-by default.
-
-### Pair the PS5
-
-The companion prints a six-digit code, valid for ten minutes. In ProsperoTube,
-press **Options**, enter `http://YOUR-PC-LAN-IP:8765#123456`, then search or open
-a video to pair. Use the actual printed code. Pairing persists across restarts
-while the companion token file remains intact. For WSL, configure LAN
-reachability/firewall; a WSL NAT address may not be reachable by PS5.
-Use a trusted private LAN. HTTP pairing and media are plaintext.
+The PC companion (`companion/`, Python with yt-dlp and a Node worker) is now a
+development tool. A file named `external-companion` in `/data/prosperotube`
+makes the same package use a companion again (address and pairing code on
+**Options**, as before); [docs/BUILD.md](docs/BUILD.md) and
+[docs/LIBRARY_SERVICE.md](docs/LIBRARY_SERVICE.md) describe running one.
 
 ## What works
 
@@ -120,7 +95,9 @@ next section lists the part that also ran on a PS5.
   exclusions, timeline colours and review of a skip.
 - DeArrow titles and thumbnails, each with its own switch; originals are kept.
 
-**YouTube accounts** (through the companion; credentials never reach the PS5)
+**YouTube accounts** (not active in 0.1.0: the built-in service has no sign-in
+yet, and the app shows one line saying so instead of these rows; the code
+remains and works with the development companion)
 
 - Sign-in with a device code, removal of a signed-in account, several profiles.
 - Subscriptions, subscribed channels, notifications, YouTube history, Watch
@@ -156,21 +133,23 @@ Earlier development builds ran on a PS5 for these bounded cases only
   the chat reader, thumbnail decoding, and phone commands sent by a test
   receiver (not a real phone).
 
-Everything else on this page is host-tested only: all account features,
-VP9/HEVC/AV1 playback, real live chat, the in-player actions, backups and every
-settings screen added since those runs. The release candidate itself has not
-run on a console, and the service has not been re-checked against live YouTube.
+Those runs used the companion on a PC, before the service moved into the app.
+Everything else on this page is host-tested only: VP9/HEVC/AV1 playback, real
+live chat, the in-player actions, backups and every settings screen added since
+those runs. **The built-in service, its HTTPS client and the direct playback
+from YouTube have never run on a console**; on the host they pass the offline
+suite and a live Guest check (search, sections, channels, playlists, comments,
+resolve, captions, playback and seeking with the console's FFmpeg patch; see
+[docs/VALIDATION.md](docs/VALIDATION.md)).
 
 ## Experimental features
 
-These ship in 0.1.0 but were tested offline only. Their rows end in
+These are in 0.1.0's code and were tested offline only. In this Guest-only version just the profile password can be reached; the others need an account and are not offered until sign-in arrives. Their rows end in
 **(experimental)**, each acts only when you select it or turn it on, and
 **YouTube preferences > Experimental features** repeats this explanation.
 
 | Feature | Where | Default |
 | --- | --- | --- |
-| Phone casting (YouTube app TV code) | YouTube preferences > Phone pairing | Off until a phone is linked |
-| Voice search | Hold **L3** in the browser | Needs speech recognition set up on the companion ([voice search](docs/VOICE_SEARCH.md)) |
 | Sending a live-chat message | **L3** in an open live chat | Typed, reviewed, sent once |
 | Writing a comment or a reply | Comments of a video | Typed, reviewed, posted once |
 | Pause, resume and clear the account watch history | Touchpad on **YouTube history** | Confirmed, sent once |
@@ -184,7 +163,16 @@ These ship in 0.1.0 but were tested offline only. Their rows end in
   schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
 - Drawn thumbnails while seeking.
 - Update check and self-update.
-- Running without the companion.
+- Signing in to YouTube and everything that needs an account: subscriptions,
+  the account's history, Watch later, playlists, ratings, notifications. Home
+  as Guest shows what YouTube gives a signed-out visitor, which is a notice;
+  the app says so and leads to Search and Discover.
+- Phone casting and voice search (they need a service the app does not carry
+  yet; their rows and the L3 shortcut are hidden).
+- Importing subscriptions from another application.
+- The code of all of these remains in the tree, inactive in this build.
+- Trending and Shorts as sections: YouTube does not offer them to a Guest; the
+  app shows one explanatory row.
 - Automatic frame-rate switching, HDR and background playback.
 
 ## Controls
@@ -193,14 +181,13 @@ These ship in 0.1.0 but were tested offline only. Their rows end in
 | --- | --- |
 | D-pad / Cross | Focus / open or watch |
 | Square | Search |
-| Hold L3 | Voice search (experimental) |
 | Circle | Back; cancel a pending request |
 | Triangle | Toggle favorite |
 | R2 / L2 | Toggle queue / follow the video's channel |
 | L1 / R1 | Previous / next page |
 | R3 | Comments, or live chat on a live video |
 | Touchpad | Video actions; section and pin actions on a folder; playlist edits; ratings for a displayed comment |
-| Options | Companion address and pairing code |
+| Options | Retry the built-in service if it did not start |
 
 In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
 switches top/newest and Triangle opens the chat replay. In chat, R3 switches
@@ -227,20 +214,25 @@ switcher afterward.
 
 ## Storage and privacy
 
-- Settings, profiles, history, favorites, queues and the pairing token are in
-  one file under `/data/prosperotube`, replaced atomically; local lists keep at
-  most 384 videos. PS5 storage encryption is not provided. Backups contain the
-  pairing token and stay in `/data/prosperotube/backup`.
-- Cookies, account tokens, resolver headers and signed YouTube addresses stay
-  on the companion. The PS5 receives relay addresses that expire after 30
-  minutes without use.
+- Settings, profiles, history, favorites and queues are in one file under
+  `/data/prosperotube`, replaced atomically; local lists keep at most 384
+  videos. PS5 storage encryption is not provided. Backups stay in
+  `/data/prosperotube/backup`.
+- The built-in service listens on `127.0.0.1` only, on a port chosen at each
+  start, behind a random token that exists in memory only. It keeps a small
+  cache under `/data/prosperotube/cache` and writes no log.
+- The console talks to YouTube directly, as Guest and without cookies: YouTube
+  sees the console's address, as it would for any player. HTTPS to YouTube's
+  API is verified against a root-certificate list built into the app. Video,
+  sound and thumbnails are fetched by the player without certificate
+  verification (as EVO Player does); they carry no credentials.
+- SponsorBlock and DeArrow, when turned on, are asked directly by the console.
 - Local history is independent of Google. With an account profile, playback
   reports go to that account unless **History** is disabled or the video is
   played incognito.
-- **Show dislikes** (off by default) asks Return YouTube Dislike through the
-  companion, which tells that service which videos' details you open.
-- The companion keeps no access log and the PS5 diagnostics redact relay
-  addresses. See the [protocol and security notes](docs/PROTOCOL.md).
+- **Show dislikes** is not offered by the built-in service.
+- The PS5 diagnostics redact media session addresses. See the
+  [protocol and security notes](docs/PROTOCOL.md).
 
 ## Build
 

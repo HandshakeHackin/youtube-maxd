@@ -21,11 +21,8 @@ A console session needs the owner's word. The script refuses to start without
   protocol's `freeze-candidate.sh <dist>/PPSA99142 <frozen-dir>`. The session
   checks every file against `<frozen-dir>/SHA256SUMS` and refuses a build
   without the development interface. A release build cannot be driven.
-- The companion running on a PC the console can reach, in YouTube mode with the
-  library worker, and its current six-digit pairing code in a file. A code
-  lasts ten minutes and the install takes several, so let the session restart
-  the companion just before the launch (`--companion-restart-cmd`); otherwise a
-  code older than six minutes stops the session before the launch.
+- An internet connection on the console. The application is self-sufficient:
+  there is no companion, no address and no pairing code.
 - On the console: FTP (2121), kernel log (3232), payload receiver (9021) and
   ShadowMount Plus scanning `/data/homebrew`, as the protocol expects.
 - The console's shared lock file must not exist. The session creates it
@@ -38,19 +35,15 @@ A console session needs the owner's word. The script refuses to start without
 PS5_HOST=<console address> \
 PS5_LOCK=/mnt/c/Users/<you>/Documents/PS5-Claude/lock-<NN>.txt \
 python3 tools/console/session.py --i-have-owner-approval \
-  --candidate <frozen-dir> \
-  --companion http://<PC LAN address>:8765 \
-  --pair-code-file /mnt/c/Users/<you>/pt-companion/pairing-code.txt \
-  --companion-restart-cmd "powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\<you>\pt-companion\run-companion.ps1' -Restart"
+  --candidate <frozen-dir>
 ```
 
 Add `--dry-run` first: it does everything that does not touch the console
-(candidate check, controller build, companion health, lock code on a scratch
-file) and walks the whole session against an in-memory console, printing every
+(candidate check, controller build, lock code on a scratch file) and walks the whole session against an in-memory console, printing every
 console operation a real run performs, in order. Nothing is sent.
 
 Useful options: `--out DIR` (evidence, default `~/pt-console/<UTC time>/`),
-`--keep-state` (leave the session's pairing and history on the console),
+`--keep-state` (leave the session's history on the console),
 `--end eof|stop` (default: play to the end when under two minutes remain,
 otherwise Stop with confirmation), `--video-id`, `--search-query`,
 `--expect-title`, `--settle SECONDS`, `--open-presets`.
@@ -62,12 +55,12 @@ console, held lock, failed precondition), 4 unresolved (see below).
 
 | Stage | Proves | Stops when |
 | --- | --- | --- |
-| 0 local | The candidate is the frozen one; both controllers build; the companion answers from this PC; the lock is ours | anything is missing; the lock exists |
+| 0 local | The candidate is the frozen one; both controllers build; the lock is ours | anything is missing; the lock exists |
 | 1 idle | **First console operation**, read-only: no title has a sandbox under `/mnt/sandbox` | any title runs, ours included: lock released, nothing else sent |
 | 2 snapshot | Copies of every state file in `/data/prosperotube` (hashes recorded), the installed folder's listing, the error-record baseline | a copy is short |
 | 3 install | Every file uploaded under a temporary name, read back, renamed (`ps5-console.py install`); watched for `--settle` seconds and compared again (`settle`) | any difference |
 | 4 launch | Idle again; services answer; ShadowMount mounts the installed folder; one launch payload; then the ladder: sandbox exists → status file written by **this build** → Lapy storage → frame loop advancing and browser drawn | another title appeared (lock released, nothing sent); any rung not observed in time |
-| 5 core path | (b) pairing typed through the app's keyboard and a token stored; (c) result rows contain the expected video; (d) decoder active, no fatal, position advancing; (e) pause held, caption picker read, resume, +10 s seek landed; (f) playback options read, a quality entry present; (g) `complete=1` or Stop confirmed, engine statistics (frames published, late drops), history record in `youtube.json`; (h) one scanout capture from the player | a postcondition is not observed within its limit |
+| 5 core path | (b) the app's log says `embedded service: listening on 127.0.0.1:<port>` with a port in 20000-39999 and no token on the line, and the saved state holds no service address; (c) result rows contain the expected video; (d) decoder active, no fatal, position advancing; (e) pause held, caption picker read, resume, +10 s seek landed; (f) playback options read, a quality entry present; (g) `complete=1` or Stop confirmed, engine statistics (frames published, late drops), history record in `youtube.json`; (h) one scanout capture from the player | a postcondition is not observed within its limit |
 | 6 teardown | `quit` → `parked=1` (media released, GPU idle) → one exact-title close → sandbox gone; development files removed; state restored and re-read; services answer; no new error record; idle; lock released | never skipped |
 
 Every wait is bounded and ends on an observed fact from `dev_status`,
@@ -105,7 +98,7 @@ anyone uses the app (`ps5-console.py install`, files only).
 | `state-before/`, `state-after/`, `data-listing-*.json`, `installed-before.json` | what was on the console, what the session left |
 | `install.txt`, `settle.txt` | the protocol tool's own reports |
 
-`state-*/youtube.json` holds a pairing token: keep the directory private.
+`state-*/youtube.json` may hold the pairing token of an earlier development companion: keep the directory private.
 
 ## What it cannot verify
 

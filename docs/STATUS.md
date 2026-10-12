@@ -3,7 +3,9 @@
 Updated 2026-10-11. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states
 what the first release contains, how far each part was checked, and what is
-left before it ships. The LAN companion is required.
+left before it ships. **The application is self-sufficient**: its YouTube
+service runs inside the app ([decision](DECISIONS.md)), as Guest in this
+release. The self-sufficient build has not run on a console.
 
 Three levels of evidence are kept apart on this page:
 
@@ -15,19 +17,34 @@ Three levels of evidence are kept apart on this page:
 
 ## First-release scope
 
-Owner decision of 2026-10-11, from the [goal](../GOAL.md):
+Owner decisions of 2026-10-11, from the [goal](../GOAL.md): self-sufficient on
+the console is a hard requirement; the first MVP is Guest, standalone.
 
-- **Core:** Guest search with filters, Home, Discover sections, channels,
-  playlists, playback with captions, quality and speed, history and resume, queue.
-- **Integrations:** SponsorBlock and DeArrow.
-- **Accounts:** sign-in, subscriptions, library, ratings and playlists.
-- **Settings:** those already implemented. English interface.
-- **Experimental (labelled, off until used):** phone casting, voice search,
-  live chat and comment posting, account-history controls, feedback actions,
-  account password.
-- **Deferred:** localization, remaining interface options, drawn seek previews,
-  update check and self-update, the standalone on-console service, auto frame
-  rate, HDR and background playback.
+- **In the release:** Guest search with filters, Home (a notice for a Guest,
+  with rows leading on), Discover sections, channels, playlists, comments and
+  chat read-only, playback with captions, quality and speed, local history and
+  resume, favorites, queue, followed channels, SponsorBlock, DeArrow, the
+  settings already implemented, English interface.
+- **In the tree, inactive in the release:** accounts (sign-in, subscriptions,
+  library, ratings, playlists), phone casting, voice search, subscriptions
+  import, chat and comment posting, account-history controls, feedback
+  actions. The interface does not offer them: the built-in service has no
+  accounts yet. They still work against the development companion.
+- **Deferred:** localization, remaining interface options, drawn seek
+  previews, update check and self-update, auto frame rate, HDR and background
+  playback.
+
+## The built-in service
+
+- `standalone/`: QuickJS-NG 0.17.0 running YouTube.js 18.1.0 and the
+  companion's library modules; a loopback listener with the companion's API;
+  libcurl + OpenSSL with an embedded root list. Host-tested (20 engine and 132
+  HTTP checks, plain and under sanitizers) and checked live as Guest.
+- The provider starts it after storage is ready, uses its address and token in
+  memory only, never pairs, retries from a visible row when it did not start,
+  and stops it on the first soft-close frame. Host-tested against a stand-in
+  and, end to end, against the real service in one process.
+- The PS5 package compiles, links and packs with it. **Never run on a console.**
 
 ## Implemented and tested
 
@@ -92,7 +109,9 @@ hardware-dependent features, which the first release defers.
 
 ## Verified only on the host
 
-None of the following has run on a console. Where an earlier check against the
+The built-in service and everything that depends on it (which is every
+request the app makes) are in this section. None of the following has run on a
+console. Where an earlier check against the
 live service exists it is named; everything else has seen fixtures only.
 
 - Every account feature. Sign-in runs against queued responses and a
@@ -165,20 +184,22 @@ are unverified.
 
 ## Remaining gates, in order
 
-1. **Live-service check from the companion host.** Run the service against
-   live YouTube (Guest first, then one account): the core path, then each
-   inferred contract above. No console is involved.
-2. **Frozen candidate.** Rebuild after any fix from gate 1, run
-   `scripts/test_all.sh`, and record the package hashes.
+1. **Live-service check of the built-in service on the host: done for Guest**
+   (2026-10-11, [validation](VALIDATION.md)). Account contracts wait for
+   accounts in the built-in service.
+2. **Frozen candidate: built** from the standalone tree (release and
+   instrumented packages, hashes in the validation record).
 3. **One bounded console session on the core path**, under the shared-console
-   protocol: idle check first, verified install, startup, pairing, search,
-   Home, playback with captions, quality and speed, history and resume, queue,
-   clean close. Experimental features are outside this session.
+   protocol (`tools/console/session.py`): idle check first, verified install,
+   startup, the service's start line, search, playback with pause, seek and
+   options, end, history, clean park and close. This is the first time the
+   engine, the HTTPS client and direct playback run on a console.
 4. Fix what the session finds, then release.
 
-Known limits that stay after the release: the companion is required; no
-standalone service or SABR/proof-token integration on the console; English
-only; no auto frame rate, HDR or background playback.
+Known limits that stay after the release: Guest only (no sign-in), no phone
+casting, voice search or subscriptions import, one YouTube client identity
+(`VISIONOS`) with no fallback but HLS, English only, no auto frame rate, HDR or
+background playback.
 
 See [validation](VALIDATION.md), [hardware acceptance](HARDWARE_ACCEPTANCE.md),
 [parity](PARITY.md), [goal](../GOAL.md) and [plan](../IMPLEMENTATION_PLAN.md).

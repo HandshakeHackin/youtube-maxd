@@ -85,6 +85,44 @@ pinned library dependencies and rebuild its bundle on the companion host.
 Packaging records artifact hashes; test evidence belongs in the validation
 record and is not inferred from running the packager.
 
+## The built-in service
+
+`scripts/build_ps5.sh` builds the self-sufficient application by default
+(`TUBE_EMBEDDED_SERVICE=1`):
+
+- **Bundle.** `standalone/build/tube_js.bundle.js` is built by
+  `standalone/build_bundle.sh` (esbuild from `companion/innertube/node_modules`;
+  `npm ci --ignore-scripts` there first, done by the build when the folder is
+  missing) whenever it is absent or older than its sources. The build log
+  carries one line with its size and SHA-256. `PROSPEROTUBE_JS_BUNDLE` names a
+  ready bundle instead.
+- **Engine and client.** `standalone/ps5/fetch_quickjs.sh` and
+  `fetch_cacert.sh` fetch the pinned QuickJS-NG amalgamation and Mozilla root
+  list by checksum into `standalone/ps5/.cache`. `scripts/embedded_service_overlay.py`
+  copies them, the bindings (`standalone/ps5/`) and the service
+  (`standalone/src/*.c` except the host tool `main.c`) into the generated tree,
+  embeds the bundle and the roots in `eboot.bin`, and joins the HTTPS client
+  with Pacbrew's libcurl into one object. `standalone/ps5/README.md` has the
+  details and the link proof.
+- **Without it.** `TUBE_EMBEDDED_SERVICE=0 bash scripts/build_ps5.sh` builds
+  the companion-only application of earlier candidates.
+- **Development switch.** In a package that carries the service, an empty file
+  `/data/prosperotube/external-companion` selects a LAN companion at the next
+  start (Options then asks for its address and pairing code). Remove the file
+  to return to the built-in service. A stored companion pairing is kept
+  untouched while the built-in service is in use.
+- **Host.** `standalone/build_host.sh` builds `standalone/build/tube_js`, the
+  same service as a command-line program (`tube_js serve`, one-shot commands);
+  `standalone/README.md` documents it. Host tests call `prepare_native.py`
+  without the flag and keep the companion mode, except
+  `scripts/test_embedded_service.sh` (provider against a stand-in service) and
+  `scripts/test_embedded_e2e.sh` (provider against the real service in one
+  process, YouTube played by canned answers).
+- **Live.** `scripts/probe_live_embedded.sh` is the one script that talks to
+  YouTube: about ten API requests as Guest and three seconds of one small
+  video, twice, through a host FFmpeg that carries the DASH patch
+  (`PROSPEROTUBE_HOST_FFMPEG`). It is not part of any test run.
+
 ## Checks
 
 ```sh

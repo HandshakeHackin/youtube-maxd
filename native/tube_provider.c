@@ -5645,7 +5645,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 snprintf(id, sizeof id, "settings:backup:auto:%d", periods[(period + 1) % 4]);
                 snprintf(label, sizeof label, "Automatic backup: %s", names[period]);
                 CATALOG_FOLDER( id, label, "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5");
-                CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
+                if (!g_embedded) /* the built-in service cannot read an export yet: not offered */
+                    CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
             }
         } else if (!strncmp(parent, "settings:lock:", 14)) {
             CATALOG_FOLDER( "account:notice", "Enter the password", "Circle returns to the account settings without changing it");

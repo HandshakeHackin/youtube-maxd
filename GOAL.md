@@ -4,31 +4,37 @@ Implement a 1:1 equivalent SmartTube port for **PlayStation 5**. Stop only when
 the full objective is implemented and verified. This is the current user-approved
 goal, confirmed on 2026-10-09; the 0.1.0 prototype is an intermediate milestone.
 
-## First release scope (owner decision, 2026-10-11)
+## First release scope (owner decisions, 2026-10-11)
 
 Full SmartTube parity stays the long-term target, tracked in
-[docs/PARITY.md](docs/PARITY.md). The first release is limited so that what
-ships has been exercised on a console and against the live service:
+[docs/PARITY.md](docs/PARITY.md).
 
-- **Core:** Guest search with filters, Home, Discover sections, channels,
-  playlists, playback with captions, quality and speed, history and resume, queue.
-- **Integrations:** SponsorBlock and DeArrow.
-- **Accounts:** sign-in, subscriptions, library, ratings and playlists.
-- **Settings:** those already implemented. English interface. The LAN companion
-  is required and stated as such.
-- **Experimental (off by default or labelled):** phone casting, voice search,
-  live chat and comment posting, account-history controls, feedback actions,
-  account password.
-- **Deferred to later releases:** localization, remaining interface options,
-  drawn seek previews, update check and self-update, the standalone on-console
-  service, and features that need hardware work (auto frame rate, HDR,
-  background playback).
+**Self-sufficient on the console is a hard requirement** (owner, 2026-10-11,
+replacing the earlier scope of the same day that required a LAN companion). The
+released application must work with nothing but the PS5 and an internet
+connection. The PC companion remains in the repository as a development tool
+only; no release may depend on it.
 
-Sequence: finish and merge the batches in flight, then freeze features; check
-the service against live YouTube from the companion host; build and freeze a
-candidate; run one bounded console session on the core path; fix and release.
-Use the console as little as possible: other agents share it. Always check that
-nothing is running first; either console may be used, whichever is free.
+- **First MVP: Guest, standalone.** Search with filters, Home (as far as
+  YouTube serves a Guest), Discover sections, channels, playlists, comments
+  read-only, playback with captions, quality and speed, local history and
+  resume, favorites, queue, followed channels, SponsorBlock and DeArrow, the
+  settings already implemented, English interface.
+- **Next: accounts on the console.** Sign-in by device code, subscriptions,
+  library, ratings and playlists, served by the built-in service.
+- **Then the rest:** phone casting, voice search, subscriptions import, live
+  chat and comment posting, account-history controls, feedback actions;
+  localization, remaining interface options, drawn seek previews, update check
+  and self-update (which must also be able to replace the service bundle),
+  auto frame rate, HDR, background playback.
+- Code for features outside the MVP stays in the tree and inactive; the
+  interface does not offer what cannot work.
+
+Sequence: build and freeze a standalone candidate; run one bounded console
+session on the core path (start of the service, search, play, pause, seek,
+options, end, history, clean close); fix and release. Use the console as little
+as possible: other agents share it. Always check that nothing is running
+first; either console may be used, whichever is free.
 
 Reuse the existing PS5 ecosystem: EVO Player is the integrated playback, UI,
 decoder, FFmpeg and packaging foundation. ProsperoLight, ProsperoTV and the PS5

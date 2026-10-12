@@ -4,21 +4,23 @@
 #define TUBE_ABOUT_DATA_H
 
 #define TUBE_ABOUT_CHANGELOG_VERSION "0.1.0"
-#define TUBE_ABOUT_CHANGELOG_ROWS 12
+#define TUBE_ABOUT_CHANGELOG_ROWS 14
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
-    {"0.1.0", "Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. The LAN companion is required."}, \
+    {"0.1.0", "Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. No computer is needed: the YouTube service runs inside the app."}, \
+    {"0.1.0", "Built-in service: a JavaScript engine running YouTube.js behind a loopback address, verified HTTPS to YouTube, video played directly from YouTube's servers, a new resolve when a link is refused."}, \
     {"0.1.0", "Guest search with options, suggestions and history; Home with filters, Discover sections, channels with their sections, playlists and related videos."}, \
     {"0.1.0", "Playback in AVC, VP9, HEVC and AV1 (SDR) with captions in two languages at once, caption styling, quality, codec and frame-rate limits, audio language and 0.25x to 4x speed."}, \
     {"0.1.0", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer and recovery after stream failures."}, \
     {"0.1.0", "Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position."}, \
     {"0.1.0", "SponsorBlock segment skipping with review, and DeArrow titles and thumbnails."}, \
-    {"0.1.0", "YouTube account sign-in by device code, subscriptions, library, ratings, Watch later and playlist editing through the companion; every change is confirmed and sent once."}, \
+    {"0.1.0", "This version browses and plays as Guest. Sign-in, subscriptions, library, ratings and playlist editing are in the code but not offered: they arrive when the built-in service has accounts."}, \
     {"0.1.0", "Comments with replies and comment rating, live chat and chat replay."}, \
     {"0.1.0", "Video actions, a suggestions list, chapter notification and screen dimming in the player."}, \
-    {"0.1.0", "Channel blocking by ID or name, hide-content switches, content language and country, local backups, subscriptions import and About with QR links."}, \
-    {"0.1.0", "Experimental, marked (experimental) and tested offline only: phone casting, voice search, sending chat messages, posting comments, account-history pause, resume and clear, feedback actions and the profile password."}, \
-    {"0.1.0", "Not included yet: translations, the remaining interface options, drawn seek previews, update check and self-update, running without the companion, auto frame rate, HDR and background playback."}
+    {"0.1.0", "Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links."}, \
+    {"0.1.0", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
+    {"0.1.0", "Experimental, marked (experimental) and tested offline only: the profile password. Chat and comment posting, account-history controls and feedback actions need an account and are inactive."}, \
+    {"0.1.0", "Not included yet: sign-in and accounts, phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback."}
 
 #endif

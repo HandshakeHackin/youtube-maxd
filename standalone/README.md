@@ -7,8 +7,8 @@ small listener on `127.0.0.1` answers **the same HTTP API as
 address and token. Media bytes are never relayed: manifests and playlists name
 YouTube's servers.
 
-Everything here runs and is tested on a PC. Nothing was run on a console and
-nothing is wired into the app yet. Live numbers are from 2026-10-11, Guest, no
+Everything here runs and is tested on a PC. Nothing was run on a console. The
+app is wired to it since (`standalone/ps5/README.md`, section 8). Live numbers are from 2026-10-11, Guest, no
 cookies.
 
 | Part | Where |

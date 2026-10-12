@@ -1,5 +1,80 @@
 # Offline validation record — 0.1.0
 
+## Self-sufficient application: built-in service on the host and live as Guest — 2026-10-11
+
+The application no longer needs a companion ([decision](DECISIONS.md)). This
+entry covers the tree that carries the built-in service, the provider wired to
+it and the PS5 package built from it. **Nothing in it ran on a console.**
+
+**Host checks, offline.** `bash scripts/test_all.sh` ends with `61 passed, 0 failed`.
+New since the entry below:
+
+- `scripts/test_standalone.sh`: the service as a host program against canned
+  YouTube answers, 20 engine checks and 132 HTTP checks, plain and again under
+  AddressSanitizer and UndefinedBehaviorSanitizer with leak detection.
+- `standalone/ps5/test_bindings.sh` (run by hand, not a step): 478 checks of
+  the HTTPS client, timers, hashes and random bytes against a server inside the
+  test on 127.0.0.1, with TLS and its failure cases, under the sanitizers.
+- `scripts/test_embedded_service.sh`: the provider built for the built-in
+  service against a stand-in: start without pairing, the token on every
+  request, the feature list read first, a kept companion pairing, failure and
+  retry, stop and restart, no account or companion wording on screen, the
+  artwork host list, stream headers, the development switch.
+- `scripts/test_embedded_e2e.sh`: the provider, EVO's own HTTP client and the
+  **real** service in one process, YouTube played by canned answers: start,
+  refusal without the token, search, resolve, the manifest fetched as the
+  player fetches it (direct media addresses, nothing relayed), captions written
+  for the player, saved state without the service's address, stop, restart.
+- `scripts/test_native.sh` gained `guest_sections` (Guest Home, withheld
+  sections, an empty last page) and a case for a codec the video lacks;
+  `scripts/test_video_drain.sh` covers the refused-media classification;
+  `tests/test_console_session.py` covers the session driver without a
+  companion (43 tests).
+
+**PS5 package, offline.** `scripts/build_ps5.sh --ffpfsc` compiles, links,
+converts and packs the application with the engine, the HTTPS client, the
+service and its bundle; the bundle's SHA-256 is in the build log. The link
+adds 16 imports, each present in an SDK stub library (list in
+`standalone/ps5/README.md`). The release and the instrumented package are
+built from the commit that follows this entry and frozen with the protocol's
+`freeze-candidate.sh`; each frozen folder carries its `SHA256SUMS`. They were
+not installed.
+
+**Live, as Guest, on the host.** During the service's development (three
+rounds, 2026-10-11): health, search with pages, filters and suggestions, Home,
+seven Discover sections, Trending and Shorts (refused by YouTube for a Guest,
+reported as such), channel tabs, playlists, video details, comments with
+replies, resolve in AVC, VP9 and AV1, DASH manifests with ranged reads of each
+track, loudness, chapters, storyboards, captions, a live HLS stream with chat,
+locale and content filters, SponsorBlock and DeArrow: 25 of 25 probe checks
+over two runs; and playback through an FFmpeg 7.1.1 carrying this repository's
+DASH patch, from the start and after seeks (1080p60 H.264: 1.4 s, 4.9 s in the
+middle, 0.6 s near the end; VP9: 0.6, 5.6, 0.7 s).
+With the provider in the loop (`scripts/probe_live_embedded.sh`, this
+integration): the provider in built-in mode searched, resolved
+`jNQXAC9IVRw` (H.264 240p15 with AAC) through the real service in its own
+process, and the patched FFmpeg copied three seconds from the start and three
+after a seek to 9 s, each in 0.4 s.
+
+**Live traffic used.** The three service rounds: about 83, 250 and 65 API
+requests and about 0.5 GB of media in total (most of it two read-through seeks
+with a stock FFmpeg, which the console does not use), plus two anonymous
+requests during earlier proxy work. This integration: two runs of the probe
+above, about 16 API requests and a few hundred kilobytes of 240p media (the
+first run reached the manifest and stopped at a fault in the probe's own
+FFmpeg command line).
+
+**Not verified.**
+
+- Anything on a console: the engine, libcurl and OpenSSL under Lapy elevation,
+  the loopback listener, certificate verification with the console's clock,
+  direct playback by the console's FFmpeg, memory next to a 4K decode, the
+  stop inside the soft-close window.
+- Accounts (not in the built-in service).
+- A refused link during real playback: the classification is host-tested with
+  the shipping code; the 403 itself was produced against a local server only.
+- Playback of more than a few seconds per run, by design of the traffic limit.
+
 ## Feature-freeze candidate: offline checks and PS5 package — 2026-10-11
 
 Features are frozen for release 0.1.0 (scope in [GOAL.md](../GOAL.md)). This

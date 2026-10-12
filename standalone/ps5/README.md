@@ -515,24 +515,28 @@ companion in a package that carries the service (development).
 **Build.** `scripts/embedded_service_overlay.py`, called last by
 `prepare_native.py`: copies the engine, the bindings, `tube_js_libc.c` and
 the service, embeds the bundle and the roots (`tube_js_data.c`), edits the
-Makefile as in section 5, ships the license texts. The service is:
+Makefile as in section 5, ships the license texts. The service is every
+`standalone/src/*.c` except the host tool `main.c`, with the headers of
+`standalone/src` and `standalone/include`; the bundle is
+`standalone/build/tube_js.bundle.js` (built by `scripts/build_ps5.sh` when
+missing or stale, its SHA-256 logged) or `PROSPEROTUBE_JS_BUNDLE`. A missing
+interface, bundle or source stops the build with a message that names it.
 
-| | sources | bundle |
-|---|---|---|
-| `PROSPEROTUBE_STUB_SERVICE=1` | `standalone/ps5/tube_service_stub.c` (never starts) | `standalone/ps5/stub_bundle.js` |
-| otherwise | every `standalone/src/*.c` except `main.c`, headers of `standalone/src` and `standalone/include` | `PROSPEROTUBE_JS_BUNDLE`, default `standalone/build/tube_js.bundle.js` |
-
-Without the stub, a missing `standalone/include/tube_service.h`, bundle or
-source stops the build with a message that names them.
+What the real service needed for the console, beyond compiling as it was:
+`poll_slice_ms = 10` in its client configuration; the listener's datagram
+wake socket made optional (unproven on the console: without it the listener's
+own 10 ms wait stands in); `sceKernelMkdir` for its cache folder, as EVO does;
+nothing else. Its listener already used `SO_NBIO` and a port in 20000-39999,
+and its client was already IPv4-only. The console's resolver
+(`tools/native-app/stubs/evo_dns.c`) returns IPv4 addresses only, so FFmpeg
+reads the media servers over the same family the links were issued for.
 
 **Tests.** `scripts/test_embedded_service.sh` (ASan/UBSan): the provider built
 with the flag against a stand-in service and queued HTTP.
 
-**To plug in the real service:** put its sources in `standalone/src/` and its
-interface in `standalone/include/tube_service.h` (then delete
-`standalone/ps5/tube_service.h`), produce the bundle, and build without
-`PROSPEROTUBE_STUB_SERVICE`. It must create its client with the configuration
-of `tube_js_console.h` on the console, read `tube_js_bundle` /
-`tube_js_ca_pem` from `tube_js_data.h`, listen on a port between 20000 and
-40000 (the console refuses 49152 and above), and cap its own waits as section
-4 says.
+**Also wired since:** a media read that ends within fifteen seconds of
+FFmpeg's "HTTP error 403/410" report is a failed input, not the end of the
+video, so the provider's recovery (a fresh resolve, three times at most) runs
+(`scripts/refused_media_overlay.py`); one log line states the service's address
+or why it did not start (never the token); `scripts/test_embedded_e2e.sh`
+runs the provider against the real service in one process.
