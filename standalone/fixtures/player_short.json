@@ -1,0 +1,88 @@
+{
+ "playabilityStatus": {
+  "status": "OK"
+ },
+ "videoDetails": {
+  "videoId": "fixtureSHT1",
+  "title": "Fixture short",
+  "lengthSeconds": "23",
+  "channelId": "UCffffffffffffffffffffff",
+  "author": "Fixture channel",
+  "shortDescription": "A fixture.\n0:00 Intro\n1:30 Middle part\n5:00 The end\n",
+  "thumbnail": {
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/fixtureSHT1/hqdefault.jpg",
+     "width": 480,
+     "height": 360
+    }
+   ]
+  },
+  "viewCount": "12345",
+  "isLiveContent": false
+ },
+ "streamingData": {
+  "expiresInSeconds": "21540",
+  "adaptiveFormats": [
+   {
+    "itag": 299,
+    "url": "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b&itag=299",
+    "mimeType": "video/mp4; codecs=\"avc1.64002a\"",
+    "bitrate": 4000000,
+    "averageBitrate": 2000000,
+    "lastModified": "1700000000000000",
+    "contentLength": "1000000",
+    "approxDurationMs": "635200",
+    "initRange": {
+     "start": "0",
+     "end": "740"
+    },
+    "indexRange": {
+     "start": "741",
+     "end": "2000"
+    },
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "qualityLabel": "1920p",
+    "quality": "hd"
+   },
+   {
+    "itag": 140,
+    "url": "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b&itag=140",
+    "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+    "bitrate": 129500,
+    "averageBitrate": 129500,
+    "lastModified": "1700000000000000",
+    "contentLength": "1000000",
+    "approxDurationMs": "635200",
+    "initRange": {
+     "start": "0",
+     "end": "740"
+    },
+    "indexRange": {
+     "start": "741",
+     "end": "2000"
+    },
+    "audioQuality": "AUDIO_QUALITY_MEDIUM",
+    "audioSampleRate": "44100",
+    "audioChannels": 2,
+    "quality": "tiny"
+   }
+  ]
+ },
+ "paidContentOverlay": {
+  "paidContentOverlayRenderer": {
+   "text": {
+    "runs": [
+     {
+      "text": "Includes  paid\n"
+     },
+     {
+      "text": "promotion"
+     }
+    ]
+   }
+  }
+ }
+}

@@ -56,6 +56,10 @@ typedef struct tube_js_http_config {
     /* Called on each new socket before it connects (console: SO_NBIO, see
      * tube_js_console.c). A non-zero return is ignored. NULL = nothing. */
     int (*socket_setup)(int socket);
+    /* 1 = connect over IPv4 only. YouTube binds media links to the address that
+     * asked for them; a player that reaches the media servers over IPv4 is
+     * refused (403) when the links were obtained over IPv6. */
+    int ipv4_only;
     /* Console: 10. tube_js_http_poll() then waits in slices of this many
      * milliseconds and moves the transfers along between them, because there
      * the wait does not always end when a socket becomes ready, and a wake is

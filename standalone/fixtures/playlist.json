@@ -1,0 +1,200 @@
+{
+ "header": {
+  "playlistHeaderRenderer": {
+   "playlistId": "PLfixture0001",
+   "title": {
+    "simpleText": "Fixture playlist"
+   }
+  }
+ },
+ "contents": {
+  "twoColumnBrowseResultsRenderer": {
+   "tabs": [
+    {
+     "tabRenderer": {
+      "selected": true,
+      "content": {
+       "sectionListRenderer": {
+        "contents": [
+         {
+          "itemSectionRenderer": {
+           "contents": [
+            {
+             "playlistVideoListRenderer": {
+              "playlistId": "PLfixture0001",
+              "isEditable": false,
+              "contents": [
+               {
+                "playlistVideoRenderer": {
+                 "videoId": "fixture0200",
+                 "index": {
+                  "simpleText": "1"
+                 },
+                 "title": {
+                  "runs": [
+                   {
+                    "text": "Playlist video 0"
+                   }
+                  ],
+                  "accessibility": {
+                   "accessibilityData": {
+                    "label": "Playlist video 0"
+                   }
+                  }
+                 },
+                 "shortBylineText": {
+                  "runs": [
+                   {
+                    "text": "Fixture channel",
+                    "navigationEndpoint": {
+                     "browseEndpoint": {
+                      "browseId": "UCffffffffffffffffffffff"
+                     }
+                    }
+                   }
+                  ]
+                 },
+                 "lengthSeconds": "60",
+                 "lengthText": {
+                  "simpleText": "1:00"
+                 },
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0200/hqdefault.jpg",
+                    "width": 480,
+                    "height": 360
+                   }
+                  ]
+                 },
+                 "isPlayable": true,
+                 "navigationEndpoint": {
+                  "watchEndpoint": {
+                   "videoId": "fixture0200",
+                   "playlistId": "PLfixture0001",
+                   "index": 0
+                  }
+                 }
+                }
+               },
+               {
+                "playlistVideoRenderer": {
+                 "videoId": "fixture0201",
+                 "index": {
+                  "simpleText": "2"
+                 },
+                 "title": {
+                  "runs": [
+                   {
+                    "text": "Playlist video 1"
+                   }
+                  ],
+                  "accessibility": {
+                   "accessibilityData": {
+                    "label": "Playlist video 1"
+                   }
+                  }
+                 },
+                 "shortBylineText": {
+                  "runs": [
+                   {
+                    "text": "Fixture channel",
+                    "navigationEndpoint": {
+                     "browseEndpoint": {
+                      "browseId": "UCffffffffffffffffffffff"
+                     }
+                    }
+                   }
+                  ]
+                 },
+                 "lengthSeconds": "60",
+                 "lengthText": {
+                  "simpleText": "1:00"
+                 },
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0201/hqdefault.jpg",
+                    "width": 480,
+                    "height": 360
+                   }
+                  ]
+                 },
+                 "isPlayable": true,
+                 "navigationEndpoint": {
+                  "watchEndpoint": {
+                   "videoId": "fixture0201",
+                   "playlistId": "PLfixture0001",
+                   "index": 1
+                  }
+                 }
+                }
+               },
+               {
+                "playlistVideoRenderer": {
+                 "videoId": "fixture0202",
+                 "index": {
+                  "simpleText": "3"
+                 },
+                 "title": {
+                  "runs": [
+                   {
+                    "text": "Playlist video 2"
+                   }
+                  ],
+                  "accessibility": {
+                   "accessibilityData": {
+                    "label": "Playlist video 2"
+                   }
+                  }
+                 },
+                 "shortBylineText": {
+                  "runs": [
+                   {
+                    "text": "Fixture channel",
+                    "navigationEndpoint": {
+                     "browseEndpoint": {
+                      "browseId": "UCffffffffffffffffffffff"
+                     }
+                    }
+                   }
+                  ]
+                 },
+                 "lengthSeconds": "60",
+                 "lengthText": {
+                  "simpleText": "1:00"
+                 },
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0202/hqdefault.jpg",
+                    "width": 480,
+                    "height": 360
+                   }
+                  ]
+                 },
+                 "isPlayable": true,
+                 "navigationEndpoint": {
+                  "watchEndpoint": {
+                   "videoId": "fixture0202",
+                   "playlistId": "PLfixture0001",
+                   "index": 2
+                  }
+                 }
+                }
+               }
+              ]
+             }
+            }
+           ]
+          }
+         }
+        ]
+       }
+      }
+     }
+    }
+   ]
+  }
+ }
+}

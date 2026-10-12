@@ -7,7 +7,6 @@ root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 work="$(python3 "${root}/scripts/prepare_native.py")"
 evo="${work}/projects/evoplayer"
 interface="${root}/standalone/include"
-[[ -f "${interface}/tube_service.h" ]] || interface="${root}/standalone/ps5"
 mkdir -p "${root}/build/tests"
 cc -std=c11 -D_DEFAULT_SOURCE -DTUBE_EMBEDDED_SERVICE=1 -O1 -g -Wall -Wextra -Werror \
   -fsanitize=address,undefined -fno-omit-frame-pointer \

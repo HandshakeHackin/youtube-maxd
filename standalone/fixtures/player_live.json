@@ -1,0 +1,30 @@
+{
+ "playabilityStatus": {
+  "status": "OK"
+ },
+ "videoDetails": {
+  "videoId": "fixtureLIV1",
+  "title": "Fixture live stream",
+  "lengthSeconds": "0",
+  "channelId": "UCffffffffffffffffffffff",
+  "author": "Fixture channel",
+  "shortDescription": "A fixture.\n0:00 Intro\n1:30 Middle part\n5:00 The end\n",
+  "thumbnail": {
+   "thumbnails": [
+    {
+     "url": "https://i.ytimg.com/vi/fixtureLIV1/hqdefault.jpg",
+     "width": 480,
+     "height": 360
+    }
+   ]
+  },
+  "viewCount": "12345",
+  "isLiveContent": true,
+  "isLive": true
+ },
+ "streamingData": {
+  "expiresInSeconds": "21540",
+  "adaptiveFormats": [],
+  "hlsManifestUrl": "https://manifest.googlevideo.com/api/manifest/hls_variant/id/fixtureLIV1/file/index.m3u8"
+ }
+}

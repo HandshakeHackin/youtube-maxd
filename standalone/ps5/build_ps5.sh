@@ -60,7 +60,7 @@ rm -f "$out/libquickjs.a"
 prospero-ar rcs "$out/libquickjs.a" "$out/obj/quickjs.o"
 
 # ---- 2. Bindings ------------------------------------------------------------
-for unit in tube_js_platform tube_js_http tube_js_console tube_js_libc tube_service_stub; do
+for unit in tube_js_platform tube_js_http tube_js_console tube_js_libc; do
   prospero-clang "${EVO_CFLAGS[@]}" -Wall -Wextra -Werror -DCURL_STATICLIB -I"$here" \
     -c "$here/$unit.c" -o "$out/obj/$unit.o"
 done

@@ -8,12 +8,10 @@ host tests run it, does not): it compiles the JavaScript engine, the native
 bindings and the service into the app and embeds the service bundle and the
 root certificates.
 
-The service's sources:
-  PROSPEROTUBE_STUB_SERVICE=1  standalone/ps5/tube_service_stub.c (link check)
-  otherwise                    every standalone/src/*.c except main.c, with the
-                               headers of standalone/src and standalone/include,
-                               and the bundle PROSPEROTUBE_JS_BUNDLE
-                               (default standalone/build/tube_js.bundle.js)
+The service: every standalone/src/*.c except main.c (the host tool), with the
+headers of standalone/src and standalone/include, and the bundle
+PROSPEROTUBE_JS_BUNDLE (default standalone/build/tube_js.bundle.js, which
+scripts/build_ps5.sh builds when it is missing or older than its sources).
 SPDX-License-Identifier: GPL-3.0-or-later
 """
 import os
@@ -61,8 +59,6 @@ def apply_host(replace, player, host):
 
 def service_inputs(root):
     """(sources, headers, bundle) of the service this package carries."""
-    if os.environ.get("PROSPEROTUBE_STUB_SERVICE", "0") == "1":
-        return [root / "standalone/ps5/tube_service_stub.c"], [root / "standalone/ps5/tube_service.h"], root / "standalone/ps5/stub_bundle.js"
     interface = root / "standalone/include/tube_service.h"
     sources = sorted(path for path in (root / "standalone/src").glob("*.c") if path.name != "main.c")
     headers = sorted((root / "standalone/src").glob("*.h")) + sorted((root / "standalone/include").glob("*.h"))
@@ -74,8 +70,8 @@ def service_inputs(root):
         missing.append(str(root / "standalone/src/*.c"))
     if missing:
         raise RuntimeError("TUBE_EMBEDDED_SERVICE=1 needs the built-in service, and these are missing: " + ", ".join(missing) +
-                           ". Build the bundle with standalone/build_host.sh, or set PROSPEROTUBE_STUB_SERVICE=1 for a link check "
-                           "with a stand-in service, or TUBE_EMBEDDED_SERVICE=0 for a companion-only package.")
+                           ". Build the bundle with standalone/build_host.sh, "
+                           "or set TUBE_EMBEDDED_SERVICE=0 for a companion-only package.")
     return sources, headers, bundle
 
 

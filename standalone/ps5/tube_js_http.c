@@ -48,6 +48,7 @@ struct tube_js_http {
     size_t max_response_bytes;
     int max_redirects, max_requests;
     int (*socket_setup)(int socket);
+    int ipv4_only;
     int poll_slice_ms;
     atomic_int woken;
     transfer *active, *done_head, *done_tail;
@@ -291,6 +292,7 @@ static int configure(transfer *t) {
     SET(CURLOPT_PRIVATE, t);
     SET(CURLOPT_ERRORBUFFER, t->curl_error);
     SET(CURLOPT_NOSIGNAL, 1L);
+    if (client->ipv4_only) SET(CURLOPT_IPRESOLVE, (long)CURL_IPRESOLVE_V4);
     SET(CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_1_1);   /* what the console's libcurl speaks; the same everywhere */
     SET(CURLOPT_BUFFERSIZE, 256L * 1024L);
     SET(CURLOPT_QUICK_EXIT, 1L);            /* a cancel or shutdown never waits for a name lookup */
@@ -538,6 +540,7 @@ tube_js_http *tube_js_http_new(const tube_js_http_config *config) {
     client->max_redirects = config->max_redirects > 0 ? config->max_redirects : 20;
     client->max_requests = config->max_requests > 0 ? config->max_requests : 64;
     client->socket_setup = config->socket_setup;
+    client->ipv4_only = config->ipv4_only;
     client->poll_slice_ms = config->poll_slice_ms > 0 ? config->poll_slice_ms : 0;
     atomic_init(&client->woken, 0);
     int failed = 0;
