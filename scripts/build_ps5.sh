@@ -28,6 +28,23 @@ fi
 # PROSPEROTUBE_STUB_SERVICE=1 links a stand-in service (link check only).
 # Host tests call prepare_native.py without this and keep the companion.
 export TUBE_EMBEDDED_SERVICE="${TUBE_EMBEDDED_SERVICE:-1}"
+# The service bundle is built here when it is missing or older than anything it
+# is made from; PROSPEROTUBE_JS_BUNDLE names another one. Its digest is logged.
+if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
+    bundle="${PROSPEROTUBE_JS_BUNDLE:-${root}/standalone/build/tube_js.bundle.js}"
+    if [[ -z "${PROSPEROTUBE_JS_BUNDLE:-}" ]]; then
+        newer=""
+        [[ -f "${bundle}" ]] && newer="$(find "${root}/standalone/js" "${root}/standalone/build_bundle.sh" \
+            "${root}/companion/innertube" "${root}/companion/prosperotube/__init__.py" -maxdepth 1 -type f \
+            \( -name '*.js' -o -name '*.mjs' -o -name '*.json' -o -name '*.sh' -o -name '*.py' \) -newer "${bundle}" -print -quit)"
+        if [[ ! -f "${bundle}" || -n "${newer}" ]]; then
+            [[ -d "${root}/companion/innertube/node_modules" ]] || (cd "${root}/companion/innertube" && npm ci --ignore-scripts)
+            bash "${root}/standalone/build_bundle.sh" > /dev/null
+        fi
+    fi
+    [[ -f "${bundle}" ]] || { echo "The service bundle ${bundle} is missing." >&2; exit 2; }
+    printf 'Service bundle: %s  %s bytes  sha256 %s\n' "${bundle}" "$(stat -c %s "${bundle}")" "$(sha256sum "${bundle}" | cut -d ' ' -f 1)"
+fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
 lapy_options=()
 if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then

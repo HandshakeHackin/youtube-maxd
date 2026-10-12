@@ -105,7 +105,7 @@ typedef struct Request {
     PlaylistContext playlist;
     int page, music_origin, queue_origin, incognito;
     int search_rows, library_search, aggregate;
-    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content;
+    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content, startup;
     unsigned intent, requires;
     char parent[160];
     char profile[33];
@@ -226,6 +226,8 @@ static char g_boot_section[24];
 /* A password-protected profile that was selected when ProsperoTube closed:
  * browsing starts as Guest and the startup folder asks for its password. */
 static char g_startup_lock[33];
+/* Until a launch lists anything but the main menu: the startup section is the first list asked for. */
+static int g_startup_open;
 static int boot_section_index(const char *id) {
     for (int i = 1; id && i < BOOT_SECTIONS; ++i) if (!strcmp(id, g_boot_sections[i].id)) return i;
     return 0;
@@ -2163,7 +2165,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init_store(void) {
-    memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel();
+    memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel(); g_startup_open = 1;
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
     tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end();
@@ -3879,6 +3881,16 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (strcmp(state, "done")) {
         const cJSON *error = cJSON_GetObjectItemCaseSensitive(root, "error");
         if (!strcmp(state,"failed") && search_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
+        if (!strcmp(state,"failed") && r->kind == 3 && !r->page && !r->startup && r->items_cb && !strncmp(r->parent,"section:",8) &&
+            !strcmp(str(error,"code"),"catalog_unavailable")) {
+            /* YouTube offers some sections to some profiles only: one row says so.
+             * As the startup section the list fails instead, which returns the browser to the main menu. */
+            evo_provider_item_t item;
+            folder(&item, "account:notice", "This section is not available from YouTube for this profile", str(error, "message"));
+            evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
+            memset(r, 0, sizeof *r); cb(1, &item, 1, 0, data);
+            cJSON_Delete(root); return;
+        }
         if (!strcmp(state,"failed")) resolve_failure(r,error);
         tube_set_error(*str(error, "message") ? str(error, "message") : "The request was cancelled or could not be completed.");
         cJSON_Delete(root); complete(r, 0); return;
@@ -4223,6 +4235,13 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     if (g_channel_marks_dirty) save();
     int more = boolean(result, "has_more");
+    if (r->kind == 3 && !r->page && !n && !more && !strcmp(r->parent, "library:home") && !strcmp(g_library_profile, "guest")) {
+        /* YouTube answers a signed-out Home with a notice alone: say why and lead on. */
+        folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", "YouTube provides Home recommendations only to signed-in accounts");
+        folder(&items[n++], "account:notice", "Search", "Square searches YouTube from any list");
+        folder(&items[n++], "discover", "Discover", "Topics and YouTube sections");
+        folder(&items[n++], "library", "Accounts & library", "Sign in to YouTube to get Home recommendations");
+    }
     /* Content filters can leave a companion page empty while more follow: read
      * on, a bounded number of times, instead of showing an empty list. */
     if (r->kind == 3 && !r->aggregate && more && g_hide_set && companion_has(COMPANION_FILTERS) &&
@@ -6137,6 +6156,8 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         }
         parent = ""; page = 0;
     }
+    const int startup = g_startup_open && parent && *parent && !page && !g_select_account_on_boot && !strcmp(parent, tube_boot_section());
+    if (parent && *parent) g_startup_open = 0;
     char rerun[816];
     int typed = g_search_typed && parent && !strncmp(parent,"search:",7);
     g_search_typed = 0;
@@ -6373,7 +6394,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
         const char *key = parent + 8 + strlen(section);
         Request *r = request_new(3, ud); if (!r) return -1;
-        r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
+        r->items_cb = cb; r->page = page; r->startup = startup; copy(r->parent, sizeof r->parent, parent);
         if (!page && !strcmp(section, "kids")) { r->wants_health = 1; r->requires = COMPANION_KIDS; } /* an older worker has no Kids client */
         snprintf(r->payload, sizeof r->payload,
             "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"section\":\"%s\",\"id\":\"%s\",\"cursor\":\"%s\"}}",

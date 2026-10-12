@@ -22,16 +22,8 @@ warnings=(-std=c11 -Wall -Wextra -D_GNU_SOURCE -I"$quickjs" -I"$here/include" -I
 read -r -a curl_cflags <<< "$(pkg-config --cflags libcurl)"
 read -r -a curl_libs <<< "$(pkg-config --libs libcurl)"
 
-# The service: youtubei.js (platform-neutral entry), the companion's library
-# modules and the shims, as one classic script.
-version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' "$root/companion/prosperotube/__init__.py")
-"$modules/.bin/esbuild" "$here/js/service.js" --bundle --format=iife --platform=neutral --target=es2022 \
-  --main-fields=module,main --conditions=module,import --define:global=globalThis \
-  "--define:__TUBE_VERSION__=\"${version:-0.0.0}\"" \
-  "--alias:youtubei.js=$modules/youtubei.js/dist/src/platform/lib.js" \
-  "--alias:youtubei-utils=$modules/youtubei.js/dist/src/utils/Utils.js" \
-  "--alias:node:crypto=$here/js/node_crypto.js" \
-  --legal-comments=inline --log-level=warning ${TUBE_JS_MINIFY:+--minify} --outfile="$out/tube_js.bundle.js"
+# The service bundle.
+"$here/build_bundle.sh" >/dev/null
 
 # The engine: one C11 translation unit, no JIT, no `std`/`os` modules.
 if [ ! -f "$out/quickjs.o" ] || [ "$quickjs/quickjs-amalgam.c" -nt "$out/quickjs.o" ]; then
