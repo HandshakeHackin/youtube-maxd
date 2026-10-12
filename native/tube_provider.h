@@ -8,6 +8,18 @@ extern "C" {
 #endif
 extern const evo_provider_t evo_provider_youtube;
 void tube_poll(void);
+/* The built-in YouTube service (TUBE_EMBEDDED_SERVICE builds). Mode: 1 while
+ * it is this run's source instead of a LAN companion; decided at provider
+ * init and constant until the next one. Start: (re)starts it, also after a
+ * stop; 1 = running. Stop: cancels requests, stops the service, and no
+ * request goes out until the next start. Error: why the last start failed,
+ * "" when it did not. Main thread only. */
+int tube_embedded_mode(void);
+int tube_embedded_start(void);
+void tube_embedded_stop(void);
+const char *tube_embedded_error(void);
+/* Whether artwork at this address may be fetched (see tube_provider.c). */
+int tube_art_url_allowed(const char *url);
 unsigned tube_phone_revision(void);
 /* Synchronize UI scope before callbacks can start a deferred phone launch. */
 void tube_phone_sync_scope(void);

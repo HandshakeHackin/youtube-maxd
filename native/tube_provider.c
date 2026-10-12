@@ -3,6 +3,12 @@
 #include "tube_provider.h"
 #include "evo_net.h"
 #include "evo_data_path.h"
+/* Defined by the package build (scripts/build_ps5.sh, on by default) and by
+ * the one host test of this mode; every other build keeps the LAN companion. */
+#ifdef TUBE_EMBEDDED_SERVICE
+#include "tube_service.h"
+#include <unistd.h>
+#endif
 #include "evo_error.h"
 #include "cJSON.h"
 #include <ctype.h>
@@ -123,6 +129,12 @@ static struct { unsigned generation; int unavailable, queue_origin; char id[12],
 static char g_queue_failed[RECORDS][12];
 static int g_queue_failed_count;
 static char g_source[512], g_token[128], g_pin[7];
+/* The built-in service. While it is this run's source, g_source and g_token
+ * are its loopback address and token, held in memory only; the address and
+ * token of an external companion read from the store are kept aside and
+ * written back unchanged. */
+static int g_embedded, g_embedded_stopped;
+static char g_saved_source[512], g_saved_token[128], g_embedded_error[160];
 static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
 static char g_secondary_caption_path[512], g_secondary_caption_language[33];
@@ -1675,6 +1687,65 @@ static struct { char source[512]; unsigned features; int known; } g_companion;
 static int companion_known(void) { return g_companion.known && *g_source && !strcmp(g_companion.source, g_source); }
 static int companion_has(unsigned feature) { return companion_known() && (g_companion.features & feature) == feature; }
 static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion); }
+
+int tube_embedded_mode(void) { return g_embedded; }
+const char *tube_embedded_error(void) { return g_embedded_error; }
+/* Asks the service for its address and token; starting it is idempotent and
+ * never waits for the network. 1 = requests may go out. */
+static int embedded_start(void) {
+#ifdef TUBE_EMBEDDED_SERVICE
+    if (!g_embedded || g_embedded_stopped) return 0;
+    unsigned short port = 0; char token[65] = "", source[40];
+    int rc = tube_service_start(evo_data_dir(), &port, token);
+    token[64] = 0;
+    int usable = !rc && port && strlen(token) >= 24;
+    for (size_t i = 0; token[i]; ++i) if (!isalnum((unsigned char)token[i]) && token[i] != '-' && token[i] != '_') usable = 0;
+    if (!usable) {
+        const char *why = rc ? tube_service_error() : "";
+        copy(g_embedded_error, sizeof g_embedded_error, why && *why ? why : "the service gave no address");
+        g_source[0] = g_token[0] = 0; companion_forget(); return 0;
+    }
+    snprintf(source, sizeof source, "http://127.0.0.1:%u", (unsigned)port);
+    if (strcmp(source, g_source) || strcmp(token, g_token)) companion_forget();
+    copy(g_source, sizeof g_source, source); copy(g_token, sizeof g_token, token);
+    for (size_t i = 0; i < sizeof token; ++i) token[i] = 0;
+    g_pin[0] = 0; g_embedded_error[0] = 0; return 1;
+#else
+    return 0;
+#endif
+}
+int tube_embedded_start(void) { if (!g_embedded) return 0; g_embedded_stopped = 0; return embedded_start(); }
+void tube_embedded_stop(void) {
+#ifdef TUBE_EMBEDDED_SERVICE
+    if (!g_embedded) return;
+    tube_cancel();   /* while the address is still known: pending jobs are told to stop */
+    g_embedded_stopped = 1; g_source[0] = g_token[0] = 0; companion_forget();
+    tube_service_stop();
+#endif
+}
+static int embedded_ready(void) {
+#ifdef TUBE_EMBEDDED_SERVICE
+    if (g_embedded_stopped) return 0;
+    if (tube_service_running() && *g_source && *g_token) return 1;
+    return embedded_start();
+#else
+    return 0;
+#endif
+}
+/* The mode of this run, decided before the store is read. A file named
+ * external-companion in the data folder keeps the LAN companion (development). */
+static void embedded_select(void) {
+    g_embedded = g_embedded_stopped = 0; g_embedded_error[0] = g_saved_source[0] = g_saved_token[0] = 0;
+#ifdef TUBE_EMBEDDED_SERVICE
+    g_embedded = access(evo_data_path("external-companion"), F_OK) != 0;
+#endif
+}
+static void embedded_adopt(void) {
+    if (!g_embedded) return;
+    copy(g_saved_source, sizeof g_saved_source, g_source); copy(g_saved_token, sizeof g_saved_token, g_token);
+    g_source[0] = g_token[0] = 0; companion_forget();
+    embedded_start();
+}
 static void companion_read(const cJSON *root) {
     static const struct { const char *name; unsigned bit; } names[] = {
         {"locale", COMPANION_LOCALE}, {"thumbnail_source", COMPANION_THUMBNAILS}, {"content_filters", COMPANION_FILTERS},
@@ -1906,8 +1977,8 @@ static void save(void) {
     cJSON_AddNumberToObject(root, "backup_auto_days", g_backup_auto);
     cJSON_AddBoolToObject(root, "separate_settings", g_separate_settings);
     cJSON_AddNumberToObject(root, "version", 2);
-    cJSON_AddStringToObject(root, "source", g_source);
-    cJSON_AddStringToObject(root, "token", g_token);
+    cJSON_AddStringToObject(root, "source", g_embedded ? g_saved_source : g_source);
+    cJSON_AddStringToObject(root, "token", g_embedded ? g_saved_token : g_token);
     cJSON_AddNumberToObject(root, "max_height", g_height);
     cJSON_AddNumberToObject(root, "max_fps", g_max_fps);
     cJSON_AddNumberToObject(root, "speed_percent", g_speed);
@@ -2018,7 +2089,7 @@ static int extra_saved(const TubePlayerExtra *prefs, void *user) {
 static cJSON *g_resolved_facts;
 
 static void remote_configure(void) {
-    if (g_remote_enabled && !g_remote_entropy_failed && g_store_writable && *g_source && *g_token && !*g_remote_device) {
+    if (!g_embedded && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && *g_source && *g_token && !*g_remote_device) {
         unsigned char bytes[16];
         if (tube_random_bytes(bytes, sizeof bytes)) {
             g_remote_entropy_failed = 1;
@@ -2033,7 +2104,7 @@ static void remote_configure(void) {
         g_remote_identity_saved = 0; save();
     }
     tube_remote_configure(g_source, g_token, g_library_profile,
-        g_remote_enabled && !g_remote_entropy_failed && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
+        !g_embedded && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
         g_remote_device, g_remote_screen);
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
@@ -2043,7 +2114,7 @@ int tube_voice_scope(char *source, size_t source_capacity, char *token,
     if (source && source_capacity) source[0] = 0;
     if (token && token_capacity) token[0] = 0;
     if (profile && profile_capacity) profile[0] = 0;
-    if (!source || !token || !profile || !g_store_writable || !*g_source || !*g_token ||
+    if (!source || !token || !profile || g_embedded || !g_store_writable || !*g_source || !*g_token ||
         strlen(g_source) >= source_capacity || strlen(g_token) >= token_capacity ||
         strlen(g_library_profile) >= profile_capacity) return 0;
     copy(source, source_capacity, g_source); copy(token, token_capacity, g_token);
@@ -2091,7 +2162,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
     item->kind = EVO_MEDIA_VIDEO;
 }
 
-static int init(void) {
+static int init_store(void) {
     memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel();
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
@@ -2305,12 +2376,20 @@ static int init(void) {
     remote_configure(); return 0;
 }
 
+static int init(void) {
+    embedded_select();
+    int rc = init_store();
+    embedded_adopt();
+    return rc;
+}
+
 /* Local library and preferences remain usable before pairing or while offline. */
 static int configured(void) { return 1; }
 static const char *get_source(void) { return g_source; }
 
 static int set_source(const char *value) {
     if (!value || strlen(value) >= sizeof g_source) return -1;
+    if (g_embedded) return -1;   /* the built-in service has no address to set */
     char base[512]; copy(base, sizeof base, value);
     char *hash = strchr(base, '#');
     char pin[7] = "";
@@ -2391,6 +2470,25 @@ static int companion_url(const char *url) {
     return n && !strncmp(url, g_source, n) && url[n] == '/' && strlen(url) < EVO_PROVIDER_MAX_URL;
 }
 
+/* Artwork the app may fetch. An external companion relays every image, and
+ * what it names is taken as before. The built-in service names YouTube's
+ * image hosts directly: then only its own loopback address and exactly these
+ * hosts over https, default port, pass. */
+int tube_art_url_allowed(const char *url) {
+    static const char *const hosts[] = {"i.ytimg.com", "i9.ytimg.com", "yt3.ggpht.com", "yt3.googleusercontent.com"};
+    if (!url || !*url) return 0;
+    if (!g_embedded) return 1;
+    if (companion_url(url)) return 1;
+    if (strncmp(url, "https://", 8) || strlen(url) >= EVO_PROVIDER_MAX_ART_URL) return 0;
+    const char *host = url + 8;
+    size_t n = strcspn(host, "/:?#@\\");
+    if (host[n] != '/') return 0;   /* no port, no user part, and a path */
+    for (const char *c = host + n; *c; ++c) if ((unsigned char)*c <= 32 || (unsigned char)*c >= 127) return 0;
+    for (size_t i = 0; i < sizeof hosts / sizeof *hosts; ++i)
+        if (strlen(hosts[i]) == n && !strncmp(host, hosts[i], n)) return 1;
+    return 0;
+}
+
 static void dearrow_item(evo_provider_item_t *item, const Record *cached) {
     if (!cached || item->is_folder) return;
     if (g_dearrow_titles && *cached->dearrow_title) copy(item->title, sizeof item->title, cached->dearrow_title);
@@ -2445,7 +2543,7 @@ static int send_request(Request *r, const char *method, const char *path, const 
     snprintf(auth, sizeof auth, "Authorization: Bearer %s", g_token);
     int rc = evo_net_request_async(method, url, payload, headers, *g_token ? 2 : 1, response, r);
     r->inflight = rc == 0;
-    if (rc) { tube_set_error("Could not queue the companion request. Retry."); complete(r, 0); }
+    if (rc) { tube_set_error(g_embedded ? "Could not queue the request. Retry." : "Could not queue the companion request. Retry."); complete(r, 0); }
     return rc;
 }
 
@@ -2517,6 +2615,14 @@ static int request_decorate(Request *r) {
 }
 
 static int begin(Request *r) {
+    if (g_embedded && !embedded_ready()) {   /* never a pairing step: the service is started, or the request fails */
+        if (!g_embedded_stopped) {
+            char message[240];
+            snprintf(message, sizeof message, "The built-in YouTube service could not start: %s. Select the item again to retry.", g_embedded_error);
+            tube_set_error(message);
+        }
+        complete(r, 0); return 0;
+    }
     if (!*g_source) { tube_set_error("Set the companion LAN address in Options first."); complete(r, 0); return 0; }
     if (!*g_token) {
         if (!*g_pin) { tube_set_error("Pair first: enter the companion address followed by # and its six-digit code in Options."); complete(r, 0); return 0; }
@@ -2534,7 +2640,7 @@ static int begin(Request *r) {
         r->health_tried = 1; r->stage = 5; return send_request(r, "GET", "/v1/health", NULL);
     }
     if (r->requires && !companion_has(r->requires)) {
-        tube_set_error(companion_known() ? "The paired companion does not offer this action. Update it and enable its library worker." :
+        tube_set_error(g_embedded ? "This action is not part of the built-in YouTube service yet." : companion_known() ? "The paired companion does not offer this action. Update it and enable its library worker." :
             "The companion did not report what it offers. Check that it is running and retry.");
         complete(r, 0); return 0;
     }
@@ -3261,6 +3367,20 @@ static int caption_cached(const char *media, const char *language) {
     FILE *file = fopen(sidecar, "rb"); if (!file) return 0;
     int usable = fgetc(file) != EOF; fclose(file); return usable;
 }
+/* "Name: value\r\n" lines only; anything else leaves the stream without extra headers. */
+static void stream_headers(char *out, size_t capacity, const char *value) {
+    size_t length = strlen(value);
+    out[0] = 0;
+    if (!length || length >= capacity || length < 2 || strcmp(value + length - 2, "\r\n")) return;
+    for (const char *line = value; *line;) {
+        const char *end = strstr(line, "\r\n"), *colon = memchr(line, ':', (size_t)(end - line));
+        if (!colon || colon == line) return;
+        for (const char *c = line; c < end; ++c) if ((unsigned char)*c < 32 || (unsigned char)*c >= 127) return;
+        line = end + 2;
+    }
+    copy(out, capacity, value);
+}
+
 static void resolved(Request *r, const cJSON *root) {
     if (strcmp(str(root, "id"), r->parent)) {
         tube_set_error("The playback response belongs to another video."); complete(r, 0); return;
@@ -3281,8 +3401,11 @@ static void resolved(Request *r, const cJSON *root) {
         out->bitrate_bps = (int64_t)num(c, "bitrate_bps"); out->is_live = boolean(c, "is_live");
         out->audio_channels = (int)num(c, "audio_channels");
         double fps = num(c,"fps"); out->fps = isfinite(fps) && fps > 0 ? fps : 0;
+        /* The built-in service does not relay media: the player fetches from
+         * YouTube itself and sends the request headers the service names. */
+        if (g_embedded) stream_headers(out->headers, sizeof out->headers, str(c, "headers"));
     }
-    if (!r->choice_count) { tube_set_error("The companion returned no supported playback choices."); complete(r, 0); return; }
+    if (!r->choice_count) { tube_set_error(g_embedded ? "No supported playback choices were returned." : "The companion returned no supported playback choices."); complete(r, 0); return; }
     if (!tube_recovery_active()) {
         copy(g_paid_text, sizeof g_paid_text, str(root, "paid_content_text")); g_paid_shown = 0;
     }
@@ -3719,7 +3842,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
         if (status == 404 || status == 410) resolve_failure(r,error);
-        tube_set_error(*str(error, "message") ? str(error, "message") : "Could not reach the companion. Check that it is running and the LAN address is correct.");
+        tube_set_error(*str(error, "message") ? str(error, "message") : g_embedded ? "The built-in YouTube service did not answer. Retry." : "Could not reach the companion. Check that it is running and the LAN address is correct.");
         /* A refused field or a new pairing means the companion is not the one that was read. */
         if (status == 401 || status == 422) companion_forget();
         if (status == 401) { g_token[0] = 0; save(); }
@@ -4900,6 +5023,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
     if (!parent || !*parent || !strcmp(parent, "discover")) {
         /* The profile's order, without the rows it hides; pins follow the main menu. */
         const int group = parent && *parent ? SECTION_DISCOVER : SECTION_ROOT;
+        /* The app opens without its service; the first row says why and retries. */
+        if (group == SECTION_ROOT && g_embedded && !g_embedded_stopped && *g_embedded_error)
+            CATALOG_FOLDER( "settings:service-retry", "YouTube service did not start - select to retry", g_embedded_error);
         for (int k = 0; k < SECTIONS; ++k) {
             const int s = g_section_order[k];
             if (g_sections[s].group != group || !section_listed(s)) continue;
@@ -5205,7 +5331,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
         }
         else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
-            if (!g_store_writable || !*g_source || !*g_token) {
+            if (g_embedded) {
+                tube_set_error("Linking a phone is not part of the built-in YouTube service yet.");
+            } else if (!g_store_writable || !*g_source || !*g_token) {
                 tube_set_error("Pair with the companion and check local storage before linking a phone.");
             } else {
                 g_remote_entropy_failed = 0;
@@ -5367,6 +5495,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "account:notice:experimental:1", "They may fail or change in a later version",
                 "Each acts only when you select it or turn it on; your saved choices are kept");
             CATALOG_FOLDER( "account:notice:experimental:2", "Marked in this version",
+                g_embedded ? "Chat and comment posting, account history controls, feedback actions and the profile password" :
                 "Phone pairing, voice search, chat and comment posting, account history controls, feedback actions and the profile password");
             for (int i = 0; i < n; ++i) experimental(&out[i]);
         } else if (!strcmp(parent, "settings:about")) {
@@ -5855,7 +5984,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             char interval_label[80]; snprintf(interval_label,sizeof interval_label,"Seek interval: %d seconds",tube_player_seek_seconds());
             CATALOG_FOLDER("settings:seek-interval",interval_label,"Choose the Left / Right seek interval for this profile");
             CATALOG_FOLDER("settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
-            CATALOG_FOLDER( "settings:remote", "Phone pairing" EXPERIMENTAL, "Link the YouTube app with a TV code; off until a phone is linked"); experimental(&out[n - 1]);
+            if (!g_embedded) { /* phone linking still needs the PC companion: the row is not offered at all */
+                CATALOG_FOLDER( "settings:remote", "Phone pairing" EXPERIMENTAL, "Link the YouTube app with a TV code; off until a phone is linked"); experimental(&out[n - 1]);
+            }
             CATALOG_FOLDER( "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");
             CATALOG_FOLDER("settings:playback-mode","Playback mode","Choose continuation, stop or close behavior at the end of a video");
             CATALOG_FOLDER("settings:queue-respects-mode",g_queue_respects_mode?"Queue respects playback mode: on":"Queue respects playback mode: off","Off continues explicit queued videos in stop and close modes");
@@ -5998,6 +6129,14 @@ static int library_search(const char *parent, int page, evo_provider_items_cb cb
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if (parent && !strcmp(parent, "settings:service-retry")) {   /* then the main menu again, with or without the row */
+        if (g_embedded && !tube_embedded_start()) {
+            char message[240];
+            snprintf(message, sizeof message, "The built-in YouTube service could not start: %s.", g_embedded_error);
+            tube_set_error(message);
+        }
+        parent = ""; page = 0;
+    }
     char rerun[816];
     int typed = g_search_typed && parent && !strncmp(parent,"search:",7);
     g_search_typed = 0;
@@ -7251,7 +7390,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
+static void tube_shutdown(void) { tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
     tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end(); cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL; }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",

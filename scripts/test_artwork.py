@@ -38,6 +38,8 @@ extern "C" {
 #define PROV_LOG(...) ((void)0)
 static std::string cache_root;
 static int requests;
+static int art_allowed=1;
+static int tube_art_url_allowed(const char*) { return art_allowed; }
 static void (*complete)(int,int,const char*,size_t,void*);
 static void* context;
 static bool fail_write;
@@ -72,6 +74,9 @@ int main(int argc,char** argv) {
     assert(!sniff_ext(riff,sizeof riff));
     char key[128];
     assert(evo_provider_art_request("youtube","file:///private",key,sizeof key)==-1);
+    art_allowed=0; /* an address the provider refuses is never fetched */
+    assert(evo_provider_art_request("youtube","https://refused.example/fixture",key,sizeof key)==-1 && requests==0);
+    art_allowed=1;
     assert(evo_provider_art_request("youtube","https://i.ytimg.com/fixture",key,sizeof key)==0);
     assert(requests==1 && complete && context);
     complete(1,200,webp.data(),webp.size(),context);

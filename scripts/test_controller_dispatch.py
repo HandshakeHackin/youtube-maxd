@@ -58,6 +58,8 @@ enum { TUBE_VOICE_IDLE, TUBE_VOICE_RECORDING, TUBE_VOICE_TRANSCRIBING };
 static int voice_state;
 static bool m_voiceHeld, voice_admitted=true;
 static unsigned voice_begins, voice_finishes, voice_cancels, voice_pauses;
+static int embedded_mode;
+static int tube_embedded_mode() { return embedded_mode; }
 static int tube_voice_state() { return voice_state; }
 static bool tube_voice_begin(unsigned owner, long long) {
     assert(owner==0); ++voice_begins;
@@ -176,6 +178,9 @@ int main() {
     route(PadButtons::Circle); assert(voice_cancels==1 && voice_state==TUBE_VOICE_IDLE);
     reset(); discussion_handles=false; voice_admitted=false; route(PadButtons::L3);
     assert(voice_begins==1 && !voice_pauses && !m_voiceHeld);
+    /* With the built-in service there is no voice search: L3 does not even ask. */
+    reset(); discussion_handles=false; embedded_mode=1; route(PadButtons::L3);
+    assert(!voice_begins && !voice_pauses && !m_voiceHeld); embedded_mode=0;
     reset(); discussion_handles=false; route(PadButtons::L3); route(PadButtons::Circle);
     assert(voice_cancels==1 && !voice_finishes && !m_voiceHeld);
     return 0;

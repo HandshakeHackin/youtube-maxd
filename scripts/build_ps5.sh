@@ -23,6 +23,11 @@ if [[ -z "${PROSPEROTUBE_TRANSFORM_ARTIFACT:-}" ]]; then
     PROSPEROTUBE_TRANSFORM_ARTIFACT="$(python3 "${root}/scripts/build_video_transform_shaders.py")"
     export PROSPEROTUBE_TRANSFORM_ARTIFACT
 fi
+# The package carries the built-in YouTube service unless told otherwise:
+# TUBE_EMBEDDED_SERVICE=0 builds the companion-only app, and
+# PROSPEROTUBE_STUB_SERVICE=1 links a stand-in service (link check only).
+# Host tests call prepare_native.py without this and keep the companion.
+export TUBE_EMBEDDED_SERVICE="${TUBE_EMBEDDED_SERVICE:-1}"
 work="$(python3 "${root}/scripts/prepare_native.py")"
 lapy_options=()
 if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then
