@@ -32,6 +32,8 @@ int tube_service_start(const char *state_dir, unsigned short *port, char token[6
 void tube_service_stop(void) { ++service_stops; service_up = 0; }
 int tube_service_running(void) { return service_up; }
 const char *tube_service_error(void) { return service_fails ? "no free port between 20000 and 40000" : ""; }
+static int service_sponsorblock;
+void tube_service_configure(const tube_service_options *options) { service_sponsorblock = options && options->sponsorblock; }
 
 /* ---- Queued HTTP ---- */
 typedef struct { char method[16], url[2048], body[2048], headers[512]; evo_net_cb cb; void *ud; } Pending;
@@ -95,6 +97,12 @@ static void sent_to_service(unsigned port, const char *token) {
     snprintf(prefix, sizeof prefix, "http://127.0.0.1:%u/v1/", port);
     snprintf(header, sizeof header, "Authorization: Bearer %s\n", token);
     assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
+    if (strstr(pending[0].url, "/v1/health")) {   /* asked once per start, before the first job, with the token */
+        assert(!strcmp(pending[0].method, "GET") && strstr(pending[0].headers, header));
+        reply(0, 1, 200, "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"features\":[\"search\",\"channels\","
+              "\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"embedded\"]}");
+        assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
+    }
     assert(!strstr(pending[0].url, "/v1/pair") && strstr(pending[0].url, "/v1/jobs") && !strcmp(pending[0].method, "POST"));
     assert(strstr(pending[0].headers, header));
 }
@@ -136,6 +144,7 @@ int main(void) {
     assert(!unlink(flag));
     assert(!p->init() && tube_embedded_mode() && service_starts == 1 && !strcmp(service_dir, dir));
     assert(!strcmp(p->get_source(), "http://127.0.0.1:23456") && !*tube_embedded_error());
+    assert(service_sponsorblock);   /* segments, when the user turns them on, are answered by the service */
     assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && find("settings:service-retry") < 0);
     assert(p->search("cats", 0, items_cb, NULL) == 0);
     sent_to_service(23456, TOKEN_A);
@@ -149,6 +158,23 @@ int main(void) {
     /* A change that saves: the external pairing is still in the store, the loopback one never is. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL); assert(last_ok);
     assert(!strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
+
+    /* Accounts are not offered: no sign-in, no profile or account rows, one explanation; Home stays. */
+    p->list_catalog("discover", 0, items_cb, NULL);
+    assert(last_ok && find("library") >= 0 && !strcmp(last_items[find("library")].title, "Accounts") &&
+           strstr(last_items[find("library")].subtitle, "later version") && !strstr(last_items[find("library:home")].subtitle, "ompanion"));
+    p->list_catalog("library", 0, items_cb, NULL);
+    assert(last_ok && last_count == 3 && !pending_count && find("auth:start") < 0 && find("library:profiles") < 0 && find("library:history") < 0);
+    assert(!strcmp(last_items[0].title, "Sign-in to YouTube arrives in a later version") && find("library:home") == 2);
+    /* Nothing shown names a companion, whatever text reaches the screen. */
+    assert(p->search("words", 0, items_cb, NULL) == 0); sent_to_service(23456, TOKEN_A);
+    poll_job("{\"state\":\"failed\",\"error\":{\"code\":\"upstream\",\"message\":\"The companion could not read YouTube. Check the paired companion.\"}}");
+    assert(!last_ok && !strcmp(error_text, "The built-in service could not read YouTube. Check the built-in service."));
+    for (int page = 0; page < 8; ++page) {
+        p->list_catalog("settings", page, items_cb, NULL);
+        if (!last_ok || !last_count) break;
+        for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion"));
+    }
 
     /* Artwork: the service's own address and YouTube's image hosts over https, nothing else. */
     static const char *const allowed[] = {"https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg", "https://i9.ytimg.com/vi/a/b.jpg?sqp=x&rs=y",

@@ -105,7 +105,7 @@ typedef struct Request {
     PlaylistContext playlist;
     int page, music_origin, queue_origin, incognito;
     int search_rows, library_search, aggregate;
-    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content, startup;
+    int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content, startup, codec_fallback;
     unsigned intent, requires;
     char parent[160];
     char profile[33];
@@ -1587,11 +1587,29 @@ static char *import_read(const char *name) {
 }
 static void import_release(void) { free(g_import.body); g_import.body = NULL; }
 
+/* With the built-in service nothing on screen names a companion. The texts are
+ * shared by both modes; here the word is replaced as a row or a message is made. */
+static void embedded_wording(char *text, size_t capacity) {
+    static const char *const pairs[][2] = {
+        {" and companion pairing", ""}, {"The paired companion", "The built-in service"}, {"the paired companion", "the built-in service"},
+        {"The companion", "The built-in service"}, {"the companion", "the built-in service"}, {"companion", "service"}, {"Companion", "Service"}};
+    if (!g_embedded) return;
+    for (size_t i = 0; i < sizeof pairs / sizeof *pairs; ++i) {
+        const size_t from = strlen(pairs[i][0]), to = strlen(pairs[i][1]);
+        for (char *at; (at = strstr(text, pairs[i][0]));) {
+            const size_t tail = strlen(at + from) + 1;
+            if ((size_t)(at - text) + to + tail > capacity) return;
+            memmove(at + to, at + from, tail); memcpy(at, pairs[i][1], to);
+        }
+    }
+}
+
 void tube_set_error(const char *message) {
     /* Never echo remote URLs, headers, or arbitrary resolver diagnostics. */
     char clean[256]; copy(clean, sizeof clean, message);
     for (size_t i = 0; clean[i]; ++i) if ((unsigned char)clean[i] < 32) clean[i] = ' ';
     if (strstr(clean, "://") || strstr(clean, "Bearer")) copy(clean, sizeof clean, "The companion request failed. Check its configuration and retry.");
+    embedded_wording(clean, sizeof clean);
     evo_error_set("%s", clean);
 }
 
@@ -1698,6 +1716,8 @@ static int embedded_start(void) {
 #ifdef TUBE_EMBEDDED_SERVICE
     if (!g_embedded || g_embedded_stopped) return 0;
     unsigned short port = 0; char token[65] = "", source[40];
+    static const tube_service_options options = {.sponsorblock = 1};   /* asked only when the user turned segments on */
+    if (!tube_service_running()) tube_service_configure(&options);
     int rc = tube_service_start(evo_data_dir(), &port, token);
     token[64] = 0;
     int usable = !rc && port && strlen(token) >= 24;
@@ -2638,7 +2658,8 @@ static int begin(Request *r) {
     if (r->kind == 10) { r->stage = 4; return send_request(r, "POST", "/v1/library", r->payload); }
     /* One read of the feature list per source, and only for a request that
      * would use it; every profile at its defaults never asks. */
-    if (!r->health_tried && !companion_known() && request_wants_features(r)) {
+    /* The built-in service is always asked first: what it lists is what is offered. */
+    if (!r->health_tried && !companion_known() && (g_embedded || request_wants_features(r))) {
         r->health_tried = 1; r->stage = 5; return send_request(r, "GET", "/v1/health", NULL);
     }
     if (r->requires && !companion_has(r->requires)) {
@@ -3538,6 +3559,18 @@ static int search_fallback(Request *r, const char *code) {
     r->kind = 1; r->library_search = 0; r->job[0] = 0; r->deadline = now_ms() + 65000;
     begin(r); return 1;
 }
+/* The codec setting is a preference: a video that has no stream in it is
+ * asked for once more in whatever it has. The setting itself stays. */
+static int codec_fallback(Request *r, const char *code) {
+    static const char any[] = "\"codec\":\"auto\"";
+    if (r->kind != 2 || r->codec_fallback || !r->quality.codec || strcmp(code, "unsupported_media")) return 0;
+    char *field = strstr(r->payload, "\"codec\":\""), *end = field ? strchr(field + 9, '"') : NULL;
+    char payload[sizeof r->payload];
+    if (!end || snprintf(payload, sizeof payload, "%.*s%s%s", (int)(field - r->payload), r->payload, any, end + 1) >= (int)sizeof payload) return 0;
+    copy(r->payload, sizeof r->payload, payload);
+    r->codec_fallback = 1; r->job[0] = 0; r->deadline = now_ms() + 65000;
+    begin(r); return 1;
+}
 /* The first page of a typed search leads with its two folders. */
 static int search_rows(evo_provider_item_t *items) {
     char summary[160]; search_summary(summary, sizeof summary);
@@ -3881,6 +3914,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (strcmp(state, "done")) {
         const cJSON *error = cJSON_GetObjectItemCaseSensitive(root, "error");
         if (!strcmp(state,"failed") && search_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
+        if (!strcmp(state,"failed") && codec_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
         if (!strcmp(state,"failed") && r->kind == 3 && !r->page && !r->startup && r->items_cb && !strncmp(r->parent,"section:",8) &&
             !strcmp(str(error,"code"),"catalog_unavailable")) {
             /* YouTube offers some sections to some profiles only: one row says so.
@@ -4237,10 +4271,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     int more = boolean(result, "has_more");
     if (r->kind == 3 && !r->page && !n && !more && !strcmp(r->parent, "library:home") && !strcmp(g_library_profile, "guest")) {
         /* YouTube answers a signed-out Home with a notice alone: say why and lead on. */
-        folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", "YouTube provides Home recommendations only to signed-in accounts");
+        folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", g_embedded ?
+            "YouTube gives them to signed-in accounts only; sign-in arrives in a later version" : "YouTube provides Home recommendations only to signed-in accounts");
         folder(&items[n++], "account:notice", "Search", "Square searches YouTube from any list");
         folder(&items[n++], "discover", "Discover", "Topics and YouTube sections");
-        folder(&items[n++], "library", "Accounts & library", "Sign in to YouTube to get Home recommendations");
+        if (!g_embedded) folder(&items[n++], "library", "Accounts & library", "Sign in to YouTube to get Home recommendations");
     }
     /* Content filters can leave a companion page empty while more follow: read
      * on, a bounded number of times, instead of showing an empty list. */
@@ -4338,6 +4373,7 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
     memset(out, 0, sizeof *out);
     copy(out->id, sizeof out->id, id); copy(out->title, sizeof out->title, title);
     copy(out->subtitle, sizeof out->subtitle, hint); out->is_folder = 1; out->kind = EVO_MEDIA_VIDEO;
+    embedded_wording(out->title, sizeof out->title); embedded_wording(out->subtitle, sizeof out->subtitle);
 }
 
 /* Menus can exceed a 24-item media page. Reject growth before writing past the
@@ -5048,7 +5084,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         for (int k = 0; k < SECTIONS; ++k) {
             const int s = g_section_order[k];
             if (g_sections[s].group != group || !section_listed(s)) continue;
-            CATALOG_FOLDER( g_sections[s].id, g_sections[s].label, g_sections[s].detail);
+            const char *label = g_sections[s].label, *detail = g_sections[s].detail;
+            if (g_embedded && !strcmp(g_sections[s].id, "library:home")) detail = "What YouTube recommends to this profile";
+            if (g_embedded && !strcmp(g_sections[s].id, "library")) { label = "Accounts"; detail = "Sign-in to YouTube arrives in a later version"; }
+            CATALOG_FOLDER( g_sections[s].id, label, detail);
         }
         if (group == SECTION_ROOT) {
             for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, g_library_profile))
@@ -5081,6 +5120,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_next_id[0] = 0; g_next_profile[0] = 0;
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
+        }
+        if (g_embedded) { /* accounts are not part of the built-in service yet: say so, instead of rows that cannot work */
+            CATALOG_FOLDER( "account:notice", "Sign-in to YouTube arrives in a later version", "This version browses and plays as Guest, without an account");
+            CATALOG_FOLDER( "account:notice", "Your library on this PS5 needs no account", "History, favorites, the play queue and followed channels are in the main menu");
+            CATALOG_FOLDER( "library:home", "Home", "What YouTube recommends without an account");
+            cb(1, out, n, 0, ud); return 1;
         }
         char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
         CATALOG_FOLDER( "library:profiles", label, "Choose an account configured on the companion");

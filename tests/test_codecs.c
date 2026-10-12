@@ -21,7 +21,21 @@ int main(void) {
         poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"container\":\"dash\",\"video_codec\":\"hevc\",\"audio_codec\":\"aac\"}]}}");
         assert(last_ok && !pending_count);
     }
+    /* The codec is a preference: a video without it is asked for once more in any codec and plays; the setting stays. */
+    for(int i=0;i<4;++i) {p->list_catalog("settings:codec",0,items_cb,NULL);assert(last_ok);}
+    const char *refused="{\"state\":\"failed\",\"error\":{\"code\":\"unsupported_media\",\"message\":\"No compatible stream was returned.\"}}";
+    int calls=resolve_calls,codec=0;
+    assert(!p->resolve("abcdefghijk",resolve_cb,NULL) && strstr(pending[0].body,"\"codec\":\"hevc\""));
+    poll_job(refused);
+    assert(resolve_calls==calls && pending_count==1 && strstr(pending[0].url,"/v1/jobs") && !strcmp(pending[0].method,"POST"));
+    assert(strstr(pending[0].body,"\"codec\":\"auto\"") && !strstr(pending[0].body,"hevc") && strstr(pending[0].body,"\"id\":\"abcdefghijk\""));
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"container\":\"dash\",\"video_codec\":\"h264\",\"audio_codec\":\"aac\"}]}}");
+    assert(resolve_calls==calls+1 && last_ok && !pending_count);
+    tube_player_quality(NULL,NULL,&codec);assert(codec==4);
+    /* Once only: a video with nothing playable fails after the second answer. */
+    assert(!p->resolve("abcdefghijk",resolve_cb,NULL));poll_job(refused);assert(pending_count==1);poll_job(refused);
+    assert(resolve_calls==calls+2 && !last_ok && !pending_count && strstr(error_text,"No compatible stream"));
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
-    puts("PASS: five codec choices, request identity, persistence and wraparound");
+    puts("PASS: five codec choices, request identity, persistence, wraparound and one retry in any codec");
     return 0;
 }
