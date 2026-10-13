@@ -1,0 +1,10 @@
+[
+ {"source": "{0}: {1}", "args": "ss", "need": [0], "context": "browser"},
+ {"source": "{0} (experimental)", "args": "s", "need": [0], "context": "browser"},
+ {"source": "SponsorBlock: {0}", "args": "s", "context": "browser"},
+ {"source": "PAGE {0} OF {1}", "args": "nn", "context": "document"},
+ {"source": "Interface language", "context": "browser"},
+ {"source": "System default", "context": "browser"},
+ {"source": "Language of ProsperoTube's menus and messages", "context": "browser"},
+ {"source": "The language of the PS5 system settings, or English", "context": "browser"}
+]

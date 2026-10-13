@@ -1,0 +1,9002 @@
+{
+ "version": 1,
+ "strings": [
+  {
+   "source": "(the state a restore replaced)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "- reloading this video",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "- used from the next video",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "/ Playlist actions",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "/ Section actions",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "0, 90, 180 or 270 degrees clockwise",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A dated copy of settings, library and companion pairing in the app data folder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A dated copy of settings, library in the app data folder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A frame of the video instead of its published thumbnail",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A new private playlist on the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A private playlist on the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A quality chosen in the player becomes the maximum for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "AUDIO STOPPED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Above 100% the sound is boosted and may distort",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account action screens do not have additional pages.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Account change not confirmed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account change pending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account configured on the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account configured on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account credentials stay in the app data on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account credentials stay on the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account credentials stay on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account order",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account order, by name, or channels with new content first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account removed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account saved in the app data on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account saved privately on the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account saved privately on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account settings",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Account signed in on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Accounts",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Accounts & library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Actions",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Add the stream bitrate to the quality info",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Add to YouTube Watch later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Add to a YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Add to playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Add to {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Add video to this playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Add {0} channels to Followed channels",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "Add {0} channel to Followed channels"
+  },
+  {
+   "source": "Added locally on this PS5",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Address saved. Search or select a video to pair.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Adds it to Your playlists of the selected account; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Adds machine translations to the caption list of the next video; opening it takes longer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0; dearrow.ajay.app",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Albanian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Algeria",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "All notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "All profiles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "All sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "All types",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "All videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Also enable --sponsorblock on the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Also enable --sponsorblock on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An import file is still being read. Retry in a moment.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Announce a chapter when it starts; R1 skips it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Any duration",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Any frame rate and codec up to the maximum quality",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Any time",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Applied by the built-in service to newly loaded lists of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Applied by the companion to newly loaded lists of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Apply when opening the next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Arabic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Argentina",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Armenia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Armenian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ask before jumping",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ask before skipping",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ask before stopping",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Asked before the profile is selected; this PS5 stores a salted hash, never the text",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Asks before changing the account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Asks for the current password first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Audio decoding or output failed. Select the video to retry.",
+   "context": [
+    "browser",
+    "toast"
+   ]
+  },
+  {
+   "source": "Audio delay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Audio language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Australia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Austria",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Authorize on your phone or computer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Authorize using your phone or computer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Auto volume",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Automatic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Automatic backup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Automatic captions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Azerbaijan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Azerbaijani",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "BACK",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Back",
+   "context": [
+    "document",
+    "kit"
+   ]
+  },
+  {
+   "source": "Back / cancel pending sign-in",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Back without submitting",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Backup and restore",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Backup created",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Backup deleted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Backup restored",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bangladesh",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Belarus",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Belgium",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bengali",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bitrate in quality info",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Block channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Blocked channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bolivia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Brazil",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Browse as guest",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Browse the playlist this video was listed in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Browse this channel's videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Buffering too long. Check the connection or choose a lower quality.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Buffering too long. Reloading this stream...",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bulgaria",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Bulgarian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Button",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "By name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "CAPTIONS",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "CHAPTER",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "CHAPTER - R1 SKIPS IT",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "CHAPTERS",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "CHAT",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "CHAT REPLAY",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "COMPANION",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Canada",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cancel seek",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Cancel sign-in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cancelled",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Cancelled. Choose a video to retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Caption language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Caption language used unless another one is chosen",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Caption style, size and position",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Caption text scale",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Captions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Captions on or off / caption list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Captions on or off / suggestions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Captions turned on or off while watching apply to that channel's next videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Carousel (fast)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Carousel (slow)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Catalan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Category actions, minimum skip, excluded channels and rewind behavior",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Centered zoom relative to Fit; saved for this profile",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Change the password of this profile (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Changed for this profile; the default hides watched videos from Home only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Channel blocked",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel link",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel marked as watched",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel unblocked",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel, date, views, likes and what the video offers",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channel; Cross opens it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels YouTube marks as having new videos lead the list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels and playlists in results",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels you subscribe to",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels you subscribe to, by name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Channels you subscribe to, new content first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chapter notification",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chapters",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Chat ended",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chat is unavailable for this playback",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Chat message pending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chat message sent",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chat replay",
+   "context": [
+    "document",
+    "kit"
+   ]
+  },
+  {
+   "source": "Chat replay is read-only.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Chat replay {0}:{1}: L1 / R1 move one minute; Triangle loads more messages",
+   "context": [
+    "kit"
+   ],
+   "pattern": true,
+   "args": "nn"
+  },
+  {
+   "source": "Chat unavailable. Toggle the sidebar to retry.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chat update failed. Reopen the chat to retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Check the chat before composing another message",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Check your account before repeating an unconfirmed change",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "China",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chinese (Simplified)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Chinese (Traditional)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Choose 0.5 to 20 seconds, or disable",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose a caption language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose a chapter to jump to",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Choose a playlist containing this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose a playlist, then confirm",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose a speed for all videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose a valid inactivity duration",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Choose account at startup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose an account configured on the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose an account configured on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose an account profile first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose an account profile to set a reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose categories independently of skip actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose confirm-button behavior for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose continuation, stop or close behavior at the end of a video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose controls timeout for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose inactivity duration; expiry pauses playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose maximum resolution from 144p to 2160p",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose one query to forget",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose stream before playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose the Left / Right seek interval for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose the actions the in-player options show",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose the playback time display for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose the section this profile opens at startup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose timeline confirmation behavior for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Choose where a speed selected during playback is remembered",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle also cancels when leaving sign-in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Circle returns to its videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to the account settings without changing it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to the channel sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to the chat",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to the previous screen.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Circle returns to the search",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to the search options",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns to video actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns without changing your account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns without renaming it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle returns without selecting it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle to return",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear its new-content mark in Subscribed channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear local history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear play queue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear recent searches",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear the new-content marks of the list last shown",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clear watch history (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clock and estimated finish time",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clock in controls",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clock, quality info, exit, D-pad, seek preview, speed list, Shorts rules, player buttons, screen dimming and dislikes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Clockwise rotation; saved for this profile",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Close ProsperoTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Close ProsperoTube when a linked phone disconnects, including while browsing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Close at end",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Colombia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Color markers on timeline",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Comment on this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Comment posted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Comment rating",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Comments",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Comments / live chat",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Comments on this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Community thumbnails; changes apply to newly loaded videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Community titles; turn off to restore original titles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Companion",
+   "context": [
+    "browser",
+    "document"
+   ]
+  },
+  {
+   "source": "Completions for the last search",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Completions for this search",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Compose a chat message (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Compose chat message (experimental)",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Confirm account change",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Confirm for YouTube profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Confirm seek",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Connecting to your companion… Circle to cancel.",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Content country",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Content language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Continue watching & history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Continuous playback",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Controller input restarts inactivity; expiry pauses playback",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Copy a NewPipe, PocketTube or GrayJay export into the import folder, then reopen",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Costa Rica",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Could not queue the built-in service request. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Could not queue the companion request. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Could not queue the request. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Could not reach the built-in service. Check that it is running and the LAN address is correct.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Could not reach the companion. Check that it is running and the LAN address is correct.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Could not restart this video",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Could not restore this language",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Couldn't load this language",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Couldn't select a second language",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Couldn't select this language",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Country YouTube uses for recommendations and Trending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Country of recommendations, Trending and section shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Create YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Create a backup now",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Create one from Backup and restore",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Create playlist with this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Create private YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Creative Commons",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Creator",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Creator's heart",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Credits",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Croatia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Croatian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Cross behavior while controls are hidden; saved for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross commits, Circle cancels; retain the previous pause state",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Cross commits; Circle cancels; previous pause state is retained",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross confirms for the selected YouTube profile; Circle cancels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross confirms; Circle returns without removing it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross forgets this query",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross plays from the start",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross plays without history or account reports",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross posts once for the selected YouTube profile; Circle cancels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross resumes this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross searches again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross searches for this",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross sends once; Circle cancels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross unblocks this channel for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Cross when controls are hidden",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Current password of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Custom limits",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Czech",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Czechia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Danish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Date added, newest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Date added, oldest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Date added, popularity or date published, as YouTube offers for this playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Date published, newest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Date published, oldest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "DeArrow community attribution",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "DeArrow thumbnails",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "DeArrow titles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "DeArrow titles and thumbnails",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Decoder is busy; seek was not applied",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Default",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Delete YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Delete this YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Delete this backup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Denmark",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Description",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Description, shortened by the built-in service; L2 / R2 scroll",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Description, shortened by the companion; L2 / R2 scroll",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Description; L2 / R2 scroll",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dim the picture while idle; timeout and strength of screen off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dim the picture while paused or browsing after this time without input",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Disabled",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Discover",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Discover section of the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dislike",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dislike comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dislike video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Display correction shared by all profiles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Display correction; applies to all profiles",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Display pixel ratio",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Display, audio and controller preferences",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Do nothing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Documentaries",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dominican Republic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Don't recommend channel (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Don't skip again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Duration",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dutch",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Each acts only when you select it or turn it on; your saved choices are kept",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Each channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Each video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Earlier among the pinned sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Earlier in its menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ecuador",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Egypt",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "El Salvador",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Embed link",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enable connection and request a TV code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enabled",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "English",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "English (New Zealand)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter 1 to 150 characters to search this channel.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter 1 to 200 characters for the current chat and profile",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Enter a comment of 1 to 150 characters.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter a name of 1 to 150 characters for the current profile",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Enter a new name, then confirm",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter a password of 1 to 150 characters.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter a playlist name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter a section name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter text to search in this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter text, then review it before posting",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter text; results list this channel's videos and playlists",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter the TV code in your YouTube phone app. Link a phone requests a fresh code.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Enter the name shown on the main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter the password",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter the password of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter this code in the YouTube app's TV-code pairing screen",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter this code on your phone or computer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter your comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter your reply",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Estimated by Return YouTube Dislike",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Estimated finish time",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Estonia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Estonian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Exclude channel from SponsorBlock",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Excluded",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Excluded channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Exit from the player",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Experimental features",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Experimental: tested offline only, not yet on a PS5 or against live YouTube. It may fail or change in a later version.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Explore documentaries",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Explore educational videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Explore science videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Explore technology videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Extra long speed list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "FAVORITE",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "FOLLOW CHANNEL",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Favorite",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Favorites",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Feedback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Fill",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Filler",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Filters are set",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Finding video; any player button cancels",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Finland",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Finnish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Fit",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Fit height",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Fit width",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Fit, width, height, fill, stretch and 50% to 300% zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Fix playback errors",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Follow",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Follow the channels of a NewPipe, PocketTube or GrayJay export",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Followed channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Followed locally on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For a channel this account already subscribes to; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For a playlist of another channel; requires confirmation",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For a playlist saved earlier; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For the selected profile on this PS5; channels already followed are left alone",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For when SponsorBlock refuses to work; the built-in service host chooses the server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "For when SponsorBlock refuses to work; the companion host chooses the server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Forget every query saved for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Forget the resume position; keep the watched marker",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Format: {0}; {1} entries without a channel identity skipped{2}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "sns",
+   "one": "Format: {0}; {1} entry without a channel identity skipped{2}"
+  },
+  {
+   "source": "Frame rate",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Frame rate: up to {0} fps",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "France",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "French",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "From the built-in service library service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "From the companion library service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "GPL-3.0-OR-LATER - LAN COMPANION REQUIRED - HARDWARE ACCEPTANCE PENDING",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Galician",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Gaming",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "German",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Germany",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Get a new TV code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Greece",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Greek",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Guatemala",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Guest, or an account signed in on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "HOLD L3",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Hebrew",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Height of captions above the bottom edge",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hidden; select to show or move",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts everywhere",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from Channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from History",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from Home",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from Search",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from Subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide Shorts from Trending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide content",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide controls",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide controls after",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Hide controls after {0} seconds",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Hide from this list (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide live chat",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Hide mixes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide player controls after {0} seconds",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Hide section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide streams from Subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide this channel in catalogs for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide upcoming from Channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide upcoming from Home",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide upcoming from Subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide watched from Home",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide watched from Notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide watched from Subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hide watched from Watch later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Highlight",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hindi",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "History",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "History for phone playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "History from the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "History report pending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "History, favorites, the play queue and followed channels are in the main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Home",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Home recommendations",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Home recommendations need a signed-in account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Home, Videos, Shorts, Live, Playlists, sort order and search, as this channel offers them",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Honduras",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hong Kong",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Horizontal mirror before rotation; saved for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "How captions look in the player, translated captions and per-channel memory",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "How dark the dimmed picture is",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "How dark the picture is while the screen is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Human captions are preferred",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hungarian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Hungary",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ignore a skip when less than this remains of the segment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ignore short segments",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ignore short segments: {0} seconds",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "Ignore short segments: {0} second"
+  },
+  {
+   "source": "Import folder: {0}. Files of at most 1 MiB with letters, digits, dots, dashes and underscores in their names are listed.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Import subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "In descriptions and details; Return YouTube Dislike then learns which videos you open them for",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "India",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Indonesia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Indonesian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Input restarts the timer; expiry pauses playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Interaction reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Interface language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Intro",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Iraq",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ireland",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Israel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Italian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Italy",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Its uploads were opened for the selected profile; the new-content mark is cleared",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Japan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Japanese",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Jordan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Jump silently",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Jump to highlight? Cross: jump   Circle: keep playing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Jump to this chapter",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Jump with message",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Jumped to highlight",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Kazakhstan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Keep skipped segments when rewinding this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Keep the chosen delay but switch it on or off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Keep the sound; any button except Left and Right brings the picture back",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Keep this folder on the main menu of the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Keep this playlist on the main menu of the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Keep this position and preserve audio pitch",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Keeping this segment",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Kenya",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Kids",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Korean",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "L2 / R2 scroll the description",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "L2 / R2 scroll the description. Circle returns to the video actions.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "L2 / R2 scroll. Triangle loads more replay messages. R3 changes chat mode. Touchpad opens comments.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "LIVE",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Language YouTube uses for titles and sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Language code {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Language of ProsperoTube's menus and messages",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Language of titles, sections and descriptions from YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Last history report confirmed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Last report unconfirmed; this playback session will not retry",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Later among the pinned sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Later in its menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Latvia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Latvian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Learning",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Left / Right",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Left / Right step; held seeking accelerates from this interval",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Let YouTube choose the country",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Let YouTube choose the language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Like",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Like comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Like video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Likes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Link a phone",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Link the YouTube app with a TV code; off until a phone is linked",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Linking a phone is not part of this built-in YouTube service.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Links, feedback, credits and changes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "List related videos, the queue and the playlist during playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Lithuania",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Lithuanian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Live",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Live chat",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Live chat sidebar",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Load the next page of this list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Loading chat",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Loading second language...",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Loading the next replay messages at this time",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Loading...",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Loading… Circle to cancel.",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Local backups, automatic backup and subscriptions import",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Local data could not be loaded. The existing file has not been overwritten.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Local follows, independent of Google accounts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Local history, resume positions and reports for the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Local library could not be saved. Check the ProsperoTube data directory.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Location",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Long speed list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Loop Shorts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Main menu section of the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Malaysia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Manage channel blocks for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mark all channels as watched",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mark as watched locally",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mark as watched on YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mark channel as watched",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Marked as watched on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Marked in this version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Maximum quality: {0}p",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Maximum resolution for the next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Member",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Membership gift",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Menu sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mexico",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mirror video",
+   "context": [
+    "browser",
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "Moderator",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Moldova",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Moldovan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "More replay messages",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "More results",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Morocco",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Most popular",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Move down",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Move up",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Movies",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Music",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mute",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Mute and volume",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "My videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "NATIVE YOUTUBE CLIENT - EVO / PROSPEROPLAYER FOUNDATION",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Navigate videos; keep the current resume position",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Nepal",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Netherlands",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Never hide controls",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Never hide player controls",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Never skip segments in this channel's videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "New YouTube playlist name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "New Zealand",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "New content first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "New password of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "New private YouTube playlist name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Newest comments",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Newest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "News",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Next video",
+   "context": [
+    "browser",
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "Nicaragua",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Nigeria",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No account operation submitted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No available upcoming highlight",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "No backup yet",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No channel is marked as new",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No comments returned. Circle to return. R3 changes comment sorting.",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "No filter is set",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No filters; channels and playlists included",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No filters; videos only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No further messages at this time, or a request is pending. L1 / R1 change time.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "No import file found",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No local history or resume positions and no account reports",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No local history, resume position or account report for this playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No playable video on the first result page",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No recent searches",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No speech recognized. Check the microphone and companion, then retry.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "No suggestions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No supported playback choices were returned.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "No video available in this direction",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Non-music section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Normal speed",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "North Macedonia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Norway",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Norwegian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Not interested (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Nothing here yet",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Nothing is listed here",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Nothing was changed: watched videos leave Home, nothing else is hidden",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "OPTIONS",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Off continues explicit queued videos in stop and close modes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Off plays the preferred quality immediately; on shows available choices",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Off records no local history and sends no account reports for videos started from the phone",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Off: every profile uses the same preferences. On: each profile keeps its own; applies to this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Off: videos under six minutes start from the beginning",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Oldest first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "On the main menu of the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "On: after a video from a section, shelf or channel, continue with the next one listed there",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "One resolution, frame rate and codec for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Open Subscribed channels first: the marks come with its list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open an active chat with an account profile before composing a message.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Open channel",
+   "context": [
+    "browser",
+    "document"
+   ]
+  },
+  {
+   "source": "Open created playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open description",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open the list on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open this address to authorize YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open this section when ProsperoTube starts; saved for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Open {0} on your phone or computer and enter {1}. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "Operation: {0} | Profile: {1}. Circle returns to the video browser.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "Optional community replacements; original metadata is retained",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Options ignored: the built-in service library worker is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Options ignored: the companion library worker is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Order",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Order of the Subscribed channels list for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Order offered for this section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Original",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Original audio",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Original or an aspect override; independent of zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Outro",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Over 20 minutes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "PAGE {0} OF {1}",
+   "context": [
+    "document"
+   ],
+   "pattern": true,
+   "args": "nn"
+  },
+  {
+   "source": "PAID PROMOTION",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "PAIR COMPANION",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "PAUSED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "PLAYBACK",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "PLAYBACK MODE",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "PLAYBACK OPTIONS",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "PLAYER",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "PLAYING",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "PLAYLIST",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "POST",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "PRIMARY",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Page",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Page / replay time",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Paid-content notices",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pair with the built-in service and check local storage before linking a phone.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Pair with the companion and check local storage before linking a phone.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Pair your companion and enable local speech recognition first.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Pakistan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Panama",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Paraguay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Password of this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Password protection (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pause",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Pause only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pause watch history (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Persian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Personalized notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Peru",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Philippines",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Phone connection",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Phone pairing (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Phone pairing could not obtain a PS5 random identity. Link a phone retries.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Phone pairing, chat and comment posting, account history controls, feedback actions and the profile password",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Phone pairing, voice search, chat and comment posting, account history controls, feedback actions and the profile password",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Phone queue advance cancelled. Choose a video to play.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Phone video",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Pin this section before renaming it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Pin to main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pinned",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pinned channel; Touchpad for actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pinned playlist; Touchpad for actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pinned section actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Pinned section name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Play from start",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play incognito",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play next",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play queue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play the first result",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Play the track the video was published with",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playback mode",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playback mode; saved for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Playback paused after inactivity",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Playback queue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playback speed could not be applied while audio is active.",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Player buttons",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Player controls, keys and Shorts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Player settings",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Player volume",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Player volume and audio delay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playing the next queued video in 5 seconds. Any button cancels.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Playlist",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Playlist link",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playlist only",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Playlist order",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playlist: {0} | Video: {1}. Cross applies this change; Circle returns without submitting it.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "Playlists",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Playlists from the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Poland",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Polish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Portugal",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Portuguese (Brazil)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Portuguese (Portugal)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Position selected",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Post this comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Post this reply",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Prefer an alternate audio language when available",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Prefer this audio language when a video offers it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Press Circle again to exit",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Press Circle once to exit",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Press Circle twice to exit",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Preview / recap",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Preview while seeking",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Previous / next for Shorts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Previous / next for Shorts and videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Previous / next for videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Previous video",
+   "context": [
+    "browser",
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "Profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Profile: {0}. Remove this account and its saved sign-in from ProsperoTube. Continue as Guest; other accounts remain available.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Profiles, subscriptions, history and playlists",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Project links, each with a QR code to open on another device",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Project page; open the address on another device",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Protect this profile with a password (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Published",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Published thumbnail or a frame from the start, middle or end",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Puerto Rico",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Purchased",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "QUALITY",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "QUEUE",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Quality info in controls",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Quality, codec, captions and SponsorBlock",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Queue",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Queue advance cancelled. Choose a video to play.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Queue respects playback mode",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Quick skip works while the controls are hidden",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "R2 on a video to add or remove",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "R3 jumps to the next highlight; select to cycle; new categories load on next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "RESUMED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Rate comment",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Rate, save, share and more for this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Read the description",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Read the full description of this video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Read the import file again for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Recent searches",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Recognizing… Circle cancels",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Recommendations for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Record on this PS5 and report watched videos to the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Record on this PS5; the account's own YouTube setting decides what it keeps",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Recovery is unavailable. Stop and select the video again.",
+   "context": [
+    "browser",
+    "toast"
+   ]
+  },
+  {
+   "source": "Refresh section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Refreshing this stream and restoring playback...",
+   "context": [
+    "browser",
+    "toast"
+   ]
+  },
+  {
+   "source": "Regular seeking",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Related videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Release playback, then close from the PS5 switcher",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Releases and source code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Relevance",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload Subscribed channels to see the list without their marks",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload YouTube history before removing this video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the comments before replying.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the comments for the current profile before rating a comment.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the comments for the current profile before writing one.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the comments to see it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload the discussion to continue reading.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the list before sending feedback for this video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the list of subscribed channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload the list this folder was shown in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload the list this section was shown in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload the list this video was shown in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload the playlist picker to continue.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload the stream or lower its quality after decoder errors and long buffering",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reload this channel section to continue browsing.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload this library screen to continue browsing.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reload this section to continue browsing.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Remaining and finish times account for playback speed",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Remember chosen quality",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remember position of short videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remember recent searches for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remember speed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remember subtitles per channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remembered on this PS5 for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reminders exist for streams and premieres that have not started",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove a recent search",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove comment rating",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove from YouTube Watch later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove from YouTube history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove from a YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove from local history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove from {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Remove it from Followed channels on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove it from its menu; YouTube preferences can show it again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove playlist from your library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove resume positions and watched markers for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove saved playlist from library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove stream reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove the password of this profile (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove this pinned section; nothing else changes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove this playlist from your library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove this profile's queued videos; keep favorites",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove video from this playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove video rating",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Removed",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Removed from local history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Removes the whole watch history of this account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Removes this file only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Rename YouTube playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Rename pinned section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reopen blocked channels for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen chat to compose a new message for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen recent searches for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen the account action to confirm it for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen the account settings of the selected profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen the backup list and select the backup again.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen the comments to write one for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen this channel before searching in it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen this channel to browse its sections.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen this channel to list its sections.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen this playlist action for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Reopen video actions for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Repeat a Short until another video is chosen",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Repeat one",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Repeat or forget queries saved for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Replaces the settings and library on this PS5; the current state is kept as a safety copy",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Replies",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Reply to comment (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reply to this comment",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Report a problem or ask for a feature",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Requesting YouTube sign-in code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Require known frame rate within this limit for the next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Requires confirmation for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reset phone pairing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reset search filters",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Resolution, frame rate and codec for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Restore or delete a backup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Restore the default",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Restore this backup",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Restore {0}x",
+   "context": [
+    "kit"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Resume watch history (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Return it to its menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Reverse playlist",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Review before removing its saved sign-in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Review before sending; Circle cancels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Review it before posting; Circle returns without posting",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Review the selected comment before confirming",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Romania",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Romanian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Rotate video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Rotate {0} degrees",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Rows ending in (experimental) were tested offline only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Run the last search with these options",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Run the last search with these options and play its first video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Russia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Russian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SDR tracks; AV1 uses software decoding. HDR remains deferred",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SECONDARY CAPTIONS",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "SEEK",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "SELECTED",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "SLEEP TIMER",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "SPEED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "STREAM",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "STREAM STOPPED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Saudi Arabia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Save a frame-rate limit for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Save playlist to your library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Save this playlist to your library",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Saved for the selected profile on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Saved for this profile",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Saved for this profile; clears percentage zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Saved for this profile; off lists videos only when no filter is set",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Scan the code or type the address on another device",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Scan the code with a phone camera, or type the address shown.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Scan with a phone camera, or open",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Science",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Screen dimming",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Screen dimming amount",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Screen dimming and screen off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Screen off",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Screen off amount",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Screen off timeout",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Scroll",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Scroll comment",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Scroll description",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Scroll details",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Scroll message",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Search",
+   "context": [
+    "browser",
+    "document",
+    "kit"
+   ]
+  },
+  {
+   "source": "Search YouTube videos...",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Search again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search again for the current profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Search again to continue browsing these results.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Search history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search history is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search in channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search in this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search options",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Search public videos by topic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Section last opened",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Section of this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "See or change the reminder YouTube sends when this stream starts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Seek",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Seek interval",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Seek interval: {0} seconds",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "Seek interval: {0} second"
+  },
+  {
+   "source": "Seek with confirmation",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Seeking",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Select a channel or playlist to pin.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed backup action.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed backup period.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed channel order.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed content switch.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed import file.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed language or country.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed language.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed thumbnail source.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a listed value for this player preference.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a section of the main menu or Discover.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a speed and enable all-videos memory",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select a valid aspect or display correction.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid live video to open chat.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid player preference for this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid playlist or video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid rotation.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid seek interval for this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid seeking mode for this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid sleep timer duration.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid time display for this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid video or channel and account profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a valid video sizing option.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a video and an account profile first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a video to read its description.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a video, channel or playlist to share.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a video, playlist or channel first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select an account profile and reload comments to rate this comment.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select an account profile before writing a comment.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select an account profile first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select an account profile to protect it with a password",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select an available comment rating.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select another profile or continue as Guest",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select quality, audio or playback speed",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Select this playlist, then confirm the change",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle Off / Left / Right; shows chat beside playing video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle the action; fetch new categories on the next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle; channels and playlists open as folders",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle; filters last until ProsperoTube closes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to switch",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to toggle this feature filter",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to toggle; current and followed channels are listed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to toggle; independent of automatic skip actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to unpin, rename or move",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Selected",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Selected {0}: {1} ({2}). Cross applies this change to YouTube; Circle returns without submitting it.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "sss"
+  },
+  {
+   "source": "Selected; saved by an earlier version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Self promotion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Send this chat message",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Separate settings per account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Separate settings per account and profile password (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Serbia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Serbian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Service status page; ProsperoTube does not probe it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Set stream reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Set the built-in service LAN address in Options first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Set the companion LAN address in Options first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Set the level again from the channel's notification choices; do not subscribe twice",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Share link",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Shift the sound against the picture",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Short speed list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Short videos from YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Shorts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Shorts, mixes, watched, live and upcoming videos by section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show QR codes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show YouTube paid-promotion disclosures when playback starts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show controls",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show controls and pause",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show dislikes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show resolution, frame rate and codec in the controls bar",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show the profile list each time ProsperoTube starts; applies to all profiles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show the time of day in the controls bar",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show this action in the in-player options",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show top chat beside video; select again to retry unavailable chat",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Show, hide and order every section and pin",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show, hide and order the main menu, Discover and pinned sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Shown; select to hide or move",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Shuffle playlist",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Sign in to YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sign in to YouTube to get Home recommendations",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sign-in canceled",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sign-in code expired",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sign-in status updates automatically. Circle returns and cancels pending sign-in.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Sign-in to YouTube arrives in a later version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Silence the player until switched back",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Singapore",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Single frame",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Skip segments again in this channel's videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Skip silently",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Skip with message",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Skip {0}? Cross: skip   Circle: keep",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Skipped an optional segment",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Skipped the final segment",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Skipping segment",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Sleep after",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Sleep after {0} hours without input",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Sleep timer",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Sleep timer: {0} hours",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Slovak",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Slovakia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Slovenia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Slovenian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sort by",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sort playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sorts this playlist on YouTube; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "South Africa",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "South Korea",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Spain",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Spanish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Speak now. Recording up to six seconds; Circle cancels.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Speak while holding L3; release to search. Circle cancels.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Speed for all videos: {0}x",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Speed list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Speed up / down",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Speed: {0}x",
+   "context": [
+    "kit"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Sponsor",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock actions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock is off for this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock is on for this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock: {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Sports",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Square searches YouTube from any list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Square searches; queries are saved for the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Square to search. Triangle saves a video.",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Square to search. Triangle saves a video. Options pairs your companion.",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Sri Lanka",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Start a new sign-in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Start in",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Status checked automatically",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Still buffering. Captions off; reloading at a lower quality...",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Still buffering. Reloading at a lower quality...",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Stop applies to phone-started playback; disconnections may happen when the phone sleeps",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Stop at end",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Stop this video and search YouTube",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Stops this video and opens these links with their QR codes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Stored on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Stream reminder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Stretch",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Subscribe",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscribe on YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscribe with a notification level, or change the level",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscribed channels",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscribed; notification level not confirmed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscribes on YouTube with this notification level; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscription notifications",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subtitle position",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subtitle size",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subtitle style",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Subtitles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Suggestions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Suggestions do not have additional pages.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Suggestions for this video and the selected profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Suggestions in the player",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sweden",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Swedish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Switzerland",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "System default",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "TIME DISPLAY",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "TOP CHAT",
+   "context": [
+    "browser",
+    "document"
+   ]
+  },
+  {
+   "source": "TOUCHPAD",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "TRANSLATED",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "TV code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Tai",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Taiwan",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Tanzania",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Technology",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Telugu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Text colour, background and edge of captions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Thai",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Thailand",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "That item could not be played",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "The account change was not confirmed. Check your account before repeating it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The authorized profile response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The backup operation failed.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in YouTube service could not start: {0}.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "The built-in YouTube service could not start: {0}. Select the item again to retry.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "The built-in YouTube service did not answer. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service cannot filter lists: its library worker is off or older",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service confirmed this change",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm removal of this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm removal of this video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this feedback.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this history change. Check your account before repeating it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this notification level.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this playlist change. Reload Your playlists to see its state.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this playlist order. Reload the playlist to see it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this reminder. Reopen the reminder to see its state.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not confirm this video as watched.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service did not report what it offers. Check that it is running and retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service does not list translated captions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service does not offer this action. Update it and enable its library worker.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service host has not enabled the Return YouTube Dislike relay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service is not ready for this action.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service job response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service library worker is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service profile list was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service request failed. Check its configuration and retry.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The built-in service request was cancelled or timed out. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service returned no supported playback choices.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The built-in service started.",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "The built-in service was started without an alternative SponsorBlock server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The changes listed for the installed version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The channel block list is full. Unblock a channel first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The channel's address, with a QR code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The chat response was invalid. Reopen the chat to retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The comment rating was not confirmed.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The comment response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The comment was not confirmed. Reload the comments before writing it again.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion confirmed this change",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion did not confirm removal of this profile.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm removal of this video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this feedback.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this history change. Check your account before repeating it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this notification level.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this playlist change. Reload Your playlists to see its state.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this playlist order. Reload the playlist to see it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this reminder. Reopen the reminder to see its state.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not confirm this video as watched.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion did not report what it offers. Check that it is running and retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion host has not enabled the Return YouTube Dislike relay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion is not ready for this action.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion job response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion library worker is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion profile list was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion request failed. Check its configuration and retry.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The companion request was cancelled or timed out. Retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The companion returned no supported playback choices.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The description response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The details response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The excluded channel list is full.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The full text; L2 / R2 scroll",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The import response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The language of the PS5 system settings, or English",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The library pagination response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The message was not confirmed. Check the chat before sending again.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The paired companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The paired companion cannot filter lists: its library worker is off or older",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The paired companion does not list translated captions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The paired companion does not offer this action. Update it and enable its library worker.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The paired companion was started without an alternative SponsorBlock server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The pairing response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The password could not be saved.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The pinned section list is full. Unpin a section first.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The playback response belongs to another video.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The playlist change was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The playlist order response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The playlist screen was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The playlist this profile used last; asks first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The playlist's address, with a QR code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The previous stream could not be restored. Select the video again.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The reminder response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The replaced state was kept as {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "The request was cancelled or could not be completed.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The restored backup could not be loaded.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The saved profile settings list is full.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The search response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The selected account action was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The selected discussion was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The selected library screen is unavailable.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The selected profile was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The sign-in response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The sign-in screen was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The startup section could not open. Showing the main menu.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The stream has no Notify me control for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The suggestion response was invalid.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "The thumbnail the channel published",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The video keeps playing; Circle cancels",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "The video, embed, channel and playlist links, each with a QR code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "They may fail or change in a later version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "They were not yet checked on a PS5 or against live YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This action is not part of the built-in YouTube service yet.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This action is unavailable for this video",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "This action is unavailable right now",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "This channel offers no other section",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This comment has no reply thread. L2 / R2 scroll the text.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This file cannot be read as an export: it is missing, larger than 1 MiB or not text.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This item does not have the required metadata",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "This link is too long for a QR code. Type the address shown.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This menu exceeds its item capacity.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This month",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This playback only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This playlist cannot be sorted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This screen does not have additional pages.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This section is not available from YouTube for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This version browses and plays as Guest, without an account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This video has no channel identity to exclude.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "This video has no description.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This video is already playing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This video is not an upcoming stream",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This week",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This year",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Thumbnail source",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Thumbnails from YouTube storyboards",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Time display",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Time format",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Time remaining",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Today",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Toggle horizontal mirror before rotation; saved for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Toggle normal and your last selected speed",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Toggle playback speed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Toggle the current channel or a followed channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Too many requests are pending. Cancel the current request and retry.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Top / live",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Top / newest",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Top chat",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Top comments",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Topics and YouTube sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Total duration",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Touchpad",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Trending",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Tunisia",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turkey",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turkish",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn it on in YouTube preferences for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn loud videos down to YouTube's reference level",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn off and forget this TV's pairing identity",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn phone connection off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn phone connection on",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Turn the picture off in the player after this time without input; sound keeps playing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Type",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ukraine",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ukrainian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Unable to change speed; try again when playback is ready",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to jump to highlight",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to jump to this chapter",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save mirror setting.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Unable to save preference for this profile",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save seek interval",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save seeking mode",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save this preference",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save this preset",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save time display",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to save video sizing",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to seek",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unable to seek; playback state restored",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Unblock channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Under 3 minutes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Unfollow channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "United Kingdom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "United States",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Unlock more subtitles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Unpin from main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Unsubscribe on YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Up / Down",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Up to 30 fps",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Up to 60 fps",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Up to {0}p",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Upload date",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Upload date, duration, type, features, sorting and result cards",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Uploads of the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Uruguay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use SponsorBlock on this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use alternative server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use audio delay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use authorized YouTube account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use captions in this language when a video offers them",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use current section as playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Use this speed for all on-demand videos; live streams play at normal speed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "VIDEO",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "VIDEO ACTIONS",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "VIDEO PRESETS",
+   "context": [
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "VIDEO SIZING",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "VIDEO UNAVAILABLE",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "VOICE SEARCH (EXPERIMENTAL)",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "VOLUME",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Venezuela",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Verified",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Version {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Video Playback",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Video actions",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Video and channel memories are separate for each profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video aspect ratio",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video aspect ratio; saved for this profile",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "Video codec",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video decoder error. Reloading at a lower quality...",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video decoder error. Select the video to retry.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video details",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video end",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video link",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video middle",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video rotation",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video sizing and zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video sizing; saved for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Video speed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video start",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video unavailable. Checking the next playlist window (up to 30 seconds); any button cancels.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Video unavailable. Next phone playlist item in 5 seconds; any button cancels.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Video unavailable. Next queued video in 5 seconds; any button cancels.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Video unavailable. No further phone playlist item.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Video will play next",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos from your YouTube subscriptions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos saved to your account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos trending on YouTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos waiting to play; Cross plays one now",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Videos your account was notified about",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Vietnam",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Vietnamese",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "View count",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Viewer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Views",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Voice search (experimental)",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Volume down / up",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Volume up / down",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Volume up to 300%, auto volume and sound delay",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "WATCHED",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Wait for the built-in service response",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Wait for the chat update before composing a message.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Wait for the companion response",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Wait for the replay update before seeking again",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Waiting for messages",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Watch / open",
+   "context": [
+    "document"
+   ]
+  },
+  {
+   "source": "Watch later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What Circle does during playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What ProsperoTube builds on; the full notices ship with the package",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What YouTube recommends without an account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What changed in this version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What the (experimental) label on a row means",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "When controls are hidden; saved for this profile",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "When phone disconnects",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Which speeds the speed picker offers",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "White on black background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "White on semitransparent background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "White on transparent background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Write a comment (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Wrong password.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YOUTUBE SERVICE DID NOT START",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Yellow on black background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Yellow on semitransparent background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Yellow on transparent background",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "You dislike it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "You like it",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube Kids categories",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube account updated",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube app TV-code pairing (experimental)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube authorization denied",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube did not confirm the account change. Check your account before repeating it.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "YouTube gaming shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube gives them to signed-in accounts only; sign-in arrives in a later version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube live shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube live-chat message",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube movies and shows",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube music shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube news shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube notifies this account when the stream starts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube offers an order only for playlists of this account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube offers no reminder for this stream",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube preferences",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube provides Home recommendations only to signed-in accounts",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube records what this account watches again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube service did not start - select to retry",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube sign-in",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "YouTube sign-in could not be completed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube sports shelves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "YouTube stops recording what this account watches",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Your library on this PS5 needs no account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Your local library stays available",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Your local saved videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Your playlists",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Zimbabwe",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Zoom {0}%",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "account order",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "all videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "allowed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "automatic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "by name",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "close the app",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "confirm while paused",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "confirm while playing",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "controls and pause",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "disabled",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "each channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "each video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "enabled",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "estimated finish",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "keep playing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "left",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "local data not saved",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "never",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "new content first",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "not set",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "off",
+   "context": [
+    "browser",
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "on",
+   "context": [
+    "browser",
+    "kit",
+    "toast"
+   ]
+  },
+  {
+   "source": "pause",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "pause only",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "random source unavailable",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "regular",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "remaining",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "right",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "searches ignore these options",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "set",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "show controls",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "show controls and pause",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "stop playback",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "stopped; retry linking",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "storage unavailable",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the built-in service",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the file lists more than the built-in service reads",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the file lists more than the companion reads",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the paired companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the service gave no address",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "the state a restore replaced",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "this playback only",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "toggle speed",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "total duration",
+   "context": [
+    "browser",
+    "kit"
+   ]
+  },
+  {
+   "source": "{0} (experimental)",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s",
+   "need": [
+    0
+   ]
+  },
+  {
+   "source": "{0} KiB; Cross reads it and shows what it lists",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "{0} KiB{1}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ns"
+  },
+  {
+   "source": "{0} already followed; {1} not added: the list holds {2} channels",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "nnn"
+  },
+  {
+   "source": "{0} channels added to Followed channels",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "{0} channel added to Followed channels"
+  },
+  {
+   "source": "{0} channels found in {1}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ns",
+   "one": "{0} channel found in {1}"
+  },
+  {
+   "source": "{0} channels marked as watched",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "{0} channel marked as watched"
+  },
+  {
+   "source": "{0} kept; newest: {1}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ns"
+  },
+  {
+   "source": "{0} marker: {1}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "{0} seconds",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "{0} second"
+  },
+  {
+   "source": "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "{0}: {1}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss",
+   "need": [
+    0
+   ]
+  }
+ ]
+}
