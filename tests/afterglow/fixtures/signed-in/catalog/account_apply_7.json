@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Account removed", "subtitle": "Select another profile or continue as Guest", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

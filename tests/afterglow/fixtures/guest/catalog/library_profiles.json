@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "library:profile:guest", "title": "Guest", "subtitle": "Browse as guest", "is_folder": true, "guest": true, "signed_in": false, "selected": true, "locked": false}
+ ],
+ "has_more": false
+}

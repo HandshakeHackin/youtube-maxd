@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "library:profile:oauth_4a6f6e6173000002", "title": "Jonas", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": true, "locked": true},
+  {"id": "library:profile:guest", "title": "Guest", "subtitle": "Browse as guest", "is_folder": true, "guest": true, "signed_in": false, "selected": false, "locked": false}
+ ],
+ "has_more": false
+}

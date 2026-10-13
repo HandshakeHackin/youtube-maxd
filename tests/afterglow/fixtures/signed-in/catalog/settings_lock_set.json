@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Enter the password", "subtitle": "Circle returns to the account settings without changing it", "is_folder": true, "interface": true, "prompt": "password"}
+ ],
+ "has_more": false
+}

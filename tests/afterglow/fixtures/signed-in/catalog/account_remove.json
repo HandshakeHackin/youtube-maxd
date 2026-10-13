@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:apply:7", "title": "Remove selected account", "subtitle": "Cross confirms; Circle returns without removing it", "is_folder": true, "interface": true, "overview": "Profile: Mara. Remove this account and its saved sign-in from ProsperoTube. Continue as Guest; other accounts remain available."}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,11 @@
+{
+ "items": [
+  {"id": "library:profile:oauth_4d61726100000001", "title": "Maximilian-Alexander von Hohenstein-Wittgenstein", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": true, "locked": true, "subscriptions": "12,480"},
+  {"id": "library:profile:oauth_4a6f6e6173000002", "title": "Wohnzimmer-Fernsehgemeinschaft Nordstadt", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": false, "locked": false, "subscriptions": "1"},
+  {"id": "library:profile:oauth_6c696e6100000003", "title": "Anastasia Konstantinopoulou-Papadimitriou", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": false, "locked": true},
+  {"id": "library:profile:oauth_6b696400000000a4", "title": "Kinderprofil (Wochenende und Ferien)", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": false, "locked": false, "subscriptions": "3,206"},
+  {"id": "library:profile:oauth_6f6d6100000000a5", "title": "Oma Hildegard", "subtitle": "Account signed in on this PS5", "is_folder": true, "guest": false, "signed_in": true, "selected": false, "locked": false, "subscriptions": "9"},
+  {"id": "library:profile:guest", "title": "Guest", "subtitle": "Browse as guest", "is_folder": true, "guest": true, "signed_in": false, "selected": false, "locked": false}
+ ],
+ "has_more": false
+}
