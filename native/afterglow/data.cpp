@@ -42,6 +42,13 @@ unsigned language()
 
 } // namespace
 
+struct Data::Action
+{
+    Page page;
+    unsigned ticket = 0; // the source's
+    int pumps_done = -1; // pumps since it finished; -1 while it runs
+};
+
 struct Data::Slot
 {
     Page page;
@@ -54,6 +61,11 @@ Data::Data(Source &source) : source_(source), revision_(source.revision()), aliv
 
 Data::~Data()
 {
+    for (auto &pair : actions_)
+    {
+        if (pair.second->ticket != 0)
+            source_.cancel(pair.second->ticket);
+    }
     for (auto &pair : slots_)
     {
         if (pair.second->ticket != 0)
@@ -64,6 +76,14 @@ Data::~Data()
 void Data::pump()
 {
     source_.pump();
+    for (auto it = actions_.begin(); it != actions_.end();)
+    {
+        Action &action = *it->second;
+        if (action.pumps_done >= 0 && ++action.pumps_done > 600)
+            it = actions_.erase(it);
+        else
+            ++it;
+    }
     if (source_.revision() != revision_)
     {
         revision_ = source_.revision();
@@ -81,6 +101,63 @@ void Data::refresh()
     slots_.clear();
     home_ = model::Home{};
     home_built_ = false;
+}
+
+void Data::forget(const std::string &id)
+{
+    const std::string prefix = id + '\n';
+    for (auto it = slots_.begin(); it != slots_.end();)
+    {
+        if (it->first.compare(0, prefix.size(), prefix) == 0)
+        {
+            if (it->second->ticket != 0)
+                source_.cancel(it->second->ticket);
+            it = slots_.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+    home_built_ = false; // Home copies its shelves from slots: it reads them again
+}
+
+unsigned Data::act(const std::string &row)
+{
+    const unsigned mine = next_action_++;
+    Action &action = *actions_.emplace(mine, std::make_unique<Action>()).first->second;
+    action.page.load = model::Load::loading;
+    const std::weak_ptr<int> alive = alive_;
+    action.ticket = source_.catalog(row, 0, [this, alive, mine](Page &&answer)
+    {
+        if (alive.expired())
+            return;
+        const auto target = actions_.find(mine);
+        if (target == actions_.end())
+            return;
+        target->second->page = std::move(answer);
+        target->second->ticket = 0;
+        target->second->pumps_done = 0;
+    });
+    if (action.ticket == 0)
+    {
+        action.page.load = model::Load::failed;
+        action.page.error = tr("The request could not be queued. Try again.");
+        action.pumps_done = 0;
+    }
+    return mine;
+}
+
+const Page &Data::action(unsigned ticket)
+{
+    static const Page kGone = []
+    {
+        Page page;
+        page.load = model::Load::idle;
+        return page;
+    }();
+    const auto found = actions_.find(ticket);
+    return found != actions_.end() ? found->second->page : kGone;
 }
 
 Data::Slot &Data::slot(const std::string &id, int page)

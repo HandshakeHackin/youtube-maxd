@@ -102,6 +102,9 @@ class Source
 
     // Hands a video to the app's player. False when the app refused.
     virtual bool play(const model::Video &video) = 0;
+    // The catalog that lists what can be done with a row (the video actions
+    // menu, a channel's, a playlist's); "" when the row has none.
+    virtual std::string menu(const std::string &row, const std::string &title) = 0;
 
     // Delivers finished requests. Once per frame.
     virtual void pump() = 0;
@@ -127,6 +130,25 @@ class Data
     const Page &catalog(const std::string &id, int page = 0);
     // Forgets everything that was fetched; the next read asks again.
     void refresh();
+    // Forgets one catalog (every page of it): after an action changed it.
+    void forget(const std::string &id);
+
+    // Actions. Much of what a person does is a row of the provider that acts
+    // when it is listed: a choice of a preference ("settings:quality:3"), an
+    // entry of an actions menu ("account:confirm:like:<video>"), a local one
+    // ("local:video:..."). act() lists such a row once, never from the cache,
+    // and returns a ticket; action(ticket) is its state: loading until the
+    // provider answered, then ready (rows are what the provider listed in
+    // answer: the menu again, or a notice) or failed with the provider's
+    // message. A finished action is kept for ten seconds. Show the pending
+    // state on the control that was pressed, the result as a toast.
+    unsigned act(const std::string &row);
+    const Page &action(unsigned ticket);
+    // The actions menu of a row, as a catalog id for catalog(); "" for none.
+    std::string menu(const std::string &row, const std::string &title)
+    {
+        return source_.menu(row, title);
+    }
 
     model::Profile profile()
     {
@@ -148,6 +170,9 @@ class Data
 
     Source &source_;
     std::map<std::string, std::unique_ptr<Slot>> slots_;
+    struct Action;
+    std::map<unsigned, std::unique_ptr<Action>> actions_;
+    unsigned next_action_ = 1;
     model::Home home_;
     bool home_built_ = false;
     unsigned revision_ = 0;

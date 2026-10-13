@@ -62,6 +62,12 @@ class FixtureSource final : public Source
         return revision_;
     }
     bool play(const model::Video &video) override;
+    // A row's actions menu is the fixture catalog "menu:<row>".
+    std::string menu(const std::string &row, const std::string &title) override
+    {
+        (void)title;
+        return "menu:" + row;
+    }
     void pump() override;
     int pending() const override
     {

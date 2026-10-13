@@ -20,8 +20,9 @@ to build and who owns which files.
 | Host harness: boards, fixtures, pictures, checks (`scripts/test_afterglow.sh`) | done |
 | Placeholder for every screen; the reader as the worked example | done |
 | Home (boards 03 to 08 of the proposal) | in progress (frame owner) |
-| `ProviderSource`: the data layer on the shipping provider | in progress (frame owner) |
-| Row facts in the provider and the service (section 5.5) | in progress (frame owner) |
+| `ProviderSource`: the data layer on the shipping provider (`scripts/test_afterglow_data.sh`) | done |
+| Row facts (section 5.5): the store, and a video's `views`, `published`, `channel_art_url`, `badges` from the service | done |
+| Row facts of the other catalogs of section 5.5 | open: with the screen that needs them, through the frame owner |
 | The mount in the app, the Interface switch, the console session driver | in progress (frame owner) |
 | Every other screen (section 12) | open: one work package each |
 | Text engine (`native/text/`): system fonts, shaping, bidi | another worker; seam in section 7 |
@@ -324,6 +325,31 @@ it to the row the service builds (`companion/innertube/library.mjs`,
 (`parse_item`). That bridge is one work package (section 12) so that screen
 work never touches the provider.
 
+### 5.6 Actions
+
+Much of what a person does is a row of the provider that acts when it is
+listed: a choice of a preference (`settings:quality:3`), an entry of an actions
+menu (`account:confirm:like:<video>`), a local one (`local:video:...`). A
+screen does not call the provider for these either:
+
+```cpp
+unsigned ticket = data.act(row_id);          // lists the acting row once, never from the cache
+const Page &state = data.action(ticket);     // loading -> ready (rows: the provider's answer) or failed (error)
+data.forget("library:watch_later");          // a catalog the action changed: the next read asks again
+std::string menu = data.menu(row_id, title); // the catalog of a row's actions ("" for none): read it with catalog()
+```
+
+Show the pending state on the control that was pressed (the kit's spinner, a
+dimmed label), the result as a toast (`nav.toast`), a refusal with the
+provider's message. A finished action is kept for ten seconds; `action()` of a
+ticket that is gone has `Load::idle`. In a fixture set an acting row is a
+catalog file like any other (its rows are the answer), a row's menu is the
+catalog `menu:<row>`, and a board lists the acting rows it expects under
+`asked`. Questions with two answers go through `nav.confirm()`.
+
+Playing a video is `data.play(video)`: the app's player takes over and the
+frame's `resume()` runs when it closes.
+
 ## 6. Pictures and threading
 
 Everything runs on the thread that runs the frame: `Frame::update` and `draw`,
@@ -514,6 +540,12 @@ screen outside a clip rectangle; the page is not empty; the picture has more
 than a handful of colours; the snapshot is valid JSON. The looks themselves are
 held to 4.5:1 for every text colour on its ground. A run with `--lang de` or
 `--lang ru` fails on an interface text the catalog lacks.
+
+**The provider itself** is tested in `tests/afterglow/provider/provider_test.cpp`
+(`scripts/test_afterglow_data.sh`): `ProviderSource` and `Data` on the real
+`native/tube_provider.c`, with the network replaced by documents written in the
+test, as `tests/test_native.c` does. A fact that the provider starts to produce
+gets an assertion there.
 
 **Commands.**
 
