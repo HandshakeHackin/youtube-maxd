@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "playlist:confirm:add:pT5xRidgeLn:PLquietFilms0001", "is_folder": true, "interface": true, "title": "Quiet films", "subtitle": "14 videos"},
+  {"id": "playlist:confirm:add:pT5xRidgeLn:PLweekendLong001", "is_folder": true, "interface": true, "title": "Weekend, the long ones", "subtitle": "6 videos"},
+  {"id": "playlist:confirm:add:pT5xRidgeLn:PLshowToDad00001", "is_folder": true, "interface": true, "title": "Show to Dad", "subtitle": "3 videos"},
+  {"id": "playlist:prompt:create:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "New playlist"}
+ ],
+ "has_more": false
+}

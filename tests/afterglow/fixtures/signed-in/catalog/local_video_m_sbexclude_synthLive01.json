@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice:done", "is_folder": true, "interface": true, "title": "Channel excluded from SponsorBlock", "subtitle": ""}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "account:notice:title", "is_folder": true, "title": "Sieben Tage allein auf dem Grat: Donaudampfschifffahrtsgesellschaftskapitän wandert ohne Kommentar, ohne Musik und ohne Plan über die Hochgebirgshöhenwanderwege — der stille Wanderfilm in voller Länge", "subtitle": "4K | 11:22:33", "overview": "Sieben Tage auf dem Grat mit einem Rucksack und ohne Plan für das Wetter. Gefilmt in Stille: keine Erzählung und keine Musik, nur was die Mikrofone gehört haben. Routennotizen, Höhenprofil und die vollständige Ausrüstungsliste stehen weiter unten, zusammen mit einem Kapitel für jeden einzelnen Tag der Wanderung und den Koordinaten aller Lagerplätze.", "art_url": "art://ridges/0/11/800x450", "views": "1.204.381.002 Aufrufe", "published": "vor 11 Jahren und 3 Monaten", "likes": "1.482.213", "channel": "Norddeutsche Gesellschaft für Hochgebirgswanderfilme e. V. — Offizieller Kanal", "channel_id": "UCHochgebirgsfilme00001", "channel_art_url": "", "subscribers": "12.345.678 Abonnenten", "subscribed": false, "rating": "", "saved": false, "chapters": 124, "segments": 38, "captions": 112, "fps": 120, "quality": "4k,hdr", "duration": 40953, "resume": 36119, "live": false},
+  {"id": "channel:UCHochgebirgsfilme00001", "is_folder": true, "title": "Norddeutsche Gesellschaft für Hochgebirgswanderfilme e. V. — Offizieller Kanal", "subtitle": "12.345.678 Abonnenten", "art_url": ""},
+  {"id": "account:notice:published", "is_folder": true, "interface": true, "title": "vor 11 Jahren und 3 Monaten", "subtitle": "Published"},
+  {"id": "account:notice:views", "is_folder": true, "interface": true, "title": "1.204.381.002 Aufrufe", "subtitle": ""},
+  {"id": "account:notice:likes", "is_folder": true, "interface": true, "title": "1.482.213 likes", "subtitle": ""},
+  {"id": "description:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "library:suggestions:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Related videos"}
+ ],
+ "has_more": false
+}

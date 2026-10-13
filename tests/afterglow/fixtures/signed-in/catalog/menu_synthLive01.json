@@ -1,0 +1,22 @@
+{
+ "items": [
+  {"id": "local:video:m:next:synthLive01", "is_folder": true, "interface": true, "title": "Play next"},
+  {"id": "local:video:m:restart:synthLive01", "is_folder": true, "interface": true, "title": "Play from start"},
+  {"id": "local:video:m:incognito:synthLive01", "is_folder": true, "interface": true, "title": "Play incognito"},
+  {"id": "account:confirm:like:synthLive01", "is_folder": true, "interface": true, "title": "Like video"},
+  {"id": "account:confirm:watch_later_add:synthLive01", "is_folder": true, "interface": true, "title": "Add to YouTube Watch later"},
+  {"id": "playlist:pick:add:synthLive01", "is_folder": true, "interface": true, "title": "Add to a playlist"},
+  {"id": "account:confirm:subscribe:UCNacreSound0000000001", "is_folder": true, "interface": true, "title": "Subscribe on YouTube"},
+  {"id": "channel:UCNacreSound0000000001", "is_folder": true, "interface": true, "title": "Open channel"},
+  {"id": "description:synthLive01", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "details:synthLive01", "is_folder": true, "interface": true, "title": "Video details"},
+  {"id": "library:suggestions:synthLive01", "is_folder": true, "interface": true, "title": "Related videos"},
+  {"id": "account:confirm:not_interested:synthLive01", "is_folder": true, "interface": true, "title": "Not interested"},
+  {"id": "account:confirm:dont_recommend_channel:synthLive01", "is_folder": true, "interface": true, "title": "Don't recommend this channel"},
+  {"id": "local:video:m:block:synthLive01", "is_folder": true, "interface": true, "title": "Block channel"},
+  {"id": "local:video:m:watched:synthLive01", "is_folder": true, "interface": true, "title": "Mark as watched"},
+  {"id": "local:video:m:sbexclude:synthLive01", "is_folder": true, "interface": true, "title": "Exclude channel from SponsorBlock"},
+  {"id": "link:video:synthLive01", "is_folder": true, "interface": true, "title": "Share link"}
+ ],
+ "has_more": false
+}

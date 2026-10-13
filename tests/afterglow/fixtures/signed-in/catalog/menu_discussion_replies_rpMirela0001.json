@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "comment:confirm:like:rcMirela0001", "is_folder": true, "interface": true, "title": "Like comment"},
+  {"id": "comment:confirm:dislike:rcMirela0001", "is_folder": true, "interface": true, "title": "Dislike comment"},
+  {"id": "comment:reply:rcMirela0001", "is_folder": true, "interface": true, "title": "Reply to comment"}
+ ],
+ "has_more": false
+}

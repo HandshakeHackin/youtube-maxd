@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "account:notice:title", "is_folder": true, "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film", "subtitle": "4K | 48:12", "overview": "Seven days along the ridge line with one pack and no plan for the weather. Filmed in silence: no narration and no music, only what the microphones heard. Route notes, elevation and the full gear list are below, with a chapter for every day of the walk.", "art_url": "art://ridges/0/11/800x450", "views": "1.2M views", "published": "3 weeks ago", "likes": "48,213", "channel": "Northlight Atlas", "channel_id": "UCNorthlightAtlas0000001", "channel_art_url": "", "subscribers": "2.41M subscribers", "subscribed": false, "rating": "", "saved": false, "chapters": 7, "segments": 4, "captions": 9, "fps": 60, "quality": "4k", "duration": 2892, "resume": 1872, "live": false},
+  {"id": "channel:UCNorthlightAtlas0000001", "is_folder": true, "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "art_url": ""},
+  {"id": "account:notice:published", "is_folder": true, "interface": true, "title": "3 weeks ago", "subtitle": "Published"},
+  {"id": "account:notice:views", "is_folder": true, "interface": true, "title": "1.2M views", "subtitle": ""},
+  {"id": "account:notice:likes", "is_folder": true, "interface": true, "title": "48,213 likes", "subtitle": ""},
+  {"id": "description:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "library:suggestions:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Related videos"}
+ ],
+ "has_more": false
+}

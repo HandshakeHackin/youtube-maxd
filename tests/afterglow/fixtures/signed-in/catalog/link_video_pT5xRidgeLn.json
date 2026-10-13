@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "link:row:video", "is_folder": true, "interface": true, "title": "Video link", "overview": "https://youtu.be/pT5xRidgeLn"},
+  {"id": "link:row:embed", "is_folder": true, "interface": true, "title": "Embed link", "overview": "https://www.youtube.com/embed/pT5xRidgeLn"},
+  {"id": "link:row:channel", "is_folder": true, "interface": true, "title": "Channel link", "overview": "https://www.youtube.com/channel/UCNorthlightAtlas0000001"},
+  {"id": "link:row:playlist", "is_folder": true, "interface": true, "title": "Playlist link", "overview": "https://www.youtube.com/playlist?list=PLquietFilms0001"}
+ ],
+ "has_more": false
+}
