@@ -35,6 +35,7 @@ FixtureSource::FixtureSource(std::string directory) : directory_(std::move(direc
 void FixtureSource::set_directory(std::string directory)
 {
     directory_ = std::move(directory);
+    profile_known_ = false;
     ++revision_;
 }
 
@@ -74,11 +75,15 @@ void FixtureSource::cancel(unsigned ticket)
 
 model::Profile FixtureSource::profile()
 {
-    model::Profile profile;
-    std::string json;
-    if (!read_file(directory_ + "/profile.json", &json) || !profile_from_json(json, &profile))
-        profile.id = "guest";
-    return profile;
+    if (!profile_known_)
+    {
+        std::string json;
+        profile_ = model::Profile{};
+        if (!read_file(directory_ + "/profile.json", &json) || !profile_from_json(json, &profile_))
+            profile_.id = "guest";
+        profile_known_ = true;
+    }
+    return profile_;
 }
 
 bool FixtureSource::play(const model::Video &video)

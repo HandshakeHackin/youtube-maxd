@@ -10,7 +10,9 @@
 //
 // usage: afterglow_host <kit dir> <fixtures dir> <boards dir> <output dir> [options]
 //   --look <id|all>      afterglow (default), onyx, daybreak, contrast, all
-//   --lang <tag>         interface language: a catalog of --catalogs (default en)
+//   --lang <tag>         interface language: a catalog of --catalogs (default en); a text the
+//                        catalog lacks is shown in English and counted
+//   --strict-lang        ... and fails the run
 //   --catalogs <dir>     native/i18n
 //   --size <W>x<H>       picture size (default 1920x1080)
 //   --only <text>        boards whose name contains the text
@@ -264,6 +266,13 @@ class HostPlatform final : public Platform
         }
         if (url.rfind("art://", 0) != 0)
             return false;
+        // A painted picture is kept for the boards and looks that follow: painting and encoding it
+        // again for each was most of a board's time.
+        if (const auto kept = painted_.find(url); kept != painted_.end())
+        {
+            *bytes = kept->second;
+            return true;
+        }
         char scene[24] = "";
         int palette = 0;
         unsigned seed = 0;
@@ -276,11 +285,28 @@ class HostPlatform final : public Platform
         const std::vector<std::uint8_t> rgba = afterglow_test::paint(scene, seed, palette, width, height);
         if (rgba.empty())
             return false;
+        // Lightly packed: these bytes are decoded again at once and never stored.
+        const int packing = stbi_write_png_compression_level;
+        stbi_write_png_compression_level = 1;
         stbi_write_png_to_func([](void *context, void *data, int size)
                                { static_cast<std::string *>(context)->append(static_cast<const char *>(data), static_cast<std::size_t>(size)); },
                                bytes, width, height, 4, rgba.data(), width * 4);
-        return !bytes->empty();
+        stbi_write_png_compression_level = packing;
+        if (bytes->empty())
+            return false;
+        if (painted_bytes_ + bytes->size() > kPaintedLimit)
+        {
+            painted_.clear();
+            painted_bytes_ = 0;
+        }
+        painted_bytes_ += bytes->size();
+        painted_.emplace(url, *bytes);
+        return true;
     }
+
+    static constexpr std::size_t kPaintedLimit = 768u * 1024u * 1024u;
+    std::map<std::string, std::string> painted_;
+    std::size_t painted_bytes_ = 0;
 
     hui::gfx::Renderer &renderer_;
     std::string fixtures_;
@@ -302,6 +328,7 @@ struct Options
     int height = 1080;
     bool pictures = true;
     bool baked = false;
+    bool strict_lang = false;
 };
 
 struct Results
@@ -471,6 +498,8 @@ int main(int argc, char **argv)
             options.pictures = false;
         else if (flag == "--baked")
             options.baked = true;
+        else if (flag == "--strict-lang")
+            options.strict_lang = true;
         else
         {
             std::fprintf(stderr, "unknown option %s\n", flag.c_str());
@@ -627,6 +656,16 @@ int main(int argc, char **argv)
                 source.set_delay(static_cast<int>(number_of(behaviour, "delay", 3)));
                 source.set_hold(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(behaviour, "hold")));
                 source.set_offline(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(behaviour, "offline")));
+                // "profile": who is browsing, when it is not the person the set's profile.json names.
+                if (const cJSON *who = cJSON_GetObjectItemCaseSensitive(board, "profile"); cJSON_IsObject(who))
+                {
+                    model::Profile profile;
+                    profile.id = text_of(who, "id", "guest");
+                    profile.name = text_of(who, "name");
+                    profile.guest = !cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(who, "guest"));
+                    profile.signed_in = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(who, "signed_in"));
+                    source.set_profile(profile);
+                }
                 FrameOptions frame_options;
                 frame_options.scheme = scheme;
                 frame_options.opening = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "opening"));
@@ -850,11 +889,17 @@ int main(int argc, char **argv)
                      stats.faces_open, stats.glyphs, stats.pages, static_cast<unsigned long long>(stats.rasterised),
                      static_cast<unsigned long long>(stats.evicted), static_cast<unsigned long long>(stats.overflows));
     }
+    // A text the catalog lacks is shown in English. That is counted and listed, and fails the run only
+    // when it was asked to (--strict-lang): the catalogs are filled after the screens, not with them.
     if (options.lang != "en" && !platform.untranslated().empty())
     {
         for (const std::string &text : platform.untranslated())
-            std::fprintf(stderr, "FAIL language %s: no translation for '%s'\n", options.lang.c_str(), text.c_str());
-        results.failures += static_cast<int>(platform.untranslated().size());
+            std::fprintf(stderr, "%s language %s: no translation for '%s'\n", options.strict_lang ? "FAIL" : "untranslated,",
+                         options.lang.c_str(), text.c_str());
+        std::printf("language %s: %zu interface texts have no translation and were shown in English\n", options.lang.c_str(),
+                    platform.untranslated().size());
+        if (options.strict_lang)
+            results.failures += static_cast<int>(platform.untranslated().size());
     }
     std::printf("%s: afterglow host: %d boards, %d pictures, %d checks, %d failed (%s, %s)\n", results.failures == 0 ? "PASS" : "FAIL",
                 results.boards, results.pictures, results.checks, results.failures, options.lang.c_str(),

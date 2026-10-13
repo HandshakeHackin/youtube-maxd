@@ -43,6 +43,13 @@ class FixtureSource final : public Source
     }
     // Another set (another profile): bumps the revision.
     void set_directory(std::string directory);
+    // Who is browsing, whatever the set's profile.json says: a board that shows
+    // a set's catalogs to somebody else (a signed-in person with nothing yet).
+    void set_profile(const model::Profile &profile)
+    {
+        profile_ = profile;
+        profile_known_ = true;
+    }
     // Videos handed to play(), oldest first.
     const std::vector<std::string> &played() const
     {
@@ -87,6 +94,8 @@ class FixtureSource final : public Source
         Done done;
     };
     std::string directory_;
+    model::Profile profile_; // read once per set: the rail asks every frame
+    bool profile_known_ = false;
     std::vector<Waiting> waiting_;
     std::vector<std::string> played_;
     std::vector<std::string> asked_;
