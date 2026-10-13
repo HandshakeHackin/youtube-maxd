@@ -1,0 +1,61 @@
+// ProsperoTube Afterglow - what every source of the interface starts from.
+// Copyright (C) 2026 BlackBearReloaded
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// The interface is drawn with the UI kit (ps5-homebrew-ui, fetched at the
+// commit pinned in scripts/ui_kit.py). Its namespaces are used under their
+// short names inside afterglow, as the kit's own sources use them.
+
+#pragma once
+
+#include "core/input.hpp"
+#include "core/tween.hpp"
+#include "gfx/draw_list.hpp"
+#include "ui/feedback.hpp"
+#include "ui/fonts.hpp"
+#include "ui/glyphs.hpp"
+#include "ui/motion.hpp"
+#include "ui/theme.hpp"
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+
+namespace afterglow
+{
+
+namespace gfx = hui::gfx;
+namespace ui = hui::ui;
+namespace tween = hui::tween;
+namespace audio = hui::audio;
+
+using gfx::Color;
+using gfx::Rect;
+using hui::Action;
+using hui::Direction;
+using hui::InputFrame;
+using ui::Feedback;
+
+inline bool pressed(const InputFrame &input, Action action)
+{
+    return (input.pressed & hui::action_bit(action)) != 0;
+}
+inline bool held(const InputFrame &input, Action action)
+{
+    return (input.held & hui::action_bit(action)) != 0;
+}
+
+inline Color clear()
+{
+    return Color{0.0f, 0.0f, 0.0f, 0.0f};
+}
+inline const Color kWhite = Color::rgb(0xffffff);
+inline const Color kBlack = Color::rgb(0x000000);
+
+// An interface text in the profile's language. english is the text as the
+// source writes it and the key of native/i18n; the result lives until the
+// language changes (strings.cpp). Texts that come from YouTube are not passed
+// through here.
+const char *tr(const char *english);
+
+} // namespace afterglow

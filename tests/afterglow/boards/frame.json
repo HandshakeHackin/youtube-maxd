@@ -1,0 +1,32 @@
+{
+ "about": "The frame itself, shown on a page that is not built yet: the stack, the rail, the hand-overs, the dialog and Circle on the last screen.",
+ "boards": [
+  {
+   "name": "frame-placeholder",
+   "fixture": "guest",
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "expect": {"screen": "reader", "focus": "placeholder", "rail_open": 0, "moving": 0, "state": {"placeholder": "1", "argument": "settings:about:credits"}}
+  },
+  {
+   "name": "frame-rail-open",
+   "fixture": "guest",
+   "route": {"screen": "reader", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "reader", "focus": "rail/subscriptions", "rail_open": 1}
+  },
+  {
+   "name": "frame-rail-destination",
+   "fixture": "guest",
+   "route": {"screen": "reader", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "focus": "placeholder", "rail_open": 0, "moving": 0}
+  },
+  {
+   "name": "frame-rail-closed-by-circle",
+   "fixture": "guest",
+   "route": {"screen": "reader", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "circle"}],
+   "expect": {"screen": "reader", "focus": "placeholder", "rail_open": 0}
+  }
+ ]
+}
