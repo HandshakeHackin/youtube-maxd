@@ -1,8 +1,7 @@
-// ProsperoTube Afterglow - the running platform, interface texts and screen names.
+// ProsperoTube Afterglow - screen names and the screen of an id.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "afterglow/platform.hpp"
 #include "afterglow/screen.hpp"
 
 namespace afterglow
@@ -11,31 +10,12 @@ namespace afterglow
 namespace
 {
 
-Platform *g_platform = nullptr;
-
 constexpr const char *kScreenNames[] = {
     "opening", "home", "search", "results", "grid", "channel", "video", "library", "subscriptions",
     "notifications", "channels", "comments", "settings", "accounts", "sign_in", "link_phone", "reader"};
 static_assert(sizeof kScreenNames / sizeof kScreenNames[0] == kScreenCount);
 
 } // namespace
-
-Platform *platform()
-{
-    return g_platform;
-}
-
-void set_platform(Platform *platform)
-{
-    g_platform = platform;
-}
-
-const char *tr(const char *english)
-{
-    if (english == nullptr)
-        return "";
-    return g_platform != nullptr ? g_platform->translate(english) : english;
-}
 
 const char *screen_name(ScreenId id)
 {
