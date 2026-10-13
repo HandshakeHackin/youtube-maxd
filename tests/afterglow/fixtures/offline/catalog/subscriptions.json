@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "channel:UCnorthlightatlas0000000", "title": "Northlight Atlas", "subtitle": "Followed locally on this PS5", "is_folder": true},
+  {"id": "channel:UCtidewrit00000000000000", "title": "Tidewrit", "subtitle": "Followed locally on this PS5", "is_folder": true},
+  {"id": "channel:UCmossbyte00000000000000", "title": "Mossbyte", "subtitle": "Followed locally on this PS5", "is_folder": true}
+ ],
+ "has_more": false
+}

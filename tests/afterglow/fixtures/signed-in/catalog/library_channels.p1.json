@@ -1,0 +1,11 @@
+{
+ "items": [
+  {"id": "channel:UCquillhavennotes0000000", "title": "Quillhaven Notes", "subtitle": "74K subscribers", "is_folder": true, "handle": "@quillhavennotes", "subscribers": "74K subscribers", "subscribed": true},
+  {"id": "channel:UCbrindlemoor00000000000", "title": "Brindlemoor Cycles", "subtitle": "219K subscribers", "is_folder": true, "handle": "@brindlemoor", "subscribers": "219K subscribers", "subscribed": true},
+  {"id": "channel:UCosselandwren0000000000", "title": "Ossel & Wren", "subtitle": "1.3M subscribers", "is_folder": true, "handle": "@osselandwren", "subscribers": "1.3M subscribers", "subscribed": true},
+  {"id": "channel:UCtarnwickradio000000000", "title": "Tarnwick Radio", "subtitle": "46K subscribers", "is_folder": true, "handle": "@tarnwickradio", "subscribers": "46K subscribers", "subscribed": true},
+  {"id": "channel:UCvellumgate000000000000", "title": "Vellumgate", "subtitle": "512K subscribers", "is_folder": true, "handle": "@vellumgate", "subscribers": "512K subscribers", "subscribed": true},
+  {"id": "channel:UChollowpine000000000000", "title": "Hollowpine Workshop", "subtitle": "338K subscribers", "is_folder": true, "handle": "@hollowpine", "subscribers": "338K subscribers", "subscribed": true}
+ ],
+ "has_more": false
+}

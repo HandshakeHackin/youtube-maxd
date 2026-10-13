@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "5 channels marked as watched", "subtitle": "Reload Subscribed channels to see the list without their marks", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

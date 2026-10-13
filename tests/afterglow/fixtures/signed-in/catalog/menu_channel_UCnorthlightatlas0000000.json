@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "local:channel:1:pin:UCnorthlightatlas0000000", "title": "Pin to the main menu", "subtitle": "Keep this channel beside Home", "is_folder": true, "interface": true},
+  {"id": "notify:UCnorthlightatlas0000000", "title": "Subscription notifications", "subtitle": "Subscribe with a notification level, or change the level", "is_folder": true, "interface": true},
+  {"id": "link:channel:UCnorthlightatlas0000000", "title": "Share link", "subtitle": "The channel's link with a QR code", "is_folder": true, "interface": true},
+  {"id": "local:channel:1:block:UCnorthlightatlas0000000", "title": "Block channel", "subtitle": "Hide this channel in catalogs for the selected profile", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

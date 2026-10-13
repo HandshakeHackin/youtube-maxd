@@ -1,0 +1,16 @@
+{
+ "items": [
+  {"id": "local:video:1:next:ptv00000020", "title": "Play next", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "account:confirm:watch_later_add:ptv00000020", "title": "Add to YouTube Watch later", "subtitle": "YouTube profile: Mara", "is_folder": true, "interface": true},
+  {"id": "playlist:pick:add:ptv00000020", "title": "Add to a YouTube playlist", "subtitle": "Choose a playlist, then confirm", "is_folder": true, "interface": true},
+  {"id": "channel:UCnorthlightatlas0000000", "title": "Open channel", "subtitle": "Northlight Atlas", "is_folder": true, "interface": true},
+  {"id": "description:ptv00000020", "title": "Open description", "subtitle": "Read the full description of this video", "is_folder": true, "interface": true},
+  {"id": "details:ptv00000020", "title": "Video details", "subtitle": "Channel, date, views, likes and what the video offers", "is_folder": true, "interface": true},
+  {"id": "account:confirm:not_interested:ptv00000020", "title": "Not interested", "subtitle": "YouTube profile: Mara", "is_folder": true, "interface": true},
+  {"id": "local:video:1:block:ptv00000020", "title": "Block channel", "subtitle": "Hide this channel in catalogs for the selected profile", "is_folder": true, "interface": true},
+  {"id": "local:video:1:watched:ptv00000020", "title": "Mark as watched locally", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "link:video:ptv00000020", "title": "Share link", "subtitle": "The video, embed, channel and playlist links, each with a QR code", "is_folder": true, "interface": true},
+  {"id": "local:video:1:sbexclude:ptv00000020", "title": "Exclude channel from SponsorBlock", "subtitle": "Never skip segments in this channel's videos", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

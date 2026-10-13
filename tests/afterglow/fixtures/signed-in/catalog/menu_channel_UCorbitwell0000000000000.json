@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "local:channel:1:pin:UCorbitwell0000000000000", "title": "Pin to the main menu", "subtitle": "Keep this channel beside Home", "is_folder": true, "interface": true},
+  {"id": "account:confirm:unsubscribe:UCorbitwell0000000000000", "title": "Unsubscribe on YouTube", "subtitle": "YouTube profile: Mara", "is_folder": true, "interface": true},
+  {"id": "link:channel:UCorbitwell0000000000000", "title": "Share link", "subtitle": "The channel's link with a QR code", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

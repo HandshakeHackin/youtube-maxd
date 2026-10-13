@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Pinned to the main menu", "subtitle": "Northlight Atlas", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

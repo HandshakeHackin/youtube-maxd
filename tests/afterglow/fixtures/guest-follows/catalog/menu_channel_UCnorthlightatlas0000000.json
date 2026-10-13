@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "local:channel:1:unfollow:UCnorthlightatlas0000000", "title": "Stop following on this PS5", "subtitle": "The channel leaves this list", "is_folder": true, "interface": true},
+  {"id": "link:channel:UCnorthlightatlas0000000", "title": "Share link", "subtitle": "The channel's link with a QR code", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

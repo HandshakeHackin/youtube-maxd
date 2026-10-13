@@ -1,0 +1,17 @@
+{
+ "items": [
+  {"id": "channel:UCnorthlightatlas0000000", "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "is_folder": true, "handle": "@northlightatlas", "subscribers": "2.41M subscribers", "subscribed": true, "unseen": 3},
+  {"id": "channel:UCglassfern0000000000000", "title": "Glassfern Games", "subtitle": "1.08M subscribers", "is_folder": true, "handle": "@glassfern", "subscribers": "1.08M subscribers", "subscribed": true, "unseen": 1},
+  {"id": "channel:UCorbitwell0000000000000", "title": "Orbitwell", "subtitle": "3.9M subscribers", "is_folder": true, "handle": "@orbitwell", "subscribers": "3.9M subscribers", "subscribed": true, "unseen": 2},
+  {"id": "channel:UCtidewrit00000000000000", "title": "Tidewrit", "subtitle": "1.7M subscribers", "is_folder": true, "handle": "@tidewrit", "subscribers": "1.7M subscribers", "subscribed": true, "unseen": 1},
+  {"id": "channel:UCfennwickhours000000000", "title": "Fennwick Hours", "subtitle": "5.3M subscribers", "is_folder": true, "handle": "@fennwickhours", "subscribers": "5.3M subscribers", "subscribed": true, "unseen": 4},
+  {"id": "channel:UCostrelkitchen000000000", "title": "Ostrel Kitchen", "subtitle": "884K subscribers", "is_folder": true, "handle": "@ostrelkitchen", "subscribers": "884K subscribers", "subscribed": true},
+  {"id": "channel:UCnacresound000000000000", "title": "Nacre Sound", "subtitle": "412K subscribers", "is_folder": true, "handle": "@nacresound", "subscribers": "412K subscribers", "subscribed": true, "live": true},
+  {"id": "channel:UClatheandlumen000000000", "title": "Lathe & Lumen", "subtitle": "655K subscribers", "is_folder": true, "handle": "@latheandlumen", "subscribers": "655K subscribers", "subscribed": true},
+  {"id": "channel:UCquarterline00000000000", "title": "Quarterline", "subtitle": "2.2M subscribers", "is_folder": true, "handle": "@quarterline", "subscribers": "2.2M subscribers", "subscribed": true},
+  {"id": "channel:UCslowreel00000000000000", "title": "Slowreel", "subtitle": "529K subscribers", "is_folder": true, "handle": "@slowreel", "subscribers": "529K subscribers", "subscribed": true},
+  {"id": "channel:UCmossbyte00000000000000", "title": "Mossbyte", "subtitle": "301K subscribers", "is_folder": true, "handle": "@mossbyte", "subscribers": "301K subscribers", "subscribed": true},
+  {"id": "channel:UCvantortrails0000000000", "title": "Vantor Trails", "subtitle": "960K subscribers", "is_folder": true, "handle": "@vantortrails", "subscribers": "960K subscribers", "subscribed": true}
+ ],
+ "has_more": true
+}

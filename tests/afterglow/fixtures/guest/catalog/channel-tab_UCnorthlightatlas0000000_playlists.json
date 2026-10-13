@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "channel:UCnorthlightatlas0000000", "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "is_folder": true, "handle": "@northlightatlas", "subscribers": "2.41M subscribers", "videos": "184 videos", "banner_url": "art://ridges/6/77/1280x320", "tab": "playlists", "tabs": "home,videos,shorts,live,playlists", "search": true, "subscribed": false, "notify": "personalized"},
+  {"id": "playlist:PLnorthlightatlas0000", "title": "Northern Lights, Start to Finish", "subtitle": "Playlist", "is_folder": true, "art_url": "art://aurora/0/145/384x216", "count": "24 videos", "updated": "Updated 3 days ago", "owner": "Northlight Atlas"},
+  {"id": "playlist:PLnorthlightatlas0001", "title": "The Ridge Line Films", "subtitle": "Playlist", "is_folder": true, "art_url": "art://ridges/0/11/384x216", "count": "7 videos", "updated": "Updated last month", "owner": "Northlight Atlas"},
+  {"id": "playlist:PLnorthlightatlas0002", "title": "Coast and Tide", "subtitle": "Playlist", "is_folder": true, "art_url": "art://ocean/1/241/384x216", "count": "12 videos", "updated": "Updated 2 months ago", "owner": "Northlight Atlas"},
+  {"id": "playlist:PLnorthlightatlas0003", "title": "Nights Without Narration", "subtitle": "Playlist", "is_folder": true, "art_url": "art://space/2/529/384x216", "count": "31 videos", "updated": "Updated last year", "owner": "Northlight Atlas"}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,247 @@
+{
+ "about": "The channel page (boards 11 and 12 of the proposal). In the signed-in set the account does not subscribe to Northlight Atlas on its own page, as the approved board shows it, and does to Orbitwell.",
+ "boards": [
+  {
+   "name": "channel-home",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "expect": {"screen": "channel", "focus": "tab/home", "rail_open": 0,
+              "state": {"load": "ready", "name": "Northlight Atlas", "zone": "tabs", "tab": "home", "tabs": "5", "cells": "6", "subscribed": "0", "guest": "0", "action": "idle"},
+              "asked": ["channel:UCnorthlightatlas0000000"]}
+  },
+  {
+   "name": "channel-home-featured",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "channel:UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "channel", "focus": "home/0", "state": {"zone": "content", "scroll": "0"}}
+  },
+  {
+   "name": "channel-home-latest",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "home/4", "state": {"zone": "content"}}
+  },
+  {
+   "name": "channel-home-play",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "down"}, {"press": "cross"}],
+   "expect": {"screen": "channel", "focus": "home/0", "played": "ptv00000012"}
+  },
+  {
+   "name": "channel-videos",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "channel", "focus": "videos/1",
+              "state": {"tab": "videos", "zone": "content", "cells": "16", "pages": "2", "sort": "newest", "scroll": "0", "catalog": "channel-tab:UCnorthlightatlas0000000:videos"},
+              "asked": ["channel-tab:UCnorthlightatlas0000000:videos"]}
+  },
+  {
+   "name": "channel-videos-next-page",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "down"}, {"wait": 0.5}, {"press": "down"}, {"press": "down"}, {"wait": 0.8}],
+   "expect": {"screen": "channel", "focus": "videos/13", "state": {"tab": "videos", "cells": "16", "pages": "2", "scroll": "976"}}
+  },
+  {
+   "name": "channel-sort-menu",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "up"}, {"press": "cross"}, {"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "channel", "focus": "sort/popular", "state": {"sort_open": "1", "zone": "sort"}}
+  },
+  {
+   "name": "channel-videos-popular",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "up"}, {"press": "cross"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "videos/3",
+              "state": {"sort_open": "0", "sort": "popular", "catalog": "channel-tab:UCnorthlightatlas0000000:videos:popular"},
+              "asked": ["channel-tab:UCnorthlightatlas0000000:videos:popular"]}
+  },
+  {
+   "name": "channel-shorts",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "shorts/0", "state": {"tab": "shorts", "cells": "5"}}
+  },
+  {
+   "name": "channel-live-empty",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "tab/live", "state": {"tab": "live", "tab_load": "ready", "cells": "0", "zone": "tabs"}}
+  },
+  {
+   "name": "channel-playlists",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "down"}, {"press": "right"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "playlists/1", "state": {"tab": "playlists", "cells": "4"}}
+  },
+  {
+   "name": "channel-playlist-opens",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "l1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "grid", "focus": "placeholder", "state": {"argument": "playlist:PLnorthlightatlas0000"}}
+  },
+  {
+   "name": "channel-subscribe-pending",
+   "fixture": "signed-in",
+   "source": {"delay": 40},
+   "settle": 2.5,
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "up"}, {"press": "cross", "wait": 0.3}],
+   "expect": {"screen": "channel", "focus": "action/subscribe", "state": {"zone": "actions", "action": "pending", "subscribed": "0"}}
+  },
+  {
+   "name": "channel-subscribed",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 1.2}],
+   "expect": {"screen": "channel", "focus": "action/subscribe", "state": {"action": "confirmed", "subscribed": "1", "level": "personalized"},
+              "asked": ["account:confirm:subscribe:UCnorthlightatlas0000000", "account:apply:7"]}
+  },
+  {
+   "name": "channel-unsubscribe-asks",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCorbitwell0000000000000", "title": "Orbitwell"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "dialog": 1, "state": {"subscribed": "1", "tabs": "2", "tab": "videos"}}
+  },
+  {
+   "name": "channel-unsubscribed",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCorbitwell0000000000000", "title": "Orbitwell"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 0.5}, {"press": "cross"}, {"wait": 1.2}],
+   "expect": {"screen": "channel", "dialog": 0, "focus": "action/subscribe", "state": {"subscribed": "0", "action": "confirmed"},
+              "asked": ["account:confirm:unsubscribe:UCorbitwell0000000000000", "account:apply:8"]}
+  },
+  {
+   "name": "channel-level-changed",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCorbitwell0000000000000", "title": "Orbitwell"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "channel", "focus": "action/notify", "state": {"level": "personalized", "action": "confirmed"},
+              "asked": ["notify:confirm:level:personalized:UCorbitwell0000000000000"]}
+  },
+  {
+   "name": "channel-level-refused",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCorbitwell0000000000000", "title": "Orbitwell"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "cross"}, {"wait": 1.0}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "channel", "focus": "action/notify", "state": {"level": "personalized", "action": "failed"},
+              "asked": ["notify:confirm:level:none:UCorbitwell0000000000000", "account:apply:10"]}
+  },
+  {
+   "name": "channel-actions",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.6}, {"press": "down"}, {"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "channel", "focus": "sheet/2", "state": {"sheet": "1", "sheet_load": "ready"}, "asked": ["menu:ptv00000020"]}
+  },
+  {
+   "name": "channel-actions-further-list",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.6}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "channel", "focus": "sheet/0", "state": {"sheet": "1", "sheet_level": "2"}, "asked": ["playlist:pick:add:ptv00000020"]}
+  },
+  {
+   "name": "channel-actions-done",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.6}, {"press": "down"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "channel", "focus": "videos/1", "state": {"sheet": "0"}, "asked": ["account:confirm:watch_later_add:ptv00000020", "account:apply:40"]}
+  },
+  {
+   "name": "channel-search",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "square"}, {"wait": 0.7}],
+   "expect": {"screen": "search", "focus": "placeholder", "moving": 0, "state": {"argument": "channel-search:UCnorthlightatlas0000000"}}
+  },
+  {
+   "name": "channel-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "rail_open": 1, "focus": "rail/home"}
+  },
+  {
+   "name": "channel-guest",
+   "fixture": "guest",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "up"}],
+   "expect": {"screen": "channel", "focus": "action/sign_in", "state": {"guest": "1", "zone": "actions", "subscribed": "0"}}
+  },
+  {
+   "name": "channel-guest-signs-in",
+   "fixture": "guest",
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "sign_in", "focus": "placeholder"}
+  },
+  {
+   "name": "channel-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "expect": {"screen": "channel", "focus": "state/loading", "state": {"load": "loading"}}
+  },
+  {
+   "name": "channel-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "expect": {"screen": "channel", "focus": "state/retry", "state": {"load": "offline", "zone": "trouble"}}
+  },
+  {
+   "name": "channel-failed",
+   "fixture": "signed-in",
+   "route": {"screen": "channel", "argument": "UCgonechannel00000000000", "title": "A channel that is gone"},
+   "expect": {"screen": "channel", "focus": "state/retry", "state": {"load": "failed", "zone": "trouble"}}
+  },
+  {
+   "name": "channel-empty",
+   "fixture": "empty",
+   "route": {"screen": "channel", "argument": "UCquillhavennotes0000000", "title": "Quillhaven Notes"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "channel", "focus": "tab/videos", "state": {"load": "ready", "cells": "0", "tabs": "1", "zone": "tabs"}}
+  },
+  {
+   "name": "channel-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "channel", "argument": "UClangertext000000000000", "title": "Nordlicht-Atlas"},
+   "steps": [{"press": "down"}, {"press": "right"}],
+   "expect": {"screen": "channel", "focus": "home/1", "state": {"load": "ready", "tab": "home"}}
+  },
+  {
+   "name": "channel-long-texts-videos",
+   "fixture": "long-texts",
+   "route": {"screen": "channel", "argument": "UClangertext000000000000", "title": "Nordlicht-Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "channel", "focus": "videos/0", "state": {"tab": "videos", "cells": "5"}}
+  },
+  {
+   "name": "channel-subscribe-refused",
+   "fixture": "long-texts",
+   "route": {"screen": "channel", "argument": "UClangertext000000000000", "title": "Nordlicht-Atlas"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "channel", "focus": "action/subscribe", "state": {"action": "failed", "subscribed": "0"}}
+  },
+  {
+   "name": "channel-less-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
+   "steps": [{"press": "r1"}, {"press": "down"}, {"press": "down", "wait": 0.2}],
+   "expect": {"screen": "channel", "focus": "videos/4", "state": {"scroll": "272"}}
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "playlist:confirm:add:ptv00000020:PLmaraevenings0001", "title": "Evenings", "subtitle": "12 videos", "is_folder": true, "interface": true},
+  {"id": "playlist:confirm:add:ptv00000020:PLmaralongwalks001", "title": "Long walks", "subtitle": "31 videos", "is_folder": true, "interface": true},
+  {"id": "playlist:confirm:add:ptv00000020:PLmaratolearn00001", "title": "To learn from", "subtitle": "7 videos", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}
