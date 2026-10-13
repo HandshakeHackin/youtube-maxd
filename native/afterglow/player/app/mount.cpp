@@ -195,7 +195,8 @@ void fill_controls(Mount &m)
     const Playback &pb = m.playback;
     const evo_playback_osd_params_t &raw = pb.raw;
     const std::time_t now = std::time(nullptr);
-    v.title = pb.title;
+    if (raw.chrome_hidden == 0 || !same(pb.title, "Video Playback") || v.title.empty())
+        v.title = pb.title; // with its controls hidden EVO hands a stand-in title: the video is still the same one
     v.channel.clear(); // REQUEST: the playing video's channel, views and age (requests/H.md)
     v.avatar.clear();
     v.live = raw.is_live != 0;
@@ -245,7 +246,7 @@ void fill_controls(Mount &m)
     if (!pb.hdr.empty())
         v.tags.push_back(same(pb.hdr, "DOLBY VISION") ? "Dolby Vision" : pb.hdr);
     if (!pb.sub_track.empty())
-        v.tags.emplace_back("CC");
+        v.tags.push_back(pb.sub_track.size() <= 14 ? "CC " + pb.sub_track : std::string("CC")); // which captions are on, where that is short
     if (raw.sub_delay_ms != 0)
     {
         char sync[40];

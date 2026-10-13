@@ -252,12 +252,20 @@ Player::Player(const ui::Fonts &fonts, ImageCache *images) : fonts_(fonts), imag
     toasts_.style.frosted = true;
     toasts_.style.frost = 0.62f;
     toasts_.set_bounds({0.0f, 76.0f, gfx::kVirtualWidth - 36.0f, gfx::kVirtualHeight - 76.0f});
-    set_look(*look_);
+    wear_look();
 }
 
 void Player::set_look(const Look &look)
 {
+    if (look_ == &look)
+        return;
     look_ = &look;
+    wear_look();
+}
+
+void Player::wear_look()
+{
+    const Look &look = *look_;
     wear(list_.style, look, reduced_);
     wear(tabs_.style, look, reduced_);
     wear(ring_.style, look, reduced_);
@@ -438,7 +446,7 @@ void Player::update(const PlayerView &view, float dt)
     if (reduced_ != view_.reduced_motion)
     {
         reduced_ = view_.reduced_motion;
-        set_look(*look_);
+        wear_look();
     }
     const auto w = [&](float omega) { return reduced_ ? 60.0f : omega; };
 

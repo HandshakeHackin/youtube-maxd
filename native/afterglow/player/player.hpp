@@ -91,6 +91,7 @@ class Player
     Rect card_rect(int index, float focus) const;
     Rect lit_control() const;
 
+    void wear_look();
     void build_sheet();
     void sounds(const PlayerView &before);
 
