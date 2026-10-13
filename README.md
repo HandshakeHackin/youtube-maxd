@@ -9,8 +9,10 @@ Android application: no SmartTube or MediaServiceCore source is incorporated.
 ProsperoTube **runs on the console by itself**: no computer, no pairing. The
 application carries its own YouTube service (a small JavaScript engine running
 [YouTube.js](https://github.com/LuanRT/YouTube.js) inside the app) and plays
-video straight from YouTube's servers. Version 0.1.0 browses and plays as
-**Guest**; signing in to a YouTube account comes in a later version.
+video straight from YouTube's servers. It browses and plays as **Guest**, and
+YouTube accounts can be signed in on the console itself with a device code.
+The account features were tested offline only: **no real account has signed in
+with this build yet** (see [Accounts](#accounts-on-the-console)).
 
 Release 0.1.0 is being prepared. [docs/STATUS.md](docs/STATUS.md) states what is
 implemented, what was tested and where, and what is still open before release.
@@ -95,11 +97,11 @@ next section lists the part that also ran on a PS5.
   exclusions, timeline colours and review of a skip.
 - DeArrow titles and thumbnails, each with its own switch; originals are kept.
 
-**YouTube accounts** (not active in 0.1.0: the built-in service has no sign-in
-yet, and the app shows one line saying so instead of these rows; the code
-remains and works with the development companion)
+**YouTube accounts** (signed in on the console by the built-in service; see
+[Accounts](#accounts-on-the-console) for what is unverified)
 
-- Sign-in with a device code, removal of a signed-in account, several profiles.
+- Sign-in with a device code, removal of a signed-in account, up to eight
+  account profiles next to Guest.
 - Subscriptions, subscribed channels, notifications, YouTube history, Watch
   later, playlists and own videos.
 - Like, dislike, subscribe and unsubscribe, Watch later, playlist add, remove,
@@ -116,6 +118,33 @@ remains and works with the development companion)
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the
   version, project links as QR codes, credits and changes.
+
+### Accounts on the console
+
+**Discover > Accounts & library > Sign in to YouTube** shows a code and the
+address to enter it at (also as a QR code). The app checks by itself until the
+sign-in is authorized, denied, cancelled or the code expires. The new account
+is a profile; **Remove selected account** signs it out of this console.
+
+- **Unverified until a real sign-in.** Everything about accounts was tested on
+  a PC against canned answers: the sign-in exchange, the stored sign-in and its
+  renewal, every account list and every change. Whether Google accepts the
+  sign-in from the console, and whether each list and change works against the
+  live service, is not known yet. A list or change that fails does not affect
+  Guest browsing or playback.
+- **Playback.** A signed-in profile plays videos the way Guest does: the
+  account is not part of the player request. Watch history is reported to the
+  account separately (unless **History** is off or the video is played
+  incognito). Videos that need the account itself (age-restricted, private,
+  members-only, purchased) are refused as they are for Guest; the path that
+  would use the account for them is in the code, switched off.
+- **Where the sign-in is kept.** In
+  `/data/prosperotube/accounts/oauth-profiles.json`, as plain text: the PS5
+  offers no encrypted storage. Whoever can read the app's data directory can
+  use those accounts on YouTube. The file is not part of the app's backups.
+  Removing the account in the app deletes its sign-in from the console; to
+  revoke it at Google as well, remove "YouTube on TV" under
+  <https://myaccount.google.com/permissions>.
 
 ### What was checked on a console
 
@@ -144,7 +173,8 @@ resolve, captions, playback and seeking with the console's FFmpeg patch; see
 
 ## Experimental features
 
-These are in 0.1.0's code and were tested offline only. In this Guest-only version just the profile password can be reached; the others need an account and are not offered until sign-in arrives. Their rows end in
+These are in 0.1.0's code and were tested offline only. All but the profile
+password need a signed-in account. Their rows end in
 **(experimental)**, each acts only when you select it or turn it on, and
 **YouTube preferences > Experimental features** repeats this explanation.
 
@@ -163,14 +193,12 @@ These are in 0.1.0's code and were tested offline only. In this Guest-only versi
   schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
 - Drawn thumbnails while seeking.
 - Update check and self-update.
-- Signing in to YouTube and everything that needs an account: subscriptions,
-  the account's history, Watch later, playlists, ratings, notifications. Home
-  as Guest shows what YouTube gives a signed-out visitor, which is a notice;
-  the app says so and leads to Search and Discover.
+- Playing videos that need the account itself (age-restricted, private,
+  members-only, purchased): a signed-in profile resolves videos as Guest does.
 - Phone casting and voice search (they need a service the app does not carry
   yet; their rows and the L3 shortcut are hidden).
 - Importing subscriptions from another application.
-- The code of all of these remains in the tree, inactive in this build.
+- The code of the last three remains in the tree, inactive in this build.
 - Trending and Shorts as sections: YouTube does not offer them to a Guest; the
   app shows one explanatory row.
 - Automatic frame-rate switching, HDR and background playback.
@@ -221,11 +249,15 @@ switcher afterward.
 - The built-in service listens on `127.0.0.1` only, on a port chosen at each
   start, behind a random token that exists in memory only. It keeps a small
   cache under `/data/prosperotube/cache` and writes no log.
-- The console talks to YouTube directly, as Guest and without cookies: YouTube
-  sees the console's address, as it would for any player. HTTPS to YouTube's
-  API is verified against a root-certificate list built into the app. Video,
-  sound and thumbnails are fetched by the player without certificate
-  verification (as EVO Player does); they carry no credentials.
+- The console talks to YouTube directly and without cookies: YouTube sees the
+  console's address, as it would for any player. HTTPS to YouTube's API is
+  verified against a root-certificate list built into the app. Video, sound
+  and thumbnails are fetched by the player without certificate verification
+  (as EVO Player does); they carry no credentials.
+- A signed-in account's tokens go to Google's and YouTube's API over verified
+  HTTPS and nowhere else; the app's interface never receives them. They are
+  stored as plain text under `/data/prosperotube/accounts`
+  ([Accounts](#accounts-on-the-console)).
 - SponsorBlock and DeArrow, when turned on, are asked directly by the console.
 - Local history is independent of Google. With an account profile, playback
   reports go to that account unless **History** is disabled or the video is

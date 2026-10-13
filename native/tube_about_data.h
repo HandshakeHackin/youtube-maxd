@@ -4,7 +4,7 @@
 #define TUBE_ABOUT_DATA_H
 
 #define TUBE_ABOUT_CHANGELOG_VERSION "0.1.0"
-#define TUBE_ABOUT_CHANGELOG_ROWS 14
+#define TUBE_ABOUT_CHANGELOG_ROWS 15
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
@@ -15,12 +15,13 @@
     {"0.1.0", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer and recovery after stream failures."}, \
     {"0.1.0", "Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position."}, \
     {"0.1.0", "SponsorBlock segment skipping with review, and DeArrow titles and thumbnails."}, \
-    {"0.1.0", "This version browses and plays as Guest. Sign-in, subscriptions, library, ratings and playlist editing are in the code but not offered: they arrive when the built-in service has accounts."}, \
+    {"0.1.0", "YouTube accounts on the console: sign-in with a device code, account profiles, subscriptions, history, Watch later, playlists, notifications, ratings and playlist editing. Tested offline only; no real account has signed in yet."}, \
+    {"0.1.0", "A signed-in profile plays videos as Guest does and reports watch history to the account. Sign-ins are kept as plain text in /data/prosperotube/accounts: the PS5 has no encrypted storage."}, \
     {"0.1.0", "Comments with replies and comment rating, live chat and chat replay."}, \
     {"0.1.0", "Video actions, a suggestions list, chapter notification and screen dimming in the player."}, \
     {"0.1.0", "Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links."}, \
     {"0.1.0", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
-    {"0.1.0", "Experimental, marked (experimental) and tested offline only: the profile password. Chat and comment posting, account-history controls and feedback actions need an account and are inactive."}, \
-    {"0.1.0", "Not included yet: sign-in and accounts, phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback."}
+    {"0.1.0", "Experimental, marked (experimental) and tested offline only: chat and comment posting, account-history controls, feedback actions and the profile password."}, \
+    {"0.1.0", "Not included yet: videos that need the account itself (age-restricted, private, members-only), phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback."}
 
 #endif

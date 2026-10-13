@@ -19,6 +19,8 @@ cookies.
 | HTTPS client, clock, timers, random, hashes | `ps5/tube_js_http.c`, `ps5/tube_js_platform.c` (shared with the console build, see `ps5/README.md`) |
 | Host tool | `src/main.c` |
 | The API (routes, jobs, sessions, pairing) | `js/companion.js` |
+| Accounts: credential file, device-code sign-in, one-attempt guards | `js/accounts.js` |
+| Signed-in playback (off) | `js/account_playback.js` |
 | Request models of `app.py`/`models.py` | `js/schema.js` |
 | Library bounds and error mapping, playback client | `js/core.js` |
 | Search/channel/playlist pages, video record | `js/catalog.js` |
@@ -27,13 +29,13 @@ cookies.
 | Thumbnails, DeArrow, SponsorBlock | `js/extras.js` |
 | Web-platform shims | `js/host_shims.js`, `js/url_shim.js`, `js/fetch_shim.js`, `js/platform.js`, `js/node_crypto.js` |
 | Canned upstream answers, generator | `fixtures/`, `fixtures/make.py` |
-| Tests | `test_host.sh`, `test/service_test.py`, `js/selftest.js`, `scripts/test_standalone.sh` |
+| Tests | `test_host.sh`, `test/service_test.py`, `test/account_test.py`, `js/selftest.js`, `scripts/test_standalone.sh` |
 
 ```
 standalone/build_host.sh                 # build/tube_js + build/tube_js.bundle.js
 standalone/test_host.sh                  # offline tests, plain and under ASan/UBSan
 build/tube_js serve --host 127.0.0.1 --port N --state-dir DIR [--token T] [--sponsorblock]
-                    [--sponsorblock-server https://host] [--pairing-code 123456] [--ranged-manifest]
+                    [--sponsorblock-server https://host] [--pairing-code 123456] [--ranged-manifest] [--account-playback]
 build/tube_js search|info|comments|channel|resolve|probe|ranges|library|version|selftest ...   # one-shot diagnosis
 ```
 
@@ -50,10 +52,11 @@ Routes, with the Python service's fields, error codes, statuses and bounds:
 
 | Route | Notes |
 |---|---|
-| `GET /v1/health` | `mode: youtube`; features list below |
+| `GET /v1/health` | `mode: youtube`; features list below; `account_playback` (false unless the host switched it on) |
+| `POST /v1/auth/start`, `/status`, `/cancel` | device-code sign-in, as `device_auth.py`; see Accounts |
 | `POST /v1/pair` | kept for compatibility; answers `pair_expired` (410) unless a pairing code was configured; same rate limit |
-| `POST /v1/jobs`, `GET`/`DELETE /v1/jobs/{id}` | actions `search`, `catalog`, `details`, `resolve`, `library`; 16 in flight, 80 retained, 120 s, `expired_job` 410, `job_limit` 503; `auth` answers `invalid_job` |
-| `POST /v1/library` | every action of `library.mjs`, through the same 8 KiB / 16 pending / 30 s / 1 MiB bounds and error mapping as `library.py`; account-only actions answer `account_required` exactly as today |
+| `POST /v1/jobs`, `GET`/`DELETE /v1/jobs/{id}` | actions `search`, `catalog`, `details`, `resolve`, `library`; 16 in flight, 80 retained, 120 s, `expired_job` 410, `job_limit` 503; `auth` runs a sign-in step |
+| `POST /v1/library` | every action of `library.mjs`, through the same 8 KiB / 16 pending / 30 s / 1 MiB bounds and error mapping as `library.py`; account actions need an account profile (`account_required` for Guest) and run behind the one-attempt guards |
 | `GET /v1/search`, `/v1/catalog`, `/v1/video/{id}`, `POST /v1/resolve` | direct forms |
 | `GET`/`HEAD /media/{session}/{key}` | `dN.mpd` manifest, `hN.m3u8` live playlist, `cN.srt` captions (fetched as WebVTT, converted), `sbL-M.jpg` storyboard sheets (fetched through the engine), `pN` muxed file (302 to YouTube; no test covers it yet) |
 | `GET /v1/sponsor/{id}` | hashed-prefix query, categories, `alt`, one-hour cache; off unless enabled |
@@ -63,14 +66,14 @@ Routes, with the Python service's fields, error codes, statuses and bounds:
 `features`: `search channels playlists dash captions dearrow locale
 thumbnail_source storyboards translated_captions video_details library
 content_filters channel_pages kids stream_reminder playlist_order
-subscribe_notifications comment_post search_first channel_new_content embedded`.
-Left out because they do not exist here: `relay`, `subscriptions_import`,
-`device_auth`, `voice`, `dislikes`, `proxy`.
+subscribe_notifications comment_post search_first channel_new_content device_auth
+embedded`. Left out because they do not exist here: `relay`,
+`subscriptions_import`, `voice`, `dislikes`, `proxy`.
 
-Not in this stage, answered with the existing conventions: `/v1/auth/*`
-(`auth_unavailable` 503), `/v1/voice` (`voice_unavailable` 503), `/v1/remote`
-(`remote_session` 404), `/v1/subscriptions/import` (404), any profile other
-than `guest` (`unknown_profile` 404).
+Not in this stage, answered with the existing conventions: `/v1/voice`
+(`voice_unavailable` 503), `/v1/remote` (`remote_session` 404),
+`/v1/subscriptions/import` (404), a profile that is neither `guest` nor a
+signed-in account (`unknown_profile` 404).
 
 Known differences from the Python answers:
 
@@ -89,7 +92,53 @@ Known differences from the Python answers:
 - An expired signed caption/storyboard address answers `expired_session` (410)
   instead of being renewed behind the client's back; the provider resolves again.
 
-Companion modules: bundled **unchanged**. One Node global they use was added
+## Accounts
+
+Tested offline only; no real account has signed in. Decisions and their
+reasons: `docs/DECISIONS.md` (2026-10-13).
+
+- **Sign-in** (`DeviceAuth` in `js/accounts.js`, a port of `device_auth.py`
+  over `companion/innertube/device_auth.mjs`): `start` reads the public TV
+  client identity from YouTube's TV page and asks for one device code; every
+  `status` performs at most one token poll and only after the interval YouTube
+  asked for (five seconds at least, five more after `slow_down`); one active
+  session, sixteen retained for an hour, no timer. States: `pending`,
+  `authorized`, `denied`, `expired`, `canceled`, `failed`. An uncertain
+  redemption is never tried again. The device code, the client identity and
+  the tokens never appear in an answer.
+- **Storage** (`OAuthProfiles`): `<state dir>/accounts/oauth-profiles.json`,
+  the companion's format (`{"version": 1, "profiles": [{id, name, cookie: "",
+  oauth}]}`), eight accounts at most, 0600 in a 0700 directory, written to a
+  temporary file, flushed, renamed, then read back. Plain text: the console
+  has no encrypted storage. A file that cannot be understood is left as it is
+  and accounts answer `auth_storage` (507) until it is removed.
+- **Sessions:** one YouTube.js session per profile and content locale, on the
+  TV client with the account's token (`createProfileClient`). The token is
+  refreshed through the engine's HTTPS when it ran out and the new one is
+  stored. Adding or removing an account rebuilds the library object, which
+  retires every client, cursor and retained feed.
+- **Guards** (`Guards`, the ones `library.py` kept outside the worker): chat
+  messages, comment ratings, mark-as-watched, feedback, playlist save and
+  history controls, reminders, playlist order and comment posts are sent once
+  per confirmation; history reports stop for a session after an unconfirmed
+  one. In memory for thirty minutes, not on disk.
+- **Removal** (`profile_remove`): the file first; then the account's clients,
+  cursors, guards, playback sessions, catalog pages and jobs. Nothing is
+  changed or revoked at Google.
+- **Playback:** every profile resolves as Guest (`VISIONOS`, no credentials).
+  `account_playback` (a `tube_service_options` field, `--account-playback` on
+  the host, off) lets an account profile ask its own TV session for a video
+  the Guest path answered "sign in" for; without `allow_player_script` only
+  answers with direct links are usable. Unverified.
+- **Catalog jobs** of an account profile: search and channel pages with the
+  Guest session, playlists with the account's.
+- **Known gap found offline:** the canned account lists are WEB-shaped, as the
+  pinned parsers expect; what the TV client returns to a signed-in session is
+  not known here.
+
+Companion modules: bundled unchanged except `library.mjs`, whose
+`playlist_delete` now posts `playlist/delete` itself (the pinned library's
+method throws before sending). One Node global they use was added
 as a shim (`Buffer.byteLength`); `node:crypto` is aliased to `js/node_crypto.js`.
 `npm test` in `companion/innertube` still passes (194).
 
@@ -256,7 +305,9 @@ run would not fit this round's request limit. So: 25 of 25, over two runs.
 ## Tests
 
 `test_host.sh` (also `scripts/test_standalone.sh`, picked up by
-`scripts/test_all.sh`): 20 engine checks and 132 HTTP checks against a running
+`scripts/test_all.sh`): 20 engine checks, 132 HTTP checks and 201 account
+checks (`test/account_test.py`: sign-in, storage, refresh, lists, changes and
+their guards, history reports, removal, the playback switch) against a running
 `tube_js serve` with canned InnerTube answers: health, authorisation,
 unknown routes and methods, body/header/connection bounds, 24 parallel
 connections, pairing, job lifecycle and cancellation, search pages and
@@ -292,7 +343,9 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   `ps5/embed_data.py` as `tube_js_bundle` and `tube_js_ca_pem`; sockets use
   `SO_NBIO` there. Settings (SponsorBlock, ranged manifest) go through
   `tube_service_configure`.
-- State under `state_dir`: `cache/` only (small youtubei.js entries). No log.
+- State under `state_dir`: `cache/` (small youtubei.js entries) and, once an
+  account signed in, `accounts/oauth-profiles.json` (the tokens; keep it out
+  of logs, uploads and backups). No log.
 - The provider must not send its stream headers to `/media` links' targets
   (it sends none today) and should treat a 403 from YouTube as "resolve again".
 
@@ -309,7 +362,9 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
 - **Console unknowns**: everything in `ps5/README.md` section 6, plus the
   listener (loopback bind in the 20000–39999 range, the datagram wake socket,
   `poll` on it) and FFmpeg reading YouTube directly with the app's TLS setup.
-- **Accounts** are not in this stage; signed-in playback is unmeasured.
+- **Accounts** have met canned answers only: the sign-in from this engine,
+  the TV client's real list shapes and every change are unproven, and
+  signed-in playback is off and unmeasured.
 - **No relay** means storyboards and captions still pass through the engine
   (small), and nothing can renew a link behind the player's back.
 

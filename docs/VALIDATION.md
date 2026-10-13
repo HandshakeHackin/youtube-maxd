@@ -1,5 +1,75 @@
 # Offline validation record — 0.1.0
 
+## Accounts in the built-in service: offline only — 2026-10-13
+
+Sign-in, account profiles, account lists and account changes are answered by
+the service inside the app ([decision](DECISIONS.md)). **No real account was
+used: no device code was requested from Google, no token exists, nothing was
+sent to YouTube.** Every check below ran on a PC against canned answers.
+Nothing ran on a console, and no PS5 package was built from this tree.
+
+`bash scripts/test_all.sh` ends with `62 passed, 0 failed`. New or changed:
+
+- `scripts/test_standalone.sh` now also runs `standalone/test/account_test.py`:
+  201 HTTP checks against `tube_js serve`, plain and again under
+  AddressSanitizer and UndefinedBehaviorSanitizer with leak detection, with
+  the sign-in clock run 25 times faster.
+  - **Sign-in:** request bounds; the start answer (code, address, expiry,
+    interval) and what it asked upstream (the TV page, its script, one code);
+    one sign-in at a time; no poll before the interval; authorization pending;
+    `slow_down` lengthening the interval; authorized; denied; expired at
+    Google; expired locally without a request; an unusable token answer ending
+    the session without a second request; a start refused upstream; a
+    verification address on another host refused; the same through jobs;
+    cancel; a start job deleted before it was read; a second account.
+  - **Storage:** the file's content, modes 0600/0700, no temporary file left,
+    tokens in no other file of the data directory and in no answer of the API;
+    accounts present after a restart, sign-in sessions not; eight accounts and
+    the refusal of a ninth; a damaged file, an unknown version and an extra
+    field each leaving the file untouched, Guest working and sign-in refused
+    with `auth_storage`.
+  - **Refresh:** an expired token renewed before the first request and stored,
+    the list then asked with the new token, no second renewal; a refused
+    renewal answering `authentication_required`.
+  - **Lists:** Home, subscriptions, subscribed channels, history with its
+    pause state, Watch later, liked videos, playlists, notifications, own
+    videos, each asked once with the account's token; search and channel jobs
+    of an account profile asked without it, a playlist job with it.
+  - **Changes:** like, dislike, remove rating, Watch later add and remove,
+    subscribe with a notification level, the level alone, unsubscribe,
+    playlist create, rename, add, remove, delete, order and save, history
+    pause, clear and remove, feedback, stream reminder, comment rating, post
+    and reply. For every guarded change: sent once, the repeat answered from
+    the record without a request, another change under the same confirmation
+    refused, an unconfirmed one never sent again.
+  - **History reports:** the first report (tracking data, history entry,
+    position), an identical report sending nothing, a later position sending
+    one update, a stopped session, an unconfirmed position and an unconfirmed
+    entry each ending their session, mark as watched.
+  - **Removal:** the account's tokens gone from the file, its playback session,
+    jobs and profile gone, the other account unaffected, confirmed changes
+    still remembered, an open history session not reporting again.
+  - **Signed-in playback:** off by default (an account profile resolves
+    without its token; a video that needs the account stays refused); with
+    `--account-playback`, the account session resolves it and the manifest
+    carries no token.
+- `scripts/test_embedded_accounts.sh` (new): the provider in built-in mode,
+  EVO's HTTP client and the real service in one process, under the sanitizers:
+  the account rows offered, a device-code sign-in polled by the provider
+  itself, the new profile selected, its subscriptions, one like sent once, the
+  account removed, Guest again; the credential file checked at each step and
+  `youtube.json` free of tokens and codes.
+- `scripts/test_embedded_service.sh`: account rows offered before the feature
+  list is read and when it names `device_auth`, replaced by the one-line
+  explanation when it does not.
+- Found on the way: the pinned library cannot send `playlist_delete` (its
+  endpoint has no API path); the adapter now posts it directly.
+
+**Not established by any of this:** that Google accepts the sign-in from the
+console; that the TV client's real answers parse (the canned lists are in the
+WEB shapes the pinned parsers expect); any real change to an account; history
+appearing on other devices; anything on a PS5.
+
 ## Self-sufficient application: built-in service on the host and live as Guest — 2026-10-11
 
 The application no longer needs a companion ([decision](DECISIONS.md)). This

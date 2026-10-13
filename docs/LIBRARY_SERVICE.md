@@ -514,6 +514,28 @@ The test runner bundles the actual parser with its fixtures into a temporary
 directory and removes that directory afterward. This avoids slow imports of
 thousands of individual dependency files on Windows-mounted workspaces.
 
+## Accounts in the built-in service
+
+Since 2026-10-13 the service inside the app answers everything on this page
+itself, with the same requests, answers, codes and bounds: device
+authorization, profiles, account lists, account changes with their
+one-attempt guards, history reports, token refresh and account removal. What
+differs from the companion described below:
+
+- Credentials are in `/data/prosperotube/accounts/oauth-profiles.json` on the
+  console (same format; no lock file, one process writes it).
+- The guards the Python service kept "across worker loss" sit above the
+  library object and hold across its rebuilds; nothing survives an app restart
+  except the accounts themselves.
+- "OAuth TV resolution" does not apply: every profile resolves videos as Guest
+  does, and the account session is used for playback only behind
+  `account_playback`, which is off. Health carries `account_playback`.
+- `profile_managed`, cookie profiles and `auth_storage_unconfirmed` do not
+  exist there.
+
+Reasons and what is unverified: [decisions](DECISIONS.md) (2026-10-13),
+`standalone/README.md`.
+
 ## Device-code account backend
 
 Enabling `--library-node` also enables the authenticated device authorization

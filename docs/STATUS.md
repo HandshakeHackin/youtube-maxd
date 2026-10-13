@@ -1,11 +1,13 @@
 # Current implementation status
 
-Updated 2026-10-11. Features are frozen for release 0.1.0. Full SmartTube
+Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states
 what the first release contains, how far each part was checked, and what is
 left before it ships. **The application is self-sufficient**: its YouTube
-service runs inside the app ([decision](DECISIONS.md)), as Guest in this
-release. The self-sufficient build has not run on a console.
+service runs inside the app ([decision](DECISIONS.md)), as Guest and, since
+2026-10-13, with YouTube accounts signed in on the console (host-tested only;
+no real account has signed in). The self-sufficient build has not run on a
+console.
 
 Three levels of evidence are kept apart on this page:
 
@@ -25,11 +27,16 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   chat read-only, playback with captions, quality and speed, local history and
   resume, favorites, queue, followed channels, SponsorBlock, DeArrow, the
   settings already implemented, English interface.
-- **In the tree, inactive in the release:** accounts (sign-in, subscriptions,
-  library, ratings, playlists), phone casting, voice search, subscriptions
-  import, chat and comment posting, account-history controls, feedback
-  actions. The interface does not offer them: the built-in service has no
-  accounts yet. They still work against the development companion.
+- **Added 2026-10-13, host-tested only:** accounts in the built-in service:
+  sign-in by device code, account profiles, subscriptions, subscribed
+  channels, history, Watch later, playlists, notifications, own videos,
+  ratings, subscriptions, playlist editing, and the experimental chat and
+  comment posting, account-history controls and feedback actions. Offered
+  whenever the service's feature list names `device_auth`.
+- **In the tree, inactive in the release:** phone casting, voice search,
+  subscriptions import, and signed-in playback of videos that need the account
+  (`account_playback`, off). They still work against the development
+  companion.
 - **Deferred:** localization, remaining interface options, drawn seek
   previews, update check and self-update, auto frame rate, HDR and background
   playback.
@@ -44,7 +51,18 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   memory only, never pairs, retries from a visible row when it did not start,
   and stops it on the first soft-close frame. Host-tested against a stand-in
   and, end to end, against the real service in one process.
-- The PS5 package compiles, links and packs with it. **Never run on a console.**
+- Accounts ([decision of 2026-10-13](DECISIONS.md)): device-code sign-in with
+  the companion's bounds, credentials in
+  `/data/prosperotube/accounts/oauth-profiles.json` (plain text, atomic
+  replace), token refresh, removal, every account list and change of the
+  library modules behind one-attempt guards, history reports. Host-tested: 201
+  HTTP checks against canned Google and YouTube answers, plain and under
+  sanitizers, and the provider end to end (sign-in, profile, subscriptions, one
+  change, removal). Every profile resolves videos as Guest; health says
+  `account_playback: false`.
+- The PS5 package compiled, linked and packed with the Guest-only service; the
+  package with accounts has not been built in this step. **Never run on a
+  console.**
 
 ## Implemented and tested
 
@@ -114,8 +132,11 @@ request the app makes) are in this section. None of the following has run on a
 console. Where an earlier check against the
 live service exists it is named; everything else has seen fixtures only.
 
-- Every account feature. Sign-in runs against queued responses and a
-  deterministic clock; no real account has been used with this tree.
+- Every account feature, now served by the built-in service. Sign-in runs
+  against canned answers of Google's device-code endpoints; the account lists
+  against hand-made answers in the shapes the pinned parsers expect, which may
+  not be what the TV client really returns. No real account has been used with
+  this tree.
 - VP9, HEVC and AV1 playback: relay, decode and seek with host FFmpeg. PS5
   performance and presentation are open.
 - Live chat and chat posting. A Guest chat-replay check against the live
@@ -185,8 +206,9 @@ are unverified.
 ## Remaining gates, in order
 
 1. **Live-service check of the built-in service on the host: done for Guest**
-   (2026-10-11, [validation](VALIDATION.md)). Account contracts wait for
-   accounts in the built-in service.
+   (2026-10-11, [validation](VALIDATION.md)). Account contracts wait for the
+   owner's sign-in on the console: sign-in itself, then each list, then one
+   change of each kind, then history reports.
 2. **Frozen candidate: built** from the standalone tree (release and
    instrumented packages, hashes in the validation record).
 3. **One bounded console session on the core path**, under the shared-console
@@ -196,7 +218,8 @@ are unverified.
    engine, the HTTPS client and direct playback run on a console.
 4. Fix what the session finds, then release.
 
-Known limits that stay after the release: Guest only (no sign-in), no phone
+Known limits that stay after the release: accounts unverified against the
+live service and no playback of videos that need the account, no phone
 casting, voice search or subscriptions import, one YouTube client identity
 (`VISIONOS`) with no fallback but HLS, English only, no auto frame rate, HDR or
 background playback.

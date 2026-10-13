@@ -84,3 +84,85 @@ subscriptions import are not in the built-in service yet.
 
 Evidence: [VALIDATION.md](VALIDATION.md) (entry of 2026-10-11, standalone),
 `standalone/README.md`, `standalone/ps5/README.md`.
+
+## 2026-10-13: accounts in the built-in service
+
+Sign-in, account lists and account changes are now answered by the service
+inside the app, with the same HTTP contract the companion had
+([library service](LIBRARY_SERVICE.md)). Everything here was tested offline
+against canned answers; **no real account has signed in with this tree**.
+
+**Where the credentials live.** One file,
+`/data/prosperotube/accounts/oauth-profiles.json` (mode 0600 in a 0700
+directory), in the companion's format: version 1, at most eight profiles, each
+with an ID `oauth_<16 hex>`, the name, and Google's access token, refresh
+token, expiry and the public TV client identity. It is written to a temporary
+file, flushed, then renamed over the old one, and read back before the write
+counts. A file that cannot be understood is never overwritten: accounts are
+then unavailable (`auth_storage`), Guest keeps working, and the file has to be
+removed by hand.
+
+**The console offers no encrypted storage.** The tokens are plain text in the
+app's data directory. Anyone who can read that directory (FTP or a file
+manager on a console running homebrew, a copied backup of `/data`) can use the
+account's YouTube access until the sign-in is revoked at
+<https://myaccount.google.com/permissions>. The scope is the TV device scope
+(YouTube account access), not the Google password. What limits the exposure:
+the file is separate from `youtube.json`, so it never enters the app's own
+backups; tokens are never logged, never returned by the API and never sent to
+anything but Google's and YouTube's API hosts over verified HTTPS; removing
+the account in the app deletes them from the file. Removing an account does
+not revoke it at Google (as in SmartTube); the README says how to do that.
+
+**What survives a restart of the app.** The accounts and their tokens. Not
+kept: sign-in sessions in progress (a code shown before the app closed is
+dead), list cursors, and the one-attempt records of account changes.
+
+**One-attempt guards in one process.** The companion kept them in Python so
+they outlived the Node worker. Here the library object is rebuilt whenever an
+account is added or removed, so the same records sit above it
+(`standalone/js/accounts.js`, `Guards`): a change that was sent and not
+confirmed is never sent again under the same confirmation, a confirmed one
+answers from the record, and open watch-history sessions are closed by a
+rebuild. They are in memory for thirty minutes and are **not** written to
+disk: a confirmation belongs to one screen of the running app, the app
+forgets it when it closes, and a repeat after a restart is a new, explicit
+action by the user, as it was after a companion restart. A change interrupted
+by the app closing may or may not have reached YouTube; the lists show the
+truth when they are loaded again.
+
+**Signed-in playback: every profile resolves as Guest.** The device-code
+sign-in authorizes the TV client only. Its player answers carry signature
+ciphers that need YouTube's player script, which this engine refuses by
+default (ten seconds and hundreds of megabytes), and the companion never
+proved the TV script's challenges against a real account either. The Guest
+path (`VISIONOS`, no credentials) was measured live. So:
+
+- A signed-in profile resolves videos exactly as Guest does. The bearer token
+  is not part of any player request.
+- Watch history is reported separately through the account session
+  (`watch_progress`: tracking data, one history entry, position updates), with
+  the provider's 30-second throttle and no retry after an unconfirmed report.
+- Videos that need the account (age-restricted, private, members-only,
+  purchased) answer `authentication_required`, as for Guest.
+- The path that asks the account session for such a video exists
+  (`standalone/js/account_playback.js`) behind `account_playback` in
+  `tube_service_options`, **off**. Health reports `account_playback: false`.
+  It is to be switched on only after it worked with the owner's account, and
+  ciphered answers additionally need `allow_player_script`.
+- Search and channel pages opened through the catalog jobs are read with the
+  Guest session in every profile (public data, the measured path); playlists
+  and every library action use the account session.
+
+**What is not verified until a real sign-in.** That Google accepts the TV
+client identity read from YouTube's TV page inside this engine; that the
+pinned YouTube.js parsers understand what the TV client returns for the
+account lists (the offline answers are hand-made in the WEB shapes those
+parsers expect); every account change; history reports. A list that fails
+does not affect Guest browsing or playback.
+
+**Also decided.** `playlist_delete` now posts `playlist/delete` itself: the
+pinned library's own method builds an endpoint without an API path and throws
+before sending (found by the offline tests). Subscriptions import stays out of
+the built-in service: it needs a larger request limit in the listener and a
+file path on the console, which is more than this step.

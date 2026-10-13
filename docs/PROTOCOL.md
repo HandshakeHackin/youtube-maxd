@@ -127,6 +127,11 @@ Device sign-in backend (requires `--library-node` and the LAN bearer token):
   reads state and, when due, performs one bounded upstream token poll.
 - POST `/v1/auth/cancel` with the same session cancels pending authorization.
 
+The built-in service answers these three routes itself and lists `device_auth`
+in `GET /v1/health`; its health also carries the boolean `account_playback`
+(whether a signed-in profile may resolve a video with its own session; false
+means every profile resolves as Guest).
+
 Pending responses contain `session`, `state:"pending"`, `user_code`,
 `verification_url`, `expires_in` and `poll_after` (seconds). Display the code and
 URL, and wait at least `poll_after` before requesting status again. Authorized
