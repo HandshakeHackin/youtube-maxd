@@ -1,0 +1,146 @@
+{
+ "about": "Signing in to YouTube with a code approved on another device: the code is asked for, shown and waited for with the time it is good for, and every way the attempt ends.",
+ "boards": [
+  {
+   "name": "sign_in-code",
+   "fixture": "signed-in",
+   "route": {"screen": "sign_in"},
+   "settle": 2.0,
+   "expect": {"screen": "sign_in", "focus": "code", "rail_open": 0,
+              "state": {"state": "code", "code": "QDRK-VXNP", "address": "google.com/device"}, "asked": ["library", "auth:start"]}
+  },
+  {
+   "name": "sign_in-waiting",
+   "fixture": "signed-in",
+   "route": {"screen": "sign_in"},
+   "settle": 2.0,
+   "steps": [{"wait": 4.5}, {"press": "up"}, {"press": "right"}, {"wait": 0.3}],
+   "expect": {"screen": "sign_in", "focus": "code", "state": {"state": "code"}, "asked": ["auth:session"]}
+  },
+  {
+   "name": "sign_in-starting",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "sign_in"},
+   "expect": {"screen": "sign_in", "focus": "code", "state": {"state": "starting", "code": ""}}
+  },
+  {
+   "name": "sign_in-approved",
+   "fixture": "sign-in-approved",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "expect": {"screen": "sign_in", "focus": "action/use", "state": {"state": "approved", "profile": "Lina"}, "asked": ["auth:start", "auth:session"]}
+  },
+  {
+   "name": "sign_in-approved-moment",
+   "fixture": "sign-in-approved",
+   "route": {"screen": "sign_in"},
+   "settle": 2.35,
+   "expect": {"screen": "sign_in", "state": {"state": "approved"}}
+  },
+  {
+   "name": "sign_in-approved-all-profiles",
+   "fixture": "sign-in-approved",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "steps": [{"press": "right"}, {"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "sign_in", "focus": "action/profiles", "state": {"state": "approved"}}
+  },
+  {
+   "name": "sign_in-watch-as-the-new-account",
+   "fixture": "sign-in-approved",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "steps": [{"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "asked": ["library:profile:oauth_6c696e6100000003"]}
+  },
+  {
+   "name": "sign_in-to-all-profiles",
+   "fixture": "sign-in-approved",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts"}
+  },
+  {
+   "name": "sign_in-denied",
+   "fixture": "sign-in-denied",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "expect": {"screen": "sign_in", "focus": "action/restart", "state": {"state": "denied"}}
+  },
+  {
+   "name": "sign_in-expired",
+   "fixture": "sign-in-expired",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "expect": {"screen": "sign_in", "focus": "action/restart", "state": {"state": "expired"}}
+  },
+  {
+   "name": "sign_in-expired-new-code",
+   "fixture": "sign-in-expired",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "steps": [{"press": "cross"}, {"wait": 1.2}],
+   "expect": {"screen": "sign_in", "focus": "code", "state": {"state": "code", "code": "QDRK-VXNP"}}
+  },
+  {
+   "name": "sign_in-canceled",
+   "fixture": "sign-in-canceled",
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "expect": {"screen": "sign_in", "focus": "action/restart", "state": {"state": "canceled"}}
+  },
+  {
+   "name": "sign_in-failed",
+   "fixture": "sign-in-failed",
+   "route": {"screen": "sign_in"},
+   "expect": {"screen": "sign_in", "focus": "action/restart", "state": {"state": "failed", "error": "The sign-in response was invalid."}}
+  },
+  {
+   "name": "sign_in-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "sign_in"},
+   "expect": {"screen": "sign_in", "focus": "action/restart", "state": {"state": "offline"}}
+  },
+  {
+   "name": "sign_in-new-code",
+   "fixture": "signed-in",
+   "route": {"screen": "sign_in"},
+   "settle": 2.0,
+   "steps": [{"press": "square"}, {"wait": 0.5}],
+   "expect": {"screen": "sign_in", "focus": "code", "state": {"state": "code", "code": "QDRK-VXNP"}, "asked": ["auth:cancel"]}
+  },
+  {
+   "name": "sign_in-last-minute",
+   "fixture": "long-texts",
+   "route": {"screen": "sign_in"},
+   "settle": 2.0,
+   "expect": {"screen": "sign_in", "focus": "code", "state": {"state": "code", "code": "ABCD-EFGH-JKLM", "address": "youtube.com/activate"}}
+  },
+  {
+   "name": "sign_in-not-in-this-build",
+   "fixture": "guest-only",
+   "route": {"screen": "sign_in"},
+   "steps": [{"press": "square"}, {"wait": 0.4}],
+   "expect": {"screen": "sign_in", "focus": "unavailable", "state": {"state": "unavailable"}}
+  },
+  {
+   "name": "sign_in-left-by-the-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "sign_in"},
+   "settle": 2.0,
+   "steps": [{"press": "left"}, {"press": "up"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "settings", "asked": ["auth:cancel"]}
+  },
+  {
+   "name": "sign_in-reduced-motion",
+   "fixture": "sign-in-approved",
+   "reduced_motion": true,
+   "route": {"screen": "sign_in"},
+   "settle": 4.2,
+   "expect": {"screen": "sign_in", "focus": "action/use", "state": {"state": "approved"}}
+  }
+ ]
+}

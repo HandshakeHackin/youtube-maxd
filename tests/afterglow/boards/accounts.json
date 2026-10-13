@@ -1,0 +1,307 @@
+{
+ "about": "Accounts, \"Who is watching?\": the profiles as tiles, what can be done for the profile in focus, the question before an account is removed, the sheet a profile's password is typed on, and what a build without accounts shows instead.",
+ "boards": [
+  {
+   "name": "accounts-profiles",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "expect": {"screen": "accounts", "focus": "profile/0", "rail_open": 0,
+              "state": {"load": "ready", "profiles": "3", "selected": "Mara", "zone": "tiles", "sign_in": "available", "casting": "available", "work": ""},
+              "asked": ["library:profiles", "library", "settings:remote"]}
+  },
+  {
+   "name": "accounts-second-profile",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "profile/1", "state": {"zone": "tiles"}}
+  },
+  {
+   "name": "accounts-add-tile",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "profile/add", "state": {"zone": "tiles"}}
+  },
+  {
+   "name": "accounts-actions",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "action/link-phone", "state": {"zone": "actions"}}
+  },
+  {
+   "name": "accounts-actions-edge",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "action/remove", "state": {"zone": "actions"}}
+  },
+  {
+   "name": "accounts-remove-question",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "accounts", "focus": "dialog/0", "state": {"question": "remove", "work": ""}}
+  },
+  {
+   "name": "accounts-remove-kept",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.6}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "action/remove", "state": {"question": "", "work": "", "profiles": "3"}}
+  },
+  {
+   "name": "accounts-removed",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.6}, {"press": "right"}, {"press": "cross"}, {"wait": 1.2}],
+   "expect": {"screen": "accounts", "state": {"question": "", "work": "", "zone": "tiles"}, "asked": ["account:remove", "account:apply:7"]}
+  },
+  {
+   "name": "accounts-watch-as-guest",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "asked": ["library:profile:guest"]}
+  },
+  {
+   "name": "accounts-switching",
+   "fixture": "signed-in",
+   "source": {"delay": 90},
+   "route": {"screen": "accounts"},
+   "settle": 5.0,
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.9}],
+   "expect": {"screen": "accounts", "focus": "profile/2", "state": {"work": "watch"}}
+  },
+  {
+   "name": "accounts-password-asked",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "password", "work": "watch"},
+              "asked": ["library:profile:oauth_4a6f6e6173000002"]}
+  },
+  {
+   "name": "accounts-password-typed",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "right"}, {"press": "cross"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.5}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "password"}}
+  },
+  {
+   "name": "accounts-password-accepted",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "asked": ["prompt:answer"]}
+  },
+  {
+   "name": "accounts-password-empty",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "options"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "password"}}
+  },
+  {
+   "name": "accounts-password-cancelled",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "circle"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "profile/1", "state": {"sheet": "", "work": ""}}
+  },
+  {
+   "name": "accounts-set-password",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "new-password", "work": "lock_set"}, "asked": ["settings:lock:set"]}
+  },
+  {
+   "name": "accounts-password-of-another",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "triangle"}, {"wait": 0.8}],
+   "expect": {"screen": "accounts", "focus": "profile/1", "state": {"sheet": "", "work": ""}}
+  },
+  {
+   "name": "accounts-change-password-question",
+   "fixture": "long-texts",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 0.8}],
+   "expect": {"screen": "accounts", "focus": "dialog/0", "state": {"question": "password"}}
+  },
+  {
+   "name": "accounts-wrong-password",
+   "fixture": "long-texts",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 0.6}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 0.8}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "current-password", "work": "lock_change"},
+              "asked": ["settings:lock:change", "prompt:answer"]}
+  },
+  {
+   "name": "accounts-change-password",
+   "fixture": "protected",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 0.6}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 0.8}, {"press": "cross"},
+             {"press": "down"}, {"press": "cross"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "new-password", "work": "lock_change"}}
+  },
+  {
+   "name": "accounts-password-changed",
+   "fixture": "protected",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 0.6}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 0.8}, {"press": "cross"},
+             {"press": "options"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "profile/0", "state": {"sheet": "", "work": "", "question": ""}}
+  },
+  {
+   "name": "accounts-password-removed",
+   "fixture": "protected",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "triangle"}, {"wait": 0.6}, {"press": "down"}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "profile/0", "state": {"sheet": "", "work": ""}, "asked": ["settings:lock:remove", "prompt:answer"]}
+  },
+  {
+   "name": "accounts-remove-protected",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.6}, {"press": "right"}, {"press": "cross"},
+             {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 1.5}],
+   "expect": {"screen": "accounts", "state": {"sheet": "", "work": "", "question": ""},
+              "asked": ["library:profile:oauth_4a6f6e6173000002", "prompt:answer", "account:remove", "account:apply:7"]}
+  },
+  {
+   "name": "accounts-leaving-for-sign-in",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "cross", "wait": 0.17}],
+   "expect": {"screen": "sign_in", "moving": 1}
+  },
+  {
+   "name": "accounts-asked-at-start",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts", "argument": "library:profile:oauth_4a6f6e6173000002"},
+   "settle": 2.0,
+   "expect": {"screen": "accounts", "focus": "password/key", "state": {"sheet": "password", "work": "watch"}}
+  },
+  {
+   "name": "accounts-guest",
+   "fixture": "guest",
+   "route": {"screen": "accounts"},
+   "expect": {"screen": "accounts", "focus": "profile/0", "state": {"load": "ready", "profiles": "1", "selected": "guest", "sign_in": "available"}}
+  },
+  {
+   "name": "accounts-guest-actions",
+   "fixture": "guest",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "triangle"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "action/link-phone", "state": {"zone": "actions", "sheet": ""}}
+  },
+  {
+   "name": "accounts-not-in-this-build",
+   "fixture": "guest-only",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "profile/add", "state": {"sign_in": "unavailable", "casting": "unavailable", "profiles": "1"}}
+  },
+  {
+   "name": "accounts-phone-not-in-this-build",
+   "fixture": "guest-only",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "action/link-phone", "state": {"casting": "unavailable"}}
+  },
+  {
+   "name": "accounts-empty",
+   "fixture": "empty",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "accounts", "focus": "profile/add", "state": {"load": "ready", "profiles": "0"}}
+  },
+  {
+   "name": "accounts-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "accounts"},
+   "expect": {"screen": "accounts", "focus": "profile/0", "state": {"profiles": "6"}}
+  },
+  {
+   "name": "accounts-long-texts-scrolled",
+   "fixture": "long-texts",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "accounts", "focus": "profile/add"}
+  },
+  {
+   "name": "accounts-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "accounts"},
+   "expect": {"screen": "accounts", "focus": "profiles", "state": {"load": "loading"}}
+  },
+  {
+   "name": "accounts-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "accounts"},
+   "expect": {"screen": "accounts", "focus": "action/retry", "state": {"load": "offline"}}
+  },
+  {
+   "name": "accounts-failed",
+   "fixture": "broken",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "accounts", "focus": "action/retry", "state": {"load": "failed"}}
+  },
+  {
+   "name": "accounts-to-sign-in",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "sign_in", "moving": 0, "state": {"state": "code"}}
+  },
+  {
+   "name": "accounts-add-an-account",
+   "fixture": "guest",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "sign_in", "state": {"state": "code"}, "asked": ["auth:start"]}
+  },
+  {
+   "name": "accounts-back-from-sign-in",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "cross"}, {"wait": 1.0}, {"press": "circle"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "action/sign-in", "moving": 0, "state": {"zone": "actions", "profiles": "3"}, "asked": ["auth:cancel"]}
+  },
+  {
+   "name": "accounts-to-link-phone",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "link_phone", "moving": 0, "state": {"state": "ready"}}
+  },
+  {
+   "name": "accounts-back-from-link-phone",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}, {"wait": 1.0}, {"press": "circle"}, {"wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "action/link-phone", "moving": 0}
+  },
+  {
+   "name": "accounts-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "accounts", "rail_open": 1, "focus": "rail/accounts"}
+  },
+  {
+   "name": "accounts-reduced-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "accounts"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"wait": 0.3}],
+   "expect": {"screen": "accounts", "focus": "action/sign-in"}
+  }
+ ]
+}

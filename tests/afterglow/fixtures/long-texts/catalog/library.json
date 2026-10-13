@@ -1,0 +1,15 @@
+{
+ "items": [
+  {"id": "library:profiles", "title": "Profile: Maximilian-Alexander von Hohenstein-Wittgenstein", "subtitle": "Guest, or an account signed in on this PS5", "is_folder": true, "interface": true},
+  {"id": "library:home", "title": "Home", "subtitle": "Recommendations for the selected profile", "is_folder": true, "interface": true},
+  {"id": "library:subscriptions", "title": "Subscriptions", "subtitle": "Videos from your YouTube subscriptions", "is_folder": true, "interface": true},
+  {"id": "library:history", "title": "YouTube history", "subtitle": "History from the selected account", "is_folder": true, "interface": true},
+  {"id": "library:watch_later", "title": "Watch later", "subtitle": "Videos saved to your account", "is_folder": true, "interface": true},
+  {"id": "library:playlists", "title": "Your playlists", "subtitle": "Playlists from the selected account", "is_folder": true, "interface": true},
+  {"id": "library:channels", "title": "Subscribed channels", "subtitle": "Channels you subscribe to", "is_folder": true, "interface": true},
+  {"id": "library:notifications", "title": "Notifications", "subtitle": "Videos your account was notified about", "is_folder": true, "interface": true},
+  {"id": "auth:start", "title": "Sign in to YouTube", "subtitle": "Authorize on your phone or computer", "is_folder": true, "interface": true},
+  {"id": "account:remove", "title": "Remove selected account", "subtitle": "Review before removing its saved sign-in", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

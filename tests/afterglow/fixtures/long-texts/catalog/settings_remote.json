@@ -1,0 +1,15 @@
+{
+ "items": [
+  {"id": "settings:remote:info", "title": "Phone connection: ready", "subtitle": "YouTube app TV-code pairing (experimental)", "is_folder": true, "interface": true, "overview": "Experimental: tested offline only, not yet on a PS5 or against live YouTube. It may fail or change in a later version.", "state": "ready", "value": "ready", "available": true},
+  {"id": "settings:remote:code", "title": "TV code: 482 913 057", "subtitle": "Enter this code in the YouTube app's TV-code pairing screen", "is_folder": true, "interface": true, "value": "482913057"},
+  {"id": "settings:remote:pair", "title": "Get a new TV code", "subtitle": "Enable connection and request a TV code", "is_folder": true, "interface": true, "kind": "action"},
+  {"id": "settings:remote:toggle", "title": "Turn phone connection off", "subtitle": "Your local library stays available", "is_folder": true, "interface": true, "kind": "switch", "selected": true},
+  {"id": "settings:remote:reset", "title": "Reset phone pairing", "subtitle": "Turn off and forget this TV's pairing identity", "is_folder": true, "interface": true, "kind": "action"},
+  {"id": "settings:remote:disconnect", "title": "When phone disconnects: close the app", "subtitle": "Close ProsperoTube when a linked phone disconnects, including while browsing", "is_folder": true, "interface": true, "kind": "list", "value": "close the app"},
+  {"id": "settings:remote:history", "title": "History for phone playback: on", "subtitle": "Off records no local history and sends no account reports for videos started from the phone", "is_folder": true, "interface": true, "kind": "switch", "selected": true},
+  {"id": "settings:remote:device:1", "title": "Maximilian-Alexanders Arbeitstelefon im Wohnzimmer (zweites Gerät)", "subtitle": "Verknüpft am 12. September · zuletzt heute Nachmittag verwendet", "is_folder": true, "connected": true},
+  {"id": "settings:remote:device:2", "title": "Tablet im Kinderzimmer", "subtitle": "", "is_folder": true, "connected": true},
+  {"id": "settings:remote:device:3", "title": "Jonas' phone", "subtitle": "", "is_folder": true, "connected": true}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,13 @@
+{
+ "items": [
+  {"id": "settings:remote:info", "title": "Phone connection: ready", "subtitle": "YouTube app TV-code pairing (experimental)", "is_folder": true, "interface": true, "overview": "Experimental: tested offline only, not yet on a PS5 or against live YouTube. It may fail or change in a later version.", "state": "ready", "value": "ready", "available": true},
+  {"id": "settings:remote:code", "title": "TV code: 482 913 057 261", "subtitle": "Enter this code in the YouTube app's TV-code pairing screen", "is_folder": true, "interface": true, "value": "482913057261"},
+  {"id": "settings:remote:pair", "title": "Get a new TV code", "subtitle": "Enable connection and request a TV code", "is_folder": true, "interface": true, "kind": "action"},
+  {"id": "settings:remote:toggle", "title": "Turn phone connection off", "subtitle": "Your local library stays available", "is_folder": true, "interface": true, "kind": "switch", "selected": true},
+  {"id": "settings:remote:reset", "title": "Reset phone pairing", "subtitle": "Turn off and forget this TV's pairing identity", "is_folder": true, "interface": true, "kind": "action"},
+  {"id": "settings:remote:disconnect", "title": "When phone disconnects: keep playing", "subtitle": "Stop applies to phone-started playback; disconnections may happen when the phone sleeps", "is_folder": true, "interface": true, "kind": "list", "value": "keep playing"},
+  {"id": "settings:remote:history", "title": "History for phone playback: off", "subtitle": "Off records no local history and sends no account reports for videos started from the phone", "is_folder": true, "interface": true, "kind": "switch", "selected": false},
+  {"id": "settings:remote:device:1", "title": "Mara's phone", "subtitle": "Linked on 12 September · last used today", "is_folder": true, "connected": true}
+ ],
+ "has_more": false
+}

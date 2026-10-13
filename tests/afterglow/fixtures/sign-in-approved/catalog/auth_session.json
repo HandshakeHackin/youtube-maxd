@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "library:profile:oauth_6c696e6100000003", "title": "Use authorized YouTube account", "subtitle": "Lina", "is_folder": true, "interface": true, "state": "authorized", "name": "Lina"},
+  {"id": "library:profiles", "title": "All profiles", "subtitle": "Account saved in the app data on this PS5", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Enter the password of this profile", "subtitle": "Circle returns without selecting it", "is_folder": true, "interface": true, "prompt": "password"}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "auth:info:code", "title": "QDRK-VXNP", "subtitle": "Enter this code on your phone or computer", "is_folder": true, "interface": true, "state": "pending", "user_code": "QDRK-VXNP", "verification_url": "https://www.google.com/device", "expires_in": 900, "overview": "Open https://www.google.com/device on your phone or computer and enter QDRK-VXNP. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed."},
+  {"id": "auth:info:url", "title": "https://www.google.com/device", "subtitle": "Open this address to authorize YouTube", "is_folder": true, "interface": true},
+  {"id": "auth:cancel", "title": "Cancel sign-in", "subtitle": "Circle also cancels when leaving sign-in", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}
