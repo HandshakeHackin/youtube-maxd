@@ -5900,6 +5900,12 @@
    ]
   },
   {
+   "source": "PROSPEROTUBE DECODER",
+   "context": [
+    "document"
+   ]
+  },
+  {
    "source": "Page",
    "context": [
     "afterglow",
@@ -6707,6 +6713,12 @@
    "source": "Quick skip works while the controls are hidden",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Quit",
+   "context": [
+    "kit"
    ]
   },
   {
@@ -11848,6 +11860,12 @@
    "source": "Watching now",
    "context": [
     "afterglow"
+   ]
+  },
+  {
+   "source": "Welcome to ProsperoTube on PlayStation 5",
+   "context": [
+    "document"
    ]
   },
   {
