@@ -62,6 +62,19 @@ const char *kTrending =
     "\"channel_id\":\"UCcccccccccccccccccccccc\",\"duration_sec\":847,\"watch_percent\":40,\"is_short\":false}"
     "],\"has_more\":false}}";
 
+// A plain search as the built-in service answers it (standalone/js/catalog.js, item): no facts, the
+// picture as YouTube's search names it (a signed query after .jpg) or the default one.
+const char *kSearch =
+    "{\"state\":\"done\",\"result\":{\"api_version\":1,\"items\":["
+    "{\"id\":\"bbbbbbbbbb1\",\"title\":\"How Tides Work\",\"subtitle\":\"Orbitwell\",\"overview\":\"\","
+    "\"art_url\":\"https://i.ytimg.com/vi/bbbbbbbbbb1/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLfixture\","
+    "\"channel_id\":\"UCcccccccccccccccccccccc\",\"duration_sec\":611,\"is_folder\":false,\"is_live\":false,\"is_short\":false,"
+    "\"resume_pos_sec\":0,\"played\":false,\"watch_percent\":-1,\"playback_context\":null},"
+    "{\"id\":\"bbbbbbbbbb2\",\"title\":\"The Deep Field\",\"subtitle\":\"Northlight Atlas\",\"overview\":\"\","
+    "\"art_url\":\"https://i.ytimg.com/vi/bbbbbbbbbb2/hqdefault.jpg\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"duration_sec\":1290,"
+    "\"is_folder\":false,\"is_live\":false,\"is_short\":false,\"resume_pos_sec\":0,\"played\":false,\"watch_percent\":-1,\"playback_context\":null}"
+    "],\"has_more\":false,\"page\":0}}";
+
 // Answers whatever the provider has asked so far. job is the document a
 // finished catalog job returns; "" leaves the job unanswered.
 void serve(const char *job)
@@ -238,6 +251,23 @@ int main()
             news = &data.catalog("section:news");
         }
         assert(g_jobs_posted == before + 1 && news->load == model::Load::failed && !news->error.empty() && news->videos.empty());
+
+        // A topic that is a search ("Browse by topic" > Science): the service's rows of a search carry the
+        // picture under an address with a signed query, and that address reaches the card whole.
+        const Page *science = &data.catalog("search:science");
+        for (int i = 0; i < 12 && science->load == model::Load::loading; ++i)
+        {
+            data.pump();
+            serve(kSearch);
+            science = &data.catalog("search:science");
+        }
+        if (science->load != model::Load::ready || science->videos.size() != 2)
+            std::fprintf(stderr, "search: load %d, %zu videos, error %s\n", static_cast<int>(science->load), science->videos.size(), science->error.c_str());
+        assert(science->load == model::Load::ready && science->videos.size() == 2);
+        assert(science->videos[0].thumb == "https://i.ytimg.com/vi/bbbbbbbbbb1/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLfixture");
+        assert(science->videos[1].thumb == "https://i.ytimg.com/vi/bbbbbbbbbb2/hqdefault.jpg" && science->videos[0].channel == "Orbitwell");
+        for (const model::Video &video : science->videos)
+            assert(science->rows[static_cast<std::size_t>(video.at)].thumb == video.thumb && tube_art_url_allowed(video.thumb.c_str()));
 
         // A request cancelled while the provider works on it: its answer is thrown away, the next one runs.
         bool cancelled_answered = false;

@@ -447,6 +447,14 @@ used first; and gives back a picture nobody asked for in 600 frames. If the
 first console session shows the decode in the frame time, the decode moves to
 one worker thread behind the same interface; nothing else changes.
 
+YouTube answers many thumbnail addresses with WebP whatever their name ends in:
+the pictures of a search (and so of every topic that is one) first of all,
+while a section's are mostly JPEG. What the cache's own decoder does not read
+it hands to `Platform::decode_picture`; the app answers with `decode_webp`
+(`app/picture_decode.cpp`, FFmpeg's decoder from memory, the one the classic
+browser's artwork already uses). `scripts/test_afterglow_data.sh` runs the
+cache on a WebP under a `.jpg` address.
+
 A screen calls `get()` for exactly what it draws, every frame it draws it.
 That is all the bookkeeping there is.
 

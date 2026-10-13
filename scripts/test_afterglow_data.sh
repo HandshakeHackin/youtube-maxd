@@ -29,3 +29,22 @@ for source in "${root}/native/afterglow/data.cpp" "${root}/native/afterglow/data
 done
 g++ "${sanitize[@]}" "${objects[@]}" -lm -o "${destination}/provider_test"
 ASAN_OPTIONS=detect_leaks=1 "${destination}/provider_test"
+
+# The pictures those rows name, as YouTube sends them: the picture cache with the app's decoder for
+# what its own does not read (tests/afterglow/provider/picture_test.cpp), on the host's FFmpeg.
+pictures="${destination}/pictures"
+mkdir -p "${pictures}"
+for name in webp:libwebp jpg:mjpeg; do
+    ffmpeg -v error -y -f lavfi -i "color=c=red:s=320x180" -frames:v 1 -c:v "${name#*:}" "${pictures}/red.${name%%:*}"
+done
+read -r -a media <<< "$(pkg-config --cflags --libs libavcodec libswscale libavutil)"
+picture_objects=()
+for source in "${root}/native/afterglow/images.cpp" "${root}/native/afterglow/app/picture_decode.cpp" \
+    "${root}/tests/afterglow/provider/picture_test.cpp"; do
+    object="${destination}/$(basename "${source}" .cpp).o"
+    g++ "${cxxflags[@]}" -I"${evo}" "${media[@]}" -c "${source}" -o "${object}"
+    picture_objects+=("${object}")
+done
+g++ "${sanitize[@]}" "${picture_objects[@]}" "${destination}/platform.o" "${destination}/draw_list.o" "${destination}/triangulate.o" \
+    "${destination}/font.o" "${media[@]}" -lm -o "${destination}/picture_test"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/picture_test" "${pictures}/red.webp" "${pictures}/red.jpg"

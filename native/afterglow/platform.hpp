@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace afterglow
 {
@@ -54,6 +55,19 @@ class Platform
     using Fetched = std::function<void(bool ok, std::string &&bytes)>;
     virtual unsigned fetch(const std::string &url, Fetched done) = 0;
     virtual void cancel_fetch(unsigned ticket) = 0;
+    // The pixels of a picture the frame's own decoder (JPEG and PNG) does not
+    // read. YouTube answers many thumbnail addresses with WebP whatever their
+    // name ends in, the pictures of a search first of all. rgba is width x
+    // height pixels, straight alpha, top row first. False when the platform
+    // has no decoder for these bytes either.
+    virtual bool decode_picture(const std::string &bytes, int *width, int *height, std::vector<std::uint8_t> *rgba)
+    {
+        (void)bytes;
+        (void)width;
+        (void)height;
+        (void)rgba;
+        return false;
+    }
 
     // A file packaged with the app, by its path under the assets
     // ("afterglow/..."). False when it is missing.

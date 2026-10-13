@@ -11,6 +11,7 @@
 
 #include "afterglow/app/afterglow.h"
 #include "afterglow/app/data_provider.hpp"
+#include "afterglow/app/picture_decode.hpp"
 #include "afterglow/frame.hpp"
 #include "afterglow/sound/app/sound_app.hpp" // stage S
 #include "afterglow/text_engine.hpp"
@@ -91,6 +92,10 @@ class AppPlatform final : public Platform
     void cancel_fetch(unsigned ticket) override
     {
         waiting_.erase(ticket); // the answer still arrives; nobody is told
+    }
+    bool decode_picture(const std::string &bytes, int *width, int *height, std::vector<std::uint8_t> *rgba) override
+    {
+        return decode_webp(bytes, width, height, rgba); // what YouTube sends for a search's pictures
     }
 
     bool read_asset(const std::string &path, std::string *bytes) override

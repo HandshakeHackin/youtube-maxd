@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // A screen asks for the picture of an address every frame it draws it. The
-// cache fetches the bytes through the platform, decodes them (JPEG and PNG;
-// stb_image), scales them down to the size class asked for, uploads a texture
+// cache fetches the bytes through the platform, decodes them (JPEG and PNG
+// with stb_image; anything else, WebP first of all, through the platform's
+// decoder), scales them down to the size class asked for, uploads a texture
 // and works out the two colours the page ground and the focus light take from
 // the picture. A picture nobody asked for during kIdleFrames frames gives its
 // texture back; the total is bounded by kBudgetBytes, least recently used
@@ -64,6 +65,9 @@ struct Decoded
 };
 // False for bytes that are no JPEG or PNG, or larger than 4096 pixels a side.
 bool decode_picture(const std::string &bytes, int longest_side, Decoded *out);
+// The same end for pixels something else decoded (Platform::decode_picture): scaled down to
+// longest_side, with the two colours. False for no pixels or more than 4096 a side.
+bool size_picture(const std::uint8_t *rgba, int width, int height, int longest_side, Decoded *out);
 
 class ImageCache
 {

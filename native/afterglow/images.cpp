@@ -184,6 +184,15 @@ bool decode_picture(const std::string &bytes, int longest, Decoded *out)
     stbi_uc *pixels = stbi_load_from_memory(data, static_cast<int>(bytes.size()), &width, &height, &channels, 4);
     if (pixels == nullptr)
         return false;
+    const bool sized = size_picture(pixels, width, height, longest, out);
+    stbi_image_free(pixels);
+    return sized;
+}
+
+bool size_picture(const std::uint8_t *pixels, int width, int height, int longest, Decoded *out)
+{
+    if (pixels == nullptr || width <= 0 || height <= 0 || width > 4096 || height > 4096)
+        return false;
     const int side = std::max(width, height);
     if (longest > 0 && side > longest)
     {
@@ -197,7 +206,6 @@ bool decode_picture(const std::string &bytes, int longest, Decoded *out)
         out->height = height;
         out->rgba.assign(pixels, pixels + static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4u);
     }
-    stbi_image_free(pixels);
     colours_of(out->rgba.data(), out->width, out->height, &out->tone, &out->glow);
     return true;
 }
@@ -432,7 +440,19 @@ void ImageCache::pump(float dt)
     {
         Decoded decoded;
         const bool ambient = next->size == PictureSize::ambient;
-        if (decode_picture(next->bytes, ambient ? 256 : longest_side(next->size), &decoded))
+        const int longest = ambient ? 256 : longest_side(next->size);
+        bool read = decode_picture(next->bytes, longest, &decoded);
+        if (!read)
+        {
+            // No JPEG and no PNG: the platform's decoder has the formats this one lacks (WebP).
+            std::vector<std::uint8_t> pixels;
+            int width = 0;
+            int height = 0;
+            read = platform_.decode_picture(next->bytes, &width, &height, &pixels) &&
+                   pixels.size() == static_cast<std::size_t>(std::max(width, 0)) * static_cast<std::size_t>(std::max(height, 0)) * 4u &&
+                   size_picture(pixels.data(), width, height, longest, &decoded);
+        }
+        if (read)
         {
             next->ambient = ambient_of(decoded.rgba.data(), decoded.width, decoded.height);
             if (ambient)
