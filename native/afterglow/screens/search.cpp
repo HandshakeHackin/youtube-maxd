@@ -691,8 +691,7 @@ class Search final : public Screen
         return_zone_ = zone_;
         const float along = (from_x - kLeft + scroll_.position.target - kCardW * 0.5f) / kCardPitch;
         match_index_ = std::clamp(static_cast<int>(std::lround(along)), 0, static_cast<int>(matches_.size()) - 1);
-        if (zone_ == Zone::list)
-            walk_field(ui::SearchField::kFocusField);
+        // The list keeps the row the focus leaves: Up from the strip returns to it.
         zone_ = Zone::matches;
         ring_.snap(grown(card_rect(match_index_, scroll_.position.value), 0.06f, 6.0f));
         context.feedback.play(audio::Cue::tab, 0.96f, ui::pan_for_x(from_x));
