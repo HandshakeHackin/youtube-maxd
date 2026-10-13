@@ -267,6 +267,7 @@ bool page_from_json(const std::string &json, Page *page)
             add_row(*page, row);
     }
     page->more = flag_of(root, "has_more");
+    page->listed = string_of(root, "listed");
     page->load = model::Load::ready;
     cJSON_Delete(root);
     return true;

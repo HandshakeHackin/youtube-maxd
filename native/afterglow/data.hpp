@@ -77,6 +77,10 @@ struct Page
     std::vector<model::Channel> channels; // ... channels
     std::vector<model::Topic> topics;     // ... topics and sections
     bool more = false;               // a further page exists
+    // An action's answer that is the listing of another catalog (a typed
+    // search inside a channel answers with its results): that catalog's id,
+    // to read further pages of it or to open it as a page. "" otherwise.
+    std::string listed;
 };
 
 // "idle", "loading", "ready", "failed", "offline": the snapshot's word for a Load.

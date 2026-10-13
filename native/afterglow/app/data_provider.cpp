@@ -195,6 +195,8 @@ void ProviderSource::answered(int ok, const evo_provider_item_t *items, int coun
         }
         page.more = more != 0;
         page.load = model::Load::ready;
+        if (source->typed_stage_ == 3)
+            page.listed = source->typed_listed_;
     }
     else
     {
@@ -255,6 +257,7 @@ void ProviderSource::hand_over_text()
     }
     typed_text_.assign(typed_text_.size(), '\0');
     typed_text_.clear();
+    typed_listed_ = next;
     list(next, 0);
 }
 

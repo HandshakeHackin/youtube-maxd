@@ -82,6 +82,7 @@ class ProviderSource final : public Source
     // is armed and waits for the text, 3 the catalog the provider named is being listed.
     int typed_stage_ = 0;
     std::string typed_text_;
+    std::string typed_listed_; // the catalog the provider named after the text
     unsigned next_ticket_ = 1;
     std::function<bool(const model::Video &)> player_;
     std::string last_profile_;

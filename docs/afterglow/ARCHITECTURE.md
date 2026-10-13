@@ -406,8 +406,11 @@ keeps what was read on screen while the data layer reads it again.
 A typed text reaches the provider through the prompt it arms
 (`tube_take_playlist_prompt`, `tube_submit_playlist_name`): the row is listed,
 the text handed over, and the catalog the provider names next is the answer.
-In a fixture set the answer is the row's own catalog file (`prompt:answer` for
-the armed prompt), and a board lists what was handed over under `answered`
+`Page::listed` of the answer is the id of that catalog (a search typed inside a
+channel answers with the catalog of its results: open it as a page, or read
+its next pages). In a fixture set the answer is the row's own catalog file
+(`prompt:answer` for the armed prompt; a top-level `"listed"` names the
+catalog), and a board lists what was handed over under `answered`
 (`"<row>=<text>"`).
 
 Show the pending state on the control that was pressed (the kit's spinner, a
