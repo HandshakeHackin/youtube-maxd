@@ -12,9 +12,9 @@
     {"0.1.0", "Built-in service: a JavaScript engine running YouTube.js behind a loopback address, verified HTTPS to YouTube, video played directly from YouTube's servers, a new resolve when a link is refused."}, \
     {"0.1.0", "Guest search with options, suggestions and history; Home with filters, Discover sections, channels with their sections, playlists and related videos."}, \
     {"0.1.0", "Playback in AVC, VP9, HEVC and AV1 (SDR) with captions in two languages at once, caption styling, quality, codec and frame-rate limits, audio language and 0.25x to 4x speed."}, \
-    {"0.1.0", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer and recovery after stream failures."}, \
+    {"0.1.0", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer, a video buffer choice and recovery after stream failures."}, \
     {"0.1.0", "Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position."}, \
-    {"0.1.0", "SponsorBlock segment skipping with review, and DeArrow titles and thumbnails."}, \
+    {"0.1.0", "SponsorBlock segment skipping with review and an optional alternative server, DeArrow titles and thumbnails, and dislike counts from Return YouTube Dislike for profiles that turn Show dislikes on (off by default; tested offline only)."}, \
     {"0.1.0", "YouTube accounts on the console: sign-in with a device code, account profiles, subscriptions, history, Watch later, playlists, notifications, ratings and playlist editing. Tested offline only; no real account has signed in yet."}, \
     {"0.1.0", "A signed-in profile plays videos as Guest does and reports watch history to the account. Sign-ins are kept as plain text in /data/prosperotube/accounts: the PS5 has no encrypted storage."}, \
     {"0.1.0", "Comments with replies and comment rating, live chat and chat replay."}, \
@@ -25,7 +25,7 @@
     {"0.1.0", "Phone casting (experimental): link the YouTube app with a TV code; play, pause, seek, queue, volume and captions from the phone. The receiver runs inside the app. Tested offline only; no real phone has been linked yet."}, \
     {"0.1.0", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
     {"0.1.0", "Experimental, marked (experimental) and tested offline only: phone pairing, chat and comment posting, account-history controls, feedback actions and the profile password."}, \
-    {"0.1.0", "Interface in 21 languages besides English, following the PS5 system language or the Interface language preference: browser, preferences, messages and toasts. The player stays English, as do languages that need other fonts or right-to-left layout."}, \
+    {"0.1.0", "Interface in 21 languages besides English, following the PS5 system language or the Interface language preference: browser, preferences and messages. The player and toasts stay English, as do languages that need other fonts or right-to-left layout."}, \
     {"0.1.0", "Interface preferences per profile: interface and video grid scale, one to four title lines, scrolling titles, two-line subtitles, rounded or square cards, nine colour schemes, the rows of the video actions menu and what Circle does on the main menu."}, \
     {"0.1.0", "Preview while seeking: the thumbnail of the seek target above the seek bar, a single frame or a carousel of five, from YouTube's storyboard sheets. Off by default."}, \
     {"0.1.0", "Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, a translated player, a few interface options (buttons at the top, card previews, playlists as rows), auto frame rate, HDR and background playback."}
