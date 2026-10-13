@@ -187,7 +187,7 @@ Each step records `PASS`, `FAIL` or `NOTE` with its numbers (`steps` in
 | Step | Kind | What it proves, and from what |
 | --- | --- | --- |
 | (pre) the app is on its browser | precondition | `scr=23 active=0 fatal=0 parked=0` and a moving clock, no keyboard. Otherwise the stage is not run (`NOTE`, result `not-run`) |
-| (a) switched on: the frame draws | hard | `afterglow.on` written (temporary name, readback, rename); within 40 s the snapshot says `interface: afterglow`. The frame was built, the batch drew its two lists, the report hook answers. The mount's log line gives the look and the output size |
+| (a) switched on: the frame draws | hard | `afterglow.on` written (temporary name, readback, rename); within 40 s the snapshot says `interface: afterglow`. The frame was built, the batch drew its two lists, the report hook answers. Recorded with it: how long that took, the longest of the frame's first frames, and the look and output size from the mount's log line |
 | (c) Home lists its shelves | soft | `screen: home` after the opening moment, `state.lists` with titles, `load` no longer `loading`: the data layer read the provider's catalogs through the built-in service |
 | (c) pictures become ready | soft | `stats.pictures_ready > 0` within 30 s, with pending and bytes: thumbnails came through the network and the decoder |
 | (b) frame statistics at rest | soft | 6 s of samples on Home: `frame_ms`, `worst_frame_ms`, `update_ms`, `draw_ms`, `instances`, `runs`, `fill`, `pictures_ready`, `pictures_pending`, `picture_bytes`, `data_pending` as minimum, median and maximum. `FAIL` only when the frame reports no frame time or nothing drawn: what is fast enough is for the reader of the numbers |

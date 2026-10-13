@@ -276,7 +276,13 @@ class AfterglowStage:
             if ob.ag_shown(self.snapshot):
                 return False, "the document afterglow is listed without the frame's snapshot: " + ob.ui_line(self.snapshot)
             return False, "the classic browser still draws: " + ob.ui_line(self.snapshot)
+        start = s.clock.now()
         ok, detail = self.wait(shown, T["on"])
+        numbers = {"seconds": round(s.clock.now() - start, 1)}
+        first = ob.ag_stats(self.frame)[0]
+        if "worst_frame_ms" in first:  # the frame that built the interface is among its first 120
+            numbers["first_worst_frame_ms"] = first["worst_frame_ms"]
+            detail += f"; {numbers['seconds']:.0f} s after the file, the longest of its first frames {first['worst_frame_ms']:.0f} ms"
         said = ob.ag_log_lines(s.read_log()[self.mark:])
         up = ob.ag_interface_up(s.log_text[self.mark:])
         if up:
@@ -287,7 +293,7 @@ class AfterglowStage:
             s.save("afterglow/first-snapshot.json", self.snapshot)
         elif ok:
             s.save("afterglow/unreadable-snapshot.json", self.raw or b"")
-        return self.record(label, "PASS" if ok else "FAIL", detail, hard=True)
+        return self.record(label, "PASS" if ok else "FAIL", detail, hard=True, **numbers)
 
     # (c) ---------------------------------------------------------------------------------
     def home_listed(self, label):

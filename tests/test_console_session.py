@@ -817,6 +817,8 @@ def test_afterglow_stage_follows_the_core_path_in_the_same_launch(tmp_path, monk
         assert (out / "afterglow" / name).is_file(), name
     result = json.loads((out / "result.json").read_text())
     assert result["launches"] == 1 and result["observations"]["afterglow"]["result"] == "partial"
+    on = next(step for step in result["steps"] if step["step"] == "(a) switched on: the frame draws")
+    assert on["gate"] == "hard" and 0 < on["numbers"]["seconds"] <= 5 and on["numbers"]["first_worst_frame_ms"] > 0
     rest = next(step for step in result["steps"] if step["step"] == "(b) frame statistics at rest")
     assert rest["gate"] == "soft" and rest["numbers"]["instances"] > 0 and "frame 16." in rest["detail"]
     assert "Afterglow PARTIAL" in log.splitlines()[-1]
