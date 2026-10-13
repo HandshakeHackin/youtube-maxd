@@ -146,12 +146,6 @@ void code_box(G &g, const Rect &r, std::string_view value, float size, float in,
     g.l.pop_opacity();
 }
 
-void bone(G &g, const Rect &r, float radius, int index)
-{
-    const float breath = g.reduced ? 0.5f : ui::breathe(g.time + 0.12f * static_cast<float>(index), 1.7f);
-    g.l.rounded_rect(r, radius, g.k.raised.with_alpha(0.55f + 0.45f * breath));
-}
-
 void code_bone(G &g, const Rect &r, float radius, int index)
 {
     bone(g, r, radius, index);

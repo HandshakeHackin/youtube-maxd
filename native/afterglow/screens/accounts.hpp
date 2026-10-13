@@ -102,8 +102,6 @@ void notice(G &g, const Rect &r, Icon glyph, std::string_view title, std::string
 Rect message_page(G &g, Icon glyph, std::string_view title, std::string_view body, std::string_view action, float focus,
                   float amount, Color tone = clear());
 Rect message_button_rect(const ui::Fonts &fonts, std::string_view body, std::string_view action);
-// A bone the shape of a line or a pill, breathing.
-void bone(G &g, const Rect &r, float radius, int index);
 
 // ---- the question with a safe answer ------------------------------------------------
 
