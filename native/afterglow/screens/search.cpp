@@ -486,15 +486,16 @@ class Search final : public Screen
         else if (page.load == model::Load::ready)
         {
             const std::size_t count = std::min<std::size_t>(page.videos.size(), kStripCards);
-            bool same = count == matches_.size() && match_shown_ == match_text_;
+            bool same = count == matches_.size();
             for (std::size_t i = 0; same && i < count; ++i)
                 same = matches_[i].id == page.videos[i].id;
             if (!same)
             {
+                // Other videos arrive as cards do; the same ones for a longer text stay as they are.
                 matches_.assign(page.videos.begin(), page.videos.begin() + static_cast<std::ptrdiff_t>(count));
-                match_shown_ = match_text_;
                 match_age_ = 0.0f;
             }
+            match_shown_ = match_text_;
             match_load_ = model::Load::ready;
         }
         else
