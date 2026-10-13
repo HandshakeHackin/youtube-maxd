@@ -106,6 +106,26 @@ function playbackContext(node, id, playlist) {
   }
   return Number.isInteger(index) && index >= 0 && index <= 100000 ? {playlist, index} : null;
 }
+// What a card shows beyond its row, each value optional and as YouTube words it:
+// the view count, the age, the channel's picture and the badges the interface
+// draws (docs/afterglow/ARCHITECTURE.md, section 5.5). A lockup card carries
+// them as the second line of its metadata; anything unrecognised is left out.
+function cardFacts(node, author) {
+  const second = node.metadata?.metadata?.metadata_rows?.[1]?.metadata_parts ?? [];
+  const counted = /\d/.test(String(second[0]?.text ?? ''));
+  const views = text(node.short_view_count ?? node.view_count ?? (counted ? second[0]?.text : ''), 48);
+  const published = text(node.published ?? (counted ? second[1]?.text : ''), 48);
+  const avatar = imageUrl(author?.thumbnails?.[0]?.url);
+  const labels = (node.badges ?? []).map(badge => String(badge?.label ?? badge?.text ?? '').trim().toLowerCase());
+  const badges = [];
+  if (labels.includes('new')) badges.push('new');
+  if (labels.some(label => label === '4k' || label === '8k')) badges.push('4k');
+  if (labels.some(label => label.includes('hdr'))) badges.push('hdr');
+  if (labels.includes('cc')) badges.push('cc');
+  if (labels.some(label => label.includes('members'))) badges.push('members');
+  return { ...(views ? {views} : {}), ...(published ? {published} : {}), ...(avatar ? {channel_art_url: avatar} : {}),
+    ...(badges.length ? {badges} : {}) };
+}
 export function normalizeVideo(node, playlist = '') {
   if (!node || node.is_ad || node.is_promoted) return null;
   const id = node.video_id ?? node.id ?? node.content_id;
@@ -123,7 +143,7 @@ export function normalizeVideo(node, playlist = '') {
     ...(Number.isFinite(scheduled) && scheduled>0?{upcoming_start_ms:scheduled}:{}),
     ...(isShort(node)?{is_short:true}:{}),
     ...(typeof node.is_reminder_set==='boolean'?{reminder_set:node.is_reminder_set}:{}),
-    ...(context ? {playback_context: context} : {}) };
+    ...(context ? {playback_context: context} : {}), ...cardFacts(node, author) };
 }
 // A channel's own Videos and Live cards name no channel: their first metadata
 // part is the view count (checked live on 2026-10-11). The page owner fills in.

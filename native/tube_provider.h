@@ -33,6 +33,21 @@ int tube_phone_stop_on_disconnect(void);
 /* Startup preferences for the UI host; main thread, after provider init.
  * Section: a catalog id to open instead of the main menu ("" = main menu). */
 int tube_select_account_on_boot(void);
+/* Facts of catalog rows beside evo_provider_item_t, for the Afterglow interface
+ * (docs/afterglow/ARCHITECTURE.md, section 5.5): named text values per row id,
+ * set while the provider builds a page and read by whoever receives it. The
+ * store is bounded and the oldest facts give way; a fact of the same row and
+ * name replaces the earlier one, an empty value removes nothing. At: the
+ * index-th fact of a row, 0 when there is none. Main thread only. */
+void tube_row_fact(const char *row, const char *name, const char *value);
+const char *tube_row_fact_get(const char *row, const char *name);
+int tube_row_fact_at(const char *row, int index, const char **name, const char **value);
+/* The profile that is browsing: its id ("guest" or an account profile's), the
+ * name the service gave it ("" until the profiles were listed with it
+ * selected), and whether a YouTube account is signed in on it. */
+const char *tube_browse_profile(void);
+const char *tube_browse_profile_name(void);
+int tube_browse_profile_account(void);
 /* Interface preferences of the selected profile (native/tube_ui_style.h); the
  * revision changes whenever the browser must restyle itself. Main thread only. */
 struct TubeUiPrefs;
