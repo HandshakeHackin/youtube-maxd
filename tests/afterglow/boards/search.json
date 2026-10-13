@@ -1,0 +1,244 @@
+{
+ "about": "Search: the field with recent searches and completions, the kit's keyboard, and the best matches so far (board 09 of the proposal).",
+ "boards": [
+  {
+   "name": "search-recent",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "expect": {"screen": "search", "focus": "key/1", "rail_open": 0, "state": {"zone": "keys", "text": "", "list": "recent", "rows": "5", "recent": "6", "matches": "10", "matches_load": "ready"}, "asked": ["search-history", "section:trending"]}
+  },
+  {
+   "name": "search-suggestions",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "right", "wait": 0.15}, {"press": "right", "wait": 0.15}, {"press": "right"}],
+   "expect": {"screen": "search", "focus": "key/r", "state": {"zone": "keys", "text": "auro", "list": "suggestions", "rows": "5", "suggest": "ready", "matches_for": "auro"}, "asked": ["search-suggest:auro", "search-preview:auro"]}
+  },
+  {
+   "name": "search-typing",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.08}, {"press": "down", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "up", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "left", "wait": 0.08}, {"press": "left", "wait": 0.08}, {"press": "left", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "search", "focus": "key/o", "state": {"text": "auro", "list": "suggestions", "rows": "5", "suggest": "ready", "matches_for": "auro"}, "asked": ["search-suggest:a", "search-suggest:au", "search-suggest:aur", "search-suggest:auro", "search-preview:auro"]}
+  },
+  {
+   "name": "search-typing-first-letter",
+   "fixture": "signed-in",
+   "source": {"delay": 30},
+   "settle": 2.5,
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.08}, {"press": "down", "wait": 0.08}, {"press": "cross", "wait": 0.3}],
+   "expect": {"screen": "search", "focus": "key/a", "state": {"text": "a", "list": "none", "suggest": "loading", "matches": "10", "matches_for": ""}}
+  },
+  {
+   "name": "search-capital",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "l2", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "cross", "wait": 0.3}, {"press": "l2"}],
+   "expect": {"screen": "search", "focus": "key/q", "state": {"text": "Q", "shift": "once", "layout": "letters", "rows": "3", "matches": "4"}, "asked": ["search-suggest:Q", "search-preview:Q"]}
+  },
+  {
+   "name": "search-symbols",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "square", "wait": 0.2}, {"press": "r2", "wait": 0.2}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "cross", "wait": 0.2}, {"press": "triangle"}],
+   "expect": {"screen": "search", "focus": "key/-", "state": {"text": "aur- ", "layout": "symbols"}}
+  },
+  {
+   "name": "search-suggestion-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "left", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "right", "wait": 0.2}, {"press": "left"}],
+   "expect": {"screen": "search", "focus": "suggestion/2", "state": {"zone": "list", "text": "auro"}}
+  },
+  {
+   "name": "search-suggestion-picked",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left", "wait": 0.2}, {"press": "cross", "wait": 0.9}],
+   "expect": {"screen": "results", "moving": 0, "state": {"query": "aurora chasing at -30", "load": "ready"}, "asked": ["search:aurora chasing at -30"]}
+  },
+  {
+   "name": "search-clear-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "left", "wait": 0.15}, {"press": "right"}],
+   "expect": {"screen": "search", "focus": "field/clear", "state": {"zone": "list", "text": "auro"}}
+  },
+  {
+   "name": "search-cleared",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "left", "wait": 0.15}, {"press": "right", "wait": 0.15}, {"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "search", "focus": "field", "state": {"zone": "list", "text": "", "list": "recent", "rows": "5", "matches_for": ""}}
+  },
+  {
+   "name": "search-recent-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left"}],
+   "expect": {"screen": "search", "focus": "recent/0", "state": {"zone": "list", "list": "recent"}}
+  },
+  {
+   "name": "search-recent-picked",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left", "wait": 0.2}, {"press": "cross", "wait": 0.9}],
+   "expect": {"screen": "results", "state": {"query": "aurora chasing", "load": "ready"}, "asked": ["search:aurora chasing"]}
+  },
+  {
+   "name": "search-recent-removed",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left", "wait": 0.2}, {"press": "square", "wait": 0.8}],
+   "expect": {"screen": "search", "focus": "recent/0", "state": {"zone": "list", "list": "recent", "rows": "5", "recent": "5"}, "asked": ["search-history:forget:7"]}
+  },
+  {
+   "name": "search-recent-clear-asked",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left", "wait": 0.2}, {"press": "triangle", "wait": 0.5}, {"press": "circle", "wait": 0.5}, {"press": "triangle", "wait": 0.6}],
+   "expect": {"screen": "search", "dialog": 1, "state": {"recent": "6"}}
+  },
+  {
+   "name": "search-recent-cleared",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left", "wait": 0.2}, {"press": "triangle", "wait": 0.5}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "search", "dialog": 0, "focus": "field", "state": {"zone": "list", "list": "none", "rows": "0", "recent": "0"}, "asked": ["search-history:clear:1"]}
+  },
+  {
+   "name": "search-matches-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.3}, {"press": "cross", "wait": 0.4}],
+   "expect": {"screen": "search", "focus": "matches/2", "state": {"zone": "matches"}, "played": "blueHourNth"}
+  },
+  {
+   "name": "search-matches-end",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.2}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.8}],
+   "expect": {"screen": "search", "focus": "matches/7", "state": {"zone": "matches", "matches": "8"}}
+  },
+  {
+   "name": "search-matches-details",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.2}, {"press": "triangle", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "placeholder", "state": {"argument": "blueHourNth"}}
+  },
+  {
+   "name": "search-done-key",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.2}, {"press": "up", "wait": 0.2}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.3}],
+   "expect": {"screen": "search", "focus": "key/done", "state": {"zone": "keys"}}
+  },
+  {
+   "name": "search-submitted",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "aurora"},
+   "steps": [{"press": "options", "wait": 1.2}],
+   "expect": {"screen": "results", "moving": 0, "focus": "cell/1", "state": {"query": "aurora", "load": "ready"}, "asked": ["search:aurora"]}
+  },
+  {
+   "name": "search-hand-over",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "aurora"},
+   "steps": [{"press": "options", "wait": 0.14}],
+   "expect": {"screen": "results", "moving": 1}
+  },
+  {
+   "name": "search-submit-nothing",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "triangle", "wait": 0.2}, {"press": "options", "wait": 0.5}],
+   "expect": {"screen": "search", "focus": "key/1", "state": {"text": " "}}
+  },
+  {
+   "name": "search-back-from-results",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "options", "wait": 0.9}, {"press": "circle", "wait": 0.9}],
+   "expect": {"screen": "search", "moving": 0, "focus": "key/q", "state": {"text": "aurora", "list": "suggestions", "recent": "7"}}
+  },
+  {
+   "name": "search-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "search"},
+   "steps": [{"press": "left", "wait": 0.2}, {"press": "left", "wait": 0.6}],
+   "expect": {"screen": "search", "rail_open": 1, "focus": "rail/search"}
+  },
+  {
+   "name": "search-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "search"},
+   "expect": {"screen": "search", "focus": "key/1", "state": {"history": "loading", "matches_load": "loading", "list": "none"}}
+  },
+  {
+   "name": "search-loading-suggestions",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "search", "argument": "auro"},
+   "expect": {"screen": "search", "state": {"suggest": "loading", "matches_load": "loading", "list": "none"}}
+  },
+  {
+   "name": "search-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down"}],
+   "expect": {"screen": "search", "focus": "key/shift", "state": {"zone": "keys", "suggest": "offline", "matches_load": "offline", "history": "offline", "matches": "0"}}
+  },
+  {
+   "name": "search-failed",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "nothing here"},
+   "expect": {"screen": "search", "state": {"suggest": "failed", "matches_load": "failed", "rows": "0"}}
+  },
+  {
+   "name": "search-no-matches",
+   "fixture": "signed-in",
+   "route": {"screen": "search", "argument": "zzzz"},
+   "expect": {"screen": "search", "state": {"suggest": "ready", "rows": "0", "matches": "0", "matches_load": "ready"}}
+  },
+  {
+   "name": "search-guest",
+   "fixture": "guest",
+   "route": {"screen": "search"},
+   "expect": {"screen": "search", "focus": "key/1", "state": {"list": "none", "recent": "0", "history": "ready", "matches": "10"}}
+  },
+  {
+   "name": "search-empty",
+   "fixture": "empty",
+   "route": {"screen": "search"},
+   "steps": [{"press": "left", "wait": 0.2}, {"press": "down"}],
+   "expect": {"screen": "search", "focus": "field", "state": {"zone": "list", "list": "none", "recent": "0", "matches": "0", "matches_load": "ready"}}
+  },
+  {
+   "name": "search-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "search", "argument": "polarlichtjagd bei minus dreissig grad in nordnorwegen die komplette dokumentation in voller laenge"},
+   "steps": [{"press": "down", "wait": 0.15}, {"press": "left"}],
+   "expect": {"screen": "search", "focus": "suggestion/0", "state": {"list": "suggestions", "rows": "5", "matches": "6"}}
+  },
+  {
+   "name": "search-long-recent",
+   "fixture": "long-texts",
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.2}, {"press": "left", "wait": 0.1}, {"press": "left", "wait": 0.6}],
+   "expect": {"screen": "search", "focus": "matches/0", "state": {"list": "recent", "rows": "5", "zone": "matches"}}
+  },
+  {
+   "name": "search-reduced-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "settle": 0.4,
+   "route": {"screen": "search", "argument": "auro"},
+   "steps": [{"press": "down", "wait": 0.05}, {"press": "left", "wait": 0.05}],
+   "expect": {"screen": "search", "focus": "suggestion/0", "state": {"text": "auro", "rows": "5"}}
+  }
+ ]
+}

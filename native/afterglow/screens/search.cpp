@@ -36,8 +36,10 @@ constexpr float kStripTitle = 716.0f; // baseline of "Best matches"
 constexpr float kStripTop = 740.0f;
 constexpr int kStripCards = 10;
 constexpr int kStripBones = 5;
+constexpr float kBoneTitle = 46.0f; // the room under a card's bone for its title
 constexpr float kDebounce = 0.12f; // seconds after the last key before anything is asked
 constexpr int kRecentRows = 5;
+constexpr int kQueryLength = 120; // characters a query may have
 
 char lower(char c)
 {
@@ -78,6 +80,7 @@ class Search final : public Screen
         keys_.style.exits.down = true;
         // Opening the results is the frame's sound; Done adds none of its own.
         keys_.style.sounds.activate = audio::Cue::count;
+        keys_.style.max_length = kQueryLength; // the keyboard refuses where the field is full
         keys_.set_bounds(kKeys);
         keys_.on_text = [this](std::string_view utf8)
         {
@@ -99,7 +102,7 @@ class Search final : public Screen
         field_.style.detail_size = 20.0f;
         field_.style.max_rows = kRecentRows;
         field_.style.max_recent = kRecentRows;
-        field_.style.max_length = 120;
+        field_.style.max_length = kQueryLength;
         field_.style.debounce = kDebounce;
         field_.style.remember = false; // the provider keeps the history, not the field
         field_.style.exits.left = true;
@@ -110,11 +113,20 @@ class Search final : public Screen
         field_.set_bounds({kLeft, kFieldTop, kFieldWidth, field_.preferred_height()});
         field_.set_active(true);
 
+        // Bones in the shape of what they stand for: a card with its one line of
+        // title, and the rows of the recent searches.
         for (ui::Skeleton &bone : bones_)
         {
-            bone.style.kind = ui::SkeletonKind::block;
+            bone.style.kind = ui::SkeletonKind::card;
+            bone.style.picture = kCardH / (kCardH + kBoneTitle);
+            bone.style.lines = 0;
             bone.style.radius = kRadiusThumb;
         }
+        rows_bone_.style.kind = ui::SkeletonKind::line;
+        rows_bone_.style.lines = 4;
+        rows_bone_.style.line_height = 20.0f;
+        rows_bone_.style.line_gap = 38.0f;
+        rows_bone_.style.last_line = 0.55f;
         ring_.snap(card_rect(0, 0.0f));
     }
 
@@ -128,7 +140,9 @@ class Search final : public Screen
         data_ = &context.services.data;
         if (restored)
         {
-            // Back from the results or a video: the text, the zone and the focus stay.
+            // Back from the results or a video: the text, the zone and the focus
+            // stay. A search that ran is in the provider's history now.
+            data_->forget(search::kHistory);
             if (!field_.text().empty() && field_.suggestions().empty())
                 field_.refresh(); // a picked completion closed the list: open it again
             return;
@@ -174,6 +188,7 @@ class Search final : public Screen
         keys_.update(context.dt);
         for (ui::Skeleton &bone : bones_)
             bone.update(context.dt);
+        rows_bone_.update(context.dt);
         const float start = static_cast<float>(match_index_) * kCardPitch;
         scroll_.reveal(start, start + kCardW, kRight - kLeft, kCardPitch * 0.5f);
         scroll_.update(context.dt, context.reduced_motion ? 60.0f : 12.0f);
@@ -182,11 +197,21 @@ class Search final : public Screen
         ring_amount_.target = zone_ == Zone::matches ? 1.0f : 0.0f;
         ring_amount_.update(context.dt, context.reduced_motion ? 60.0f : 20.0f);
         nudge_.update(context.dt, 9.0f);
+        // The pictures the strip is about to draw are asked for here, a frame
+        // before they are drawn (and before the one picture a board takes).
+        for (std::size_t i = 0; i < matches_.size(); ++i)
+        {
+            const Rect r = card_rect(static_cast<int>(i), scroll_.position.target);
+            if (r.x < gfx::kVirtualWidth && r.x + r.w > kRail)
+                context.services.images.get(matches_[i].thumb, PictureSize::card);
+        }
         if (context.top)
         {
             // The page takes the colour of the best match, or of the card in focus.
             const std::size_t lit = zone_ == Zone::matches ? static_cast<std::size_t>(match_index_) : 0u;
-            context.nav.ambient(lit < matches_.size() ? matches_[lit].thumb : std::string());
+            const std::string picture = lit < matches_.size() ? matches_[lit].thumb : std::string();
+            context.services.images.get(picture, PictureSize::ambient);
+            context.nav.ambient(picture);
         }
         set_hints();
     }
@@ -200,7 +225,7 @@ class Search final : public Screen
         {
             Enter enter(g, arrive(1, 0.06f, 0.5f), 20.0f);
             field_.draw(canvas);
-            draw_list_note(g);
+            draw_list_note(g, canvas);
         }
         {
             // The keyboard rises into place.
@@ -378,6 +403,7 @@ class Search final : public Screen
     {
         keys_.style.theme = look.theme;
         field_.style.theme = look.theme;
+        rows_bone_.style.theme = look.theme;
         for (ui::Skeleton &bone : bones_)
             bone.style.theme = look.theme;
     }
@@ -390,12 +416,14 @@ class Search final : public Screen
         field_.style.reduced_motion = reduced;
         field_.style.recent_title = tr("Recent searches");
         field_.set_placeholder(tr("Search YouTube"));
+        rows_bone_.style.reduced_motion = reduced;
         for (ui::Skeleton &bone : bones_)
             bone.style.reduced_motion = reduced;
-        // While an answer is on its way the list says nothing rather than "nothing found".
-        field_.style.empty_text = waiting_ ? std::string()
-                                  : suggest_load_ == model::Load::ready ? std::string(tr("No suggestions"))
-                                                                        : std::string(tr("Suggestions are not available"));
+        // While an answer is on its way, and for a text of spaces, the list says
+        // nothing rather than "nothing found".
+        field_.style.empty_text = waiting_ || trimmed(field_.text()).empty() ? std::string()
+                                  : suggest_load_ == model::Load::ready      ? std::string(tr("No suggestions"))
+                                                                             : std::string(tr("Suggestions are not available"));
     }
 
     // ---- data --------------------------------------------------------------------
@@ -526,7 +554,10 @@ class Search final : public Screen
     void read_history(Data &data, UpdateContext &context)
     {
         const Page &list = data.catalog(search::kHistory);
-        history_load_ = list.load;
+        const bool answered = list.load != model::Load::loading && list.load != model::Load::idle;
+        if (answered || !history_known_)
+            history_load_ = list.load; // a later reading of the list is not a loading state again
+        history_known_ = history_known_ || answered;
         if (list.load == model::Load::ready)
         {
             const std::string seen = signature(list);
@@ -537,24 +568,27 @@ class Search final : public Screen
                     adopt(list);
             }
         }
-        if (actions_.empty())
-            return;
-        // REQUEST: forgetting is asked for as the provider's own rows through
-        // catalog(); the data layer needs a door for actions (requests/A.md).
-        const Page &answer = data.catalog(actions_.front());
-        if (answer.load == model::Load::ready)
+        // Forgetting one search or all of them is a row of the provider that
+        // acts; its answer is what is left.
+        while (!actions_.empty())
         {
+            const Page &answer = data.action(actions_.front());
+            if (answer.load == model::Load::loading)
+                break;
+            const bool last = actions_.size() == 1;
+            if (answer.load == model::Load::ready && last)
+            {
+                adopt(answer);
+            }
+            else if (answer.load == model::Load::failed || answer.load == model::Load::offline)
+            {
+                context.nav.toast(answer.error.empty() ? std::string(tr("The recent searches could not be changed.")) : answer.error,
+                                  ToastKind::error);
+                history_seen_.clear(); // nothing was forgotten: the list is whatever the provider says next
+            }
             actions_.erase(actions_.begin());
             if (actions_.empty())
-                adopt(answer); // what the provider says is left
-        }
-        else if (answer.load == model::Load::failed || answer.load == model::Load::offline)
-        {
-            actions_.clear();
-            context.nav.toast(answer.error.empty() ? std::string(tr("The recent searches could not be changed.")) : answer.error,
-                              ToastKind::error);
-            if (list.load == model::Load::ready)
-                adopt(list); // nothing was forgotten: the list is what it was
+                data.forget(search::kHistory); // from here on the list is read from the provider again
         }
     }
 
@@ -699,7 +733,7 @@ class Search final : public Screen
         recents_.erase(recents_.begin() + index);
         sync_recent();
         if (!entry.serial.empty())
-            actions_.push_back(std::string(search::kHistoryForget) + entry.serial);
+            actions_.push_back(context.services.data.act(std::string(search::kHistoryForget) + entry.serial));
         context.feedback.play(audio::Cue::erase, 1.0f, ui::pan_for_x(field_.field_rect().cx()));
     }
 
@@ -712,7 +746,7 @@ class Search final : public Screen
             {
                 recents_.clear();
                 sync_recent();
-                actions_.push_back(clear_row_);
+                actions_.push_back(context.services.data.act(clear_row_));
                 context.nav.toast(tr("Recent searches cleared"), ToastKind::success);
             }
             *clear_answer_ = 0;
@@ -756,7 +790,6 @@ class Search final : public Screen
                                     [answer](bool yes) { *answer = yes ? 1 : -1; });
                 return;
             }
-            const float from_y = list_focus_y();
             const ui::Event event = field_.handle(in, context.feedback);
             if (event == ui::Event::activated)
             {
@@ -784,7 +817,6 @@ class Search final : public Screen
                 context.nav.open_rail();
             else if (field_.exit() == Direction::down)
                 to_matches(context, input, kLeft + kCardW * 0.5f);
-            (void)from_y;
         }
         else
         {
@@ -880,7 +912,7 @@ class Search final : public Screen
     // ---- drawing -----------------------------------------------------------------
 
     // What stands under the field while its list has nothing to show.
-    void draw_list_note(G &g) const
+    void draw_list_note(G &g, ui::Canvas &canvas) const
     {
         if (!field_.text().empty() || shown_rows() > 0)
             return;
@@ -891,12 +923,9 @@ class Search final : public Screen
         if (history_load_ == model::Load::loading || history_load_ == model::Load::idle)
         {
             // The recent searches are on their way: their rows as bones.
-            for (int i = 0; i < 4; ++i)
-            {
-                const float pulse = g.reduced ? 0.8f : 0.6f + 0.4f * ui::breathe(g.time + 0.12f * static_cast<float>(i), 1.7f);
-                g.l.rounded_rect({x, top + 26.0f + 58.0f * static_cast<float>(i), width * (i == 3 ? 0.4f : 0.62f - 0.08f * static_cast<float>(i)), 22.0f},
-                                 11.0f, g.k.raised.with_alpha(g.k.raised.a * pulse));
-            }
+            ui::Skeleton bone = rows_bone_;
+            bone.set_bounds({x, top + 27.0f, width * 0.6f, 4.0f * 58.0f});
+            bone.draw(canvas);
             return;
         }
         if (history_load_ != model::Load::ready)
@@ -919,8 +948,16 @@ class Search final : public Screen
         {
             Enter enter(g, in, 26.0f);
             const std::string typed = trimmed(field_.text());
-            const std::string heading = typed.empty() ? std::string(tr("Popular right now")) : fill(tr("Best matches for \xE2\x80\x9C{0}\xE2\x80\x9D"), typed);
-            text(g, g.f.semibold, fit(g.f.semibold, heading, kTypeShelf, kRight - kLeft), kLeft, kStripTitle, kTypeShelf, g.k.ink);
+            // Nothing typed and nothing popular to show: the strip says what it is for.
+            const bool idle = typed.empty() && match_load_ == model::Load::ready && matches_.empty();
+            // Typographic quotes where the face has them (a language's own in its catalog), plain ones where not.
+            const char *quoted = tr("Best matches for \xE2\x80\x9C{0}\xE2\x80\x9D");
+            const std::string heading = typed.empty() ? std::string(tr("Popular right now"))
+                                                      : fill(covers(g.f.semibold, quoted) ? quoted : tr("Best matches for \"{0}\""), typed);
+            if (!idle)
+                text(g, g.f.semibold, fit(g.f.semibold, heading, kTypeShelf, kRight - kLeft), kLeft, kStripTitle, kTypeShelf, g.k.ink);
+            // The strip runs off the right edge of the screen: the fifth card says there is more.
+            g.l.push_clip({kRail, kStripTop - 60.0f, gfx::kVirtualWidth - kRail, 340.0f});
 
             if (match_load_ == model::Load::loading)
             {
@@ -928,7 +965,8 @@ class Search final : public Screen
                 {
                     Enter card(g, arrive(5 + i, 0.05f, 0.45f), 24.0f);
                     ui::Skeleton bone = bones_[static_cast<std::size_t>(i)];
-                    bone.set_bounds(card_rect(i, 0.0f));
+                    const Rect r = card_rect(i, 0.0f);
+                    bone.set_bounds({r.x, r.y, r.w, r.h + kBoneTitle});
                     bone.draw(canvas);
                 }
             }
@@ -939,17 +977,18 @@ class Search final : public Screen
                 text(g, g.f.semibold,
                      fit(g.f.semibold, offline ? tr("The YouTube service cannot be reached") : tr("The best matches could not be loaded"), kTypeBody, 1100.0f),
                      kLeft + 64.0f, kStripTop + 30.0f, kTypeBody, g.k.ink);
-                const std::string detail = offline ? std::string(tr("You can still type a search. It runs when the service is back; recent searches stay on this PS5."))
+                const std::string detail = offline ? std::string(tr("Recent searches stay on this PS5. A search you type can run when the connection is back."))
                                            : match_error_.empty() ? std::string(tr("Press Options to run the search anyway.")) : match_error_;
                 paragraph(g, g.f.regular, detail, kLeft + 64.0f, kStripTop + 68.0f, kTypeMeta, 1100.0f, 30.0f, g.k.ink2, 3);
             }
             else if (matches_.empty())
             {
                 icon(g, Icon::search, kLeft + 22.0f, kStripTop + 34.0f, 40.0f, g.k.ink3);
-                text(g, g.f.semibold, fit(g.f.semibold, tr("Nothing matches yet"), kTypeBody, 1100.0f), kLeft + 64.0f, kStripTop + 30.0f,
-                     kTypeBody, g.k.ink2);
-                paragraph(g, g.f.regular, tr("Keep typing, or press Options to search for exactly this."), kLeft + 64.0f, kStripTop + 68.0f,
-                          kTypeMeta, 1100.0f, 30.0f, g.k.ink3, 2);
+                text(g, g.f.semibold, fit(g.f.semibold, idle ? tr("Type to search YouTube") : tr("Nothing matches yet"), kTypeBody, 1100.0f),
+                     kLeft + 64.0f, kStripTop + 30.0f, kTypeBody, g.k.ink2);
+                paragraph(g, g.f.regular,
+                          idle ? tr("The best matches appear here while you type.") : tr("Keep typing, or press Options to search for exactly this."),
+                          kLeft + 64.0f, kStripTop + 68.0f, kTypeMeta, 1100.0f, 30.0f, g.k.ink3, 2);
             }
             else
             {
@@ -978,10 +1017,13 @@ class Search final : public Screen
                     focus_ring(g, at, kRadiusThumb, context.images.get(matches_[static_cast<std::size_t>(match_index_)].thumb, PictureSize::card).glow, lit);
                 }
             }
+            g.l.pop_clip();
         }
-        // The foot of the page stays clean for the hints, whatever is behind them.
-        g.l.gradient_rect({kRail, 960.0f, gfx::kVirtualWidth - kRail, 44.0f}, 0.0f, g.k.base.with_alpha(0.0f), g.k.base.with_alpha(0.9f));
-        g.l.rounded_rect({kRail, 1004.0f, gfx::kVirtualWidth - kRail, 76.0f}, 0.0f, g.k.base.with_alpha(0.9f));
+        // The foot of the page stays clean for the hints, whatever is behind them
+        // (lighter on a light page, where a full scrim would show as a pale band).
+        const float scrim = g.k.dark ? 0.9f : 0.55f;
+        g.l.gradient_rect({kRail, 960.0f, gfx::kVirtualWidth - kRail, 44.0f}, 0.0f, g.k.base.with_alpha(0.0f), g.k.base.with_alpha(scrim));
+        g.l.rounded_rect({kRail, 1004.0f, gfx::kVirtualWidth - kRail, 76.0f}, 0.0f, g.k.base.with_alpha(scrim));
     }
 
     Route route_;
@@ -989,6 +1031,7 @@ class Search final : public Screen
     mutable ui::Keyboard keys_;
     mutable ui::SearchField field_;
     mutable std::array<ui::Skeleton, kStripBones> bones_;
+    mutable ui::Skeleton rows_bone_;
     Zone zone_ = Zone::keys;
     Zone return_zone_ = Zone::keys; // where Up from the strip leads back to
     float age_ = 0.0f;
@@ -1006,8 +1049,9 @@ class Search final : public Screen
     std::string note_title_;           // the provider's notice when there is none
     std::string note_state_;           // its fact "state": "off", "empty" or ""
     std::string history_seen_;         // the "search-history" answer the list was taken from
-    std::vector<std::string> actions_; // forgetting that has been asked and not answered
+    std::vector<unsigned> actions_;    // forgetting that has been asked and not answered: Data's tickets
     model::Load history_load_ = model::Load::idle;
+    bool history_known_ = false;
     std::shared_ptr<int> clear_answer_ = std::make_shared<int>(0); // 1 yes, -1 no
 
     // Best matches.
