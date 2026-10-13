@@ -17,14 +17,14 @@
   "expect": {"screen": "home", "focus": "continue/1", "cues": "focus open back", "pulses": 0}},
 
  {"name": "sound-frame-rail",
-  "fixture": "guest", "route": {"screen": "comments", "title": "Comments"},
+  "fixture": "guest", "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "circle"}],
-  "expect": {"screen": "comments", "rail_open": 0, "cues": "focus focus focus back", "pulses": 0}},
+  "expect": {"screen": "reader", "rail_open": 0, "cues": "open focus focus back", "pulses": 0}},
 
  {"name": "sound-frame-rail-destination",
-  "fixture": "guest", "route": {"screen": "comments", "title": "Comments"},
+  "fixture": "guest", "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
-  "expect": {"screen": "library", "rail_open": 0, "cues": "focus focus focus focus tab", "pulses": 0}},
+  "expect": {"screen": "library", "rail_open": 0, "cues": "open focus focus focus tab", "pulses": 0}},
 
  {"name": "sound-reader-end-of-text",
   "fixture": "guest", "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
@@ -34,6 +34,11 @@
  {"name": "sound-home-opening",
   "fixture": "signed-in", "opening": true, "source": {"hold": true}, "settle": 1.5,
   "expect": {"screen": "opening", "focus": "opening", "cues": "welcome", "pulses": 0}},
+
+ {"name": "sound-home-opening-leaves",
+  "about": "The opening hands over to Home in silence: the welcome is its only sound.",
+  "fixture": "signed-in", "opening": true, "settle": 5.5,
+  "expect": {"screen": "home", "cues": "welcome", "pulses": 0}},
 
  {"name": "sound-home-attract",
   "fixture": "signed-in", "attract_after": 2.5, "settle": 6.0,

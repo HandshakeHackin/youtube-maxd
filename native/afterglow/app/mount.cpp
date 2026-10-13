@@ -366,34 +366,17 @@ extern "C" void tube_afterglow_input(uint32_t pressed, uint32_t held)
                : (pad & hui::pad_bits::kRight) != 0 ? afterglow::Direction::right
                                                     : afterglow::Direction::none;
     };
-    // A direction that stays down repeats: after 0.4 s, then every 0.1 s. Screens answer a repeat as
-    // a move and stay silent at an edge (input.nav_repeat).
-    static afterglow::Direction held_direction = afterglow::Direction::none;
-    static double held_since = 0.0;
-    static double repeated_at = 0.0;
-    const double now = afterglow::monotonic_seconds();
+    // EVO's pad repeats a direction that stays down by itself: it is in `pressed` again after 220 ms
+    // and then faster. Such a press is a repeat when the same direction was already down at the call
+    // before; screens answer a repeat as a move and stay silent at an edge (input.nav_repeat).
+    static afterglow::Direction down_before = afterglow::Direction::none;
     const afterglow::Direction down = direction_of(pressed);
-    const afterglow::Direction still = direction_of(held);
     if (down != afterglow::Direction::none)
     {
         input.nav = down;
-        input.nav_repeat = false;
-        held_direction = down;
-        held_since = repeated_at = now;
+        input.nav_repeat = down == down_before;
     }
-    else if (still != afterglow::Direction::none && still == held_direction)
-    {
-        if (now - held_since >= 0.4 && now - repeated_at >= 0.1)
-        {
-            input.nav = still;
-            input.nav_repeat = true;
-            repeated_at = now;
-        }
-    }
-    else
-    {
-        held_direction = afterglow::Direction::none;
-    }
+    down_before = direction_of(held);
 }
 
 extern "C" int tube_afterglow_take_play(char *item, size_t item_size, char *title, size_t title_size, int *is_live, long long *resume_sec)

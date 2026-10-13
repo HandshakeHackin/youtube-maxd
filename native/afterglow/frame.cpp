@@ -423,8 +423,11 @@ void Frame::apply_requests()
             feedback_.play(audio::Cue::select, 1.0f, -0.5f);
         else
         {
+            // The opening hands over to Home in silence: the welcome is its sound.
+            const bool from_opening = !stack_.empty() && stack_.back()->screen->id() == ScreenId::opening;
             open(request_route_, Move::fade);
-            feedback_.play(audio::Cue::tab);
+            if (!from_opening)
+                feedback_.play(audio::Cue::tab);
         }
     }
     if (request_rail_)
@@ -435,7 +438,7 @@ void Frame::apply_requests()
             rail_open_ = true;
             rail_focus_ = active_destination();
             rail_pos_.snap(static_cast<float>(rail_focus_));
-            feedback_.play(audio::Cue::focus, 1.0f, -0.5f);
+            feedback_.play(audio::Cue::open, 1.0f, -0.5f);
         }
     }
 }

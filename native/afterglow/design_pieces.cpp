@@ -104,6 +104,9 @@ void wear(ui::ComponentStyle &style, const Look &look, bool reduced)
 {
     style.theme = look.theme;
     style.sounds.set = look.theme.sounds;
+    // The kit's keyboard and dialog ask for a pulse on every key and button; the design has none on
+    // typing or sheets (design notes, section 9). The interface's pulses are its screens' own.
+    style.sounds.rumble = 0.0f;
     style.reduced_motion = reduced;
 }
 

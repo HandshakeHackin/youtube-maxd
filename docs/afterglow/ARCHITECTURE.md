@@ -63,6 +63,8 @@ native/afterglow/
   frame.hpp/.cpp      the stack, hand-overs, input routing, attract mode
   frame_draw.cpp      page ground, rail, header, hints, snapshot
   sheet.hpp/.cpp      the frame's sheets: a row's actions, a text that is typed
+  sound/              what a step's cues and pulses become: recordings, rules, the port and the pad
+                      (requests/S.md describes it; sound/app/ is the console's side)
   strings.cpp         the running platform, tr(), screen names
   screens/
     stubs.cpp         a weak placeholder for every screen
@@ -742,8 +744,12 @@ glyphs are added, because the batch has no one-channel update; 1024-pixel
 pages keep that at 4 MiB a time); the system fonts being found and read from
 `/preinst/common/font`; pictures through EVO's network and `stb_image`, one
 decode a frame; panels without the blur (solid, as designed for this backend);
-frame time and `fill` at 4K; the clock's time zone; sounds (cues are collected
-by the frame and not played yet).
+frame time and `fill` at 4K; the clock's time zone; sound and vibration
+(`native/afterglow/sound` plays what a step asked for on an AudioOut port of
+its own, opened on a worker thread at the first voice, and pulses the pad:
+never run on hardware; `requests/S.md` lists what a session has to confirm,
+and the session keeps the module silent with `afterglow-sound.off` and
+`afterglow-vibration.off` until its last step).
 
 ## 12b. The player package
 
@@ -934,6 +940,13 @@ the fixtures stand in).
 | F 9 (the password asked at start) | done in the mount |
 | F 11 (wording that differs from boards 35 and 41) | stands: the texts say what the app does |
 | drv 1 to 7 | done (`stats`, `focus.kind`, `focus.live`, the rail's `focusable`, JSON whatever the texts are) |
+| S 1 (the preferences `settings:ui:sounds`, `:sound-volume`, `:sounds-playback`, `:quiet-hours`, `:quiet-from`, `:quiet-until`, `:vibration`, `:reduced-motion`) | bridge; the Interface page of Settings shows them when the provider lists them. Until then the defaults apply |
+| S 2 (a repeat of the pad is a repeat) | done in the mount: a direction pressed while it was down at the call before has `nav_repeat` |
+| S 3 (no `tab` when the opening hands over to Home; the rail opens with `open`) | done |
+| S 4 (no pulse from the kit's keyboard and dialog) | done: `wear()` sets the component's rumble to 0; the interface's pulses are its screens' own |
+| S 5 (the moments by their own names: `sound::kPause`, `kSeekCommit`, `kSkip`, `kSignedIn`, `kCountdown`, `kCountdownDone`) | a rule for every screen and for the player package: a moment that has a name in `sound/cues.hpp` is played by that name |
+| S 6 (the player steps the app's `Sound` with its `Situation`, applies `video_gain()`) | the player package's (H) |
+| S 7 (documents) | done here and in `THIRD_PARTY_NOTICES.md` |
 
 ## 12. What is left, as work packages
 

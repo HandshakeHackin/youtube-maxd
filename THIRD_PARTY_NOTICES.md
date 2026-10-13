@@ -130,3 +130,10 @@ V3, preserved at `native/licenses/Unicode-3.0.txt` and copied into native assets
   Regular and SemiBold and Montserrat Medium (SIL Open Font License 1.1) and
   DejaVu Sans Mono (Bitstream Vera and DejaVu licences). Their licence texts
   ship under `assets/prosperotube-notices`.
+* The Afterglow interface's sounds (`native/afterglow/sound`) are recordings
+  of the same kit's two sound sets (`assets/audio/sfx`, glass and paper),
+  shipped unchanged as `assets/hui/afterglow/sfx`. The kit's notices say of
+  them: generated with ElevenLabs Sound Effects v2 and prepared with the kit's
+  own tool, Copyright (C) 2026 BlackBearReloaded, GPL-3.0-or-later. The
+  package lists every file and where it comes from in
+  `assets/prosperotube-notices/afterglow-sounds.txt`.
