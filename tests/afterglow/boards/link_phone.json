@@ -1,0 +1,172 @@
+{
+ "about": "Linking the YouTube app on a phone: the TV code in groups beside a phone that types it, the phones linked now, the connection switch, and the three settings around the connection on a sheet.",
+ "boards": [
+  {
+   "name": "link_phone-code",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 4.75,
+   "expect": {"screen": "link_phone", "focus": "code", "rail_open": 0,
+              "state": {"load": "ready", "state": "ready", "code": "482913057261", "connection": "on", "devices": "1", "sheet": "0"},
+              "asked": ["settings:remote"]}
+  },
+  {
+   "name": "link_phone-arriving",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 0.42,
+   "expect": {"screen": "link_phone", "state": {"state": "ready"}}
+  },
+  {
+   "name": "link_phone-off",
+   "fixture": "guest",
+   "route": {"screen": "link_phone"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "off", "code": "", "connection": "off", "devices": "0"}}
+  },
+  {
+   "name": "link_phone-asking-for-a-code",
+   "fixture": "guest",
+   "source": {"delay": 60},
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "cross"}, {"wait": 1.5}],
+   "expect": {"screen": "link_phone", "state": {"state": "connecting", "code": "", "connection": "on"}, "asked": ["settings:remote:pair"]}
+  },
+  {
+   "name": "link_phone-connecting",
+   "fixture": "phone-linking",
+   "route": {"screen": "link_phone"},
+   "settle": 3.0,
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "connecting", "code": "", "connection": "on"}}
+  },
+  {
+   "name": "link_phone-new-code",
+   "fixture": "signed-in",
+   "source": {"delay": 60},
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "cross"}, {"wait": 1.6}],
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "ready", "code": "905117362448"}, "asked": ["settings:remote:pair"]}
+  },
+  {
+   "name": "link_phone-turned-off",
+   "fixture": "signed-in",
+   "source": {"delay": 60},
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "square"}, {"wait": 1.6}],
+   "expect": {"screen": "link_phone", "state": {"state": "off", "code": "", "connection": "off"}, "asked": ["settings:remote:toggle"]}
+  },
+  {
+   "name": "link_phone-more",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"wait": 0.8}],
+   "expect": {"screen": "link_phone", "focus": "option/disconnect", "state": {"sheet": "1"}}
+  },
+  {
+   "name": "link_phone-more-changed",
+   "fixture": "signed-in",
+   "source": {"delay": 60},
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"press": "up"}, {"press": "cross"}, {"wait": 1.5}],
+   "expect": {"screen": "link_phone", "focus": "option/disconnect", "state": {"sheet": "1"}, "asked": ["settings:remote:disconnect"]}
+  },
+  {
+   "name": "link_phone-more-history",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"press": "down"}, {"press": "right"}, {"wait": 0.5}],
+   "expect": {"screen": "link_phone", "focus": "option/history", "state": {"sheet": "1"}}
+  },
+  {
+   "name": "link_phone-reset-question",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "link_phone", "focus": "dialog/0", "state": {"question": "reset", "sheet": "1"}}
+  },
+  {
+   "name": "link_phone-reset",
+   "fixture": "signed-in",
+   "source": {"delay": 60},
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}, {"press": "right"}, {"press": "cross", "wait": 1.15},
+             {"press": "circle"}, {"wait": 0.2}],
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "off", "question": "", "sheet": "0"}, "asked": ["settings:remote:reset"]}
+  },
+  {
+   "name": "link_phone-more-closed",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"wait": 0.5}, {"press": "left"}, {"wait": 0.6}],
+   "expect": {"screen": "link_phone", "focus": "code", "rail_open": 0, "state": {"sheet": "0"}}
+  },
+  {
+   "name": "link_phone-not-in-this-build",
+   "fixture": "guest-only",
+   "route": {"screen": "link_phone"},
+   "steps": [{"press": "cross"}, {"press": "square"}, {"press": "options"}, {"wait": 0.4}],
+   "expect": {"screen": "link_phone", "focus": "unavailable", "state": {"state": "unavailable", "sheet": "0"}}
+  },
+  {
+   "name": "link_phone-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "link_phone"},
+   "settle": 4.3,
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "ready", "code": "482913057", "devices": "3"}}
+  },
+  {
+   "name": "link_phone-long-texts-more",
+   "fixture": "long-texts",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "options"}, {"wait": 0.8}],
+   "expect": {"screen": "link_phone", "focus": "option/disconnect"}
+  },
+  {
+   "name": "link_phone-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "link_phone"},
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"load": "loading"}}
+  },
+  {
+   "name": "link_phone-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "link_phone"},
+   "expect": {"screen": "link_phone", "focus": "action/retry", "state": {"load": "offline"}}
+  },
+  {
+   "name": "link_phone-failed",
+   "fixture": "broken",
+   "route": {"screen": "link_phone"},
+   "steps": [{"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "link_phone", "focus": "action/retry", "state": {"load": "failed"}}
+  },
+  {
+   "name": "link_phone-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "link_phone", "rail_open": 1}
+  },
+  {
+   "name": "link_phone-reduced-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "link_phone"},
+   "settle": 2.5,
+   "expect": {"screen": "link_phone", "focus": "code", "state": {"state": "ready"}}
+  }
+ ]
+}
