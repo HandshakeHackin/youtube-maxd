@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Interface localization: the template and the generated tables are current,
+# every catalog covers the template, the module passes its unit test under the
+# sanitizers, and the provider marks interface rows only.
+set -euo pipefail
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+python3 "${root}/scripts/i18n_extract.py" --check
+python3 "${root}/scripts/i18n_build.py" --check
+python3 - "${root}" <<'PY'
+import json
+import subprocess
+import sys
+root = sys.argv[1]
+report = json.loads(subprocess.check_output([sys.executable, root + "/scripts/i18n_build.py", "--report", "--check"], text=True))
+assert len(report) >= 21, "catalogs are missing"
+for row in report:
+    print(f"{row['tag']:6} {row['name']:22} {row['coverage']:6.2f}%  missing {row['missing']}  stale {row['stale']}")
+    assert row["coverage"] >= 99.0 and not row["stale"], f"{row['tag']}: the catalog does not cover the template"
+# The same rule marks and extracts the texts of the browser document.
+sys.path.insert(0, root + "/scripts")
+from i18n_overlay import rml_localize, rml_texts
+document = open(root + "/native/youtube.rml", encoding="utf-8").read()
+texts = rml_texts(document)
+marked = rml_localize(document)
+assert len(texts) > 30 and "Nothing here yet" in texts and "ProsperoTube" not in texts and "PT" not in texts
+assert marked.count("| tr(i18n) }}") >= len(texts) and rml_texts(marked) == [] and rml_localize(marked) == marked
+assert "{{ 'Nothing here yet' | tr(i18n) }}" in marked and "{{ breadcrumb }}" in marked and "{{ row.title }}" in marked
+assert rml_localize("<p>It's here</p>") == "<p>{{ 'It\\'s here' | tr(i18n) }}</p>"
+assert rml_localize("<p>  Two\n   lines </p>") == "<p>  {{ 'Two lines' | tr(i18n) }} </p>"
+template = {entry["source"] for entry in json.load(open(root + "/native/i18n/template.json", encoding="utf-8"))["strings"]}
+assert all(text in template for text in texts)
+PY
+work="$(python3 "${root}/scripts/prepare_native.py")"
+evo="${work}/projects/evoplayer"
+destination="${root}/build/tests/i18n"
+mkdir -p "${destination}"
+flags=(-std=c11 -D_DEFAULT_SOURCE -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer
+       -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include")
+cc "${flags[@]}" "${root}/tests/test_i18n.c" "${root}/native/tube_i18n.c" -pthread -o "${destination}/test_i18n"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n"
+# The same test with the player interface path forced on: no catalog uses it yet.
+cc "${flags[@]}" -DTUBE_I18N_TEST_KIT "${root}/tests/test_i18n.c" "${root}/native/tube_i18n.c" -pthread -o "${destination}/test_i18n_kit"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n_kit"
+# What prepare_native.py hands to the PS5 build is the module and tables tested here.
+for name in tube_i18n.h tube_i18n_data.h; do cmp "${root}/native/${name}" "${evo}/addons/include/${name}"; done
+cmp "${root}/native/tube_i18n.c" "${evo}/addons/src/tube_i18n.c"
+grep -q "addons/src/tube_i18n.c" "${evo}/Makefile"
+objects=()
+for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${root}/native/tube_player_extra.c" "${root}/native/tube_backup.c" \
+              "${root}/native/tube_phone.c" "${root}/native/tube_i18n.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do
+  object="${destination}/$(basename "${source}" .c).o"
+  cc "${flags[@]}" -c "${source}" -o "${object}"
+  objects+=("${object}")
+done
+cc "${flags[@]}" -I"${root}/tests" "${root}/tests/test_i18n_provider.c" "${objects[@]}" -lm -pthread -o "${destination}/test_i18n_provider"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n_provider"
