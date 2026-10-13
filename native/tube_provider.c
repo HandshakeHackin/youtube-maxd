@@ -2238,6 +2238,57 @@ static void account_removed(void) {
     ++g_accounts_revision;
 }
 
+/* ---- Row facts and the browsing profile (see tube_provider.h). ---- */
+#define ROW_FACTS 1024
+static struct { char row[EVO_PROVIDER_MAX_ITEM_ID], name[24], value[EVO_PROVIDER_MAX_ART_URL]; } g_row_facts[ROW_FACTS];
+static int g_row_fact_used, g_row_fact_next;
+static struct { char id[33], name[64]; } g_profile_name;
+void tube_row_fact(const char *row, const char *name, const char *value) {
+    int slot = -1;
+    if (!row || !*row || !name || !*name || !value || !*value || strlen(name) >= sizeof g_row_facts[0].name) return;
+    for (int i = 0; i < g_row_fact_used && slot < 0; ++i)
+        if (!strcmp(g_row_facts[i].row, row) && !strcmp(g_row_facts[i].name, name)) slot = i;
+    if (slot < 0) {
+        slot = g_row_fact_used < ROW_FACTS ? g_row_fact_used++ : g_row_fact_next;
+        g_row_fact_next = (slot + 1) % ROW_FACTS;
+    }
+    copy(g_row_facts[slot].row, sizeof g_row_facts[slot].row, row);
+    copy(g_row_facts[slot].name, sizeof g_row_facts[slot].name, name);
+    copy(g_row_facts[slot].value, sizeof g_row_facts[slot].value, value);
+}
+int tube_row_fact_at(const char *row, int index, const char **name, const char **value) {
+    for (int i = 0; row && *row && index >= 0 && i < g_row_fact_used; ++i)
+        if (!strcmp(g_row_facts[i].row, row) && !index--) {
+            if (name) *name = g_row_facts[i].name;
+            if (value) *value = g_row_facts[i].value;
+            return 1;
+        }
+    return 0;
+}
+const char *tube_row_fact_get(const char *row, const char *name) {
+    const char *found = NULL, *value = "";
+    for (int i = 0; name && tube_row_fact_at(row, i, &found, &value); ++i) if (!strcmp(found, name)) return value;
+    return "";
+}
+const char *tube_browse_profile(void) { return g_library_profile; }
+const char *tube_browse_profile_name(void) { return !strcmp(g_profile_name.id, g_library_profile) ? g_profile_name.name : ""; }
+int tube_browse_profile_account(void) { return strcmp(g_library_profile, "guest") != 0; }
+/* What a service row says beyond evo_provider_item_t: each value is optional. */
+static void item_facts(const char *id, const cJSON *o) {
+    char badges[96] = ""; const cJSON *badge;
+    tube_row_fact(id, "views", str(o, "views"));
+    tube_row_fact(id, "published", str(o, "published"));
+    tube_row_fact(id, "channel_art_url", tube_art_url_allowed(str(o, "channel_art_url")) ? str(o, "channel_art_url") : "");
+    cJSON_ArrayForEach(badge, cJSON_GetObjectItemCaseSensitive(o, "badges"))
+        if (cJSON_IsString(badge) && strlen(badge->valuestring) < 12 && strlen(badges) + strlen(badge->valuestring) + 2 < sizeof badges) {
+            if (*badges) strcat(badges, ",");
+            strcat(badges, badge->valuestring);
+        }
+    tube_row_fact(id, "badges", badges);
+    if (boolean(o, "is_upcoming")) tube_row_fact(id, "is_upcoming", "1");
+    if (boolean(o, "is_short")) tube_row_fact(id, "is_short", "1");
+}
+
 static void parse_item(evo_provider_item_t *item, const cJSON *o) {
     memset(item, 0, sizeof *item);
     copy(item->id, sizeof item->id, str(o, "id"));
@@ -2256,6 +2307,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
     item->is_live = boolean(o, "is_live");
     item->is_folder = boolean(o, "is_folder");
     item->kind = EVO_MEDIA_VIDEO;
+    item_facts(item->id, o);
 }
 
 static int init_store(void) {
@@ -4162,7 +4214,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_ArrayForEach(o, profiles) {
             if (n >= LOCAL_PAGE || !valid_profile(str(o, "id"))) continue;
             if (!strcmp(str(o, "id"), "guest")) guest = 1;
-            if (!strcmp(str(o, "id"), g_library_profile)) selected = 1;
+            if (!strcmp(str(o, "id"), g_library_profile)) {
+                selected = 1;
+                copy(g_profile_name.id, sizeof g_profile_name.id, g_library_profile);
+                copy(g_profile_name.name, sizeof g_profile_name.name, str(o, "name"));
+            }
             if (!strcmp(str(o, "id"), g_startup_lock)) waiting = 1;
             char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
             folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? g_embedded ? "Account signed in on this PS5" : "Account configured on the companion" : "Browse as guest");
