@@ -70,7 +70,9 @@ Frame::Frame(Platform &platform, Source &source, const ui::Fonts &fonts, const F
       images_(platform), services_{data_, images_, platform, fonts}
 {
     set_platform(&platform_);
-    set_reading_face(&fonts_.regular);
+    // Baked fonts draw a small set of letters: YouTube's texts lose the rest on the way in. The text engine draws them all.
+    if (gfx::Font::shaper == nullptr)
+        set_reading_face(&fonts_.regular);
     rail_destinations();
     set_scheme(options.scheme);
     toasts_.style.anchor = ui::ToastAnchor::top_right;

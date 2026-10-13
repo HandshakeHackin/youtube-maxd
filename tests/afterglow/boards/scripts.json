@@ -1,0 +1,52 @@
+{
+ "about": "Titles in other scripts, drawn by the text engine inside the frame: a Japanese title wrapping to two lines in the hero and its card, an Arabic and a Hebrew title in cards (right to left, cut on the correct side), Korean, Chinese, Hindi, Thai, Greek, Vietnamese, Russian, a title in five scripts with emoji, and German words longer than a line. These boards need the stand-in fonts of the text engine's tests on this PC and are skipped without them.",
+ "boards": [
+  {
+   "name": "scripts-hero-japanese",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "expect": {"screen": "home", "focus": "continue/0", "state": {"shelves": "3"}}
+  },
+  {
+   "name": "scripts-hero-arabic",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "steps": [{"press": "right"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "focus": "continue/1"}
+  },
+  {
+   "name": "scripts-hero-german-long-word",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "steps": [{"press": "right"}, {"press": "right"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "focus": "continue/2"}
+  },
+  {
+   "name": "scripts-mixed-shelf",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "focus": "recommended/2"}
+  },
+  {
+   "name": "scripts-five-in-one-title",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "focus": "recommended/5"}
+  },
+  {
+   "name": "scripts-greek-vietnamese",
+   "scripts": true,
+   "fixture": "scripts",
+   "settle": 2.5,
+   "steps": [{"press": "down"}, {"press": "down"}, {"wait": 1.0}],
+   "expect": {"screen": "home", "focus": "subscriptions/0"}
+  }
+ ]
+}

@@ -26,6 +26,28 @@ class Platform
     virtual std::uint32_t create_texture(int width, int height, const std::uint8_t *rgba) = 0;
     virtual void release_texture(std::uint32_t handle) = 0;
 
+    // A square one-channel texture for a page of the text engine's glyph
+    // atlas (size x size coverage bytes, top row first), and the whole page
+    // again after glyphs were added. 0 where the backend has no such texture:
+    // the engine then keeps the page in an ordinary texture.
+    virtual std::uint32_t create_glyph_page(int size, const std::uint8_t *coverage)
+    {
+        (void)size;
+        (void)coverage;
+        return 0;
+    }
+    virtual void update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage)
+    {
+        (void)handle;
+        (void)size;
+        (void)coverage;
+    }
+    virtual void release_glyph_page(std::uint32_t handle, bool coverage)
+    {
+        (void)coverage;
+        release_texture(handle);
+    }
+
     // The bytes behind a picture address. done runs once, on this thread,
     // during a later pump() of the frame; never from inside fetch(). Returns a
     // ticket, 0 when the request was refused (done is then never called).

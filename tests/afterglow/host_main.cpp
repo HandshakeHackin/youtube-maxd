@@ -15,11 +15,14 @@
 //   --size <W>x<H>       picture size (default 1920x1080)
 //   --only <text>        boards whose name contains the text
 //   --no-pictures        check only
+//   --baked              the kit's baked fonts instead of the text engine
 //   --reel <file.mp4>    the boards marked "reel", recorded through ffmpeg
 
 #include "afterglow/data_fixture.hpp"
 #include "afterglow/frame.hpp"
+#include "afterglow/text_engine.hpp"
 #include "art.hpp"
+#include "text_host.hpp"
 
 #include "gfx/gl_program.hpp"
 #include "gfx/renderer.hpp"
@@ -153,6 +156,33 @@ class HostPlatform final : public Platform
         glDeleteTextures(1, &name);
         --textures_;
     }
+    std::uint32_t create_glyph_page(int size, const std::uint8_t *coverage) override
+    {
+        GLuint name = 0;
+        glGenTextures(1, &name);
+        glBindTexture(GL_TEXTURE_2D, name);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, size, size, 0, GL_RED, GL_UNSIGNED_BYTE, coverage);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        return name;
+    }
+    void update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage) override
+    {
+        glBindTexture(GL_TEXTURE_2D, handle);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RED, GL_UNSIGNED_BYTE, coverage);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    }
+    void release_glyph_page(std::uint32_t handle, bool coverage) override
+    {
+        (void)coverage;
+        const GLuint name = handle;
+        glDeleteTextures(1, &name);
+    }
     unsigned fetch(const std::string &url, Fetched done) override
     {
         fetches_.push_back({next_ticket_, 2, url, std::move(done)});
@@ -250,6 +280,7 @@ struct Options
     int width = 1920;
     int height = 1080;
     bool pictures = true;
+    bool baked = false;
 };
 
 struct Results
@@ -417,6 +448,8 @@ int main(int argc, char **argv)
             std::sscanf(value, "%dx%d", &options.width, &options.height), ++i;
         else if (flag == "--no-pictures")
             options.pictures = false;
+        else if (flag == "--baked")
+            options.baked = true;
         else
         {
             std::fprintf(stderr, "unknown option %s\n", flag.c_str());
@@ -474,6 +507,35 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // The text engine behind the kit's fonts: the faces of the approved boards for Latin, Greek and
+    // Cyrillic, and stand-ins for the console's system fonts for every other script, where this PC has them.
+    std::unique_ptr<TextEngine> engine;
+    const bool stand_ins = text_host::have_windows();
+    if (!options.baked)
+    {
+        TextSetup setup;
+        setup.regular = options.kit + "/third_party/fonts/Inter-Regular.ttf";
+        setup.semibold = options.kit + "/third_party/fonts/Inter-SemiBold.ttf";
+        setup.display = options.kit + "/third_party/fonts/Montserrat-Medium.ttf";
+        setup.mono = options.kit + "/third_party/fonts/DejaVuSansMono.ttf";
+        if (stand_ins)
+        {
+            const tube::text::Config standing = text_host::stand_in(setup.regular);
+            setup.faces.assign(standing.faces.begin() + 1, standing.faces.end());
+        }
+        setup.language = options.lang;
+        setup.pixel_scale = static_cast<float>(options.height) / gfx::kVirtualHeight;
+        std::string why;
+        engine = TextEngine::create(platform, setup, &why);
+        if (!engine)
+        {
+            std::fprintf(stderr, "the text engine did not start: %s\n", why.c_str());
+            return 1;
+        }
+        engine->bind(fonts);
+    }
+    std::uint32_t most_missing = 0;
+
     // Every board file, in name order.
     std::vector<std::string> files;
     if (DIR *directory = opendir(options.boards.c_str()))
@@ -526,6 +588,12 @@ int main(int argc, char **argv)
             const bool in_reel = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "reel"));
             if (reel != nullptr && !in_reel)
                 continue;
+            // A board of other scripts needs the engine and this PC's stand-in fonts.
+            if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "scripts")) && (!engine || !stand_ins))
+            {
+                std::fprintf(stderr, "skipped %s: no text engine or no stand-in fonts on this PC\n", name.c_str());
+                continue;
+            }
             ++results.boards;
             for (const std::string &look_id : options.looks)
             {
@@ -556,6 +624,11 @@ int main(int argc, char **argv)
                     world.clear();
                     ui.clear();
                     frame.draw(world, ui, renderer.glass_texture());
+                    if (engine)
+                    {
+                        most_missing = std::max(most_missing, engine->missing());
+                        engine->end_frame();
+                    }
                     renderer.begin();
                     renderer.draw(world);
                     renderer.glass();
@@ -577,6 +650,8 @@ int main(int argc, char **argv)
                     for (int i = 0; i < frames; ++i)
                     {
                         platform.pump();
+                        if (engine)
+                            engine->begin_frame();
                         frame.update(i == 0 ? first : InputFrame{}, kDt);
                         if (reel != nullptr)
                         {
@@ -588,6 +663,8 @@ int main(int argc, char **argv)
                             world.clear();
                             ui.clear();
                             frame.draw(world, ui, renderer.glass_texture());
+                            if (engine)
+                                engine->end_frame();
                         }
                     }
                 };
@@ -607,7 +684,16 @@ int main(int argc, char **argv)
                     }
                     run(static_cast<float>(number_of(step, "wait", press.empty() ? 0.5 : 0.35)), input);
                 }
-                present(false);
+                // The last frame is drawn twice: glyphs first asked for in it are in the atlas for the second.
+                for (int pass = 0; pass < 2; ++pass)
+                {
+                    if (engine)
+                        engine->begin_frame();
+                    present(false);
+                }
+                ++results.checks;
+                if (engine && engine->missing() != 0 && !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "missing_ok")))
+                    fail(results, name, look_id, std::to_string(engine->missing()) + " clusters of text have no glyph in any font");
 
                 check_frame(frame, world, ui, name, look_id, results);
                 const std::string snapshot = frame.snapshot_json();
@@ -699,6 +785,13 @@ int main(int argc, char **argv)
     }
     if (reel != nullptr)
         pclose(reel);
+    if (engine)
+    {
+        const tube::text::Stats stats = engine->stats();
+        std::fprintf(stderr, "text engine: %u faces known, %u read, %u glyphs in %u pages, %llu rasterised, %llu evicted, %llu overflows\n", stats.faces,
+                     stats.faces_open, stats.glyphs, stats.pages, static_cast<unsigned long long>(stats.rasterised),
+                     static_cast<unsigned long long>(stats.evicted), static_cast<unsigned long long>(stats.overflows));
+    }
     if (options.lang != "en" && !platform.untranslated().empty())
     {
         for (const std::string &text : platform.untranslated())

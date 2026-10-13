@@ -1,0 +1,11 @@
+{
+ "items": [
+  {"id": "scr05xxxxxx", "title": "주말 동안 도시 하나를 통째로 다시 지었습니다 (모드 없이)", "subtitle": "유리고사리 게임즈", "channel_id": "UCfixture000000000000004", "art_url": "art://city/1/23", "views": "조회수 84만회", "published": "5일 전", "duration_sec": 1601},
+  {"id": "scr06xxxxxx", "title": "如果在另一个世界看日落，会是什么样子？十分钟讲清楚", "subtitle": "轨道之井", "channel_id": "UCfixture000000000000005", "art_url": "art://space/0/35", "views": "340万次观看", "published": "2个月前", "duration_sec": 847, "badges": ["4k", "cc"]},
+  {"id": "scr07xxxxxx", "title": "שבעה ימים לבד על קו הרכס — סרט הליכה שקט", "subtitle": "אטלס אור הצפון", "channel_id": "UCfixture000000000000006", "art_url": "art://ocean/1/73", "views": "95K צפיות", "published": "לפני 4 ימים", "duration_sec": 626},
+  {"id": "scr08xxxxxx", "title": "पहाड़ी की धार पर अकेले सात दिन — एक मौन पदयात्रा फ़िल्म", "subtitle": "उत्तरी प्रकाश एटलस", "channel_id": "UCfixture000000000000007", "art_url": "art://stage/0/59", "views": "12 लाख बार देखा गया", "published": "3 हफ़्ते पहले", "is_live": true},
+  {"id": "scr09xxxxxx", "title": "เจ็ดวันตามลำพังบนสันเขา — ภาพยนตร์เดินป่าไร้เสียงบรรยาย", "subtitle": "แอตลาสแสงเหนือ", "channel_id": "UCfixture000000000000008", "art_url": "art://blobs/3/97", "views": "ดู 5.3 แสนครั้ง", "published": "1 เดือนที่ผ่านมา", "duration_sec": 1275},
+  {"id": "scr10xxxxxx", "title": "Tokyo 東京 2026 — مرحبا — שלום — Привет 👋🎉 one title, five scripts", "subtitle": "Orbitwell", "channel_id": "UCfixture000000000000009", "art_url": "art://globe/1/193", "views": "1.4M views", "published": "3 weeks ago", "duration_sec": 1000, "badges": ["new"]}
+ ],
+ "has_more": false
+}
