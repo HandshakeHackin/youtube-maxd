@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "account:confirm:like:sevenday000", "title": "Like video", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "account:confirm:unrate:sevenday000", "title": "Remove video rating", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "account:confirm:watch_later_remove:sevenday000", "title": "Remove from YouTube Watch later", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "local:video:7:next:sevenday000", "title": "Play next", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:forget:sevenday000", "title": "Remove from local history", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:queue:sevenday000", "title": "Remove from the play queue", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:favorite:sevenday000", "title": "Remove from favorites", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

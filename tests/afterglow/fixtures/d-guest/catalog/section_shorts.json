@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "This section is not available from YouTube for this profile", "subtitle": "YouTube offers Shorts to signed-in accounts in this region only.", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

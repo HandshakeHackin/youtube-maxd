@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Choose an account profile first", "subtitle": "Discover > Accounts & library > Profile", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

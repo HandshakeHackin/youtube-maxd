@@ -1,0 +1,14 @@
+{
+ "items": [
+  {"id": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish", "subtitle": "Northlight Atlas", "is_folder": true, "art_url": "art://aurora/0/145/448x252", "count": 24, "owner": "Northlight Atlas", "updated": "Updated 3 days ago"},
+  {"id": "aurorach012", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://aurora/0/145/448x252", "duration_sec": 1198, "views": "2.2M views", "published": "8 months ago", "badges": ["4k", "cc"]},
+  {"id": "thefores026", "title": "The Forest at Night Sounds Nothing Like You Think", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://aurora/2/313/448x252", "duration_sec": 1329, "views": "380K views", "published": "6 weeks ago"},
+  {"id": "bluehour020", "title": "Blue Hour on the Northern Coast, No Talking", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ocean/1/241/448x252", "duration_sec": 2490, "views": "640K views", "published": "2 months ago", "badges": ["4k"]},
+  {"id": "ayearona032", "title": "A Year on a Tidal Island", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ocean/3/385/448x252", "duration_sec": 3484, "views": "4.8M views", "published": "2 years ago", "badges": ["4k", "cc"]},
+  {"id": "tealdawn035", "title": "Teal Dawn Above the Valley", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ridges/2/421/448x252", "duration_sec": 920, "views": "410K views", "published": "10 months ago", "badges": ["4k"]},
+  {"id": "sevenday000", "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ridges/0/11/448x252", "duration_sec": 2892, "views": "1.2M views", "published": "3 weeks ago", "badges": ["4k", "cc"]},
+  {"id": "violetho034", "title": "Violet Hour: A Short Film", "subtitle": "Slowreel", "channel_id": "UCslowreel00000000000000", "art_url": "art://ridges/6/409/448x252", "duration_sec": 451, "views": "233K views", "published": "3 weeks ago"},
+  {"id": "duskrune033", "title": "Dusk Run: Ember Ridge in One Take", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails0000000000", "art_url": "art://ridges/3/397/448x252", "duration_sec": 768, "views": "76K views", "published": "2 days ago", "badges": ["new"]}
+ ],
+ "has_more": true
+}

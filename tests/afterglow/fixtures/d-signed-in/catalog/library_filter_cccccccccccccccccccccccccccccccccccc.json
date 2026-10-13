@@ -1,0 +1,17 @@
+{
+ "items": [
+  {"id": "library:filter:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "title": "All", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "title": "Music", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:cccccccccccccccccccccccccccccccccccc", "title": "Gaming", "subtitle": "", "is_folder": true, "chip": "filter", "selected": true},
+  {"id": "library:filter:dddddddddddddddddddddddddddddddddddd", "title": "Live", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "title": "Recently uploaded", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:ffffffffffffffffffffffffffffffffffff", "title": "Watched", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:gggggggggggggggggggggggggggggggggggg", "title": "New to you", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "irebuilt001", "title": "I Rebuilt a Whole City in One Weekend (No Mods)", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://city/1/23/448x252", "duration_sec": 1601, "views": "842K views", "published": "5 days ago"},
+  {"id": "speedrun014", "title": "Speedrunning My Own Level and Regretting It", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://synth/1/169/448x252", "duration_sec": 902, "views": "1.1M views", "published": "2 weeks ago"},
+  {"id": "building028", "title": "Building a Pocket Console From Spare Parts", "subtitle": "Lathe & Lumen", "channel_id": "UClathelumen000000000000", "art_url": "art://desk/1/337/448x252", "duration_sec": 2090, "views": "1.3M views", "published": "7 months ago"},
+  {"id": "writinga009", "title": "Writing a Tiny Renderer in an Afternoon", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/0/109/448x252", "duration_sec": 3764, "views": "148K views", "published": "2 weeks ago", "badges": ["cc"]},
+  {"id": "whyyours029", "title": "Why Your Shadows Look Wrong (and the Fix)", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/1/349/448x252", "duration_sec": 1143, "views": "88K views", "published": "3 days ago", "badges": ["new", "cc"]}
+ ],
+ "has_more": false
+}

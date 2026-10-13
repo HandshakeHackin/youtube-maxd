@@ -1,0 +1,24 @@
+{
+ "items": [
+  {"id": "library:filter:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "title": "All", "subtitle": "", "is_folder": true, "chip": "filter", "selected": true},
+  {"id": "library:filter:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "title": "Music", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:cccccccccccccccccccccccccccccccccccc", "title": "Gaming", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:dddddddddddddddddddddddddddddddddddd", "title": "Live", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "title": "Recently uploaded", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:ffffffffffffffffffffffffffffffffffff", "title": "Watched", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "library:filter:gggggggggggggggggggggggggggggggggggg", "title": "New to you", "subtitle": "", "is_folder": true, "chip": "filter", "selected": false},
+  {"id": "sevenday000", "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ridges/0/11/448x252", "duration_sec": 2892, "views": "1.2M views", "published": "3 weeks ago", "badges": ["4k", "cc"]},
+  {"id": "aurorach012", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://aurora/0/145/448x252", "duration_sec": 1198, "views": "2.2M views", "published": "8 months ago", "badges": ["4k", "cc"]},
+  {"id": "whatwoul002", "title": "What Would a Sunset Look Like on Another World?", "subtitle": "Orbitwell", "channel_id": "UCorbitwell0000000000000", "art_url": "art://space/0/35/448x252", "duration_sec": 847, "views": "3.4M views", "published": "2 months ago", "badges": ["4k", "cc"]},
+  {"id": "everygoa007", "title": "Every Goal From a Wild Final Day", "subtitle": "Quarterline", "channel_id": "UCquarterline00000000000", "art_url": "art://pitch/0/85/448x252", "duration_sec": 588, "views": "1.9M views", "published": "16 hours ago", "badges": ["new"]},
+  {"id": "tonights022", "title": "Tonight's Top Stories in Eight Minutes", "subtitle": "Tidewrit", "channel_id": "UCtidewrit00000000000000", "art_url": "art://globe/2/265/448x252", "duration_sec": 482, "views": "212K views", "published": "3 hours ago", "badges": ["new"]},
+  {"id": "onepansi003", "title": "One Pan, Six Dinners: The Lazy Week Plan", "subtitle": "Ostrel Kitchen", "channel_id": "UCostrelkitchen000000000", "art_url": "art://plate/0/47/448x252", "duration_sec": 1113, "views": "410K views", "published": "1 day ago", "badges": ["new", "cc"]},
+  {"id": "writinga009", "title": "Writing a Tiny Renderer in an Afternoon", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/0/109/448x252", "duration_sec": 3764, "views": "148K views", "published": "2 weeks ago", "badges": ["cc"]},
+  {"id": "amapofev016", "title": "A Map of Every Night Train Still Running", "subtitle": "Tidewrit", "channel_id": "UCtidewrit00000000000000", "art_url": "art://globe/1/193/448x252", "duration_sec": 1000, "views": "1.4M views", "published": "3 weeks ago", "badges": ["cc"]},
+  {"id": "bluehour020", "title": "Blue Hour on the Northern Coast, No Talking", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas0000000", "art_url": "art://ocean/1/241/448x252", "duration_sec": 2490, "views": "640K views", "published": "2 months ago", "badges": ["4k"]},
+  {"id": "thedesks005", "title": "The Desk Setup I Would Build Again From Scratch", "subtitle": "Lathe & Lumen", "channel_id": "UClathelumen000000000000", "art_url": "art://desk/0/61/448x252", "duration_sec": 725, "views": "267K views", "published": "1 week ago", "badges": ["4k"]},
+  {"id": "hardcour027", "title": "Hard Court Highlights: Game Seven", "subtitle": "Quarterline", "channel_id": "UCquarterline00000000000", "art_url": "art://pitch/2/325/448x252", "duration_sec": 615, "views": "3.1M views", "published": "2 days ago", "badges": ["new"]},
+  {"id": "duskrune033", "title": "Dusk Run: Ember Ridge in One Take", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails0000000000", "art_url": "art://ridges/3/397/448x252", "duration_sec": 768, "views": "76K views", "published": "2 days ago", "badges": ["new"]}
+ ],
+ "has_more": true
+}

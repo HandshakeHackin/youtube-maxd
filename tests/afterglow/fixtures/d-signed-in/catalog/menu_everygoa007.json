@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "account:confirm:like:everygoa007", "title": "Like video", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "account:confirm:unrate:everygoa007", "title": "Remove video rating", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "account:confirm:watch_later_remove:everygoa007", "title": "Remove from YouTube Watch later", "subtitle": "YouTube profile: mara", "is_folder": true, "interface": true},
+  {"id": "local:video:7:next:everygoa007", "title": "Play next", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:forget:everygoa007", "title": "Remove from local history", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:queue:everygoa007", "title": "Remove from the play queue", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "local:video:7:favorite:everygoa007", "title": "Remove from favorites", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}
