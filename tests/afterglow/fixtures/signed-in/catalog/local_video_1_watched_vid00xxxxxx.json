@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Marked as watched on this PS5", "subtitle": "", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

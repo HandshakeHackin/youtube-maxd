@@ -1,0 +1,14 @@
+{
+ "items": [
+  {"id": "local:video:1:next:vid00xxxxxx", "title": "Play next", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "account:confirm:watch_later_add:vid00xxxxxx", "title": "Add to YouTube Watch later", "subtitle": "YouTube profile: Mara", "is_folder": true, "interface": true},
+  {"id": "playlist:pick:add:vid00xxxxxx", "title": "Add to a YouTube playlist", "subtitle": "Choose a playlist, then confirm", "is_folder": true, "interface": true},
+  {"id": "channel:UCfixture000000000000000", "title": "Open channel", "subtitle": "Northlight Atlas", "is_folder": true, "interface": true},
+  {"id": "description:vid00xxxxxx", "title": "Open description", "subtitle": "Read the full description of this video", "is_folder": true, "interface": true},
+  {"id": "account:confirm:not_interested:vid00xxxxxx", "title": "Not interested", "subtitle": "YouTube profile: Mara", "is_folder": true, "interface": true},
+  {"id": "local:video:1:block:vid00xxxxxx", "title": "Block channel", "subtitle": "Hide this channel in catalogs for the selected profile", "is_folder": true, "interface": true},
+  {"id": "local:video:1:watched:vid00xxxxxx", "title": "Mark as watched locally", "subtitle": "Saved for the selected profile on this PS5", "is_folder": true, "interface": true},
+  {"id": "link:video:vid00xxxxxx", "title": "Share link", "subtitle": "The video, embed, channel and playlist links, each with a QR code", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

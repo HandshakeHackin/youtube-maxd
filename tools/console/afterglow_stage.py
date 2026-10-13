@@ -535,6 +535,11 @@ class AfterglowStage:
         key = self.s.args.afterglow_other
         if key == "none":
             raise ob.Unjudged("not asked for (--afterglow-other none)")
+        # Square opens Search for a Guest only. For an account it keeps the video in focus for later
+        # (an entry in that person's YouTube list): a session never presses it there and opens the
+        # video's page instead.
+        if key == "square" and ob.ag_state(self.at_home(), "profile") != "guest":
+            key = "triangle"
         if key == "triangle":  # a video's page: the focus must be on a video
             rows, target = self.video_shelf(self.at_home())
             ok, detail = self.go_to(rows, target)

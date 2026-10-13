@@ -329,7 +329,7 @@ class SimConsole:
             elif key == "left":
                 frame.update(rail=True, rail_focus=0)
             return
-        if key == "square" and self.scenario["ag_other_opens"]:
+        if key == "square" and self.scenario["ag_other_opens"] and self.scenario["ag_profile"] == "guest":
             frame["stack"].append(["search", ""])
             frame["moved_at"] = now
         elif key == "circle":

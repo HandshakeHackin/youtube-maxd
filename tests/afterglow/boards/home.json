@@ -68,6 +68,75 @@
    "expect": {"screen": "home", "played": "vid09xxxxxx"}
   },
   {
+   "name": "home-play-launch",
+   "about": "Picture to player: the card's picture is on its way to the whole screen.",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "player": 30,
+   "steps": [{"press": "cross", "wait": 0.25}],
+   "expect": {"screen": "home", "played": "vid00xxxxxx", "launching": 1}
+  },
+  {
+   "name": "home-play-returns",
+   "about": "The player closed: the picture has returned to its card and Home has the focus where it was.",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "player": 1.0,
+   "steps": [{"press": "right"}, {"press": "cross", "wait": 2.4}],
+   "expect": {"screen": "home", "focus": "continue/1", "played": "vid09xxxxxx", "launching": 0}
+  },
+  {
+   "name": "home-watch-later",
+   "about": "Square keeps the video for later: the provider names the change and makes it, a toast says so.",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "square", "wait": 0.8}],
+   "expect": {"screen": "home", "focus": "continue/0", "dialog": 0,
+              "asked": ["account:confirm:watch_later_add:vid00xxxxxx", "account:apply:71"]}
+  },
+  {
+   "name": "home-watch-later-refused",
+   "about": "YouTube refused: the toast has the provider's words and nothing changed.",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "square", "wait": 0.8}],
+   "expect": {"screen": "home", "focus": "continue/1",
+              "asked": ["account:confirm:watch_later_add:vid09xxxxxx", "account:apply:72"]}
+  },
+  {
+   "name": "home-actions",
+   "about": "Touchpad: the actions of the video in focus, as the frame's sheet (board 14).",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "touchpad", "wait": 0.8}, {"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "home", "sheet": 1, "focus": "sheet/2", "state": {"sheet_load": "ready", "sheet_level": "1"},
+              "asked": ["menu:vid00xxxxxx"]}
+  },
+  {
+   "name": "home-actions-done",
+   "about": "An action of the sheet went through: the sheet is gone, a toast says what happened.",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "touchpad", "wait": 0.8}, {"press": "up"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"},
+             {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "home", "sheet": 0, "focus": "continue/0", "asked": ["local:video:1:watched:vid00xxxxxx"]}
+  },
+  {
+   "name": "home-actions-closed",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "touchpad", "wait": 0.6}, {"press": "circle", "wait": 0.6}],
+   "expect": {"screen": "home", "sheet": 0, "focus": "continue/0"}
+  },
+  {
+   "name": "home-guest-square-searches",
+   "about": "Watch later is an account's list: a Guest's Square opens Search.",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"press": "square", "wait": 0.8}],
+   "expect": {"screen": "search"}
+  },
+  {
    "name": "home-details",
    "fixture": "signed-in",
    "settle": 2.0,

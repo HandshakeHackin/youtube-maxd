@@ -8,6 +8,7 @@
 // Guest, the topics, Trending and an invitation to sign in. Left of the first
 // card is the rail. Alone for a while, the page shows off what is on.
 
+#include "afterglow/data_feed.hpp"
 #include "afterglow/screen.hpp"
 
 #include <algorithm>
@@ -95,6 +96,8 @@ class Home final : public Screen
             else if (pressed(input, Action::back))
                 context.nav.back();
         }
+
+        follow_later(context);
 
         // ---- motion ----
         row_pos_.target = static_cast<float>(row_);
@@ -306,7 +309,8 @@ class Home final : public Screen
         }
         items[0] = {ui::Button::cross, tr("Play")};
         items[1] = {ui::Button::triangle, tr("Details")};
-        items[2] = {ui::Button::square, tr("Search")};
+        // Watch later is a list of the YouTube account: a Guest's Square searches instead.
+        items[2] = {ui::Button::square, signed_in_ ? tr("Watch later") : tr("Search")};
         items[3] = {ui::Button::touchpad, tr("Actions")};
         return items;
     }
@@ -343,6 +347,11 @@ class Home final : public Screen
         info.rect = card_rect(row_, col);
         info.index = col;
         info.total = row.count();
+        if (row.count() > 0)
+        {
+            info.kind = row.topics() ? "topic" : "video";
+            info.live = !row.topics() && (row.shelf.videos[static_cast<std::size_t>(col)].badges & model::kBadgeLive) != 0;
+        }
         return info;
     }
 
@@ -420,6 +429,7 @@ class Home final : public Screen
         error_ = home.error;
         guest_ = home.profile.guest;
         invite_ = home.invite_sign_in;
+        signed_in_ = home.profile.signed_in;
         rows_.clear();
         bool any_ready = false;
         for (const model::Shelf &shelf : home.shelves)
@@ -583,7 +593,7 @@ class Home final : public Screen
         {
             context.nav.back();
         }
-        else if (pressed(input, Action::west))
+        else if (pressed(input, Action::west) && (!signed_in_ || now.topics() || now.count() == 0))
         {
             context.nav.push(Route{ScreenId::search, {}, {}});
         }
@@ -608,29 +618,58 @@ class Home final : public Screen
             const model::Video &video = now.shelf.videos[static_cast<std::size_t>(col)];
             if (pressed(input, Action::confirm))
             {
-                if (context.services.data.play(video))
-                {
-                    context.feedback.play(audio::Cue::launch);
-                    context.feedback.rumble(0.6f, 0.16f);
-                }
-                else
-                {
-                    context.nav.toast(tr("This video could not be opened."), ToastKind::error);
-                }
+                // Picture to player: the card's picture becomes the whole screen.
+                play_video(context, video, card_rect(row_, col), card_rect(row_, col).cx());
             }
             else if (pressed(input, Action::north))
             {
-                context.nav.push(Route{ScreenId::video, video.id, video.title}, Move::zoom, ring_.value());
+                context.nav.push(Route{ScreenId::video, video.id, video.title}, Move::zoom, ring_.value(), video.thumb);
+            }
+            else if (pressed(input, Action::west))
+            {
+                // Watch later: the provider names the change (a confirm row), then makes it (its apply row).
+                if (later_.running)
+                {
+                    refuse(context, 0.0f); // one at a time: the answer of the last one is on its way
+                }
+                else
+                {
+                    later_.start(context.services.data, "account:confirm:watch_later_add:" + video.id);
+                    later_title_ = video.title;
+                    context.feedback.play(audio::Cue::select, 1.0f, ui::pan_for_x(card_rect(row_, col).cx()));
+                }
             }
             else if (pressed(input, Action::touch))
             {
-                // A video's actions are a list of the provider's rows; the list page draws it.
-                const std::string menu = context.services.data.menu(video.id, video.title);
-                if (!menu.empty())
-                    context.nav.push(Route{ScreenId::settings, menu, video.title});
-                else
-                    refuse(context, 0.0f);
+                // The actions of the video in focus, as the frame's sheet. What they change, Home reads again.
+                Data *data = &context.services.data;
+                context.nav.actions(video.id, video.title, [data]
+                {
+                    for (const char *catalog : {"history", "library:home", "library:subscriptions", "section:trending", "library:watch_later"})
+                        data->forget(catalog);
+                });
             }
+        }
+    }
+
+    // Watch later on its way: said in a toast when YouTube has answered.
+    void follow_later(UpdateContext &context)
+    {
+        const Page *answer = nullptr;
+        const model::Load result = later_.poll(context.services.data, &answer);
+        if (result == model::Load::ready)
+        {
+            const bool said = answer != nullptr && !answer->rows.empty() && !answer->rows.front().title.empty();
+            context.nav.toast(said ? answer->rows.front().title.c_str() : tr("Added to Watch later"), later_title_, ToastKind::success);
+            context.feedback.rumble(0.3f, 0.06f);
+            context.services.data.forget("library:watch_later");
+        }
+        else if (result == model::Load::failed || result == model::Load::offline)
+        {
+            const bool said = answer != nullptr && !answer->error.empty();
+            context.nav.toast(said ? answer->error.c_str() : tr("YouTube did not confirm the change. Nothing was changed."), later_title_, ToastKind::error);
+            context.feedback.play(audio::Cue::error);
+            context.feedback.rumble(0.25f, 0.05f);
         }
     }
 
@@ -809,6 +848,9 @@ class Home final : public Screen
     std::string error_;
     bool guest_ = true;
     bool invite_ = false;
+    bool signed_in_ = false;
+    Act later_;               // Square on a video: Watch later, until YouTube has answered
+    std::string later_title_; // ... and the video it was asked for
     int row_ = 0;
     tween::Spring row_pos_;
     ui::SpringRect ring_;

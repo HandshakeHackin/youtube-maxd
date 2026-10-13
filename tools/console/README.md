@@ -156,7 +156,9 @@ python3 tools/console/session.py --i-have-owner-approval \
 
 Run it with `--dry-run` first, as any session. Options of the stage:
 `--afterglow-other square|triangle|none` (the key that opens one other
-screen: Square is Search, the default; Triangle a video's page),
+screen: Square is Search, the default; Triangle a video's page. Square is
+pressed for a Guest only: for an account it keeps the video in focus for
+later, so the stage opens the video's page instead),
 `--afterglow-after-core-fail` (try the stage even when the core path failed,
 provided the app is back on its browser with nothing playing; the session's
 verdict stays the core path's failure).
@@ -199,7 +201,7 @@ Each step records `PASS`, `FAIL` or `NOTE` with its numbers (`steps` in
 | (d) focus moves along a shelf | soft | Right (Left at the last card): the focus id's index follows |
 | (d) focus moves between shelves | soft | Down to the next shelf and Up again: `state.row` and the focus id follow, the column is kept |
 | (d) the rail opens and closes | soft | Left at the first card: `rail_open: 1`, focus `rail/<destination>`; Right: shut, focus back on the card |
-| (d) another screen opens and Circle returns | soft | Square (Search): `stack` is `home > search`; Circle: `home` again. The other screen's snapshot is saved |
+| (d) another screen opens and Circle returns | soft | Square (Search, a Guest's Home) or Triangle (a video's page): `stack` is `home > search` or `home > video`; Circle: `home` again. The other screen's snapshot is saved |
 | (b) frame statistics while moving | soft | the same numbers from the snapshots read right after each key |
 | (e) scanout capture of Home, a video in focus | soft | a second picture, `afterglow-home-video.bmp` and `.png`: the hero and the page's colour are the focused video's |
 | (f) Cross on a video starts playback | hard | on the first shelf of videos, with the card's id and title read back first: `scr=2 active=1 fatal=0`. The interface handed the video to the existing player. `provider: resolve failed` for the card: the next card is tried once |
