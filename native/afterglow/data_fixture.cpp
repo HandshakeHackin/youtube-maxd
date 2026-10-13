@@ -61,6 +61,13 @@ unsigned FixtureSource::catalog(const std::string &id, int page, Done done)
     return ticket;
 }
 
+unsigned FixtureSource::answer(const std::string &row, std::string_view text, Done done)
+{
+    const std::string id = row.empty() ? std::string("prompt:answer") : row;
+    answered_.push_back(id + "=" + std::string(text));
+    return catalog(id, 0, std::move(done));
+}
+
 void FixtureSource::cancel(unsigned ticket)
 {
     for (auto it = waiting_.begin(); it != waiting_.end(); ++it)

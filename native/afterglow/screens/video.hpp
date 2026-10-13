@@ -120,47 +120,6 @@ inline std::string counted(int count, const char *one, const char *other)
     return fill(count == 1 ? one : other, std::to_string(count));
 }
 
-// What a hand-over does to a whole screen. REQUEST: every screen needs the
-// motion table's "deeper / back out" and "section change" rows; the frame hands
-// a Phase and moves nothing, so this is a copy each screen carries today.
-struct Motion
-{
-    float opacity = 1.0f;   // of everything the screen draws
-    float scale = 1.0f;     // about the middle of the screen
-    float dx = 0.0f;
-    float furniture = 1.0f; // of everything but a picture that travels
-};
-inline Motion hand_over(const Phase &phase, bool reduced)
-{
-    Motion m;
-    const bool carried = phase.move == Move::zoom || phase.move == Move::shrink;
-    if (phase.out > 0.0f)
-    {
-        m.opacity = 1.0f - tween::smoothstep(phase.out * (carried ? 3.4f : 2.4f));
-        if (!reduced && phase.move == Move::fade)
-            m.scale = 1.0f - 0.025f * tween::cubic_out(phase.out);
-        if (!reduced && phase.move == Move::push)
-            m.dx = -90.0f * tween::cubic_in(phase.out);
-        if (!reduced && phase.move == Move::pop)
-            m.dx = 90.0f * tween::cubic_in(phase.out);
-        if (carried)
-        {
-            m.furniture = m.opacity; // the screen fades its furniture and keeps the picture
-            m.opacity = 1.0f;
-        }
-    }
-    else if (phase.in < 1.0f)
-    {
-        if (phase.move == Move::fade || phase.move == Move::push || phase.move == Move::pop)
-            m.opacity = tween::smoothstep((phase.in - 0.12f) / 0.6f);
-        if (!reduced && phase.move == Move::push)
-            m.dx = 110.0f * (1.0f - tween::quint_out(phase.in));
-        if (!reduced && phase.move == Move::pop)
-            m.dx = -110.0f * (1.0f - tween::quint_out(phase.in));
-    }
-    return m;
-}
-
 // ---- what the page knows about its video ---------------------------------------------
 
 struct Details

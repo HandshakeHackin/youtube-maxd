@@ -210,7 +210,7 @@ class Accounts final : public Screen
 
     // What is being done.
     Work work_;
-    Question question_;
+    LocalQuestion question_;
     Asking asking_ = Asking::nothing;
     bool selected_before_ = false;
     PasswordSheet sheet_;

@@ -148,6 +148,50 @@ unsigned Data::act(const std::string &row)
     return mine;
 }
 
+unsigned Data::act(const std::string &row, std::string_view text)
+{
+    const unsigned mine = next_action_++;
+    Action &action = *actions_.emplace(mine, std::make_unique<Action>()).first->second;
+    action.page.load = model::Load::loading;
+    const std::weak_ptr<int> alive = alive_;
+    action.ticket = source_.answer(row, text, [this, alive, mine](Page &&answer)
+    {
+        if (alive.expired())
+            return;
+        const auto target = actions_.find(mine);
+        if (target == actions_.end())
+            return;
+        target->second->page = std::move(answer);
+        target->second->ticket = 0;
+        target->second->pumps_done = 0;
+    });
+    if (action.ticket == 0)
+    {
+        action.page.load = model::Load::failed;
+        action.page.error = tr("This build cannot take typed text here.");
+        action.pumps_done = 0;
+    }
+    return mine;
+}
+
+const char *load_name(model::Load load)
+{
+    switch (load)
+    {
+    case model::Load::idle:
+        return "idle";
+    case model::Load::loading:
+        return "loading";
+    case model::Load::ready:
+        return "ready";
+    case model::Load::failed:
+        return "failed";
+    case model::Load::offline:
+        return "offline";
+    }
+    return "idle";
+}
+
 const Page &Data::action(unsigned ticket)
 {
     static const Page kGone = []

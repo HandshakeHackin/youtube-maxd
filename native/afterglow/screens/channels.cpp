@@ -305,7 +305,7 @@ void Channels::read_tiles()
         Tile tile;
         tile.channel = feed.channels[i];
         tile.line = row.fact("subscribers").empty() ? (uses_local() ? std::string() : feed.channels[i].subscribers) : row.fact("subscribers");
-        tile.unseen = row.has("unseen") ? std::max(number_of(row.fact("unseen")), 1) : 0;
+        tile.unseen = row.has("unseen") ? std::max(leading_number(row.fact("unseen")), 1) : 0;
         tile.live = row.has("live");
         tiles_.push_back(std::move(tile));
     }

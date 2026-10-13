@@ -111,28 +111,37 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
     if (alpha <= 0.01f)
         return;
     const Look &k = *look_;
+    const Screen::Header header = entry.screen->header();
     g.l.push_opacity(alpha);
-    std::string title = entry.screen->title();
-    if (title.empty())
-        title = entry.route.title;
-    if (!title.empty())
-        text(g, g.f.display, fit(g.f.display, title, kTypePage, 1200.0f), kLeft - 2.0f, 128.0f, kTypePage, k.ink);
-    const std::string subtitle = entry.screen->subtitle();
-    if (!subtitle.empty())
-        text(g, g.f.regular, fit(g.f.regular, subtitle, 22.0f, 1200.0f), kLeft, 166.0f, 22.0f, k.ink2);
+    if (header == Screen::Header::title)
+    {
+        std::string title = entry.screen->title();
+        if (title.empty())
+            title = entry.route.title;
+        if (!title.empty())
+            text(g, g.f.display, fit(g.f.display, title, kTypePage, 1200.0f), kLeft - 2.0f, 128.0f, kTypePage, k.ink);
+        const std::string subtitle = entry.screen->subtitle();
+        if (!subtitle.empty())
+            text(g, g.f.regular, fit(g.f.regular, subtitle, kTypeSub, 1200.0f), kLeft, 166.0f, kTypeSub, k.ink2);
+    }
     int hour = 0;
     int minute = 0;
     platform_.wall_clock(&hour, &minute);
     char clock[8];
     std::snprintf(clock, sizeof clock, "%02d:%02d", hour % 24, minute % 60);
-    if (!k.dark)
-        glass_panel(g, {kRight - 118.0f, 68.0f, 136.0f, 52.0f}, 26.0f); // a light page may have a dark picture up there
-    text(g, g.f.display, clock, kRight, 104.0f, 28.0f, k.ink.with_alpha(0.9f), gfx::Align::right);
+    // On a picture the clock stands a little inside it, on glass: the picture may be any colour there.
+    const bool on_picture = header == Screen::Header::on_picture;
+    const float right = on_picture ? kRight - 28.0f : kRight;
+    if (!k.dark || on_picture)
+        glass_panel(g, {right - 118.0f, 68.0f, 136.0f, 52.0f}, 26.0f); // a light page may have a dark picture up there
+    text(g, g.f.display, clock, right, 104.0f, 28.0f, k.ink.with_alpha(0.9f), gfx::Align::right);
     g.l.pop_opacity();
 }
 
 void Frame::draw_hints(G &g, const Entry &entry, float alpha)
 {
+    if (sheet_.visible() || text_sheet_.visible())
+        return; // a sheet of the frame's has its own row
     if (rail_amount_.value > 0.5f)
     {
         const ui::Hint rail[] = {{ui::Button::cross, tr("Open")}, {ui::Button::circle, tr("Close")}};
@@ -251,12 +260,33 @@ void Frame::draw_screen(const Entry &entry, DrawContext &dc, const Phase &phase)
 {
     entry.screen->draw(dc, phase);
     G g = dc.g();
-    const float alpha = tween::clamp01(phase.in) * (1.0f - tween::clamp01(phase.out)) * tween::clamp01(entry.screen->furniture());
+    const float in = tween::clamp01(phase.in);
+    const float out = tween::clamp01(phase.out);
+    const float furniture = tween::clamp01(entry.screen->furniture());
     if (entry.screen->shows_rail())
     {
-        draw_header(g, entry, alpha);
-        draw_hints(g, entry, alpha);
+        draw_header(g, entry, in * (1.0f - out) * furniture);
+        // One hint row at a time: the leaving screen's is gone by the middle of a hand-over, the
+        // arriving one's comes after it. A layer of the screen's own that covers the page has its own row.
+        const float turn = tween::clamp01(in * 2.0f - 1.0f) * (1.0f - tween::clamp01(out * 2.0f));
+        draw_hints(g, entry, turn * furniture * (1.0f - tween::clamp01(entry.screen->over())));
     }
+}
+
+void Frame::draw_launch(G &g)
+{
+    if (!launch_.active)
+        return;
+    // Picture to player: the picture becomes the whole screen (corners to 0) and stands until the
+    // player has its first frame; when the player closes it returns to where it came from.
+    const float t = launch_.move.running ? launch_.move.progress() : 1.0f;
+    const float grown = launch_.returning ? 1.0f - tween::cubic_in_out(t) : tween::quint_out(t);
+    const Rect whole{0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight};
+    const Rect r = lerp_rect(launch_.from, whole, grown);
+    g.l.rounded_rect(whole, 0.0f, kBlack.with_alpha(tween::clamp01(grown * 1.5f)));
+    picture_box(g, r, tween::lerp(kRadiusThumb, 0.0f, grown), images_.get(launch_.picture, PictureSize::hero));
+    if (!launch_.returning && !launch_.move.running && launch_.held > 0.8f)
+        spinner(g, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, 28.0f, kWhite.with_alpha(0.85f));
 }
 
 void Frame::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass)
@@ -274,8 +304,8 @@ void Frame::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass)
     if (change_.running && outgoing_ != nullptr)
     {
         const float t = change_.progress();
-        const Phase leaving{1.0f, std::max(t, 0.0001f), move_, carried_};
-        const Phase arriving{t, 0.0f, move_, carried_};
+        const Phase leaving{1.0f, std::max(t, 0.0001f), move_, carried_, carried_picture_};
+        const Phase arriving{t, 0.0f, move_, carried_, carried_picture_};
         if (outgoing_on_top_)
         {
             draw_screen(top, dc, arriving);
@@ -305,6 +335,15 @@ void Frame::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass)
             draw_rail(g, rail_arrive);
             g.l.pop_opacity();
         }
+    }
+    {
+        // What covers the page: a layer of the screen's own, then the frame's sheets, then a
+        // picture on its way to the player.
+        top.screen->draw_over(dc, Phase{});
+        G g = dc.g();
+        sheet_.draw(g);
+        text_sheet_.draw(g);
+        draw_launch(g);
     }
     ui::Canvas canvas{ui, fonts_, glass, clock_};
     toasts_.draw(canvas);
@@ -354,10 +393,13 @@ std::string Frame::snapshot_json() const
     json_number(out, "rail_open", rail_open_ ? 1 : 0);
     json_number(out, "attract", attract_ ? 1 : 0);
     json_number(out, "dialog", dialog_.is_open() ? 1 : 0);
+    json_number(out, "sheet", sheet_.open() ? 1 : 0);
+    json_number(out, "typing", text_sheet_.open() ? 1 : 0);
+    json_number(out, "launching", launch_.active ? 1 : 0);
     out += "\"focus\":";
     json_focus(out, focus());
     out += ",\"focusable\":[";
-    if (!stack_.empty() && !rail_open_ && !dialog_.is_open())
+    if (!stack_.empty() && !rail_open_ && !dialog_.is_open() && !sheet_.open() && !text_sheet_.open())
     {
         bool first = true;
         for (const auto &item : stack_.back()->screen->focusable())
@@ -380,6 +422,11 @@ std::string Frame::snapshot_json() const
     Snapshot snapshot;
     if (!stack_.empty())
         stack_.back()->screen->snapshot(snapshot);
+    // The frame's sheets report beside the screen they were opened from.
+    if (sheet_.open())
+        sheet_.snapshot(snapshot);
+    if (text_sheet_.open())
+        text_sheet_.snapshot(snapshot);
     for (std::size_t i = 0; i < snapshot.values.size(); ++i)
         json_field(out, snapshot.values[i].first.c_str(), snapshot.values[i].second, true);
     out += "\"lists\":{";

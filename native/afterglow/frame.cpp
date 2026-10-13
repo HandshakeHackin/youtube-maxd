@@ -55,13 +55,9 @@ double now_ms()
     return std::chrono::duration<double, std::milli>(clock::now().time_since_epoch()).count();
 }
 
-// The kit's components wear the look.
-void wear(ui::ComponentStyle &style, const Look &look, bool reduced)
-{
-    style.theme = look.theme;
-    style.sounds.set = look.theme.sounds;
-    style.reduced_motion = reduced;
-}
+// How long the whole-screen picture of a video handed to the player stands before the page
+// returns under it: the player takes over long before, unless it could not start.
+constexpr float kLaunchHold = 10.0f;
 
 } // namespace
 
@@ -142,9 +138,17 @@ bool Frame::take_exit_request()
     return asked;
 }
 
+void Frame::put_sheets_away()
+{
+    sheet_.dismiss();
+    sheet_changed_ = nullptr;
+    text_sheet_.dismiss();
+}
+
 void Frame::open(const Route &route, Move move)
 {
     UpdateContext c = context(true);
+    put_sheets_away();
     if (!stack_.empty())
         stack_.back()->screen->leave(c);
     removed_.reset();
@@ -160,15 +164,23 @@ void Frame::open(const Route &route, Move move)
     entry->screen = make_screen(route.screen);
     entry->arrived = Move::cut;
     stack_.push_back(std::move(entry));
+    const Phase arriving{0.0f, 0.0f, outgoing_ != nullptr ? move : Move::cut, {}, {}};
+    c.arriving = arriving.move == Move::cut ? nullptr : &arriving;
     stack_.back()->screen->enter(route, c, false);
     rail_open_ = false;
     rail_amount_.target = 0.0f;
-    start_move(outgoing_ != nullptr ? move : Move::cut, {});
+    start_move(arriving.move, {});
 }
 
 void Frame::resume()
 {
     idle_ = 0.0f;
+    if (launch_.active && !launch_.returning)
+    {
+        // The picture that became the whole screen returns to where it came from.
+        launch_.returning = true;
+        launch_.move.start(options_.reduced_motion ? 0.2f : 0.5f);
+    }
     if (stack_.empty())
         return;
     UpdateContext c = context(true);
@@ -179,10 +191,30 @@ void Frame::resume()
 
 void Frame::push(const Route &route, Move move, const Rect &carried)
 {
+    push(route, move, carried, {});
+}
+
+void Frame::push(const Route &route, Move move, const Rect &carried, std::string_view picture)
+{
     request_ = Request::push;
     request_route_ = route;
     request_move_ = move;
     request_carried_ = carried;
+    request_picture_ = std::string(picture);
+}
+
+bool Frame::back_to(ScreenId screen)
+{
+    for (std::size_t i = stack_.size(); i-- > 1;)
+    {
+        if (stack_[i - 1]->screen->id() == screen)
+        {
+            request_ = Request::back_to;
+            request_depth_ = i;
+            return true;
+        }
+    }
+    return false;
 }
 
 void Frame::back()
@@ -228,8 +260,63 @@ void Frame::confirm(std::string_view title, std::string_view body, std::string_v
     content.buttons = {{std::string(confirm_label), ui::ButtonKind::primary, false},
                        {tr("Cancel"), ui::ButtonKind::secondary, false}};
     content.default_button = 0;
+    dialog_.style.width = 760.0f;
+    dialog_.style.buttons = ui::DialogButtons::row;
+    question_answered_ = nullptr;
     dialog_answered_ = std::move(answered);
     dialog_.open(std::move(content), feedback_);
+}
+
+void Frame::ask(Question question, std::function<void(int answer)> answered)
+{
+    ui::DialogContent content;
+    content.icon = question.icon;
+    content.title = std::move(question.title);
+    content.body = std::move(question.body);
+    const int count = std::min(static_cast<int>(question.answers.size()), 3);
+    for (int i = 0; i < count; ++i)
+    {
+        // The answer that destroys is filled in the warning colour; without one the first answer leads.
+        const bool warns = i == question.danger;
+        const bool leads = question.danger < 0 && i == 0;
+        content.buttons.push_back({std::move(question.answers[static_cast<std::size_t>(i)]),
+                                   warns || leads ? ui::ButtonKind::primary : ui::ButtonKind::secondary, warns});
+    }
+    content.default_button = std::clamp(question.safe, 0, std::max(count - 1, 0));
+    // Stacked answers are sentences: they get the room to be read whole.
+    dialog_.style.width = question.stacked ? 900.0f : 760.0f;
+    dialog_.style.buttons = question.stacked ? ui::DialogButtons::stacked : ui::DialogButtons::row;
+    dialog_answered_ = nullptr;
+    question_answered_ = std::move(answered);
+    dialog_.open(std::move(content), feedback_);
+}
+
+void Frame::ask_text(TextQuestion question, std::function<void(bool taken, std::string text)> answered)
+{
+    UpdateContext c = context(true);
+    text_sheet_.show(std::move(question), std::move(answered), c);
+}
+
+void Frame::actions(const std::string &row, std::string_view about, std::function<void()> changed)
+{
+    UpdateContext c = context(true);
+    if (sheet_.show(row, about, c))
+        sheet_changed_ = std::move(changed);
+}
+
+bool Frame::play(const model::Video &video, const Rect &carried, std::string_view picture)
+{
+    if (!data_.play(video))
+        return false;
+    launch_ = Launch{};
+    if (carried.w > 0.0f && carried.h > 0.0f && !picture.empty())
+    {
+        launch_.active = true;
+        launch_.from = carried;
+        launch_.picture = std::string(picture);
+        launch_.move.start(options_.reduced_motion ? 0.2f : 0.62f);
+    }
+    return true;
 }
 
 void Frame::ambient(std::string_view picture_url)
@@ -241,10 +328,11 @@ void Frame::ambient(std::string_view picture_url)
     ambient_fade_.start(options_.reduced_motion ? 0.2f : 0.7f);
 }
 
-void Frame::start_move(Move move, const Rect &carried)
+void Frame::start_move(Move move, const Rect &carried, std::string picture)
 {
     move_ = move;
     carried_ = carried;
+    carried_picture_ = std::move(picture);
     outgoing_on_top_ = move == Move::pop || move == Move::shrink;
     float seconds = move_seconds(move);
     if (options_.reduced_motion)
@@ -274,6 +362,7 @@ void Frame::apply_requests()
         }
         else
         {
+            put_sheets_away();
             stack_.back()->screen->leave(c);
             removed_.reset();
             outgoing_ = stack_.back().get();
@@ -282,9 +371,12 @@ void Frame::apply_requests()
             entry->screen = make_screen(request_route_.screen);
             entry->arrived = request_move_;
             entry->carried = request_carried_;
+            entry->picture = request_picture_;
             stack_.push_back(std::move(entry));
+            const Phase arriving{0.0f, 0.0f, request_move_, request_carried_, request_picture_};
+            c.arriving = request_move_ == Move::cut ? nullptr : &arriving;
             stack_.back()->screen->enter(request_route_, c, false);
-            start_move(request_move_, request_carried_);
+            start_move(request_move_, request_carried_, request_picture_);
             feedback_.play(audio::Cue::open);
         }
     }
@@ -296,14 +388,31 @@ void Frame::apply_requests()
         }
         else
         {
+            put_sheets_away();
             stack_.back()->screen->leave(c);
             const Move way = reverse(stack_.back()->arrived);
             const Rect carried = stack_.back()->carried;
+            std::string picture = stack_.back()->picture;
             removed_ = std::move(stack_.back());
             stack_.pop_back();
             outgoing_ = removed_.get();
             stack_.back()->screen->enter(stack_.back()->route, c, true);
-            start_move(way, carried);
+            start_move(way, carried, std::move(picture));
+            feedback_.play(audio::Cue::back);
+        }
+    }
+    else if (request == Request::back_to)
+    {
+        if (request_depth_ >= 1 && request_depth_ < stack_.size())
+        {
+            // Everything above the screen that was asked for goes; the top one is seen leaving.
+            put_sheets_away();
+            stack_.back()->screen->leave(c);
+            removed_ = std::move(stack_.back());
+            stack_.resize(request_depth_);
+            outgoing_ = removed_.get();
+            stack_.back()->screen->enter(stack_.back()->route, c, true);
+            start_move(Move::pop, {});
             feedback_.play(audio::Cue::back);
         }
     }
@@ -411,6 +520,19 @@ void Frame::update(const InputFrame &input, float dt)
     rail_pos_.update(dt, options_.reduced_motion ? 60.0f : 22.0f);
     toasts_.update(dt, feedback_);
     dialog_.update(dt);
+    launch_.move.update(dt);
+    if (launch_.active && !launch_.move.running)
+    {
+        if (launch_.returning)
+        {
+            launch_ = Launch{};
+        }
+        else if ((launch_.held += dt) > kLaunchHold)
+        {
+            launch_.returning = true; // the player never took over: the page comes back
+            launch_.move.start(options_.reduced_motion ? 0.2f : 0.5f);
+        }
+    }
     if (stack_.empty())
         return;
 
@@ -430,7 +552,8 @@ void Frame::update(const InputFrame &input, float dt)
     else
     {
         idle_ += dt;
-        if (!attract_ && idle_ >= options_.attract_after && !dialog_.is_open() && !rail_open_ && !change_.running)
+        if (!attract_ && idle_ >= options_.attract_after && !dialog_.is_open() && !rail_open_ && !change_.running && !sheet_.open() &&
+            !text_sheet_.open() && !launch_.active)
             attract_ = stack_.back()->screen->attract(true);
     }
 
@@ -446,14 +569,32 @@ void Frame::update(const InputFrame &input, float dt)
         const ui::Event event = dialog_.handle(routed, feedback_);
         if (event == ui::Event::activated || event == ui::Event::cancelled)
         {
-            const bool yes = event == ui::Event::activated && dialog_.choice() == 0;
-            if (dialog_answered_)
+            const int choice = event == ui::Event::activated ? dialog_.choice() : -1;
+            if (question_answered_)
+            {
+                auto answered = std::move(question_answered_);
+                question_answered_ = nullptr;
+                answered(choice);
+            }
+            else if (dialog_answered_)
             {
                 auto answered = std::move(dialog_answered_);
                 dialog_answered_ = nullptr;
-                answered(yes);
+                answered(choice == 0);
             }
         }
+        stack_.back()->screen->update(none, under);
+    }
+    else if (text_sheet_.open())
+    {
+        text_sheet_.handle(routed, top);
+        stack_.back()->screen->update(none, under);
+    }
+    else if (sheet_.open())
+    {
+        Route route;
+        if (sheet_.handle(routed, top, &route))
+            push(route, Move::push, {});
         stack_.back()->screen->update(none, under);
     }
     else if (rail_open_)
@@ -466,6 +607,10 @@ void Frame::update(const InputFrame &input, float dt)
         // A screen that is still arriving takes input at once: nothing waits for a transition.
         stack_.back()->screen->update(routed, top);
     }
+    sheet_.update(top);
+    text_sheet_.update(top);
+    if (sheet_.take_changed() && sheet_changed_)
+        sheet_changed_(); // the screen that asked forgets the lists the action changed
     apply_requests();
     stats_.data_pending = data_.pending();
     stats_.pictures_pending = images_.pending();
@@ -479,12 +624,17 @@ FocusInfo Frame::focus() const
     FocusInfo info;
     if (dialog_.is_open())
     {
-        info.id = "dialog/" + std::to_string(dialog_.choice());
+        info.id = "dialog/" + std::to_string(dialog_.focus());
         info.text = dialog_.content().title;
-        info.index = dialog_.choice();
+        info.index = dialog_.focus();
         info.total = static_cast<int>(dialog_.content().buttons.size());
+        info.rect = {580.0f, 340.0f, 760.0f, 400.0f}; // the panel stands in the middle of the page
         return info;
     }
+    if (text_sheet_.open())
+        return text_sheet_.focus();
+    if (sheet_.open())
+        return sheet_.focus();
     if (rail_open_)
     {
         const Destination &item = destinations_[static_cast<std::size_t>(rail_focus_)];

@@ -18,6 +18,7 @@
 #include "ui/theme.hpp"
 
 #include <cstdint>
+#include <initializer_list>
 #include <string>
 #include <string_view>
 
@@ -63,7 +64,22 @@ constexpr const char *tr_mark(const char *english)
 {
     return english;
 }
-// A translated pattern with its values: fill(tr("{0} min left"), "12").
+// A translated pattern with its values: fill(tr("Search in {0}"), name).
+// A value that is a number goes through tr_n() instead, for the plural.
 std::string fill(std::string_view pattern, std::string_view first, std::string_view second = {});
+// A counted interface text: tr_n("{0} reply", "{0} replies", 3) is "3 replies"
+// in English and the catalog's form for that number in the profile's language
+// (one, few, many, other: the language's own rule). The catalogs key it by the
+// second form; scripts/i18n_extract.py reads both from this call.
+std::string tr_n(const char *one, const char *other, long count);
+
+inline bool starts_with(std::string_view text, std::string_view prefix)
+{
+    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
+}
+// Parts joined by a middle dot, the empty ones left out: "Quarterline · 1.9M views".
+std::string dotted(std::initializer_list<std::string_view> parts);
+// The number a text starts with ("3", "12 new"); 0 for none.
+int leading_number(std::string_view text);
 
 } // namespace afterglow

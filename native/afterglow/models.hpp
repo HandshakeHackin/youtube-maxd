@@ -55,6 +55,8 @@ struct Video
     float progress = 0.0f;  // 0..1 watched (local resume position, else YouTube's own mark)
     bool watched = false;
     unsigned badges = 0;    // Badge bits
+    int published_days = -1; // whole days since it was published (0: today), -1 when unknown
+    int at = -1;            // its place in Page::rows: the row keeps every other fact
 };
 
 struct Channel
@@ -68,6 +70,8 @@ struct Channel
     std::string banner;
     bool subscribed = false;
     int unseen = 0; // new videos since the profile last looked, 0 when unknown
+    bool live = false; // the channel is live now
+    int at = -1;       // its place in Page::rows: the row keeps every other fact
 };
 
 // A topic tile of Guest Home and Discover.

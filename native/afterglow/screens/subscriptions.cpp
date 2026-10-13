@@ -365,7 +365,7 @@ void Subscriptions::arrange()
         if (!days.empty())
         {
             dated_ = true;
-            day[i] = day_of(number_of(days));
+            day[i] = day_of(leading_number(days));
         }
         live += (feed_.videos[i].badges & model::kBadgeLive) != 0 ? 1 : 0;
     }

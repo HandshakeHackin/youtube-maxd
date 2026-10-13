@@ -41,12 +41,6 @@ void chevron_v(G &g, float cx, float y, int direction, Color color, float size =
     g.l.line(cx, tip, cx + size, back, 2.5f, color);
 }
 
-void spinner(G &g, float cx, float cy, float radius, Color color)
-{
-    const float turn = g.reduced ? 0.6f : g.time * 6.4f;
-    g.l.arc(cx, cy, radius, 3.0f, turn, 4.3f, color, true);
-}
-
 float bone_alpha(const G &g, float offset)
 {
     return g.reduced ? 0.8f : 0.6f + 0.4f * ui::breathe(g.time + offset, 1.7f);

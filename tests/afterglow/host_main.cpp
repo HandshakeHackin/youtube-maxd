@@ -119,9 +119,47 @@ class HostPlatform final : public Platform
         {
             if (cJSON_IsString(item) && item->string != nullptr)
                 strings_[item->string] = item->valuestring;
+            // A counted pattern has a form per plural category of the language.
+            const cJSON *form = nullptr;
+            if (cJSON_IsObject(item) && item->string != nullptr)
+                cJSON_ArrayForEach(form, item)
+                {
+                    if (cJSON_IsString(form) && form->string != nullptr)
+                        plurals_[item->string][form->string] = form->valuestring;
+                }
         }
         cJSON_Delete(root);
         return !strings_.empty();
+    }
+    // The catalog's form for a number. The harness knows "one" and "other" only: the plural rules of
+    // every language are the app's (native/tube_i18n.c) and are tested there.
+    std::string translate_count(const char *one, const char *other, long count) override
+    {
+        const auto with_number = [&](std::string pattern)
+        {
+            const std::size_t at = pattern.find("{0}");
+            if (at != std::string::npos)
+                pattern.replace(at, 3, std::to_string(count));
+            return pattern;
+        };
+        if (!strings_.empty())
+        {
+            const auto forms = plurals_.find(other);
+            if (forms != plurals_.end())
+            {
+                auto form = forms->second.find(count == 1 ? "one" : "other");
+                if (form == forms->second.end())
+                    form = forms->second.find("other");
+                if (form != forms->second.end())
+                    return with_number(form->second);
+            }
+            const auto plain = strings_.find(other);
+            if (plain != strings_.end())
+                return with_number(plain->second);
+            if (std::find(untranslated_.begin(), untranslated_.end(), other) == untranslated_.end())
+                untranslated_.emplace_back(other);
+        }
+        return with_number(count == 1 ? one : other);
     }
     // Interface texts asked for that the catalog of the language lacks.
     const std::vector<std::string> &untranslated() const
@@ -311,6 +349,7 @@ class HostPlatform final : public Platform
     hui::gfx::Renderer &renderer_;
     std::string fixtures_;
     std::map<std::string, std::string> strings_;
+    std::map<std::string, std::map<std::string, std::string>> plurals_;
     std::vector<std::string> untranslated_;
     std::vector<Fetch> fetches_;
     unsigned next_ticket_ = 1;
@@ -715,7 +754,14 @@ int main(int argc, char **argv)
                     if (to_reel && reel != nullptr)
                         std::fwrite(pixels.data(), 1, pixels.size(), reel);
                 };
-                const auto run = [&](float seconds, InputFrame first)
+                // The player of the harness: a video that was handed over plays for "player" seconds
+                // (default 1), then the interface is on screen again, as when the app's player closes.
+                const float player_seconds = static_cast<float>(number_of(board, "player", 1.0));
+                std::size_t played_seen = 0;
+                float player_left = -1.0f;
+                // held: the button or direction of the first frame stays down for the whole run. A held
+                // direction repeats as the pad's does: after 0.4 s, then every 0.1 s.
+                const auto run = [&](float seconds, InputFrame first, bool held = false)
                 {
                     const int frames = std::max(1, static_cast<int>(std::lround(seconds / kDt)));
                     for (int i = 0; i < frames; ++i)
@@ -723,7 +769,28 @@ int main(int argc, char **argv)
                         platform.pump();
                         if (engine)
                             engine->begin_frame();
-                        frame.update(i == 0 ? first : InputFrame{}, kDt);
+                        InputFrame input = i == 0 ? first : InputFrame{};
+                        if (held)
+                        {
+                            input.held = first.pressed;
+                            const float since = static_cast<float>(i) * kDt;
+                            if (i > 0 && first.nav != Direction::none && since >= 0.4f &&
+                                static_cast<int>((since - 0.4f) / 0.1f) != static_cast<int>((since - kDt - 0.4f) / 0.1f))
+                            {
+                                input.nav = first.nav;
+                                input.nav_repeat = true;
+                            }
+                        }
+                        if (source.played().size() != played_seen)
+                        {
+                            played_seen = source.played().size();
+                            player_left = player_seconds;
+                        }
+                        else if (player_left >= 0.0f && (player_left -= kDt) < 0.0f)
+                        {
+                            frame.resume();
+                        }
+                        frame.update(input, kDt);
                         if (reel != nullptr)
                         {
                             present(true);
@@ -750,7 +817,9 @@ int main(int argc, char **argv)
                 cJSON_ArrayForEach(step, cJSON_GetObjectItemCaseSensitive(board, "steps"))
                 {
                     InputFrame input;
-                    const std::string press = text_of(step, "press");
+                    // "press": down and up at once; "hold": down for the whole wait of the step.
+                    const std::string hold = text_of(step, "hold");
+                    const std::string press = hold.empty() ? text_of(step, "press") : hold;
                     if (!press.empty())
                     {
                         Direction direction = Direction::none;
@@ -759,7 +828,7 @@ int main(int argc, char **argv)
                         if (input.pressed == 0 && direction == Direction::none)
                             fail(results, name, look_id, "unknown button in a step: " + press);
                     }
-                    run(static_cast<float>(number_of(step, "wait", press.empty() ? 0.5 : 0.35)), input);
+                    run(static_cast<float>(number_of(step, "wait", press.empty() ? 0.5 : hold.empty() ? 0.35 : 1.0)), input, !hold.empty());
                 }
                 // The last frame is drawn twice: glyphs first asked for in it are in the atlas for the second.
                 for (int pass = 0; pass < 2; ++pass)
@@ -825,6 +894,16 @@ int main(int argc, char **argv)
                                 std::snprintf(line, sizeof line, "the picture at %d,%d is %d,%d,%d, expected about %d,%d,%d", v[0], v[1], got[0], got[1], got[2], v[2], v[3], v[4]);
                                 fail(results, name, look_id, line);
                             }
+                        }
+                    }
+                    else if (key == "answered")
+                    {
+                        // Texts that must have been handed over as typed answers: "<row>=<text>" each.
+                        const cJSON *text = nullptr;
+                        cJSON_ArrayForEach(text, wanted)
+                        {
+                            if (std::find(source.answered().begin(), source.answered().end(), text->valuestring) == source.answered().end())
+                                fail(results, name, look_id, std::string("the typed answer '") + text->valuestring + "' was never handed over");
                         }
                     }
                     else if (key == "asked")

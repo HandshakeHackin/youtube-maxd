@@ -15,6 +15,9 @@
 #include "afterglow/design.hpp"
 #include "afterglow/images.hpp"
 
+#include "ui/components/overlay.hpp"
+
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -59,26 +62,9 @@ struct Route
     std::string title; // shown in the header where the screen has none of its own
 };
 
-// How one screen hands over to the next.
-enum class Move : std::uint8_t
-{
-    cut,
-    fade,   // the old screen sinks back, the new one assembles
-    push,   // deeper: the new screen arrives from the right
-    pop,    // back out: from the left
-    zoom,   // a card's picture grows into the next screen's picture
-    shrink, // ... and returns to its card
-};
-
-// Where a screen is in a hand-over: in runs 0..1 while it arrives, out runs
-// 0..1 while it leaves. A screen that is simply up has in 1 and out 0.
-struct Phase
-{
-    float in = 1.0f;
-    float out = 0.0f;
-    Move move = Move::cut;
-    Rect carried{}; // zoom and shrink: the rectangle the picture travels from or to
-};
+// Move and Phase (how one screen hands over to the next, and where a screen is
+// in a hand-over) are in design.hpp, beside the piece that turns them into
+// motion (HandOver).
 
 enum class ToastKind : std::uint8_t
 {
@@ -86,6 +72,29 @@ enum class ToastKind : std::uint8_t
     success,
     warning,
     error,
+};
+
+// A question of the screen's own with one to three answers (Nav::ask).
+struct Question
+{
+    ui::StatusKind icon = ui::StatusKind::question;
+    std::string title;
+    std::string body;
+    std::vector<std::string> answers; // one to three, already translated
+    int danger = -1;                  // the answer that destroys something: drawn in the warning colour
+    int safe = 0;                     // where the focus opens; never on `danger` while there is another answer
+    bool stacked = false;             // answers that are sentences: one under the other, the panel wider
+};
+
+// What is typed on the frame's text sheet (Nav::ask_text).
+struct TextQuestion
+{
+    std::string title;
+    std::string detail;  // one line under the title: what the text is for
+    std::string initial; // what the field starts with ("https://")
+    std::string done;    // the word of the hint that takes the text ("Post"); "" for "Save"
+    bool secret = false; // a password: shown as dots and never part of a snapshot
+    bool may_be_empty = false; // an empty text is an answer too (a filter that is cleared)
 };
 
 // What a screen may ask of the frame. Requests take effect after the screen's
@@ -96,6 +105,13 @@ class Nav
     virtual ~Nav() = default;
     // Opens a screen above this one. carried is the picture's rectangle for Move::zoom.
     virtual void push(const Route &route, Move move = Move::push, const Rect &carried = {}) = 0;
+    // The same, naming the picture that travels: the page that arrives shows
+    // it from its first frame, before its own data has answered.
+    virtual void push(const Route &route, Move move, const Rect &carried, std::string_view picture)
+    {
+        (void)picture;
+        push(route, move, carried);
+    }
     // Leaves this screen for the one below it; on the last screen this asks
     // the app what Circle does on the main menu.
     virtual void back() = 0;
@@ -112,6 +128,63 @@ class Nav
     // The picture whose colours wash the page ground ("" for none). Call when
     // the focus moves to another picture; the frame cross-fades.
     virtual void ambient(std::string_view picture_url) = 0;
+
+    // ---- added after the first screens were built; each has a default so that
+    // nothing that implements Nav for a test has to change ---------------------
+
+    // A question with one to three answers of the screen's own: a destructive
+    // one in the warning colour, the focus on the safe one. answered runs once
+    // with the index of the answer, or -1 when the question was put away.
+    virtual void ask(Question question, std::function<void(int answer)> answered)
+    {
+        (void)question;
+        if (answered)
+            answered(-1);
+    }
+    // A text typed on the frame's sheet (the kit's keyboard: Cross types,
+    // Square deletes, Triangle is a space, Options takes the text, Circle puts
+    // the sheet away). answered runs once: false when it was put away. Hand
+    // the text to the provider with Data::act(row, text) and keep no copy of a
+    // secret.
+    virtual void ask_text(TextQuestion question, std::function<void(bool taken, std::string text)> answered)
+    {
+        (void)question;
+        if (answered)
+            answered(false, {});
+    }
+    // The actions of a row (a video, a channel, a playlist, a comment) as a
+    // sheet over the page (board 14; Touchpad wherever such a thing has the
+    // focus). The frame reads Data::menu(row, about), lists it, runs the
+    // chosen row through Data::act() (asking first where something is taken
+    // away), says what happened in a toast and opens the page a row names.
+    // about is what the sheet is about, in words (the video's title). changed
+    // runs once after an action went through: the lists of the screen may be
+    // older than the account now (data.forget() what it shows).
+    virtual void actions(const std::string &row, std::string_view about, std::function<void()> changed = {})
+    {
+        (void)row;
+        (void)about;
+        (void)changed;
+    }
+    // Leaves for the nearest screen of that kind below this one (Search again
+    // on the results returns to the search screen under them). False when
+    // there is none: nothing happens then and the screen decides.
+    virtual bool back_to(ScreenId screen)
+    {
+        (void)screen;
+        return false;
+    }
+    // Hands a video to the player from its picture's rectangle (the motion
+    // table's "picture to player": the picture becomes the whole screen, and
+    // returns to where it came from when the player closes). picture is the
+    // address of that picture. False when the app refused to play it.
+    virtual bool play(const model::Video &video, const Rect &carried, std::string_view picture = {})
+    {
+        (void)video;
+        (void)carried;
+        (void)picture;
+        return false;
+    }
 };
 
 // Long-lived services, the same for every screen.
@@ -134,6 +207,10 @@ struct UpdateContext
     bool reduced_motion = false;
     bool top = true;    // false while the screen is leaving or covered: ignore input
     const Look *look = nullptr; // the look in use, for what depends on it while updating
+    // In enter(): the hand-over this screen arrives by: its move, and for
+    // Move::zoom the rectangle and the address of the picture that travels.
+    // Null where nothing moves (a cut, the first screen).
+    const Phase *arriving = nullptr;
 };
 
 // What draw() receives. world is the page ground's layer (ambient pictures,
@@ -211,8 +288,34 @@ class Screen
     virtual void update(const InputFrame &input, UpdateContext &context) = 0;
     // May run more than once per frame and must not change the screen.
     virtual void draw(const DrawContext &context, const Phase &phase) const = 0;
+    // A second layer, drawn after the frame's own furniture (rail, title,
+    // clock, hints): a sheet or a panel of the screen that covers them, with
+    // its scrim. The same rules as draw(). While over() is above 0 the
+    // frame's hint row gives way to it.
+    virtual void draw_over(const DrawContext &context, const Phase &phase) const
+    {
+        (void)context;
+        (void)phase;
+    }
+    // How much of the page such a layer covers just now, 0..1.
+    virtual float over() const
+    {
+        return 0.0f;
+    }
 
-    // The header: the page title beside the mark; "" hides the header.
+    // What the frame draws at the head of the page.
+    enum class Header : std::uint8_t
+    {
+        title,      // the page title (title(), else the route's), the line under it and the clock
+        clock,      // the clock alone: the page has a head of its own
+        on_picture, // ... and that head is a picture: the clock stands on a glass plate, 28 pixels in
+    };
+    virtual Header header() const
+    {
+        return Header::title;
+    }
+
+    // The header: the page title beside the mark; "" shows the route's title.
     virtual std::string title() const
     {
         return {};
@@ -259,6 +362,23 @@ class Screen
         (void)out;
     }
 };
+
+// ---- what every screen does the same way ------------------------------------------
+
+// A direction with nowhere to go: the soft refusal of the design notes (the
+// error cue at 60 %, a short rumble, the ring nudged; nudge is the screen's
+// ui::Pulse, shaken with ui::shake() where the focus is drawn). Silent on a
+// held direction. x pans the cue to where the focus is.
+void refuse(UpdateContext &context, const InputFrame &input, ui::Pulse &nudge, float x = 960.0f);
+// Cross on a video: the player takes over with the launch cue and its rumble,
+// from the picture's rectangle when one is given (Nav::play), or a toast says
+// why not. True when it plays.
+bool play_video(UpdateContext &context, const model::Video &video, const Rect &carried = {}, float x = 960.0f);
+// A provider row that is another page of the interface ("channel:UC...",
+// "description:<video>", "library:playlist:<id>", ...): where it leads.
+bool route_of_row(const model::Row &row, Route *route);
+// The icon of a provider row in a list of actions, from its id.
+Icon icon_of_row(std::string_view id);
 
 // ---- the screens ----------------------------------------------------------------
 // One factory per screen. screens/stubs.cpp defines every one of them weakly as

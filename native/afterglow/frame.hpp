@@ -11,6 +11,7 @@
 #pragma once
 
 #include "afterglow/screen.hpp"
+#include "afterglow/sheet.hpp"
 
 #include "ui/components.hpp"
 
@@ -93,6 +94,12 @@ class Frame final : private Nav
     void open(const Route &route, Move move = Move::cut);
     // The app's player closed and the interface is on screen again.
     void resume();
+    // The picture a video was handed to the player with (Nav::play), "" when
+    // none travels: the player begins with the same picture.
+    const std::string &launch_picture() const
+    {
+        return launch_.picture;
+    }
 
     ScreenId screen() const;
     std::size_t depth() const
@@ -128,10 +135,12 @@ class Frame final : private Nav
         std::unique_ptr<Screen> screen;
         Move arrived = Move::cut; // how it was opened: Circle leaves the other way
         Rect carried{};
+        std::string picture; // the picture that travelled with it, when the screen that pushed named it
     };
 
     // Nav, as the top screen sees it.
     void push(const Route &route, Move move, const Rect &carried) override;
+    void push(const Route &route, Move move, const Rect &carried, std::string_view picture) override;
     void back() override;
     void root(const Route &route) override;
     void open_rail() override;
@@ -140,9 +149,15 @@ class Frame final : private Nav
     void confirm(std::string_view title, std::string_view body, std::string_view confirm_label,
                  std::function<void(bool)> answered) override;
     void ambient(std::string_view picture_url) override;
+    void ask(Question question, std::function<void(int answer)> answered) override;
+    void ask_text(TextQuestion question, std::function<void(bool taken, std::string text)> answered) override;
+    void actions(const std::string &row, std::string_view about, std::function<void()> changed) override;
+    bool back_to(ScreenId screen) override;
+    bool play(const model::Video &video, const Rect &carried, std::string_view picture) override;
 
     void apply_requests();
-    void start_move(Move move, const Rect &carried);
+    void start_move(Move move, const Rect &carried, std::string picture = {});
+    void put_sheets_away();
     void update_rail(const InputFrame &input);
     void rail_destinations();
     UpdateContext context(bool top);
@@ -153,6 +168,7 @@ class Frame final : private Nav
     void draw_rail(G &g, float arrive);
     void draw_header(G &g, const Entry &entry, float alpha);
     void draw_hints(G &g, const Entry &entry, float alpha);
+    void draw_launch(G &g);
     void measure(const gfx::DrawList &world, const gfx::DrawList &ui);
 
     Platform &platform_;
@@ -169,6 +185,7 @@ class Frame final : private Nav
     std::unique_ptr<Entry> removed_; // ... kept alive here when it has left the stack
     Move move_ = Move::cut;
     Rect carried_{};
+    std::string carried_picture_;
     tween::Timer change_;
     bool outgoing_on_top_ = false; // back moves draw the leaving screen above the one it reveals
 
@@ -179,11 +196,14 @@ class Frame final : private Nav
         push,
         back,
         root,
+        back_to,
     };
     Request request_ = Request::none;
     Route request_route_;
     Move request_move_ = Move::push;
     Rect request_carried_{};
+    std::string request_picture_;
+    std::size_t request_depth_ = 0; // back_to: how many screens stay
     bool request_rail_ = false;
     bool exit_request_ = false;
 
@@ -214,6 +234,25 @@ class Frame final : private Nav
     ui::ToastStack toasts_;
     ui::Dialog dialog_;
     std::function<void(bool)> dialog_answered_;
+    std::function<void(int)> question_answered_; // the dialog is a Question of a screen's own
+
+    // The sheets a screen asks for through Nav.
+    ActionsSheet sheet_;
+    std::function<void()> sheet_changed_;
+    TextSheet text_sheet_;
+
+    // A video handed to the player from its picture: the picture becomes the
+    // whole screen, and returns to where it came from when the player closes.
+    struct Launch
+    {
+        bool active = false;
+        bool returning = false;
+        tween::Timer move;
+        float held = 0.0f; // seconds the whole-screen picture has stood since the move ended
+        Rect from{};
+        std::string picture;
+    };
+    Launch launch_;
     std::vector<std::string> toast_log_; // the last few, for snapshots
 
     FrameStats stats_;

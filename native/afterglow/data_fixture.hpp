@@ -61,7 +61,17 @@ class FixtureSource final : public Source
         return asked_;
     }
 
+    // Texts handed over with answer(), oldest first, each as "<row>=<text>"
+    // ("prompt:answer=<text>" for the armed prompt): what a board checks.
+    const std::vector<std::string> &answered() const
+    {
+        return answered_;
+    }
+
     unsigned catalog(const std::string &id, int page, Done done) override;
+    // A typed answer is the fixture catalog of the row (its rows are what the
+    // provider lists afterwards); the armed prompt's is "prompt:answer".
+    unsigned answer(const std::string &row, std::string_view text, Done done) override;
     void cancel(unsigned ticket) override;
     model::Profile profile() override;
     unsigned revision() override
@@ -99,6 +109,7 @@ class FixtureSource final : public Source
     std::vector<Waiting> waiting_;
     std::vector<std::string> played_;
     std::vector<std::string> asked_;
+    std::vector<std::string> answered_;
     unsigned next_ticket_ = 1;
     unsigned revision_ = 1;
     int delay_ = 3;

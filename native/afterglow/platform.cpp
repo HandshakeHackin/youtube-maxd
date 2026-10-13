@@ -5,6 +5,8 @@
 #include "afterglow/base.hpp"
 #include "afterglow/platform.hpp"
 
+#include <algorithm>
+
 namespace afterglow
 {
 
@@ -47,6 +49,44 @@ std::string fill(std::string_view pattern, std::string_view first, std::string_v
         }
     }
     return out;
+}
+
+std::string Platform::translate_count(const char *one, const char *other, long count)
+{
+    return fill(count == 1 ? one : other, std::to_string(count));
+}
+
+std::string tr_n(const char *one, const char *other, long count)
+{
+    if (one == nullptr || other == nullptr)
+        return {};
+    return g_platform != nullptr ? g_platform->translate_count(one, other, count) : fill(count == 1 ? one : other, std::to_string(count));
+}
+
+std::string dotted(std::initializer_list<std::string_view> parts)
+{
+    std::string out;
+    for (const std::string_view part : parts)
+    {
+        if (part.empty())
+            continue;
+        if (!out.empty())
+            out += " \xC2\xB7 ";
+        out += part;
+    }
+    return out;
+}
+
+int leading_number(std::string_view text)
+{
+    int value = 0;
+    for (const char c : text)
+    {
+        if (c < '0' || c > '9')
+            break;
+        value = std::min(value * 10 + (c - '0'), 99999999);
+    }
+    return value;
 }
 
 } // namespace afterglow

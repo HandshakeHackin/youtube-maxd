@@ -27,17 +27,39 @@ constexpr float kCardH = 198.0f;
 constexpr float kCardGap = 24.0f;
 constexpr float kCardPitch = kCardW + kCardGap;
 constexpr float kShelfPitch = 404.0f; // from one shelf to the next
+// A grid cell: four columns fill kLeft to kRight exactly; rows are 352 apart.
+constexpr float kCellW = 394.0f;
+constexpr float kCellH = 222.0f;
+constexpr float kCellGap = 24.0f;
+constexpr float kCellPitchX = kCellW + kCellGap;
+constexpr float kCellPitchY = 352.0f;
+constexpr int kColumns = 4;
+// The first line of a page's content, and the line nothing of a page is drawn
+// below but the hint bar.
+constexpr float kPageTop = 196.0f;
+constexpr float kPageBottom = 968.0f;
 // Corner radii: one per kind of thing.
 constexpr float kRadiusThumb = 16.0f;
 constexpr float kRadiusPanel = 28.0f;
 constexpr float kRadiusChip = 8.0f;
+constexpr float kRadiusField = 22.0f;   // a field that is typed into
+constexpr float kRadiusPicture = 24.0f; // a page's own picture (the video page)
+constexpr float kRadiusSheet = 40.0f;   // sheets and panels that cover the page
 // Type scale.
 constexpr float kTypeHero = 60.0f;
 constexpr float kTypePage = 44.0f;
+constexpr float kTypePlayer = 38.0f;  // the player's title
+constexpr float kTypeMessage = 36.0f; // what a page says when it has nothing to show
+constexpr float kTypePanel = 34.0f;   // the title of a sheet or a panel
 constexpr float kTypeTitle = 32.0f;
 constexpr float kTypeShelf = 26.0f;
+constexpr float kTypeRow = 25.0f;     // a row of a list or a sheet
 constexpr float kTypeBody = 24.0f;
+constexpr float kTypeCard = 23.0f;    // a card's title, on a 30 pixel line
+constexpr float kTypeSub = 22.0f;     // the line under a page title, secondary lines
+constexpr float kTypeNote = 21.0f;    // what a sheet is about, small print that is still read
 constexpr float kTypeMeta = 20.0f;
+constexpr float kTypeFine = 19.0f;    // counts and marks beside something else
 constexpr float kTypeOver = 17.0f;
 
 // ---- the look ------------------------------------------------------------------

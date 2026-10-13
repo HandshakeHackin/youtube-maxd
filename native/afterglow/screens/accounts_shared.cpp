@@ -60,21 +60,6 @@ std::string with(const char *pattern, std::string_view first, std::string_view s
     return out;
 }
 
-const char *load_name(model::Load load)
-{
-    switch (load)
-    {
-    case model::Load::ready:
-        return "ready";
-    case model::Load::failed:
-        return "failed";
-    case model::Load::offline:
-        return "offline";
-    default:
-        return "loading";
-    }
-}
-
 std::string clock_text(float seconds)
 {
     const int whole = std::max(0, static_cast<int>(std::ceil(seconds)));
@@ -152,21 +137,6 @@ void code_bone(G &g, const Rect &r, float radius, int index)
     g.l.bordered_rect(r, radius, clear(), 1.5f, g.k.hairline);
 }
 
-void spinner(G &g, float cx, float cy, float radius, Color color)
-{
-    const float thickness = std::max(3.0f, radius * 0.22f);
-    g.l.ring(cx, cy, radius, thickness, g.k.raised);
-    if (g.reduced)
-    {
-        // Still, and breathing: something is being waited for all the same.
-        g.l.arc(cx, cy, radius, thickness, -1.5708f, 4.2f, color.with_alpha(0.55f + 0.45f * ui::breathe(g.time, 2.4f)), true);
-        return;
-    }
-    const float turn = g.time * 5.2f;
-    const float sweep = 2.2f + 1.5f * ui::breathe(g.time, 1.9f);
-    g.l.arc(cx, cy, radius, thickness, turn, sweep, color, true);
-}
-
 void notice(G &g, const Rect &r, Icon glyph, std::string_view title, std::string_view body, Color tone)
 {
     glass_panel(g, r, 24.0f);
@@ -217,7 +187,7 @@ Rect message_page(G &g, Icon glyph, std::string_view title, std::string_view bod
 
 // ---- the question with a safe answer ------------------------------------------------
 
-void Question::ask(ui::StatusKind icon_kind, std::string title, std::string body, std::vector<std::string> answers, int danger,
+void LocalQuestion::ask(ui::StatusKind icon_kind, std::string title, std::string body, std::vector<std::string> answers, int danger,
                    int safe, bool stacked, Feedback &feedback)
 {
     ui::DialogContent content;
@@ -239,7 +209,7 @@ void Question::ask(ui::StatusKind icon_kind, std::string title, std::string body
     dialog_.open(std::move(content), feedback);
 }
 
-int Question::update(const InputFrame &input, float dt, Feedback &feedback, bool top)
+int LocalQuestion::update(const InputFrame &input, float dt, Feedback &feedback, bool top)
 {
     dialog_.update(dt);
     if (!dialog_.is_open() || !top)
@@ -252,7 +222,7 @@ int Question::update(const InputFrame &input, float dt, Feedback &feedback, bool
     return -2;
 }
 
-void Question::draw(const DrawContext &context) const
+void LocalQuestion::draw(const DrawContext &context) const
 {
     if (!dialog_.visible())
         return;
@@ -268,7 +238,7 @@ void Question::draw(const DrawContext &context) const
     dialog_.draw(canvas);
 }
 
-std::string Question::answer(int index) const
+std::string LocalQuestion::answer(int index) const
 {
     const auto &buttons = dialog_.content().buttons;
     return index >= 0 && index < static_cast<int>(buttons.size()) ? buttons[static_cast<std::size_t>(index)].label : std::string();

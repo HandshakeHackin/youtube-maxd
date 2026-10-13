@@ -79,6 +79,9 @@ struct Page
     bool more = false;               // a further page exists
 };
 
+// "idle", "loading", "ready", "failed", "offline": the snapshot's word for a Load.
+const char *load_name(model::Load load);
+
 // What the data layer asks of the app.
 class Source
 {
@@ -99,6 +102,21 @@ class Source
     // Changes when cached pages may be stale: another profile, an account
     // signed in or out, the library edited, the content language changed.
     virtual unsigned revision() = 0;
+
+    // A typed answer. Lists `row`, a row that asks for a text (a preference
+    // that is typed, a comment to post); "" when the provider's prompt is
+    // armed already (the password of a profile that was just chosen). The text
+    // goes to the prompt the provider armed and the catalog the provider names
+    // next is listed: that listing is the answer, or Load::failed with the
+    // provider's reason ("Wrong password."). The text is not stored, logged or
+    // cached. Returns a ticket as catalog() does; the default refuses.
+    virtual unsigned answer(const std::string &row, std::string_view text, Done done)
+    {
+        (void)row;
+        (void)text;
+        (void)done;
+        return 0;
+    }
 
     // Hands a video to the app's player. False when the app refused.
     virtual bool play(const model::Video &video) = 0;
@@ -143,6 +161,16 @@ class Data
     // message. A finished action is kept for ten seconds. Show the pending
     // state on the control that was pressed, the result as a toast.
     unsigned act(const std::string &row);
+    // The same with a typed text: the row asks for one (a server's address, a
+    // comment, a list's name) and the provider takes it from here. With an
+    // empty row the text answers the prompt the provider armed already (a
+    // profile's password, after the profile was chosen). The text is handed on
+    // and not kept; the frame's text sheet (Nav::ask_text) is where it is typed.
+    unsigned act(const std::string &row, std::string_view text);
+    unsigned answer(std::string_view text)
+    {
+        return act(std::string(), text);
+    }
     const Page &action(unsigned ticket);
     // The actions menu of a row, as a catalog id for catalog(); "" for none.
     std::string menu(const std::string &row, const std::string &title)

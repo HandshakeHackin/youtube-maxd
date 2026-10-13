@@ -46,8 +46,6 @@ const model::Row *find_prefix(const Page &page, std::string_view prefix);
 const std::string &fact_of(const Page &page, std::string_view name);
 // "{0}" and "{1}" of a translated pattern replaced.
 std::string with(const char *pattern, std::string_view first, std::string_view second = {});
-// "ready", "loading", "failed", "offline": the snapshot's word for a Load.
-const char *load_name(model::Load load);
 // m:ss of a number of seconds.
 std::string clock_text(float seconds);
 
@@ -74,12 +72,6 @@ class Travel
     float alpha_ = 1.0f;
 };
 
-// How far group `index` of a page that is `age` seconds old has arrived.
-inline float arrive(float age, int index, float step = 0.06f, float duration = 0.5f)
-{
-    return tween::cubic_out(tween::clamp01((age - static_cast<float>(index) * step) / duration));
-}
-
 // ---- pieces ----------------------------------------------------------------------
 
 // The head of a page that names its family above its title ("SIGN IN TO
@@ -91,8 +83,6 @@ void step_disc(G &g, float cx, float cy, int number);
 void code_box(G &g, const Rect &r, std::string_view value, float size, float in, float radius, float tracking = 0.0f);
 // The same box while the code is on its way.
 void code_bone(G &g, const Rect &r, float radius, int index);
-// A working arc: something is being waited for.
-void spinner(G &g, float cx, float cy, float radius, Color color);
 // A panel that says one thing: an icon on a disc, a line and what it means.
 // tone tints the disc (the look's warning or danger); alpha 0 keeps it neutral.
 void notice(G &g, const Rect &r, Icon glyph, std::string_view title, std::string_view body, Color tone = clear());
@@ -110,7 +100,7 @@ Rect message_button_rect(const ui::Fonts &fonts, std::string_view body, std::str
 // frame's dialog opens on the confirming answer and names the other "Cancel";
 // until it can do this, the account screens keep the kit's dialog themselves
 // for these two questions (requests/F.md, 2).
-class Question
+class LocalQuestion
 {
   public:
     // answers: one to three labels; `danger` is the index of the answer drawn

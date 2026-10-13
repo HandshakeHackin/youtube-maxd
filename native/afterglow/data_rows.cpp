@@ -20,11 +20,6 @@ namespace afterglow
 namespace
 {
 
-bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
-
 std::string string_of(const cJSON *object, const char *name)
 {
     const cJSON *item = cJSON_GetObjectItemCaseSensitive(object, name);
@@ -85,8 +80,43 @@ void add_row(Page &page, const RawRow &row)
     plain.thumb = row.art_url;
     plain.folder = row.folder;
     plain.interface_text = row.interface_text;
-    plain.facts = row.facts;
+    // Facts keep YouTube's words too and lose what no face draws; an address is left as it is.
+    plain.facts.reserve(row.facts.size() + 8);
+    for (const auto &fact : row.facts)
+    {
+        const bool address = fact.first.size() >= 3 && fact.first.compare(fact.first.size() - 3, 3, "url") == 0;
+        plain.facts.emplace_back(fact.first, address ? fact.second : clean(fact.second));
+    }
+    // What a video's fields are filled from stays readable as facts on any row: the first row of
+    // "details:<video>" is a folder, and it has views, an age and a channel picture all the same.
+    const auto keep = [&](const char *name, std::string value)
+    {
+        if (!value.empty() && plain.fact(name).empty())
+            plain.facts.emplace_back(name, std::move(value));
+    };
+    keep("views", clean(row.views));
+    keep("published", clean(row.published));
+    keep("channel_art_url", row.channel_art);
+    keep("channel_id", row.channel_id);
+    if (!row.badges.empty())
+    {
+        std::string badges;
+        for (const std::string &badge : row.badges)
+            badges += (badges.empty() ? "" : ",") + badge;
+        keep("badges", std::move(badges));
+    }
+    if (row.live)
+        keep("is_live", "1");
+    if (row.upcoming)
+        keep("is_upcoming", "1");
+    if (row.is_short)
+        keep("is_short", "1");
+    if (row.duration_s > 0)
+        keep("duration_sec", std::to_string(row.duration_s));
+    if (row.resume_s > 0)
+        keep("resume_sec", std::to_string(row.resume_s));
     page.rows.push_back(plain);
+    const int at = static_cast<int>(page.rows.size()) - 1;
 
     if (starts_with(row.id, "channel:"))
     {
@@ -94,8 +124,14 @@ void add_row(Page &page, const RawRow &row)
         channel.id = row.id.substr(8);
         channel.row = row.id;
         channel.name = plain.title;
-        channel.subscribers = row.interface_text ? std::string() : plain.subtitle;
+        channel.subscribers = row.interface_text || plain.subtitle.empty() ? plain.fact("subscribers") : plain.subtitle;
         channel.avatar = row.art_url;
+        channel.handle = plain.fact("handle");
+        channel.banner = plain.fact("banner_url");
+        channel.subscribed = plain.has("subscribed");
+        channel.unseen = leading_number(plain.fact("unseen"));
+        channel.live = plain.has("live") || row.live;
+        channel.at = at;
         page.channels.push_back(std::move(channel));
         return;
     }
@@ -152,6 +188,9 @@ void add_row(Page &page, const RawRow &row)
         else if (badge == "members")
             video.badges |= model::kBadgeMembers;
     }
+    if (const std::string &days = plain.fact("published_days"); !days.empty() && days[0] >= '0' && days[0] <= '9')
+        video.published_days = leading_number(days);
+    video.at = at;
     page.videos.push_back(std::move(video));
 }
 

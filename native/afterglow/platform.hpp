@@ -65,6 +65,10 @@ class Platform
     // An interface text in the profile's language; english itself when the
     // catalog has no entry. The pointer stays valid until the language changes.
     virtual const char *translate(const char *english) = 0;
+    // A counted text ("{0} reply", "{0} replies", 3) in the profile's language,
+    // the number in place and the form the language's plural rule picks. The
+    // default is the English text; a platform with catalogs overrides it.
+    virtual std::string translate_count(const char *one, const char *other, long count);
     // Changes whenever translate() may answer differently.
     virtual unsigned language_revision() = 0;
 

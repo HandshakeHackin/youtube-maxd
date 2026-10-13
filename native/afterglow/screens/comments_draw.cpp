@@ -61,7 +61,7 @@ std::string tail_fit(const Face &face, const std::string &value, float size, flo
 }
 
 // One controller button, by the design language's own hint row.
-void glyph(G &g, ui::Button button, float right, float cy)
+void hint_glyph(G &g, ui::Button button, float right, float cy)
 {
     const ui::Hint item{button, ""};
     g.l.push_transform(1.0f, 0.0f, 0.0f, 0.0f, cy - kHintY);
@@ -342,7 +342,7 @@ void Comments::draw_about(G &g, const DrawContext &context) const
         avatar(g, compose.x + 34.0f, compose.cy(), 22.0f, name, profile_.id, Picture{});
         text(g, g.f.regular, fit(g.f.regular, fill(tr("Add a comment as {0}"), name), kTypeSaid, room), compose.x + 72.0f, compose.cy() + 8.0f,
              kTypeSaid, k.ink3);
-        glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
+        hint_glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
         note = tr("Comments and replies are posted to YouTube from your account, once, after you confirm.");
     }
     else if (!profile_.signed_in)
@@ -350,7 +350,7 @@ void Comments::draw_about(G &g, const DrawContext &context) const
         icon(g, Icon::user, compose.x + 36.0f, compose.cy(), 28.0f, k.ink3);
         text(g, g.f.regular, fit(g.f.regular, tr("Sign in to write and to like"), kTypeSaid, room), compose.x + 72.0f, compose.cy() + 8.0f,
              kTypeSaid, k.ink3);
-        glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
+        hint_glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
         note = tr("Reading needs no account. Writing, answering and liking use a YouTube account on this profile.");
     }
     else
@@ -451,7 +451,7 @@ void Comments::draw(const DrawContext &context, const Phase &phase) const
     const Look &k = g.k;
     const Motion motion = hand_over(phase, context.reduced_motion);
     const float writing = tween::clamp01(writing_amount_.value);
-    g.l.push_opacity(motion.opacity);
+    g.l.push_opacity(motion.alpha * motion.furniture);
     g.l.push_transform(motion.scale, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, motion.dx, 0.0f);
     {
         // The header's second line: how many there are.

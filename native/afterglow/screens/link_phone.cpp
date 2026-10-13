@@ -731,7 +731,7 @@ class LinkPhone final : public Screen
     tween::Spring sheet_shown_;
     tween::Spring option_pos_;
     ui::Pulse nudge_;
-    Question question_;
+    LocalQuestion question_;
 };
 
 } // namespace

@@ -158,66 +158,6 @@ struct Feed
     }
 };
 
-// REQUEST: the motion table's hand-overs belong to the design language; every
-// screen answers its Phase the same way.
-struct Hand
-{
-    float alpha = 1.0f;
-    float dx = 0.0f;
-    float scale = 1.0f;
-};
-Hand hand_over(const Phase &phase, bool reduced)
-{
-    Hand hand;
-    const float in = tween::clamp01(phase.in);
-    const float out = tween::clamp01(phase.out);
-    switch (phase.move)
-    {
-    case Move::push:
-    case Move::pop:
-    {
-        // Deeper and back out: the old page slides 90 pixels and fades, the new one comes 110 from the other side.
-        const float side = phase.move == Move::push ? 1.0f : -1.0f;
-        if (out > 0.0f)
-        {
-            hand.alpha = 1.0f - tween::cubic_in(out);
-            hand.dx = -90.0f * side * tween::cubic_in(out);
-        }
-        else
-        {
-            hand.alpha = tween::quint_out(in);
-            hand.dx = 110.0f * side * (1.0f - tween::quint_out(in));
-        }
-        break;
-    }
-    case Move::zoom:
-    case Move::shrink:
-        // A picture travels: this page's furniture is gone in the first 150 ms and returns under the picture.
-        hand.alpha = out > 0.0f ? 1.0f - tween::clamp01(out / 0.29f) : tween::clamp01(in / 0.6f);
-        break;
-    case Move::fade:
-        if (out > 0.0f)
-        {
-            hand.alpha = 1.0f - tween::clamp01(out / 0.4f);
-            hand.scale = 1.0f - 0.025f * out;
-        }
-        else
-        {
-            hand.alpha = tween::clamp01((in - 0.12f) / 0.4f);
-        }
-        break;
-    case Move::cut:
-        hand.alpha = in * (1.0f - out);
-        break;
-    }
-    if (reduced)
-    {
-        hand.dx = 0.0f;
-        hand.scale = 1.0f;
-    }
-    return hand;
-}
-
 enum class Kind : std::uint8_t
 {
     video,
@@ -544,7 +484,8 @@ class Grid final : public Screen
     void draw(const DrawContext &context, const Phase &phase) const override
     {
         G g = context.g();
-        const Hand hand = hand_over(phase, g.reduced);
+        Motion hand = hand_over(phase, g.reduced);
+        hand.alpha *= hand.furniture; // no picture of this page travels: all of it gives way
         if (hand.alpha <= 0.004f)
             return;
         g.l.push_opacity(hand.alpha);

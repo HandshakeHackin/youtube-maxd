@@ -89,37 +89,6 @@ inline std::string fill(const char *pattern, std::string_view first, std::string
     return out;
 }
 
-// What a hand-over does to a whole screen (the motion table's "deeper / back out" and "section change").
-struct Motion
-{
-    float opacity = 1.0f;
-    float scale = 1.0f;
-    float dx = 0.0f;
-};
-inline Motion hand_over(const Phase &phase, bool reduced)
-{
-    Motion m;
-    if (phase.out > 0.0f)
-    {
-        m.opacity = 1.0f - tween::smoothstep(phase.out * 2.4f);
-        if (!reduced && phase.move == Move::fade)
-            m.scale = 1.0f - 0.025f * tween::cubic_out(phase.out);
-        if (!reduced && phase.move == Move::push)
-            m.dx = -90.0f * tween::cubic_in(phase.out);
-        if (!reduced && phase.move == Move::pop)
-            m.dx = 90.0f * tween::cubic_in(phase.out);
-    }
-    else if (phase.in < 1.0f)
-    {
-        m.opacity = tween::smoothstep((phase.in - 0.12f) / 0.6f);
-        if (!reduced && phase.move == Move::push)
-            m.dx = 110.0f * (1.0f - tween::quint_out(phase.in));
-        if (!reduced && phase.move == Move::pop)
-            m.dx = -110.0f * (1.0f - tween::quint_out(phase.in));
-    }
-    return m;
-}
-
 // ---- the thread ---------------------------------------------------------------------
 
 struct Item

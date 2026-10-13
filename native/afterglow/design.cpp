@@ -460,10 +460,15 @@ void avatar(G &g, float cx, float cy, float radius, std::string_view name, std::
     g.l.bordered_rect(r, radius, clear(), std::max(1.5f, radius * 0.05f), kWhite.with_alpha(0.22f));
 }
 
-float tag_width(G &g, std::string_view label, float height)
+float tag_width(const ui::Fonts &fonts, std::string_view label, float height)
 {
     const float size = height * 0.58f;
-    return measure(g.f.semibold, label, size, 0.8f) + height * 0.72f;
+    return measure(fonts.semibold, label, size, 0.8f) + height * 0.72f;
+}
+
+float tag_width(G &g, std::string_view label, float height)
+{
+    return tag_width(g.f, label, height);
 }
 
 float tag(G &g, float x, float cy, std::string_view label, Color fill, Color ink, float height)
@@ -480,7 +485,12 @@ float button_width(G &g, std::string_view label, bool has_icon)
     return measure(g.f.semibold, label, kTypeBody) + (has_icon ? 96.0f : 60.0f);
 }
 
-void button(G &g, const Rect &r, std::string_view label, Icon glyph, float focus, bool primary, bool selected)
+float button_width(const ui::Fonts &fonts, std::string_view label, bool has_icon)
+{
+    return measure(fonts.semibold, label, kTypeBody) + (has_icon ? 96.0f : 60.0f);
+}
+
+void button(G &g, const Rect &r, std::string_view label, Icon glyph, float focus, bool primary, bool selected, bool busy)
 {
     const float f = tween::clamp01(focus);
     const float radius = r.h * 0.5f;
@@ -503,24 +513,37 @@ void button(G &g, const Rect &r, std::string_view label, Icon glyph, float focus
         g.l.bordered_rect(r, radius, clear(), 1.5f, (selected ? g.k.accent : g.k.hairline).with_alpha((selected ? 0.7f : 1.0f) * (1.0f - f)));
     ink = gfx::mix(ink, g.k.on_plate, f);
     const Color icon_ink = selected && f < 0.5f ? g.k.accent : ink;
+    // Pressed and not yet answered: the icon turns and the words wait.
+    const auto sign = [&](float cx, float cy, float size)
+    {
+        if (busy)
+            spinner(g, cx, cy, size * 0.4f, icon_ink);
+        else
+            icon(g, glyph, cx, cy, size, icon_ink);
+    };
     if (has_label)
     {
         const float label_w = measure(g.f.semibold, label, kTypeBody);
         const float content = label_w + 38.0f;
         const float x = r.cx() - content * 0.5f;
-        icon(g, glyph, x + 13.0f, r.cy(), 26.0f, icon_ink);
-        text(g, g.f.semibold, label, x + 38.0f, r.cy() + 8.5f, kTypeBody, ink);
+        sign(x + 13.0f, r.cy(), 26.0f);
+        text(g, g.f.semibold, label, x + 38.0f, r.cy() + 8.5f, kTypeBody, busy ? ink.with_alpha(ink.a * 0.6f) : ink);
     }
     else
     {
-        icon(g, glyph, r.cx(), r.cy(), std::min(30.0f, r.h * 0.46f), icon_ink);
+        sign(r.cx(), r.cy(), std::min(30.0f, r.h * 0.46f));
     }
     g.l.pop_transform();
 }
 
+float chip_width(const ui::Fonts &fonts, std::string_view label, float height, bool menu)
+{
+    return measure(fonts.semibold, label, height * 0.5f) + height * 0.9f + (menu ? height * 0.5f : 0.0f);
+}
+
 float chip_width(G &g, std::string_view label, float height, bool menu)
 {
-    return measure(g.f.semibold, label, height * 0.5f) + height * 0.9f + (menu ? height * 0.5f : 0.0f);
+    return chip_width(g.f, label, height, menu);
 }
 
 float chip(G &g, float x, float cy, std::string_view label, bool selected, float focus, float height, bool menu)

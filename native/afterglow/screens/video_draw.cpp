@@ -535,7 +535,7 @@ void VideoPage::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
     const Motion motion = hand_over(phase, context.reduced_motion);
-    g.l.push_opacity(motion.opacity);
+    g.l.push_opacity(motion.alpha);
     g.l.push_transform(motion.scale, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, motion.dx, 0.0f);
     g.l.push_opacity(motion.furniture);
     if (!have_ && (load_ == model::Load::failed || load_ == model::Load::offline))
@@ -565,7 +565,7 @@ void VideoPage::draw(const DrawContext &context, const Phase &phase) const
     draw_hero(g, context, phase, motion);
     g.l.pop_transform();
     g.l.pop_opacity();
-    draw_layers(context, motion.opacity * motion.furniture);
+    draw_layers(context, motion.alpha * motion.furniture);
 }
 
 } // namespace afterglow::video_page
