@@ -62,7 +62,7 @@ def test_ui_snapshot_helpers():
     assert ob.ui_rows(snapshot) == ["Home", "Me at the zoo"] and ob.find_row(snapshot, "me AT the") == 2
     assert ob.find_row(snapshot, "absent") == 0
     assert ob.parse_ui(b"{\"seq\":1") is None and ob.parse_ui(b"{\"ui\":{}}") is None and ob.parse_ui(None) is None
-    assert ob.ui_doc(None) == "" and ob.ui_rows(None) == [] and "doc=-" in ob.ui_line(None)
+    assert ob.ui_doc(None) == "" and ob.ui_rows(None) == [] and "docs=-" in ob.ui_line(None)
 
 
 def test_log_statistics_and_storage_verdict():
@@ -101,8 +101,10 @@ def test_playing_needs_progress_and_no_fatal():
     assert not ob.pc_playing([None, None])[0]
 
 
-def test_paused_needs_the_ui_flag_and_a_still_position():
+def test_paused_needs_a_still_position_and_the_flag_or_a_third_sample():
     held = [status(t=5, pos=4.0), status(t=6, pos=4.0)]
+    assert ob.pc_paused(held + [status(t=7, pos=4.0)], None)[0]  # snapshot silent: three still samples
+    assert not ob.pc_paused(held + [status(t=7, pos=4.0, active=0)], None)[0]
     assert ob.pc_paused(held, ui("hui_osd", ("clip",), screen=2, paused=True))[0]
     assert not ob.pc_paused(held, ui("hui_osd", ("clip",), screen=2, paused=False))[0]
     assert not ob.pc_paused([status(t=5, pos=4.0), status(t=6, pos=5.0)], ui("hui_osd", ("c",), paused=True))[0]
@@ -128,7 +130,7 @@ def test_completion_dialog_rows_quality_and_captions():
     assert not ob.pc_dialog(ui("hui_osd", ("STOP",)), "STOP")[0]
     assert ob.pc_rows(ui(rows=("a", "Me at the zoo")), "zoo")[0]
     assert not ob.pc_rows(ui("hui_keyboard", ("Me at the zoo",)), "zoo")[0]
-    assert ob.pc_browser(ui())[0] and not ob.pc_browser(ui("hui_osd"))[0]
+    assert ob.pc_browser(ui())[0] and not ob.pc_browser(ui("hui_osd", screen=2))[0]
     assert ob.pc_doc(ui("hui_keyboard"), "hui_keyboard")[0] and not ob.pc_doc(ui(seq=3), "hui_provider", after_seq=3)[0]
     assert ob.quality_rows(["Video presets: Custom limits", "English", "360p", "Seek interval: 10 seconds"]) == \
         ["Video presets: Custom limits", "360p"]
@@ -152,12 +154,12 @@ def test_service_line_is_read_from_the_log_and_never_with_a_token():
 
 def test_saved_state_history_and_redaction():
     state = json.dumps({"source": "http://pc.example:8765", "token": "s" * 43, "records": [
-        {"id": "jNQXAC9IVRw", "played": True, "position": 0, "duration": 19, "title": "Me at the zoo"},
+        {"id": "simVideo0001", "played": True, "position": 0, "duration": 19, "title": "Me at the zoo"},
         {"id": "other", "played": False, "position": 7}]}).encode()
     assert ob.pc_state_local(state)[0] and ob.pc_state_local(b"{}")[0]      # an old companion address may stay stored
     assert not ob.pc_state_local(json.dumps({"source": "http://127.0.0.1:23456", "token": "t" * 64}).encode())[0]
     assert not ob.pc_state_local(b"not json")[0]
-    assert ob.pc_history(state, "jNQXAC9IVRw", True)[0] and ob.pc_history(state, "other", False)[0]
+    assert ob.pc_history(state, "simVideo0001", True)[0] and ob.pc_history(state, "other", False)[0]
     assert not ob.pc_history(state, "other", True)[0] and not ob.pc_history(state, "missing", False)[0]
     shown = json.dumps(ob.redact_state(json.dumps({"source": "http://pc.example:8765#123456", "token": "s" * 43}).encode()))
     assert "123456" not in shown and "sss" not in shown and "<present>" in shown
@@ -280,12 +282,17 @@ def test_full_session_passes_with_one_launch_and_one_close(tmp_path, monkeypatch
     assert "/mnt/sandbox" in [op["detail"] for op in ops[:launch] if op["kind"] == "ftp-list"][-2]  # rechecked after the install
     assert not lock.exists() and current.teardown_clean is True
     result = json.loads((out / "result.json").read_text())
-    assert result["launches"] == 1 and result["observations"]["history"]["played"] is True
+    assert result["launches"] == 1 and result["observations"]["history"]["position"] > 0
     assert result["observations"]["stats"]["published"] > 0 and result["observations"]["options"]["quality"]
+    assert result["observations"]["video"]["id"] == "simVideo0001" and result["observations"]["soft_misses"] == []
+    assert "search:science" in result["observations"]["service_answer"] and current.obs["stopped_by"] == "confirmation dialog"
+    sent = [op["detail"] for op in ops if "command:" in op["detail"]]
+    assert not [line for line in sent if "command: type" in line or "square" in line]  # no keyboard on the first pass
+    assert b"activate 'app:exit'" not in console.files[ob.LOG_FILE]
     assert (out / "playback-scanout.bmp").read_bytes()[:2] == b"BM"
     assert not any(name.startswith(("dev_", "evo_shot")) for name in (console.listdir(ob.DATA) or {}))
     assert ob.STATE_FILE not in console.files  # the console had none: the session's own is removed
-    assert result["observations"]["service"] == "listening on 127.0.0.1:23456"
+    assert result["observations"]["service"] == "listening on 127.0.0.1:26757"
     assert not [op for op in ops if "options" in op["detail"]]  # nothing is typed into Options: there is no pairing
     with pytest.raises(SystemExit):  # the companion's arguments are gone
         se.parse(["--i-have-owner-approval", "--host", "h", "--lock-file", "x", "--candidate", "c", "--companion", "http://pc:8765"])
@@ -371,27 +378,207 @@ def test_original_provider_state_is_restored_byte_for_byte(tmp_path, monkeypatch
     assert verdict == "pass" and console.files[ob.STATE_FILE] == original
     assert current.obs["restore"]["restored"] == ["youtube.json"] and current.obs["restore"]["failed"] == []
     assert (out / "state-before/youtube.json").read_bytes() == original
-    assert json.loads((out / "state-after/youtube.json").read_text())["records"][0]["id"] == "jNQXAC9IVRw"
+    assert json.loads((out / "state-after/youtube.json").read_text())["records"][0]["id"] == "simVideo0001"
 
 
 def test_keep_state_leaves_the_session_history_and_still_removes_development_files(tmp_path, monkeypatch):
     original = json.dumps({"source": "http://old.example:8765", "token": "o" * 43}).encode()
     verdict, _, console, _, _, _ = run(tmp_path, monkeypatch, extra=["--keep-state"], state=original)
     kept = json.loads(console.files[ob.STATE_FILE])
-    assert verdict == "pass" and kept["source"] == "http://old.example:8765" and kept["records"][0]["id"] == "jNQXAC9IVRw"
+    assert verdict == "pass" and kept["source"] == "http://old.example:8765" and kept["records"][0]["id"] == "simVideo0001"
     assert not any(Path(path).name in ob.DEV_FILES or ob.SHOT.match(Path(path).name) for path in console.files)
 
 
 def test_stop_with_confirmation_path(tmp_path, monkeypatch):
     verdict, current, _, ops, _, _ = run(tmp_path, monkeypatch, extra=["--end", "stop"], duration=600.0)
     assert verdict == "pass" and current.obs["end_mode"] == "stop" and payloads(ops) == ["launch", "close"]
-    assert any(step["step"].startswith("(g) stop confirmation") for step in current.steps)
+    assert any(step["step"].startswith("(g) stop confirmation open") and step["result"] == "PASS" for step in current.steps)
 
 
-def test_expected_video_missing_from_the_results_fails_cleanly(tmp_path, monkeypatch):
-    verdict, current, console, ops, lock, _ = run(tmp_path, monkeypatch, extra=["--expect-title", "No such clip"])
+def test_topic_missing_from_the_list_fails_cleanly_without_pressing_cross_on_another_row(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = run(tmp_path, monkeypatch, extra=["--topic-row", "No such topic"])
     assert verdict == "fail" and payloads(ops) == ["launch", "close"] and not lock.exists()
     assert current.teardown_clean is True and console.running == []
+
+
+# --- what the first console session captured (2026-10-13): fixtures --------------------------
+
+REAL_BROWSER = (
+    '{"seq": 2, "t_ms": 168464144, "ui": {"screen": {"id": 23, "name": "EmbyBrowse"}, "docs": ["youtube"], '
+    '"focused": {"id": "", "tag": "div", "class": "tube-card folder", "text": "D Discover Search public videos by topic", '
+    '"doc": "youtube", "index": 1, "total": 8, "rect": {"x": 128, "y": 288, "w": 864, "h": 664}, "focusable": ['
+    '{"id": "", "text": "D Discover Search public videos by topic"}, '
+    '{"id": "", "text": "C Continue watching & history Stored on this PS5"}, '
+    '{"id": "", "text": "F Favorites Your local saved videos"}, '
+    '{"id": "", "text": "P Play queue R2 on a video to add or remove"}, '
+    '{"id": "", "text": "F Followed channels Local follows, independent o..."}, '
+    '{"id": "", "text": "Y YouTube preferences Quality, codec, captions a..."}, '
+    '{"id": "", "text": "P Player settings Display, audio and controller ..."}, '
+    '{"id": "", "text": "C Close ProsperoTube Release playback, then clos..."}]}, '
+    '"also_highlighted": [], "modal": null, "toast": null, "native_player": null}}')
+REAL_STATUS = ("build=prosperotube-6b3b1c41_1013-1226 t=168465 scr=23 be=0 pos=0.00 dur=0.0 fps=60.0 "
+               "fatal=0 eof=0 complete=0 active=0 parked=0\n")
+REAL_LOG = """[168463.593] INFO  EVO boot: Lapy: path=helper status=0 storage=ready
+[168463.993] INFO  embedded service: listening on 127.0.0.1:26757
+[168464.013] INFO  EVO boot: provider: RequestPage parent='' page=0
+[168464.018] INFO  EVO boot: provider: 'youtube' catalog parent='' -> 8 rows (folder_level=1 has_more=0 total=8)
+[168464.032] INFO  EVO boot: Application: entering frame loop
+[168555.236] INFO  bc REMOTE_CMD quit
+[168555.240] INFO  stats frames_in=0 converted=0 published=0 late_drop=0 seek_disc=0
+"""
+
+
+def test_the_browser_the_console_showed_is_recognised():
+    snapshot = ob.parse_ui(REAL_BROWSER.encode())
+    ok, detail = ob.pc_browser(snapshot)
+    assert ok and detail.startswith("row 1 of 8")  # this exact snapshot failed the first session's gate
+    assert ob.ui_docs(snapshot) == ["youtube"] and ob.ui_focus(snapshot)["id"] == ""
+    assert ob.find_row(snapshot, r"\bDiscover\b") == 1 and ob.find_row(snapshot, "Close ProsperoTube") == 8
+    assert ob.find_row(snapshot, r"\bScience\b") == 0 and ob.focus_kind(snapshot) == "folder"
+    assert not ob.keyboard_open(snapshot) and "tube-card folder" in ob.ui_line(snapshot)
+    previous, current = ob.parse_status(REAL_STATUS.replace("t=168465", "t=168464")), ob.parse_status(REAL_STATUS)
+    assert current["scr"] == ob.SCREEN_BROWSER and ob.pc_heartbeat(previous, current, "prosperotube-6b3b1c41_1013-1226")[0]
+
+
+def test_browser_needs_a_cursor_on_a_row_in_either_layout():
+    snapshot = json.loads(REAL_BROWSER)
+    kit = ui("hui_provider", ("Discover", "Favorites"))
+    assert ob.pc_browser(kit)[0] and ob.focus_kind(kit) is None
+    snapshot["ui"]["focused"] = None
+    assert not ob.pc_browser(snapshot)[0]  # the list is loading: no cursor yet
+    assert not ob.pc_browser(None)[0] and not ob.pc_browser(ui("hui_osd", ("clip",), screen=2))[0]
+    playable = json.loads(REAL_BROWSER)
+    playable["ui"]["focused"]["class"] = "tube-card"
+    assert ob.focus_kind(playable) == "playable"
+
+
+def test_keyboard_is_seen_as_a_modal_or_as_a_kit_document():
+    rml = json.loads(REAL_BROWSER)
+    rml["ui"]["docs"] = ["youtube", "keyboard"]
+    rml["ui"]["modal"] = {"kind": "keyboard", "text": "Search YouTube videos... tides 5 / 800"}
+    assert ob.keyboard_open(rml) and "tides" in ob.ui_modal(rml)["text"]
+    assert not ob.pc_rows(rml, "Discover")[0]  # rows under a keyboard are not a result list
+    assert ob.keyboard_open(ui("hui_keyboard", ("q",))) and not ob.keyboard_open(ui())
+    rml["ui"]["modal"] = {"kind": "dialog", "text": "x"}
+    rml["ui"]["docs"] = ["youtube"]
+    assert not ob.keyboard_open(rml)
+
+
+def test_provider_log_lines_prove_lists_activations_and_searches():
+    assert ob.catalog_lines(REAL_LOG) == [{"parent": "", "rows": 8, "folders": True, "more": False}]
+    assert ob.pc_service(REAL_LOG) == (True, "listening on 127.0.0.1:26757") and ob.storage_verdict(REAL_LOG) == "ready"
+    assert not ob.pc_catalog(REAL_LOG, 1)[0] and not ob.pc_catalog(REAL_LOG, 0, network=True)[0]
+    more = REAL_LOG + ("[1.0] INFO  EVO boot: provider: 'youtube' activate 'search:science' (folder) title='Science'\n"
+                       "[1.1] INFO  EVO boot: provider: 'youtube' catalog parent='search:science' -> 20 rows (folder_level=0 has_more=1 total=20)\n"
+                       "[1.2] INFO  EVO boot: provider: 'youtube' activate 'abc_DEF-123' (playable) title='It's a test'\n"
+                       "[1.3] INFO  EVO boot: provider: Search query='me at the zoo'\n")
+    ok, detail = ob.pc_catalog(more, 1, network=True)
+    assert ok and "search:science" in detail and "20 rows (videos)" in detail
+    assert ob.activations(more)[-1] == {"id": "abc_DEF-123", "kind": "playable", "title": "It's a test"}
+    assert ob.searches(more) == ["me at the zoo"] and ob.resolve_failed(more) is None
+    empty = more + "[2.0] INFO  EVO boot: provider: 'youtube' catalog parent='search:x' -> 0 rows (folder_level=0 has_more=0 total=0)\n"
+    assert not ob.pc_catalog(empty, 1, network=True)[0]
+    assert "youtube/abc" in ob.resolve_failed(more + "[3.0] INFO  EVO boot: provider: resolve failed for youtube/abc\n")
+
+
+def test_cursor_moves_sideways_first_and_by_rows_once_the_grid_is_known():
+    assert ob.next_key(1, 3, None, set()) == "right" and ob.next_key(3, 1, None, set()) == "left"
+    assert ob.next_key(4, 6, None, {"right"}) == "down" and ob.next_key(4, 6, None, {"right", "down"}) is None
+    assert ob.next_key(8, 6, 4, set()) == "left" and ob.next_key(2, 7, 4, set()) == "down"
+    assert ob.next_key(7, 2, 4, set()) == "up" and ob.next_key(5, 6, 4, {"right"}) is None
+
+
+def test_history_is_matched_by_id_with_or_without_a_prefix_or_by_title():
+    state = json.dumps({"records": [{"id": "video:abc", "title": "Tides", "played": False, "position": 12}]}).encode()
+    assert ob.pc_history(state, "abc", False)[0] and ob.pc_history(state, "video:abc", False)[0]
+    assert ob.pc_history(state, "zzz", False, title="Tides")[0] and not ob.pc_history(state, "zzz", False, title="Other")[0]
+    assert not ob.pc_history(state, "", False)[0] and not ob.pc_history(state, "abc", True)[0]
+
+
+# --- the route and the soft steps against the in-memory console ----------------------------------
+
+def commands(ops):
+    return [op["detail"].split("command: ", 1)[1].split(";", 1)[0] for op in ops if "command: " in op["detail"]]
+
+
+def test_route_is_discover_then_a_topic_then_the_first_video(tmp_path, monkeypatch):
+    verdict, current, console, ops, _, out = run(tmp_path, monkeypatch)
+    assert verdict == "pass"
+    assert commands(ops)[:6] == ["key cross", "key right", "key right", "key cross", "key cross", "seek +10"]
+    first = json.loads((out / "ui.jsonl").read_text().splitlines()[0])
+    real = json.loads(REAL_BROWSER)
+    assert first["ui"]["docs"] == real["ui"]["docs"] and first["ui"]["screen"] == real["ui"]["screen"]
+    assert first["ui"]["focused"] == real["ui"]["focused"]  # the simulator draws what the console drew
+    hard = [step["step"] for step in current.steps if step["result"] == "PASS"]
+    for needed in ("(c) topic: the provider listed what the row opens", "(d) the provider activated a playable row",
+                   "(d) player open, decoder active", "(d) position advancing", "(e) +10 s seek landed",
+                   "(d,g) engine statistics for the playback", "(g) history record for simVideo0001"):
+        assert needed in hard
+
+
+def test_kit_layout_of_the_browser_is_driven_the_same_way(tmp_path, monkeypatch):
+    verdict, current, _, ops, _, _ = run(tmp_path, monkeypatch, layout="kit")
+    assert verdict == "pass" and current.obs["video"]["id"] == "simVideo0001" and payloads(ops) == ["launch", "close"]
+
+
+def test_topic_that_lists_nothing_is_a_hard_failure_with_a_clean_close(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = run(tmp_path, monkeypatch, topic_rows=0)
+    assert verdict == "fail" and payloads(ops) == ["launch", "close"] and not lock.exists()
+    assert current.teardown_clean is True and "returned no rows" in current.stages[5]["detail"]
+    assert commands(ops).count("key cross") == 2  # nothing is activated on an empty list
+
+
+def test_stream_that_does_not_resolve_fails_at_once(tmp_path, monkeypatch):
+    verdict, current, _, ops, lock, _ = run(tmp_path, monkeypatch, resolves=False)
+    assert verdict == "fail" and "did not resolve" in current.stages[5]["detail"] and not lock.exists()
+    assert "seek +10" not in commands(ops)
+
+
+@pytest.mark.parametrize("scenario, missed", [
+    ({"captions_open": False}, "(e) caption picker"),
+    ({"exit_dialog": False}, "(g) stop with confirmation"),
+    ({"first_cross_shows_controls": False}, None),
+])
+def test_interface_surprises_are_recorded_and_do_not_stop_the_session(tmp_path, monkeypatch, scenario, missed):
+    verdict, current, _, ops, lock, _ = run(tmp_path, monkeypatch, **scenario)
+    assert verdict == "pass" and not lock.exists() and payloads(ops) == ["launch", "close"]
+    assert current.obs["soft_misses"] == ([missed] if missed else [])
+    assert current.obs["stats"]["published"] > 0 and current.obs["history"]["id"] == "simVideo0001"
+    if missed:
+        assert any(step["result"] == "SOFT-MISS" for step in current.steps)
+        assert not any(step["result"] == "FAIL" for step in current.steps)
+    if "exit_dialog" in scenario:
+        assert current.obs["stopped_by"] == "development stop command" and commands(ops).count("stop") == 1
+
+
+def test_picker_that_does_not_close_ends_key_presses_and_the_session_still_proves_playback(tmp_path, monkeypatch):
+    verdict, current, _, ops, lock, _ = run(tmp_path, monkeypatch, picker_closes=False)
+    sent = commands(ops)
+    assert verdict == "pass" and current.ui_lost and not lock.exists()
+    after = sent[sent.index("key down") + 1:]
+    assert after[:2] == ["key circle", "key circle"]
+    assert [line for line in after[2:] if line.startswith("key ")] == []  # no key goes to a screen it cannot name
+    assert "stop" in after and current.obs["stats"]["published"] > 0 and "(h) capture" not in current.obs
+
+
+def test_short_video_is_played_to_its_end(tmp_path, monkeypatch):
+    verdict, current, _, _, _, _ = run(tmp_path, monkeypatch, duration=40.0)
+    assert verdict == "pass" and current.obs["end_mode"] == "eof" and current.obs["history"]["played"] is True
+
+
+def test_search_by_keyboard_is_optional_and_never_a_gate(tmp_path, monkeypatch):
+    verdict, current, _, ops, _, _ = run(tmp_path, monkeypatch, extra=["--with-search", "--search-query", "tides"])
+    sent = commands(ops)
+    assert verdict == "pass" and sent.index("key square") > sent.index("seek +10")
+    assert sent[sent.index("key square"):][:3] == ["key square", "type tides", "kbdone"]
+    assert current.obs["soft_misses"] == [] and "rows" in current.obs["search"]
+
+
+def test_keyboard_the_snapshot_cannot_see_is_a_soft_miss_and_is_closed(tmp_path, monkeypatch):
+    verdict, current, _, ops, lock, _ = run(tmp_path, monkeypatch, extra=["--with-search"], keyboard_visible=False)
+    sent = commands(ops)
+    assert verdict == "pass" and current.obs["soft_misses"] == ["(c) search by keyboard"] and not lock.exists()
+    assert "type Me at the zoo" not in sent and "kbdone" not in sent  # nothing is typed into a keyboard it cannot see
 
 
 def test_session_source_has_no_console_transport_of_its_own():
