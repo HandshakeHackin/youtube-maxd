@@ -161,19 +161,24 @@ def load():
             for text in forms.values():
                 letters.update(text)
         missing = [entry["source"] for entry in template if entry["source"] not in used]
+        # Texts that only the Afterglow interface shows are counted apart: it is filled in its own pass.
+        only_afterglow = {entry["source"] for entry in template if entry["context"] == ["afterglow"]}
+        missing_afterglow = [source for source in missing if source in only_afterglow]
         boxes = sorted(c for c in letters if browser is not None and ord(c) not in browser and not c.isspace())
         if boxes:
             problems.append(f"{tag}: no browser font holds {' '.join('U+%04X %s' % (ord(c), c) for c in boxes[:20])}")
         # The player interface is drawn in a language only when its catalog asks for it ("player_interface": true)
         # and the baked fonts hold every letter of every text: a half-translated player is worse than an English one.
         kit_letters = [c for c in letters if kit is not None and ord(c) not in kit and not c.isspace()]
-        kit_ready = kit is not None and catalog.get("player_interface") is True and not missing and not kit_letters
+        kit_ready = kit is not None and catalog.get("player_interface") is True and len(missing) == len(missing_afterglow) and not kit_letters
         if catalog.get("player_interface") is True and not kit_ready:
             problems.append(f"{tag}: asks for the player interface, but texts are missing or its fonts lack {len(kit_letters)} letters")
         coverage = 100.0 * (len(template) - len(missing)) / len(template)
+        others = len(template) - len(only_afterglow)
         report.append({"tag": tag, "name": catalog["name"], "texts": len(used), "missing": len(missing), "stale": len(stale),
                        "coverage": coverage, "long": notes["long"], "forms": notes["forms"], "kit": kit_ready,
-                       "kit_letters": len(kit_letters)})
+                       "kit_letters": len(kit_letters), "afterglow": len(only_afterglow), "missing_afterglow": len(missing_afterglow),
+                       "coverage_classic": 100.0 * (others - (len(missing) - len(missing_afterglow))) / max(others, 1)})
         catalogs.append({"tag": tag, "name": catalog["name"], "english": catalog["english"], "plural": rule, "kit": kit_ready, "used": used})
     return template, catalogs, report, problems
 
@@ -230,7 +235,8 @@ def main():
         print(json.dumps(report, ensure_ascii=False, indent=1))
     else:
         for row in report:
-            print(f"{row['tag']:6} {row['coverage']:5.1f}% of {len(template)} texts; missing {row['missing']}, stale {row['stale']}, "
+            print(f"{row['tag']:6} {row['coverage']:5.1f}% of {len(template)} texts; missing {row['missing']} ({row['missing_afterglow']} of Afterglow's "
+                  f"{row['afterglow']}), stale {row['stale']}, "
                   f"long {row['long']}, plural forms to add {row['forms']}; player interface fonts: "
                   + ("ready" if row["kit"] else f"{row['kit_letters']} letters short"))
     text = render(template, catalogs)

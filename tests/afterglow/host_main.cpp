@@ -14,6 +14,7 @@
 //                        catalog lacks is shown in English and counted
 //   --strict-lang        ... and fails the run
 //   --snapshots          writes each board's snapshot as <look>/<board>.json
+//   --texts <file>       writes every interface text the boards asked for, one per line
 //   --catalogs <dir>     native/i18n
 //   --size <W>x<H>       picture size (default 1920x1080)
 //   --only <text>        boards whose name contains the text
@@ -46,6 +47,7 @@
 #include <cstring>
 #include <dirent.h>
 #include <map>
+#include <set>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -143,6 +145,7 @@ class HostPlatform final : public Platform
                 pattern.replace(at, 3, std::to_string(count));
             return pattern;
         };
+        asked_texts_.insert(other);
         if (!strings_.empty())
         {
             const auto forms = plurals_.find(other);
@@ -243,8 +246,14 @@ class HostPlatform final : public Platform
         *hour = hour_;
         *minute = minute_;
     }
+    // Every interface text asked for, for --texts: what the template has to list.
+    const std::set<std::string> &asked_texts() const
+    {
+        return asked_texts_;
+    }
     const char *translate(const char *english) override
     {
+        asked_texts_.insert(english);
         if (strings_.empty())
             return english;
         const auto found = strings_.find(english);
@@ -351,6 +360,7 @@ class HostPlatform final : public Platform
     std::string fixtures_;
     std::map<std::string, std::string> strings_;
     std::map<std::string, std::map<std::string, std::string>> plurals_;
+    std::set<std::string> asked_texts_;
     std::vector<std::string> untranslated_;
     std::vector<Fetch> fetches_;
     unsigned next_ticket_ = 1;
@@ -362,7 +372,7 @@ class HostPlatform final : public Platform
 
 struct Options
 {
-    std::string kit, fixtures, boards, output, catalogs, lang = "en", only, reel;
+    std::string kit, fixtures, boards, output, catalogs, lang = "en", only, reel, texts;
     std::vector<std::string> looks{"afterglow"};
     int width = 1920;
     int height = 1080;
@@ -543,6 +553,8 @@ int main(int argc, char **argv)
             options.strict_lang = true;
         else if (flag == "--snapshots")
             options.snapshots = true;
+        else if (flag == "--texts")
+            options.texts = value, ++i;
         else
         {
             std::fprintf(stderr, "unknown option %s\n", flag.c_str());
@@ -989,6 +1001,22 @@ int main(int argc, char **argv)
         std::fprintf(stderr, "text engine: %u faces known, %u read, %u glyphs in %u pages, %llu rasterised, %llu evicted, %llu overflows\n", stats.faces,
                      stats.faces_open, stats.glyphs, stats.pages, static_cast<unsigned long long>(stats.rasterised),
                      static_cast<unsigned long long>(stats.evicted), static_cast<unsigned long long>(stats.overflows));
+    }
+    if (!options.texts.empty())
+    {
+        // Every interface text the boards asked for, one per line (a line break inside a text as "\n"):
+        // scripts/test_afterglow_texts.sh holds the template to this list.
+        if (std::FILE *file = std::fopen(options.texts.c_str(), "wb"))
+        {
+            for (const std::string &text : platform.asked_texts())
+            {
+                std::string line;
+                for (const char c : text)
+                    line += c == '\n' ? std::string("\\n") : std::string(1, c);
+                std::fprintf(file, "%s\n", line.c_str());
+            }
+            std::fclose(file);
+        }
     }
     // A text the catalog lacks is shown in English. That is counted and listed, and fails the run only
     // when it was asked to (--strict-lang): the catalogs are filled after the screens, not with them.

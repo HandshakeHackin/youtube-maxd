@@ -316,6 +316,46 @@ class Collector:
                 record(item.text, where)
 
 
+AFTERGLOW = ROOT / "native/afterglow"
+PROBLEMS = []      # texts the catalogs cannot hold as they are written; any stops the run
+LITERALS =r'"(?:\\.|[^"\\\n])*"(?:\s*"(?:\\.|[^"\\\n])*")*'
+SLOT = re.compile(r"\{\d\}")
+
+
+def joined(literals):
+    """Adjacent C string literals as one text."""
+    return "".join(unescape(body) for body in re.findall(r'"((?:\\.|[^"\\\n])*)"', literals))
+
+
+def afterglow_texts(collector, problems):
+    """The interface of the kit (native/afterglow): tr("..."), tr_mark("...") and tr_n("one", "other", count).
+
+    A text with slots ("Search in {0}") is a pattern whose slots are texts: the interface asks for the
+    pattern itself and fills it (base.hpp, fill()). A counted text is a pattern whose slot is the number,
+    with its English singular; the catalogs give it a form per plural category.
+    """
+    for file in sorted(AFTERGLOW.rglob("*.[ch]pp")):
+        source = strip_comments(file.read_text(encoding="utf-8"))
+        name = str(file.relative_to(ROOT))
+        for match in re.finditer(r"\btr_n\s*\(\s*(%s)\s*,\s*(%s)\s*," % (LITERALS, LITERALS), source):
+            one, other = joined(match.group(1)), joined(match.group(2))
+            if SLOT.findall(other) != ["{0}"] or SLOT.findall(one) not in (["{0}"], []):
+                problems.append(f"{name}: tr_n(\"{one}\", \"{other}\", ...) must have the count as its one slot, {{0}}")
+                continue
+            # The singular is kept even where English says both alike ("{0} min left"): it is what
+            # tells the catalogs that this text has a form per plural category.
+            collector.add(other, "afterglow", "n", one, listed=True)
+        for match in re.finditer(r"\btr(?:_mark)?\s*\(\s*(%s)\s*\)" % LITERALS, source):
+            text = joined(match.group(1))
+            slots = sorted(set(SLOT.findall(text)))
+            if not slots:
+                collector.add(text, "afterglow")
+            elif slots != ["{%d}" % index for index in range(len(slots))] or re.search(r"\}\{\d\}", text) or not letters(SLOT.sub("", text)):
+                problems.append(f"{name}: tr(\"{text}\") is not a pattern the catalogs can hold (slots {{0}}, {{1}} in turn, words between them)")
+            else:
+                collector.add(text, "afterglow", "s" * len(slots), listed=True)
+
+
 def wording_pairs(provider):
     block = re.search(r"static void embedded_wording\(.*?\{(.*?)\};", provider, flags=re.S)
     return [(unescape(a), unescape(b)) for a, b in re.findall(r'\{"((?:\\.|[^"\\])*)",\s*"((?:\\.|[^"\\])*)"\}', block.group(1))] if block else []
@@ -352,6 +392,7 @@ def collect():
                     collector.c_text(node.value, "kit")
     for text in rml_texts((ROOT / "native/youtube.rml").read_text(encoding="utf-8")):
         collector.add(text, "document")
+    afterglow_texts(collector, PROBLEMS)
     if MANUAL.exists():
         for entry in json.loads(MANUAL.read_text(encoding="utf-8")):
             if entry.get("args"):
@@ -376,11 +417,15 @@ def main():
     parser.add_argument("--list", action="store_true", help="print the texts instead of writing the template")
     options = parser.parse_args()
     entries = collect()
+    for problem in PROBLEMS:
+        print("error: " + problem, file=sys.stderr)
     text = render(entries)
     if options.list:
         for entry in entries:
             print(("P " if entry.get("pattern") else "  ") + ",".join(entry["context"]) + "\t" + entry["source"] + ("\t| " + entry["one"] if entry.get("one") else ""))
-        return 0
+        return 1 if PROBLEMS else 0
+    if PROBLEMS:
+        return 1
     patterns = sum(1 for entry in entries if entry.get("pattern"))
     if options.check:
         if not TEMPLATE.exists() or TEMPLATE.read_text(encoding="utf-8") != text:

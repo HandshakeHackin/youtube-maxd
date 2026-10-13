@@ -746,7 +746,7 @@ class Home final : public Screen
         if (live)
             right = video.views;
         else if (resume)
-            right = fill(tr("{0} min left"), std::to_string(std::max(1, static_cast<int>((1.0f - video.progress) * static_cast<float>(video.duration_s) / 60.0f + 0.5f))));
+            right = tr_n("{0} min left", "{0} min left", std::max(1, static_cast<int>((1.0f - video.progress) * static_cast<float>(video.duration_s) / 60.0f + 0.5f)));
         else
             right = duration_text(video.duration_s);
         const float verb_w = measure(g.f.semibold, verb, kTypeBody);

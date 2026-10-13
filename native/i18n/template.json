@@ -38,6 +38,48 @@
    ]
   },
   {
+   "source": "1 channel",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "1 new",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "1 playlist",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "1 subscription",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "1 video",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "1 video, resume point kept",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "3 to 20 minutes",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "360 degrees",
    "context": [
     "browser"
@@ -53,6 +95,12 @@
    "source": "4K",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "A code is good for a limited time. A new one starts over.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -158,6 +206,12 @@
    ]
   },
   {
+   "source": "A to Z",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "AUDIO STOPPED",
    "context": [
     "toast"
@@ -176,9 +230,23 @@
    ]
   },
   {
+   "source": "About {0} results",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Above 100% the sound is boosted and may distort",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Access was not allowed on the other device.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -232,6 +300,7 @@
   {
    "source": "Account order",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -244,6 +313,7 @@
   {
    "source": "Account removed",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -291,9 +361,30 @@
    ]
   },
   {
+   "source": "Accounts are signed in on this console with a code you approve on another device. The sign-in stays in the app's own folder on this PS5.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Actions",
    "context": [
+    "afterglow",
     "document"
+   ]
+  },
+  {
+   "source": "Add a comment as {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Add an account",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -341,6 +432,12 @@
    ]
   },
   {
+   "source": "Add videos from their Actions and they play one after another. The queue stays on this PS5.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Add {0} channels to Followed channels",
    "context": [
     "browser"
@@ -353,6 +450,18 @@
    "source": "Added locally on this PS5",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "Added to Watch later",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Added to the queue",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -398,14 +507,33 @@
    ]
   },
   {
+   "source": "All",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "All choices",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "All notifications",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "All notifications marked as read",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "All profiles",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -418,6 +546,7 @@
   {
    "source": "All types",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -500,6 +629,12 @@
    ]
   },
   {
+   "source": "Another filter shows more.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Any duration",
    "context": [
     "browser"
@@ -512,8 +647,15 @@
    ]
   },
   {
+   "source": "Any length",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Any time",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -586,6 +728,7 @@
   {
    "source": "Asked before the profile is selected; this PS5 stores a salted hash, never the text",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -600,6 +743,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "At {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Audio decoding or output failed. Select the video to retry.",
@@ -689,6 +840,7 @@
   {
    "source": "Back",
    "context": [
+    "afterglow",
     "document",
     "kit"
    ]
@@ -697,6 +849,18 @@
    "source": "Back / cancel pending sign-in",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "Back to Home",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Back to Settings",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -754,9 +918,31 @@
    ]
   },
   {
+   "source": "Best matches for \"{0}\"",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Best matches for “{0}”",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Bitrate in quality info",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Block",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -769,6 +955,12 @@
    "source": "Block or unblock channel",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Block this channel?",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -790,9 +982,21 @@
    ]
   },
   {
+   "source": "Browse Home",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Browse as guest",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Browse by topic",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -850,6 +1054,12 @@
    ]
   },
   {
+   "source": "CAPTIONS ARE OFF",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "CHAPTER",
    "context": [
     "toast"
@@ -892,6 +1102,12 @@
    ]
   },
   {
+   "source": "Cancel",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Cancel seek",
    "context": [
     "kit"
@@ -900,6 +1116,7 @@
   {
    "source": "Cancel sign-in",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -943,6 +1160,7 @@
   {
    "source": "Captions",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -963,6 +1181,22 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Captions: {0} language",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Captions: {0} languages",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Card title lines",
@@ -1002,8 +1236,21 @@
    ]
   },
   {
+   "source": "Change",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Change the password",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Change the password of this profile (experimental)",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -1014,8 +1261,15 @@
    ]
   },
   {
+   "source": "Changes are saved as you make them, for this profile.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Channel",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -1065,6 +1319,7 @@
   {
    "source": "Channels",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -1180,6 +1435,18 @@
    ]
   },
   {
+   "source": "Check the connection of this PS5 and try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Check the spelling, or try fewer or other words.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Check your account before repeating an unconfirmed change",
    "context": [
     "browser"
@@ -1226,6 +1493,7 @@
   {
    "source": "Choose",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -1386,6 +1654,12 @@
    ]
   },
   {
+   "source": "Choose your account and allow access.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Circle also cancels when leaving sign-in",
    "context": [
     "browser"
@@ -1507,6 +1781,24 @@
    ]
   },
   {
+   "source": "Clear",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Clear all",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Clear filters",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Clear its new-content mark in Subscribed channels",
    "context": [
     "browser"
@@ -1528,6 +1820,12 @@
    "source": "Clear recent searches",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Clear recent searches?",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -1565,6 +1863,12 @@
    "context": [
     "browser",
     "kit"
+   ]
+  },
+  {
+   "source": "Close",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -1625,6 +1929,7 @@
   {
    "source": "Comment posted",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -1637,6 +1942,7 @@
   {
    "source": "Comments",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -1644,6 +1950,24 @@
    "source": "Comments / live chat",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "Comments and replies are posted to YouTube from your account, once, after you confirm.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Comments cannot be added here",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Comments cannot be added to this video.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -1696,6 +2020,12 @@
    ]
   },
   {
+   "source": "Confirm",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Confirm account change",
    "context": [
     "document"
@@ -1714,9 +2044,33 @@
    ]
   },
   {
+   "source": "Connecting",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Connecting to your companion… Circle to cancel.",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "Connection is off",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Connection is on",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Connection stopped",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -1730,6 +2084,20 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Continue watching",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Continue watching  ·  {0} of {1}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "ss"
   },
   {
    "source": "Continue watching & history",
@@ -1999,6 +2367,7 @@
   {
    "source": "Current password of this profile",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2125,7 +2494,20 @@
   {
    "source": "Default",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Defaults",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Delete",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2155,6 +2537,7 @@
   {
    "source": "Description",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2174,6 +2557,12 @@
    "source": "Description; L2 / R2 scroll",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Details",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2203,6 +2592,7 @@
   {
    "source": "Discover",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2280,6 +2670,12 @@
    ]
   },
   {
+   "source": "Don't recommend",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Don't recommend channel",
    "context": [
     "browser"
@@ -2295,6 +2691,12 @@
    "source": "Don't skip again",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Done",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2338,9 +2740,21 @@
    ]
   },
   {
+   "source": "Each profile keeps its own history, queue and settings",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Each video",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Earlier",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2365,6 +2779,12 @@
    "source": "Ecuador",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Edit",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2422,6 +2842,12 @@
    ]
   },
   {
+   "source": "Enter TV code",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Enter a comment of 1 to 150 characters.",
    "context": [
     "browser"
@@ -2430,6 +2856,7 @@
   {
    "source": "Enter a name of 1 to 150 characters for the current profile",
    "context": [
+    "afterglow",
     "toast"
    ]
   },
@@ -2442,6 +2869,7 @@
   {
    "source": "Enter a password of 1 to 150 characters.",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2473,6 +2901,12 @@
    "source": "Enter text; results list this channel's videos and playlists",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Enter the TV code in the YouTube app.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2509,6 +2943,12 @@
    "source": "Enter the password of this profile",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Enter this code",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2566,6 +3006,18 @@
    ]
   },
   {
+   "source": "Every search kept for this profile is forgotten.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Every setting of this part returns to its default for the profile in use.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Every video action is hidden",
    "context": [
     "browser"
@@ -2604,6 +3056,7 @@
   {
    "source": "Experimental: tested offline only, not yet on a PS5 or against live YouTube. It may fail or change in a later version.",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2662,6 +3115,18 @@
    ]
   },
   {
+   "source": "Favourites",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Featured",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Feedback",
    "context": [
     "browser"
@@ -2681,6 +3146,12 @@
    ]
   },
   {
+   "source": "Filter",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Filters are set",
    "context": [
     "browser"
@@ -2690,6 +3161,12 @@
    "source": "Finding video; any player button cancels",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "Finish on your phone or computer",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2752,6 +3229,7 @@
   {
    "source": "Followed channels",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -2759,6 +3237,12 @@
    "source": "Followed locally on this PS5",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Followed on this PS5",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2777,6 +3261,12 @@
    "source": "For a playlist saved earlier; asks first",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "For the profile in focus",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2802,6 +3292,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "For {0} · saved on this PS5",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Forget every query saved for the selected profile",
@@ -2851,6 +3349,12 @@
    ]
   },
   {
+   "source": "From start",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "From the built-in service library service",
    "context": [
     "browser"
@@ -2887,9 +3391,21 @@
    ]
   },
   {
+   "source": "Get a TV code and enter it in the YouTube app.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Get a new TV code",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Get a new code",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2908,6 +3424,12 @@
    "source": "Guatemala",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Guest",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2944,6 +3466,12 @@
    "source": "Height of captions above the bottom edge",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Hidden",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3151,6 +3679,7 @@
   {
    "source": "History",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -3173,6 +3702,12 @@
    ]
   },
   {
+   "source": "History stays on this PS5",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "History, favorites, the play queue and followed channels are in the main menu",
    "context": [
     "browser"
@@ -3181,7 +3716,14 @@
   {
    "source": "Home",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Home could not be loaded",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3406,6 +3948,12 @@
    ]
   },
   {
+   "source": "It is posted to YouTube from your account, once. It cannot be changed from this console afterwards.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Italian",
    "context": [
     "browser"
@@ -3424,9 +3972,27 @@
    ]
   },
   {
+   "source": "Its new videos stop appearing under Subscriptions.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Its new videos will no longer arrive under Subscriptions.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Its uploads were opened for the selected profile; the new-content mark is cleared",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Its videos no longer appear in any list of this profile.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3478,9 +4044,27 @@
    ]
   },
   {
+   "source": "Just now",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Kazakhstan",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Keep",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Keep a video as a favourite from its Actions. Favourites stay on this PS5 and need no account.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3520,6 +4104,12 @@
    ]
   },
   {
+   "source": "Keep typing, or press Options to search for exactly this.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Keeping this segment",
    "context": [
     "toast"
@@ -3529,6 +4119,12 @@
    "source": "Kenya",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Kept on this PS5",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3564,6 +4160,7 @@
   {
    "source": "LIVE",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -3624,6 +4221,18 @@
    ]
   },
   {
+   "source": "Latest",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Latest uploads",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Latvia",
    "context": [
     "browser"
@@ -3672,9 +4281,28 @@
    ]
   },
   {
+   "source": "Letters",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Library",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Like",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Like a video on its page and YouTube collects it here, on every device of your account.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3690,9 +4318,21 @@
    ]
   },
   {
+   "source": "Liked",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Likes",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Liking, saving and subscribing change a YouTube account. This profile has none yet.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3704,7 +4344,14 @@
   {
    "source": "Link a phone",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Link the YouTube app on your phone",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3714,15 +4361,42 @@
    ]
   },
   {
+   "source": "Linked now",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Linked now: {0} phones",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Linking a phone is not part of this built-in YouTube service.",
    "context": [
+    "afterglow",
     "status"
+   ]
+  },
+  {
+   "source": "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.",
+   "context": [
+    "afterglow"
    ]
   },
   {
    "source": "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "Linking lets the phone send videos here, queue more and control playback. The code is asked for again whenever it has run out.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3752,6 +4426,7 @@
   {
    "source": "Live",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -3766,6 +4441,12 @@
    "source": "Live chat sidebar",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Live now",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3853,6 +4534,12 @@
    ]
   },
   {
+   "source": "Loved by the channel",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Low",
    "context": [
     "browser"
@@ -3871,6 +4558,12 @@
    ]
   },
   {
+   "source": "Make it yours",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Malaysia",
    "context": [
     "browser"
@@ -3880,6 +4573,18 @@
    "source": "Manage channel blocks for the selected profile",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Mark all as read",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Mark all as watched",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3904,6 +4609,12 @@
    "source": "Mark channel as watched",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Marked as watched",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3989,6 +4700,24 @@
    ]
   },
   {
+   "source": "More",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "More actions",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "More comments could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "More replay messages",
    "context": [
     "document"
@@ -4013,6 +4742,12 @@
    ]
   },
   {
+   "source": "Move",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Move down",
    "context": [
     "browser"
@@ -4027,6 +4762,7 @@
   {
    "source": "Movies",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4064,6 +4800,12 @@
    "source": "NATIVE YOUTUBE CLIENT - EVO / PROSPEROPLAYER FOUNDATION",
    "context": [
     "kit"
+   ]
+  },
+  {
+   "source": "NEW",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4115,14 +4857,33 @@
    ]
   },
   {
+   "source": "New comment",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "New content first",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "New first",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "New from your subscriptions",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "New password of this profile",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4130,6 +4891,18 @@
    "source": "New private YouTube playlist name",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "New videos from the channels you subscribe to on YouTube arrive here. Without an account, Discover has what people watch now.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Newest",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4151,6 +4924,12 @@
    ]
   },
   {
+   "source": "Next",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Next video",
    "context": [
     "browser",
@@ -4168,6 +4947,12 @@
    "source": "Nigeria",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "No account",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4195,9 +4980,45 @@
    ]
   },
   {
+   "source": "No channel is marked as new.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "No code to scan",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No comments returned. Circle to return. R3 changes comment sorting.",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "No comments yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "No connection to YouTube",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "No connection to the YouTube service",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "No favourites yet",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4231,6 +5052,12 @@
    ]
   },
   {
+   "source": "No liked videos yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No local history or resume positions and no account reports",
    "context": [
     "browser"
@@ -4255,14 +5082,33 @@
    ]
   },
   {
+   "source": "No notifications yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "No phone is linked yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No playable video on the first result page",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "No playlists yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No recent searches",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4279,14 +5125,37 @@
    ]
   },
   {
+   "source": "No results for \"{0}\"",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "No results for “{0}”",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "No speech recognized. Check the microphone and companion, then retry.",
    "context": [
     "toast"
    ]
   },
   {
+   "source": "No subscriptions yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No suggestions",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4309,6 +5178,30 @@
    ]
   },
   {
+   "source": "Nobody has a profile on this PS5 yet. Add an account to bring your subscriptions and your history.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nobody has written under this video. Press Cross to be the first.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nobody has written under this video. Writing needs a YouTube account on this profile.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nobody is live right now",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Non-music section",
    "context": [
     "browser"
@@ -4327,6 +5220,12 @@
    ]
   },
   {
+   "source": "Northlight Atlas · 1.2M views · 3 weeks ago",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Norway",
    "context": [
     "browser"
@@ -4336,6 +5235,24 @@
    "source": "Norwegian",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Not available for this profile",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Not available in this build",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Not in this build",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4351,9 +5268,38 @@
    ]
   },
   {
+   "source": "Not loaded",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing from {0} in your feed yet",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Nothing from {0} under this filter",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Nothing here yet",
    "context": [
+    "afterglow",
     "document"
+   ]
+  },
+  {
+   "source": "Nothing in your feed yet",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4363,15 +5309,82 @@
    ]
   },
   {
+   "source": "Nothing is unread",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing is waiting for a text here.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing matches yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing more can be done with this video on this profile.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing new today",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing saved for later yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing to set here",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing unread",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing was changed. What is saved on this PS5 stays as it is.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Nothing was changed: watched videos leave Home, nothing else is hidden",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "Nothing watched yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Notifications",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Notifications could not be loaded",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4389,6 +5402,7 @@
   {
    "source": "Off",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4423,6 +5437,18 @@
    ]
   },
   {
+   "source": "Offline",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Oldest",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Oldest first",
    "context": [
     "browser"
@@ -4431,6 +5457,7 @@
   {
    "source": "On",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4441,9 +5468,33 @@
    ]
   },
   {
+   "source": "On this PS5",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "On your phone, in the YouTube app",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "On: after a video from a section, shelf or channel, continue with the next one listed there",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "One moment",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "One moment: the actions of this video are still loading.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4459,9 +5510,27 @@
    ]
   },
   {
+   "source": "Open",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Open Library",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Open Subscribed channels first: the marks come with its list",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Open a channel and choose Subscribe. It will have a tile here, with a mark when it has something new.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4473,6 +5542,7 @@
   {
    "source": "Open channel",
    "context": [
+    "afterglow",
     "browser",
     "document"
    ]
@@ -4496,6 +5566,12 @@
    ]
   },
   {
+   "source": "Open the channel to see everything it has.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Open the list on this PS5",
    "context": [
     "browser"
@@ -4514,12 +5590,24 @@
    ]
   },
   {
+   "source": "Open topic",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Open {0} on your phone or computer and enter {1}. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed.",
    "context": [
     "browser"
    ],
    "pattern": true,
    "args": "ss"
+  },
+  {
+   "source": "Opens the sign-in page",
+   "context": [
+    "afterglow"
+   ]
   },
   {
    "source": "Operation: {0} | Profile: {1}. Circle returns to the video browser.",
@@ -4548,8 +5636,15 @@
    ]
   },
   {
+   "source": "Or scan",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Order",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4598,6 +5693,7 @@
   {
    "source": "Over 20 minutes",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4678,6 +5774,7 @@
   {
    "source": "Page",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -4732,13 +5829,33 @@
   {
    "source": "Password of this profile",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Password protected",
+   "context": [
+    "afterglow"
    ]
   },
   {
    "source": "Password protection (experimental)",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Password removed",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Password saved",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4766,6 +5883,12 @@
    ]
   },
   {
+   "source": "Personalised",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Personalized notifications",
    "context": [
     "browser"
@@ -4786,12 +5909,14 @@
   {
    "source": "Phone connection",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
   {
    "source": "Phone pairing (experimental)",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4799,6 +5924,12 @@
    "source": "Phone pairing could not obtain a PS5 random identity. Link a phone retries.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "Phone pairing was reset",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4840,7 +5971,14 @@
   {
    "source": "Pinned",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Pinned by the channel",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4870,7 +6008,14 @@
   {
    "source": "Play",
    "context": [
+    "afterglow",
     "kit"
+   ]
+  },
+  {
+   "source": "Play all",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4894,6 +6039,7 @@
   {
    "source": "Play queue",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4978,6 +6124,7 @@
   {
    "source": "Playlist",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -5012,6 +6159,7 @@
   {
    "source": "Playlists",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -5020,6 +6168,26 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Playlists you make or save on YouTube appear here. Add a video to one from its Actions.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Point your phone's camera at the code, or type the address.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Point your phone's camera at the code, or type the address. The link opens at {0}.",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Poland",
@@ -5031,6 +6199,18 @@
    "source": "Polish",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Popular",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Popular right now",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5058,15 +6238,53 @@
    ]
   },
   {
+   "source": "Post",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Post this comment",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "Post this comment?",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Post this reply",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Post this reply?",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Posted to YouTube",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Posting as {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Posting to YouTube",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5124,9 +6342,27 @@
    ]
   },
   {
+   "source": "Press Options to run the search anyway.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Press Square on any video to keep it here. Watch later follows your account, so it is the same list on your phone.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Press twice to close ProsperoTube",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Preview",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5220,6 +6456,12 @@
    ]
   },
   {
+   "source": "ProsperoTube listed no settings for this profile. Accounts and Phone still open.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "ProsperoTube runs from {0}. Only a copy in {1} updates itself; get the new version from the release page.",
    "context": [
     "browser"
@@ -5238,6 +6480,7 @@
   {
    "source": "Protect this profile with a password (experimental)",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -5292,6 +6535,7 @@
   {
    "source": "Queue",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -5362,9 +6606,28 @@
    ]
   },
   {
+   "source": "Reading needs no account. Writing, answering and liking use a YouTube account on this profile.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Recent searches",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Recent searches cleared",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Recent searches stay on this PS5. A search you type can run when the connection is back.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5377,6 +6640,12 @@
    "source": "Recommendations for the selected profile",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Recommended for you",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5424,6 +6693,12 @@
    ]
   },
   {
+   "source": "Related",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Related videos",
    "context": [
     "browser"
@@ -5456,6 +6731,7 @@
   {
    "source": "Relevance",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -5617,6 +6893,12 @@
    ]
   },
   {
+   "source": "Remove",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Remove a recent search",
    "context": [
     "browser"
@@ -5717,7 +6999,14 @@
   {
    "source": "Remove the password of this profile (experimental)",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Remove this account",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5751,15 +7040,53 @@
    ]
   },
   {
+   "source": "Remove {0} from this PS5?",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Removed",
    "context": [
     "toast"
    ]
   },
   {
+   "source": "Removed from Watch later",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Removed from favourites",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Removed from history",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Removed from liked videos",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Removed from local history",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Removed from the queue",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5779,6 +7106,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Removing {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Rename YouTube playlist",
@@ -5898,7 +7233,20 @@
   {
    "source": "Replies",
    "context": [
+    "afterglow",
     "document"
+   ]
+  },
+  {
+   "source": "Reply",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Reply posted",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5914,6 +7262,14 @@
    ]
   },
   {
+   "source": "Reply to {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Report a problem or ask for a feature",
    "context": [
     "browser"
@@ -5922,6 +7278,7 @@
   {
    "source": "Requesting YouTube sign-in code",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -5938,9 +7295,27 @@
    ]
   },
   {
+   "source": "Reset",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Reset a section",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Reset phone pairing",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Reset phone pairing?",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -5948,6 +7323,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Reset {0}?",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Resolution, frame rate and codec for this profile",
@@ -6002,10 +7385,24 @@
    ]
   },
   {
+   "source": "Resume",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Resume watch history (experimental)",
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Resume {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Return it to its menu",
@@ -6179,6 +7576,12 @@
    ]
   },
   {
+   "source": "Save",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Save a frame-rate limit for this profile",
    "context": [
     "browser"
@@ -6194,6 +7597,12 @@
    "source": "Save this playlist to your library",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Saved",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6291,6 +7700,7 @@
   {
    "source": "Scroll",
    "context": [
+    "afterglow",
     "document"
    ]
   },
@@ -6327,9 +7737,16 @@
   {
    "source": "Search",
    "context": [
+    "afterglow",
     "browser",
     "document",
     "kit"
+   ]
+  },
+  {
+   "source": "Search YouTube",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6341,6 +7758,7 @@
   {
    "source": "Search again",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -6357,6 +7775,12 @@
    ]
   },
   {
+   "source": "Search for something, or open a topic from the rail.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Search history",
    "context": [
     "browser"
@@ -6365,12 +7789,14 @@
   {
    "source": "Search history is off",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
   {
    "source": "Search in channel",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -6379,6 +7805,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Search in {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Search options",
@@ -6390,6 +7824,18 @@
    "source": "Search public videos by topic",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Searches you run are kept here for this profile.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Section",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6443,6 +7889,12 @@
    "context": [
     "browser",
     "kit"
+   ]
+  },
+  {
+   "source": "Select",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6808,6 +8260,12 @@
    ]
   },
   {
+   "source": "Set a password",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Set stream reminder",
    "context": [
     "browser"
@@ -6832,9 +8290,39 @@
    ]
   },
   {
+   "source": "Settings",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Settings follow the profile in use. Interface and updates apply to the console.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Seven Days Alone on the Ridge Line, a Silent Hiking Film in Four Parts",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Share",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Share link",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Shift",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6858,6 +8346,7 @@
   {
    "source": "Shorts",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -6865,6 +8354,12 @@
    "source": "Shorts, mixes, watched, live and upcoming videos by section",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Show",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6895,6 +8390,12 @@
    "source": "Show dislikes",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Show or hide",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6958,6 +8459,12 @@
    ]
   },
   {
+   "source": "Shown",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Shown; select to hide or move",
    "context": [
     "browser"
@@ -6971,9 +8478,22 @@
    ]
   },
   {
+   "source": "Sign in",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Sign in to YouTube",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Sign in to YouTube for your subscriptions, your history and recommendations that know you. Everything here works without it.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6983,14 +8503,70 @@
    ]
   },
   {
+   "source": "Sign in to get notifications",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to see Watch later",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to see liked videos",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to see the channels you subscribe to on YouTube. A channel you follow from one of its videos is kept here on this PS5.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to see your playlists",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to see your subscriptions",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to subscribe",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in to write and to like",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sign in with a code",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Sign-in canceled",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
   {
    "source": "Sign-in code expired",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -7003,13 +8579,40 @@
   {
    "source": "Sign-in to YouTube arrives in a later version",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Sign-in to YouTube arrives in a later version. This version browses and plays as Guest, without an account.",
+   "context": [
+    "afterglow"
    ]
   },
   {
    "source": "Sign-ins to YouTube are not part of a backup",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Signed in as {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Signed in to YouTube",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Signed out",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7148,8 +8751,21 @@
    ]
   },
   {
+   "source": "Some filters are set. Clear them to look through everything.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sort",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Sort by",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -7175,6 +8791,12 @@
    "source": "South Korea",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Space",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7312,6 +8934,7 @@
   {
    "source": "Start a new sign-in",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -7353,6 +8976,12 @@
    ]
   },
   {
+   "source": "Stop recommendations from this channel?",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Stop this video and search YouTube",
    "context": [
     "kit"
@@ -7386,7 +9015,14 @@
   {
    "source": "Subscribe",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Subscribe first to choose its notifications.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7396,9 +9032,21 @@
    ]
   },
   {
+   "source": "Subscribe to a channel and its new videos arrive here, the newest first.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Subscribe with a notification level, or change the level",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Subscribed",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7406,6 +9054,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Subscribed to {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Subscribed; notification level not confirmed",
@@ -7428,6 +9084,7 @@
   {
    "source": "Subscriptions",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -7462,6 +9119,12 @@
    ]
   },
   {
+   "source": "Suggestions are not available",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Suggestions do not have additional pages.",
    "context": [
     "status"
@@ -7492,9 +9155,35 @@
    ]
   },
   {
+   "source": "Switch",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Switch profile",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Switching to {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Switzerland",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Symbols",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7531,6 +9220,7 @@
   {
    "source": "TV code",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -7544,6 +9234,12 @@
    "source": "Taiwan",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Take it with you",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7595,15 +9291,57 @@
    ]
   },
   {
+   "source": "That could not be saved. Nothing was changed.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "That did not work. Try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "That item could not be played",
    "context": [
     "toast"
    ]
   },
   {
+   "source": "The PS5 is not reaching the internet. Your history, favourites and play queue on this console are still here.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The YouTube service cannot be reached",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The YouTube service cannot be reached.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The account change was not confirmed. Check your account before repeating it.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The actions could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The actions did not arrive. Choose again to ask once more.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7685,6 +9423,18 @@
    ]
   },
   {
+   "source": "The best matches appear here while you type.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The best matches could not be loaded",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The built-in YouTube service could not start: {0}.",
    "context": [
     "browser"
@@ -7716,6 +9466,12 @@
    "source": "The built-in service cannot filter lists: its library worker is off or older",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "The built-in service cannot reach YouTube. Check the network of this PS5, then try again.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7869,9 +9625,21 @@
    ]
   },
   {
+   "source": "The channel did not arrive. Check the connection and try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The channel's address, with a QR code",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "The channels you follow on this PS5 are still here.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7879,6 +9647,32 @@
    "context": [
     "status"
    ]
+  },
+  {
+   "source": "The classic interface still has it: switch to it under Interface in the preferences.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The code is already filled in",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The code is asked for again once the service answers.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The code is good for {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "The colour schemes of earlier versions",
@@ -7889,6 +9683,7 @@
   {
    "source": "The comment rating was not confirmed.",
    "context": [
+    "afterglow",
     "status"
    ]
   },
@@ -7901,7 +9696,14 @@
   {
    "source": "The comment was not confirmed. Reload the comments before writing it again.",
    "context": [
+    "afterglow",
     "status"
+   ]
+  },
+  {
+   "source": "The comments could not be loaded",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8025,6 +9827,12 @@
    ]
   },
   {
+   "source": "The connection is turned off and this TV's pairing identity is forgotten. A phone has to be linked again with a new TV code.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The copy in {0} is not the one that is running, so it is left alone. Get the new version from the release page.",
    "context": [
     "browser"
@@ -8133,6 +9941,24 @@
    ]
   },
   {
+   "source": "The link could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The list of channels did not arrive. Check the connection and try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The list of profiles was not answered. Try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The message was not confirmed. Check the chat before sending again.",
    "context": [
     "status"
@@ -8148,6 +9974,12 @@
    "source": "The new version starts when you open the app again",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "The page, its cards and the focus in this theme",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8193,9 +10025,21 @@
    ]
   },
   {
+   "source": "The phone connection could not be read",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The pinned section list is full. Unpin a section first.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The play queue is empty",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8241,6 +10085,32 @@
    ]
   },
   {
+   "source": "The profiles cannot be read while the YouTube service is not answering. You keep watching as {0}, and what is saved on this PS5 stays available.",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "The profiles could not be loaded",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The recent searches could not be changed.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The related videos could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The release does not hold this app at the listed version. Nothing was changed.",
    "context": [
     "browser"
@@ -8267,9 +10137,21 @@
    "args": "s"
   },
   {
+   "source": "The request could not be queued. Try again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The request was cancelled or could not be completed.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The rest of this list could not be loaded.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8318,6 +10200,18 @@
    "source": "The selected profile was invalid.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The settings could not be read. Triangle reads them again.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "The sign-in is deleted from this console. You continue as Guest; other accounts stay available.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8451,9 +10345,33 @@
    ]
   },
   {
+   "source": "The wind did not stop until morning.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Theme",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "These lists live on a YouTube account. History, the play queue and favourites stay on this PS5 and need none.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "These settings cannot be reached",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "These settings could not be read",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8487,9 +10405,27 @@
    ]
   },
   {
+   "source": "This build cannot take typed text here.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "This channel offers no other section",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "This comment cannot be answered from here.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This comment cannot be rated from here.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8502,6 +10438,12 @@
    "source": "This copy does not update itself",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "This could not be loaded",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8529,6 +10471,24 @@
    ]
   },
   {
+   "source": "This list could not be loaded",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This list could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This list has no videos at the moment. It fills as soon as YouTube or this PS5 has something for it.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "This menu exceeds its item capacity.",
    "context": [
     "status"
@@ -8537,7 +10497,20 @@
   {
    "source": "This month",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "This page has no settings for the profile in use. Other pages of Settings are not affected.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This page is not built yet",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8553,6 +10526,12 @@
    ]
   },
   {
+   "source": "This profile's actions menu does not offer that for this video.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "This release cannot be installed from here",
    "context": [
     "browser"
@@ -8565,9 +10544,27 @@
    ]
   },
   {
+   "source": "This screen carries on by itself.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "This screen does not have additional pages.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "This search did not come through",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This section did not arrive.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8577,9 +10574,34 @@
    ]
   },
   {
+   "source": "This text could not be loaded.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "This version browses and plays as Guest, without an account",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "This video cannot be played right now.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This video cannot be removed from here.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "This video could not be opened",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8609,12 +10631,14 @@
   {
    "source": "This week",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
   {
    "source": "This year",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -8658,6 +10682,7 @@
   {
    "source": "Today",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -8692,6 +10717,12 @@
    ]
   },
   {
+   "source": "Top",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Top / live",
    "context": [
     "document"
@@ -8713,6 +10744,12 @@
    "source": "Top comments",
    "context": [
     "kit"
+   ]
+  },
+  {
+   "source": "Top or newest",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8740,6 +10777,24 @@
    ]
   },
   {
+   "source": "Trending now",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Try again",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Try again in a moment.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Tunisia",
    "context": [
     "browser"
@@ -8758,9 +10813,27 @@
    ]
   },
   {
+   "source": "Turn connection off",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Turn connection on",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Turn it on in YouTube preferences for this profile",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Turn it on in the preferences to keep searches for this profile.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8770,9 +10843,21 @@
    ]
   },
   {
+   "source": "Turn off",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Turn off and forget this TV's pairing identity",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Turn on",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8802,7 +10887,14 @@
   {
    "source": "Type",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Type to search YouTube",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8910,6 +11002,7 @@
   {
    "source": "Under 3 minutes",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -8944,9 +11037,37 @@
    ]
   },
   {
+   "source": "Unsubscribe",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Unsubscribe from {0}?",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Unsubscribe on YouTube",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Unsubscribed from {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Unwatched",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8974,6 +11095,12 @@
    ],
    "pattern": true,
    "args": "n"
+  },
+  {
+   "source": "Upcoming",
+   "context": [
+    "afterglow"
+   ]
   },
   {
    "source": "Update to {0} now",
@@ -9143,6 +11270,12 @@
    "args": "s"
   },
   {
+   "source": "Video",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Video Playback",
    "context": [
     "kit"
@@ -9303,6 +11436,7 @@
   {
    "source": "Videos",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -9331,6 +11465,12 @@
    ]
   },
   {
+   "source": "Videos you start are kept here on this PS5, each with the place you left it at.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Videos your account was notified about",
    "context": [
     "browser"
@@ -9351,6 +11491,7 @@
   {
    "source": "View count",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -9427,15 +11568,70 @@
    ]
   },
   {
+   "source": "Waiting for your approval",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Watch / open",
    "context": [
     "document"
    ]
   },
   {
+   "source": "Watch as",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Watch as {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Watch as {0} first to set its password",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Watch later",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Watch live",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Watch on TV",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Watching as {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Watching now",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9483,6 +11679,12 @@
    ]
   },
   {
+   "source": "When a channel you subscribe to uploads or goes live, YouTube says so here. Set what a channel may tell you on its page.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "When controls are hidden; saved for this profile",
    "context": [
     "kit"
@@ -9498,6 +11700,12 @@
    "source": "Whether Circle closes ProsperoTube from the main menu",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Which link",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9525,14 +11733,51 @@
    ]
   },
   {
+   "source": "Who is watching?",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "With a YouTube account, the channels you subscribe to tell you here about new videos and live streams.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Write a comment",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Write a comment (experimental)",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "Write your comment",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Write your reply",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Writing, answering and liking comments use a YouTube account. This profile has none yet.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Wrong password.",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -9558,6 +11803,24 @@
    "source": "Yellow on transparent background",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "You",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "You are all caught up",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "You are watching as Guest",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9593,7 +11856,26 @@
   {
    "source": "YouTube authorization denied",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "YouTube cannot be reached. Nothing was changed.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "YouTube did not answer as expected.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "YouTube did not answer. Try again in a moment.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9603,9 +11885,39 @@
    ]
   },
   {
+   "source": "YouTube did not confirm the change. Check your account before repeating it.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "YouTube did not confirm the change. Nothing was changed.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "YouTube does not take a rating for this comment.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "YouTube does not take answers to this comment.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "YouTube gaming shelves",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "YouTube gave no link for this video.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9615,9 +11927,22 @@
    ]
   },
   {
+   "source": "YouTube has no details for this video.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "YouTube history",
    "context": [
+    "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "YouTube is told not to recommend this channel to your account.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9642,6 +11967,12 @@
    "source": "YouTube music shelves",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "YouTube names no related videos for this one.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9707,6 +12038,7 @@
   {
    "source": "YouTube sign-in could not be completed",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -9720,6 +12052,12 @@
    "source": "YouTube stops recording what this account watches",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Your channels live in your account",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9741,9 +12079,27 @@
    ]
   },
   {
+   "source": "Your password is never typed on the console. The sign-in is kept in the app's folder on this PS5 and can be removed at any time.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Your playlists",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Your subscriptions could not be read.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Your subscriptions did not arrive. Check the connection and try again.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9849,6 +12205,12 @@
    ]
   },
   {
+   "source": "in your account's order",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "keep playing",
    "context": [
     "browser"
@@ -9880,6 +12242,12 @@
    ]
   },
   {
+   "source": "new uploads first",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "no network transport",
    "context": [
     "browser"
@@ -9905,6 +12273,24 @@
     "browser",
     "kit",
     "toast"
+   ]
+  },
+  {
+   "source": "on YouTube",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "on this PS5",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "on this PS5 and on YouTube",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9936,6 +12322,12 @@
    "source": "regular",
    "context": [
     "kit"
+   ]
+  },
+  {
+   "source": "relevance",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9975,6 +12367,12 @@
    "source": "show controls and pause",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "sign in to see your YouTube subscriptions",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -10082,6 +12480,12 @@
    ]
   },
   {
+   "source": "view count",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "{0} (experimental)",
    "context": [
     "browser"
@@ -10099,6 +12503,14 @@
    ],
    "pattern": true,
    "args": "ss"
+  },
+  {
+   "source": "{0} FPS",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "{0} KiB; Cross reads it and shows what it lists",
@@ -10123,6 +12535,14 @@
    ],
    "pattern": true,
    "args": "nnn"
+  },
+  {
+   "source": "{0} channels",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "{0} channels added to Followed channels",
@@ -10152,6 +12572,46 @@
    "one": "{0} channel marked as watched"
   },
   {
+   "source": "{0} chapter",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} chapters",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} further settings",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} has nothing in this section.",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} is back at its defaults",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "{0} kept; newest: {1}",
    "context": [
     "browser"
@@ -10168,12 +12628,61 @@
    "args": "ss"
   },
   {
+   "source": "{0} min left",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "n",
+   "one": "{0} min left"
+  },
+  {
+   "source": "{0} new",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "{0} of {1} MB; a paused download continues where it stopped",
    "context": [
     "browser"
    ],
    "pattern": true,
    "args": "nn"
+  },
+  {
+   "source": "{0} on this video",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} playlists",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} replies",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} reply",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "{0} seconds",
@@ -10183,6 +12692,54 @@
    "pattern": true,
    "args": "n",
    "one": "{0} second"
+  },
+  {
+   "source": "{0} segment skipped",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} segments skipped",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} subscriptions",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} videos",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} videos, resume points kept",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "{0} waiting",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.",

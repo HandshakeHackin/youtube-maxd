@@ -13,9 +13,14 @@ import sys
 root = sys.argv[1]
 report = json.loads(subprocess.check_output([sys.executable, root + "/scripts/i18n_build.py", "--report", "--check"], text=True))
 assert len(report) >= 21, "catalogs are missing"
+# The texts only the Afterglow interface shows are translated in their own pass, after its screens: until
+# then a catalog is held to the classic interface's texts, and Afterglow shows what is missing in English.
+# Set AFTERGLOW_TRANSLATED to True when the 21 catalogs hold them: the whole template is the rule again.
+AFTERGLOW_TRANSLATED = False
 for row in report:
-    print(f"{row['tag']:6} {row['name']:22} {row['coverage']:6.2f}%  missing {row['missing']}  stale {row['stale']}")
-    assert row["coverage"] >= 99.0 and not row["stale"], f"{row['tag']}: the catalog does not cover the template"
+    print(f"{row['tag']:6} {row['name']:22} {row['coverage']:6.2f}%  missing {row['missing']}  (Afterglow: {row['missing_afterglow']} of {row['afterglow']})  stale {row['stale']}")
+    held = row["coverage"] if AFTERGLOW_TRANSLATED else row["coverage_classic"]
+    assert held >= 99.0 and not row["stale"], f"{row['tag']}: the catalog does not cover the template"
 # The same rule marks and extracts the texts of the browser document.
 sys.path.insert(0, root + "/scripts")
 from i18n_overlay import rml_localize, rml_texts

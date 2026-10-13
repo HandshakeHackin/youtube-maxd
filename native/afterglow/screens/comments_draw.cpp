@@ -398,7 +398,7 @@ void Comments::draw_writing(G &g, const DrawContext &context, float amount) cons
     int characters = 0;
     for (const char c : text_)
         characters += (static_cast<unsigned char>(c) & 0xc0) != 0x80 ? 1 : 0;
-    text(g, g.f.regular, fill(tr("{0} / {1}"), std::to_string(characters), std::to_string(kTextLimit)), field.x + field.w, under, kTypeFine,
+    text(g, g.f.regular, fill("{0} / {1}", std::to_string(characters), std::to_string(kTextLimit)), field.x + field.w, under, kTypeFine,
          k.ink3, gfx::Align::right);
     if (sending)
     {
