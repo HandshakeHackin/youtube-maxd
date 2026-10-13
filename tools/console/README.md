@@ -45,8 +45,9 @@ console operation a real run performs, in order. Nothing is sent.
 Useful options: `--out DIR` (evidence, default `~/pt-console/<UTC time>/`),
 `--keep-state` (leave the session's history on the console),
 `--end eof|stop` (default: play to the end when under two minutes remain,
-otherwise Stop with confirmation), `--video-id`, `--search-query`,
-`--expect-title`, `--settle SECONDS`, `--open-presets`.
+otherwise Stop with confirmation), `--root-row` and `--topic-row` (the two
+rows the route opens, regular expressions on their text; default Discover and
+Science), `--with-search` with `--search-query`, `--settle SECONDS`.
 
 Exit status: 0 pass, 1 an anomaly with a clean teardown, 3 no run (busy
 console, held lock, failed precondition), 4 unresolved (see below).
@@ -60,12 +61,53 @@ console, held lock, failed precondition), 4 unresolved (see below).
 | 2 snapshot | Copies of every state file in `/data/prosperotube` (hashes recorded), the installed folder's listing, the error-record baseline | a copy is short |
 | 3 install | Every file uploaded under a temporary name, read back, renamed (`ps5-console.py install`); watched for `--settle` seconds and compared again (`settle`) | any difference |
 | 4 launch | Idle again; services answer; ShadowMount mounts the installed folder; one launch payload; then the ladder: sandbox exists → status file written by **this build** → Lapy storage → frame loop advancing and browser drawn | another title appeared (lock released, nothing sent); any rung not observed in time |
-| 5 core path | (b) the app's log says `embedded service: listening on 127.0.0.1:<port>` with a port in 20000-39999 and no token on the line, and the saved state holds no service address; (c) result rows contain the expected video; (d) decoder active, no fatal, position advancing; (e) pause held, caption picker read, resume, +10 s seek landed; (f) playback options read, a quality entry present; (g) `complete=1` or Stop confirmed, engine statistics (frames published, late drops), history record in `youtube.json`; (h) one scanout capture from the player | a postcondition is not observed within its limit |
+| 5 core path | See the table below: hard gates on what the engine reports, the rest observed and recorded | a hard gate is not observed within its limit |
 | 6 teardown | `quit` → `parked=1` (media released, GPU idle) → one exact-title close → sandbox gone; development files removed; state restored and re-read; services answer; no new error record; idle; lock released | never skipped |
 
 Every wait is bounded and ends on an observed fact from `dev_status`,
 `dev_ui.json`, `console.log`, `youtube.json` or the sandbox listing. A fixed
 sleep is never taken as proof.
+
+### The core path: route, hard gates, soft observations
+
+The first console session (2026-10-13) showed how this build draws itself.
+The browser is the provider's own RmlUi document: `docs` is `["youtube"]`, the
+rows are cards **without ids** (`class` `tube-card`, plus `folder` for a row
+that opens a list), the cursor is known by `index`/`total`, a row's text is
+its artwork initial, title and detail (`D Discover Search public videos by
+topic`). The kit draws the keyboard, the dialogs, the pickers and the player's
+controls; over the RmlUi browser its keyboard appears in the snapshot only as
+RmlUi's hidden twin (`modal.kind` `keyboard`), and a dialog may not appear at
+all. So a screen is identified by the number in `dev_status` (`scr=`: 23
+browser, 2 player, 18 caption picker, 31 playback options, 20 stop
+confirmation, 32 closed), which the engine writes whatever draws the screen,
+and the provider's own log lines prove what a key press did.
+
+Route to a video, no keyboard: **Discover → Science → first playable row**.
+Keys: `cross` (the cursor starts on Discover), `right` `right` (Science is the
+third card; the cursor's position is read back after every press), `cross`,
+`cross`. Cross is pressed only on a row whose text was read back as the wanted
+one, so a moved menu cannot end on "Close ProsperoTube".
+
+| Step | Kind | Observed fact |
+| --- | --- | --- |
+| (b) service started | hard | `embedded service: listening on 127.0.0.1:<port>` in `console.log` |
+| (c) Discover opened | hard | new `provider: 'youtube' catalog parent='discover' -> N rows` line, N > 0 |
+| (b,c) the service answered | hard | new catalog line for the topic (`parent='search:science'`), N > 0: that list exists only if the built-in service fetched it. The service itself logs nothing per request |
+| (d) a video was activated | hard | `provider: 'youtube' activate '<id>' (playable) title='...'` |
+| (d) playing | hard | `scr=2 active=1 fatal=0`, position advancing; `provider: resolve failed` fails at once |
+| (e) +10 s seek | hard | development `seek` command, position lands near the target |
+| (e) pause | soft | position held, and the engine's paused flag when the snapshot has it; Cross is pressed a second time only if the first did nothing visible |
+| (e) caption picker, (f) playback options | soft | `scr=18` / `scr=31`, rows recorded, Circle back to `scr=2`. If the player does not come back after two Circle presses, no further key is sent |
+| (h) capture | soft | a new `evo_shot_NNN.bmp`, fetched |
+| (e) resume | hard, only after an observed pause | position advancing again |
+| (g) stop | soft by keys, hard by fact | Circle → `scr=20` → Cross; whatever the keys did, the player must retire (`active=0`, not `scr=2`): the development `stop` command settles it when they did not |
+| (d,g) statistics | hard | `stats frames_in=... published=... late_drop=...`, published > 0 |
+| (g) history | hard | a record in `youtube.json` for the activated id (or its exact title) |
+| (c) search by keyboard (`--with-search`) | soft, last | keyboard seen, typed text in it, `provider: Search query='...'` and a new catalog line; an unseen keyboard gets no text and is closed with `kbclose` |
+
+Soft misses are listed in `result.json` (`observations.soft_misses`) and as
+`SOFT-MISS` steps; they never change the verdict.
 
 ### Close
 

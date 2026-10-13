@@ -27,9 +27,21 @@ SHOT = re.compile(r"^evo_shot_\d{3}\.bmp$")
 # Provider state this session may create when the console had none.
 STATE_CREATED = ("youtube.json", "youtube.json.tmp", "active.srt", "active.mp4")
 
+# evo::ScreenId as dev_status reports it (scr=). The status line is written by
+# the engine whatever draws the screen, so these identify a screen in both
+# interface layouts; the UI snapshot only adds what is on it.
 SCREEN_PLAYER = 2
 SCREEN_RESUME = 3
+SCREEN_CAPTIONS = 18
+SCREEN_STOP_DIALOG = 20
+SCREEN_BROWSER = 23
 SCREEN_OPTIONS = 31
+SCREEN_CLOSED = 32
+# The browser is the provider's own RmlUi document ("youtube": cards without
+# ids, focus by position) on the console; the kit's grid ("hui_provider",
+# row-N ids) is the other layout the build can draw.
+BROWSER_DOCS = ("youtube", "hui_provider")
+KEYBOARD_DOCS = ("keyboard", "hui_keyboard")
 BUILD_ID = re.compile(rb"prosperotube-[0-9a-f]{7,8}_\d{4}-\d{4}")
 
 _INT = ("t", "scr", "be", "fatal", "eof", "complete", "active", "parked")
@@ -69,10 +81,34 @@ def parse_ui(data):
     return snapshot
 
 
+def ui_docs(snapshot):
+    """Every visible document: a kit screen first ("hui_*"), then RmlUi's own
+    ("youtube", "keyboard", "dialog"...). Never rely on one name alone."""
+    return [str(doc) for doc in (snapshot or {}).get("ui", {}).get("docs") or []]
+
+
 def ui_doc(snapshot):
-    """The document that owns the screen: hui_provider, hui_keyboard, hui_osd..."""
-    docs = (snapshot or {}).get("ui", {}).get("docs") or []
+    docs = ui_docs(snapshot)
     return docs[0] if docs else ""
+
+
+def ui_modal(snapshot):
+    return (snapshot or {}).get("ui", {}).get("modal") or {}
+
+
+def keyboard_open(snapshot):
+    """The app's own keyboard is up: RmlUi reports it as a modal over the
+    browser, the kit as its own document over a kit screen."""
+    return ui_modal(snapshot).get("kind") == "keyboard" or any(doc in KEYBOARD_DOCS for doc in ui_docs(snapshot))
+
+
+def focus_kind(snapshot):
+    """"folder", "playable" or None when the layout does not say (the kit's
+    rows carry no class): the provider's cards are "tube-card [folder]"."""
+    classes = str(ui_focus(snapshot).get("class", "")).split()
+    if "tube-card" not in classes:
+        return None
+    return "folder" if "folder" in classes else "playable"
 
 
 def ui_screen(snapshot):
@@ -95,8 +131,8 @@ def ui_paused(snapshot):
 def ui_line(snapshot):
     """One line for the log: what a person would say is on screen."""
     focus = ui_focus(snapshot)
-    return (f"seq={(snapshot or {}).get('seq')} screen={ui_screen(snapshot)} doc={ui_doc(snapshot) or '-'} "
-            f"focus={focus.get('id', '-')} \"{str(focus.get('text', ''))[:60]}\" "
+    return (f"seq={(snapshot or {}).get('seq')} screen={ui_screen(snapshot)} docs={','.join(ui_docs(snapshot)) or '-'} "
+            f"focus={focus.get('id') or focus.get('class') or '-'} \"{str(focus.get('text', ''))[:60]}\" "
             f"({focus.get('index', 0)}/{focus.get('total', 0)})")
 
 
@@ -116,13 +152,70 @@ def pc_heartbeat(previous, current, build):
 
 
 def pc_browser(snapshot):
-    """The provider screen is drawn with a cursor on its rows."""
-    if ui_doc(snapshot) != "hui_provider":
-        return False, f"doc {ui_doc(snapshot) or 'none'}"
+    """The browser is drawn with a cursor on one of its rows. Either layout: the
+    screen is named by its number or its document, the cursor by its position
+    among the rows (the provider's cards have no id)."""
+    if ui_screen(snapshot) != SCREEN_BROWSER and not any(doc in BROWSER_DOCS for doc in ui_docs(snapshot)):
+        return False, f"screen {ui_screen(snapshot)}, docs {ui_docs(snapshot) or 'none'}"
     focus = ui_focus(snapshot)
-    if not focus.get("id"):
-        return False, "provider screen without a focused element"
-    return True, f"{focus.get('id')} of {focus.get('total', 0)}: {ui_rows(snapshot)[:8]}"
+    rows = ui_rows(snapshot)
+    if not rows or not 1 <= int(focus.get("index") or 0) <= len(rows):
+        return False, f"browser without a cursor on a row: {ui_line(snapshot)}"
+    return True, f"row {focus.get('index')} of {focus.get('total', len(rows))}: {rows[:8]}"
+
+
+def next_key(current, target, columns, blocked):
+    """The D-pad press that moves the cursor from row `current` toward `target`
+    (1-based positions in a grid read left to right). Before a vertical move
+    showed how many columns the grid has, go sideways first and down when
+    sideways did nothing; `blocked` holds the presses that did nothing here."""
+    forward = target > current
+    if columns:
+        same_row = (target - 1) // columns == (current - 1) // columns
+        choices = [("right" if forward else "left")] if same_row else [("down" if forward else "up")]
+    else:
+        choices = ["right", "down"] if forward else ["left", "up"]
+    return next((key for key in choices if key not in blocked), None)
+
+
+_CATALOG = re.compile(r"provider: '([^']*)' catalog parent='([^']*)' -> (\d+) rows "
+                      r"\(folder_level=(\d+) has_more=(\d+) total=(-?\d+)\)")
+_ACTIVATE = re.compile(r"provider: '[^']*' activate '([^']*)' \((folder|playable)\) title='(.*)'\s*$")
+_SEARCH = re.compile(r"provider: Search query='(.*)'\s*$")
+
+
+def catalog_lines(log_text):
+    """Every list the provider handed to the browser, in order. A list under a
+    network parent (a topic, a search) exists only if the service answered."""
+    return [{"parent": m.group(2), "rows": int(m.group(3)), "folders": m.group(4) == "1", "more": m.group(5) == "1"}
+            for m in _CATALOG.finditer(log_text)]
+
+
+def activations(log_text):
+    return [{"id": m.group(1), "kind": m.group(2), "title": m.group(3)}
+            for line in log_text.splitlines() if (m := _ACTIVATE.search(line))]
+
+
+def searches(log_text):
+    return [m.group(1) for line in log_text.splitlines() if (m := _SEARCH.search(line))]
+
+
+def pc_catalog(log_text, seen, network=False):
+    """A list arrived after the first `seen` ones, with rows. network=True also
+    wants a parent that is not a local menu."""
+    new = catalog_lines(log_text)[seen:]
+    if not new:
+        return False, "no new catalog line in console.log"
+    last = new[-1]
+    if last["rows"] <= 0:
+        return False, f"catalog parent='{last['parent']}' returned no rows"
+    if network and last["parent"] in ("", "discover"):
+        return False, f"the newest list is the local menu '{last['parent']}'"
+    return True, f"catalog parent='{last['parent']}' -> {last['rows']} rows ({'folders' if last['folders'] else 'videos'})"
+
+
+def resolve_failed(log_text):
+    return next((line.strip()[-120:] for line in log_text.splitlines() if "provider: resolve failed" in line), None)
 
 
 def pc_doc(snapshot, name, after_seq=-1):
@@ -140,9 +233,10 @@ def find_row(snapshot, pattern):
     return 0
 
 
-def pc_rows(snapshot, pattern, doc="hui_provider"):
-    if ui_doc(snapshot) != doc:
-        return False, f"doc {ui_doc(snapshot) or 'none'}"
+def pc_rows(snapshot, pattern):
+    """A listed row matches, whatever document lists it; not under a keyboard."""
+    if keyboard_open(snapshot):
+        return False, "a keyboard is open"
     index = find_row(snapshot, pattern)
     rows = ui_rows(snapshot)
     return bool(index), f"row {index} of {len(rows)} matches /{pattern}/: {rows[:6]}"
@@ -164,15 +258,20 @@ def pc_playing(samples, minimum=0.5):
 
 
 def pc_paused(samples, snapshot, tolerance=0.05):
-    """The UI says paused and the position held still across two status writes."""
-    if not ui_paused(snapshot):
-        return False, "UI does not report paused"
+    """The position held still while the decoder stayed active: across two
+    status writes when the snapshot also says paused (the engine's own flag),
+    across three when the snapshot is silent."""
     live = [s for s in samples if s]
-    if len(live) < 2 or live[-1]["t"] <= live[-2]["t"]:
-        return False, "need two status writes"
-    if abs(live[-1]["pos"] - live[-2]["pos"]) > tolerance:
-        return False, f"pos still moving {live[-2]['pos']:.2f} -> {live[-1]['pos']:.2f}"
-    return True, f"held at {live[-1]['pos']:.2f} for {live[-1]['t'] - live[-2]['t']} s"
+    need = 2 if ui_paused(snapshot) else 3
+    if len(live) < need or any(b["t"] <= a["t"] for a, b in zip(live[-need:], live[-need + 1:])):
+        return False, f"need {need} status writes"
+    held = live[-need:]
+    if any(s["active"] != 1 or s["fatal"] for s in held):
+        return False, "decoder not active"
+    if max(s["pos"] for s in held) - min(s["pos"] for s in held) > tolerance:
+        return False, f"pos still moving {held[0]['pos']:.2f} -> {held[-1]['pos']:.2f}"
+    return True, (f"held at {held[-1]['pos']:.2f} for {held[-1]['t'] - held[0]['t']} s"
+                  f"{'' if ui_paused(snapshot) else ' (snapshot silent: by position alone)'}")
 
 
 def pc_seek(before, sample, delta, tolerance=2.0):
@@ -306,15 +405,18 @@ def pc_state_local(data):
     return True, "youtube.json holds no service address"
 
 
-def history_record(data, video):
-    for record in (parse_state(data) or {}).get("records") or []:
-        if isinstance(record, dict) and record.get("id") == video:
-            return record
-    return None
+def history_record(data, video, title=None):
+    """The record of the video that was activated: by its id (either may carry
+    a prefix), else by its exact title."""
+    records = [r for r in (parse_state(data) or {}).get("records") or [] if isinstance(r, dict)]
+    return (next((r for r in records if r.get("id") == video), None)
+            or next((r for r in records if video and r.get("id")
+                     and (video in str(r["id"]) or str(r["id"]) in video)), None)
+            or next((r for r in records if title and r.get("title") == title), None))
 
 
-def pc_history(data, video, need_played):
-    record = history_record(data, video)
+def pc_history(data, video, need_played, title=None):
+    record = history_record(data, video, title)
     if record is None:
         return False, f"no record for {video}"
     detail = (f"played={record.get('played')} position={record.get('position')} "

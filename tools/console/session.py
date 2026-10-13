@@ -30,7 +30,7 @@ SNAPSHOT_LIMIT = 16 << 20
 
 # Seconds. Every wait in the session is one of these: none is open-ended.
 T = {"launch": 45, "entry": 90, "storage_line": 15, "ready": 90, "register": 120, "keyboard": 10,
-     "submit": 15, "search": 60, "service": 20, "focus": 5, "open": 90, "playing": 30,
+     "submit": 15, "search": 60, "service": 20, "focus": 5, "rows": 20, "catalog": 30, "activate": 15, "open": 90, "playing": 30,
      "toggle": 6, "picker": 8, "capture": 25, "seek": 20, "eof_margin": 45, "dialog": 8, "stopped": 20,
      "stats": 20, "history": 30, "consume": 10, "park": 40, "release": 60,
      "functional": 20 * 60}
@@ -354,34 +354,118 @@ class Session:
         self.step("ready: frame loop advancing, browser drawn", ready, T["ready"])
 
     # --- stage 5 -------------------------------------------------------------------
-    def expect_doc(self, name):
-        return lambda: ob.pc_doc(self.ui(), name)
+    # Hard gates are facts the engine reports whatever draws the screen: the
+    # status line (screen number, decoder, position), the provider's log lines
+    # and the saved state. What only the UI snapshot can show is observed and
+    # recorded ("soft"): a miss is noted and the session goes on.
 
-    def on_player(self):
-        snapshot = self.ui()
-        return ob.ui_screen(snapshot) == ob.SCREEN_PLAYER, ob.ui_line(snapshot)
+    def on_screen(self, number):
+        status = self.status()
+        return bool(status) and status["scr"] == number, f"scr={status['scr']}" if status else "no status"
 
-    def keyboard_entry(self, open_key, text, what):
-        self.key(open_key, f"{what}: keyboard open", self.expect_doc("hui_keyboard"), T["keyboard"])
-        self.command(f"type {text}")
-        self.command("kbdone")
-        self.step(f"{what}: submitted, back on the browser", self.expect_doc("hui_provider"), T["submit"])
+    def soft(self, label, action):
+        """Run an observe-and-record step. Returns its result, or None on a miss."""
+        try:
+            return action()
+        except Stop as stop:
+            for entry in reversed(self.steps):
+                if entry["result"] == "FAIL":
+                    entry["result"] = "SOFT-MISS"
+                    break
+            self.soft_misses.append(label)
+            self.note(f"SOFT MISS {label}: {stop.reason}")
+            return None
 
-    def toggle(self, label, probe):
-        """Cross once; a second press only if the first one visibly did nothing
-        (with hidden controls the first press may only show them)."""
-        for attempt in (1, 2):
-            self.command("key cross")
-            try:
-                return self.step(label, probe, T["toggle"], record=attempt == 2)
-            except Stop:
-                if attempt == 2:
-                    raise
-                self.log(f"   {label}: not yet after one press; pressing once more")
+    def focus_row(self, pattern, what):
+        """Move the cursor onto the row whose text matches, by the position the
+        snapshot reports after every press. Cross is never pressed on a row
+        whose text was not read back as the wanted one."""
+        def located():
+            snapshot = self.ui()
+            ok = bool(ob.find_row(snapshot, pattern)) and int(ob.ui_focus(snapshot).get("index") or 0) > 0
+            return ok and not ob.keyboard_open(snapshot), ob.ui_line(snapshot)
+        self.step(f"{what}: a row matching /{pattern}/ is listed", located, T["rows"])
+        columns, blocked = None, set()
+        for _ in range(16):
+            snapshot = self.ui()
+            focus = ob.ui_focus(snapshot)
+            current, target = int(focus.get("index") or 0), ob.find_row(snapshot, pattern)
+            if not current or not target:
+                break
+            if current == target:
+                if re.search(pattern, str(focus.get("text", "")), re.IGNORECASE):
+                    self.log(f"   {what}: cursor on row {current}: \"{focus.get('text')}\" [{ob.focus_kind(snapshot) or 'kind not shown'}]")
+                    return focus
+                break
+            key = ob.next_key(current, target, columns, blocked)
+            if key is None:
+                break
+            self.command(f"key {key}")
+            start, moved = self.clock.now(), current
+            while moved == current and self.clock.now() - start < T["focus"]:
+                self.clock.sleep(0.5)
+                moved = int(ob.ui_focus(self.ui()).get("index") or 0) or current
+            if moved == current:
+                blocked.add(key)
+            else:
+                blocked.clear()
+                if key in ("down", "up") and columns is None:
+                    columns = abs(moved - current)
+        raise Stop(f"{what}: the cursor did not reach a row matching /{pattern}/: {ob.ui_line(self.ui())}")
+
+    def open_row(self, pattern, what, network, timeout):
+        """Cross on the matching row; the provider's log must show the list it opened."""
+        self.focus_row(pattern, what)
+        seen = len(ob.catalog_lines(self.read_log()))
+        self.command("key cross")
+        detail = self.step(f"{what}: the provider listed what the row opens", lambda: ob.pc_catalog(self.read_log(), seen, network),
+                           timeout, interval=2)
+        return detail
+
+    def browse_to_video(self):
+        """Discover -> a topic -> the first playable row. No keyboard on this route."""
+        args = self.args
+        self.open_row(args.root_row, "(c) main menu", False, T["catalog"])
+        self.obs["topic_rows"] = ob.ui_rows(self.ui())
+        self.obs["service_answer"] = self.open_row(args.topic_row, "(c) topic", True, T["search"])
+        self.log(f"   (b,c) the built-in service answered: {self.obs['service_answer']}")
+
+        def cursor_ready():
+            snapshot = self.ui()
+            return ob.pc_browser(snapshot)[0] and ob.ui_rows(snapshot) != self.obs["topic_rows"], ob.ui_line(snapshot)
+        try:
+            self.step("(c) the video list is drawn with a cursor", cursor_ready, T["rows"], record=False)
+        except Stop:
+            # A list drawn without a cursor takes it at the first direction press.
+            self.log("   (c) no cursor on the new list yet: one Right to place it")
+            self.command("key right")
+            self.step("(c) the video list is drawn with a cursor", cursor_ready, T["rows"])
+        self.obs["video_rows"] = ob.ui_rows(self.ui())
+        for _ in range(6):  # a channel or playlist among the results is a folder: step past it
+            if ob.focus_kind(self.ui()) != "folder":
+                break
+            index = int(ob.ui_focus(self.ui()).get("index") or 0)
+            self.key("right", "(d) next result",
+                     lambda index=index: (ob.ui_focus(self.ui()).get("index") != index, ob.ui_line(self.ui())), T["focus"])
+        if ob.focus_kind(self.ui()) == "folder":
+            raise Stop(f"(d) no playable row at the start of the results: {ob.ui_line(self.ui())}")
+        focus = ob.ui_focus(self.ui())
+        seen = len(ob.activations(self.read_log()))
+        self.command("key cross")
+
+        def activated():
+            new = ob.activations(self.read_log())[seen:]
+            if new and new[-1]["kind"] != "playable":
+                raise Stop(f"(d) Cross opened a folder, not a video: {new[-1]}")
+            return bool(new), new[-1] if new else "no activation line yet"
+        self.video = self.step("(d) the provider activated a playable row", activated, T["activate"])
+        self.video["row"] = str(focus.get("text", ""))
+        self.obs["video"] = self.video
 
     def functional(self):
         args = self.args
         self.functional_deadline = self.clock.now() + T["functional"]
+        self.soft_misses, self.ui_lost, self.video = [], False, {"id": "", "title": ""}
 
         # (a) browser
         snapshot = self.ui()
@@ -395,30 +479,14 @@ class Session:
         self.obs["service"] = self.step("(b) built-in service started", lambda: ob.pc_service(self.read_log()),
                                         T["service"], interval=2)
 
-        # (c) search
-        self.keyboard_entry("square", args.search_query, "(c) search")
-        self.step(f"(c) result rows include /{args.expect_title}/",
-                  lambda: ob.pc_rows(self.ui(), args.expect_title), T["search"])
-        self.obs["search_rows"] = ob.ui_rows(self.ui())
-        self.step("(b) the service's address is kept out of the saved state", lambda: ob.pc_state_local(self.read_state()),
-                  T["service"], interval=2)
-
-        # (d) play
-        target = ob.find_row(self.ui(), args.expect_title)
-        for _ in range(target):
-            index = ob.ui_focus(self.ui()).get("index", 0)
-            if index == target:
-                break
-            self.key("right", f"(d) focus moves toward row {target}",
-                     lambda index=index: (ob.ui_focus(self.ui()).get("index", 0) == index + 1, ob.ui_line(self.ui())),
-                     T["focus"])
-        focus = ob.ui_focus(self.ui())
-        if focus.get("index") != target or not re.search(args.expect_title, str(focus.get("text", "")), re.IGNORECASE):
-            raise Stop(f"(d) the cursor is not on the expected video: {ob.ui_line(self.ui())}")
-        self.command("key cross")
+        # (c) a video without the keyboard, (d) play it
+        self.browse_to_video()
         resumed = []
 
         def opened():
+            failed = ob.resolve_failed(self.read_log())
+            if failed:
+                raise Stop(f"(d) the stream did not resolve: {failed}")
             status = self.status()
             if status and status["scr"] == ob.SCREEN_RESUME and not resumed:
                 resumed.append(True)
@@ -429,55 +497,43 @@ class Session:
         self.step("(d) player open, decoder active", opened, T["open"])
         self.playing("(d) position advancing")
 
-        # (e) pause, captions, capture
-        window = []
-        self.toggle("(e) paused", lambda: (window.append(self.status()), ob.pc_paused(window, self.ui()))[1])
-        self.key("down", "(e) caption picker open",
-                 lambda: (lambda s: (ob.ui_doc(s) == "hui_subtitles" and bool(ob.ui_rows(s)), ob.ui_line(s)))(self.ui()),
-                 T["picker"])
-        rows = ob.ui_rows(self.ui())
-        offered, current = ob.caption_tracks(rows)
-        self.obs["captions"] = {"rows": rows, "offered": offered, "current": current}
-        self.log(f"   (e) captions offered: {offered or 'none'}; showing: {current or 'none'}")
-        if offered and not current:
-            self.note("captions are offered but none is marked current: check the capture, toggle with Up by hand")
-        self.key("circle", "(e) back on the player", self.on_player, T["picker"])
-        self.capture()
-
-        # (f) options and quality
-        self.options()
-
-        # (e) resume, seek
-        self.command("key cross")
-        try:
-            self.playing("(e) resumed, position advancing", timeout=T["toggle"] + 4, record=False)
-        except Stop:
-            self.log("   (e) not resumed after one press; pressing once more")
-            self.command("key cross")
-            self.playing("(e) resumed, position advancing", timeout=T["toggle"] + 4)
+        # (e) seek first: a development command, no key, nothing on screen to get wrong
         before = self.status()
         if not before:
             raise Stop("(e) no status before the seek")
         self.command("seek +10")
         self.step("(e) +10 s seek landed", lambda: ob.pc_seek(before["pos"], self.status(), 10.0), T["seek"])
 
+        # (e) pause, (e) captions, (h) capture, (f) options: observed and recorded
+        window = []
+        paused = self.soft("(e) pause", lambda: self.toggle(
+            "(e) paused", lambda: (window.append(self.status()), ob.pc_paused(window, self.ui()))[1])) is not None
+        self.soft("(e) caption picker", lambda: self.visit("down", ob.SCREEN_CAPTIONS, "(e) caption picker", self.read_captions))
+        if not self.ui_lost:
+            self.soft("(h) capture", self.capture)
+            self.soft("(f) playback options", lambda: self.visit("r2", ob.SCREEN_OPTIONS, "(f) playback options", self.read_options))
+        if paused and not self.ui_lost:
+            self.command("key cross")
+            try:
+                self.playing("(e) resumed, position advancing", timeout=T["toggle"] + 4, record=False)
+            except Stop:
+                self.log("   (e) not resumed after one press; pressing once more")
+                self.command("key cross")
+                self.playing("(e) resumed, position advancing", timeout=T["toggle"] + 4)
+
         # (g) end, statistics, history
         now = self.status() or before
         remaining = now["dur"] - now["pos"]
-        mode = args.end if args.end != "auto" else ("eof" if 0 < remaining <= 120 else "stop")
+        mode = args.end if args.end != "auto" else ("eof" if 0 < remaining <= 120 and not (paused and self.ui_lost) else "stop")
         self.obs["end_mode"] = mode
         if mode == "eof":
             self.step("(g) played to the end (complete=1)", lambda: ob.pc_complete(self.status()),
                       max(remaining, 0) + T["eof_margin"])
-            try:
-                self.step("(g) player retired by itself", self.inactive, T["stopped"], record=False)
-            except Stop:
-                self.note("still active after the end: sent the development \"stop\" command")
+            if self.soft("(g) player retired by itself", lambda: self.step("(g) player retired by itself", self.inactive, T["stopped"])) is None:
                 self.command("stop")
-                self.step("(g) player retired after stop", self.inactive, T["stopped"])
+                self.step("(g) player retired after the stop command", self.inactive, T["stopped"])
         else:
-            self.key("circle", "(g) stop confirmation, STOP focused", lambda: ob.pc_dialog(self.ui(), "STOP"), T["dialog"])
-            self.key("cross", "(g) stopped, back from the player", self.inactive, T["stopped"])
+            self.stop_playback()
         stats = {}
 
         def statistics():
@@ -485,11 +541,111 @@ class Session:
             return ob.pc_stats(stats or None)
         self.step("(d,g) engine statistics for the playback", statistics, T["stats"], interval=2)
         self.obs["stats"] = stats
-        self.step(f"(g) history record for {args.video_id}",
-                  lambda: ob.pc_history(self.read_state(), args.video_id, mode == "eof"), T["history"], interval=2)
-        record = ob.history_record(self.state_bytes, args.video_id) or {}
+        self.step(f"(g) history record for {self.video['id']}",
+                  lambda: ob.pc_history(self.read_state(), self.video["id"], mode == "eof", self.video["title"]),
+                  T["history"], interval=2)
+        record = ob.history_record(self.state_bytes, self.video["id"], self.video["title"]) or {}
         self.obs["history"] = {key: record.get(key) for key in ("id", "title", "played", "position", "duration")}
         self.save("state-after/youtube.json", self.state_bytes)
+        self.step("(b) the service's address is kept out of the saved state", lambda: ob.pc_state_local(self.read_state()),
+                  T["service"], interval=2)
+
+        # optional: the keyboard route, after everything that matters is on record
+        if args.with_search and not self.ui_lost:
+            self.soft("(c) search by keyboard", self.search)
+        self.obs["soft_misses"] = self.soft_misses
+
+    def stop_playback(self):
+        """Circle; when the confirmation screen appears, Cross on it (STOP has the
+        cursor there). Whatever the interface did, the hard fact is the player
+        retired: the development stop command settles it when the keys did not."""
+        def by_keys():
+            if self.ui_lost:
+                raise Stop("the interface is not on the player: keys are not used")
+            self.command("key circle")
+            self.step("(g) stop confirmation open (screen 20)", lambda: self.on_screen(ob.SCREEN_STOP_DIALOG), T["dialog"])
+            self.save("stop-dialog-ui.json", self.ui())
+            self.command("key cross")
+            return self.step("(g) stopped through the confirmation", self.inactive, T["stopped"])
+        if self.soft("(g) stop with confirmation", by_keys) is None:
+            if not self.inactive()[0]:
+                self.command("stop")
+            self.step("(g) player retired after the stop command", self.inactive, T["stopped"])
+        self.obs["stopped_by"] = "development stop command" if "(g) stop with confirmation" in self.soft_misses else "confirmation dialog"
+
+    def visit(self, key, screen, label, read):
+        """Open a picker from the player, record what it lists, return. If the
+        player does not come back, no further key is sent to an unknown screen."""
+        self.command(f"key {key}")
+        try:
+            self.step(f"{label} open (screen {screen})", lambda: self.on_screen(screen), T["picker"])
+            result = read(self.ui())
+        finally:
+            for _ in range(2):
+                if self.on_screen(ob.SCREEN_PLAYER)[0]:
+                    break
+                self.command("key circle")
+                start = self.clock.now()
+                while not self.on_screen(ob.SCREEN_PLAYER)[0] and self.clock.now() - start < T["picker"]:
+                    self.clock.sleep(1)
+            else:
+                if not self.on_screen(ob.SCREEN_PLAYER)[0]:
+                    self.ui_lost = True
+                    self.note(f"{label}: the player did not come back after two Circle presses; "
+                              "no more keys are sent, the rest uses development commands")
+        return result
+
+    def read_captions(self, snapshot):
+        rows = ob.ui_rows(snapshot)
+        offered, current = ob.caption_tracks(rows)
+        self.obs["captions"] = {"docs": ob.ui_docs(snapshot), "rows": rows, "offered": offered, "current": current}
+        self.log(f"   (e) caption picker {ob.ui_docs(snapshot)}: offered {offered or 'none read'}; showing {current or 'none read'}")
+        return True
+
+    def read_options(self, snapshot):
+        rows = ob.ui_rows(snapshot)
+        self.obs["options"] = {"docs": ob.ui_docs(snapshot), "rows": rows, "total": ob.ui_focus(snapshot).get("total"),
+                               "quality": ob.quality_rows(rows)}
+        self.log(f"   (f) playback options {ob.ui_docs(snapshot)}: {rows}; quality entries {self.obs['options']['quality'] or 'none read'}")
+        return True
+
+    def search(self):
+        """Square, the app's keyboard, a query: every observable recorded."""
+        query = self.args.search_query
+        searches, lists = len(ob.searches(self.read_log())), len(ob.catalog_lines(self.log_text))
+        self.command("key square")
+        try:
+            self.step("(c) keyboard open", lambda: (ob.keyboard_open(self.ui()), ob.ui_line(self.ui())), T["keyboard"])
+            self.command(f"type {query}")
+            self.soft("(c) typed text shown", lambda: self.step(
+                "(c) the keyboard shows the typed text",
+                lambda: (query in str(ob.ui_modal(self.ui()).get("text", "")), str(ob.ui_modal(self.ui()).get("text", ""))[:80]),
+                T["focus"]))
+            self.command("kbdone")
+
+            def answered():
+                new = ob.searches(self.read_log())[searches:]
+                if query not in new:
+                    return False, f"no Search line for the query yet ({new})"
+                return ob.pc_catalog(self.log_text, lists)
+            self.obs["search"] = self.step("(c) search submitted and listed", answered, T["search"], interval=2)
+            self.obs["search_rows"] = ob.ui_rows(self.ui())
+            return True
+        finally:
+            if ob.keyboard_open(self.ui()):
+                self.command("kbclose")
+
+    def toggle(self, label, probe):
+        """Cross once; a second press only if the first one visibly did nothing
+        (with hidden controls the first press only shows them)."""
+        for attempt in (1, 2):
+            self.command("key cross")
+            try:
+                return self.step(label, probe, T["toggle"], record=attempt == 2)
+            except Stop:
+                if attempt == 2:
+                    raise
+                self.log(f"   {label}: not yet after one press; pressing once more")
 
     state_bytes = b""
 
@@ -508,7 +664,7 @@ class Session:
                          timeout or T["playing"], record=record)
 
     def capture(self):
-        """One scanout capture on the paused player (stick click = capture there)."""
+        """One scanout capture on the player (stick click = capture there)."""
         self.command("key l3")
         seen = {}
 
@@ -529,51 +685,7 @@ class Session:
         self.save("playback-scanout.bmp", data)
         self.obs["capture"] = {"file": name, "bytes": len(data), "sha256": sha(data)}
         self.log(f"   (h) capture saved: playback-scanout.bmp ({len(data)} bytes)")
-
-    def options(self):
-        """R2: the playback options. Walk the list once to read every entry, open
-        the video presets when there are any, and return to the player."""
-        def listed():
-            snapshot = self.ui()
-            ok = ob.ui_screen(snapshot) == ob.SCREEN_OPTIONS and bool(ob.ui_focus(snapshot).get("id"))
-            return ok, ob.ui_line(snapshot)
-        self.key("r2", "(f) playback options open", listed, T["picker"])
-        snapshot = self.ui()
-        total = int(ob.ui_focus(snapshot).get("total") or 1)
-        entries = []
-
-        def see(snapshot):
-            for text in ob.ui_rows(snapshot) + [str(ob.ui_focus(snapshot).get("text", ""))]:
-                if text and text not in entries:
-                    entries.append(text)
-        see(snapshot)
-        # The list shows a window of its rows: move down only until a quality entry was read.
-        for _ in range(min(total - 1, 40)):
-            index = int(ob.ui_focus(self.ui()).get("index") or 0)
-            if ob.quality_rows(entries) or index >= total:
-                break
-            self.key("down", "(f) next option",
-                     lambda index=index: (ob.ui_focus(self.ui()).get("index") == index + 1, ob.ui_line(self.ui())),
-                     T["focus"])
-            see(self.ui())
-        presets = None
-        top = ob.ui_focus(self.ui())
-        if self.args.open_presets and re.search(r"video presets", str(top.get("text", "")), re.IGNORECASE):
-            def inside():
-                focus = ob.ui_focus(self.ui())
-                changed = focus.get("total") != top.get("total") or focus.get("text") != top.get("text")
-                return changed and bool(ob.ui_rows(self.ui())), ob.ui_line(self.ui())
-            self.key("cross", "(f) video presets open", inside, T["picker"])
-            presets = ob.ui_rows(self.ui())
-            self.key("circle", "(f) back to the options",
-                     lambda: (ob.ui_focus(self.ui()).get("total") == top.get("total"), ob.ui_line(self.ui())), T["picker"])
-        quality = ob.quality_rows(entries)
-        self.obs["options"] = {"entries_seen": entries, "total": total, "quality": quality, "presets": presets}
-        self.log(f"   (f) options read ({len(entries)} of {total}): {entries}")
-        if not quality:
-            raise Stop(f"(f) no quality entry among the playback options: {entries}")
-        self.log(f"   PASS (f) quality entries: {quality}" + (f"; presets: {presets}" if presets else ""))
-        self.key("circle", "(f) back on the player", self.on_player, T["picker"])
+        return True
 
     # --- stage 6 -------------------------------------------------------------------
     def close_title(self):
@@ -779,13 +891,13 @@ def parse(argv=None):
     parser.add_argument("--candidate", required=True, help="frozen candidate: <dir>/PPSA99142/ and <dir>/SHA256SUMS")
     parser.add_argument("--protocol", default=str(home / "ps5-homebrew-dev-protocol"))
     parser.add_argument("--out", default=str(home / "pt-console" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
-    parser.add_argument("--video-id", default="jNQXAC9IVRw")
+    parser.add_argument("--root-row", default=r"\bDiscover\b", help="main-menu row to open (regular expression on its text)")
+    parser.add_argument("--topic-row", default=r"\bScience\b", help="row of that list whose videos are listed by the service")
+    parser.add_argument("--with-search", action="store_true",
+                        help="after the playback, also search through the app's keyboard (observed, never a gate)")
     parser.add_argument("--search-query", default="Me at the zoo")
-    parser.add_argument("--expect-title", default="Me at the zoo", help="regular expression the result row must match")
     parser.add_argument("--settle", type=int, default=130, help="seconds to watch the install before the second compare")
     parser.add_argument("--end", choices=("auto", "eof", "stop"), default="auto")
-    parser.add_argument("--open-presets", action="store_true",
-                        help="also open the video presets list when the cursor reaches it (more key presses)")
     parser.add_argument("--keep-state", action="store_true", help="leave the session's history on the console")
     parser.add_argument("--allow-unparked-close", action="store_true",
                         help="send the close payload even when the app did not park (a forced close)")
