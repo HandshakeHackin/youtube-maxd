@@ -1,0 +1,42 @@
+{
+ "about": "The player on the feature video of the proposal: a PlayerView (native/afterglow/player/view.hpp) as the boards 16 to 24 show it. Every name, title and number is invented.",
+ "frame": "art://ridges/0/11",
+ "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+ "channel": "Northlight Atlas",
+ "channel_id": "UCfixture000000000000000",
+ "meta": "1.2M views · 3 weeks ago",
+ "tags": ["4K", "CC", "Ends 22:04"],
+ "quality": "2160p60 · VP9 · Opus",
+ "clock": "21:47",
+ "position": 1882,
+ "duration": 2892,
+ "buffered": 2084,
+ "rate": 1.0,
+ "show_remaining": true,
+ "chapters": [
+  {"start": 0, "title": "Trailhead at dusk"},
+  {"start": 400, "title": "First camp"},
+  {"start": 845, "title": "The long traverse"},
+  {"start": 1350, "title": "Storm on the saddle"},
+  {"start": 1750, "title": "Ridge line at dawn"},
+  {"start": 2325, "title": "The descent"},
+  {"start": 2720, "title": "Epilogue"}
+ ],
+ "segments": [
+  {"from": 0.0, "to": 0.012, "rgb": "#00ffff"},
+  {"from": 0.086, "to": 0.112, "rgb": "#00d400"},
+  {"from": 0.574, "to": 0.588, "rgb": "#ffff00"},
+  {"from": 0.972, "to": 1.0, "rgb": "#0202ed"}
+ ],
+ "hints": [
+  {"button": "dpad", "label": "Seek"},
+  {"button": "triangle", "label": "Up next"},
+  {"button": "square", "label": "Captions"},
+  {"button": "options", "label": "Options"}
+ ],
+ "seek_hints": [
+  {"button": "dpad", "label": "Hold to scrub"},
+  {"button": "l2", "second": "r2", "label": "Chapter"},
+  {"button": "circle", "label": "Cancel"}
+ ]
+}

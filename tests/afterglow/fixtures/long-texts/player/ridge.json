@@ -1,0 +1,45 @@
+{
+ "about": "The player with long and translated texts everywhere: German-length titles, a very long channel name, big numbers, a video longer than an hour. Every name, title and number is invented.",
+ "frame": "art://ridges/0/11",
+ "title": "Sieben Tage allein auf dem Grat — ein stiller Wanderfilm über Wetterumschwünge, Höhenmeter und die Kunst, langsam zu gehen (ungekürzte Fassung)",
+ "channel": "Nordlicht-Atlas Dokumentarfilmgesellschaft für Hochgebirgswanderungen und Fernwanderwege",
+ "channel_id": "UCfixture000000000000000",
+ "meta": "1.234.567 Aufrufe · vor 3 Wochen veröffentlicht",
+ "tags": ["4K", "HDR", "CC", "Endet um 22:04 Uhr"],
+ "quality": "2160p60 · VP9 · Opus · 18,4 Mbit/s",
+ "clock": "21:47",
+ "position": 7522,
+ "duration": 11532,
+ "buffered": 8100,
+ "rate": 1.25,
+ "show_remaining": true,
+ "chapters": [
+  {"start": 0, "title": "Ausgangspunkt in der Abenddämmerung"},
+  {"start": 1600, "title": "Erstes Lager"},
+  {"start": 3370, "title": "Die lange Querung"},
+  {"start": 5380, "title": "Gewitter auf dem Sattel"},
+  {"start": 6980, "title": "Der lange Aufstieg durch das Geröllfeld oberhalb der Baumgrenze bei aufziehendem Gewitter und schwindendem Licht"},
+  {"start": 9270, "title": "Der Abstieg"},
+  {"start": 10840, "title": "Nachwort"}
+ ],
+ "segments": [
+  {"from": 0.0, "to": 0.012, "rgb": "#00ffff"},
+  {"from": 0.086, "to": 0.112, "rgb": "#00d400"},
+  {"from": 0.574, "to": 0.588, "rgb": "#ffff00"},
+  {"from": 0.8, "to": 0.8, "rgb": "#ff1684", "point": true},
+  {"from": 0.972, "to": 1.0, "rgb": "#0202ed"}
+ ],
+ "hints": [
+  {"button": "dpad", "label": "Vor- und zurückspulen"},
+  {"button": "triangle", "label": "Als Nächstes"},
+  {"button": "square", "label": "Untertitel"},
+  {"button": "options", "label": "Wiedergabeoptionen"},
+  {"button": "circle", "label": "Zurück zur Übersicht"}
+ ],
+ "seek_hints": [
+  {"button": "dpad", "label": "Gedrückt halten, um zu spulen"},
+  {"button": "l1", "second": "r1", "label": "Kapitel"},
+  {"button": "cross", "label": "Ab hier abspielen"},
+  {"button": "circle", "label": "Abbrechen"}
+ ]
+}

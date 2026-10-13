@@ -1,0 +1,1154 @@
+{
+ "about": "The player's transitions, reduced motion and cues. Written by tests/afterglow/tools/player_boards.py.",
+ "boards": [
+  {
+   "name": "player-pause-pop",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "paused": true
+     },
+     "wait": 0.1
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "osd-paused",
+    "state": {
+     "playback": "paused",
+     "cue": "toggle"
+    }
+   }
+  },
+  {
+   "name": "player-resumes",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "paused": true
+   },
+   "steps": [
+    {
+     "set": {
+      "paused": false
+     },
+     "wait": 0.6
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "cue": "resume"
+    }
+   }
+  },
+  {
+   "name": "player-seek-starts",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "scrubbing": true,
+      "scrub_target": 1892,
+      "preview": [
+       {
+        "art": "art://ridges/3/397",
+        "offset": 0
+       }
+      ]
+     },
+     "wait": 0.05
+    },
+    {
+     "set": {
+      "scrub_target": 2059
+     },
+     "wait": 0.1
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "cue": "tick"
+    }
+   }
+  },
+  {
+   "name": "player-seek-detent",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2300
+   },
+   "steps": [
+    {
+     "set": {
+      "scrub_target": 2340
+     },
+     "wait": 0.02
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chapter": "6",
+     "cue": "tick"
+    }
+   }
+  },
+  {
+   "name": "player-seek-lands",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2059
+   },
+   "steps": [
+    {
+     "set": {
+      "scrubbing": false,
+      "position": 2059
+     },
+     "wait": 0.02
+    },
+    {
+     "wait": 0.8
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "position": "2059",
+     "cue": "select"
+    }
+   }
+  },
+  {
+   "name": "player-seek-cancelled",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2059
+   },
+   "steps": [
+    {
+     "set": {
+      "scrubbing": false
+     },
+     "wait": 0.5
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "position": "1882",
+     "cue": "back"
+    }
+   }
+  },
+  {
+   "name": "player-sheet-arrives",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "sheet": {
+       "open": true,
+       "kind": "options",
+       "title": "Playback",
+       "rows": [
+        {
+         "label": "Quality",
+         "value": "Auto",
+         "icon": "quality",
+         "chevron": true,
+         "focused": true
+        },
+        {
+         "label": "Speed",
+         "value": "1×",
+         "icon": "speed",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Audio track",
+         "value": "English",
+         "icon": "audio",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Volume",
+         "value": "100 %",
+         "icon": "audio",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Video sizing",
+         "value": "Fit",
+         "icon": "grid",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Sleep timer",
+         "value": "Off",
+         "icon": "clock",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "SponsorBlock",
+         "value": "On",
+         "icon": "skip",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Playback details",
+         "value": "",
+         "icon": "info",
+         "chevron": true,
+         "focused": false
+        }
+       ],
+       "choices_title": "Quality",
+       "choices": [
+        {
+         "label": "Auto",
+         "note": "2160p60 now",
+         "current": true
+        },
+        {
+         "label": "2160p60",
+         "note": "4K",
+         "current": false
+        },
+        {
+         "label": "1440p60",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "1080p60",
+         "note": "HD",
+         "current": false
+        },
+        {
+         "label": "720p60",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "480p",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "360p",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "144p",
+         "note": "",
+         "current": false
+        }
+       ],
+       "hints": [
+        {
+         "button": "cross",
+         "label": "Open"
+        },
+        {
+         "button": "circle",
+         "label": "Close"
+        }
+       ]
+      }
+     },
+     "wait": 0.12
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/0",
+    "state": {
+     "sheet": "options",
+     "cue": "modal_open"
+    }
+   }
+  },
+  {
+   "name": "player-sheet-moves",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Playback",
+     "rows": [
+      {
+       "label": "Quality",
+       "value": "Auto",
+       "icon": "quality",
+       "chevron": true,
+       "focused": true
+      },
+      {
+       "label": "Speed",
+       "value": "1×",
+       "icon": "speed",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Audio track",
+       "value": "English",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Volume",
+       "value": "100 %",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Video sizing",
+       "value": "Fit",
+       "icon": "grid",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Sleep timer",
+       "value": "Off",
+       "icon": "clock",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "SponsorBlock",
+       "value": "On",
+       "icon": "skip",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Playback details",
+       "value": "",
+       "icon": "info",
+       "chevron": true,
+       "focused": false
+      }
+     ],
+     "choices_title": "Quality",
+     "choices": [
+      {
+       "label": "Auto",
+       "note": "2160p60 now",
+       "current": true
+      },
+      {
+       "label": "2160p60",
+       "note": "4K",
+       "current": false
+      },
+      {
+       "label": "1440p60",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "1080p60",
+       "note": "HD",
+       "current": false
+      },
+      {
+       "label": "720p60",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "480p",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "360p",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "144p",
+       "note": "",
+       "current": false
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Open"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "set": {
+      "sheet": {
+       "focus": 1
+      }
+     },
+     "wait": 0.08
+    },
+    {
+     "set": {
+      "sheet": {
+       "focus": 2
+      }
+     },
+     "wait": 0.4
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/2",
+    "state": {
+     "cue": "focus"
+    }
+   }
+  },
+  {
+   "name": "player-sheet-leaves",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "tabs": [
+      "Captions",
+      "Second language"
+     ],
+     "tab": 0,
+     "rows": [
+      {
+       "label": "Off",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "English",
+       "value": "",
+       "current": true,
+       "focused": true
+      },
+      {
+       "label": "English",
+       "value": "Automatic",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Deutsch",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Español",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Français",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Italiano",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Polski",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Português (Brasil)",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      }
+     ],
+     "note": "Style, size and position are in Settings, under Captions.",
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "l2",
+       "label": "First or second",
+       "second": "r2"
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "set": {
+      "sheet": {
+       "open": false
+      }
+     },
+     "wait": 0.1
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "sheet": "",
+     "cue": "modal_close"
+    }
+   }
+  },
+  {
+   "name": "player-sheet-reduced",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "sheet": {
+       "open": true,
+       "kind": "options",
+       "title": "Playback",
+       "rows": [
+        {
+         "label": "Quality",
+         "value": "Auto",
+         "icon": "quality",
+         "chevron": true,
+         "focused": true
+        },
+        {
+         "label": "Speed",
+         "value": "1×",
+         "icon": "speed",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Audio track",
+         "value": "English",
+         "icon": "audio",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Volume",
+         "value": "100 %",
+         "icon": "audio",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Video sizing",
+         "value": "Fit",
+         "icon": "grid",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Sleep timer",
+         "value": "Off",
+         "icon": "clock",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "SponsorBlock",
+         "value": "On",
+         "icon": "skip",
+         "chevron": true,
+         "focused": false
+        },
+        {
+         "label": "Playback details",
+         "value": "",
+         "icon": "info",
+         "chevron": true,
+         "focused": false
+        }
+       ],
+       "choices_title": "Quality",
+       "choices": [
+        {
+         "label": "Auto",
+         "note": "2160p60 now",
+         "current": true
+        },
+        {
+         "label": "2160p60",
+         "note": "4K",
+         "current": false
+        },
+        {
+         "label": "1440p60",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "1080p60",
+         "note": "HD",
+         "current": false
+        },
+        {
+         "label": "720p60",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "480p",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "360p",
+         "note": "",
+         "current": false
+        },
+        {
+         "label": "144p",
+         "note": "",
+         "current": false
+        }
+       ],
+       "hints": [
+        {
+         "button": "cross",
+         "label": "Open"
+        },
+        {
+         "button": "circle",
+         "label": "Close"
+        }
+       ]
+      }
+     },
+     "wait": 0.12
+    }
+   ],
+   "reduced_motion": true,
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/0",
+    "state": {
+     "reduced": "1"
+    }
+   }
+  },
+  {
+   "name": "player-up-next-rises",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "up_next": {
+       "open": true,
+       "chip": "Autoplay is on",
+       "note": "From Northlight Atlas and channels like it",
+       "cards": [
+        {
+         "id": "vid145",
+         "title": "Aurora Chasing at -30° (We Almost Missed It)",
+         "channel": "Northlight Atlas",
+         "meta": "2.2M views · 8 months ago",
+         "duration_s": 1198,
+         "thumb": "art://aurora/0/145",
+         "badges": 40
+        },
+        {
+         "id": "vid241",
+         "title": "Blue Hour on the Northern Coast, No Talking",
+         "channel": "Northlight Atlas",
+         "meta": "640K views · 2 months ago",
+         "duration_s": 2490,
+         "thumb": "art://ocean/1/241",
+         "badges": 8
+        },
+        {
+         "id": "vid313",
+         "title": "The Forest at Night Sounds Nothing Like You Think",
+         "channel": "Northlight Atlas",
+         "meta": "380K views · 6 weeks ago",
+         "duration_s": 1329,
+         "thumb": "art://aurora/2/313",
+         "badges": 0
+        },
+        {
+         "id": "vid385",
+         "title": "A Year on a Tidal Island",
+         "channel": "Northlight Atlas",
+         "meta": "4.8M views · 2 years ago",
+         "duration_s": 3484,
+         "thumb": "art://ocean/3/385",
+         "badges": 40
+        },
+        {
+         "id": "vid421",
+         "title": "Teal Dawn Above the Valley",
+         "channel": "Northlight Atlas",
+         "meta": "410K views · 10 months ago",
+         "duration_s": 920,
+         "thumb": "art://ridges/2/421",
+         "badges": 8
+        }
+       ],
+       "focus": 0,
+       "first": 0,
+       "total": 5,
+       "hints": [
+        {
+         "button": "cross",
+         "label": "Play now"
+        },
+        {
+         "button": "square",
+         "label": "Add to queue"
+        },
+        {
+         "button": "circle",
+         "label": "Close"
+        }
+       ]
+      }
+     },
+     "wait": 0.14
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/0",
+    "state": {
+     "cue": "modal_open"
+    }
+   }
+  },
+  {
+   "name": "player-up-next-moves",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is on",
+     "note": "From Northlight Atlas and channels like it",
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Aurora Chasing at -30° (We Almost Missed It)",
+       "channel": "Northlight Atlas",
+       "meta": "2.2M views · 8 months ago",
+       "duration_s": 1198,
+       "thumb": "art://aurora/0/145",
+       "badges": 40
+      },
+      {
+       "id": "vid241",
+       "title": "Blue Hour on the Northern Coast, No Talking",
+       "channel": "Northlight Atlas",
+       "meta": "640K views · 2 months ago",
+       "duration_s": 2490,
+       "thumb": "art://ocean/1/241",
+       "badges": 8
+      },
+      {
+       "id": "vid313",
+       "title": "The Forest at Night Sounds Nothing Like You Think",
+       "channel": "Northlight Atlas",
+       "meta": "380K views · 6 weeks ago",
+       "duration_s": 1329,
+       "thumb": "art://aurora/2/313",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "A Year on a Tidal Island",
+       "channel": "Northlight Atlas",
+       "meta": "4.8M views · 2 years ago",
+       "duration_s": 3484,
+       "thumb": "art://ocean/3/385",
+       "badges": 40
+      },
+      {
+       "id": "vid421",
+       "title": "Teal Dawn Above the Valley",
+       "channel": "Northlight Atlas",
+       "meta": "410K views · 10 months ago",
+       "duration_s": 920,
+       "thumb": "art://ridges/2/421",
+       "badges": 8
+      }
+     ],
+     "focus": 0,
+     "first": 0,
+     "total": 5,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "steps": [
+    {
+     "set": {
+      "up_next": {
+       "focus": 1
+      }
+     },
+     "wait": 0.06
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/1",
+    "state": {
+     "cue": "focus"
+    }
+   }
+  },
+  {
+   "name": "player-chat-opens",
+   "fixture": "signed-in",
+   "player": "live",
+   "steps": [
+    {
+     "set": {
+      "chat": {
+       "side": 2
+      }
+     },
+     "wait": 0.16
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "theatre",
+     "cue": "modal_open"
+    }
+   }
+  },
+  {
+   "name": "player-chat-new-line",
+   "fixture": "signed-in",
+   "player": "live",
+   "view": {
+    "chat": {
+     "side": 2
+    }
+   },
+   "steps": [
+    {
+     "set": {
+      "chat": {
+       "lines": [
+        {
+         "author": "Dagny",
+         "text": "can hear the water under the floor between songs"
+        },
+        {
+         "author": "tape.loop",
+         "text": "this is the good part",
+         "badge": 1
+        },
+        {
+         "author": "Halden B.",
+         "text": "one more, one more"
+        }
+       ]
+      }
+     },
+     "wait": 0.1
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat_lines": "3"
+    }
+   }
+  },
+  {
+   "name": "player-skip-arrives",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 250
+   },
+   "steps": [
+    {
+     "set": {
+      "position": 329,
+      "notice": {
+       "shown": true,
+       "kind": "skip",
+       "title": "Sponsor skipped",
+       "detail": "4:10 to 5:25 · 1 min 15 s",
+       "rgb": "#00d400",
+       "action": {
+        "button": "cross",
+        "label": "Undo"
+       },
+       "left": 0.34
+      }
+     },
+     "wait": 0.12
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "notice": "skip",
+     "cue": "notify"
+    }
+   }
+  },
+  {
+   "name": "player-skip-leaves",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 329,
+    "notice": {
+     "shown": true,
+     "kind": "skip",
+     "title": "Sponsor skipped",
+     "detail": "4:10 to 5:25 · 1 min 15 s",
+     "rgb": "#00d400",
+     "action": {
+      "button": "cross",
+      "label": "Undo"
+     },
+     "left": 0.34
+    }
+   },
+   "steps": [
+    {
+     "set": {
+      "notice": {
+       "shown": false
+      }
+     },
+     "wait": 0.2
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "notice": ""
+    }
+   }
+  },
+  {
+   "name": "player-next-arrives",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 2890
+   },
+   "steps": [
+    {
+     "set": {
+      "position": 2892,
+      "next": {
+       "shown": true,
+       "watched": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+       "card": {
+        "id": "vid145",
+        "title": "Aurora Chasing at -30° (We Almost Missed It)",
+        "channel": "Northlight Atlas",
+        "meta": "2.2M views · 8 months ago",
+        "duration_s": 1198,
+        "thumb": "art://aurora/0/145",
+        "badges": 40
+       },
+       "seconds_left": 2.0,
+       "seconds_total": 5,
+       "focus": 0
+      }
+     },
+     "wait": 0.2
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "next/play",
+    "state": {
+     "next": "1",
+     "cue": "modal_open"
+    }
+   }
+  },
+  {
+   "name": "player-stop-arrives",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "paused": true,
+      "dialog": {
+       "shown": true,
+       "kind": "question",
+       "title": "Stop watching?",
+       "body": "Your place is kept: 31:12 of 48:12. The video is waiting under Continue watching.",
+       "buttons": [
+        {
+         "label": "Keep watching",
+         "primary": true
+        },
+        {
+         "label": "Stop"
+        }
+       ],
+       "focus": 1
+      }
+     },
+     "wait": 0.12
+    },
+    {
+     "set": {
+      "dialog": {
+       "focus": 0
+      }
+     },
+     "wait": 0.5
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "focus": "dialog/0",
+    "dialog": 1,
+    "state": {
+     "cue": "focus"
+    }
+   }
+  },
+  {
+   "name": "player-controls-arrive",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "settle": 0.06,
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing"
+   }
+  },
+  {
+   "name": "player-controls-reduced",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "reduced_motion": true,
+   "settle": 0.06,
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "reduced": "1"
+    }
+   }
+  },
+  {
+   "name": "player-controls-leave",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "chrome": 0
+     },
+     "wait": 0.5
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "controls": "hidden"
+    }
+   }
+  },
+  {
+   "name": "player-another-video",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "steps": [
+    {
+     "set": {
+      "title": "Aurora Chasing at -30° (We Almost Missed It)",
+      "position": 0,
+      "chapters": [],
+      "segments": [],
+      "buffered": 40,
+      "duration": 1198,
+      "tags": [
+       "4K",
+       "CC"
+      ]
+     },
+     "wait": 0.5
+    }
+   ],
+   "expect": {
+    "screen": "player",
+    "state": {
+     "position": "0",
+     "chapters": "0",
+     "cue": "launch"
+    }
+   }
+  }
+ ]
+}

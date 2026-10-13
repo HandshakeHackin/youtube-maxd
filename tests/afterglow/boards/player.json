@@ -1,0 +1,481 @@
+{
+ "about": "The player's controls in the Afterglow design: boards 16 to 24 of the proposal, as prepared states. Written by tests/afterglow/tools/player_boards.py.",
+ "boards": [
+  {
+   "name": "player-controls",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "controls": "shown",
+     "playback": "playing",
+     "chapter": "5",
+     "chapters": "7",
+     "segments": "4",
+     "sheet": "",
+     "notice": ""
+    }
+   }
+  },
+  {
+   "name": "player-seek",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2059,
+    "preview": [
+     {
+      "art": "art://ridges/3/397",
+      "offset": 0
+     }
+    ]
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "playback": "seeking",
+     "target": "2059",
+     "position": "1882",
+     "preview": "1",
+     "chapter": "5"
+    }
+   }
+  },
+  {
+   "name": "player-up-next",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is on",
+     "note": "From Northlight Atlas and channels like it",
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Aurora Chasing at -30° (We Almost Missed It)",
+       "channel": "Northlight Atlas",
+       "meta": "2.2M views · 8 months ago",
+       "duration_s": 1198,
+       "thumb": "art://aurora/0/145",
+       "badges": 40
+      },
+      {
+       "id": "vid241",
+       "title": "Blue Hour on the Northern Coast, No Talking",
+       "channel": "Northlight Atlas",
+       "meta": "640K views · 2 months ago",
+       "duration_s": 2490,
+       "thumb": "art://ocean/1/241",
+       "badges": 8
+      },
+      {
+       "id": "vid313",
+       "title": "The Forest at Night Sounds Nothing Like You Think",
+       "channel": "Northlight Atlas",
+       "meta": "380K views · 6 weeks ago",
+       "duration_s": 1329,
+       "thumb": "art://aurora/2/313",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "A Year on a Tidal Island",
+       "channel": "Northlight Atlas",
+       "meta": "4.8M views · 2 years ago",
+       "duration_s": 3484,
+       "thumb": "art://ocean/3/385",
+       "badges": 40
+      },
+      {
+       "id": "vid421",
+       "title": "Teal Dawn Above the Valley",
+       "channel": "Northlight Atlas",
+       "meta": "410K views · 10 months ago",
+       "duration_s": 920,
+       "thumb": "art://ridges/2/421",
+       "badges": 8
+      }
+     ],
+     "focus": 0,
+     "first": 0,
+     "total": 5,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/0",
+    "state": {
+     "up_next": "1",
+     "cards": "5"
+    }
+   }
+  },
+  {
+   "name": "player-captions",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "tabs": [
+      "Captions",
+      "Second language"
+     ],
+     "tab": 0,
+     "rows": [
+      {
+       "label": "Off",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "English",
+       "value": "",
+       "current": true,
+       "focused": true
+      },
+      {
+       "label": "English",
+       "value": "Automatic",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Deutsch",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Español",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Français",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Italiano",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Polski",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Português (Brasil)",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      }
+     ],
+     "note": "Style, size and position are in Settings, under Captions.",
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "l2",
+       "label": "First or second",
+       "second": "r2"
+      }
+     ]
+    },
+    "captions": {
+     "lines": [
+      "The wind did not stop until morning."
+     ],
+     "second": [
+      "Der Wind hörte erst am Morgen auf."
+     ],
+     "size": 38,
+     "second_rgb": "#ffe9a8"
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/1",
+    "state": {
+     "sheet": "captions",
+     "rows": "9",
+     "captions": "2"
+    }
+   }
+  },
+  {
+   "name": "player-options",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Playback",
+     "rows": [
+      {
+       "label": "Quality",
+       "value": "Auto",
+       "icon": "quality",
+       "chevron": true,
+       "focused": true
+      },
+      {
+       "label": "Speed",
+       "value": "1×",
+       "icon": "speed",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Audio track",
+       "value": "English",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Volume",
+       "value": "100 %",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Video sizing",
+       "value": "Fit",
+       "icon": "grid",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Sleep timer",
+       "value": "Off",
+       "icon": "clock",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "SponsorBlock",
+       "value": "On",
+       "icon": "skip",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Playback details",
+       "value": "",
+       "icon": "info",
+       "chevron": true,
+       "focused": false
+      }
+     ],
+     "choices_title": "Quality",
+     "choices": [
+      {
+       "label": "Auto",
+       "note": "2160p60 now",
+       "current": true
+      },
+      {
+       "label": "2160p60",
+       "note": "4K",
+       "current": false
+      },
+      {
+       "label": "1440p60",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "1080p60",
+       "note": "HD",
+       "current": false
+      },
+      {
+       "label": "720p60",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "480p",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "360p",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "144p",
+       "note": "",
+       "current": false
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Open"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/0",
+    "state": {
+     "sheet": "options",
+     "rows": "8"
+    }
+   }
+  },
+  {
+   "name": "player-live-chat",
+   "fixture": "signed-in",
+   "player": "live",
+   "view": {
+    "chat": {
+     "side": 2
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "live": "1",
+     "chat": "theatre",
+     "chat_lines": "11"
+    }
+   }
+  },
+  {
+   "name": "player-skip",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 329,
+    "buffered": 520,
+    "notice": {
+     "shown": true,
+     "kind": "skip",
+     "title": "Sponsor skipped",
+     "detail": "4:10 to 5:25 · 1 min 15 s",
+     "rgb": "#00d400",
+     "action": {
+      "button": "cross",
+      "label": "Undo"
+     },
+     "left": 0.34
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "notice": "skip",
+     "chapter": "1",
+     "position": "329"
+    }
+   }
+  },
+  {
+   "name": "player-next-video",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 2892,
+    "next": {
+     "shown": true,
+     "watched": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+     "card": {
+      "id": "vid145",
+      "title": "Aurora Chasing at -30° (We Almost Missed It)",
+      "channel": "Northlight Atlas",
+      "meta": "2.2M views · 8 months ago",
+      "duration_s": 1198,
+      "thumb": "art://aurora/0/145",
+      "badges": 40
+     },
+     "seconds_left": 2.0,
+     "seconds_total": 5,
+     "focus": 0
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "next/play",
+    "state": {
+     "next": "1"
+    }
+   }
+  },
+  {
+   "name": "player-stop",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "paused": true,
+    "position": 1880,
+    "dialog": {
+     "shown": true,
+     "kind": "question",
+     "title": "Stop watching?",
+     "body": "Your place is kept: 31:12 of 48:12. The video is waiting under Continue watching.",
+     "buttons": [
+      {
+       "label": "Keep watching",
+       "primary": true
+      },
+      {
+       "label": "Stop"
+      }
+     ],
+     "focus": 0
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "dialog/0",
+    "dialog": 1,
+    "state": {
+     "playback": "paused"
+    }
+   }
+  }
+ ]
+}

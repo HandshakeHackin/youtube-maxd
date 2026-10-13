@@ -1,0 +1,433 @@
+{
+ "about": "The player with long and translated texts. Written by tests/afterglow/tools/player_boards.py.",
+ "boards": [
+  {
+   "name": "player-long-controls",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "chapter": "5",
+     "duration": "11532"
+    }
+   }
+  },
+  {
+   "name": "player-long-seek",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 11400,
+    "preview": [
+     {
+      "art": "art://ridges/3/397",
+      "offset": 0
+     }
+    ]
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "chapter": "7"
+    }
+   }
+  },
+  {
+   "name": "player-long-up-next",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "title": "Als Nächstes",
+     "chip": "Automatische Wiedergabe ist eingeschaltet",
+     "note": "Von Nordlicht-Atlas Dokumentarfilmgesellschaft und ähnlichen Kanälen",
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Polarlichtjagd bei -30° (fast hätten wir es verpasst) — die ganze Nacht in Echtzeit, ohne Schnitt und ohne Musik",
+       "channel": "Nordlicht-Atlas Dokumentarfilmgesellschaft",
+       "meta": "2.234.567 Aufrufe · vor 8 Monaten",
+       "duration_s": 11998,
+       "thumb": "art://aurora/0/145",
+       "badges": 40
+      },
+      {
+       "id": "vid241",
+       "title": "Blaue Stunde an der Nordküste",
+       "channel": "Nordlicht-Atlas Dokumentarfilmgesellschaft für Hochgebirgswanderungen",
+       "meta": "640.000 Aufrufe",
+       "duration_s": 2490,
+       "thumb": "art://ocean/1/241",
+       "badges": 8
+      },
+      {
+       "id": "vid313",
+       "title": "Donaudampfschifffahrtsgesellschaftskapitänsmützenabzeichen",
+       "channel": "Tidewrit",
+       "meta": "380.000 Aufrufe",
+       "duration_s": 1329,
+       "thumb": "art://aurora/2/313",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "Ein Jahr auf einer Gezeiteninsel",
+       "channel": "Nordlicht-Atlas",
+       "meta": "4,8 Mio. Aufrufe",
+       "duration_s": 3484,
+       "thumb": "art://ocean/3/385",
+       "badges": 40
+      },
+      {
+       "id": "vid421",
+       "title": "Türkisfarbene Morgendämmerung über dem Tal",
+       "channel": "Nordlicht-Atlas",
+       "meta": "410.000 Aufrufe",
+       "duration_s": 920,
+       "thumb": "art://ridges/2/421",
+       "badges": 8
+      }
+     ],
+     "focus": 0,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Jetzt abspielen"
+      },
+      {
+       "button": "square",
+       "label": "Zur Warteschlange hinzufügen"
+      },
+      {
+       "button": "circle",
+       "label": "Schließen"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/0"
+   }
+  },
+  {
+   "name": "player-long-captions",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Untertitel und Zweitsprache",
+     "tabs": [
+      "Untertitel",
+      "Zweite Sprache"
+     ],
+     "tab": 0,
+     "rows": [
+      {
+       "label": "Aus",
+       "focused": false
+      },
+      {
+       "label": "Deutsch (automatisch erzeugt, mit Sprechererkennung)",
+       "value": "Automatisch",
+       "current": true,
+       "focused": true
+      },
+      {
+       "label": "English (United Kingdom)",
+       "value": "Übersetzt"
+      },
+      {
+       "label": "Português (Brasil)",
+       "value": "Maschinell übersetzt"
+      },
+      {
+       "label": "Ελληνικά",
+       "value": "Übersetzt"
+      },
+      {
+       "label": "Русский",
+       "value": "Übersetzt"
+      }
+     ],
+     "note": "Stil, Größe und Position der Untertitel findest du in den Einstellungen unter Untertitel.",
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Auswählen"
+      },
+      {
+       "button": "l2",
+       "label": "Erste oder zweite Sprache",
+       "second": "r2"
+      }
+     ]
+    },
+    "captions": {
+     "lines": [
+      "Der Wind hörte erst am nächsten Morgen auf, als wir schon längst nicht mehr damit gerechnet hatten und die Zelte abbauten."
+     ],
+     "second": [
+      "The wind did not stop until morning."
+     ],
+     "size": 38
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/1"
+   }
+  },
+  {
+   "name": "player-long-options",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Wiedergabeoptionen und Bildeinstellungen",
+     "rows": [
+      {
+       "label": "Wiedergabequalität und Bildwiederholrate",
+       "value": "Automatisch (2160p60)",
+       "icon": "quality",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Wiedergabegeschwindigkeit",
+       "value": "1,25×",
+       "icon": "speed",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Tonspur und Audiobeschreibung",
+       "value": "Deutsch (Originalfassung)",
+       "icon": "audio",
+       "chevron": true,
+       "focused": true
+      },
+      {
+       "label": "Lautstärke",
+       "value": "100 %",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Bildgröße und Seitenverhältnis",
+       "value": "Einpassen",
+       "icon": "grid",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Einschlaf-Timer",
+       "value": "Aus",
+       "icon": "clock",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "SponsorBlock-Segmente überspringen",
+       "value": "Ein",
+       "icon": "skip",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Wiedergabedetails für Technikbegeisterte",
+       "value": "",
+       "icon": "info",
+       "chevron": true,
+       "focused": false
+      }
+     ],
+     "choices_title": "Tonspur und Audiobeschreibung",
+     "choices": [
+      {
+       "label": "Deutsch (Originalfassung)",
+       "note": "Opus Stereo",
+       "current": true
+      },
+      {
+       "label": "English",
+       "note": "Synchronfassung, AAC Stereo"
+      },
+      {
+       "label": "Português (Brasil)",
+       "note": "Synchronfassung"
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Einstellung öffnen"
+      },
+      {
+       "button": "circle",
+       "label": "Wiedergabeoptionen schließen"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/2"
+   }
+  },
+  {
+   "name": "player-long-notice",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "notice": {
+     "shown": true,
+     "kind": "ask",
+     "label": "SponsorBlock",
+     "title": "Diesen Abschnitt mit Eigenwerbung und Zuschauerinteraktion überspringen? Er endet bei 2:07:45.",
+     "rgb": "#ffff00",
+     "action": {
+      "button": "cross",
+      "label": "Überspringen"
+     },
+     "second": {
+      "button": "circle",
+      "label": "Behalten"
+     }
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sponsor-review"
+   }
+  },
+  {
+   "name": "player-long-next-video",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "position": 11532,
+    "next": {
+     "shown": true,
+     "watched": "",
+     "card": {
+      "id": "vid145",
+      "title": "Polarlichtjagd bei -30° (fast hätten wir es verpasst) — die ganze Nacht in Echtzeit, ohne Schnitt und ohne Musik",
+      "channel": "Nordlicht-Atlas Dokumentarfilmgesellschaft",
+      "meta": "2.234.567 Aufrufe · vor 8 Monaten",
+      "duration_s": 11998,
+      "thumb": "art://aurora/0/145",
+      "badges": 40
+     },
+     "seconds_left": 4.2,
+     "seconds_total": 5,
+     "focus": 1
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "next/cancel"
+   }
+  },
+  {
+   "name": "player-long-stop",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "paused": true,
+    "dialog": {
+     "shown": true,
+     "kind": "question",
+     "title": "Wiedergabe beenden und zur Übersicht zurückkehren?",
+     "body": "Deine Position bleibt gespeichert: 2:05:22 von 3:12:12. Das Video wartet unter „Weiterschauen“ auf dich, bis du es zu Ende gesehen hast.",
+     "buttons": [
+      {
+       "label": "Weiterschauen",
+       "primary": true
+      },
+      {
+       "label": "Wiedergabe beenden"
+      }
+     ],
+     "focus": 0
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "dialog/0",
+    "dialog": 1
+   }
+  },
+  {
+   "name": "player-long-chat",
+   "fixture": "long-texts",
+   "player": "ridge",
+   "view": {
+    "chat": {
+     "side": 2,
+     "theatre": true,
+     "title": "Live-Chat",
+     "filter": "Top-Chat",
+     "compose": "Nachricht schreiben",
+     "lines": [
+      {
+       "author": "Donaudampfschifffahrtsgesellschaftskapitän Friedrich-Wilhelm",
+       "text": "Wahnsinnsaufnahmen!"
+      },
+      {
+       "author": "Nordlicht-Atlas",
+       "badge": 3,
+       "text": "Die nächste Etappe ist neu für uns. Falls sie schiefgeht, war es Absicht, und wir schneiden nichts davon heraus, versprochen, auch nicht den Sturz."
+      },
+      {
+       "author": "Wren (mod)",
+       "badge": 2,
+       "text": "Routennotizen und Ausrüstungsliste sind angepinnt."
+      },
+      {
+       "author": "kurz",
+       "text": "ok"
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Pause"
+      },
+      {
+       "button": "l2",
+       "label": "Im Chat blättern",
+       "second": "r2"
+      },
+      {
+       "button": "triangle",
+       "label": "Chat ausblenden"
+      },
+      {
+       "button": "options",
+       "label": "Wiedergabeoptionen"
+      }
+     ]
+    },
+    "live": true,
+    "live_status": "12.184 Zuschauer · gestartet vor 1 Std. 42 Min."
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "theatre"
+    }
+   }
+  }
+ ]
+}

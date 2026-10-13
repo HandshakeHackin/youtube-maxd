@@ -21,6 +21,7 @@
 #include "afterglow/data_fixture.hpp"
 #include "afterglow/frame.hpp"
 #include "afterglow/text_engine.hpp"
+#include "afterglow/player/host/board.hpp" // package H
 #include "art.hpp"
 #include "text_host.hpp"
 
@@ -589,6 +590,155 @@ int main(int argc, char **argv)
         reel = popen(command, "w");
     }
 
+    // ---- package H: boards of the player --------------------------------------------------------------
+    // A board that names "player" (a file under fixtures/<set>/player) is a PlayerView instead of a
+    // route: it is drawn over a picture painted for the video, its steps change the view ("set": members
+    // of a PlayerView) and wait, and it is held to the checks of every board
+    // (native/afterglow/player/host/board.cpp).
+    std::map<std::string, std::uint32_t> player_videos; // painted once per scene, kept for the whole run
+    const auto player_board = [&](const cJSON *board, const std::string &name, const std::string &look_id, const Look &look)
+    {
+        namespace pl = afterglow::player;
+        pl::PlayerView view;
+        std::string source_text;
+        const std::string path = options.fixtures + "/" + text_of(board, "fixture", "signed-in") + "/player/" + text_of(board, "player") + ".json";
+        if (!read_file(path, &source_text) || !pl::read_view(source_text, &view, nullptr))
+        {
+            fail(results, name, look_id, "no player view in " + path);
+            return;
+        }
+        pl::host::apply(cJSON_GetObjectItemCaseSensitive(board, "view"), &view);
+        if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "reduced_motion")))
+            view.reduced_motion = true;
+        set_platform(&platform); // interface texts: no frame names the platform here
+        ImageCache images(platform);
+        pl::Player player(fonts, &images);
+        player.set_look(look);
+        // The video: a scene painted at the size of the screen ("frame": "art://<scene>/<palette>/<seed>").
+        std::uint32_t &video = player_videos[view.frame];
+        char scene[24] = "";
+        int palette = 0;
+        unsigned seed = 0;
+        if (video == 0 && std::sscanf(view.frame.c_str(), "art://%23[a-z]/%d/%u", scene, &palette, &seed) == 3)
+        {
+            const std::vector<std::uint8_t> painted = afterglow_test::paint(scene, seed, palette, 1920, 1080);
+            if (!painted.empty())
+                video = renderer.batch().create_texture(1920, 1080, painted.data());
+        }
+        gfx::DrawList world;
+        gfx::DrawList ui;
+        const auto build = [&]
+        {
+            world.clear();
+            ui.clear();
+            world.rounded_rect({0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight}, 0.0f, kBlack);
+            if (video != 0)
+                world.image(video, player.video_rect(), gfx::kFullUv, kWhite, player.video_radius());
+            player.draw(world, ui, renderer.glass_texture());
+        };
+        const auto capture = [&]
+        {
+            renderer.begin();
+            renderer.draw(world);
+            renderer.glass();
+            renderer.draw(ui);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glClearColor(0, 0, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT);
+            renderer.present(framebuffer, options.width, options.height);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glReadPixels(0, 0, options.width, options.height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+            for (int y = 0; y < options.height / 2; ++y) // top row first, as host_main's own capture
+            {
+                unsigned char *upper = &pixels[static_cast<std::size_t>(y) * row.size()];
+                unsigned char *lower = &pixels[static_cast<std::size_t>(options.height - 1 - y) * row.size()];
+                std::memcpy(row.data(), upper, row.size());
+                std::memcpy(upper, lower, row.size());
+                std::memcpy(lower, row.data(), row.size());
+            }
+            for (std::size_t i = 3; i < pixels.size(); i += 4)
+                pixels[i] = 255;
+        };
+        const auto run = [&](float seconds)
+        {
+            const int frames = std::max(1, static_cast<int>(std::lround(seconds / kDt)));
+            for (int i = 0; i < frames; ++i)
+            {
+                platform.pump();
+                if (engine)
+                    engine->begin_frame();
+                images.pump(kDt);
+                player.update(view, kDt);
+                if (reel != nullptr || i % 4 == 3 || i + 1 == frames)
+                    build();
+                if (engine)
+                    engine->end_frame();
+                if (reel != nullptr)
+                {
+                    capture();
+                    std::fwrite(pixels.data(), 1, pixels.size(), reel);
+                }
+            }
+        };
+        run(static_cast<float>(number_of(board, "settle", 1.5)));
+        const cJSON *step = nullptr;
+        cJSON_ArrayForEach(step, cJSON_GetObjectItemCaseSensitive(board, "steps"))
+        {
+            pl::host::apply(cJSON_GetObjectItemCaseSensitive(step, "set"), &view);
+            run(static_cast<float>(number_of(step, "wait", 0.5)));
+        }
+        // The last frame is drawn twice: glyphs first asked for in it are in the atlas for the second.
+        for (int pass = 0; pass < 2; ++pass)
+        {
+            if (engine)
+                engine->begin_frame();
+            build();
+            if (engine)
+            {
+                most_missing = std::max(most_missing, engine->missing());
+                engine->end_frame();
+            }
+            capture();
+        }
+        ++results.checks;
+        if (engine && engine->missing() != 0 && !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "missing_ok")))
+            fail(results, name, look_id, std::to_string(engine->missing()) + " clusters of text have no glyph in any font");
+        results.checks += 3;
+        for (const std::string &fault : pl::host::standing_faults(player.focus(), world, ui))
+            fail(results, name, look_id, fault);
+        const cJSON *expect = cJSON_GetObjectItemCaseSensitive(board, "expect");
+        results.checks += 1 + cJSON_GetArraySize(expect);
+        for (const std::string &fault : pl::host::expect_faults(player.snapshot_json(), expect, pixels.data(), options.width, options.height))
+            fail(results, name, look_id, fault);
+        if (options.pictures && reel == nullptr)
+        {
+            const std::string folder = options.output + "/" + look_id;
+            mkdir(folder.c_str(), 0755);
+            const std::string picture = folder + "/" + name + (options.lang == "en" ? "" : "." + options.lang) + ".png";
+            ++results.checks;
+            if (stbi_write_png(picture.c_str(), options.width, options.height, 4, pixels.data(), options.width * 4) == 0)
+                fail(results, name, look_id, "could not write " + picture);
+            else
+                ++results.pictures;
+            std::vector<std::uint32_t> seen;
+            for (std::size_t i = 0; i < pixels.size() && seen.size() < 64; i += 4 * 997)
+            {
+                std::uint32_t value = 0;
+                std::memcpy(&value, &pixels[i], 4);
+                if (std::find(seen.begin(), seen.end(), value) == seen.end())
+                    seen.push_back(value);
+            }
+            ++results.checks;
+            if (seen.size() < 6)
+                fail(results, name, look_id, "the picture has only " + std::to_string(seen.size()) + " colours");
+            std::fprintf(stderr, "%-28s %-9s %4zu+%-4zu shapes, GL error 0x%x\n", name.c_str(), look_id.c_str(), world.instances().size(),
+                         ui.instances().size(), glGetError());
+        }
+        images.clear();
+        set_platform(nullptr);
+    };
+    // ---- end of package H -------------------------------------------------------------------------------
+
     for (const std::string &file : files)
     {
         std::string json;
@@ -619,6 +769,13 @@ int main(int argc, char **argv)
             for (const std::string &look_id : options.looks)
             {
                 const Look &look = look_by_id(look_id);
+                // package H: a board of the player has a view instead of a route.
+                if (cJSON_IsString(cJSON_GetObjectItemCaseSensitive(board, "player")))
+                {
+                    player_board(board, name, look_id, look);
+                    continue;
+                }
+                // end of package H
                 int scheme = 0;
                 for (int i = 0; i < kLookCount; ++i)
                     scheme = &look_for_scheme(i) == &look ? i : scheme;
