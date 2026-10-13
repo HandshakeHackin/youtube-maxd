@@ -25,7 +25,7 @@ assert back < host.index('if (m_providerId == "youtube") {\n            // Prosp
 assert host.index('// End ProsperoTube app exit.') < host.index('            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);')
 assert host.count('tube_app_exit_press(') == 1 and host.count('tube_search_exit_press(') == 1 and host.count('requestSoftClose()') == 2
 assert browser.count('bool SearchResultsShown() const') == 0 and browser.count('EvoRmlProviderHost::Instance().SearchResultsShown() ? 1 : 0') == 1
-# A chosen scheme lends its accent to every part of the player controls: the
+# The theme or scheme lends its accent to every part of the player controls: the
 # palette is replaced once, ahead of all drawing.
 hud = (evo / 'ui_kit/src/evo_hui_osd.cpp').read_text()
 draw = hud.index('void OsdScreen::draw(DrawList &list, const Context &evo_ctx) const')

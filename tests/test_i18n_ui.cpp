@@ -275,10 +275,10 @@ int main(int argc, char** argv) {
     struct Combo { const char* tag; Look look; };
     static const Combo combos[] = {
         {"de", {18, 5, 0, 0, 0}},      /* German at 1.4x, the largest interface */
-        {"ru", {10, 3, 1, 0, 3}},      /* Russian with two title lines, cards at 0.8x, the red scheme */
-        {"el", {6, 5, 3, 1, 5}},       /* Greek at 0.8x with four title lines and two subtitle lines, teal on true black */
-        {"vi", {0, 0, 0, 0, 8}},       /* Vietnamese at 0.4x with the smallest cards, dark blue on true black */
-        {"uk", {14, 12, 1, 1, 6}},     /* Ukrainian at 1.2x with the largest cards, monochrome */
+        {"ru", {10, 3, 1, 0, 7}},      /* Russian with two title lines, cards at 0.8x, the red scheme */
+        {"el", {6, 5, 3, 1, 9}},       /* Greek at 0.8x with four title lines and two subtitle lines, teal on true black */
+        {"vi", {0, 0, 0, 0, 3}},       /* Vietnamese at 0.4x with the smallest cards, the High contrast theme */
+        {"uk", {14, 12, 1, 1, 10}},    /* Ukrainian at 1.2x with the largest cards, monochrome */
     };
     for (const Combo& combo : combos) {
         dress(combo.look);

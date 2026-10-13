@@ -320,10 +320,10 @@
    "status": "partial",
    "smarttube": "Radio of 8 schemes: Teal, Dark grey, Red, Dark grey OLED, Teal OLED, Dark grey monochrome, Dark blue, Dark blue OLED.",
    "ps5_evidence": [
-    "native/tube_ui_style.h: g_tube_schemes (ProsperoTube, then Teal, Dark grey, Red, Dark grey (true black), Teal (true black), Dark grey monochrome, Dark blue, Dark blue (true black)), tube_ui_scheme_color, tube_ui_scheme_sheet over the @token palette of native/youtube.rcss",
-    "native/tube_provider.c: settings:ui:scheme 'Color scheme' under YouTube preferences > Interface, saved per profile as color_scheme; scripts/ui_prefs_overlay.py: TubeApplyStyle restyles the browser at once and lends the scheme's accent to the player controls (OsdScreen::draw)",
+    "native/tube_ui_style.h: g_tube_schemes (four themes, Classic ProsperoTube, then Teal, Dark grey, Red, Dark grey (true black), Teal (true black), Dark grey monochrome, Dark blue, Dark blue (true black)), tube_ui_scheme_color, tube_ui_scheme_sheet over the @token palette of native/youtube.rcss",
+    "native/tube_provider.c: settings:ui:scheme 'Theme' under YouTube preferences > Interface with the classic schemes under 'Classic colours' (settings:ui:scheme:classic), saved per profile as color_scheme; scripts/ui_prefs_overlay.py: TubeApplyStyle restyles the browser at once and lends the scheme's accent to the player controls (OsdScreen::draw)",
     "tests/test_ui_style.c (test_schemes), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh), scripts/test_ui_exit.sh (the accent block of the player controls)",
-    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: EVO's own device-wide THEME still colours the player with the default scheme"
+    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: EVO's own device-wide THEME still colours the player with the Classic ProsperoTube scheme"
    ],
    "gaps": [
     "The eight schemes named as SmartTube's are each one background and one accent from which the browser palette is shifted; the values are not SmartTube's themes",

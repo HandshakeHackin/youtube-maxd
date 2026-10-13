@@ -26,7 +26,7 @@
     {"0.1.0", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
     {"0.1.0", "Experimental, marked (experimental) and tested offline only: phone pairing, chat and comment posting, account-history controls, feedback actions and the profile password."}, \
     {"0.1.0", "Interface in 21 languages besides English, following the PS5 system language or the Interface language preference: browser, preferences and messages. The player and toasts stay English, as do languages that need other fonts or right-to-left layout."}, \
-    {"0.1.0", "Interface preferences per profile: interface and video grid scale, one to four title lines, scrolling titles, two-line subtitles, rounded or square cards, nine colour schemes, the rows of the video actions menu and what Circle does on the main menu."}, \
+    {"0.1.0", "Interface preferences per profile: interface and video grid scale, one to four title lines, scrolling titles, two-line subtitles, rounded or square cards, four themes (Afterglow by default) and nine classic colour schemes, the rows of the video actions menu and what Circle does on the main menu."}, \
     {"0.1.0", "Preview while seeking: the thumbnail of the seek target above the seek bar, a single frame or a carousel of five, from YouTube's storyboard sheets. Off by default."}, \
     {"0.1.0", "Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, a translated player, a few interface options (buttons at the top, card previews, playlists as rows), auto frame rate, HDR and background playback."}
 

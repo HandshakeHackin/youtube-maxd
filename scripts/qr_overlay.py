@@ -1,5 +1,8 @@
 """QR codes on the sign-in screen and on "link:" pages of the catalog screen.
 
+The code itself is black on white in every theme (colour names, which the
+palette of youtube.rcss leaves alone); the caption and the key line use tokens.
+
 The provider host asks native/tube_qr_page.h which row of the current page
 carries a link, encodes it with native/tube_qr.h and fills one element with
 box markup, so no texture is involved. Apply after the device sign-in overlay,
@@ -22,11 +25,11 @@ RML_FOOTER = '''        <div id="tube-link-footer" data-if="link">
 
 RCSS = '''#tube-discussion-text.with-qr { height: 150dp; }
 #tube-qr { position: absolute; left: 0; top: 240dp; width: 1100dp; height: 500dp; }
-#tube-qr-box { position: absolute; left: 0; top: 0; background: #ffffff; }
+#tube-qr-box { position: absolute; left: 0; top: 0; background: white; }
 #tube-qr-symbol { position: relative; }
-#tube-qr-symbol div { position: absolute; background: #000000; }
-#tube-qr-caption { position: absolute; left: 448dp; top: 0; width: 640dp; font-size: 24dp; line-height: 36dp; color: #f6f7fb; word-break: break-all; }
-#tube-link-footer { position: absolute; bottom: 0; font-size: 21dp; color: #bfc4d3; height: 40dp; width: 1792dp; border-top: 1dp #2b2e3a; }
+#tube-qr-symbol div { position: absolute; background: black; }
+#tube-qr-caption { position: absolute; left: 448dp; top: 0; width: 640dp; font-size: 24dp; line-height: 36dp; color: #f5f6fa; word-break: break-all; }
+#tube-link-footer { position: absolute; bottom: 0; font-size: 21dp; color: #c3c5d0; height: 40dp; width: 1792dp; border-top: 1dp #1e2130; }
 '''
 
 METHODS = '''// ProsperoTube QR codes

@@ -21,15 +21,15 @@ static int shown(const evo_provider_item_t *item, char *title, char *subtitle) {
     changed += 2 * tube_i18n_translate(item->subtitle, subtitle, EVO_PROVIDER_MAX_SUBTITLE * 3, TUBE_I18N_LABELS);
     return changed;
 }
-/* A title the catalog is not meant to hold: a number with its unit ("1.25x", "2"), or the app's own name. */
+/* A title the catalog is not meant to hold: a number with its unit ("1.25x", "2"), the app's own name, or a theme's. */
 static int untranslatable(const char *text) {
-    if (!strncmp(text, "ProsperoTube", 12)) return 1;
+    if (!strncmp(text, "ProsperoTube", 12) || !strcmp(text, "Afterglow") || !strcmp(text, "Onyx") || !strcmp(text, "Daybreak")) return 1;
     for (; *text; ++text) if (!strchr("0123456789.:x ", *text)) return 0;
     return 1;
 }
 /* The pages walked in every language: lists of interface rows that ask nothing of the service and change nothing. */
 static const char *const pages[] = {"", "settings", "discover", "library", "settings:ui", "settings:ui:scale", "settings:ui:title-lines",
-    "settings:ui:title-scroll", "settings:ui:scheme", "settings:ui:exit", "settings:ui:search-exit", "settings:menu", "settings:menu:like",
+    "settings:ui:title-scroll", "settings:ui:scheme", "settings:ui:scheme:classic", "settings:ui:exit", "settings:ui:search-exit", "settings:menu", "settings:menu:like",
     "settings:about", "settings:search", "settings:sections", "settings:hide", "settings:experimental", "settings:extra:player", "settings:pixel-ratio"};
 #define PAGES ((int)(sizeof pages / sizeof *pages))
 #define LISTS 40

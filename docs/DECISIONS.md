@@ -240,3 +240,27 @@ and a 31 to 75 MiB model as new third-party code and data, with memory and
 time that nobody has measured there; YouTube.js has no speech endpoint and
 YouTube's own recogniser is a cloud service. With a phone linked, the YouTube
 app's voice search does the job from the phone. [Assessment](VOICE_SEARCH.md).
+
+## 2026-10-13: the Afterglow interface
+
+The owner approved the Afterglow proposal on 2026-10-13
+([design notes](afterglow/design-notes.md), [sound](afterglow/sound-design.md),
+[feasibility and plan](afterglow/feasibility-report.md)) and decided that the
+first release carries all of it: no version is published until every proposed
+screen is built and validated on a console.
+
+- The interface is built on the UI kit, the route the feasibility report calls
+  A, in slices: the frame and Home first, then one screen after another. The
+  RmlUi browser stays as the classic interface and the fallback until every
+  screen exists.
+- Afterglow is the default look; Onyx, Daybreak and High contrast are the same
+  design in other palettes. The proposal's controller map stands. The kit's
+  existing sound sets are used until new recordings exist. Attract mode starts
+  after 45 seconds. The in-app mark is the one shown in the proposal; the
+  home-screen icon and launch pictures under `native/branding/` stay.
+- What transfers to the RmlUi browser is already in it: the **Theme**
+  preference (the four palettes ahead of the nine classic colour schemes,
+  expressed through the palette tokens of `native/youtube.rcss`) and the mark
+  as a decoded picture in the header and on About. A profile saved before the
+  themes carries `default`, which names no scheme any more, and so opens in
+  Afterglow; a classic scheme that was chosen stays chosen.

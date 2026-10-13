@@ -84,7 +84,7 @@ The overlay also adds one style rule: a key line that does not fit on one line
 (a long language, a large **Interface scale**) takes a second line above the
 first instead of leaving the page. One line keeps the size it always had. The
 rule is part of the sheet the interface preferences restyle, so it holds at
-every scale and in every colour scheme; no language needs a third line at any
+every scale, theme and colour scheme; no language needs a third line at any
 scale (`scripts/test_i18n_ui.sh` and `scripts/test_ui_prefs.sh` check it).
 
 The player interface (controls, in-player menus, pickers, dialogs, the

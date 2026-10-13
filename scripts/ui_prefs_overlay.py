@@ -175,7 +175,8 @@ def levels():
     groups = re.findall(r'\{"(settings:ui:[a-z-]+)", "', (ROOT / "native/tube_ui_style.h").read_text(encoding="utf-8"))
     if len(groups) != 10 or len(set(groups)) != 10:
         raise RuntimeError("Interface preference groups changed: update the settings levels")
-    return ["settings:ui", "settings:menu"] + groups
+    # The classic colour schemes are a list under Theme: a level too, so Circle returns to Theme.
+    return ["settings:ui", "settings:menu", "settings:ui:scheme:classic"] + groups
 
 
 def apply_ui_prefs_overlay(replace, player, host):
@@ -253,15 +254,16 @@ def apply_ui_prefs_overlay(replace, player, host):
     replace(ui, "    if (!IsOpen()) return;\n    // ProsperoTube screen dimming",
             "    if (!IsOpen()) return;\n    // ProsperoTube interface style\n    TubeApplyStyle();\n    TubeMarquee();\n"
             "    // End ProsperoTube interface style\n    // ProsperoTube screen dimming")
-    # A chosen colour scheme lends its accent to the player controls; with the
-    # default scheme EVO's own theme (Player settings, device-wide) colours them.
+    # The theme or colour scheme lends its accent to the player controls; with the
+    # classic ProsperoTube look EVO's own theme (Player settings, device-wide) colours them.
     hud = player + "ui_kit/src/evo_hui_osd.cpp"
     replace(hud, '#include "tube_player_extra.h"', '#include "tube_player_extra.h"\n#include "tube_ui_style.h"')
     replace(hud, "void OsdScreen::draw(DrawList &list, const Context &ctx) const\n{\n    const ui::Fonts &fonts = ctx.fonts;",
             "void OsdScreen::draw(DrawList &list, const Context &evo_ctx) const\n{\n"
             "    // ProsperoTube colour scheme HUI.\n"
             "    Palette tube_palette = evo_ctx.palette;\n"
-            "    if (const int tube_scheme = tube_ui_prefs()->scheme)\n"
+            "    const int tube_scheme = tube_ui_prefs()->scheme;\n"
+            "    if (tube_scheme != TUBE_UI_CLASSIC)\n"
             "        tube_palette.accent = Color::rgb(g_tube_schemes[tube_scheme].accent);\n"
             "    const Context ctx{evo_ctx.fonts, evo_ctx.textures, tube_palette, evo_ctx.time};\n"
             "    // End ProsperoTube colour scheme HUI.\n"

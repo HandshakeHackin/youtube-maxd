@@ -4499,6 +4499,8 @@ static void prompt_arm(const char *label) {
  * for a malformed one. */
 static int ui_group_parent(const char *parent, int *choice) {
     char id[64]; *choice = -1;
+    /* The classic colour schemes have a list of their own under Theme: choice -3. */
+    if (!strcmp(parent, "settings:ui:scheme:classic")) { *choice = -3; return TUBE_UI_GROUP_SCHEME; }
     int group = tube_ui_group_find(parent);
     const char *colon = strrchr(parent, ':');
     if (group >= 0 || !colon || (size_t)(colon - parent) >= sizeof id) return group;
@@ -6006,10 +6008,21 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "settings:ui:", 12)) {
             if (ui_group < 0) { tube_set_error("Select a listed value for this interface preference."); cb(0,NULL,0,0,ud); return 1; }
             const int selected = tube_ui_group_selected(&g_ui, ui_group), count = tube_ui_group_count(ui_group);
+            /* Theme lists the four themes and a row for the classic colour schemes; that row's list,
+             * and a choice made in it, shows the classic ones alone. */
+            const int themed = ui_group == TUBE_UI_GROUP_SCHEME, classics = themed && (ui_choice == -3 || ui_choice >= TUBE_UI_THEMES);
             for (int i = 0; i < count; ++i) {
                 char id[80], label[96]; snprintf(id, sizeof id, "%s:%d", g_tube_ui_groups[ui_group].id, i);
+                if (themed && (i >= TUBE_UI_THEMES) != classics) continue;
                 tube_ui_group_label(ui_group, i, label, sizeof label);
                 CATALOG_FOLDER( id, label, i == selected ? "Selected" : g_tube_ui_groups[ui_group].detail);
+            }
+            if (themed && !classics) {
+                char label[192], value[96];
+                tube_ui_group_label(ui_group, selected, value, sizeof value);
+                if (selected >= TUBE_UI_THEMES) snprintf(label, sizeof label, "%s: %s", "Classic colours", value);
+                else snprintf(label, sizeof label, "%s", "Classic colours");
+                CATALOG_FOLDER( "settings:ui:scheme:classic", label, "The colour schemes of earlier versions");
             }
         } else if (!strcmp(parent, "settings:ui")) {
             for (int group = 0; group < TUBE_UI_GROUPS; ++group) {
