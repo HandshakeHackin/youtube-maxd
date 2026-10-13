@@ -12,7 +12,7 @@ import { Catalog, item, videoRecord } from './catalog.js';
 import { accountExtract, accountPlayback, needsAccount } from './account_playback.js';
 import { config, deadline, deviceAuth, extractVideo, hasProfile, libraryExecute, mediaFetch, onProfileRemoved, scoped, tokenUrlsafe } from './core.js';
 import { ServiceError } from './errors.js';
-import { DeArrow, Sponsor, thumbnails } from './extras.js';
+import { DeArrow, Dislikes, Sponsor, sponsorOrigin, thumbnails } from './extras.js';
 import { bytesOf, fixtureRequests, headerLines } from './fetch_shim.js';
 import { createPlayback, vttToSrt } from './resolve.js';
 import { Lounge, remoteRequest } from './lounge.js';
@@ -22,11 +22,14 @@ import { Invalid, deviceSession, deviceStart, jobRequest, libraryRequest, queryO
 const host = globalThis.__host;
 const VERSION = typeof __TUBE_VERSION__ === 'string' ? __TUBE_VERSION__ : '0.0.0';
 const VIDEO = /^[A-Za-z0-9_-]{11}$/;
-// Exactly what this service implements; no relay, voice, dislikes or proxy. `remote` is the phone
+// Exactly what this service implements; no relay, voice or proxy. `remote` is the phone
 // connection (POST /v1/remote); the Python service has the route without listing it.
+// `sponsorblock_server`: a segments request may name the alternative server itself (`server=`).
+// `dislikes` joins the list only while the host enabled the Return YouTube Dislike relay.
 const FEATURES = ['search', 'channels', 'playlists', 'dash', 'captions', 'dearrow', 'locale', 'thumbnail_source', 'storyboards',
   'translated_captions', 'video_details', 'library', 'content_filters', 'channel_pages', 'kids', 'stream_reminder', 'playlist_order',
-  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'subscriptions_import', 'remote', 'embedded'];
+  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'subscriptions_import', 'remote',
+  'sponsorblock_server', 'embedded'];
 const SESSION_TTL = 1800000, JOB_TTL = 120000;
 
 const videoId = value => { if (!VIDEO.test(value ?? '')) throw new ServiceError('invalid_video', 'Enter an eleven-character YouTube video ID.', 400); return value; };
@@ -44,6 +47,7 @@ export class Companion {
     this.pairingCode = settings.pairing_code ?? ''; this.pairingDeadline = host.now() + 600000; this.pairAttempts = [];
     this.ranged = !!settings.ranged_manifest;
     this.sponsor = new Sponsor(settings.sponsorblock, settings.sponsorblock_server);
+    this.dislikes = new Dislikes(settings.return_youtube_dislike);
     this.dearrow = new DeArrow();
     this.catalogs = new Map(); this.auth = deviceAuth;
     this.sessions = new Map(); this.jobs = new Map();
@@ -280,7 +284,8 @@ export class Companion {
       try { return JSON.parse(host.utf8Decode(body)); } catch { throw new Invalid('JSON decode error'); }
     };
     const routes = [
-      ['GET', /^\/v1\/health$/, () => json({ api_version: 1, version: VERSION, service: 'ProsperoTube', mode: 'youtube', features: FEATURES,
+      ['GET', /^\/v1\/health$/, () => json({ api_version: 1, version: VERSION, service: 'ProsperoTube', mode: 'youtube',
+        features: this.dislikes.enabled ? [...FEATURES, 'dislikes'] : FEATURES,
         sponsorblock: this.sponsor.enabled, sponsorblock_alt: this.sponsor.server !== null, proxy: false,
         // Media addresses in manifests and playlists are YouTube's own, not this service's.
         embedded: true,
@@ -306,14 +311,19 @@ export class Companion {
       }],
       // The body is the export file itself; nothing is stored and no account is touched.
       ['POST', /^\/v1\/subscriptions\/import$/, () => json(parseImport(body))],
-      ['GET', /^\/v1\/dislikes\/([^/]+)$/, id => { videoId(id); return json({ api_version: 1, enabled: false }); }],
+      // Asked by the app only for a profile whose "Show dislikes" is on; nothing goes out while the relay is off.
+      ['GET', /^\/v1\/dislikes\/([^/]+)$/, async id => json(await this.dislikes.get(videoId(id)))],
       ['GET', /^\/v1\/sponsor\/([^/]+)$/, async id => {
         videoId(id);
         const categories = query.get('categories') ?? 'sponsor,selfpromo', alt = ['true', '1', 'on', 'yes'].includes((query.get('alt') ?? '').toLowerCase());
         if (categories.length > 160) throw new Invalid('String should have at most 160 characters', 'categories');
         const chosen = Sponsor.chosen(categories);
         if (!chosen) throw new ServiceError('invalid_categories', 'An unsupported SponsorBlock category was requested.', 400);
-        return json(await this.sponsor.segments(id, chosen, alt));
+        // The app has no host to start it with a server: the user's own choice comes with the request, under the same rule.
+        let named = null;
+        try { if (query.has('server')) named = sponsorOrigin(query.get('server')); }
+        catch { throw new ServiceError('invalid_server', 'The SponsorBlock server must be an https:// origin.', 400); }
+        return json(await this.sponsor.segments(id, chosen, alt, named));
       }],
       ['GET', /^\/art\/dearrow\/([^/]+)$/, async key => {
         const image = /^[A-Za-z0-9_-]{32}$/.test(key) ? await this.dearrow.thumbnail(key) : null;

@@ -9,9 +9,9 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Player and playback | 41 | 23 | 9 | 5 | 78 |
 | Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
-| Accounts, remote control and integrations | 19 | 8 | 1 | 1 | 29 |
+| Accounts, remote control and integrations | 20 | 7 | 1 | 1 | 29 |
 | General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
-| **All** | **149** | **62** | **21** | **13** | **245** |
+| **All** | **150** | **61** | **21** | **13** | **245** |
 
 ## Player and playback
 
@@ -33,7 +33,7 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; No video buffer row; No pitch effect; A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
 | Automatic playback error fixing (`behavior.ErrorFixerController`) | No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering); An audio decoder or output failure gets a message but no fix (no other audio format can be requested); No handling of a stream that ended while watching (live ended -> reload as VOD); settings:error-fixer turns off the decoder and buffering fixes only; the stream refresh after an input failure has no off switch | yes | M |
 | Suggestions, chapters and next-video selection (`behavior.SuggestionsController`) | Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls; No chapter markers on the seek bar; No live title/description refresh; Like/dislike counts are on Video details and Open description only, not appended to the player's metadata | yes | L |
-| Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own; Dislike counts are not available with the built-in service (the release): it has no Return YouTube Dislike relay; they need a development companion started with --return-youtube-dislike | yes | M |
+| Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own | yes | M |
 | Button: Subtitles (`extra.Button.Subtitles`) | No per-channel remember switch in the picker (YouTube preferences only); No separate human/auto-generated groups (flat list tagged '(automatic)' / '(translated)'); No recently-used ordering | yes | M |
 | Button: Advanced playback settings (`extra.Button.HighQuality`) | See behavior.HQDialogController | yes | M |
 | Button: Chat/Comments (`extra.Button.Chat`) | Comments cannot be opened while the video plays (browser R3 only) | yes | M |
@@ -113,7 +113,6 @@ Remove from history (video menu), Playlist / uploads grid, Video details screen,
 | --- | --- | :---: | :---: |
 | Protect account with password (`AccountSettingsPresenter.appendProtectAccountWithPassword`) | The PS5 keyboard shows the typed text (no masked entry) | yes | M |
 | SponsorBlock links (server status, about) (`SponsorBlockSettingsPresenter.appendLinks`) | The two addresses are rows of text: no QR code as the About links have (SmartTube's buttons open the pages; it does not probe the server either) | yes | S |
-| SponsorBlock misc: paid content notice, don't skip again, alternative server (`SponsorBlockSettingsPresenter.appendMiscCategory`) | 'Use alternative server' has no effect with the built-in service (the release): no alternative server is configured there (health says sponsorblock_alt false), so segments always come from sponsor.ajay.app; it works only with a development companion started with --sponsorblock-server | yes | S |
 | DeArrow switches: unlocalized titles, crowdsourced titles, crowdsourced thumbnails (`DeArrowSettingsPresenter.appendSwitches`) | 'Unlocalized video titles' switch is absent, with its mutual exclusion against crowdsourced titles | yes | M |
 | DeArrow links (server status, about) (`DeArrowSettingsPresenter.appendLinks`) | The two addresses are rows of text: no QR code as the About links have (SmartTube's buttons open the pages; it does not probe the server either) | yes | S |
 | Phone remote control behaviour (`behavior.RemoteController`) | Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'; No 'device disconnected' message shown before closing the app; 10-second start delay after app init not mirrored (harmless) | yes | M |
@@ -128,7 +127,7 @@ Remove from history (video menu), Playlist / uploads grid, Video details screen,
 
 ### Done
 
-Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, Exclude current channel from SponsorBlock, Thumbnail source when there is no DeArrow submission, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher, YouTube device-code sign-in.
+Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, SponsorBlock misc: paid content notice, don't skip again, alternative server, Exclude current channel from SponsorBlock, Thumbnail source when there is no DeArrow submission, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher, YouTube device-code sign-in.
 
 ### Not applicable on PS5
 

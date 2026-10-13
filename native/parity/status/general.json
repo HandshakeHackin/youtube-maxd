@@ -246,7 +246,7 @@
    "ps5_evidence": [
     "companion/prosperotube/__main__.py --proxy URL, companion/prosperotube/proxy.py: one HTTP or HTTPS proxy for the resolvers, the library worker (companion/innertube/proxy_fetch.mjs: CONNECT tunnel, no direct fallback), the relays, DeArrow, SponsorBlock and the phone client; GET /v1/health reports only proxy true/false",
     "tests/test_third_batch.py (proxy tests), companion/innertube/third_batch.test.mjs",
-    "standalone/js/companion.js: no proxy in the built-in service (FEATURES, health 'proxy: false'); standalone/test/service_test.py ('health hides what does not')"
+    "standalone/js/companion.js: no proxy in the built-in service (FEATURES, health 'proxy: false'); standalone/test/service_test.py ('health hides what does not'); tests/test_embedded_service.c (no_proxy_offer): no row or text of the menus and settings screens names a proxy in built-in mode"
    ],
    "gaps": [
     "Not available with the built-in service (the release): it lists no proxy feature, and the app's HTTPS client and FFmpeg connect directly",

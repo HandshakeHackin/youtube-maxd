@@ -73,6 +73,45 @@
  "GET sponsor.ajay.app/api/skipSegments/d2e4": {
   "file": "sponsor.json"
  },
+ "GET sb.example.org/api/skipSegments/d2e4": {
+  "file": "sponsor_alt.json",
+  "tag": "sponsor-alt"
+ },
+ "GET returnyoutubedislikeapi.com/votes": [
+  {
+   "url_contains": "videoId=fixtureVID1",
+   "file": "dislikes.json",
+   "tag": "dislikes"
+  },
+  {
+   "url_contains": "videoId=fixtureLIV1",
+   "file": "dislikes_other.json",
+   "tag": "dislikes"
+  },
+  {
+   "url_contains": "videoId=fixtureSHT1",
+   "file": "dislikes_float.json",
+   "tag": "dislikes"
+  },
+  {
+   "url_contains": "videoId=fixtureDENY",
+   "file": "dislikes_large.json",
+   "tag": "dislikes"
+  },
+  {
+   "url_contains": "videoId=fixtureGONE",
+   "status": 500,
+   "file": "captions.vtt",
+   "type": "text/plain",
+   "tag": "dislikes"
+  },
+  {
+   "url_contains": "videoId=jNQXAC9IVRw",
+   "file": "captions.vtt",
+   "type": "text/plain",
+   "tag": "dislikes"
+  }
+ ],
  "GET sponsor.ajay.app/api/branding/6745": {
   "file": "branding.json"
  },

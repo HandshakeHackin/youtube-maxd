@@ -1,0 +1,15 @@
+[
+ {
+  "videoID": "fixtureVID1",
+  "segments": [
+   {
+    "category": "sponsor",
+    "actionType": "skip",
+    "segment": [
+     3,
+     9
+    ]
+   }
+  ]
+ }
+]

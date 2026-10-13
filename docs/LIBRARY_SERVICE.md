@@ -1445,6 +1445,12 @@ from 0 to 10^12. Known counts are cached for one hour, unavailable answers for
 five minutes, 128 videos at most. Enabling it discloses watched video IDs to
 that third party; say so in the native setting.
 
+The built-in service has the same relay behind the same option
+(`standalone/js/extras.js`; `standalone/README.md`, Dislikes). The app starts
+its service with the option on and asks only for a profile whose **Show
+dislikes** switch is on, once per opened details or description page, so with
+the switch off no video ID leaves the console for that service.
+
 ### Video details: `video_details`
 
 `{"action":"video_details","profile":…,"id":"<video id>"}`, Guest allowed:

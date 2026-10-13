@@ -522,8 +522,9 @@ static struct {
 } g_account_intent;
 /* The text prompt also asks for a search inside a channel and for profile
  * passwords: lock 1 = give it to select target, 2 = set a new one, 3 = give it
- * to change it, 4 = give it to remove it. comment 1 = a new comment, 2 = a reply. */
-static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment;
+ * to change it, 4 = give it to remove it. comment 1 = a new comment, 2 = a reply.
+ * server = the alternative SponsorBlock server of the built-in service. */
+static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment, server;
     char identity[101], profile[33], pin[119], target[33], cursor[65]; } g_playlist_prompt;
 /* First-release scope (GOAL.md): what ships before a console and live-service
  * check carries this suffix on its rows and this line where a row has an overview. */
@@ -970,6 +971,25 @@ static int lock_put(const char *profile, const char *text) {
     return 1;
 }
 const char *tube_prompt_error(void) { return g_prompt_error; }
+/* The alternative SponsorBlock server of the built-in service, "" or "https://host": there is no
+ * host to start that service with one, so the address is typed here and goes out with each
+ * segments request. Device-wide; the switch that uses it stays the profile's. */
+static char g_sb_server[264];
+/* The service's rule (standalone/js/extras.js, sponsorOrigin): https, a plain host name, no port,
+ * path, query or user. What was typed may leave the scheme out, end in a slash or use capitals. */
+static int sponsor_origin(const char *text, char *out, size_t capacity) {
+    char host[254]; size_t n = 0;
+    if (!text) return 0;
+    if (!strncasecmp(text, "https://", 8)) text += 8;
+    for (; *text && strcmp(text, "/"); ++text) {
+        const char c = *text >= 'A' && *text <= 'Z' ? (char)(*text + 32) : *text;
+        if (n + 1 >= sizeof host || !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-')) return 0;
+        host[n++] = c;
+    }
+    host[n] = 0;
+    if (!n || host[0] == '.' || host[0] == '-' || host[n - 1] == '.' || host[n - 1] == '-' || strstr(host, "..")) return 0;
+    return snprintf(out, capacity, "https://%s", host) < (int)capacity;
+}
 /* The last search typed inside a channel. */
 static struct { char channel[25], query[801], profile[33]; unsigned scope, serial; } g_channel_query;
 
@@ -997,6 +1017,12 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
         i += n;
     }
     char title[601]; memcpy(title, text, length); title[length] = 0;
+    if (g_playlist_prompt.server) { /* a local setting: kept only as a plain https origin, nothing to confirm */
+        char origin[sizeof g_sb_server];
+        if (!sponsor_origin(title, origin, sizeof origin)) return -1;
+        copy(g_sb_server, sizeof g_sb_server, origin); g_playlist_prompt.active = 0; save();
+        snprintf(parent, capacity, "settings:sb"); return 0;
+    }
     if (g_playlist_prompt.search) { /* a search inside a channel: listed at once, nothing to confirm */
         static unsigned serial;
         if (!tube_search_query_valid(title) || !valid_channel_group(g_playlist_prompt.identity)) return -1;
@@ -1051,6 +1077,7 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity) {
     const int current = g_playlist_prompt.active && ticket == g_playlist_prompt.prompt.ticket;
     copy(g_prompt_error, sizeof g_prompt_error, !current ? "" : g_playlist_prompt.lock ? "Enter a password of 1 to 150 characters." :
+        g_playlist_prompt.server ? "Enter an https address without a port or path, such as https://sponsor.example.org." :
         g_playlist_prompt.search ? "Enter 1 to 150 characters to search this channel." :
         g_playlist_prompt.comment ? "Enter a comment of 1 to 150 characters." : "");
     const int result = prompt_submit(ticket, text, parent, capacity);
@@ -1063,6 +1090,7 @@ const char *tube_prompt_title(const char *parent) {
         !strncmp(parent, "channel-search:", 15) ? "Search in channel" :
         !strncmp(parent, "comment:", 8) ? "Confirm comment" :
         !strncmp(parent, "library:profile:", 16) ? "Accounts & library" :
+        !strcmp(parent, "settings:sb") ? "SponsorBlock actions" :
         !strncmp(parent, "settings:", 9) ? "Accounts" : "Confirm playlist change";
 }
 
@@ -1733,7 +1761,9 @@ enum { COMPANION_LOCALE = 1, COMPANION_THUMBNAILS = 2, COMPANION_FILTERS = 4, CO
        COMPANION_DEVICE_AUTH = 131072,
        /* the phone receiver (POST /v1/remote). Only the built-in service lists it; a companion has
         * always had the route, so the bit is asked about in built-in mode alone (embedded_lacks). */
-       COMPANION_REMOTE = 262144 };
+       COMPANION_REMOTE = 262144,
+       /* a segments request may name the alternative SponsorBlock server; the built-in service alone */
+       COMPANION_SB_SERVER = 524288 };
 static struct { char source[512]; unsigned features; int known; } g_companion;
 static int companion_known(void) { return g_companion.known && *g_source && !strcmp(g_companion.source, g_source); }
 static int companion_has(unsigned feature) { return companion_known() && (g_companion.features & feature) == feature; }
@@ -1755,7 +1785,8 @@ static int embedded_start(void) {
 #ifdef TUBE_EMBEDDED_SERVICE
     if (!g_embedded || g_embedded_stopped) return 0;
     unsigned short port = 0; char token[65] = "", source[40];
-    static const tube_service_options options = {.sponsorblock = 1};   /* asked only when the user turned segments on */
+    /* Each is asked only for a profile that turned it on: segments, and the dislike count of an opened details page. */
+    static const tube_service_options options = {.sponsorblock = 1, .return_youtube_dislike = 1};
     if (!tube_service_running()) tube_service_configure(&options);
     int rc = tube_service_start(evo_data_dir(), &port, token);
     token[64] = 0;
@@ -1815,7 +1846,7 @@ static void companion_read(const cJSON *root) {
         {"kids", COMPANION_KIDS}, {"stream_reminder", COMPANION_REMINDER}, {"playlist_order", COMPANION_PLAYLIST_ORDER},
         {"subscribe_notifications", COMPANION_NOTIFICATIONS}, {"comment_post", COMPANION_COMMENT_POST},
         {"search_first", COMPANION_SEARCH_FIRST}, {"channel_new_content", COMPANION_NEW_CONTENT}, {"dislikes", COMPANION_DISLIKES},
-        {"device_auth", COMPANION_DEVICE_AUTH}, {"remote", COMPANION_REMOTE}
+        {"device_auth", COMPANION_DEVICE_AUTH}, {"remote", COMPANION_REMOTE}, {"sponsorblock_server", COMPANION_SB_SERVER}
     };
     const cJSON *features = cJSON_GetObjectItemCaseSensitive(root, "features"), *feature;
     companion_forget();
@@ -2037,6 +2068,7 @@ static void save(void) {
         cJSON_AddItemToArray(caption_memories,row);
     }
     cJSON_AddNumberToObject(root, "backup_auto_days", g_backup_auto);
+    cJSON_AddStringToObject(root, "sponsorblock_server", g_sb_server);
     cJSON_AddBoolToObject(root, "separate_settings", g_separate_settings);
     cJSON_AddNumberToObject(root, "version", 2);
     cJSON_AddStringToObject(root, "source", g_embedded ? g_saved_source : g_source);
@@ -2237,6 +2269,7 @@ static int init_store(void) {
     g_separate_settings = 0; g_lock_count = 0; memset(&g_unlock,0,sizeof g_unlock); g_prompt_error[0] = 0;
     g_startup_lock[0] = 0; g_follow_count = g_channel_mark_count = g_channel_marks_dirty = g_recent_playlist_count = g_caption_memory_count = 0;
     g_backup_auto = TUBE_BACKUP_AUTO_OFF; g_backup_ticket = 0; memset(g_backup_notice,0,sizeof g_backup_notice);
+    g_sb_server[0] = 0;
     import_release(); memset(&g_import,0,sizeof g_import); memset(&g_channel_new,0,sizeof g_channel_new);
     memset(g_picker_rows,0,sizeof g_picker_rows); memset(g_upcoming,0,sizeof g_upcoming);
     memset(&g_comment_thread,0,sizeof g_comment_thread); memset(&g_detail,0,sizeof g_detail);
@@ -2409,6 +2442,9 @@ static int init_store(void) {
         const cJSON *period=cJSON_GetObjectItemCaseSensitive(root,"backup_auto_days");
         if(cJSON_IsNumber(period) && period->valuedouble==(int)period->valuedouble && tube_backup_auto_valid((int)period->valuedouble))
             g_backup_auto=(int)period->valuedouble;
+        char origin[sizeof g_sb_server]; /* kept only in the form this version writes */
+        if(sponsor_origin(str(root,"sponsorblock_server"),origin,sizeof origin) && !strcmp(origin,str(root,"sponsorblock_server")))
+            copy(g_sb_server,sizeof g_sb_server,origin);
     }
     cJSON_ArrayForEach(o, cJSON_GetObjectItemCaseSensitive(root, "records")) {
         const char *owner = version == 1 ? "guest" : str(o, "profile");
@@ -3546,15 +3582,19 @@ static void resolved(Request *r, const cJSON *root) {
     }
     if (g_sponsor && cached && !cached->item.is_live && r->choice_count > 0 &&
         !r->choices[0].is_live && !tube_sb_excluded(&g_sb, g_sb_channel)) {
-        char url[1024], auth[160];
+        char url[1280], auth[160];
         char categories[160] = {0};
         for (int i = 0; i < TUBE_SB_CATEGORIES; ++i) if (g_sb.actions[i] != 3 || g_sb.colors[i]) {
             size_t used = strlen(categories);
             snprintf(categories + used, sizeof categories - used, "%s%s", used ? "," : "", tube_sb_names[i]);
         }
-        /* The alternative server is the companion host's choice; ask for it only where it is offered. */
-        snprintf(url, sizeof url, "%s/v1/sponsor/%s?categories=%s%s", g_source, cached->item.id, categories,
-            g_sb_alt && companion_has(COMPANION_SB_ALT) ? "&alt=true" : "");
+        /* The alternative server is the companion host's choice: ask for it only where it is offered.
+         * The built-in service has no host, so the address typed in the settings goes with the request. */
+        char alt[300] = "";
+        if (g_sb_alt && !g_embedded && companion_has(COMPANION_SB_ALT)) copy(alt, sizeof alt, "&alt=true");
+        else if (g_sb_alt && g_embedded && *g_sb_server && companion_has(COMPANION_SB_SERVER))
+            snprintf(alt, sizeof alt, "&alt=true&server=https%%3A%%2F%%2F%s", g_sb_server + 8);
+        snprintf(url, sizeof url, "%s/v1/sponsor/%s?categories=%s%s", g_source, cached->item.id, categories, alt);
         snprintf(auth, sizeof auth, "Authorization: Bearer %s", g_token);
         const char *headers[] = {auth};
         if (*categories) evo_net_request_async("GET", url, NULL, headers, 1, sponsor_response, (void *)(size_t)g_sb_serial);
@@ -3652,7 +3692,10 @@ static void request_rows(Request *r, const evo_provider_item_t *items, int n) {
     memset(r, 0, sizeof *r); if (cb) cb(1, items, n, 0, data);
 }
 /* The rows in g_detail are shown at once, or after the dislike relay answered:
- * the profile's switch and the companion's host option both have to allow it. */
+ * the profile's switch and the companion's host option both have to allow it.
+ * The built-in service has the relay enabled from its start (embedded_start), so
+ * there the switch alone decides, and this is the only place that asks: one
+ * request per opened page, none while the switch is off. */
 static void detail_finish(Request *r) {
     if (g_dislikes && companion_has(COMPANION_DISLIKES) && valid_id(g_detail.video)) {
         char path[64]; snprintf(path, sizeof path, "/v1/dislikes/%s", g_detail.video);
@@ -5297,6 +5340,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_thumbnails = source; catalog_retire(); save();
         }
         else if (!strcmp(parent, "settings:sb:alt")) { g_sb_alt = !g_sb_alt; save(); }
+        else if (!strcmp(parent, "settings:sb:server") && g_embedded) { /* typed over this screen; an accepted address lists it again */
+            prompt_arm("Alternative SponsorBlock server"); g_playlist_prompt.server = 1;
+            copy(g_playlist_prompt.prompt.initial, sizeof g_playlist_prompt.prompt.initial, *g_sb_server ? g_sb_server : "https://");
+        }
         else if (!strcmp(parent, "settings:more-subtitles")) { g_more_subtitles = !g_more_subtitles; save(); }
         else if (!strcmp(parent, "settings:caption-memory")) { g_caption_memory = !g_caption_memory; save(); }
         else if (!strcmp(parent, "settings:dislikes")) { g_dislikes = !g_dislikes; save(); }
@@ -5628,7 +5675,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
             if (screen == 2) CATALOG_FOLDER( "settings:use-section-playlist", g_section_playlist ? "Use current section as playlist: on" : "Use current section as playlist: off",
                 "On: after a video from a section, shelf or channel, continue with the next one listed there");
-            if (screen == 2) CATALOG_FOLDER( "settings:dislikes", g_dislikes ? "Show dislikes: on" : "Show dislikes: off",
+            /* The built-in service asks Return YouTube Dislike itself, for this switch alone; one that has no relay offers no row. */
+            if (screen == 2 && !embedded_lacks(COMPANION_DISLIKES)) CATALOG_FOLDER( "settings:dislikes", g_dislikes ? "Show dislikes: on" : "Show dislikes: off",
                 companion_known() && !companion_has(COMPANION_DISLIKES) ? "The companion host has not enabled the Return YouTube Dislike relay" :
                 "In descriptions and details; Return YouTube Dislike then learns which videos you open them for");
             if (screen == 0) {
@@ -5895,9 +5943,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:sb:exclusions", "Excluded channels", "Toggle the current channel or a followed channel");
             CATALOG_FOLDER( "settings:sb:colors", "Color markers on timeline", "Choose categories independently of skip actions");
             CATALOG_FOLDER( "settings:sb:paid", g_paid_notifications ? "Paid-content notices: on" : "Paid-content notices: off", "Show YouTube paid-promotion disclosures when playback starts");
-            CATALOG_FOLDER( "settings:sb:alt", g_sb_alt ? "Use alternative server: on" : "Use alternative server: off",
+            if (!g_embedded) CATALOG_FOLDER( "settings:sb:alt", g_sb_alt ? "Use alternative server: on" : "Use alternative server: off",
                 companion_known() && !companion_has(COMPANION_SB_ALT) ? "The paired companion was started without an alternative SponsorBlock server" :
                 "For when SponsorBlock refuses to work; the companion host chooses the server");
+            else if (!embedded_lacks(COMPANION_SB_SERVER)) { /* no host chooses the server here: its address is typed, the next row */
+                CATALOG_FOLDER( "settings:sb:alt", g_sb_alt ? "Use alternative server: on" : "Use alternative server: off",
+                    *g_sb_server ? "For when SponsorBlock refuses to work; segments then come from the server below" :
+                    "Enter the alternative server below first; until then segments come from SponsorBlock");
+                snprintf(label, sizeof label, "Alternative server: %.70s", g_sb_server + (*g_sb_server ? 8 : 0));
+                CATALOG_FOLDER( "settings:sb:server", *g_sb_server ? label : "Alternative server: not set",
+                    "Enter the https address of a SponsorBlock server; applies to this PS5");
+            }
             CATALOG_FOLDER( "settings:sb:about", "About SponsorBlock: https://sponsor.ajay.app", "Project page; open the address on another device");
             CATALOG_FOLDER( "settings:sb:status", "SponsorBlock status: https://status.sponsor.ajay.app", "Service status page; ProsperoTube does not probe it");
         } else if (!strcmp(parent, "settings:search") || !strncmp(parent, "settings:search:", 16)) {

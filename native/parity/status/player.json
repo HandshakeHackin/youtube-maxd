@@ -812,16 +812,16 @@
     "native/tube_provider.c: 'account:notice:likes' (like_count) and 'account:notice:dislikes' (GET /v1/dislikes/<id>) rows of Video details and Open description; settings:dislikes 'Show dislikes' per profile; both pages are listed during playback through Video actions",
     "companion/prosperotube/dislikes.py (Return YouTube Dislike relay behind --return-youtube-dislike), description like_count",
     "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
-    "Built-in service: like_count comes with the description and details of the bundled library modules; standalone/js/companion.js answers GET /v1/dislikes/<id> with enabled false (standalone/test/service_test.py 'dislikes are off')"
+    "Built-in service: like_count comes with the description and details of the bundled library modules; standalone/js/extras.js (Dislikes, votes) is the same relay behind tube_service_options.return_youtube_dislike, which the provider turns on when it starts the service (embedded_start) and asks only for a profile whose 'Show dislikes' is on, once per opened page (detail_finish)",
+    "standalone/js/selftest.js ('dislike counts are validated strictly'), standalone/test/service_test.py ('dislikes are off', 'dislikes off: nothing is asked of Return YouTube Dislike', dislikes()), tests/test_embedded_service.c (no request to the service while the switch is off, one per page while it is on, no row and no message on failure; no row when the service lists no relay), tests/test_embedded_e2e.c ('7 dislikes' through the real service)"
    ],
    "gaps": [
     "Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them",
-    "The like count has no switch of its own",
-    "Dislike counts are not available with the built-in service (the release): it has no Return YouTube Dislike relay; they need a development companion started with --return-youtube-dislike"
+    "The like count has no switch of its own"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "The dislike relay is a host option of the development companion and tells that service which videos' details are opened; the built-in service has none. Service mapping inferred, not verified live."
+   "notes": "Turning 'Show dislikes' on tells Return YouTube Dislike which videos' details are opened; the row says so. The relay runs inside the app with the built-in service and on the host with a development companion (--return-youtube-dislike). Service mapping inferred, not verified live."
   },
   {
    "id": "extra.Misc.NumberKeySeek",

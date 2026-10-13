@@ -4,7 +4,7 @@
 import { Player, Platform } from 'youtubei.js';
 import { createHash } from './node_crypto.js';
 import { catalog } from './core.js';
-import { branding, thumbnails } from './extras.js';
+import { branding, thumbnails, votes } from './extras.js';
 import { chaptersOf, codecName, dashManifest, hlsVariants, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
 import { Invalid, jobRequest, libraryRequest, resolveRequest } from './schema.js';
 import { cueSegments, evenSegments, sidxSegments } from './segments.js';
@@ -155,6 +155,19 @@ export async function selfTest() {
     same(thumbnails(page, 'default'), page);
     same(branding({ titles: [{ title: 'original', original: true, votes: 9 }, { title: ' A  > better\ttitle ', original: false, votes: 0 }], thumbnails: [{ timestamp: 3, original: false, votes: -1 }] }),
       { title: 'A better title', stamp: null });
+  });
+  // The cases of tests/test_third_batch.py (test_dislike_counts_are_validated_strictly), as the service receives them: text.
+  await check('dislike counts are validated strictly', () => {
+    const id = 'abcdefghijk';
+    same(votes(`{"id":"${id}","likes":10,"dislikes":2,"rating":4.5,"extra":"ignored 7.5 \\" 3"}`, id), { likes: 10, dislikes: 2 });
+    same(votes(`{ "id" : "${id}" , "likes" : 0 , "dislikes" : -0 }`, id), { likes: 0, dislikes: 0 });
+    same(votes(`{"id":"${id}","likes":1000000000000,"dislikes":1}`, id), { likes: 1000000000000, dislikes: 1 });
+    for (const text of ['null', '[]', '"x"', 'not json', '', `{"id":"zzzzzzzzzzz","likes":1,"dislikes":1}`, '{"likes":1,"dislikes":1}',
+      `{"id":"${id}","likes":true,"dislikes":1}`, `{"id":"${id}","likes":1.0,"dislikes":1}`, `{"id":"${id}","likes":1e0,"dislikes":1}`,
+      `{"id":"${id}","likes":"1","dislikes":1}`, `{"id":"${id}","likes":1,"dislikes":-1}`, `{"id":"${id}","likes":1000000000001,"dislikes":1}`,
+      `{"id":"${id}","likes":1}`, `{"id":"${id}","likes":1,"dislikes":null}`, `{"id":"${id}","likes":[1],"dislikes":1}`,
+      `{"id":"${id}","likes":1,"dislikes":1e400}`, `{"id":"${id}","likes":NaN,"dislikes":1}`])
+      if (votes(text, id) !== null) throw new Error(`accepted ${text}`);
   });
   // The library adapter, the youtubei.js session and its search parser, fed
   // from the canned InnerTube answers.

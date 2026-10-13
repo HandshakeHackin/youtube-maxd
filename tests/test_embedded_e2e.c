@@ -12,6 +12,7 @@
 #include "evo_net.h"
 #include "evo_data_path.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,6 +106,19 @@ int main(void) {
     assert(!*last_items[video].art_url || tube_art_url_allowed(last_items[video].art_url));
     assert(tube_art_url_allowed("https://i.ytimg.com/vi/x/hqdefault.jpg") && !tube_art_url_allowed("https://example.org/a.jpg"));
 
+    /* SponsorBlock from an alternative server: its address is typed on the console and goes with the segments request. */
+    if (!live) {
+        tube_playlist_prompt_t prompt; char opened[80];
+        p->list_catalog("settings:sponsor", 0, items_cb, NULL); p->list_catalog("settings:sb:alt", 0, items_cb, NULL);
+        p->list_catalog("settings:sb:server", 0, items_cb, NULL);
+        assert(last_ok && tube_take_playlist_prompt(&prompt) && !tube_submit_playlist_name(prompt.ticket, "sb.example.org", opened, sizeof opened));
+        p->list_catalog(opened, 0, items_cb, NULL);
+        int server_row = -1;
+        for (int i = 0; i < last_count; ++i) if (!strcmp(last_items[i].id, "settings:sb:server")) server_row = i;
+        assert(last_ok && server_row > 0 && !strcmp(last_items[server_row].title, "Alternative server: sb.example.org") &&
+               !strcmp(last_items[server_row - 1].title, "Use alternative server: on"));
+    }
+
     /* Open the result (captions are on by default): the choice is a manifest on the service. */
     calls = resolve_calls;
     assert(p->resolve(wanted, resolve_cb, NULL) == 0);
@@ -141,6 +155,28 @@ int main(void) {
     char line[128] = ""; size_t got = fread(line, 1, sizeof line - 1, srt); fclose(srt); line[got] = 0;
     assert(got > 10 && strstr(line, "-->"));
     printf("captions: %d track(s), first \"%s\", SubRip written for the player\n", tube_caption_track_count(), tube_caption_track_language(0));
+    /* The segments are the alternative server's (3 to 9 s), not SponsorBlock's own (12.5 to 40 s and more). */
+    tube_sponsor_marker_t marks[8]; int marked = 0;
+    for (int i = 0; i < 600 && !(marked = tube_sponsor_markers(635, marks, 8)); ++i) { evo_net_poll(); tube_poll(); usleep(5000); }
+    assert(marked == 1 && fabs(marks[0].start * 635 - 3) < 1e-6 && fabs(marks[0].end * 635 - 9) < 1e-6 && !marks[0].point);
+    puts("sponsor: one segment, from the alternative server named in the request");
+
+    /* Dislikes: off, a details page lists none and Return YouTube Dislike is not asked; turned on for this profile, the
+     * service asks it (here: its canned answer) and the page gains the row. */
+    calls = item_calls;
+    assert(p->list_catalog("details:fixtureVID1", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "video details");
+    assert(last_ok && last_count >= 3);
+    const int plain = last_count;
+    for (int i = 0; i < last_count; ++i) assert(strcmp(last_items[i].id, "account:notice:dislikes"));
+    p->list_catalog("settings:dislikes", 0, items_cb, NULL); assert(last_ok);
+    calls = item_calls;
+    assert(p->list_catalog("details:fixtureVID1", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "video details with dislikes");
+    assert(last_ok && last_count == plain + 1 && !strcmp(last_items[plain].id, "account:notice:dislikes"));
+    assert(!strcmp(last_items[plain].title, "7 dislikes") && strstr(last_items[plain].subtitle, "Return YouTube Dislike"));
+    printf("dislikes: \"%s\" on the details page of a profile that turned them on\n", last_items[plain].title);
+    p->list_catalog("settings:dislikes", 0, items_cb, NULL);   /* off again */
 
     /* Subscriptions import: the user's export file goes to the service as the request body and comes back as channels. */
     p->list_catalog("settings:backup", 0, items_cb, NULL);
@@ -239,6 +275,6 @@ int main(void) {
     p->shutdown();
     assert(!tube_service_running());
     evo_net_shutdown();
-    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, import, phone, stop and restart");
+    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, alternative SponsorBlock server, dislikes, import, phone, stop and restart");
     return 0;
 }
