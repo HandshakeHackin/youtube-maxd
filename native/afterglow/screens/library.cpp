@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 
 namespace afterglow
 {
@@ -135,6 +136,8 @@ struct Feed
     std::string error;
     bool more = false;    // a page beyond those asked for exists
     bool growing = false; // the last page asked for is on its way
+    bool stuck = false;   // ... or was refused: the list ends early
+    std::string stuck_error;
     std::uint64_t stamp = 0;
 
     void reset(std::string id)
@@ -150,6 +153,7 @@ struct Feed
         ready = 0;
         more = false;
         growing = false;
+        stuck = false;
         for (int index = 0; index < pages; ++index)
         {
             const Page &page = data.catalog(catalog, index);
@@ -162,6 +166,9 @@ struct Feed
             if (page.load != model::Load::ready)
             {
                 growing = index > 0 && page.load == model::Load::loading;
+                stuck = index > 0 && !growing;
+                if (stuck)
+                    stuck_error = page.error;
                 break;
             }
             ++ready;
@@ -337,19 +344,56 @@ struct Message
     ui::Button button = ui::Button::cross;
 };
 
+// A video on its way out of a list. Removing is the provider's own action: a
+// row of the video's actions menu that acts when it is listed (section 5.6).
+struct Removal
+{
+    int tab = -1;          // the list it leaves; -1 while nothing is being removed
+    std::string row;       // the video
+    std::string menu;      // its actions menu, where the acting row is looked up
+    unsigned ticket = 0;   // the action, once it runs
+    bool applying = false; // an account change was prepared and is now being applied
+};
+
+// The row of a video's actions menu that takes the video out of a tab's list.
+bool removes(int tab, std::string_view id)
+{
+    const auto has = [id](std::string_view part) { return id.find(part) != std::string_view::npos; };
+    switch (tab)
+    {
+    case kHistory:
+        return starts_with(id, "local:video:") && has(":forget:");
+    case kWatchLater:
+        return starts_with(id, "account:confirm:watch_later_remove:");
+    case kLiked:
+        return starts_with(id, "account:confirm:unrate:");
+    // REQUEST: the provider changes the queue and the favourites through
+    // tube_toggle_queue() and tube_toggle_favorite() only; these two acting
+    // rows of the video's menu are asked of it.
+    case kQueue:
+        return starts_with(id, "local:video:") && has(":queue:");
+    case kFavorites:
+        return starts_with(id, "local:video:") && has(":favorite:");
+    default:
+        return false;
+    }
+}
+
 struct Pane
 {
     Feed feed;
     std::vector<Cell> cells;
-    // REQUEST: Data cannot remove a row. Rows removed here are hidden by the
-    // screen until the provider's list answers without them.
+    // Rows the provider has removed and whose list has not answered again yet:
+    // they stay off the page meanwhile.
     std::vector<std::string> hidden;
     std::string notice; // the provider's words, when it answered with a notice
+    int total = -1;     // how long the whole list is, where its first row says so (the fact "total")
     int focus = 0;
     int first_row = 0;
     tween::Spring scroll;
     float reveal = 0.0f;      // how far the answer has taken over from the bones
     bool was_loading = false; // bones were shown: the answer cross-fades in
+    bool told_stuck = false;  // a toast has said that the list ends early
     int tile = 0;             // the focused tile of "Kept on this PS5"
 };
 
@@ -363,9 +407,12 @@ class Library final : public Screen
 
     void enter(const Route &route, UpdateContext &context, bool restored) override
     {
+        data_ = &context.services.data;
+        fonts_ = &context.services.fonts;
         if (restored)
             return; // back from a playlist or a video: the tab, the focus and the scroll stay
         route_ = route;
+        removal_ = Removal{};
         age_ = 0.0f;
         content_age_ = 0.0f;
         tab_ = 0;
@@ -410,12 +457,15 @@ class Library final : public Screen
         block_.style.max_lines = 4;
         block_.enter();
         block_out_ = block_;
+        spinner_.style.kind = ui::SpinnerKind::arc;
     }
 
     void update(const InputFrame &input, UpdateContext &context) override
     {
         const float dt = context.dt;
         Data &data = context.services.data;
+        data_ = &data;
+        fonts_ = &context.services.fonts;
         age_ += dt;
         content_age_ += dt;
         ripple_age_ += dt;
@@ -451,6 +501,7 @@ class Library final : public Screen
                     follows_count_ += static_cast<int>(data.catalog(follows_.catalog, index).channels.size());
             }
         }
+        advance_removal(context);
         tabs_.tab(kWatchLater).badge = profile_.signed_in ? counted(kWatchLater) : 0;
         tabs_.tab(kQueue).badge = counted(kQueue);
 
@@ -477,13 +528,27 @@ class Library final : public Screen
         pane.focus = std::clamp(pane.focus, 0, std::max(0, count - 1));
         const int rows = (count + kColumns - 1) / kColumns;
         const int row = pane.focus / kColumns;
+        // On the last row that has arrived while the next page is on its way, the list waits with that page's bones in view.
+        const bool waiting = pane.feed.growing && rows > 0 && row == rows - 1;
         pane.first_row = std::clamp(pane.first_row, row - (kVisibleRows - 1), row);
-        pane.first_row = std::clamp(pane.first_row, 0, std::max(0, rows - kVisibleRows));
+        pane.first_row = waiting ? row : std::clamp(pane.first_row, 0, std::max(0, rows - kVisibleRows));
         pane.scroll.target = static_cast<float>(pane.first_row) * kPitchY;
         if (state == State::ready && rows - 1 - row <= 2)
             pane.feed.grow(); // the end of what has arrived is near: ask for the next page
+        if (pane.feed.stuck && !pane.told_stuck)
+        {
+            pane.told_stuck = true;
+            context.nav.toast(pane.feed.stuck_error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : pane.feed.stuck_error,
+                              ToastKind::warning);
+        }
         for (Pane &each : panes_)
             each.scroll.update(dt, context.reduced_motion ? 60.0f : 12.0f);
+        // Pictures are asked for as soon as the list is known, a row ahead of what
+        // is on the page, so that a row which scrolls in is already there.
+        for (int i = std::max(0, (pane.first_row - 1) * kColumns); i < std::min(count, (pane.first_row + kVisibleRows + 1) * kColumns); ++i)
+            (void)context.services.images.get(pane.cells[static_cast<std::size_t>(i)].thumb, PictureSize::card);
+        if (state == State::ready && count > 0)
+            (void)context.services.images.get(pane.cells[static_cast<std::size_t>(pane.focus)].thumb, PictureSize::ambient);
 
         const Zone zone = zone_now(state);
         tabs_.set_focused(zone == Zone::tabs);
@@ -494,6 +559,8 @@ class Library final : public Screen
         block_.style.reduced_motion = context.reduced_motion;
         block_.update(dt);
         block_out_.update(dt);
+        spinner_.style.reduced_motion = context.reduced_motion;
+        spinner_.update(dt);
 
         const Rect target = ring_target(state);
         if (ring_snap_ || age_ < 0.1f)
@@ -579,7 +646,7 @@ class Library final : public Screen
         {
             info.id = std::string("tab/") + kTabs[tab_].id;
             info.text = tab_label(tab_);
-            info.rect = tabs_.tab_rect(tabs_fonts_ != nullptr ? *tabs_fonts_ : ui::Fonts{}, tab_);
+            info.rect = fonts_ != nullptr ? tabs_.tab_rect(*fonts_, tab_) : kTabsBounds;
             info.index = tab_;
             info.total = kTabCount;
             return info;
@@ -639,6 +706,7 @@ class Library final : public Screen
         out.set("watch_later", tabs_.tabs()[kWatchLater].badge);
         out.set("queue", tabs_.tabs()[kQueue].badge);
         out.set("status", status(tab_));
+        out.set("removing", removal_.tab >= 0 ? removal_.row : std::string());
         std::vector<std::string> titles;
         for (std::size_t i = 0; i < pane.cells.size() && i < 12; ++i)
             titles.push_back(pane.cells[i].title);
@@ -673,11 +741,21 @@ class Library final : public Screen
         return state == State::ready || state == State::loading || tiles ? Zone::content : Zone::tabs;
     }
 
-    // The number a tab shows: every video of the list, once the whole list has been read.
-    int counted(int index) const
+    // How long a list is: what its first row says, else what was counted once
+    // every page has been read; -1 while that is not known.
+    int length(int index) const
     {
         const Pane &pane = panes_[static_cast<std::size_t>(index)];
-        return pane.feed.more || pane.feed.growing ? 0 : static_cast<int>(pane.cells.size());
+        if (pane.feed.ready == 0 && pane.cells.empty())
+            return -1;
+        if (pane.total >= 0)
+            return std::max(0, pane.total - static_cast<int>(pane.hidden.size()));
+        return pane.feed.more || pane.feed.growing ? -1 : static_cast<int>(pane.cells.size());
+    }
+    // The number a tab shows.
+    int counted(int index) const
+    {
+        return std::max(0, length(index));
     }
 
     // Turns the pages that have arrived into cards. The focus stays on the same row where that row still exists.
@@ -694,11 +772,16 @@ class Library final : public Screen
         const std::string focused = pane.focus < static_cast<int>(pane.cells.size()) ? pane.cells[static_cast<std::size_t>(pane.focus)].id : std::string();
         pane.cells.clear();
         pane.notice.clear();
+        pane.total = -1;
         std::vector<std::string> still_hidden;
+        if (data_ == nullptr)
+            return;
         Data &data = *data_;
         for (int number = 0; number < pane.feed.ready; ++number)
         {
             const Page &page = data.catalog(pane.feed.catalog, number);
+            if (number == 0 && !page.rows.empty() && all_digits(page.rows.front().fact("total")))
+                pane.total = std::atoi(page.rows.front().fact("total").c_str());
             std::size_t next_video = 0;
             for (const model::Row &row : page.rows)
             {
@@ -925,8 +1008,16 @@ class Library final : public Screen
         case Direction::down:
             if (pane.focus / kColumns >= (count - 1) / kColumns)
             {
-                if (!pane.feed.more && !pane.feed.growing)
+                if (pane.feed.stuck && !input.nav_repeat)
+                {
+                    // The page after this one was refused: ask for the list again; what is here stays meanwhile.
+                    pane.told_stuck = false;
+                    context.services.data.forget(pane.feed.catalog);
+                }
+                else if (!pane.feed.more && !pane.feed.growing)
+                {
                     refuse(input, context, 0.0f, 1.0f); // the end of the list; while more is arriving the press just waits
+                }
                 return;
             }
             next = std::min(pane.focus + kColumns, count - 1);
@@ -998,8 +1089,7 @@ class Library final : public Screen
 
     void try_again(UpdateContext &context)
     {
-        // REQUEST: Data::refresh() forgets every catalog; one list is all that is asked again here.
-        context.services.data.refresh();
+        context.services.data.forget(kTabs[tab_].catalog); // the next read asks again
         context.feedback.play(audio::Cue::select);
     }
 
@@ -1014,27 +1104,100 @@ class Library final : public Screen
                          grown(cell_rect(pane.focus, pane.scroll.target), 0.05f, 5.0f));
     }
 
+    // Square on a video: its actions menu is read for the row that takes it out of this list.
     void remove(UpdateContext &context, Pane &pane)
     {
         const Cell &cell = pane.cells[static_cast<std::size_t>(pane.focus)];
-        if (cell.kind != Kind::video)
+        if (cell.kind != Kind::video || removal_.tab >= 0)
         {
-            refuse(InputFrame{}, context, 0.0f, 0.0f); // a playlist is not removed from here
+            refuse(InputFrame{}, context, 0.0f, 0.0f); // a playlist is not removed from here; one removal runs at a time
             return;
         }
-        // REQUEST: Data::remove(catalog, row). Until then the row is hidden on this page only.
-        pane.hidden.push_back(cell.id);
-        rippled_from_ = pane.focus;
-        ripple_age_ = 0.0f;
-        const char *said = tab_ == kHistory      ? tr("Removed from history")
-                           : tab_ == kWatchLater ? tr("Removed from Watch later")
-                           : tab_ == kLiked      ? tr("Removed from liked videos")
-                           : tab_ == kQueue      ? tr("Removed from the queue")
-                                                 : tr("Removed from favourites");
-        rebuild(tab_);
+        removal_ = Removal{};
+        removal_.tab = tab_;
+        removal_.row = cell.id;
+        removal_.menu = context.services.data.menu(cell.id, cell.title);
+        if (removal_.menu.empty())
+        {
+            fail_removal(context, {});
+            return;
+        }
+        context.services.data.forget(removal_.menu); // the menu as it is now, not as it was listed before
+        context.feedback.play(audio::Cue::select);
+    }
+
+    void advance_removal(UpdateContext &context)
+    {
+        if (removal_.tab < 0)
+            return;
+        Data &data = context.services.data;
+        if (removal_.ticket == 0)
+        {
+            const Page &menu = data.catalog(removal_.menu);
+            if (menu.load == model::Load::loading || menu.load == model::Load::idle)
+                return;
+            const model::Row *acting = nullptr;
+            for (const model::Row &row : menu.rows)
+            {
+                if (menu.load == model::Load::ready && acting == nullptr && removes(removal_.tab, row.id))
+                    acting = &row;
+            }
+            if (acting == nullptr)
+                fail_removal(context, menu.load == model::Load::ready ? std::string() : menu.error);
+            else
+                removal_.ticket = data.act(acting->id);
+            return;
+        }
+        const Page &answer = data.action(removal_.ticket);
+        if (answer.load == model::Load::loading)
+            return;
+        if (answer.load != model::Load::ready)
+        {
+            fail_removal(context, answer.error);
+            return;
+        }
+        if (!removal_.applying && !answer.rows.empty() && starts_with(answer.rows.front().id, "account:apply:"))
+        {
+            // The provider prepares a change to the account and applies it with a second row; Square was the word for both.
+            removal_.applying = true;
+            removal_.ticket = data.act(answer.rows.front().id);
+            return;
+        }
+        // Removed: the card leaves at once, the list is asked again, and the cards after it close the gap.
+        Pane &pane = panes_[static_cast<std::size_t>(removal_.tab)];
+        const auto gone = std::find_if(pane.cells.begin(), pane.cells.end(), [this](const Cell &cell) { return cell.id == removal_.row; });
+        if (gone != pane.cells.end())
+        {
+            if (removal_.tab == tab_)
+            {
+                rippled_from_ = static_cast<int>(gone - pane.cells.begin());
+                ripple_age_ = 0.0f;
+            }
+            pane.cells.erase(gone);
+        }
+        pane.hidden.push_back(removal_.row);
+        data.forget(pane.feed.catalog);
+        data.forget(removal_.menu);
+        const char *said = removal_.tab == kHistory      ? tr("Removed from history")
+                           : removal_.tab == kWatchLater ? tr("Removed from Watch later")
+                           : removal_.tab == kLiked      ? tr("Removed from liked videos")
+                           : removal_.tab == kQueue      ? tr("Removed from the queue")
+                                                         : tr("Removed from favourites");
         context.feedback.play(audio::Cue::favorite_off);
         context.feedback.rumble(0.3f, 0.06f);
-        context.nav.toast(said, ToastKind::info);
+        context.nav.toast(said, ToastKind::success);
+        removal_ = Removal{};
+    }
+
+    // The provider's own words when it refused; ours when the menu has no such action.
+    void fail_removal(UpdateContext &context, const std::string &why)
+    {
+        context.feedback.play(audio::Cue::error, 1.0f, 0.0f, 0.6f);
+        context.feedback.rumble(0.25f, 0.05f);
+        context.nav.toast(why.empty() ? std::string(tr("This video cannot be removed from here.")) : why, ToastKind::error);
+        if (!removal_.menu.empty())
+            context.services.data.forget(removal_.menu);
+        removal_ = Removal{};
     }
 
     void write_hints()
@@ -1101,9 +1264,10 @@ class Library final : public Screen
     {
         const Pane &pane = panes_[static_cast<std::size_t>(index)];
         const std::string place = kTabs[index].account ? tr("on YouTube") : tr("on this PS5");
-        if (state_of(index) != State::ready || pane.feed.more || pane.feed.growing)
+        (void)pane;
+        if (state_of(index) != State::ready || length(index) < 0)
             return place;
-        const std::size_t count = pane.cells.size();
+        const std::size_t count = static_cast<std::size_t>(length(index));
         const std::string amount = !kTabs[index].playlists ? videos_text(count)
                                    : count == 1           ? std::string(tr("1 playlist"))
                                                           : fill(tr("{0} playlists"), std::to_string(count));
@@ -1211,20 +1375,15 @@ class Library final : public Screen
                    : follows_count_ == 1 ? std::string(tr("1 channel"))
                                          : fill(tr("{0} channels"), std::to_string(follows_count_));
         static constexpr int kPanes[] = {kHistory, kFavorites, kQueue};
-        const Pane &pane = panes_[static_cast<std::size_t>(kPanes[index])];
-        if (pane.feed.ready == 0 || pane.feed.more || pane.feed.growing)
+        const int count = length(kPanes[index]);
+        if (count < 0)
             return {};
-        if (index == 0)
-        {
-            // What Home's first shelf holds: started and not finished.
-            const auto count = std::count_if(pane.cells.begin(), pane.cells.end(), [](const Cell &cell)
-            { return !cell.video.watched && cell.video.progress >= 0.02f && cell.video.progress <= 0.97f; });
+        if (index == 0) // the tile opens History, where every video waits at the place it was left at
             return count == 1 ? std::string(tr("1 video, resume point kept"))
                               : fill(tr("{0} videos, resume points kept"), std::to_string(count));
-        }
         if (index == 2)
-            return fill(tr("{0} waiting"), std::to_string(pane.cells.size()));
-        return videos_text(pane.cells.size());
+            return fill(tr("{0} waiting"), std::to_string(count));
+        return videos_text(static_cast<std::size_t>(count));
     }
 
     // ---- drawing -------------------------------------------------------------------------
@@ -1263,15 +1422,16 @@ class Library final : public Screen
             g.l.pop_opacity();
         }
         if (state == State::ready)
-            draw_cells(context, g, canvas, pane, shown, active);
+            draw_cells(context, g, canvas, index, shown, active);
         else if (state != State::loading)
             draw_message(g, canvas, index, state, shown, active);
         g.l.pop_transform();
         g.l.pop_opacity();
     }
 
-    void draw_cells(const DrawContext &context, G &g, ui::Canvas &canvas, const Pane &pane, float alpha, bool active) const
+    void draw_cells(const DrawContext &context, G &g, ui::Canvas &canvas, int index, float alpha, bool active) const
     {
+        const Pane &pane = panes_[static_cast<std::size_t>(index)];
         const int count = static_cast<int>(pane.cells.size());
         const int rows = (count + kColumns - 1) / kColumns;
         const float scroll = pane.scroll.value;
@@ -1300,11 +1460,23 @@ class Library final : public Screen
                 Enter enter(g, arrive, 26.0f);
                 const Picture picture = context.images.get(cell.thumb, PictureSize::card);
                 const Rect big = grown(r, 0.05f * focus, 5.0f * focus);
-                const float card_alpha = 1.0f - tween::clamp01(above * 1.5f);
+                // The card whose removal is on its way waits dimmed under a spinner.
+                const bool leaving = removal_.tab == index && cell.id == removal_.row;
+                // A row that has not reached the page yet stays out of the hint row's ground.
+                const float below = tween::clamp01((kHintY - 36.0f - r.y) / 70.0f);
+                const float card_alpha = (1.0f - tween::clamp01(above * 1.5f)) * below * (leaving ? 0.4f : 1.0f);
                 if (cell.kind == Kind::playlist)
                     playlist_card(g, big, cell, picture, focus, card_alpha);
                 else
                     video_card(g, big, cell.card, picture, focus, card_alpha, 2);
+                if (leaving)
+                {
+                    ui::Spinner spinner = spinner_;
+                    spinner.style.theme = g.k.theme;
+                    spinner.style.color = g.k.ink;
+                    spinner.set_bounds({big.cx() - 24.0f, big.cy() - 24.0f, 48.0f, 48.0f});
+                    spinner.draw(canvas);
+                }
             }
         }
         if (pane.feed.growing)
@@ -1389,7 +1561,7 @@ class Library final : public Screen
             g.l.circle(r.x + 52.0f, r.cy(), 28.0f, gfx::mix(g.k.raised, g.k.plate, focus));
             icon(g, kIcons[i], r.x + 52.0f, r.cy(), 28.0f, gfx::mix(g.k.ink, g.k.on_plate, focus));
             const std::string amount = tile_count(i);
-            const float width = r.w - 100.0f - 20.0f;
+            const float width = r.w - 100.0f - 10.0f;
             text(g, g.f.semibold, fit(g.f.semibold, tile_name(i), kTypeBody, width), r.x + 100.0f, r.cy() + (amount.empty() ? 8.5f : -2.0f),
                  kTypeBody, g.k.ink);
             if (!amount.empty())
@@ -1406,8 +1578,10 @@ class Library final : public Screen
 
     Route route_;
     model::Profile profile_;
-    Data *data_ = nullptr;
-    const ui::Fonts *tabs_fonts_ = nullptr;
+    Data *data_ = nullptr;             // the frame's, which outlives every screen
+    const ui::Fonts *fonts_ = nullptr; // ... and its fonts, for measuring the tabs
+    Removal removal_;
+    ui::Spinner spinner_; // on the card that is being removed
     ui::TabBar tabs_;
     ui::Skeleton bone_;
     ui::EmptyState block_;     // the message of the tab on screen

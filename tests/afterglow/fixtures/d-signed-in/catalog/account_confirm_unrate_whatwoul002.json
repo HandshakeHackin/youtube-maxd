@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:apply:42", "title": "Remove video rating", "subtitle": "Confirm for YouTube profile: mara", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

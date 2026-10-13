@@ -1,0 +1,298 @@
+{
+ "about": "The library: History, Queue and Favourites kept on the console; Watch later, Playlists and Liked on the YouTube account.",
+ "boards": [
+  {
+   "name": "library-history",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "focus": "history/1", "rail_open": 0,
+              "state": {"tab": "history", "catalog": "history", "state": "ready", "zone": "content", "items": "16", "pages": "2", "more": "1",
+                        "signed_in": "1", "watch_later": "12", "queue": "3", "status": "24 videos · on this PS5"},
+              "asked": ["history", "queue", "library:watch_later"]}
+  },
+  {
+   "name": "library-scrolled",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.8}],
+   "expect": {"screen": "library", "focus": "history/12", "state": {"row": "2", "items": "24", "pages": "3", "more": "0"}}
+  },
+  {
+   "name": "library-end-of-list",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "focus": "history/21", "state": {"row": "4", "items": "24"}}
+  },
+  {
+   "name": "library-tabs-focus",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "up"}, {"wait": 0.4}],
+   "expect": {"screen": "library", "focus": "tab/history", "state": {"zone": "tabs", "tab": "history"}}
+  },
+  {
+   "name": "library-tabs-and-back",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "left"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "library", "focus": "watch_later/0", "state": {"zone": "content", "tab": "watch_later", "items": "12"}}
+  },
+  {
+   "name": "library-first-tab-edge",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "l1"}, {"wait": 0.3}],
+   "expect": {"screen": "library", "focus": "history/0", "state": {"tab": "history"}}
+  },
+  {
+   "name": "library-tab-turning",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "r1", "wait": 0.13}],
+   "expect": {"screen": "library", "state": {"tab": "watch_later"}}
+  },
+  {
+   "name": "library-watch-later",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "r1"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "watch_later/0",
+              "state": {"tab": "watch_later", "catalog": "library:watch_later", "state": "ready", "items": "12", "status": "12 videos · on YouTube"}}
+  },
+  {
+   "name": "library-playlists",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "right"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "playlists/1",
+              "state": {"tab": "playlists", "state": "ready", "items": "5", "status": "5 playlists · on YouTube"}, "asked": ["library:playlists"]}
+  },
+  {
+   "name": "library-open-playlist",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "playlists"},
+   "steps": [{"press": "cross"}, {"wait": 1.2}],
+   "expect": {"screen": "grid", "moving": 0, "asked": ["library:playlists"]}
+  },
+  {
+   "name": "library-liked",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "liked"},
+   "expect": {"screen": "library", "focus": "liked/0", "state": {"tab": "liked", "catalog": "library:playlist:LL", "state": "ready", "items": "6", "status": "6 videos · on YouTube"}}
+  },
+  {
+   "name": "library-queue",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "right"}, {"wait": 0.5}],
+   "expect": {"screen": "library", "focus": "queue/1", "state": {"tab": "queue", "state": "ready", "items": "3", "status": "3 videos · on this PS5"}}
+  },
+  {
+   "name": "library-favourites",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "favorites"},
+   "expect": {"screen": "library", "focus": "favorites/0", "state": {"tab": "favorites", "state": "ready", "items": "5", "status": "5 videos · on this PS5"}}
+  },
+  {
+   "name": "library-play",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "cross"}],
+   "expect": {"screen": "library", "focus": "history/1", "played": "writinga009"}
+  },
+  {
+   "name": "library-remove",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "square"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "history/0",
+              "state": {"items": "15", "removing": "", "status": "23 videos · on this PS5"},
+              "asked": ["menu:sevenday000", "local:video:7:forget:sevenday000"]}
+  },
+  {
+   "name": "library-remove-pending",
+   "fixture": "d-signed-in",
+   "source": {"delay": 30},
+   "settle": 3.5,
+   "route": {"screen": "library"},
+   "steps": [{"press": "square", "wait": 0.3}],
+   "expect": {"screen": "library", "focus": "history/0", "state": {"items": "16", "removing": "sevenday000"}}
+  },
+  {
+   "name": "library-remove-refused",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "square"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "history/1", "state": {"items": "16", "removing": ""},
+              "asked": ["menu:writinga009", "local:video:7:forget:writinga009"]}
+  },
+  {
+   "name": "library-remove-from-account",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "watch_later"},
+   "steps": [{"press": "square"}, {"wait": 1.2}],
+   "expect": {"screen": "library", "focus": "watch_later/0", "state": {"items": "11", "watch_later": "11", "removing": ""},
+              "asked": ["menu:thefores026", "account:confirm:watch_later_remove:thefores026", "account:apply:66"]}
+  },
+  {
+   "name": "library-remove-from-queue",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "square"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "queue/0", "state": {"items": "2", "queue": "2"}, "asked": ["local:video:7:queue:everygoa007"]}
+  },
+  {
+   "name": "library-details",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}],
+   "expect": {"screen": "video", "moving": 0, "state": {"argument": "writinga009"}}
+  },
+  {
+   "name": "library-back-from-details",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}, {"press": "circle"}, {"wait": 0.8}],
+   "expect": {"screen": "library", "focus": "history/5", "moving": 0, "state": {"tab": "history", "zone": "content"}}
+  },
+  {
+   "name": "library-youtube-history",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "triangle"}, {"wait": 1.2}],
+   "expect": {"screen": "grid", "moving": 0}
+  },
+  {
+   "name": "library-edge",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.08}],
+   "expect": {"screen": "library", "focus": "history/3"}
+  },
+  {
+   "name": "library-rail",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "library", "focus": "rail/library", "rail_open": 1}
+  },
+  {
+   "name": "library-loading",
+   "fixture": "d-signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "library"},
+   "expect": {"screen": "library", "focus": "history/0", "state": {"state": "loading", "zone": "content", "items": "0"}}
+  },
+  {
+   "name": "library-loading-more",
+   "fixture": "d-signed-in",
+   "source": {"delay": 45},
+   "settle": 2.4,
+   "route": {"screen": "library"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.5}],
+   "expect": {"screen": "library", "focus": "history/12", "state": {"state": "ready", "items": "16", "more": "1", "pages": "3", "row": "3"}}
+  },
+  {
+   "name": "library-empty",
+   "fixture": "d-empty",
+   "route": {"screen": "library", "argument": "watch_later"},
+   "expect": {"screen": "library", "focus": "tab/watch_later", "state": {"state": "empty", "zone": "tabs", "items": "0", "status": "on YouTube"}}
+  },
+  {
+   "name": "library-empty-history",
+   "fixture": "d-empty",
+   "route": {"screen": "library"},
+   "expect": {"screen": "library", "focus": "tab/history", "state": {"state": "empty", "watch_later": "0", "queue": "0"}}
+  },
+  {
+   "name": "library-empty-browse-home",
+   "fixture": "d-empty",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "home"}
+  },
+  {
+   "name": "library-guest",
+   "fixture": "d-guest",
+   "route": {"screen": "library"},
+   "expect": {"screen": "library", "focus": "history/0", "state": {"state": "ready", "items": "3", "signed_in": "0", "watch_later": "0", "status": "3 videos · on this PS5"}}
+  },
+  {
+   "name": "library-guest-invitation",
+   "fixture": "d-guest",
+   "route": {"screen": "library"},
+   "steps": [{"press": "r1"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "tab/watch_later", "state": {"state": "invite", "zone": "tabs", "tab": "watch_later"}}
+  },
+  {
+   "name": "library-guest-sign-in",
+   "fixture": "d-guest",
+   "route": {"screen": "library", "argument": "playlists"},
+   "steps": [{"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "sign_in", "moving": 0}
+  },
+  {
+   "name": "library-guest-queue-empty",
+   "fixture": "d-guest",
+   "route": {"screen": "library", "argument": "queue"},
+   "expect": {"screen": "library", "focus": "tab/queue", "state": {"state": "empty"}}
+  },
+  {
+   "name": "library-offline",
+   "fixture": "d-offline",
+   "route": {"screen": "library", "argument": "watch_later"},
+   "expect": {"screen": "library", "focus": "kept/0", "state": {"state": "offline", "zone": "content", "tab": "watch_later"},
+              "asked": ["library:watch_later", "history", "favorites", "queue", "subscriptions"]}
+  },
+  {
+   "name": "library-offline-kept",
+   "fixture": "d-offline",
+   "route": {"screen": "library", "argument": "liked"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"wait": 0.5}],
+   "expect": {"screen": "library", "focus": "kept/2", "state": {"state": "offline"}}
+  },
+  {
+   "name": "library-offline-open-kept",
+   "fixture": "d-offline",
+   "route": {"screen": "library", "argument": "watch_later"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "favorites/0", "state": {"tab": "favorites", "state": "ready", "items": "5"}}
+  },
+  {
+   "name": "library-offline-console-lists",
+   "fixture": "d-signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "library"},
+   "expect": {"screen": "library", "focus": "tab/history", "state": {"state": "offline", "zone": "tabs"}}
+  },
+  {
+   "name": "library-failed",
+   "fixture": "d-offline",
+   "route": {"screen": "library", "argument": "playlists"},
+   "expect": {"screen": "library", "focus": "tab/playlists", "state": {"state": "failed", "zone": "tabs"}}
+  },
+  {
+   "name": "library-long-texts",
+   "fixture": "d-long-texts",
+   "route": {"screen": "library"},
+   "steps": [{"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "focus": "history/1", "state": {"state": "ready", "status": "1234567 videos · on this PS5", "watch_later": "123"}}
+  },
+  {
+   "name": "library-long-texts-playlists",
+   "fixture": "d-long-texts",
+   "route": {"screen": "library", "argument": "playlists"},
+   "expect": {"screen": "library", "focus": "playlists/0", "state": {"state": "ready", "items": "6"}}
+  },
+  {
+   "name": "library-reduced-motion",
+   "fixture": "d-signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "library"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "focus": "favorites/0", "state": {"tab": "favorites"}}
+  }
+ ]
+}
