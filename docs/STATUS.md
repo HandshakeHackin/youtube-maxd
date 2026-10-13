@@ -52,8 +52,15 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   language** preference. The player (controls, in-player menus, pickers,
   keyboard) stays English: its fonts hold no accented letters.
 - **Added 2026-10-13, host-tested only:** interface preferences per profile
-  (interface and grid scale, card text, colour schemes, the video actions
-  menu, Circle rules) and the drawn seek preview.
+  (interface and grid scale, card text, themes and classic colour schemes,
+  the video actions menu, Circle rules) and the drawn seek preview.
+- **Afterglow, approved 2026-10-13, in progress:** the interface of the
+  [proposal](afterglow/design-notes.md) is being built on the UI kit, and the
+  first release waits for all of its screens ([decision](DECISIONS.md)). So
+  far the browser has the **Theme** preference with the four Afterglow
+  palettes (Afterglow by default, Onyx, Daybreak, High contrast; contrast of
+  every text checked at 4.5:1 by `tests/test_ui_style.c`) and the new mark in
+  its header and on About. Host-tested only.
 - **Deferred:** the remaining interface options (buttons at the top of the
   main window, card previews, playlists as rows), a translated player,
   languages that need other fonts, shaping or right-to-left layout, auto

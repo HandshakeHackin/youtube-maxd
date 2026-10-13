@@ -139,15 +139,18 @@ next section lists the part that also ran on a PS5.
 - **Interface**, per profile: interface scale and video grid scale with
   SmartTube's values (the page holds more or fewer cards accordingly), one to
   four title lines, the selected card's long title scrolling at a chosen speed,
-  two-line subtitles, rounded or square cards, nine colour schemes (three of
-  them true black), which rows the video actions menu shows and in what order
+  two-line subtitles, rounded or square cards, a **Theme** (Afterglow by
+  default, Onyx on true black, the light Daybreak, or High contrast; the nine
+  earlier colour schemes, three of them true black, are listed under **Classic
+  colours**), which rows the video actions menu shows and in what order
   (in the browser and in the player), and what Circle does on the main menu:
   nothing, close after a second press, or close at once. **Search options**
   can ask for two presses of Circle to leave typed results.
-- A colour scheme colours the browser and lends its accent to the player
-  controls. **Player settings > Theme** (EVO's own, shared by every profile)
-  colours the keyboard, dialogs and player settings, and the player controls
-  while the scheme is **ProsperoTube**.
+- The theme colours the browser and lends its accent to the player controls.
+  **Player settings > Theme** (EVO's own, shared by every profile) colours the
+  keyboard, dialogs and player settings, and the player controls while the
+  theme is **Classic ProsperoTube**. A profile saved before the themes existed
+  opens in Afterglow unless it had chosen one of the classic schemes.
 - **Backup and restore** in `/data/prosperotube/backup` with an optional
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the
