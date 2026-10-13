@@ -247,7 +247,7 @@ struct Stats
     std::uint64_t rasterised = 0;   // glyphs drawn since the start
     std::uint64_t evicted = 0;      // glyphs dropped to make room
     std::uint64_t compactions = 0;  // full pages repacked
-    std::uint64_t overflows = 0;    // glyphs that found no room at all (atlas too small for one frame)
+    std::uint64_t overflows = 0;    // glyphs without room right after room was made: the atlas is too small for what a frame draws
     std::uint32_t queued = 0;       // glyphs waiting for a frame's budget
     std::uint32_t layouts = 0;      // shaped texts kept
     std::uint64_t layout_bytes = 0;
@@ -273,6 +273,8 @@ class Context
     Metrics measure(std::string_view text, const Style &style, const Constraints &constraints = {});
     // Lines of quads into *out (its vectors are reused). Glyphs new to the atlas are rasterised
     // within the frame's budget; the rest are counted in out->pending and take their place later.
+    // The quads are good until the next advance_frame(): no glyph moves in the atlas or leaves
+    // it while a frame is laid out. Lay texts out again every frame.
     void layout(std::string_view text, const Style &style, const Constraints &constraints, Layout *out);
     // The same, before the first frame: no budget (a loading screen warms the texts it knows).
     void prewarm(std::string_view text, const Style &style);
@@ -286,8 +288,9 @@ class Context
     // What changed in the atlas since the last advance_frame(). Call it after the frame's last
     // layout() and upload before drawing.
     const std::vector<AtlasUpdate> &atlas_updates();
-    // Once a frame, before its first layout(): starts a new budget, rasterises what the last
-    // frame queued, forgets the updates handed out.
+    // Once a frame, before its first layout(): makes room in the atlas when the last frame
+    // found none (the least recently used glyphs leave, others may move), starts a new budget,
+    // rasterises what the last frame queued, forgets the updates handed out.
     void advance_frame();
 
     int page_size() const;

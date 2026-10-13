@@ -75,11 +75,19 @@ class Atlas
     Atlas(int page_size, int max_pages);
 
     Placed *find(std::uint64_t key);
-    // Copies the image into a page. When every page is full, the page least in use is repacked:
-    // glyphs drawn this frame or the last stay; of the others the more recently used half stays
-    // (and no more than leaves the page half full), the rest are dropped. Null when even that
-    // leaves no room.
+    // Copies the image into a page. Null when every page is full: nothing moves while a frame is
+    // laid out, room is made by make_room() once it is over.
     Placed *insert(std::uint64_t key, const GlyphImage &image, std::uint32_t frame);
+    // True when insert() found no room since the last make_room().
+    bool wants_room() const
+    {
+        return wants_room_;
+    }
+    // Between two frames, when room was wanted: the page that `frame` (the one just over) used
+    // least is repacked. What that frame drew stays; of the rest the more recently used half
+    // stays (and no more than leaves the page half full), the others are dropped. Glyphs that
+    // stay may move, so quads handed out before are void. True when a page was repacked.
+    bool make_room(std::uint32_t frame);
 
     const std::vector<AtlasUpdate> &updates();
     void clear_updates();
@@ -134,7 +142,6 @@ class Atlas
     };
 
     bool place(int w, int h, int only_page, int *page, int *x, int *y);
-    bool make_room(int w, int h, std::uint32_t frame);
     void copy(const std::uint8_t *source, int w, int h, int page, int x, int y);
     void touch(int page, int x, int y, int w, int h);
 
@@ -144,6 +151,11 @@ class Atlas
     std::unordered_map<std::uint64_t, Placed> glyphs_;
     std::vector<AtlasUpdate> updates_;
     std::uint32_t placed_count_ = 0;
+    bool wants_room_ = false;
+    bool repacked_ = false; // by the last make_room()
+    bool stuck_ = false;    // the last make_room() found nothing that may leave
+    int wanted_w_ = 0;      // the largest glyph that found no room
+    int wanted_h_ = 0;
     std::uint64_t evicted_ = 0;
     std::uint64_t compactions_ = 0;
     std::uint64_t overflows_ = 0;

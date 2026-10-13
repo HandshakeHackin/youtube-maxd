@@ -280,6 +280,9 @@ struct Context::Impl
             placed->used = frame;
             return placed;
         }
+        // Once a glyph found no room, drawing more in this frame is work thrown away.
+        if (atlas.wants_room())
+            return nullptr;
         if (now)
             return draw(key, face, glyph, bucket, bold);
         if (within_budget())
@@ -490,13 +493,15 @@ const std::vector<AtlasUpdate> &Context::atlas_updates()
 void Context::advance_frame()
 {
     Impl &impl = *impl_;
+    impl.atlas.clear_updates();
+    // The frame is over and its quads are drawn: now glyphs may move and leave.
+    impl.atlas.make_room(impl.frame);
     ++impl.frame;
     impl.budget = impl.config.glyphs_per_frame;
     impl.frame_seconds = 0.0;
-    impl.atlas.clear_updates();
     // What the last frame could not draw comes first.
     std::size_t taken = 0;
-    while (taken < impl.queue.size() && impl.within_budget())
+    while (taken < impl.queue.size() && impl.within_budget() && !impl.atlas.wants_room())
     {
         const Impl::Wanted wanted = impl.queue[taken++];
         impl.queued.erase(wanted.key);

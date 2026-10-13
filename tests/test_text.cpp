@@ -1390,7 +1390,6 @@ void test_eviction()
     std::unique_ptr<Context> context = make(config);
     const Style style = at(28.0f);
     // Eight different letters a frame, from Latin, Greek and Cyrillic; and one word every frame.
-    // (What two frames in a row draw stays in the atlas: it must be well under a page.)
     const std::size_t per_frame = 8;
     std::u32string alphabet;
     for (char32_t c = 0x21; c < 0x7f; ++c)
@@ -1405,60 +1404,78 @@ void test_eviction()
     Layout hot_layout;
     std::vector<std::vector<std::uint8_t>> hot_pixels;
     std::uint64_t rasterised_for_hot = 0;
-    const int frames = static_cast<int>(alphabet.size() / per_frame);
-    for (int frame = 0; frame < frames; ++frame)
+    int waited = 0;
+    const int steps = static_cast<int>(alphabet.size() / per_frame);
+    for (int step = 0; step < steps; ++step)
     {
+        const std::string letters = utf8(alphabet.substr(static_cast<std::size_t>(step) * per_frame, per_frame));
         context->advance_frame();
         const std::uint64_t before = context->stats().rasterised;
-        const std::uint64_t repacked_before = context->stats().compactions;
         context->layout(hot, style, {}, &hot_layout);
         rasterised_for_hot += context->stats().rasterised - before;
-        context->layout(utf8(alphabet.substr(static_cast<std::size_t>(frame) * per_frame, per_frame)), style, {}, &layout);
-        // A repacked page is uploaded whole, a page that only gained glyphs is not.
-        bool whole = false;
-        for (const AtlasUpdate &update : context->atlas_updates())
-            whole = whole || (update.w == 256 && update.h == 256);
-        CHECK_EQ(whole, frame == 0 || context->stats().compactions != repacked_before);
-        // What a frame draws is there in that frame, whatever had to leave.
-        CHECK_EQ(layout.pending, 0);
         CHECK_EQ(hot_layout.pending, 0);
         CHECK_EQ(hot_layout.quads.size(), 3);
+        std::vector<std::vector<std::uint8_t>> handed_out;
+        for (const Quad &quad : hot_layout.quads)
+            handed_out.push_back(pixels_of(*context, quad));
+        if (step == 0)
+            hot_pixels = handed_out;
+        // The word in use every frame keeps its pixels through every repacking.
+        CHECK(handed_out == hot_pixels);
+        const std::uint64_t repacked = context->stats().compactions;
+        context->layout(letters, style, {}, &layout);
         check_quads(*context, layout);
-        // The layout of the hot word was made before the page was repacked: lay it out again to
-        // see where its glyphs are now, and compare their pixels with the first frame's.
-        context->layout(hot, style, {}, &hot_layout);
+        // Nothing moves and nothing is repacked while a frame is laid out: the quads handed out
+        // before the letters were drawn still show the same pixels.
+        CHECK_EQ(context->stats().compactions, repacked);
         for (std::size_t q = 0; q < hot_layout.quads.size(); ++q)
+            CHECK(pixels_of(*context, hot_layout.quads[q]) == handed_out[q]);
+        if (layout.pending != 0)
         {
-            const std::vector<std::uint8_t> pixels = pixels_of(*context, hot_layout.quads[q]);
-            if (frame == 0)
-                hot_pixels.push_back(pixels);
-            else
-                CHECK(pixels == hot_pixels[q]);
+            // The page was full: room is made between the frames, and the next frame has it all.
+            ++waited;
+            context->advance_frame();
+            CHECK_EQ(context->stats().compactions, repacked + 1);
+            bool whole = false;
+            for (const AtlasUpdate &update : context->atlas_updates())
+                whole = whole || (update.w == 256 && update.h == 256 && !update.created);
+            CHECK(whole); // a repacked page is uploaded whole
+            const std::uint64_t again = context->stats().rasterised;
+            context->layout(hot, style, {}, &hot_layout);
+            rasterised_for_hot += context->stats().rasterised - again;
+            for (std::size_t q = 0; q < hot_layout.quads.size(); ++q)
+                CHECK(pixels_of(*context, hot_layout.quads[q]) == hot_pixels[q]);
+            context->layout(letters, style, {}, &layout);
+            CHECK_EQ(layout.pending, 0);
+            check_quads(*context, layout);
         }
+        CHECK_EQ(layout.quads.size(), per_frame);
         const Stats stats = context->stats();
         CHECK_EQ(stats.pages, 1);
         CHECK_EQ(stats.atlas_bytes, 256 * 256);
     }
     const Stats stats = context->stats();
+    CHECK(waited >= 2);
+    CHECK_EQ(stats.compactions, waited);
     CHECK(stats.evicted > 50);
-    CHECK(stats.compactions >= 2);
     CHECK_EQ(stats.overflows, 0);
     CHECK(stats.glyphs < 80);
     CHECK_EQ(rasterised_for_hot, 3); // the word in use every frame was never drawn again
     // Least recently used leaves first: the last letters are still there, the first are not.
     context->advance_frame();
     std::uint64_t before = context->stats().rasterised;
-    context->layout(utf8(alphabet.substr(static_cast<std::size_t>(frames - 1) * per_frame, per_frame)), style, {}, &layout);
+    context->layout(utf8(alphabet.substr(static_cast<std::size_t>(steps - 1) * per_frame, per_frame)), style, {}, &layout);
     CHECK_EQ(context->stats().rasterised, before);
     context->layout(utf8(alphabet.substr(0, per_frame)), style, {}, &layout);
-    CHECK_EQ(context->stats().rasterised, before + per_frame);
+    CHECK(context->stats().rasterised > before);
 
-    // More in one frame than the page can hold: the rest waits, nothing breaks, the bound holds.
+    // More in one frame than the page can hold: the rest waits, nothing breaks, the bound holds,
+    // and the count of glyphs that found no room even after room was sought says so.
     std::unique_ptr<Context> small = make(config);
     small->advance_frame();
     small->layout(utf8(alphabet), style, {}, &layout);
     CHECK(layout.pending > 50);
-    CHECK(small->stats().overflows > 50);
+    CHECK_EQ(small->stats().overflows, 0);
     CHECK_EQ(small->stats().pages, 1);
     CHECK_EQ(small->stats().atlas_bytes, 256 * 256);
     check_quads(*small, layout);
@@ -1468,19 +1485,28 @@ void test_eviction()
         small->layout(utf8(alphabet), style, {}, &layout);
         CHECK(layout.pending > 50);
         CHECK(layout.quads.size() > 20);
+        CHECK_EQ(small->stats().overflows, frame + 1);
     }
+    CHECK_EQ(small->stats().compactions, 0);
     // Two pages are two pages, never three.
     config.max_pages = 2;
     std::unique_ptr<Context> two = make(config);
-    for (int frame = 0; frame < frames; ++frame)
+    for (int step = 0; step < steps; ++step)
     {
+        const std::string letters = utf8(alphabet.substr(static_cast<std::size_t>(step) * per_frame, per_frame));
         two->advance_frame();
-        two->layout(utf8(alphabet.substr(static_cast<std::size_t>(frame) * per_frame, per_frame)), style, {}, &layout);
+        two->layout(letters, style, {}, &layout);
+        if (layout.pending != 0)
+        {
+            two->advance_frame();
+            two->layout(letters, style, {}, &layout);
+        }
         CHECK_EQ(layout.pending, 0);
     }
     CHECK_EQ(two->stats().pages, 2);
     CHECK_EQ(two->stats().atlas_bytes, 2 * 256 * 256);
     CHECK(two->stats().evicted > 0);
+    CHECK_EQ(two->stats().overflows, 0);
 }
 
 void test_layout_cache()

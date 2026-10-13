@@ -474,12 +474,22 @@ bool Atlas::place(int w, int h, int only_page, int *page, int *x, int *y)
     return false;
 }
 
-bool Atlas::make_room(int w, int h, std::uint32_t frame)
+bool Atlas::make_room(std::uint32_t frame)
 {
+    repacked_ = false;
+    if (!wants_room_)
+    {
+        stuck_ = false;
+        return false;
+    }
+    wants_room_ = false;
+    stuck_ = true; // until a page is repacked below
     const std::uint64_t page_area = static_cast<std::uint64_t>(size_) * static_cast<std::uint64_t>(size_);
-    const std::uint64_t wanted = static_cast<std::uint64_t>(w + 1) * static_cast<std::uint64_t>(h + 1);
+    const std::uint64_t wanted = static_cast<std::uint64_t>(wanted_w_ + 1) * static_cast<std::uint64_t>(wanted_h_ + 1);
+    wanted_w_ = 0;
+    wanted_h_ = 0;
     const auto area = [](const Placed &g) { return static_cast<std::uint64_t>(g.w + 1) * static_cast<std::uint64_t>(g.h + 1); };
-    const auto in_use = [frame](const Placed &g) { return g.used + 1 >= frame; };
+    const auto in_use = [frame](const Placed &g) { return g.used >= frame; };
     std::vector<std::uint64_t> held(pages_.size(), 0);
     for (const auto &entry : glyphs_)
         if (entry.second.page != 0xffff && in_use(entry.second))
@@ -502,7 +512,7 @@ bool Atlas::make_room(int w, int h, std::uint32_t frame)
             std::size_t offset; // of its pixels in the copy
         };
         std::vector<Kept> on_page;
-        std::uint64_t idle_area = 0; // of the glyphs no recent frame drew
+        std::uint64_t idle_area = 0; // of the glyphs the frame did not draw
         for (auto &entry : glyphs_)
         {
             if (entry.second.page != victim)
@@ -575,6 +585,8 @@ bool Atlas::make_room(int w, int h, std::uint32_t frame)
             copy(saved.data() + kept.offset, kept.glyph->w, kept.glyph->h, victim, x, y);
         }
         ++compactions_;
+        repacked_ = true;
+        stuck_ = false;
         return true;
     }
     return false;
@@ -599,11 +611,14 @@ Placed *Atlas::insert(std::uint64_t key, const GlyphImage &image, std::uint32_t 
     int y = 0;
     if (!place(image.w, image.h, -1, &page, &x, &y))
     {
-        if (!make_room(image.w, image.h, frame) || !place(image.w, image.h, -1, &page, &x, &y))
-        {
-            ++overflows_;
-            return nullptr;
-        }
+        // No glyph moves or leaves while a frame is laid out (its quads are already handed
+        // out): room is made when the frame is over, and this glyph is drawn in the next.
+        wants_room_ = true;
+        wanted_w_ = std::max(wanted_w_, image.w);
+        wanted_h_ = std::max(wanted_h_, image.h);
+        if (repacked_ || stuck_)
+            ++overflows_; // room was made for this very frame, or could not be: the atlas is too small
+        return nullptr;
     }
     copy(image.pixels.data(), image.w, image.h, page, x, y);
     Placed placed;
