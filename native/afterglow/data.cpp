@@ -25,14 +25,14 @@ struct ShelfPlan
     std::size_t limit; // cards kept from the first page
 };
 constexpr ShelfPlan kSignedIn[] = {
-    {"continue", "Continue watching", "history", model::ShelfKind::videos, 12},
-    {"recommended", "Recommended", "library:home", model::ShelfKind::videos, 16},
-    {"subscriptions", "From your subscriptions", "library:subscriptions", model::ShelfKind::videos, 16},
+    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
+    {"recommended", tr_mark("Recommended"), "library:home", model::ShelfKind::videos, 16},
+    {"subscriptions", tr_mark("From your subscriptions"), "library:subscriptions", model::ShelfKind::videos, 16},
 };
 constexpr ShelfPlan kGuest[] = {
-    {"topics", "Browse by topic", "discover", model::ShelfKind::topics, 16},
-    {"continue", "Continue watching", "history", model::ShelfKind::videos, 12},
-    {"trending", "Trending", "section:trending", model::ShelfKind::videos, 16},
+    {"topics", tr_mark("Browse by topic"), "discover", model::ShelfKind::topics, 16},
+    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
+    {"trending", tr_mark("Trending"), "section:trending", model::ShelfKind::videos, 16},
 };
 
 unsigned language()

@@ -171,6 +171,14 @@ std::string duration_text(int seconds);
 // one line.
 void video_card(G &g, const Rect &r, const model::Video &video, const Picture &picture, float focus, float alpha,
                 int text = 1);
+// A topic's tile: two colours of its own, its icon and its name. focus is 0..1.
+void topic_tile(G &g, const Rect &r, const model::Topic &topic, float focus, float alpha);
+// A picture that dissolves into the page on its left and lower sides: fade_w
+// pixels on the left, everything below solid_h. The hero of a page.
+void faded_picture(gfx::DrawList &list, const Picture &picture, const Rect &r, float alpha, float fade_w, float solid_h);
+// The bones of something that is loading, breathing a little. index offsets
+// the breath so that neighbours do not pulse together.
+void bone(G &g, const Rect &r, float radius, int index = 0);
 // A QR code for text (version 2 to 6, byte mode, level M), drawn from squares.
 void qr_code(G &g, const Rect &r, std::string_view text, Color dark, Color light);
 // The app mark: the tube seen end on, with the afterglow in it. amount draws it in.

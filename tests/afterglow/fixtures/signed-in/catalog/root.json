@@ -1,0 +1,75 @@
+{
+ "items": [
+  {
+   "id": "discover",
+   "title": "Discover",
+   "subtitle": "Search public videos by topic",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "history",
+   "title": "Continue watching & history",
+   "subtitle": "Stored on this PS5",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "favorites",
+   "title": "Favorites",
+   "subtitle": "Your local saved videos",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "queue",
+   "title": "Play queue",
+   "subtitle": "R2 on a video to add or remove",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "subscriptions",
+   "title": "Followed channels",
+   "subtitle": "Local follows, independent of Google accounts",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "channel:UCfixture000000000000000",
+   "title": "Northlight Atlas",
+   "subtitle": "Pinned channel; Touchpad for actions",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "channel:UCfixture000000000000004",
+   "title": "Nacre Sound",
+   "subtitle": "Pinned channel; Touchpad for actions",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "settings",
+   "title": "YouTube preferences",
+   "subtitle": "Quality, codec, captions and SponsorBlock",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "app:settings",
+   "title": "Player settings",
+   "subtitle": "Display, audio and controller preferences",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "app:exit",
+   "title": "Close ProsperoTube",
+   "subtitle": "Release playback, then close from the PS5 switcher",
+   "is_folder": true,
+   "interface": true
+  }
+ ],
+ "has_more": false
+}

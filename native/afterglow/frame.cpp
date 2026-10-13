@@ -100,13 +100,13 @@ Frame::~Frame()
 void Frame::rail_destinations()
 {
     destinations_ = {
-        {Icon::home, "Home", ScreenId::home, 300.0f},
-        {Icon::search, "Search", ScreenId::search, 384.0f},
-        {Icon::subs, "Subscriptions", ScreenId::subscriptions, 468.0f},
-        {Icon::library, "Library", ScreenId::library, 552.0f},
-        {Icon::bell, "Notifications", ScreenId::notifications, 636.0f},
-        {Icon::settings, "Settings", ScreenId::settings, 884.0f},
-        {Icon::user, "Switch profile", ScreenId::accounts, 980.0f},
+        {Icon::home, tr_mark("Home"), ScreenId::home, 300.0f},
+        {Icon::search, tr_mark("Search"), ScreenId::search, 384.0f},
+        {Icon::subs, tr_mark("Subscriptions"), ScreenId::subscriptions, 468.0f},
+        {Icon::library, tr_mark("Library"), ScreenId::library, 552.0f},
+        {Icon::bell, tr_mark("Notifications"), ScreenId::notifications, 636.0f},
+        {Icon::settings, tr_mark("Settings"), ScreenId::settings, 884.0f},
+        {Icon::user, tr_mark("Switch profile"), ScreenId::accounts, 980.0f},
     };
 }
 

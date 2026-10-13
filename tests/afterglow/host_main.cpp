@@ -336,6 +336,7 @@ void check_frame(const Frame &frame, const gfx::DrawList &world, const gfx::Draw
         }
     }
     int stray = 0;
+    char where[96] = "";
     for (const gfx::DrawList *list : {&world, &ui})
     {
         for (const gfx::Run &run : list->runs())
@@ -365,13 +366,16 @@ void check_frame(const Frame &frame, const gfx::DrawList &world, const gfx::Draw
                 if (x1 < 6.0f || y1 < 6.0f || x0 > gfx::kVirtualWidth - 6.0f || y0 > gfx::kVirtualHeight - 6.0f)
                     continue; // wholly outside: a screen on its way in or out
                 if (x0 < -6.0f || y0 < -6.0f || x1 > gfx::kVirtualWidth + 6.0f || y1 > gfx::kVirtualHeight + 6.0f)
-                    ++stray;
+                {
+                    if (stray++ == 0)
+                        std::snprintf(where, sizeof where, " (the first at %.0f,%.0f, %.0f x %.0f)", x0, y0, x1 - x0, y1 - y0);
+                }
             }
         }
     }
     ++results.checks;
     if (stray > 0)
-        fail(results, board, look, std::to_string(stray) + " glyphs cross the edge of the screen");
+        fail(results, board, look, std::to_string(stray) + " glyphs cross the edge of the screen" + where);
     ++results.checks;
     if (world.instances().size() + ui.instances().size() < 8)
         fail(results, board, look, "the page is almost empty");
@@ -575,7 +579,16 @@ int main(int argc, char **argv)
                         platform.pump();
                         frame.update(i == 0 ? first : InputFrame{}, kDt);
                         if (reel != nullptr)
+                        {
                             present(true);
+                        }
+                        else
+                        {
+                            // Every frame is drawn, as in the app: pictures are asked for by drawing them.
+                            world.clear();
+                            ui.clear();
+                            frame.draw(world, ui, renderer.glass_texture());
+                        }
                     }
                 };
                 run(static_cast<float>(number_of(board, "settle", 1.5)), InputFrame{});

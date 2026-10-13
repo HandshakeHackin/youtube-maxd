@@ -1,0 +1,169 @@
+{
+ "about": "Home: the opening moment, signed in (hero, Continue watching, Recommended, From your subscriptions), Guest (topics, Trending, the invitation), the rail, attract mode, and the page while it loads, is empty or offline.",
+ "boards": [
+  {
+   "name": "home-opening",
+   "fixture": "signed-in",
+   "opening": true,
+   "source": {"hold": true},
+   "settle": 1.5,
+   "expect": {"screen": "opening", "focus": "opening"}
+  },
+  {
+   "name": "home-opening-leaves",
+   "fixture": "signed-in",
+   "opening": true,
+   "settle": 4.2,
+   "expect": {"screen": "home", "moving": 0, "focus": "continue/0"}
+  },
+  {
+   "name": "home-signed-in",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "expect": {"screen": "home", "focus": "continue/0", "rail_open": 0,
+              "state": {"load": "ready", "profile": "account", "shelves": "3", "row": "continue", "invite": "0",
+                        "hero": "Seven Days Alone on the Ridge Line — A Silent Hiking Film"},
+              "asked": ["history", "library:home", "library:subscriptions", ""]}
+  },
+  {
+   "name": "home-third-card",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "continue/2", "state": {"hero": "I Rebuilt a Whole City in One Weekend (No Mods)"}}
+  },
+  {
+   "name": "home-second-shelf",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "recommended/1", "state": {"row": "recommended"}}
+  },
+  {
+   "name": "home-third-shelf",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "subscriptions/0", "state": {"row": "subscriptions"}}
+  },
+  {
+   "name": "home-end-of-shelf",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "continue/5"}
+  },
+  {
+   "name": "home-rail-open",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "left"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "rail/home", "rail_open": 1}
+  },
+  {
+   "name": "home-play",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "cross"}],
+   "expect": {"screen": "home", "played": "vid09xxxxxx"}
+  },
+  {
+   "name": "home-details",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "triangle"}, {"wait": 0.9}],
+   "expect": {"screen": "video", "moving": 0, "state": {"argument": "vid00xxxxxx"}}
+  },
+  {
+   "name": "home-back-from-details",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "triangle"}, {"wait": 0.9}, {"press": "circle"}, {"wait": 0.9}],
+   "expect": {"screen": "home", "focus": "continue/1", "moving": 0}
+  },
+  {
+   "name": "home-attract",
+   "fixture": "signed-in",
+   "attract_after": 2.5,
+   "settle": 6.0,
+   "expect": {"screen": "home", "attract": 1}
+  },
+  {
+   "name": "home-attract-ends",
+   "fixture": "signed-in",
+   "attract_after": 2.5,
+   "settle": 6.0,
+   "steps": [{"press": "right"}, {"wait": 1.6}],
+   "expect": {"screen": "home", "attract": 0, "focus": "continue/0"}
+  },
+  {
+   "name": "home-guest",
+   "fixture": "guest",
+   "settle": 2.0,
+   "expect": {"screen": "home", "focus": "topics/0",
+              "state": {"load": "ready", "profile": "guest", "shelves": "2", "row": "topics", "invite": "1"},
+              "asked": ["discover", "history", "section:trending"]}
+  },
+  {
+   "name": "home-guest-trending",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "trending/1", "state": {"row": "trending"}}
+  },
+  {
+   "name": "home-guest-topic-opens",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "grid", "state": {"argument": "section:gaming"}}
+  },
+  {
+   "name": "home-guest-sign-in",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "options"}, {"wait": 0.8}],
+   "expect": {"screen": "sign_in"}
+  },
+  {
+   "name": "home-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "expect": {"screen": "home", "focus": "loading", "state": {"load": "loading", "shelves": "0"}}
+  },
+  {
+   "name": "home-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "settle": 2.0,
+   "expect": {"screen": "home", "focus": "offline", "state": {"load": "offline", "shelves": "0"}}
+  },
+  {
+   "name": "home-empty",
+   "fixture": "empty",
+   "settle": 2.0,
+   "expect": {"screen": "home", "focus": "empty", "state": {"load": "ready", "shelves": "0"}}
+  },
+  {
+   "name": "home-long-texts",
+   "fixture": "long-texts",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "recommended/0"}
+  },
+  {
+   "name": "home-reel",
+   "reel": true,
+   "fixture": "signed-in",
+   "opening": true,
+   "attract_after": 4.0,
+   "settle": 5.0,
+   "steps": [{"press": "right", "wait": 0.9}, {"press": "right", "wait": 0.9}, {"press": "right", "wait": 1.2}, {"press": "down", "wait": 1.2},
+             {"press": "right", "wait": 0.9}, {"press": "right", "wait": 1.2}, {"press": "down", "wait": 1.4}, {"press": "up", "wait": 0.9},
+             {"press": "up", "wait": 1.2}, {"press": "left", "wait": 0.5}, {"press": "left", "wait": 0.5}, {"press": "left", "wait": 0.5},
+             {"press": "left", "wait": 1.2}, {"press": "down", "wait": 0.5}, {"press": "down", "wait": 0.5}, {"press": "up", "wait": 0.5},
+             {"press": "up", "wait": 0.6}, {"press": "right", "wait": 1.0}, {"wait": 11.0}, {"press": "right", "wait": 1.6}],
+   "expect": {"screen": "home"}
+  }
+ ]
+}

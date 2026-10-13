@@ -1,0 +1,110 @@
+{
+ "items": [
+  {
+   "id": "library:home",
+   "title": "Home recommendations",
+   "subtitle": "What YouTube recommends to this profile",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "library",
+   "title": "Accounts & library",
+   "subtitle": "Profiles, subscriptions, history and playlists",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "search:science",
+   "title": "Science",
+   "subtitle": "Explore science videos",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "search:technology",
+   "title": "Technology",
+   "subtitle": "Explore technology videos",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:gaming",
+   "title": "Gaming",
+   "subtitle": "YouTube gaming shelves",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:news",
+   "title": "News",
+   "subtitle": "YouTube news shelves",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:music",
+   "title": "Music",
+   "subtitle": "YouTube music shelves",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "search:documentary",
+   "title": "Documentaries",
+   "subtitle": "Explore documentaries",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "search:education",
+   "title": "Learning",
+   "subtitle": "Explore educational videos",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:sports",
+   "title": "Sports",
+   "subtitle": "YouTube sports shelves",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:live",
+   "title": "Live",
+   "subtitle": "YouTube live shelves",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:movies",
+   "title": "Movies",
+   "subtitle": "YouTube movies and shows",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:trending",
+   "title": "Trending",
+   "subtitle": "Videos trending on YouTube",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:shorts",
+   "title": "Shorts",
+   "subtitle": "Short videos from YouTube",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "section:kids",
+   "title": "Kids",
+   "subtitle": "YouTube Kids categories",
+   "is_folder": true,
+   "interface": true
+  }
+ ],
+ "has_more": false
+}

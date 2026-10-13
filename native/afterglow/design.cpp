@@ -680,6 +680,58 @@ void video_card(G &g, const Rect &r, const model::Video &video, const Picture &p
     g.l.pop_opacity();
 }
 
+void topic_tile(G &g, const Rect &r, const model::Topic &topic, float focus, float alpha)
+{
+    if (alpha <= 0.01f)
+        return;
+    const float f = tween::clamp01(focus);
+    const Tint tint = tint_of(topic.id);
+    g.l.push_opacity(tween::clamp01(alpha));
+    if (f > 0.01f)
+        g.l.shadow({r.x, r.y + 18.0f, r.w, r.h}, 20.0f, 36.0f, kBlack.with_alpha(0.5f * f));
+    const float dim = 0.5f + 0.3f * f;
+    g.l.gradient_rect(r, 20.0f, Color{tint.top.r * dim, tint.top.g * dim, tint.top.b * dim, 1.0f},
+                      Color{tint.bottom.r * dim * 0.7f, tint.bottom.g * dim * 0.7f, tint.bottom.b * dim * 0.7f, 1.0f});
+    g.l.gradient_rect(r, 20.0f, kBlack.with_alpha(0.05f), kBlack.with_alpha(0.5f));
+    g.l.bordered_rect(r, 20.0f, clear(), 1.5f, kWhite.with_alpha(0.14f));
+    icon(g, icon_by_name(topic.icon), r.x + 36.0f, r.y + 38.0f, 32.0f, kWhite);
+    text(g, g.f.semibold, fit(g.f.semibold, topic.title, 27.0f, r.w - 36.0f), r.x + 20.0f, r.y + r.h - 22.0f, 27.0f, kWhite);
+    g.l.pop_opacity();
+}
+
+// The kit tints an image top to bottom, not left to right, so the left side is
+// built from columns of rising opacity. They are 12 pixels wide so that their
+// edges fall on whole pixels at 720p, 1080p and 4K alike.
+void faded_picture(gfx::DrawList &list, const Picture &picture, const Rect &r, float alpha, float fade_w, float solid_h)
+{
+    if (alpha <= 0.004f || !picture.ready())
+        return;
+    const Rect uv = picture.cover(r.w / r.h);
+    const auto column = [&](float x0, float x1, float a)
+    {
+        const float u0 = uv.x + (x0 - r.x) / r.w * uv.w;
+        const float u1 = uv.x + (x1 - r.x) / r.w * uv.w;
+        const float v = solid_h / r.h;
+        list.image(picture.texture, {x0, r.y, x1 - x0, solid_h}, {u0, uv.y, u1 - u0, uv.h * v}, Color{1.0f, 1.0f, 1.0f, a});
+        if (solid_h < r.h)
+            list.image_gradient(picture.texture, {x0, r.y + solid_h, x1 - x0, r.h - solid_h},
+                                {u0, uv.y + uv.h * v, u1 - u0, uv.h * (1.0f - v)}, Color{1.0f, 1.0f, 1.0f, a},
+                                Color{1.0f, 1.0f, 1.0f, 0.0f});
+    };
+    constexpr float kStrip = 12.0f;
+    const int strips = static_cast<int>(fade_w / kStrip);
+    for (int i = 0; i < strips; ++i)
+        column(r.x + static_cast<float>(i) * kStrip, r.x + static_cast<float>(i + 1) * kStrip,
+               alpha * tween::smoothstep((static_cast<float>(i) + 0.5f) / static_cast<float>(strips)));
+    column(r.x + static_cast<float>(strips) * kStrip, r.x + r.w, alpha);
+}
+
+void bone(G &g, const Rect &r, float radius, int index)
+{
+    const float breath = g.reduced ? 0.7f : 0.55f + 0.45f * ui::breathe(g.time + 0.13f * static_cast<float>(index), 1.7f);
+    g.l.rounded_rect(r, radius, g.k.raised.with_alpha(g.k.raised.a * breath));
+}
+
 void qr_code(G &g, const Rect &r, std::string_view value, Color dark, Color light)
 {
     tube_qr_code code;

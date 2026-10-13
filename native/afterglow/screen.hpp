@@ -224,6 +224,13 @@ class Screen
     {
         return true;
     }
+    // How much of the frame's furniture (rail, title, clock, hints) shows over
+    // this screen, 0..1: a screen that takes the whole picture for a while
+    // (attract mode) fades it out.
+    virtual float furniture() const
+    {
+        return 1.0f;
+    }
     // Attract mode: the frame calls this with true after kAttractAfter seconds
     // without input and with false at the next input. A screen that has no
     // attract mode keeps the default.

@@ -57,5 +57,13 @@ inline const Color kBlack = Color::rgb(0x000000);
 // language changes (strings.cpp). Texts that come from YouTube are not passed
 // through here.
 const char *tr(const char *english);
+// Marks a text for the catalogs where it is not passed to tr() on the spot
+// (a table of labels): the text itself, shown later through tr().
+constexpr const char *tr_mark(const char *english)
+{
+    return english;
+}
+// A translated pattern with its values: fill(tr("{0} min left"), "12").
+std::string fill(std::string_view pattern, std::string_view first, std::string_view second = {});
 
 } // namespace afterglow

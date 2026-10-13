@@ -122,6 +122,8 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
     platform_.wall_clock(&hour, &minute);
     char clock[8];
     std::snprintf(clock, sizeof clock, "%02d:%02d", hour % 24, minute % 60);
+    if (!k.dark)
+        glass_panel(g, {kRight - 118.0f, 68.0f, 136.0f, 52.0f}, 26.0f); // a light page may have a dark picture up there
     text(g, g.f.display, clock, kRight, 104.0f, 28.0f, k.ink.with_alpha(0.9f), gfx::Align::right);
     g.l.pop_opacity();
 }
@@ -246,7 +248,7 @@ void Frame::draw_screen(const Entry &entry, DrawContext &dc, const Phase &phase)
 {
     entry.screen->draw(dc, phase);
     G g = dc.g();
-    const float alpha = tween::clamp01(phase.in) * (1.0f - tween::clamp01(phase.out));
+    const float alpha = tween::clamp01(phase.in) * (1.0f - tween::clamp01(phase.out)) * tween::clamp01(entry.screen->furniture());
     if (entry.screen->shows_rail())
     {
         draw_header(g, entry, alpha);
@@ -293,7 +295,13 @@ void Frame::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass)
     if (top.screen->shows_rail() || (change_.running && outgoing_ != nullptr && outgoing_->screen->shows_rail()))
     {
         G g = dc.g();
-        draw_rail(g, rail_arrive);
+        const float shown = tween::clamp01(top.screen->furniture());
+        if (shown > 0.01f)
+        {
+            g.l.push_opacity(shown);
+            draw_rail(g, rail_arrive);
+            g.l.pop_opacity();
+        }
     }
     ui::Canvas canvas{ui, fonts_, glass, clock_};
     toasts_.draw(canvas);
