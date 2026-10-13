@@ -56,7 +56,8 @@ with tempfile.TemporaryDirectory(prefix="tube-release-") as directory:
 workflow = (ROOT / ".github/workflows/build.yml").read_text()
 trigger = workflow[workflow.index("\non:\n"):workflow.index("\npermissions:")]
 # Pushes build nothing but version tags; pull requests and a manual run build.
-assert "branches" not in trigger and "pull_request:" in trigger and "workflow_dispatch:" in trigger
+# Pull request builds stay off until a manual run has filled the toolchain caches.
+assert "branches" not in trigger and "pull_request:" not in trigger and "workflow_dispatch:" in trigger
 assert re.findall(r'^\s+- "(.+)"$', trigger, re.M) == ["v[0-9][0-9].[0-9][0-9][0-9].[0-9][0-9][0-9]"]
 assert "schedule" not in trigger
 uses = re.findall(r"uses: (\S+)", workflow)
