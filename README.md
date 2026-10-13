@@ -86,6 +86,10 @@ next section lists the part that also ran on a PS5.
 - Seeking with three confirmation modes and ten intervals, chapters, video
   sizing, zoom, aspect, rotation and mirror, three time displays, a sleep timer,
   volume up to 300%, auto volume and audio delay.
+- **Preview while seeking** (off by default; single frame or a carousel of five):
+  the thumbnail of the seek target above the seek bar with its time, from
+  YouTube's storyboard sheets. A sheet is fetched once the target rests on it,
+  and at most four are kept in memory. Host-tested only.
 - Local history with resume positions, favorites, followed channels and an
   ordered play queue, all per profile; seven end-of-video modes; **Next** and
   **Previous** keep the playlist position; unavailable videos in a queue are
@@ -221,7 +225,6 @@ password need a signed-in account. Their rows end in
 - The remaining SmartTube interface options (buttons at the top of the main
   window, card previews, playlists as rows); [docs/PARITY.md](docs/PARITY.md)
   tracks each.
-- Drawn thumbnails while seeking.
 - Update check and self-update.
 - Playing videos that need the account itself (age-restricted, private,
   members-only, purchased): a signed-in profile resolves videos as Guest does.
