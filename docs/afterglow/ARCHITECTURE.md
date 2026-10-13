@@ -744,10 +744,46 @@ provider does not have is not drawn. A screen file past about 800 lines is
 split by its parts at merge. Generators of fixtures and boards live in
 `tests/afterglow/tools/`.
 
-**Open for the frame owner**, in order: merge the packages (F, E, A, D, then B
-and C) with the shared pieces above; the catalogs (`tr()` and `tr_mark()` of
-`native/afterglow` into `scripts/i18n_extract.py`, then 21 languages); the
-console session driver for the snapshot of section 12a; sounds; the
+**Open for the frame owner.** This list is kept current after every
+milestone, so that the work can be continued from this document alone.
+
+*Done (I1, the merge).* The six packages are merged (F, E, A, D, B, C, each
+with a merge commit); `scripts/test_afterglow.sh` passes 505 boards in the
+four looks. What the merge decided:
+
+- Fixture sets shared by several packages keep one `profile.json`: `signed-in`
+  and `long-texts` are the accounts screens' (their catalogs name the profile
+  id), `empty` is a Guest. A board that shows a set to somebody else says so
+  itself: `"profile": {"id": ..., "name": ..., "guest": ..., "signed_in": ...}`.
+- `signed-in/library_subscriptions` is the subscriptions screen's list (Home's
+  third shelf reads the same file); `guest/section_trending` is Home's.
+- Acting rows `account:apply:<n>` are numbered per package: accounts 7,
+  channel family 8 to 10, 17, 20 and up, 60 and up; take a free number.
+- A board that follows a route into another package's page checks the screen
+  and the snapshot's top-level `argument` (the top route's argument), not that
+  page's focus.
+- The frame's own boards run around the reader, the simplest built page.
+- The generators are in `tests/afterglow/tools/` (`fixtures_<family>.py
+  tests/afterglow/fixtures`, `boards_settings.py <file>`); each reproduces the
+  committed files exactly. Change a fixture there, not by hand. Home's own
+  sets, `probe` and `scripts` have no generator.
+- The check: painted pictures are kept across boards and the four looks run
+  as four processes on one build (about three minutes in all);
+  `scripts/afterglow_host.sh --run-only` runs without building. `--lang <tag>`
+  shows a text the catalog lacks in English and counts it; `--strict-lang`
+  fails on it.
+
+*Next, in order.* The shared pieces of the table above, built once, and every
+screen switched from its `// REQUEST:` stand-in; the rules below applied
+(preference lists, the Accounts tile, oversized files); Home's Square as Watch
+later; `tr()`, `tr_mark()` and `tr_n()` of `native/afterglow` into
+`scripts/i18n_extract.py` (the 21 catalogs are filled by a separate worker
+from the template); `scripts/test_all.sh`, the PS5 package, pictures of every
+screen in the four looks beside their approved boards.
+
+*Not the frame owner's any more (other worktrees):* the console session driver
+(`tools/console`), sounds and vibration (`native/afterglow/sound`), the player
+on the kit (`native/afterglow/player`). *Still open after this stage:* the
 one-channel glyph pages and the blur on the AGC batch.
 
 ## 12. What is left, as work packages
