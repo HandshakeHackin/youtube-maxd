@@ -92,6 +92,7 @@ static const char *stored(const char *key) {
 }
 static const char *none = "{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[],\"has_more\":false}}";
 /* The one pending request is a job for the service at `port`, carrying `token`. */
+static int service_accounts;   /* the stand-in service lists sign-in, as the real one does */
 static void sent_to_service(unsigned port, const char *token) {
     char prefix[64], header[128];
     snprintf(prefix, sizeof prefix, "http://127.0.0.1:%u/v1/", port);
@@ -99,7 +100,10 @@ static void sent_to_service(unsigned port, const char *token) {
     assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
     if (strstr(pending[0].url, "/v1/health")) {   /* asked once per start, before the first job, with the token */
         assert(!strcmp(pending[0].method, "GET") && strstr(pending[0].headers, header));
-        reply(0, 1, 200, "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"features\":[\"search\",\"channels\","
+        reply(0, 1, 200, service_accounts ?
+              "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"account_playback\":false,\"features\":[\"search\","
+              "\"channels\",\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"device_auth\",\"embedded\"]}" :
+              "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"features\":[\"search\",\"channels\","
               "\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"embedded\"]}");
         assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
     }
@@ -146,6 +150,9 @@ int main(void) {
     assert(!strcmp(p->get_source(), "http://127.0.0.1:23456") && !*tube_embedded_error());
     assert(service_sponsorblock);   /* segments, when the user turns them on, are answered by the service */
     assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && find("settings:service-retry") < 0);
+    /* Before the service said what it offers, the account rows are there: the service the app carries has sign-in. */
+    p->list_catalog("library", 0, items_cb, NULL);
+    assert(last_ok && !pending_count && find("auth:start") >= 0 && find("library:profiles") >= 0 && find("account:notice") < 0);
     assert(p->search("cats", 0, items_cb, NULL) == 0);
     sent_to_service(23456, TOKEN_A);
     assert(service_starts == 1);          /* running: the request did not start it again */
@@ -159,7 +166,7 @@ int main(void) {
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL); assert(last_ok);
     assert(!strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 
-    /* Accounts are not offered: no sign-in, no profile or account rows, one explanation; Home stays. */
+    /* A service that does not list sign-in (an older service bundle): no sign-in, no profile or account rows, one explanation; Home stays. */
     p->list_catalog("discover", 0, items_cb, NULL);
     assert(last_ok && find("library") >= 0 && !strcmp(last_items[find("library")].title, "Accounts") &&
            strstr(last_items[find("library")].subtitle, "later version") && !strstr(last_items[find("library:home")].subtitle, "ompanion"));
@@ -238,9 +245,20 @@ int main(void) {
     assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && find("settings:service-retry") < 0);   /* local rows still list */
     assert(!strcmp(stored("source"), "http://192.168.1.50:8765"));
     /* A resume starts it again. */
+    service_accounts = 1;
     assert(tube_embedded_start() && service_starts == starts + 1 && !strcmp(p->get_source(), "http://127.0.0.1:23456"));
     assert(p->search("birds", 0, items_cb, NULL) == 0); sent_to_service(23456, TOKEN_B);
     poll_job(none); assert(last_ok);
+    /* The service lists sign-in: accounts, profiles and the account rows are offered, in this console's words. */
+    p->list_catalog("discover", 0, items_cb, NULL);
+    assert(last_ok && find("library") >= 0 && strcmp(last_items[find("library")].title, "Accounts") && !strstr(last_items[find("library")].subtitle, "later version"));
+    p->list_catalog("library", 0, items_cb, NULL);
+    assert(last_ok && !pending_count && find("account:notice") < 0 && find("auth:start") >= 0 && find("library:profiles") >= 0 &&
+           find("library:subscriptions") >= 0 && find("library:history") >= 0 && find("library:watch_later") >= 0 && find("library:playlists") >= 0 &&
+           find("library:channels") >= 0 && find("library:notifications") >= 0 && find("section:my_videos") >= 0);
+    assert(strstr(last_items[find("library:profiles")].subtitle, "signed in on this PS5"));
+    for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion"));
+    assert(!settings_has("settings:remote"));   /* phone linking is still not offered */
     p->shutdown();
     assert(service_stops == 2 && !strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 

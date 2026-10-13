@@ -1702,11 +1702,17 @@ enum { COMPANION_LOCALE = 1, COMPANION_THUMBNAILS = 2, COMPANION_FILTERS = 4, CO
        COMPANION_TRANSLATED = 64, COMPANION_DETAILS = 128, COMPANION_IMPORT = 256, COMPANION_KIDS = 512,
        COMPANION_REMINDER = 1024, COMPANION_PLAYLIST_ORDER = 2048, COMPANION_NOTIFICATIONS = 4096,
        COMPANION_COMMENT_POST = 8192, COMPANION_SEARCH_FIRST = 16384, COMPANION_NEW_CONTENT = 32768,
-       COMPANION_DISLIKES = 65536 };
+       COMPANION_DISLIKES = 65536,
+       /* sign-in by device code; the built-in service lists it once it keeps accounts itself */
+       COMPANION_DEVICE_AUTH = 131072 };
 static struct { char source[512]; unsigned features; int known; } g_companion;
 static int companion_known(void) { return g_companion.known && *g_source && !strcmp(g_companion.source, g_source); }
 static int companion_has(unsigned feature) { return companion_known() && (g_companion.features & feature) == feature; }
 static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion); }
+/* A built-in service that says it has no sign-in (an older service bundle): the account
+ * rows are replaced by one explanation. Before its feature list was read, and whenever
+ * the list names sign-in, accounts are offered as with a companion. */
+static int embedded_guest_only(void) { return g_embedded && companion_known() && !companion_has(COMPANION_DEVICE_AUTH); }
 
 int tube_embedded_mode(void) { return g_embedded; }
 const char *tube_embedded_address(void) { return g_embedded && !strncmp(g_source, "http://", 7) ? g_source + 7 : ""; }
@@ -1776,7 +1782,8 @@ static void companion_read(const cJSON *root) {
         {"translated_captions", COMPANION_TRANSLATED}, {"video_details", COMPANION_DETAILS}, {"subscriptions_import", COMPANION_IMPORT},
         {"kids", COMPANION_KIDS}, {"stream_reminder", COMPANION_REMINDER}, {"playlist_order", COMPANION_PLAYLIST_ORDER},
         {"subscribe_notifications", COMPANION_NOTIFICATIONS}, {"comment_post", COMPANION_COMMENT_POST},
-        {"search_first", COMPANION_SEARCH_FIRST}, {"channel_new_content", COMPANION_NEW_CONTENT}, {"dislikes", COMPANION_DISLIKES}
+        {"search_first", COMPANION_SEARCH_FIRST}, {"channel_new_content", COMPANION_NEW_CONTENT}, {"dislikes", COMPANION_DISLIKES},
+        {"device_auth", COMPANION_DEVICE_AUTH}
     };
     const cJSON *features = cJSON_GetObjectItemCaseSensitive(root, "features"), *feature;
     companion_forget();
@@ -3253,13 +3260,13 @@ static int auth_rows(evo_provider_items_cb cb, void *ud) {
     } else if (g_auth.state == AUTH_AUTHORIZED) {
         char id[64]; snprintf(id, sizeof id, "library:profile:%s", g_auth.profile);
         folder(&rows[n++], id, "Use authorized YouTube account", g_auth.name);
-        folder(&rows[n++], "library:profiles", "All profiles", "Account saved privately on the companion");
+        folder(&rows[n++], "library:profiles", "All profiles", g_embedded ? "Account saved in the app data on this PS5" : "Account saved privately on the companion");
     } else {
         const char *title = g_auth.state == AUTH_CANCELED ? "Sign-in canceled" :
             g_auth.state == AUTH_EXPIRED ? "Sign-in code expired" :
             g_auth.state == AUTH_DENIED ? "YouTube authorization denied" :
             g_auth.state == AUTH_STARTING ? "Requesting YouTube sign-in code" : "YouTube sign-in could not be completed";
-        folder(&rows[n++], "auth:info", title, "Account credentials stay on the companion");
+        folder(&rows[n++], "auth:info", title, g_embedded ? "Account credentials stay in the app data on this PS5" : "Account credentials stay on the companion");
         if (g_auth.state != AUTH_STARTING)
             folder(&rows[n++], "auth:start", "Start a new sign-in", "Authorize using your phone or computer");
     }
@@ -4079,7 +4086,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             if (!strcmp(str(o, "id"), g_library_profile)) selected = 1;
             if (!strcmp(str(o, "id"), g_startup_lock)) waiting = 1;
             char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
-            folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? "Account configured on the companion" : "Browse as guest");
+            folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? g_embedded ? "Account signed in on this PS5" : "Account configured on the companion" : "Browse as guest");
         }
         if (!guest) {
             free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
@@ -4272,11 +4279,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     int more = boolean(result, "has_more");
     if (r->kind == 3 && !r->page && !n && !more && !strcmp(r->parent, "library:home") && !strcmp(g_library_profile, "guest")) {
         /* YouTube answers a signed-out Home with a notice alone: say why and lead on. */
-        folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", g_embedded ?
+        folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", embedded_guest_only() ?
             "YouTube gives them to signed-in accounts only; sign-in arrives in a later version" : "YouTube provides Home recommendations only to signed-in accounts");
         folder(&items[n++], "account:notice", "Search", "Square searches YouTube from any list");
         folder(&items[n++], "discover", "Discover", "Topics and YouTube sections");
-        if (!g_embedded) folder(&items[n++], "library", "Accounts & library", "Sign in to YouTube to get Home recommendations");
+        if (!embedded_guest_only()) folder(&items[n++], "library", "Accounts & library", "Sign in to YouTube to get Home recommendations");
     }
     /* Content filters can leave a companion page empty while more follow: read
      * on, a bounded number of times, instead of showing an empty list. */
@@ -5087,7 +5094,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (g_sections[s].group != group || !section_listed(s)) continue;
             const char *label = g_sections[s].label, *detail = g_sections[s].detail;
             if (g_embedded && !strcmp(g_sections[s].id, "library:home")) detail = "What YouTube recommends to this profile";
-            if (g_embedded && !strcmp(g_sections[s].id, "library")) { label = "Accounts"; detail = "Sign-in to YouTube arrives in a later version"; }
+            if (embedded_guest_only() && !strcmp(g_sections[s].id, "library")) { label = "Accounts"; detail = "Sign-in to YouTube arrives in a later version"; }
             CATALOG_FOLDER( g_sections[s].id, label, detail);
         }
         if (group == SECTION_ROOT) {
@@ -5122,14 +5129,14 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             memset(g_comments, 0, sizeof g_comments);
             g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
         }
-        if (g_embedded) { /* accounts are not part of the built-in service yet: say so, instead of rows that cannot work */
+        if (embedded_guest_only()) { /* this service bundle has no accounts: say so, instead of rows that cannot work */
             CATALOG_FOLDER( "account:notice", "Sign-in to YouTube arrives in a later version", "This version browses and plays as Guest, without an account");
             CATALOG_FOLDER( "account:notice", "Your library on this PS5 needs no account", "History, favorites, the play queue and followed channels are in the main menu");
             CATALOG_FOLDER( "library:home", "Home", "What YouTube recommends without an account");
             cb(1, out, n, 0, ud); return 1;
         }
         char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
-        CATALOG_FOLDER( "library:profiles", label, "Choose an account configured on the companion");
+        CATALOG_FOLDER( "library:profiles", label, g_embedded ? "Guest, or an account signed in on this PS5" : "Choose an account configured on the companion");
         CATALOG_FOLDER( "library:home", "Home", "Recommendations for the selected profile");
         CATALOG_FOLDER( "library:subscriptions", "Subscriptions", "Videos from your YouTube subscriptions");
         CATALOG_FOLDER( "library:history", "YouTube history", "History from the selected account");
