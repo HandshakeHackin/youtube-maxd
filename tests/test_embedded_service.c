@@ -102,7 +102,7 @@ static void sent_to_service(unsigned port, const char *token) {
         assert(!strcmp(pending[0].method, "GET") && strstr(pending[0].headers, header));
         reply(0, 1, 200, service_accounts ?
               "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"account_playback\":false,\"features\":[\"search\","
-              "\"channels\",\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"device_auth\",\"embedded\"]}" :
+              "\"channels\",\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"device_auth\",\"subscriptions_import\",\"embedded\"]}" :
               "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"features\":[\"search\",\"channels\","
               "\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"embedded\"]}");
         assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
@@ -166,7 +166,9 @@ int main(void) {
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL); assert(last_ok);
     assert(!strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 
-    /* A service that does not list sign-in (an older service bundle): no sign-in, no profile or account rows, one explanation; Home stays. */
+    /* A service that does not list sign-in (an older service bundle): no sign-in, no profile or account rows, one explanation; Home stays.
+     * Nor does it list the subscriptions import: that row is gone as well. */
+    p->list_catalog("settings:backup", 0, items_cb, NULL); assert(last_ok && find("settings:backup:create") >= 0 && find("settings:backup:import") < 0);
     p->list_catalog("discover", 0, items_cb, NULL);
     assert(last_ok && find("library") >= 0 && !strcmp(last_items[find("library")].title, "Accounts") &&
            strstr(last_items[find("library")].subtitle, "later version") && !strstr(last_items[find("library:home")].subtitle, "ompanion"));
@@ -259,6 +261,7 @@ int main(void) {
     assert(strstr(last_items[find("library:profiles")].subtitle, "signed in on this PS5"));
     for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion"));
     assert(!settings_has("settings:remote"));   /* phone linking is still not offered */
+    p->list_catalog("settings:backup", 0, items_cb, NULL); assert(last_ok && find("settings:backup:import") >= 0);   /* the service reads exports */
     p->shutdown();
     assert(service_stops == 2 && !strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 

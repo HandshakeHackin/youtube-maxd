@@ -1713,6 +1713,9 @@ static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion)
  * rows are replaced by one explanation. Before its feature list was read, and whenever
  * the list names sign-in, accounts are offered as with a companion. */
 static int embedded_guest_only(void) { return g_embedded && companion_known() && !companion_has(COMPANION_DEVICE_AUTH); }
+/* The same rule for every other part: a built-in service that does not list it has no
+ * row for it; before the list was read, the service the app carries is assumed. */
+static int embedded_lacks(unsigned feature) { return g_embedded && companion_known() && !companion_has(feature); }
 
 int tube_embedded_mode(void) { return g_embedded; }
 const char *tube_embedded_address(void) { return g_embedded && !strncmp(g_source, "http://", 7) ? g_source + 7 : ""; }
@@ -5652,7 +5655,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 snprintf(id, sizeof id, "settings:backup:auto:%d", periods[(period + 1) % 4]);
                 snprintf(label, sizeof label, "Automatic backup: %s", names[period]);
                 CATALOG_FOLDER( id, label, "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5");
-                if (!g_embedded) /* the built-in service cannot read an export yet: not offered */
+                if (!embedded_lacks(COMPANION_IMPORT)) /* a built-in service that cannot read an export: not offered */
                     CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
             }
         } else if (!strncmp(parent, "settings:lock:", 14)) {

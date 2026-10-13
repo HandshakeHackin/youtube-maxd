@@ -15,6 +15,7 @@ import { ServiceError } from './errors.js';
 import { DeArrow, Sponsor, thumbnails } from './extras.js';
 import { bytesOf, fixtureRequests, headerLines } from './fetch_shim.js';
 import { createPlayback, vttToSrt } from './resolve.js';
+import { parseImport } from './subscriptions_import.js';
 import { Invalid, deviceSession, deviceStart, jobRequest, libraryRequest, queryOptions, resolveRequest, validLocale } from './schema.js';
 
 const host = globalThis.__host;
@@ -23,7 +24,7 @@ const VIDEO = /^[A-Za-z0-9_-]{11}$/;
 // Exactly what this service implements; no relay, voice, import, dislikes or proxy.
 const FEATURES = ['search', 'channels', 'playlists', 'dash', 'captions', 'dearrow', 'locale', 'thumbnail_source', 'storyboards',
   'translated_captions', 'video_details', 'library', 'content_filters', 'channel_pages', 'kids', 'stream_reminder', 'playlist_order',
-  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'embedded'];
+  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'subscriptions_import', 'embedded'];
 const SESSION_TTL = 1800000, JOB_TTL = 120000;
 
 const videoId = value => { if (!VIDEO.test(value ?? '')) throw new ServiceError('invalid_video', 'Enter an eleven-character YouTube video ID.', 400); return value; };
@@ -286,6 +287,8 @@ export class Companion {
         const options = queryOptions(query), record = await this.details(id, options.profile, options.hl);
         return json({ api_version: 1, item: item(record), chapters: record.chapters, caption_languages: record.caption_languages });
       }],
+      // The body is the export file itself; nothing is stored and no account is touched.
+      ['POST', /^\/v1\/subscriptions\/import$/, () => json(parseImport(body))],
       ['GET', /^\/v1\/dislikes\/([^/]+)$/, id => { videoId(id); return json({ api_version: 1, enabled: false }); }],
       ['GET', /^\/v1\/sponsor\/([^/]+)$/, async id => {
         videoId(id);

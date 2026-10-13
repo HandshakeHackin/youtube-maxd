@@ -144,7 +144,7 @@ def basics(s):
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",
                                           "video_details", "translated_captions", "locale", "thumbnail_source", "dearrow", "device_auth"} <= set(features), features)
-    check("health hides what does not", not {"relay", "voice", "subscriptions_import", "dislikes", "proxy"} & set(features), features)
+    check("health hides what does not", not {"relay", "voice", "dislikes", "proxy"} & set(features), features)
 
     same("no token", s.call("GET", "/v1/jobs/x", token=None)[::2],
          (401, {"error": {"code": "unauthorized", "message": "Pair the PS5 with this companion first."}}))
@@ -163,7 +163,6 @@ def basics(s):
                                ("/v1/auth/start", "auth_failed", 502)):
         got = s.call("POST", path, {})
         same(f"not offered {path}", (got[0], got[2]["error"]["code"]), (status, code))
-    same("no import route", s.call("POST", "/v1/subscriptions/import", {})[0], 404)
 
 
 def bounds(s):

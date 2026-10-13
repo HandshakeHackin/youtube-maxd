@@ -140,6 +140,26 @@ int main(void) {
     assert(got > 10 && strstr(line, "-->"));
     printf("captions: %d track(s), first \"%s\", SubRip written for the player\n", tube_caption_track_count(), tube_caption_track_language(0));
 
+    /* Subscriptions import: the user's export file goes to the service as the request body and comes back as channels. */
+    p->list_catalog("settings:backup", 0, items_cb, NULL);
+    int import_row = 0;
+    for (int i = 0; i < last_count; ++i) if (!strcmp(last_items[i].id, "settings:backup:import")) import_row = 1;
+    assert(last_ok && import_row);
+    p->list_catalog("settings:backup:import", 0, items_cb, NULL);   /* creates the folder */
+    snprintf(path, sizeof path, "%s/subs.json", evo_data_path("import"));
+    FILE *export = fopen(path, "wb"); assert(export);
+    fputs("{\"subscriptions\":[{\"service_id\":0,\"url\":\"https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa\",\"name\":\"Alpha\"},"
+          "{\"service_id\":0,\"url\":\"https://www.youtube.com/@handle\",\"name\":\"No identity\"},", export);
+    for (int i = 0; i < 400; ++i) fprintf(export, "{\"service_id\":3,\"url\":\"https://example.org/%040d\",\"name\":\"Elsewhere\"},", i);   /* well over 8 KiB */
+    fputs("{\"service_id\":0,\"url\":\"https://www.youtube.com/channel/UCbbbbbbbbbbbbbbbbbbbbbb\",\"name\":\"Beta\"}]}", export);
+    assert(!fclose(export));
+    calls = item_calls;
+    assert(p->list_catalog("settings:backup:import:file:subs.json", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "subscriptions import");
+    assert(last_ok && last_count == 2 && !strcmp(last_items[0].title, "2 channels found in subs.json") && strstr(last_items[0].subtitle, "newpipe"));
+    assert(!strcmp(last_items[1].title, "Add 2 channels to Followed channels"));
+    printf("import: \"%s\" (%s)\n", last_items[0].title, last_items[0].subtitle);
+
     /* The saved state never names the service. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     FILE *state = fopen(evo_data_path("youtube.json"), "rb"); assert(state);
