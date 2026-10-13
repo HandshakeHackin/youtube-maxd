@@ -73,7 +73,7 @@ float draw_paragraph(gfx::DrawList &list, const Face &face, std::string_view val
     return ui::paragraph(list, face, value, x, y, size, width, line_height, color, max_lines, align);
 }
 
-TextBlock measure_paragraph(const Face &face, std::string_view value, float size, float width, float line_height,
+TextBlock measure_block(const Face &face, std::string_view value, float size, float width, float line_height,
                             int max_lines)
 {
     TextBlock block;
@@ -134,6 +134,21 @@ std::string drawable(const Face &face, std::string_view value)
     while (!out.empty() && out.back() == ' ')
         out.pop_back();
     return out;
+}
+
+namespace
+{
+const Face *g_reading_face = nullptr;
+} // namespace
+
+void set_reading_face(const Face *face)
+{
+    g_reading_face = face;
+}
+
+std::string clean(std::string_view value)
+{
+    return g_reading_face != nullptr && g_reading_face->font != nullptr ? drawable(*g_reading_face, value) : std::string(value);
 }
 
 } // namespace afterglow

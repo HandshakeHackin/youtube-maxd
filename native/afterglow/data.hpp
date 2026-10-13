@@ -21,6 +21,8 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace afterglow
@@ -40,6 +42,27 @@ struct Row
     std::string thumb;
     bool folder = false;
     bool interface_text = false; // the provider wrote it (a menu), not YouTube
+    // Everything else the provider knows about the row, by name: a comment's
+    // "likes", a channel's "subscribers", a preference's "value". The names a
+    // catalog gives are listed in docs/afterglow/ARCHITECTURE.md.
+    std::vector<std::pair<std::string, std::string>> facts;
+
+    // The fact of a name, "" when the row has none.
+    const std::string &fact(std::string_view name) const
+    {
+        static const std::string kNone;
+        for (const auto &entry : facts)
+        {
+            if (entry.first == name)
+                return entry.second;
+        }
+        return kNone;
+    }
+    bool has(std::string_view name) const
+    {
+        const std::string &value = fact(name);
+        return !value.empty() && value != "0" && value != "false";
+    }
 };
 
 } // namespace model

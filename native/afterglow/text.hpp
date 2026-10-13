@@ -46,12 +46,18 @@ float draw_paragraph(gfx::DrawList &list, const Face &face, std::string_view val
                      float width, float line_height, Color color, int max_lines = 99,
                      gfx::Align align = gfx::Align::left);
 // The same paragraph, measured.
-TextBlock measure_paragraph(const Face &face, std::string_view value, float size, float width, float line_height,
+TextBlock measure_block(const Face &face, std::string_view value, float size, float width, float line_height,
                             int max_lines = 99);
 // True when the face (with its fallbacks) draws every code point of the text.
 bool covers(const Face &face, std::string_view value);
 // The text without the code points no face draws (today: emoji and scripts the
 // baked sets lack), so that nothing is drawn as a question mark.
 std::string drawable(const Face &face, std::string_view value);
+
+// The face YouTube's texts are checked against when they enter the data layer;
+// the frame names it for as long as it lives. clean() is drawable() with that
+// face, and the text itself while there is none.
+void set_reading_face(const Face *face);
+std::string clean(std::string_view value);
 
 } // namespace afterglow

@@ -67,9 +67,10 @@ void wear(ui::ComponentStyle &style, const Look &look, bool reduced)
 
 Frame::Frame(Platform &platform, Source &source, const ui::Fonts &fonts, const FrameOptions &options)
     : platform_(platform), fonts_(fonts), options_(options), look_(&look_for_scheme(options.scheme)), data_(source),
-      images_(platform), services_{data_, images_, platform}
+      images_(platform), services_{data_, images_, platform, fonts}
 {
     set_platform(&platform_);
+    set_reading_face(&fonts_.regular);
     rail_destinations();
     set_scheme(options.scheme);
     toasts_.style.anchor = ui::ToastAnchor::top_right;
@@ -90,7 +91,10 @@ Frame::~Frame()
     removed_.reset();
     images_.clear();
     if (platform() == &platform_)
+    {
         set_platform(nullptr);
+        set_reading_face(nullptr);
+    }
 }
 
 void Frame::rail_destinations()

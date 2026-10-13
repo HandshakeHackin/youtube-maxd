@@ -37,6 +37,9 @@ struct RawRow
     std::string published;   // "published": "3 weeks ago"
     std::string channel_art; // "channel_art_url"
     std::vector<std::string> badges; // "badges": "new", "4k", "hdr", "cc", "members"
+    // Any other named value of the row: in JSON, every further member that is
+    // a string, a number or a boolean (true is "1", false is "0").
+    std::vector<std::pair<std::string, std::string>> facts;
 };
 
 // Sorts a row into the page: a video, a channel, a topic or a plain row. Every

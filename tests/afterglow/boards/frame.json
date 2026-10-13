@@ -4,29 +4,29 @@
   {
    "name": "frame-placeholder",
    "fixture": "guest",
-   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
-   "expect": {"screen": "reader", "focus": "placeholder", "rail_open": 0, "moving": 0, "state": {"placeholder": "1", "argument": "settings:about:credits"}}
+   "route": {"screen": "comments", "argument": "discussion:abcdefghijk", "title": "Comments"},
+   "expect": {"screen": "comments", "focus": "placeholder", "rail_open": 0, "moving": 0, "state": {"placeholder": "1", "argument": "discussion:abcdefghijk"}}
   },
   {
    "name": "frame-rail-open",
    "fixture": "guest",
-   "route": {"screen": "reader", "title": "Credits"},
+   "route": {"screen": "comments", "title": "Comments"},
    "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}],
-   "expect": {"screen": "reader", "focus": "rail/subscriptions", "rail_open": 1}
+   "expect": {"screen": "comments", "focus": "rail/subscriptions", "rail_open": 1}
   },
   {
    "name": "frame-rail-destination",
    "fixture": "guest",
-   "route": {"screen": "reader", "title": "Credits"},
+   "route": {"screen": "comments", "title": "Comments"},
    "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
    "expect": {"screen": "library", "focus": "placeholder", "rail_open": 0, "moving": 0}
   },
   {
    "name": "frame-rail-closed-by-circle",
    "fixture": "guest",
-   "route": {"screen": "reader", "title": "Credits"},
+   "route": {"screen": "comments", "title": "Comments"},
    "steps": [{"press": "left"}, {"press": "circle"}],
-   "expect": {"screen": "reader", "focus": "placeholder", "rail_open": 0}
+   "expect": {"screen": "comments", "focus": "placeholder", "rail_open": 0}
   }
  ]
 }

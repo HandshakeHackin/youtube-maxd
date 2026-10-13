@@ -5,11 +5,14 @@
 #include "afterglow/data_rows.hpp"
 
 #include "afterglow/base.hpp"
+#include "afterglow/text.hpp"
 
 #include "cJSON.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <iterator>
 
 namespace afterglow
 {
@@ -75,12 +78,14 @@ void add_row(Page &page, const RawRow &row)
     model::Row plain;
     plain.id = row.id;
     // A row the provider wrote is an interface text: it is shown in the profile's language.
-    plain.title = row.interface_text ? std::string(tr(row.title.c_str())) : row.title;
-    plain.subtitle = row.interface_text ? std::string(tr(row.subtitle.c_str())) : row.subtitle;
-    plain.overview = row.overview;
+    // What YouTube wrote keeps its words and loses what no face draws.
+    plain.title = row.interface_text ? std::string(tr(row.title.c_str())) : clean(row.title);
+    plain.subtitle = row.interface_text ? std::string(tr(row.subtitle.c_str())) : clean(row.subtitle);
+    plain.overview = row.interface_text ? row.overview : clean(row.overview);
     plain.thumb = row.art_url;
     plain.folder = row.folder;
     plain.interface_text = row.interface_text;
+    plain.facts = row.facts;
     page.rows.push_back(plain);
 
     if (starts_with(row.id, "channel:"))
@@ -88,8 +93,8 @@ void add_row(Page &page, const RawRow &row)
         model::Channel channel;
         channel.id = row.id.substr(8);
         channel.row = row.id;
-        channel.name = row.title;
-        channel.subscribers = row.interface_text ? std::string() : row.subtitle;
+        channel.name = plain.title;
+        channel.subscribers = row.interface_text ? std::string() : plain.subtitle;
         channel.avatar = row.art_url;
         page.channels.push_back(std::move(channel));
         return;
@@ -112,12 +117,12 @@ void add_row(Page &page, const RawRow &row)
     model::Video video;
     video.id = row.id;
     video.video_id = is_video_id(row.id) ? row.id : std::string();
-    video.title = row.title;
-    video.channel = row.subtitle;
+    video.title = plain.title;
+    video.channel = plain.subtitle;
     video.channel_id = row.channel_id;
-    video.views = row.views;
-    video.age = row.published;
-    video.overview = row.overview;
+    video.views = clean(row.views);
+    video.age = clean(row.published);
+    video.overview = plain.overview;
     video.thumb = row.art_url;
     video.avatar = row.channel_art;
     video.duration_s = row.live ? 0 : static_cast<int>(std::clamp<long long>(row.duration_s, 0, 360000));
@@ -198,6 +203,26 @@ bool page_from_json(const std::string &json, Page *page)
         {
             if (cJSON_IsString(badge) && badge->valuestring != nullptr)
                 row.badges.emplace_back(badge->valuestring);
+        }
+        static constexpr const char *kFixed[] = {"id", "channel_id", "title", "subtitle", "overview", "art_url", "duration_sec",
+                                                 "resume_sec", "watch_percent", "is_folder", "is_live", "is_upcoming", "is_short",
+                                                 "played", "interface", "views", "published", "channel_art_url", "badges"};
+        const cJSON *member = nullptr;
+        cJSON_ArrayForEach(member, item)
+        {
+            if (member->string == nullptr ||
+                std::any_of(std::begin(kFixed), std::end(kFixed), [&](const char *name) { return std::strcmp(name, member->string) == 0; }))
+                continue;
+            if (cJSON_IsString(member) && member->valuestring != nullptr)
+                row.facts.emplace_back(member->string, member->valuestring);
+            else if (cJSON_IsBool(member))
+                row.facts.emplace_back(member->string, cJSON_IsTrue(member) ? "1" : "0");
+            else if (cJSON_IsNumber(member))
+            {
+                char number[32];
+                std::snprintf(number, sizeof number, "%.10g", member->valuedouble);
+                row.facts.emplace_back(member->string, number);
+            }
         }
         if (!row.id.empty())
             add_row(*page, row);

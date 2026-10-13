@@ -1,0 +1,46 @@
+{
+ "about": "The reader: long text on one page (the worked example of docs/afterglow/ARCHITECTURE.md).",
+ "boards": [
+  {
+   "name": "reader-credits",
+   "fixture": "guest",
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "expect": {"screen": "reader", "focus": "text", "state": {"load": "ready", "paragraphs": "10", "scroll": "0"}, "asked": ["settings:about:credits"]}
+  },
+  {
+   "name": "reader-scrolled",
+   "fixture": "guest",
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "reader", "state": {"scroll": "216"}}
+  },
+  {
+   "name": "reader-end-of-text",
+   "fixture": "guest",
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "r2"}, {"press": "r2"}, {"press": "r2"}, {"press": "down"}],
+   "expect": {"screen": "reader", "focus": "text"}
+  },
+  {
+   "name": "reader-loading",
+   "fixture": "guest",
+   "source": {"hold": true},
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "expect": {"screen": "reader", "state": {"load": "loading"}}
+  },
+  {
+   "name": "reader-offline",
+   "fixture": "guest",
+   "source": {"offline": true},
+   "route": {"screen": "reader", "argument": "description:abcdefghijk", "title": "Description"},
+   "expect": {"screen": "reader", "state": {"load": "offline"}}
+  },
+  {
+   "name": "reader-back",
+   "fixture": "guest",
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "search", "focus": "placeholder"}
+  }
+ ]
+}

@@ -118,6 +118,7 @@ struct Services
     Data &data;
     ImageCache &images;
     Platform &platform;
+    const ui::Fonts &fonts; // for measuring while updating; drawing has them in DrawContext
 };
 
 // What update() receives.
