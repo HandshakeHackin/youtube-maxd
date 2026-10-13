@@ -168,9 +168,6 @@ void play(const model::Video &video, float x, UpdateContext &context);
 
 // ---- pieces -----------------------------------------------------------------------------
 
-// REQUEST: a bone for loading states in design.hpp. A band of light crosses the
-// page from left to right every 1.7 seconds; with less motion the bones rest.
-void bone(G &g, const Rect &r, float radius);
 // The bones of a video card: its picture and the lines under it.
 void card_bone(G &g, const Rect &r, bool with_text = true);
 // A shelf that only peeks over the foot shows pictures; this closes the last 76 pixels so the hints sit on clean ground.

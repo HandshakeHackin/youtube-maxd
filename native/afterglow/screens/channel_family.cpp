@@ -388,12 +388,6 @@ void play(const model::Video &video, float x, UpdateContext &context)
 
 // ---- pieces -----------------------------------------------------------------------------
 
-void bone(G &g, const Rect &r, float radius)
-{
-    const float wave = g.reduced ? 0.5f : ui::breathe(g.time - r.cx() / gfx::kVirtualWidth * 0.9f, 1.7f);
-    g.l.rounded_rect(r, radius, g.k.raised.with_alpha(0.55f + 0.45f * wave));
-}
-
 void card_bone(G &g, const Rect &r, bool with_text)
 {
     bone(g, r, kRadiusThumb);

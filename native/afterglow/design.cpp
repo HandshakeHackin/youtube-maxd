@@ -737,7 +737,9 @@ void faded_picture(gfx::DrawList &list, const Picture &picture, const Rect &r, f
 
 void bone(G &g, const Rect &r, float radius, int index)
 {
-    const float breath = g.reduced ? 0.7f : 0.55f + 0.45f * ui::breathe(g.time + 0.13f * static_cast<float>(index), 1.7f);
+    // The breath travels across the page from the left, so a row of bones reads as one wave.
+    const float phase = g.time + 0.13f * static_cast<float>(index) - r.cx() / gfx::kVirtualWidth * 0.9f;
+    const float breath = g.reduced ? 0.7f : 0.55f + 0.45f * ui::breathe(phase, 1.7f);
     g.l.rounded_rect(r, radius, g.k.raised.with_alpha(g.k.raised.a * breath));
 }
 

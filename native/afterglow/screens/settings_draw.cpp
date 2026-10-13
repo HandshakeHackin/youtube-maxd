@@ -58,7 +58,7 @@ Color bone_colour(const G &g, float offset)
     return g.k.raised.with_alpha(std::min(1.0f, g.k.raised.a * 2.2f) * bone_alpha(g, offset));
 }
 
-void bone(G &g, const Rect &r, float offset)
+void line_bone(G &g, const Rect &r, float offset)
 {
     g.l.rounded_rect(r, std::min(r.h * 0.5f, 12.0f), bone_colour(g, offset));
 }
@@ -419,7 +419,7 @@ void draw_tile(G &g, const Rect &base, const Tile &tile, std::string_view name, 
     const int name_lines = measure_block(g.f.semibold, name, 27.0f, width, 32.0f, 2).lines;
     const float after = paragraph(g, g.f.semibold, name, r.x + 28.0f, r.y + 122.0f, 27.0f, width, 32.0f, k.ink, 2);
     if (summary_loading)
-        bone(g, {r.x + 28.0f, after - 18.0f, width * 0.62f, 16.0f}, 0.1f * (base.x + base.y) / 100.0f);
+        line_bone(g, {r.x + 28.0f, after - 18.0f, width * 0.62f, 16.0f}, 0.1f * (base.x + base.y) / 100.0f);
     else
         paragraph(g, g.f.regular, summary, r.x + 28.0f, after - 2.0f, kTypeMeta, width, 26.0f, k.ink2, name_lines > 1 ? 1 : 2);
 }
@@ -428,8 +428,8 @@ void draw_tile_bones(G &g, const Rect &r, float phase)
 {
     glass_panel(g, r, kRadiusPanel, 0.8f);
     g.l.circle(r.x + 54.0f, r.y + 56.0f, 30.0f, bone_colour(g, phase));
-    bone(g, {r.x + 28.0f, r.y + 102.0f, r.w * 0.46f, 22.0f}, phase);
-    bone(g, {r.x + 28.0f, r.y + 138.0f, r.w * 0.66f, 16.0f}, phase + 0.1f);
+    line_bone(g, {r.x + 28.0f, r.y + 102.0f, r.w * 0.46f, 22.0f}, phase);
+    line_bone(g, {r.x + 28.0f, r.y + 138.0f, r.w * 0.66f, 16.0f}, phase + 0.1f);
 }
 
 void draw_form_bones(G &g, float amount)
@@ -438,13 +438,13 @@ void draw_form_bones(G &g, float amount)
     float y = kFormTop;
     for (int section = 0; section < 2; ++section)
     {
-        bone(g, {kLeft, y + 22.0f, 150.0f, 16.0f}, 0.0f);
+        line_bone(g, {kLeft, y + 22.0f, 150.0f, 16.0f}, 0.0f);
         y += kHeadingH + kRowGap;
         for (int i = 0; i < 4; ++i)
         {
             const float phase = 0.12f * static_cast<float>(section * 4 + i);
-            bone(g, {kLeft, y + 24.0f, 190.0f + 46.0f * static_cast<float>((i * 3 + section) % 4), 22.0f}, phase);
-            bone(g, {kFormX + kFormW - kRowPad - (i % 2 == 0 ? 76.0f : 240.0f), y + 20.0f, i % 2 == 0 ? 76.0f : 240.0f, 30.0f}, phase + 0.05f);
+            line_bone(g, {kLeft, y + 24.0f, 190.0f + 46.0f * static_cast<float>((i * 3 + section) % 4), 22.0f}, phase);
+            line_bone(g, {kFormX + kFormW - kRowPad - (i % 2 == 0 ? 76.0f : 240.0f), y + 20.0f, i % 2 == 0 ? 76.0f : 240.0f, 30.0f}, phase + 0.05f);
             y += kRowH + kRowGap;
         }
     }
