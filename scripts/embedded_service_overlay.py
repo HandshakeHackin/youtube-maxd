@@ -118,7 +118,6 @@ def apply_package(replace, player, work, root):
     replace(rml, '            <button id="tv-card-setup-url" class="tv-setup-card" data-if="!discussion" data-event-click="setup_url()">PAIR COMPANION</button>\n', "")
     replace(rml, '            <span class="tube-key">HOLD L3</span> Voice search (experimental)\n', "")
     replace(rml, '            <span class="tube-key">OPTIONS</span> Companion\n', "")
-    replace(player + "core/src/screens/AboutSupportScreen.cpp", "LAN COMPANION REQUIRED", "BUILT-IN YOUTUBE SERVICE")
 
 
 def retire_stale_objects(work, player):
