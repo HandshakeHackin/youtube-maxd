@@ -436,6 +436,382 @@ def redact_state(data):
             "records": len(state.get("records") or [])}
 
 
+# --- the Afterglow interface ---------------------------------------------------
+# docs/afterglow/ARCHITECTURE.md, section 12a. While the interface is shown the
+# instrumented build reports the document "afterglow" and puts the frame's own
+# snapshot (Frame::snapshot_json) where the classic layouts put the focused
+# element: dev_ui.json is {"seq", "t_ms", "ui": {"docs": ["afterglow", ...],
+# "focused": {"interface": "afterglow", "screen", "stack", "focus", "state",
+# "stats", ...}}}. The screen's own values under "state" are text.
+
+AFTERGLOW_DOC = "afterglow"
+AFTERGLOW_ON = f"{DATA}/afterglow.on"     # the session's switch: looked at once a second by the app
+AFTERGLOW_OFF = f"{DATA}/afterglow.off"   # keeps the classic browser; never written by the session
+AFTERGLOW_FILES = ("afterglow.on", ".afterglow.on.upload")
+AG_STATS = ("frame_ms", "worst_frame_ms", "update_ms", "draw_ms", "instances", "runs", "fill",
+            "pictures_ready", "pictures_pending", "picture_bytes", "data_pending")
+# Asked of the frame owner (docs/afterglow/requests/drv.md) and read as soon as a build reports them.
+AG_TEXT_STATS = ("text_engine", "glyph_pages", "glyphs", "fonts", "missing_glyphs")
+# Home's shelves of tiles (native/afterglow/data.cpp): Cross opens a list there, not a video.
+AG_TOPIC_SHELVES = ("topics",)
+# What the candidate's eboot must hold for the stage: the mount's override file name and the
+# breadcrumb of the development capture command (scripts/prepare_native.py).
+AG_MOUNT_MARK = b"afterglow.on"
+AG_CAPTURE_MARK = b"DEV_CAPTURE"
+
+
+class Unjudged(Exception):
+    """A step of the Afterglow stage cannot be judged from what the build reported."""
+
+
+def parse_ui_repaired(data):
+    """dev_ui.json that the strict reader refused, after the two repairs a C
+    writer makes necessary: bytes that are not UTF-8 (a title cut inside a
+    character) and what printf writes for a number that is none (nan, inf).
+    Returns (snapshot or None, the repairs made)."""
+    if not data:
+        return None, []
+    repairs = []
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        text = data.decode("utf-8", "replace")
+        repairs.append("bytes that are not UTF-8")
+    fixed = re.sub(r'(":\s*)-?(?:nan|inf(?:inity)?)\b', r"\1null", text, flags=re.IGNORECASE)
+    if fixed != text:
+        repairs.append("nan or inf written as a number")
+    try:
+        snapshot = json.loads(fixed)
+    except ValueError:
+        return None, repairs
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("ui"), dict) or \
+            not isinstance(snapshot.get("seq"), int):
+        return None, repairs
+    return snapshot, repairs
+
+
+def ag_shown(snapshot):
+    """The frame's document is listed: the interface drew the last frame."""
+    return AFTERGLOW_DOC in ui_docs(snapshot)
+
+
+def ag_raw_shown(data):
+    """The same fact from bytes that could not be read as a snapshot."""
+    return bool(data) and re.search(rb'"interface"\s*:\s*"afterglow"|"docs"\s*:\s*\[\s*"afterglow"', data) is not None
+
+
+def ag_frame(snapshot):
+    """The frame's own snapshot, or None: not shown, or an RmlUi keyboard or
+    dialog is up and the report names its element instead."""
+    focused = (snapshot or {}).get("ui", {}).get("focused")
+    if not ag_shown(snapshot) or not isinstance(focused, dict) or focused.get("interface") != "afterglow":
+        return None
+    return focused
+
+
+def ag_screen(frame):
+    return str((frame or {}).get("screen", ""))
+
+
+def ag_stack(frame):
+    stack = (frame or {}).get("stack")
+    return [str(entry.get("screen", "")) for entry in stack if isinstance(entry, dict)] if isinstance(stack, list) else []
+
+
+def ag_flag(frame, name):
+    """One of the frame's numbers (moving, rail_open, attract, dialog) as a bool."""
+    value = (frame or {}).get(name)
+    return isinstance(value, (int, float)) and value != 0
+
+
+def ag_focus(frame):
+    focus = (frame or {}).get("focus")
+    return focus if isinstance(focus, dict) else {}
+
+
+def ag_state(frame, name, default=""):
+    state = (frame or {}).get("state")
+    return str(state.get(name, default)) if isinstance(state, dict) else default
+
+
+def ag_lists(frame):
+    """Home's shelves in the order they are drawn: [(shelf id, [titles])],
+    from state.lists["shelf:<id>"]."""
+    state = (frame or {}).get("state")
+    lists = state.get("lists") if isinstance(state, dict) else None
+    if not isinstance(lists, dict):
+        return []
+    return [(name[len("shelf:"):], [str(title) for title in titles])
+            for name, titles in lists.items() if name.startswith("shelf:") and isinstance(titles, list)]
+
+
+def ag_place(frame):
+    """(shelf, index) of the focus on Home: its id is "<shelf>/<index>"."""
+    match = re.fullmatch(r"(.+)/(\d+)", str(ag_focus(frame).get("id", "")))
+    return (match.group(1), int(match.group(2))) if match else None
+
+
+def ag_line(frame):
+    """One line for the log: what the frame says is on screen."""
+    if frame is None:
+        return "no Afterglow snapshot"
+    focus = ag_focus(frame)
+    extras = "".join(f" {name}" for name in ("moving", "rail_open", "attract", "dialog") if ag_flag(frame, name))
+    return (f"screen={ag_screen(frame) or '-'} stack={'>'.join(ag_stack(frame)) or '-'} "
+            f"focus={focus.get('id') or '-'} \"{str(focus.get('text', ''))[:60]}\"{extras}")
+
+
+def ag_stats(frame):
+    """(the stats that are numbers, the names that are missing or are not)."""
+    stats = (frame or {}).get("stats")
+    if not isinstance(stats, dict):
+        return {}, list(AG_STATS)
+    values = {name: stats[name] for name in AG_STATS
+              if isinstance(stats.get(name), (int, float)) and not isinstance(stats.get(name), bool)}
+    return values, [name for name in AG_STATS if name not in values]
+
+
+def ag_summary(samples):
+    """{name: {"min", "median", "max"}} over the samples that carry the name."""
+    summary = {}
+    for name in AG_STATS:
+        values = sorted(sample[name] for sample in samples if name in sample)
+        if values:
+            middle = values[len(values) // 2] if len(values) % 2 else (values[len(values) // 2 - 1] + values[len(values) // 2]) / 2
+            summary[name] = {"min": values[0], "median": middle, "max": values[-1]}
+    return summary
+
+
+def ag_summary_line(summary):
+    """The numbers a person reads first, on one line."""
+    def middle(name, form="{:.1f}"):
+        return form.format(summary[name]["median"]) if name in summary else "?"
+
+    def top(name, form="{:.1f}"):
+        return form.format(summary[name]["max"]) if name in summary else "?"
+    megabytes = f"{summary['picture_bytes']['max'] / 1048576:.1f} MiB" if "picture_bytes" in summary else "? MiB"
+    return (f"frame {middle('frame_ms')} ms (max {top('frame_ms')}, worst of 120 {top('worst_frame_ms')}), "
+            f"update {middle('update_ms', '{:.2f}')} ms, draw {middle('draw_ms', '{:.2f}')} ms, "
+            f"{middle('instances', '{:.0f}')} instances in {middle('runs', '{:.0f}')} runs, fill {middle('fill', '{:.2f}')}, "
+            f"pictures {top('pictures_ready', '{:.0f}')} ready / {top('pictures_pending', '{:.0f}')} pending ({megabytes}), "
+            f"data pending {top('data_pending', '{:.0f}')}")
+
+
+def pc_ag_draws(summary):
+    """The frame reports that it draws: a frame time, shapes and draw calls."""
+    missing = [name for name in ("frame_ms", "instances", "runs") if name not in summary]
+    if missing:
+        raise Unjudged(f"the snapshot's stats lack {missing}")
+    if summary["frame_ms"]["median"] <= 0 or summary["instances"]["max"] <= 0 or summary["runs"]["max"] <= 0:
+        return False, "the frame reports no frame time or nothing drawn: " + ag_summary_line(summary)
+    return True, ag_summary_line(summary)
+
+
+def pc_ag_home(frame):
+    """Home has shelves with something on them. Raises Unjudged when the
+    snapshot does not say."""
+    if frame is None:
+        raise Unjudged("no Afterglow snapshot")
+    if ag_screen(frame) != "home":
+        return False, f"the screen is \"{ag_screen(frame)}\", not home"
+    if not isinstance(frame.get("state"), dict) or not isinstance(frame["state"].get("lists"), dict):
+        raise Unjudged("the snapshot has no state.lists")
+    shelves = [(shelf, titles) for shelf, titles in ag_lists(frame) if titles]
+    load = ag_state(frame, "load", "?")
+    if not shelves:
+        return False, f"no shelf is listed (load={load}, focus {ag_focus(frame).get('id') or '-'})"
+    return True, f"load={load}, profile={ag_state(frame, 'profile', '?')}, " + \
+        ", ".join(f"{shelf} ({len(titles)})" for shelf, titles in shelves)
+
+
+def pc_ag_focus_ids(frame):
+    """The focus id is "<shelf>/<index>" of a listed shelf and names the card
+    whose title the focus carries; every focusable id has that form."""
+    place, lists = ag_place(frame), dict(ag_lists(frame))
+    focus = ag_focus(frame)
+    if not focus or "id" not in focus:
+        raise Unjudged("the snapshot has no focus id")
+    if place is None or place[0] not in lists:
+        return False, f"focus id \"{focus.get('id')}\" is not <shelf>/<index> of {sorted(lists)}"
+    shelf, index = place
+    if index >= len(lists[shelf]):
+        return False, f"focus id {shelf}/{index} is past the shelf's {len(lists[shelf])} cards"
+    if str(focus.get("text", "")) != lists[shelf][index]:
+        return False, f"focus {shelf}/{index} says \"{focus.get('text')}\", the shelf lists \"{lists[shelf][index]}\""
+    listed = frame.get("focusable") if isinstance(frame.get("focusable"), list) else []
+    ids = [str(item.get("id", "")) for item in listed if isinstance(item, dict)]
+    odd = [name for name in ids if not re.fullmatch(r".+/\d+", name) or name.rsplit("/", 1)[0] not in lists]
+    if odd:
+        return False, f"focusable ids outside <shelf>/<index>: {odd[:4]}"
+    return True, f"focus {shelf}/{index} \"{str(focus.get('text'))[:50]}\", {len(ids)} focusable ids of that form"
+
+
+def pc_ag_texts(frame, log_text):
+    """Every card has a title, the focus and the hero have text, and the log
+    does not say the text engine stayed down. That the glyphs are drawn is
+    for the capture to show."""
+    failed = ag_text_engine_failed(log_text)
+    if failed is not None:
+        return False, f"the text engine did not start ({failed}): the kit's baked fonts draw"
+    lists = ag_lists(frame)
+    if not lists:
+        raise Unjudged("the snapshot lists no shelf to read texts from")
+    titles = [title for _, shelf in lists for title in shelf]
+    empty = sum(1 for title in titles if not title.strip())
+    if empty or not str(ag_focus(frame).get("text", "")).strip():
+        return False, f"{empty} of {len(titles)} cards have no title; focus text \"{ag_focus(frame).get('text', '')}\""
+    foreign = sum(1 for title in titles if any(ord(char) > 0x24F for char in title))
+    return True, (f"{len(titles)} titles, none empty ({foreign} with letters beyond Latin), "
+                  f"hero \"{ag_state(frame, 'hero')[:50]}\"; no text-engine failure in the log")
+
+
+def pc_ag_text_engine(frame):
+    """Which fonts drew and how much: (ok, detail, numbers). The snapshot of
+    today carries the texts whether or not a glyph was drawn, so until the
+    frame reports these numbers the step cannot be judged."""
+    stats = (frame or {}).get("stats")
+    if not isinstance(stats, dict) or "text_engine" not in stats:
+        raise Unjudged("the snapshot carries no numbers of the text engine (stats." + ", ".join(AG_TEXT_STATS)
+                       + ": asked for in docs/afterglow/requests/drv.md); the capture is what shows the letters")
+    numbers = {name: stats.get(name) for name in AG_TEXT_STATS}
+    if not stats["text_engine"]:
+        return False, "the kit's baked fonts draw, not the text engine", numbers
+    if not stats.get("glyphs"):
+        return False, "the text engine is up and has drawn no glyph", numbers
+    return True, (f"{numbers['glyphs']} glyphs on {numbers['glyph_pages']} pages from {numbers['fonts']} font files, "
+                  f"{numbers['missing_glyphs']} characters without a font"), numbers
+
+
+def ag_output(frame, log_text):
+    """The size the interface draws at: from the snapshot once it carries it
+    (stats.output_w, stats.output_h), else from the mount's line in the log."""
+    stats = (frame or {}).get("stats")
+    stats = stats if isinstance(stats, dict) else {}
+    width, height = stats.get("output_w"), stats.get("output_h")
+    if isinstance(width, (int, float)) and isinstance(height, (int, float)) and width > 0 and height > 0:
+        return {"width": int(width), "height": int(height), "source": "the snapshot"}
+    up = ag_interface_up(log_text)
+    return dict(up, source="the mount's line in the app's log") if up else None
+
+
+def pc_classic_again(snapshot, before):
+    """The classic browser is what draws again: the browser screen is reported
+    without the interface's document. `before` is what it showed before the
+    stage; a list without a cursor (an empty one) is still the classic browser."""
+    if snapshot is None:
+        return False, "no snapshot that can be read"
+    if ag_shown(snapshot):
+        return False, "the interface still draws: " + ui_line(snapshot)
+    if ui_screen(snapshot) != SCREEN_BROWSER and not any(doc in BROWSER_DOCS for doc in ui_docs(snapshot)):
+        return False, "not the browser: " + ui_line(snapshot)
+    same = before is not None and ui_docs(snapshot) == ui_docs(before) and \
+        ui_focus(snapshot).get("text") == ui_focus(before).get("text")
+    return True, ("as before the stage: " if same else "the classic document draws: ") + ui_line(snapshot)
+
+
+_AG_UP = re.compile(r"afterglow: interface up, look (\S+), (\d+)x(\d+)")
+_AG_TEXT_DOWN = re.compile(r"afterglow: the text engine did not start \((.*?)\); ")
+_DEV_CAPTURE = re.compile(r"bc DEV_CAPTURE (wrote|failed) (.*?)\s*$")
+
+
+def ag_interface_up(log_text):
+    """What the mount logged when it built the frame: look and output size."""
+    found = None
+    for found in _AG_UP.finditer(log_text):
+        pass
+    return {"look": found.group(1), "width": int(found.group(2)), "height": int(found.group(3))} if found else None
+
+
+def ag_text_engine_failed(log_text):
+    found = _AG_TEXT_DOWN.search(log_text)
+    return found.group(1) if found else None
+
+
+def ag_log_lines(log_text, limit=40):
+    """Every line the interface wrote to the app's log, newest last."""
+    return [line.strip()[-200:] for line in log_text.splitlines() if "afterglow: " in line][-limit:]
+
+
+def capture_verdict(log_text):
+    """What the build said about the development capture command in a piece of
+    the log: ("wrote", detail), ("failed", reason), ("unknown", ...) when the
+    build has no such command, or None while it has said nothing."""
+    lines = log_text.splitlines()
+    for line in lines:
+        match = _DEV_CAPTURE.search(line)
+        if match:
+            return match.group(1), match.group(2)
+    for index, line in enumerate(lines):
+        if line.rstrip().endswith("bc REMOTE_CMD shot") and \
+                any(later.rstrip().endswith("bc REMOTE_CMD unknown") for later in lines[index + 1:index + 3]):
+            return "unknown", "this build has no capture command (bc REMOTE_CMD unknown)"
+    return None
+
+
+# --- the capture as pixels -------------------------------------------------------
+
+def bmp_facts(data):
+    """Size and a look at the pixels of an uncompressed 24- or 32-bit BMP:
+    (facts, None) or (None, why it is not one)."""
+    if not data or len(data) < 54 or data[:2] != b"BM":
+        return None, "not a BMP"
+    offset = int.from_bytes(data[10:14], "little")
+    width = int.from_bytes(data[18:22], "little", signed=True)
+    height = int.from_bytes(data[22:26], "little", signed=True)
+    bits = int.from_bytes(data[28:30], "little")
+    if int.from_bytes(data[30:34], "little") != 0 or bits not in (24, 32) or width <= 0 or height == 0:
+        return None, f"unsupported BMP ({width}x{height}, {bits} bits)"
+    step, rows = bits // 8, abs(height)
+    stride = (width * step + 3) & ~3
+    if len(data) < offset + stride * rows:
+        return None, f"short BMP: {len(data)} bytes for {width}x{rows}"
+    colours, lit, light, count = set(), 0, 0, 0
+    for row in range(0, rows, max(1, rows // 48)):
+        base = offset + row * stride
+        for column in range(0, width, max(1, width // 64)):
+            blue, green, red = data[base + column * step:base + column * step + 3]
+            colours.add((red, green, blue))
+            lit += (red + green + blue) > 24
+            light += red + green + blue
+            count += 1
+    return {"width": width, "height": rows, "bits": bits, "bottom_up": height > 0, "offset": offset, "stride": stride,
+            "samples": count, "colours": len(colours), "lit": round(lit / count, 3),
+            "brightness": round(light / (count * 765), 3)}, None
+
+
+def pc_capture(facts):
+    """The capture is a picture of something: not one flat colour, not all dark."""
+    if facts["colours"] < 8:
+        return False, f"the capture is flat: {facts['colours']} colours among {facts['samples']} sampled points"
+    if facts["lit"] < 0.02:
+        return False, f"the capture is dark: {facts['lit']:.1%} of the sampled points are lit"
+    return True, (f"{facts['width']}x{facts['height']}, {facts['colours']} colours among {facts['samples']} sampled "
+                  f"points, {facts['lit']:.0%} lit")
+
+
+def bmp_to_png(data):
+    """The same picture as a PNG (8-bit RGB), with the standard library only."""
+    import struct
+    import zlib
+    facts, problem = bmp_facts(data)
+    if facts is None:
+        raise ValueError(problem)
+    width, rows, step, stride = facts["width"], facts["height"], facts["bits"] // 8, facts["stride"]
+    lines = bytearray()
+    order = range(rows - 1, -1, -1) if facts["bottom_up"] else range(rows)
+    for row in order:
+        base = facts["offset"] + row * stride
+        pixels = data[base:base + width * step]
+        line = bytearray(width * 3)
+        line[0::3], line[1::3], line[2::3] = pixels[2::step], pixels[1::step], pixels[0::step]
+        lines += b"\x00" + line
+
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, rows, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes(lines), 6)) + chunk(b"IEND", b""))
+
+
 # --- shared lock ---------------------------------------------------------------
 
 class LockBusy(Exception):
@@ -518,4 +894,5 @@ def verify_candidate(directory, title=TITLE):
     return {"folder": str(folder), "files": len(files),
             "eboot": hashlib.sha256(eboot).hexdigest(),
             "build": builds[0] if len(builds) == 1 else None,
-            "instrumented": b"dev_command" in eboot and b"dev_status" in eboot}
+            "instrumented": b"dev_command" in eboot and b"dev_status" in eboot,
+            "afterglow": AG_MOUNT_MARK in eboot, "capture_command": AG_CAPTURE_MARK in eboot}

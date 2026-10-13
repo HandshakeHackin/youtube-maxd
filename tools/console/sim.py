@@ -7,6 +7,7 @@ session and prints every console operation a real run would perform. It proves
 the order of operations and the session's logic, not the console's behaviour.
 """
 import json
+import re
 from pathlib import Path
 
 import observe as ob
@@ -39,9 +40,38 @@ COLUMNS = 4
 SCREENS = {"browser": (23, "EmbyBrowse"), "player": (2, "Player"), "subtitles": (18, "SubtitlePicker"),
            "options": (31, "AudioTrackPicker"), "dialog": (20, "ExitConfirm"), "closed": (32, "SafeToClose")}
 
+# The Afterglow interface as native/afterglow reports it (frame_draw.cpp, screens/home.cpp, data.cpp):
+# Home's shelves per profile (id, title, kind), the rail's destinations, the faces the mount writes
+# into the data folder, and how long its moments take. Every title is invented.
+AG_HOME = {"guest": [("topics", "Browse by topic", "topics"), ("trending", "Trending now", "videos")],
+           "account": [("continue", "Continue watching", "videos"), ("recommended", "Recommended for you", "videos"),
+                       ("subscriptions", "New from your subscriptions", "videos")]}
+AG_TOPICS = [(row[0], row[1]) for row in DISCOVER if row[0].startswith(("search:", "section:"))]
+AG_VIDEOS = [(row[0], row[1]) for row in VIDEOS] + [("simVideo0007", "Как работает прилив"), ("simVideo0008", "潮の満ち引き")]
+AG_RAIL = [("home", "Home"), ("search", "Search"), ("subscriptions", "Subscriptions"), ("library", "Library"),
+           ("notifications", "Notifications"), ("settings", "Settings"), ("accounts", "Switch profile")]
+AG_FONTS = ("afterglow-inter-regular.ttf", "afterglow-inter-semibold.ttf", "afterglow-montserrat-medium.ttf",
+            "afterglow-dejavu-sans-mono.ttf")
+AG_LOOK_SECONDS, AG_OPENING_SECONDS, AG_LOAD_SECONDS, AG_PICTURE_SECONDS, AG_ATTRACT_SECONDS = 1.0, 2.0, 1.5, 0.4, 45.0
+AG_OUTPUT = (3840, 2160)
+
 
 def clip(text, cap):
     return text if len(text) <= cap else text[:cap] + "..."
+
+
+def sim_bmp(width=96, height=54, flat=False):
+    """A small 24-bit bottom-up BMP, as the build writes the scanout: a pattern, or one colour."""
+    stride = (width * 3 + 3) & ~3
+    rows = bytearray()
+    for y in range(height):
+        for x in range(width):
+            rows += bytes(3) if flat else bytes(((x * 5) % 256, (y * 9) % 256, (x * 3 + y * 7) % 256))
+        rows += bytes(stride - width * 3)
+    header = (b"BM" + (54 + len(rows)).to_bytes(4, "little") + bytes(4) + (54).to_bytes(4, "little")
+              + (40).to_bytes(4, "little") + width.to_bytes(4, "little") + height.to_bytes(4, "little")
+              + (1).to_bytes(2, "little") + (24).to_bytes(2, "little") + bytes(4) + len(rows).to_bytes(4, "little") + bytes(16))
+    return header + bytes(rows)
 
 
 class SimClock:
@@ -67,14 +97,29 @@ class SimConsole:
                          "state": None, "down_after": None, "storage": "ready", "service": "ready",
                          "layout": "rml", "topic_rows": len(VIDEOS), "first_cross_shows_controls": True,
                          "captions_open": True, "picker_closes": True, "exit_dialog": True, "resolves": True,
-                         "keyboard_visible": True, **scenario}
-        self.files = {}
+                         "keyboard_visible": True,
+                         # The Afterglow interface. afterglow: "ok", "never" (the build ignores the override
+                         # file) or "unwritable" (the file cannot be put); ag_snapshot: "ok", "nan" (a number printf wrote as nan) or "cut" (not JSON at
+                         # all); ag_home: "ready", "offline", "empty" or "loading" (never answers);
+                         # ag_play: "ok", "ignored" (Cross does nothing) or "refused" (a toast);
+                         # ag_unresolved: how many of a shelf's first cards do not resolve;
+                         # capture: "ok", "refused", "unknown" (a build without the command), "flat" or "silent";
+                         # ag_hang_on: a key after which the app takes no more commands.
+                         "afterglow": "ok", "ag_snapshot": "ok", "ag_profile": "guest", "ag_home": "ready",
+                         "ag_pictures": True, "ag_text_engine": True, "ag_rail": True, "ag_rail_closes": True,
+                         "ag_other_opens": True, "ag_other_returns": True, "ag_play": "ok", "ag_unresolved": 0,
+                         "ag_back": True, "ag_attract_at_start": False, "capture": "ok", "ag_hang_on": None,
+                         # ag_asked: the snapshot also carries what docs/afterglow/requests/drv.md asks for.
+                         "ag_asked": False,
+                         "files": {}, **scenario}
+        self.files = dict(self.scenario["files"])  # what the data folder held before the session
         if self.scenario["state"] is not None:
             self.files[ob.STATE_FILE] = self.scenario["state"]
         self.running, self.app, self.build = list(self.scenario["busy"]), None, "prosperotube-00000000_0000-0000"
         self.registered = False
         self.seq, self.last_body = 0, None
         self.title_checks = 0
+        self.exit_asked = 0  # Circle on the interface's last screen: the session must never cause one
 
     # --- the modelled app ----------------------------------------------------------
     def _log(self, line):
@@ -130,16 +175,212 @@ class SimConsole:
             f"eof={int(app['complete'])} complete={int(app['complete'])} active={int(app['active'])} "
             f"parked={int(app['parked'])}\n").encode()
         app["status_frozen"] = app["parked"]
+        self._ag_tick(now)
         body = self._ui()
         if body != self.last_body:  # the app writes the file only when the document changed
             self.last_body, self.seq = body, self.seq + 1
-            self.files[ob.UI_FILE] = json.dumps({"seq": self.seq, "t_ms": int(now * 1000), "ui": body}).encode()
+            if not self._ag_shown():
+                self.files[ob.UI_FILE] = json.dumps({"seq": self.seq, "t_ms": int(now * 1000), "ui": body}).encode()
+                return
+            # The frame's snapshot is written by the app's own C code: no spaces, and what it gets wrong stays wrong.
+            text = json.dumps({"seq": self.seq, "t_ms": int(now * 1000), "ui": body}, separators=(",", ":"), ensure_ascii=False)
+            if self.scenario["ag_snapshot"] == "nan":
+                text = re.sub(r'"fill":[0-9.]+', '"fill":nan', text)
+            elif self.scenario["ag_snapshot"] == "cut":
+                text = text[:text.index('"focusable"')] + '"focusable":[{"id":"topics/0","text":"Sci'
+            self.files[ob.UI_FILE] = text.encode()
+
+    # --- the modelled Afterglow interface ---------------------------------------------
+    def _ag_shown(self):
+        app = self.app
+        return bool(app) and app["ag"]["enabled"] and not app["ag"]["broken"] and app["screen"] == "browser" and \
+            not app["keyboard"] and not app["parked"] and app["quit_at"] is None
+
+    def _ag_tick(self, now):
+        """The override files are looked at once a second; the frame is built the first time it draws."""
+        app = self.app
+        ag = app["ag"]
+        wanted = ob.AFTERGLOW_ON in self.files and ob.AFTERGLOW_OFF not in self.files and self.scenario["afterglow"] == "ok"
+        if wanted != ag["wanted"]:
+            ag["wanted"], ag["flip_at"] = wanted, now + AG_LOOK_SECONDS
+        if ag["flip_at"] is not None and now >= ag["flip_at"]:
+            ag["enabled"], ag["flip_at"] = ag["wanted"], None
+        if not self._ag_shown():
+            ag["was_shown"] = False
+            return
+        frame = ag["frame"]
+        if frame is None:
+            frame = ag["frame"] = {"born": now, "home_at": None, "stack": [["opening", ""]], "rail": False, "rail_focus": 0,
+                                   "row": 0, "cols": {}, "idle": now, "attract": False, "toasts": [], "moved_at": now,
+                                   "key_at": -10.0}
+            self._log(f"afterglow: interface up, look afterglow, {AG_OUTPUT[0]}x{AG_OUTPUT[1]}")
+            if not self.scenario["ag_text_engine"]:
+                self._log("afterglow: the text engine did not start (no font file could be opened); the kit's baked fonts draw")
+            for name in AG_FONTS:  # the faces of the asset bundle, written once for the text engine
+                self.files.setdefault(f"{ob.DATA}/{name}", bytes(1024))
+        if not ag["was_shown"]:  # back on screen after the player or the classic browser had it
+            ag["was_shown"], frame["idle"] = True, now
+        if frame["stack"][-1][0] == "opening" and now - frame["born"] >= AG_OPENING_SECONDS:
+            frame["stack"], frame["home_at"], frame["moved_at"] = [["home", ""]], now, now
+            if self.scenario["ag_attract_at_start"]:
+                frame["idle"] = now - AG_ATTRACT_SECONDS
+        rows = self._ag_rows(now)
+        if frame["stack"][-1][0] == "home" and not frame["rail"] and rows and rows[frame["row"]][2] == "videos" and \
+                now - frame["idle"] >= AG_ATTRACT_SECONDS:
+            frame["attract"] = True
+
+    def _ag_plan(self):
+        return AG_HOME[self.scenario["ag_profile"]]
+
+    def _ag_rows(self, now):
+        """Home's shelves that have something on them: [(id, title, kind, [(card id, title)])]."""
+        frame = self.app["ag"]["frame"]
+        if frame is None or frame["home_at"] is None or self.scenario["ag_home"] != "ready" or \
+                now - frame["home_at"] < AG_LOAD_SECONDS:
+            return []
+        return [(shelf, title, kind, AG_TOPICS if kind == "topics" else AG_VIDEOS) for shelf, title, kind in self._ag_plan()]
+
+    def _ag_snapshot(self):
+        """Frame::snapshot_json() of the modelled frame, as a dict."""
+        now, frame = self.clock.now(), self.app["ag"]["frame"]
+        top, argument = frame["stack"][-1]
+        rows = self._ag_rows(now)
+        loaded = frame["home_at"] is not None and now - frame["home_at"] >= AG_LOAD_SECONDS
+        load = "loading" if not loaded or self.scenario["ag_home"] == "loading" else \
+            {"ready": "ready", "empty": "ready", "offline": "offline"}[self.scenario["ag_home"]]
+        cards = sum(len(items) for _, _, kind, items in rows if kind == "videos")
+        ready = min(cards, int((now - frame["home_at"] - AG_LOAD_SECONDS) / AG_PICTURE_SECONDS)) \
+            if rows and self.scenario["ag_pictures"] else 0
+        focusable, state = [], {"lists": {}}
+        if top == "opening":
+            focus = {"id": "opening", "text": "ProsperoTube", "index": 0, "total": 1, "rect": [856.0, 348.0, 208.0, 208.0]}
+            state = {"left": "0", "lists": {}}
+        elif top == "home":
+            state = {"load": load, "profile": self.scenario["ag_profile"], "shelves": str(len(rows)),
+                     "row": rows[frame["row"]][0] if rows else "", "hero": AG_VIDEOS[0][1] if rows else "",
+                     "invite": "1" if self.scenario["ag_profile"] == "guest" else "0",
+                     "lists": {f"shelf:{shelf}": [title for _, title in items] for shelf, _, _, items in rows}}
+            if rows:
+                shelf, _, _, items = rows[frame["row"]]
+                column = frame["cols"].get(shelf, 0)
+                focus = {"id": f"{shelf}/{column}", "text": items[column][1], "index": column, "total": len(items),
+                         "rect": [120.0 + 272.0 * column, 508.0 + 232.0 * frame["row"], 248.0, 136.0]}
+                focusable = [{"id": f"{name}/{index}", "text": title}
+                             for name, _, _, cards_ in rows for index, (_, title) in enumerate(cards_)]
+            else:
+                focus = {"id": "loading" if load == "loading" else "offline" if load == "offline" else "empty", "text": "",
+                         "index": 0, "total": 1, "rect": [120.0, 360.0, 900.0, 200.0]}
+        else:  # a page that is not built yet: a real screen that names itself and goes back on Circle
+            focus = {"id": "placeholder", "text": top, "index": 0, "total": 1, "rect": [120.0, 240.0, 900.0, 280.0]}
+            focusable = [{"id": "placeholder", "text": top}]
+            state = {"placeholder": "1", "argument": argument, "lists": {}}
+        if frame["rail"]:
+            screen, label = AG_RAIL[frame["rail_focus"]]
+            focus = {"id": f"rail/{screen}", "text": label, "index": frame["rail_focus"], "total": len(AG_RAIL),
+                     "rect": [24.0, 264.0 + 84.0 * frame["rail_focus"], 344.0, 72.0]}
+            focusable = []
+        busy = now - frame["key_at"] < 2.0
+        drawn = {"opening": (36, 9, 1.2), "home": (212 + 6 * ready, 23, 2.9)}.get(top, (48, 11, 1.4))
+        asked = {}
+        if self.scenario["ag_asked"]:
+            engine = int(self.scenario["ag_text_engine"])
+            asked = {"output_w": AG_OUTPUT[0], "output_h": AG_OUTPUT[1], "text_engine": engine, "glyph_pages": 2 * engine,
+                     "glyphs": 412 * engine, "fonts": 6 * engine, "missing_glyphs": 0}
+            focus = dict(focus, kind="video" if "/" in focus["id"] and not focus["id"].startswith(("topics/", "rail/")) else "other")
+        return {"interface": "afterglow", "look": "afterglow", "screen": top,
+                "stack": [{"screen": name, "argument": value} for name, value in frame["stack"]],
+                "moving": int(now - frame["moved_at"] < 0.4),
+                "rail_open": int(frame["rail"]), "attract": int(frame["attract"]), "dialog": 0,
+                "focus": focus, "focusable": focusable, "toasts": list(frame["toasts"]), "state": state,
+                "stats": {"frame_ms": 16.7 + round((now * 7) % 1, 1) * 0.1, "worst_frame_ms": 24.9 if busy else 17.1,
+                          "update_ms": 0.42, "draw_ms": 1.63, "instances": drawn[0], "runs": drawn[1], "fill": drawn[2],
+                          "pictures_ready": ready, "pictures_pending": cards - ready, "picture_bytes": ready * 98304,
+                          "data_pending": 0 if loaded and load != "loading" else 2, **asked}}
+
+    def _ag_key(self, key):
+        """The pad while the interface is shown (frame.cpp, screens/home.cpp, screens/stubs.cpp)."""
+        app, now = self.app, self.clock.now()
+        frame = app["ag"]["frame"]
+        frame["key_at"] = now
+        if frame["attract"]:  # the press that ends attract mode does nothing else
+            frame["attract"], frame["idle"] = False, now
+            return
+        frame["idle"] = now
+        top = frame["stack"][-1][0]
+        rows = self._ag_rows(now)
+        if frame["rail"]:
+            if key == "down" and frame["rail_focus"] + 1 < len(AG_RAIL):
+                frame["rail_focus"] += 1
+            elif key == "up" and frame["rail_focus"] > 0:
+                frame["rail_focus"] -= 1
+            elif key == "cross":
+                frame.update(rail=False, stack=[[AG_RAIL[frame["rail_focus"]][0], ""]], moved_at=now)
+            elif key in ("right", "circle") and self.scenario["ag_rail_closes"]:
+                frame["rail"] = False
+            return
+        if top == "opening":
+            return
+        if top != "home":
+            if key == "circle" and len(frame["stack"]) > 1 and self.scenario["ag_other_returns"]:
+                frame["stack"].pop()
+                frame["moved_at"] = now
+            elif key == "circle" and len(frame["stack"]) == 1:
+                self.exit_asked += 1
+            elif key == "left":
+                frame.update(rail=True, rail_focus=0)
+            return
+        if key == "square" and self.scenario["ag_other_opens"]:
+            frame["stack"].append(["search", ""])
+            frame["moved_at"] = now
+        elif key == "circle":
+            self.exit_asked += 1  # Circle on the interface's last screen: the app's rule for leaving
+        elif key == "left" and (not rows or frame["cols"].get(rows[frame["row"]][0], 0) == 0):
+            if self.scenario["ag_rail"]:
+                frame.update(rail=True, rail_focus=0)
+        elif rows:
+            shelf, _, kind, items = rows[frame["row"]]
+            column = frame["cols"].get(shelf, 0)
+            if key == "right" and column + 1 < len(items):
+                frame["cols"][shelf] = column + 1
+            elif key == "left":
+                frame["cols"][shelf] = column - 1
+            elif key == "down" and frame["row"] + 1 < len(rows):
+                frame["row"] += 1
+            elif key == "up" and frame["row"] > 0:
+                frame["row"] -= 1
+            elif key == "triangle" and kind == "videos" and self.scenario["ag_other_opens"]:
+                frame["stack"].append(["video", items[column][0]])
+                frame["moved_at"] = now
+            elif key == "cross" and kind == "topics":
+                frame["stack"].append(["grid", items[column][0]])
+                frame["moved_at"] = now
+            elif key == "cross":
+                self._ag_play(items[column], column)
+
+    def _ag_play(self, card, column):
+        """Cross on a video: offered to the player the classic browser uses (no activation line in the log)."""
+        app, mode = self.app, self.scenario["ag_play"]
+        if mode == "refused":
+            app["ag"]["frame"]["toasts"].append("This video could not be opened.")
+        elif mode == "ok" and column < self.scenario["ag_unresolved"]:
+            self._log(f"EVO boot: provider: resolve failed for youtube/{card[0]}")
+        elif mode == "ok":
+            app.update(screen="player", active=True, paused=False, complete=False, pos=0.0, video=(card[0], card[1], "", False),
+                       controls=False, since=self.clock.now() + 2)
+            if not self.scenario["ag_back"]:
+                app["ag"]["broken"] = True  # the frame does not come back after the player
 
     def _ui(self):
         app = self.app
         screen = app["screen"]
         number, name = SCREENS[screen]
         docs, focus, modal = [], None, None
+        if self._ag_shown() and app["ag"]["frame"] is not None:
+            # The frame's own snapshot stands where the classic layouts report the focused element;
+            # the browser's document stays listed behind it, as a provider's screen does behind a kit screen.
+            return {"screen": {"id": number, "name": name}, "docs": [ob.AFTERGLOW_DOC, "youtube"],
+                    "focused": self._ag_snapshot(), "also_highlighted": [], "modal": None, "toast": None,
+                    "native_player": None}
 
         def kit(doc, rows, at, prefix="row"):
             return [doc], {"id": f"{prefix}-{at}", "tag": "hui", "class": "focused", "text": rows[at], "doc": doc,
@@ -178,12 +419,29 @@ class SimConsole:
                 "native_player": {"osd_visible": app["controls"], "paused": app["paused"], "active_overlay": None}
                 if number == 2 else None}
 
+    def _capture(self):
+        """The development capture command: the scanout as the next free evo_shot file."""
+        mode = self.scenario["capture"]
+        if mode == "unknown":  # a build made before the command existed
+            self._log("bc REMOTE_CMD unknown")
+        elif mode == "refused":
+            self._log("bc DEV_CAPTURE failed cannot write the capture file")
+        elif mode != "silent":
+            name = next(path for path in (f"{ob.DATA}/evo_shot_{slot:03d}.bmp" for slot in range(1000)) if path not in self.files)
+            self.files[name] = sim_bmp(flat=mode == "flat")
+            self._log(f"bc DEV_CAPTURE wrote {name} 96x54")
+
     def _command(self, line):
         app = self.app
-        if not app or app["quit_at"] is not None:
+        if not app or app["quit_at"] is not None or app["hung"]:
             return False
         self._log(f"bc REMOTE_CMD {line}")
-        if line.startswith("type ") and app["keyboard"]:
+        if line == "shot":
+            self._capture()
+        elif line.startswith("key ") and not app["keyboard"] and self._ag_shown() and app["ag"]["frame"] is not None:
+            self._ag_key(line[4:])
+            app["hung"] = line[4:] == self.scenario["ag_hang_on"]
+        elif line.startswith("type ") and app["keyboard"]:
             app["typed"] = line[5:]
         elif line == "kbdone" and app["keyboard"]:
             app["keyboard"] = False
@@ -309,6 +567,8 @@ class SimConsole:
 
     def put(self, remote, data, note=None):
         self._op("ftp-put", f"{remote} ({note or str(len(data)) + ' bytes'}; temp name, readback, rename)", True)
+        if remote == ob.AFTERGLOW_ON and self.scenario["afterglow"] == "unwritable":
+            return 1, f"put {remote}: the readback differs (simulated)"
         if remote == ob.CMD_FILE:
             if not self._command(data.decode().strip()):
                 self.files[remote] = data  # nobody reads it: it stays
@@ -355,7 +615,9 @@ class SimConsole:
             self.app = {"boot": self.clock.now(), "screen": "browser", "rows": [], "focus": 0, "parent": "",
                         "active": False, "paused": False, "complete": False, "pos": 0.0, "since": 0.0, "seeks": 0,
                         "parked": False, "status_frozen": False, "quit_at": None, "keyboard": False, "typed": "",
-                        "menu": 0, "controls": False, "video": ("", "", "", False)}
+                        "menu": 0, "controls": False, "video": ("", "", "", False), "hung": False,
+                        "ag": {"wanted": False, "flip_at": None, "enabled": False, "frame": None, "broken": False,
+                               "was_shown": False}}
             self._log(f"EVO boot: Lapy: path=helper status=0 storage={self.scenario['storage']}")
             if self.scenario["service"] == "ready":
                 self._log("embedded service: listening on 127.0.0.1:26757")

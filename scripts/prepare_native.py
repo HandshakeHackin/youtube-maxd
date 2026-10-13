@@ -336,6 +336,90 @@ static const char* tube_dev_path(unsigned index) {
     }
     if (rename(STATUS_TMP_PATH, STATUS_PATH) != 0)
         remove(STATUS_TMP_PATH);''')
+    # --- ProsperoTube dev capture: begin -------------------------------------------------------------
+    # One more command of the development remote, for tools/console: `shot` writes what the display
+    # shows as the next free evo_shot_NNN.bmp of the data folder, on any screen and without the pad.
+    # The browser keeps both sticks for its own controls, so a console session had no picture of it.
+    # It lives in evo_usb_remote.c alone, whose whole body is compiled only into a --usb-remote
+    # build: a release build has none of it.
+    replace(remote, "static void run_command(const char *line)\n{", '''/* --- ProsperoTube dev capture: begin ---
+ * `shot`: the displayed scanout as a 24-bit BMP, rows bottom-up, the file a
+ * stick click writes on the player. Runs on the frame loop, between two frames. */
+#include <stdint.h>
+void evo_agc_runtime_get_size(int *width, int *height);                    /* media/include/evo_agc_runtime.h */
+void evo_agc_runtime_read_scanout(uint32_t *bgra, int width, int height);
+
+static void tube_dev_capture(void)
+{
+    char path[512], part[520], said[640];
+    unsigned char header[54] = {0};
+    int width = 0, height = 0, slot, x, y, ok;
+    FILE *file = NULL;
+
+    evo_agc_runtime_get_size(&width, &height);
+    for (slot = 0; slot < 1000; ++slot) {
+        snprintf(path, sizeof path, "%s/evo_shot_%03d.bmp", evo_data_dir(), slot);
+        file = fopen(path, "rb");
+        if (!file)
+            break;
+        fclose(file);
+    }
+    if (width <= 0 || height <= 0 || slot >= 1000) {
+        snprintf(said, sizeof said, "failed no render size or no free file (%dx%d, slot %d)", width, height, slot);
+        pp_stage_bc("DEV_CAPTURE", said);
+        return;
+    }
+    const size_t stride = ((size_t)width * 3u + 3u) & ~(size_t)3u;
+    const uint32_t pixels = (uint32_t)(stride * (size_t)height), total = 54u + pixels;
+    uint32_t *bgra = calloc((size_t)width * (size_t)height, sizeof *bgra);
+    unsigned char *row = calloc(stride, 1);
+    snprintf(part, sizeof part, "%s.part", path);
+    file = bgra && row ? fopen(part, "wb") : NULL;
+    if (!file) {
+        free(bgra);
+        free(row);
+        snprintf(said, sizeof said, "failed cannot write %s", part);
+        pp_stage_bc("DEV_CAPTURE", said);
+        return;
+    }
+    evo_agc_runtime_read_scanout(bgra, width, height);
+    header[0] = 'B'; header[1] = 'M'; header[10] = 54; header[14] = 40; header[26] = 1; header[28] = 24;
+    memcpy(header + 2, &total, 4);      /* little-endian, as the console is */
+    memcpy(header + 18, &width, 4);
+    memcpy(header + 22, &height, 4);
+    memcpy(header + 34, &pixels, 4);
+    ok = fwrite(header, 1, sizeof header, file) == sizeof header;
+    for (y = height - 1; ok && y >= 0; --y) {
+        const uint32_t *source = bgra + (size_t)y * (size_t)width;
+        for (x = 0; x < width; ++x) {   /* the scanout word is 0xAARRGGBB: the low byte is blue */
+            row[x * 3 + 0] = (unsigned char)source[x];
+            row[x * 3 + 1] = (unsigned char)(source[x] >> 8);
+            row[x * 3 + 2] = (unsigned char)(source[x] >> 16);
+        }
+        ok = fwrite(row, 1, stride, file) == stride;
+    }
+    ok = (fclose(file) == 0) && ok;
+    free(bgra);
+    free(row);
+    /* Under its own name only once it is whole: a reader never sees half a picture. */
+    if (ok && rename(part, path) == 0) {
+        snprintf(said, sizeof said, "wrote %s %dx%d", path, width, height);
+    } else {
+        remove(part);
+        snprintf(said, sizeof said, "failed short write of %s", path);
+    }
+    pp_stage_bc("DEV_CAPTURE", said);
+}
+/* --- ProsperoTube dev capture: end --- */
+
+static void run_command(const char *line)
+{''')
+    replace(remote, '    if (strcmp(buf, "stop") == 0) {', '''    if (strcmp(buf, "shot") == 0) {   /* ProsperoTube dev capture */
+        tube_dev_capture();
+        return;
+    }
+    if (strcmp(buf, "stop") == 0) {''')
+    # --- ProsperoTube dev capture: end ---------------------------------------------------------------
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')

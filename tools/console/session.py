@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import afterglow_stage  # noqa: E402
 import observe as ob  # noqa: E402
 
 SESSION_NAME = "ProsperoTube"
@@ -66,6 +67,7 @@ class Session:
         self.log_pos, self.log_text = 0, ""
         self.last_ui_seq = None
         self.functional_deadline = None
+        self.afterglow_touched = False  # the Afterglow stage wrote its override file: the teardown removes it
 
     # --- logging -----------------------------------------------------------------
     def log(self, message):
@@ -193,6 +195,13 @@ class Session:
             raise Stop("no single build identifier in eboot.bin", "STOP")
         if not info["instrumented"]:
             self.local_problem("the candidate was not built with --usb-remote: it cannot be driven or observed")
+        if args.afterglow and not info["afterglow"]:
+            self.local_problem("--afterglow: the candidate has no Afterglow mount (eboot.bin does not name afterglow.on)")
+        elif args.afterglow and not info["capture_command"]:
+            self.local_problem("--afterglow: the candidate has no capture command (it was built without the development "
+                               "capture block of scripts/prepare_native.py): the picture of Home could not be taken")
+        elif args.afterglow:
+            self.log("   Afterglow: the mount and the capture command are in eboot.bin")
         protocol = Path(args.protocol)
         for tool in ("scripts/ps5-console.py", "scripts/send-controller.sh"):
             if not (protocol / tool).is_file():
@@ -253,6 +262,9 @@ class Session:
         self.log(f"   {self.errors_before}; {ob.TITLE} mounted from: {self.obs['mounted_from_before']}")
         self.listing_before = self.console.listdir(ob.DATA)
         self.save("data-listing-before.json", self.listing_before if self.listing_before is not None else {"absent": True})
+        if self.args.afterglow and Path(ob.AFTERGLOW_OFF).name in (self.listing_before or {}):
+            raise Stop(f"{ob.AFTERGLOW_OFF} exists: it keeps the classic browser whatever the session writes. "
+                       "Remove it, or run without --afterglow", "STOP")
         skipped = []
         for name, facts in sorted((self.listing_before or {}).items()):
             if facts["type"] != "file" or name in ob.DEV_FILES or ob.DIAGNOSTIC.match(name) or \
@@ -311,6 +323,11 @@ class Session:
         for name in ob.DEV_FILES:
             if name in listing:  # left by an earlier development run: it would be read as this one's
                 self.console.delete(f"{ob.DATA}/{name}")
+        for name in ob.AFTERGLOW_FILES if self.args.afterglow else ():
+            if name in listing:  # the app would start in Afterglow and the classic core path could not run
+                self.console.delete(f"{ob.DATA}/{name}")
+                self.note(f"{name} was already in the data folder: removed for this launch"
+                          + (", put back with the saved state at the end" if name in self.snapshot else ""))
         self.shots_before = {name for name in listing if ob.SHOT.match(name)}
         self.log_pos = self.console.size(ob.LOG_FILE) or 0
         self.sm_pos = self.console.size(SHADOWMOUNT_LOG) or 0
@@ -729,7 +746,9 @@ class Session:
         listing = self.console.listdir(ob.DATA) or {}
         for name in sorted(listing):
             created_shot = ob.SHOT.match(name) and name not in self.shots_before
-            if name in ob.DEV_FILES or created_shot:
+            # The Afterglow stage removes its own override file; this is for a stage that could not.
+            own_switch = self.afterglow_touched and name in ob.AFTERGLOW_FILES
+            if name in ob.DEV_FILES or created_shot or own_switch:
                 self.console.delete(f"{ob.DATA}/{name}")
         report = {"identical": [], "restored": [], "removed": [], "failed": [], "left": []}
         if self.args.keep_state:
@@ -752,7 +771,8 @@ class Session:
         self.save("data-listing-after.json", after)
         known = set(self.listing_before or {})
         report["left"] = sorted(name for name in after if name not in known and not ob.DIAGNOSTIC.match(name))
-        leftover = [name for name in after if name in ob.DEV_FILES]
+        leftover = [name for name in after if name in ob.DEV_FILES
+                    or (self.afterglow_touched and name in ob.AFTERGLOW_FILES and name not in self.snapshot)]
         self.obs["restore"] = report
         self.log(f"   state: {len(report['identical'])} unchanged, restored {report['restored']}, "
                  f"removed {report['removed']}, failed {report['failed']}; new and left in place: {report['left']}")
@@ -826,8 +846,20 @@ class Session:
                 self.install()
             with self.stage(4, "launch and evidence ladder to ready"):
                 self.launch()
-            with self.stage(5, "core path through the development interface"):
-                self.functional()
+            core = None
+            try:
+                with self.stage(5, "core path through the development interface"):
+                    self.functional()
+            except Stop as stop:
+                if not (self.args.afterglow and self.args.afterglow_after_core_fail):
+                    raise
+                core = stop  # still the session's verdict; the stage itself checks that the app is on its browser
+                self.note("the core path failed; --afterglow-after-core-fail: the Afterglow stage is still tried")
+            if self.args.afterglow:
+                with self.stage("5a", "Afterglow interface (optional stage, same launch)"):
+                    afterglow_stage.AfterglowStage(self, Stop).run()
+            if core is not None:
+                raise core
         except Stop as stop:
             verdict = "no-run" if stop.verdict == "STOP" and not self.launched else "fail"
         except self.Down:
@@ -874,8 +906,10 @@ class Session:
             self.log("DRY RUN - console operations a real run performs, in order (repeats folded):")
             for index, line in enumerate(plan, 1):
                 self.log(f"   {index:3d}. {line}")
+        afterglow = self.obs.get("afterglow")
         self.log(f"RESULT: {verdict.upper()}{' (DRY RUN, simulated console)' if self.args.dry_run else ''}; "
-                 f"stages {' '.join(str(s['stage']) + ':' + s['result'] for s in self.stages)}; evidence: {self.out}")
+                 f"stages {' '.join(str(s['stage']) + ':' + s['result'] for s in self.stages)}"
+                 + (f"; Afterglow {afterglow['result'].upper()}" if afterglow else "") + f"; evidence: {self.out}")
         if verdict == "unresolved":
             self.log("The console's state is not proven. Do not retry anything: report to the owner.")
 
@@ -901,6 +935,13 @@ def parse(argv=None):
     parser.add_argument("--keep-state", action="store_true", help="leave the session's history on the console")
     parser.add_argument("--allow-unparked-close", action="store_true",
                         help="send the close payload even when the app did not park (a forced close)")
+    parser.add_argument("--afterglow", action="store_true",
+                        help="after the core path, in the same launch: switch the Afterglow interface on, record its frame, "
+                             "capture Home, play one video from it, switch it off again")
+    parser.add_argument("--afterglow-other", choices=("square", "triangle", "none"), default="square",
+                        help="the key that opens one other Afterglow screen from Home (Square: Search; Triangle: a video's page)")
+    parser.add_argument("--afterglow-after-core-fail", action="store_true",
+                        help="try the Afterglow stage even when the core path failed, if the app is on its browser")
     parser.add_argument("--dry-run", action="store_true", help="simulated console: prints the console operations, sends nothing")
     parser.add_argument("--i-have-owner-approval", action="store_true")
     args = parser.parse_args(argv)
