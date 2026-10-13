@@ -62,10 +62,14 @@ All marked `stage S`:
   `addons/include`, two wildcards in EVO's Makefile, and four lines in `core/src/Application.cpp` (the include,
   `tube_afterglow_sound_pad()` after `evo_feedback_init`, `tube_afterglow_sound_park()` in the soft close,
   `tube_afterglow_sound_close()` in `shutdown()`).
-- `tests/afterglow/host_main.cpp`: `--sound <file.wav>`; the recordings and a `Tape`; per board a `Recorder`
-  and a `Sound` stepped after every `Frame::update()`; a board's `"sound"` object (`sounds`, `vibration`,
-  `volume`, `quiet_from`, `quiet_until`, `minute`); `expect` keys `"cues"` (the names heard, in order, as one
-  text) and `"pulses"` (a count).
+- `tests/afterglow/host_main.cpp`: `--sound <file.wav>` (what the port would play over the run, and beside it
+  `<file.wav>.txt`: when which cue plays, from which recording, at which pitch, pan and gain); the recordings and
+  a `Tape`; per board a `Recorder` and a `Sound` stepped after every `Frame::update()`; a board's `"sound"`
+  object (`sounds`, `vibration`, `volume`, `quiet_from`, `quiet_until`, `minute`); `expect` keys `"cues"` (the
+  names heard, in order, as one text) and `"pulses"` (a count).
+
+To listen on the PC to what the boards play (nothing is played by the tests themselves):
+`bash scripts/afterglow_host.sh out --only sound --look afterglow --sound out/heard.wav`.
 
 New files outside the module: `tests/afterglow/sound/sound_test.cpp`, `scripts/test_afterglow_sound.sh` (picked up
 by `scripts/test_all.sh` by its name), `tests/afterglow/boards/sound.json` (eleven boards on the frame, Home and
