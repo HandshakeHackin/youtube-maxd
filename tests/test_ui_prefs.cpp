@@ -144,12 +144,17 @@ int main(int argc,char**argv) {
     open("history"); render(plain);
     assert(!host.m_tube_styled && tube_ui_plain(tube_ui_prefs()) && EVO_PROVIDER_PAGE_SIZE==8 && host.m_context->GetDensityIndependentPixelRatio()==1.0f);
     check_grid(); assert(host.FocusedRowIndex()==0 && lit(plain,0,0,width,height)>2000);
-    /* Nothing paints the page behind the default look: the body has no size of its own. */
-    assert(!(plain[2*width+2]&0xffffffu));
+    /* The body paints the page ground of the theme. The mark is a decoded picture, two rings in the text colour,
+     * around a core in the accent. */
+    assert((plain[2*width+2]&0xffffffu)==0x06070cu || (plain[2*width+2]&0xffffffu)==0x0c0706u);
     uint32_t mark;
-    { float x,y,w,h; box(host.m_doc->GetElementById("tube-mark"),x,y,w,h); mark=plain[(size_t)(y+3)*width+(size_t)(x+w/2)]; }
-    assert((mark&0xffffffu)==0x4033efu || (mark&0xffffffu)==0xef3340u);
-    const bool red_low=(mark&255)==0xef;
+    { float x,y,w,h; box(host.m_doc->GetElementById("tube-mark-core"),x,y,w,h); mark=plain[(size_t)(y+h/2)*width+(size_t)(x+w/2)]; }
+    assert((mark&0xffffffu)==0x475affu || (mark&0xffffffu)==0xff5a47u);
+    const bool red_low=(mark&255)==0xff;
+    { float x,y,w,h; box(host.m_doc->GetElementById("tube-mark"),x,y,w,h);
+      const uint32_t ring=plain[(size_t)(y+h/2)*width+(size_t)(x+3)], gap=plain[(size_t)(y+2)*width+(size_t)(x+w/2+4)];
+      assert((ring&255)>200 && (ring>>8&255)>200 && (ring>>16&255)>200);          /* nine o'clock: on the outer ring */
+      assert((gap&255)<40 && (gap>>8&255)<40 && (gap>>16&255)<40); }               /* past twelve: the ring is open */
     auto rgb=[&](uint32_t p) { return red_low ? (p&255)<<16|(p&0xff00)|(p>>16&255) : p&0xffffffu; };
 
     /* Every interface scale with every video grid scale. */
@@ -206,7 +211,7 @@ int main(int argc,char**argv) {
             assert(lit(frame,(int)x,(int)y,(int)(x+w),(int)(y+h))>100);
             box(host.m_doc->GetElementById("tube-footer"),x,y,w,h);
             assert(lit(frame,0,(int)y,width,std::min(height,(int)(y+h)))>50); /* the hint bar is drawn at the bottom */
-            assert(!rgb(frame[2*width+2]));
+            assert(rgb(frame[2*width+2])==g_tube_schemes[0].background);     /* the page ground reaches the corner at every scale */
         }
     }
     assert(rendered==TUBE_UI_SCALES+TUBE_GRID_SCALES-1+4);
@@ -301,12 +306,12 @@ int main(int argc,char**argv) {
     choose("settings:ui:title-scroll:0"); pump(); assert(cards()[0]->QuerySelector(".tube-card-title")->GetScrollLeft()==0);
     choose("settings:ui:scroll-speed:0");
 
-    /* Colour schemes: the page takes the scheme's background, true black included, and the accent its colour. */
+    /* Themes and colour schemes: the page takes the background of each, true black and Daybreak's light ground included, and the accent its colour. */
     for(int scheme=1;scheme<TUBE_UI_SCHEMES;++scheme) {
         choose("settings:ui:scheme:"+std::to_string(scheme)); open("history"); render(frame);
         assert(rgb(frame[2*width+2])==g_tube_schemes[scheme].background);
-        float x,y,w,h; box(host.m_doc->GetElementById("tube-mark"),x,y,w,h);
-        assert(rgb(frame[(size_t)(y+3)*width+(size_t)(x+w/2)])==g_tube_schemes[scheme].accent);
+        float x,y,w,h; box(host.m_doc->GetElementById("tube-mark-core"),x,y,w,h);
+        assert(rgb(frame[(size_t)(y+h/2)*width+(size_t)(x+w/2)])==g_tube_schemes[scheme].accent);
         check_grid(); assert(EVO_PROVIDER_PAGE_SIZE==8 && lit(frame,0,0,width,height)>2000);
     }
     choose("settings:ui:scheme:0"); open("history"); render(frame); assert(frame==plain);

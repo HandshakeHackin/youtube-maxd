@@ -31,7 +31,7 @@ static void test_defaults_and_validation(void) {
     /* SmartTube's value lists. */
     assert(TUBE_UI_SCALES == 19 && g_tube_ui_scales[0] == 40 && g_tube_ui_scales[18] == 140 && g_tube_ui_scales[3] == 65);
     assert(TUBE_GRID_SCALES == 13 && g_tube_grid_scales[0] == 50 && g_tube_grid_scales[8] == 125 && g_tube_grid_scales[12] == 150);
-    assert(TUBE_UI_SCHEMES == 9);
+    assert(TUBE_UI_SCHEMES == 13 && TUBE_UI_THEMES == 4);
 }
 
 static void test_layout(void) {
@@ -109,6 +109,40 @@ static void test_marquee(void) {
     assert(tube_ui_marquee(2, 100, 0, 1) == 0 && tube_ui_marquee(2, 100, 10, 0) == 0 && tube_ui_marquee(NAN, 100, 10, 1) == 0);
 }
 
+/* WCAG relative luminance and contrast of two colours. */
+static double luminance(unsigned rgb) {
+    double sum = 0; static const double weight[3] = {0.2126, 0.7152, 0.0722};
+    for (int i = 0; i < 3; ++i) {
+        const double c = (rgb >> (16 - 8 * i) & 255) / 255.0;
+        sum += weight[i] * (c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4));
+    }
+    return sum;
+}
+static double contrast(unsigned a, unsigned b) {
+    const double x = luminance(a), y = luminance(b);
+    return (fmax(x, y) + 0.05) / (fmin(x, y) + 0.05);
+}
+/* Every text of the sheet on the surface it is drawn on reaches 4.5:1 in a theme or the classic look. */
+static void check_contrast(const tube_ui_token_t *tokens, int count, int scheme) {
+    static const char *const pairs[][2] = {
+        {"text", "background"}, {"text-muted", "background"}, {"overview", "background"}, {"footer", "background"}, {"key", "background"},
+        {"text", "card"}, {"text", "card-focus"}, {"author", "card"}, {"author", "card-focus"}, {"watched", "card"}, {"watched", "card-focus"},
+        {"text", "panel"}, {"error-text", "error-surface"}, {"text", "reader"}, {"placeholder", "image"}, {"folder-mark", "folder-image"},
+        {"on-button", "button"}, {"on-live", "live"}, {"on-scrim", "scrim"}};
+    for (unsigned i = 0; i < sizeof pairs / sizeof pairs[0]; ++i) {
+        unsigned ink = 0, ground = 0; int found = 0;
+        for (int k = 0; k < count; ++k) {
+            if (!strcmp(tokens[k].name, pairs[i][0])) { ink = tube_ui_token_color(&tokens[k], scheme); ++found; }
+            if (!strcmp(tokens[k].name, pairs[i][1])) { ground = tube_ui_token_color(&tokens[k], scheme); ++found; }
+        }
+        assert(found == 2);
+        /* The classic look keeps the colours it shipped with; its letter tiles are large type (3:1). */
+        const double least = scheme == TUBE_UI_CLASSIC && (!strcmp(pairs[i][0], "watched") || !strcmp(pairs[i][0], "folder-mark") || !strcmp(pairs[i][0], "on-button") || !strcmp(pairs[i][0], "on-live")) ? 3.0 : 4.5;
+        if (contrast(ink, ground) < least) fprintf(stderr, "scheme %d: %s on %s is %.2f:1\n", scheme, pairs[i][0], pairs[i][1], contrast(ink, ground));
+        assert(contrast(ink, ground) >= least);
+    }
+}
+
 static void test_schemes(const char *path) {
     char *sheet = slurp(path); size_t body = 0; static tube_ui_token_t tokens[TUBE_UI_TOKENS];
     const int count = tube_ui_tokens(sheet, tokens, TUBE_UI_TOKENS, &body);
@@ -131,7 +165,11 @@ static void test_schemes(const char *path) {
         assert(known); ++colours;
     }
     assert(colours > 30);
-    /* The first scheme is the sheet itself. */
+    /* The first theme is the sheet itself, and it passes the same contrast rule as the other three. */
+    check_contrast(tokens, count, 0);
+    assert(TUBE_UI_THEMES == 4 && TUBE_UI_CLASSIC == 4 && TUBE_UI_SCHEMES == 13 && !strcmp(g_tube_schemes[0].id, "afterglow") &&
+           !strcmp(g_tube_schemes[TUBE_UI_CLASSIC].id, "classic"));
+    for (int i = 0; i < TUBE_UI_SCHEMES; ++i) assert(strcmp(g_tube_schemes[i].id, "default"));   /* what older files carry reads as the first theme */
     const size_t size = strlen(sheet) + 1; char *out = malloc(size), *small = malloc(size - 1);
     assert(tube_ui_scheme_sheet(sheet, 0, out, size) == (int)strlen(sheet) && !strcmp(out, sheet));
     assert(tube_ui_scheme_sheet(sheet, 0, small, size - 1) == -1 && tube_ui_scheme_sheet(NULL, 0, out, size) == -1);
@@ -141,10 +179,20 @@ static void test_schemes(const char *path) {
         assert(!strncmp(out, sheet, body));                               /* the palette comment keeps the default values */
         snprintf(body_rule, sizeof body_rule, "background: #%06x; }", g_tube_schemes[scheme].background);
         assert(strstr(out + body, "body {") && strstr(strstr(out + body, "body {"), body_rule));
-        assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_BASE, TUBE_UI_DEFAULT_BACKGROUND) == g_tube_schemes[scheme].background);
-        assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_ACCENT, TUBE_UI_DEFAULT_ACCENT) == g_tube_schemes[scheme].accent);
+        /* A theme and the classic look are columns of the palette; the scheme table names their background and accent. */
+        assert(tube_ui_token_color(&tokens[background], scheme) == g_tube_schemes[scheme].background);
+        assert(tube_ui_token_color(&tokens[accent], scheme) == g_tube_schemes[scheme].accent);
+        if (scheme <= TUBE_UI_CLASSIC) {
+            assert(tokens[background].look[scheme - 1] == g_tube_schemes[scheme].background && tokens[accent].look[scheme - 1] == g_tube_schemes[scheme].accent);
+            assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_BASE, 0x181a22) == 0x181a22);
+            check_contrast(tokens, count, scheme);
+            for (size_t i = 0; i < strlen(sheet); ++i) assert((out[i] == '#') == (sheet[i] == '#'));
+            continue;
+        }
+        assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_BASE, TUBE_UI_CLASSIC_BACKGROUND) == g_tube_schemes[scheme].background);
+        assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_ACCENT, TUBE_UI_CLASSIC_ACCENT) == g_tube_schemes[scheme].accent);
         assert(tube_ui_scheme_color(scheme, TUBE_UI_ROLE_TEXT, 0xf6f7fb) == 0xf6f7fb);
-        /* Surfaces stay lighter than the background, by what they were lighter in the default look. */
+        /* Surfaces stay lighter than the background, by what they were lighter in the classic look. */
         const unsigned card = tube_ui_scheme_color(scheme, TUBE_UI_ROLE_BASE, 0x181a22);
         assert((card >> 16 & 255) == (g_tube_schemes[scheme].background >> 16 & 255) + (g_tube_schemes[scheme].mono ? 9 : 8));
         for (size_t i = 0; i < strlen(sheet); ++i) assert((out[i] == '#') == (sheet[i] == '#'));
@@ -156,7 +204,8 @@ static void test_schemes(const char *path) {
     }
     assert(black == 3);
     /* Monochrome: no tint in surfaces or accent. */
-    const unsigned mono = tube_ui_scheme_color(6, TUBE_UI_ROLE_BASE, 0x181a22), grey = tube_ui_scheme_color(6, TUBE_UI_ROLE_ACCENT, 0xee5360);
+    assert(g_tube_schemes[10].mono);
+    const unsigned mono = tube_ui_scheme_color(10, TUBE_UI_ROLE_BASE, 0x181a22), grey = tube_ui_scheme_color(10, TUBE_UI_ROLE_ACCENT, 0xee5360);
     assert((mono >> 16 & 255) == (mono >> 8 & 255) && (mono >> 8 & 255) == (mono & 255));
     assert((grey >> 16 & 255) == (grey >> 8 & 255) && (grey >> 8 & 255) == (grey & 255));
     assert(tube_ui_scheme_color(99, TUBE_UI_ROLE_BASE, 0x123456) == 0x123456 && tube_ui_scheme_color(-1, TUBE_UI_ROLE_ACCENT, 0x123456) == 0x123456);

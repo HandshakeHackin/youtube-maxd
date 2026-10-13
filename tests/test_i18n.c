@@ -69,7 +69,7 @@ int main(void) {
         assert(tr("What is new in ProsperoTube 0.2.0", 0) && strstr(out, "ProsperoTube 0.2.0") && strcmp(out, "What is new in ProsperoTube 0.2.0"));
         assert(tr("The update server could not be reached (too many redirects).", 0) && !strstr(out, "too many redirects"));
         assert(tr("The update server could not be reached (Connection reset by peer).", 0) && strstr(out, "(Connection reset by peer)"));
-        assert(tr("Notify about updates: on", TUBE_I18N_LABELS) && tr("Color scheme: Teal (true black)", TUBE_I18N_LABELS));
+        assert(tr("Notify about updates: on", TUBE_I18N_LABELS) && tr("Theme: Teal (true black)", TUBE_I18N_LABELS));
         char notice[256] = "ProsperoTube was updated to version 0.2.0.";        /* a toast's own buffer */
         tube_i18n_field(notice, sizeof notice, TUBE_I18N_LABELS);
         assert(strstr(notice, "0.2.0") && strstr(notice, "ProsperoTube") && strcmp(notice, "ProsperoTube was updated to version 0.2.0."));

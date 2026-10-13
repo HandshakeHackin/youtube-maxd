@@ -1,78 +1,92 @@
 /* Palette. Every colour of this sheet is one of these tokens, each defined here
- * and nowhere else. A colour scheme (native/tube_ui_style.h, per profile) gives
- * them other values when the browser loads the sheet: "base" tokens keep their
+ * and nowhere else. The sheet itself is the Afterglow theme. A line gives a
+ * token's colour here, its role, and its colour in Onyx, Daybreak, High
+ * contrast and the classic look, in that order. The browser loads the sheet
+ * with the colours of the profile's theme (native/tube_ui_style.h); a classic
+ * colour scheme starts from the classic column: "base" tokens keep their
  * distance from the scheme's background, "accent" tokens from its accent, and
- * "text" tokens stay as they are.
- * @token background #101116 base
- * @token text #f6f7fb text
- * @token accent #ef3340 accent
- * @token text-muted #a9adbb text
- * @token panel #242633 base
- * @token error-surface #51252c text
- * @token error-text #ffe5e5 text
- * @token card #181a22 base
- * @token focus #ffffff text
- * @token card-focus #292d3b base
- * @token image #282b37 base
- * @token placeholder #cbd0df text
- * @token folder-image #202434 base
- * @token folder-mark #ee5360 accent
- * @token author #a5aabd text
- * @token scrim #111111 text
- * @token live #df3340 accent
- * @token progress-track #343847 base
- * @token watched #e77d86 accent
- * @token overview #959bad text
- * @token footer #bfc4d3 text
- * @token rule #2b2e3a base
- * @token reader #1b1d27 base
- * @token scroll-track #292c39 base
- * @token scroll-bar #9399ad text
+ * "text" tokens stay as they are. A token is recognised by its colour here, so
+ * no two tokens share one.
+ * @token background     #06070c base   #000000 #f3ede4 #000000 #101116
+ * @token text           #f5f6fa text   #f5f1e8 #1c1714 #ffffff #f6f7fb
+ * @token accent         #ff5a47 accent #f2c14e #e2533d #ffd60a #ef3340
+ * @token text-muted     #b9bac4 text   #aca9a2 #615b57 #ffffff #a9adbb
+ * @token panel          #12141e base   #0f0f0f #fbf8f3 #262626 #242633
+ * @token error-surface  #3a1418 text   #3a1215 #f9d9d6 #4d0008 #51252c
+ * @token error-text     #ffd9d6 text   #ffd9d6 #7a1420 #ffffff #ffe5e5
+ * @token card           #0e1019 base   #0a0a0a #fbf8f3 #000000 #181a22
+ * @token focus          #ffffff text   #f5f1e8 #1c1714 #ffd60a #ffffff
+ * @token card-focus     #1a1d2b base   #1c1a14 #ffffff #1a1a1a #292d3b
+ * @token image          #161927 base   #141414 #e9e0d3 #262626 #282b37
+ * @token placeholder    #c9ccda text   #cfc9bb #5a524b #ffffff #cbd0df
+ * @token folder-image   #12162a base   #111111 #efe6da #1a1a1a #202434
+ * @token folder-mark    #ff6f5e accent #f2c14e #ad3521 #ffd60a #ee5360
+ * @token author         #a3a6b5 text   #a8a397 #655f5a #ffffff #a5aabd
+ * @token scrim          #0b0c13 text   #000000 #1c1714 #000000 #111111
+ * @token live           #ff5947 accent #f2c14e #c8321f #ffd60a #df3340
+ * @token progress-track #262a3a base   #262626 #d9cfc0 #4d4d4d #343847
+ * @token watched        #ff8a7a accent #f2c14e #a8321f #ffd60a #e77d86
+ * @token overview       #9698a6 text   #9a958a #6b645e #ffffff #959bad
+ * @token footer         #c3c5d0 text   #c9c4b8 #4a4440 #ffffff #bfc4d3
+ * @token rule           #1e2130 base   #292929 #d6ccbd #bfbfbf #2b2e3a
+ * @token reader         #0f111b base   #0b0b0b #fcf9f5 #000000 #1b1d27
+ * @token scroll-track   #1b1e2c base   #1f1f1f #e3dacd #333333 #292c39
+ * @token scroll-bar     #8f93a8 text   #8c877c #8a8178 #ffffff #9399ad
+ * @token button         #ff5b48 accent #f2c14e #e2533d #ffffff #ef3340
+ * @token on-button      #1a0605 text   #1a1200 #1c1714 #000000 #ffffff
+ * @token on-live        #1a0606 text   #1a1200 #ffffff #000000 #f6f7fb
+ * @token on-scrim       #fafafc text   #f5f1e8 #ffffff #ffffff #f6f7fb
+ * @token key            #fefefe text   #f5f1e8 #1c1714 #ffd60a #ffffff
  */
-body { margin: 0; font-family: LatoLatin; font-size: 24dp; color: #f6f7fb; background: #101116; }
+body { margin: 0; font-family: LatoLatin; font-size: 24dp; color: #f5f6fa; width: 1921dp; height: 1081dp; background: #06070c; }
 div { display: block; box-sizing: border-box; }
 #tube-root { position: absolute; left: 64dp; top: 38dp; width: 1792dp; height: 1004dp; }
 #tube-header { height: 88dp; display: flex; align-items: center; }
 #tube-brand { font-size: 34dp; font-weight: bold; width: 440dp; }
-#tube-mark { display: inline-block; padding: 7dp 10dp; font-size: 25dp; background: #ef3340; border-radius: 8dp; }
-#tube-location { font-size: 23dp; color: #a9adbb; width: 1100dp; overflow: hidden; white-space: nowrap; }
-#tube-pager { width: 220dp; text-align: right; font-size: 21dp; color: #a9adbb; }
-#tube-status { position: absolute; top: 88dp; left: 0; width: 1792dp; background: #242633; padding: 12dp; font-size: 21dp; z-index: 5; border-radius: 8dp; }
-#tube-status.error { background: #51252c; color: #ffe5e5; }
-#tube-loading { position: absolute; top: 130dp; left: 0; background: #242633; padding: 18dp 26dp; border-radius: 9dp; z-index: 6; }
+#tube-mark { display: inline-block; position: relative; width: 44dp; height: 44dp; margin-right: 6dp; vertical-align: -10dp; }
+#tube-mark img { width: 44dp; height: 44dp; image-color: #f5f6fa; }
+#tube-mark-core { display: block; position: absolute; left: 18dp; top: 18dp; width: 8dp; height: 8dp; border-radius: 4dp; background: #ff5a47; }
+#tube-location { font-size: 23dp; color: #b9bac4; width: 1100dp; overflow: hidden; white-space: nowrap; }
+#tube-pager { width: 220dp; text-align: right; font-size: 21dp; color: #b9bac4; }
+#tube-status { position: absolute; top: 88dp; left: 0; width: 1792dp; background: #12141e; padding: 12dp; font-size: 21dp; z-index: 5; border-radius: 8dp; }
+#tube-status.error { background: #3a1418; color: #ffd9d6; }
+#tube-loading { position: absolute; top: 130dp; left: 0; background: #12141e; padding: 18dp 26dp; border-radius: 9dp; z-index: 6; }
 #tube-grid { display: flex; flex-wrap: wrap; width: 1792dp; height: 720dp; padding-top: 18dp; }
-.tube-card { display: block; position: relative; width: 432dp; height: 332dp; margin-right: 16dp; margin-bottom: 22dp; padding: 7dp; border: 3dp transparent; border-radius: 13dp; tab-index: auto; nav: auto; overflow: hidden; background: #181a22; }
-.tube-card:focus { border-color: #ffffff; background: #292d3b; transform: scale(1.025); }
-.tube-image { position: relative; width: 412dp; height: 226dp; overflow: hidden; border-radius: 7dp; background: #282b37; }
+.tube-card { display: block; position: relative; width: 432dp; height: 332dp; margin-right: 16dp; margin-bottom: 22dp; padding: 7dp; border: 3dp transparent; border-radius: 13dp; tab-index: auto; nav: auto; overflow: hidden; background: #0e1019; }
+.tube-card:focus { border-color: #ffffff; background: #1a1d2b; transform: scale(1.025); }
+.tube-image { position: relative; width: 412dp; height: 226dp; overflow: hidden; border-radius: 7dp; background: #161927; }
 .tube-image img { width: 412dp; height: 226dp; }
-.tube-placeholder { padding-top: 70dp; text-align: center; font-size: 64dp; font-weight: bold; color: #cbd0df; }
-.folder .tube-image { background: #202434; }
-.folder .tube-placeholder { color: #ee5360; }
+.tube-placeholder { padding-top: 70dp; text-align: center; font-size: 64dp; font-weight: bold; color: #c9ccda; }
+.folder .tube-image { background: #12162a; }
+.folder .tube-placeholder { color: #ff6f5e; }
+.tube-image .tube-about-mark { position: absolute; left: 36%; top: 24%; width: 28%; height: 52%; }
+.tube-image .tube-about-mark img { width: 100%; height: 100%; image-color: #f5f6fa; }
+.tube-image .tube-about-mark div { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 40dp; background: #ff5a47; }
 .tube-card-title { padding-top: 12dp; font-size: 23dp; font-weight: bold; height: 40dp; overflow: hidden; white-space: nowrap; }
-.tube-card-author { font-size: 19dp; color: #a5aabd; overflow: hidden; white-space: nowrap; }
-.tube-badge, .tube-duration { position: absolute; bottom: 10dp; right: 10dp; padding: 4dp 8dp; background: #111111dd; font-size: 18dp; border-radius: 4dp; }
-.tube-badge { left: 10dp; right: auto; background: #df3340; }
-.tube-progress { position: absolute; bottom: 0; left: 6dp; width: 414dp; height: 4dp; background: #343847; }
-.tube-progress div { height: 4dp; background: #ef3340; }
-.tube-watched { position: absolute; right: 16dp; bottom: 14dp; font-size: 15dp; color: #e77d86; }
+.tube-card-author { font-size: 19dp; color: #a3a6b5; overflow: hidden; white-space: nowrap; }
+.tube-badge, .tube-duration { position: absolute; bottom: 10dp; right: 10dp; padding: 4dp 8dp; background: #0b0c13dd; color: #fafafc; font-size: 18dp; border-radius: 4dp; }
+.tube-badge { left: 10dp; right: auto; background: #ff5947; color: #1a0606; }
+.tube-progress { position: absolute; bottom: 0; left: 6dp; width: 414dp; height: 4dp; background: #262a3a; }
+.tube-progress div { height: 4dp; background: #ff5a47; }
+.tube-watched { position: absolute; right: 16dp; bottom: 14dp; font-size: 15dp; color: #ff8a7a; }
 #tube-preview { position: absolute; left: 0; top: 810dp; height: 142dp; width: 1780dp; }
 #tube-selected-title { font-size: 27dp; font-weight: bold; height: 38dp; overflow: hidden; white-space: nowrap; }
-#tube-selected-detail { color: #a9adbb; font-size: 20dp; height: 32dp; overflow: hidden; white-space: nowrap; }
-#tube-selected-overview { color: #959bad; font-size: 20dp; height: 55dp; overflow: hidden; }
-#tube-footer { position: absolute; bottom: 0; font-size: 19dp; color: #bfc4d3; height: 40dp; padding-top: 7dp; width: 1792dp; border-top: 1dp #2b2e3a; }
-.tube-key { display: inline; color: #ffffff; font-weight: bold; margin-left: 12dp; }
+#tube-selected-detail { color: #b9bac4; font-size: 20dp; height: 32dp; overflow: hidden; white-space: nowrap; }
+#tube-selected-overview { color: #9698a6; font-size: 20dp; height: 55dp; overflow: hidden; }
+#tube-footer { position: absolute; bottom: 0; font-size: 19dp; color: #c3c5d0; height: 40dp; padding-top: 7dp; width: 1792dp; border-top: 1dp #1e2130; }
+.tube-key { display: inline; color: #fefefe; font-weight: bold; margin-left: 12dp; }
 #tube-empty { position: absolute; top: 290dp; width: 1792dp; text-align: center; }
 .empty-title { font-size: 42dp; font-weight: bold; margin-bottom: 18dp; }
-.empty-note { color: #a9adbb; margin-bottom: 36dp; }
-.tv-setup-card { display: inline-block; background: #ef3340; color: #ffffff; border: 3dp transparent; padding: 20dp 34dp; border-radius: 10dp; font-size: 23dp; tab-index: auto; nav: auto; }
+.empty-note { color: #b9bac4; margin-bottom: 36dp; }
+.tv-setup-card { display: inline-block; background: #ff5b48; color: #1a0605; border: 3dp transparent; padding: 20dp 34dp; border-radius: 10dp; font-size: 23dp; tab-index: auto; nav: auto; }
 .tv-setup-card:focus { border-color: #ffffff; }
 #tube-grid.discussion { width: 640dp; height: 820dp; display: block; }
 #tube-grid.discussion .tube-card { width: 610dp; height: 90dp; margin: 6dp 8dp; padding: 10dp 18dp; }
 #tube-grid.discussion .tube-card-title { height: 32dp; font-size: 23dp; }
 #tube-grid.discussion .tube-card-author { font-size: 17dp; }
 #tube-preview.discussion { left: 670dp; top: 140dp; width: 1100dp; height: 780dp; }
-#tube-discussion-text { width: 1100dp; height: 690dp; overflow-y: auto; white-space: pre-line; font-size: 25dp; line-height: 38dp; color: #f6f7fb; padding: 18dp 26dp; background: #1b1d27; }
-#tube-discussion-footer, #tube-chat-footer, #tube-review-footer, #tube-auth-footer, #tube-description-footer { position: absolute; bottom: 0; font-size: 21dp; color: #bfc4d3; height: 40dp; width: 1792dp; border-top: 1dp #2b2e3a; }
+#tube-discussion-text { width: 1100dp; height: 690dp; overflow-y: auto; white-space: pre-line; font-size: 25dp; line-height: 38dp; color: #f5f6fa; padding: 18dp 26dp; background: #0f111b; }
+#tube-discussion-footer, #tube-chat-footer, #tube-review-footer, #tube-auth-footer, #tube-description-footer { position: absolute; bottom: 0; font-size: 21dp; color: #c3c5d0; height: 40dp; width: 1792dp; border-top: 1dp #1e2130; }
 #tube-discussion-text scrollbarvertical { width: 12dp; }
-#tube-discussion-text scrollbarvertical slidertrack { background: #292c39; }
-#tube-discussion-text scrollbarvertical sliderbar { width: 12dp; min-height: 36dp; background: #9399ad; border-radius: 6dp; }
+#tube-discussion-text scrollbarvertical slidertrack { background: #1b1e2c; }
+#tube-discussion-text scrollbarvertical sliderbar { width: 12dp; min-height: 36dp; background: #8f93a8; border-radius: 6dp; }

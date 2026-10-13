@@ -1,6 +1,6 @@
 /* ProsperoTube interface preferences of one profile and what follows from them:
- * the browser's grid, the style rules added to native/youtube.rcss, colour
- * schemes, the title marquee, the order of the video actions menu and the
+ * the browser's grid, the style rules added to native/youtube.rcss, themes and
+ * classic colour schemes, the title marquee, the order of the video actions menu and the
  * Circle rules of the main menu and of search results. Pure: no I/O, no state.
  * Copyright (C) 2026 BlackBearReloaded. SPDX-License-Identifier: GPL-3.0-or-later */
 #ifndef TUBE_UI_STYLE_H
@@ -39,7 +39,7 @@ typedef struct TubeUiPrefs {
     int scroll_speed;    /* tenths, 10..80 step 5 */
     int subtitle_lines;  /* 1..2 lines of a card subtitle */
     int square;          /* 0/1: square card corners instead of rounded ones */
-    int scheme;          /* 0 = ProsperoTube, 1..8 = SmartTube's list */
+    int scheme;          /* index into g_tube_schemes: a theme, or a classic colour scheme */
     int app_exit;        /* TUBE_UI_EXIT_*: Circle on the main menu */
     int search_exit;     /* 0 = one press of Circle leaves search results, 1 = two */
     unsigned char menu_order[TUBE_MENU_KEYS]; /* a permutation of the menu keys */
@@ -56,12 +56,20 @@ static const int g_tube_grid_scales[] = {50, 60, 70, 80, 90, 100, 110, 120, 125,
 #define TUBE_GRID_SCALES ((int)(sizeof g_tube_grid_scales / sizeof g_tube_grid_scales[0]))
 #define TUBE_SCROLL_SPEEDS 15
 
-/* Colour schemes: the browser's own look, then SmartTube's eight. A scheme is
- * a background and an accent; every palette token of youtube.rcss follows from
- * them by its role (tube_ui_scheme_color). */
-#define TUBE_UI_SCHEMES 9
+/* Themes, then the classic colour schemes. The four themes are whole palettes:
+ * youtube.rcss is Afterglow itself and names each token's colour in the other
+ * three. The classic schemes are the look before the themes and SmartTube's
+ * eight: a background and an accent, from which every token follows by its
+ * role (tube_ui_scheme_color) starting at its classic colour. The ids are saved
+ * in settings files: never rename one. "default", which every profile written
+ * before the themes carries, names no scheme and so reads as the first theme. */
+#define TUBE_UI_THEMES 4
+#define TUBE_UI_CLASSIC TUBE_UI_THEMES      /* the first classic scheme: the look before the themes */
+#define TUBE_UI_SCHEMES 13
 static const struct { const char *id, *label; unsigned background, accent; int mono; } g_tube_schemes[TUBE_UI_SCHEMES] = {
-    {"default", "ProsperoTube", 0x101116, 0xef3340, 0}, {"teal", "Teal", 0x16262b, 0x1fb5a3, 0},
+    {"afterglow", "Afterglow", 0x06070c, 0xff5a47, 0}, {"onyx", "Onyx", 0x000000, 0xf2c14e, 0},
+    {"daybreak", "Daybreak", 0xf3ede4, 0xe2533d, 0}, {"high-contrast", "High contrast", 0x000000, 0xffd60a, 0},
+    {"classic", "Classic ProsperoTube", 0x101116, 0xef3340, 0}, {"teal", "Teal", 0x16262b, 0x1fb5a3, 0},
     {"dark-grey", "Dark grey", 0x212121, 0xef3340, 0}, {"red", "Red", 0x1f1414, 0xe53935, 0},
     {"dark-grey-oled", "Dark grey (true black)", 0x000000, 0xef3340, 0}, {"teal-oled", "Teal (true black)", 0x000000, 0x1fb5a3, 0},
     {"dark-grey-mono", "Dark grey monochrome", 0x212121, 0x8a8a8a, 1}, {"dark-blue", "Dark blue", 0x0d1626, 0x3d8bff, 0},
@@ -261,6 +269,8 @@ static inline int tube_ui_rules(const TubeUiPrefs *prefs, char *out, size_t size
         TUBE_UI_RULE("#tube-qr { width: %ddp; }\n", 1100 + l.dw);
         TUBE_UI_RULE("#tube-qr-caption { width: %ddp; }\n", 640 + l.dw < 80 ? 80 : 640 + l.dw);
         TUBE_UI_RULE("#tube-dim { width: %ddp; height: %ddp; }\n", 1921 + l.dw, 1081 + l.dh);
+        /* The body paints the page ground: it follows the screen. */
+        TUBE_UI_RULE("body { width: %ddp; height: %ddp; }\n", 1921 + l.dw, 1081 + l.dh);
     }
     const double c = l.card;
     const int sized = c != 1.0 || p.title_lines != 1 || p.subtitle_lines != 1;
@@ -288,9 +298,6 @@ static inline int tube_ui_rules(const TubeUiPrefs *prefs, char *out, size_t size
         TUBE_UI_RULE("#tube-grid.discussion .tube-card-title { padding-top: 12dp; line-height: 28dp; white-space: nowrap; }\n");
         TUBE_UI_RULE("#tube-grid.discussion .tube-card-author { line-height: 23dp; height: 23dp; white-space: nowrap; }\n");
     }
-    /* The body has no size of its own, so nothing paints the page behind the
-     * default look; a scheme gives it the screen and with it its background. */
-    if (p.scheme) TUBE_UI_RULE("body { width: %ddp; height: %ddp; }\n", 1921 + l.dw, 1081 + l.dh);
     if (p.square) {
         TUBE_UI_RULE(".tube-card, .tube-image { border-radius: 0dp; }\n");
         TUBE_UI_RULE("#tube-grid.discussion .tube-card { border-radius: 0dp; }\n");
@@ -314,10 +321,12 @@ static inline double tube_ui_marquee(double elapsed_s, double overflow, int spee
     return t >= travel ? overflow : t * speed;
 }
 
-/* ---- Colour schemes. ---- */
+/* ---- Themes and colour schemes. ---- */
 enum { TUBE_UI_ROLE_BASE = 0, TUBE_UI_ROLE_ACCENT = 1, TUBE_UI_ROLE_TEXT = 2 };
-#define TUBE_UI_DEFAULT_BACKGROUND 0x101116u
-#define TUBE_UI_DEFAULT_ACCENT 0xef3340u
+#define TUBE_UI_DEFAULT_BACKGROUND 0x06070cu     /* the sheet's own: Afterglow */
+#define TUBE_UI_DEFAULT_ACCENT 0xff5a47u
+#define TUBE_UI_CLASSIC_BACKGROUND 0x101116u     /* what the classic schemes are measured from */
+#define TUBE_UI_CLASSIC_ACCENT 0xef3340u
 static inline unsigned tube_ui_shift(unsigned from, unsigned reference, unsigned target, int grey) {
     unsigned result = 0; int offsets[3], mean = 0;
     for (int i = 0; i < 3; ++i) {
@@ -332,12 +341,12 @@ static inline unsigned tube_ui_shift(unsigned from, unsigned reference, unsigned
     }
     return result;
 }
-/* A token's colour in a scheme: surfaces keep their distance from the
+/* A classic colour in a classic scheme: surfaces keep their distance from the
  * background, accent shades their distance from the accent, text stays. */
 static inline unsigned tube_ui_scheme_color(int scheme, int role, unsigned rgb) {
-    if (scheme <= 0 || scheme >= TUBE_UI_SCHEMES || role == TUBE_UI_ROLE_TEXT) return rgb;
-    if (role == TUBE_UI_ROLE_ACCENT) return tube_ui_shift(rgb, TUBE_UI_DEFAULT_ACCENT, g_tube_schemes[scheme].accent, g_tube_schemes[scheme].mono);
-    return tube_ui_shift(rgb, TUBE_UI_DEFAULT_BACKGROUND, g_tube_schemes[scheme].background, g_tube_schemes[scheme].mono);
+    if (scheme <= TUBE_UI_CLASSIC || scheme >= TUBE_UI_SCHEMES || role == TUBE_UI_ROLE_TEXT) return rgb;
+    if (role == TUBE_UI_ROLE_ACCENT) return tube_ui_shift(rgb, TUBE_UI_CLASSIC_ACCENT, g_tube_schemes[scheme].accent, g_tube_schemes[scheme].mono);
+    return tube_ui_shift(rgb, TUBE_UI_CLASSIC_BACKGROUND, g_tube_schemes[scheme].background, g_tube_schemes[scheme].mono);
 }
 static inline int tube_ui_hex(const char *text, int digits, unsigned *value) {
     *value = 0;
@@ -351,16 +360,26 @@ static inline int tube_ui_hex(const char *text, int digits, unsigned *value) {
 }
 static inline int tube_ui_hex_digit(char c) { unsigned v; return tube_ui_hex(&c, 1, &v); }
 #define TUBE_UI_TOKENS 48
-typedef struct { char name[24]; unsigned rgb; int role; } tube_ui_token_t;
-/* The "@token name #rrggbb role" lines of a style sheet's palette comment.
- * Returns the count; *body receives the offset just after that comment. */
+/* look[]: the token in Onyx, Daybreak, High contrast and the classic look. */
+typedef struct { char name[24]; unsigned rgb; int role; unsigned look[TUBE_UI_THEMES]; } tube_ui_token_t;
+/* A token's colour in a theme or scheme; the sheet's own for the first theme. */
+static inline unsigned tube_ui_token_color(const tube_ui_token_t *token, int scheme) {
+    if (scheme <= 0 || scheme >= TUBE_UI_SCHEMES) return token->rgb;
+    if (scheme < TUBE_UI_THEMES) return token->look[scheme - 1];
+    return tube_ui_scheme_color(scheme, token->role, token->look[TUBE_UI_THEMES - 1]);
+}
+/* The "@token name #rrggbb role #onyx #daybreak #contrast #classic" lines of a
+ * style sheet's palette comment. Returns the count; *body receives the offset
+ * just after that comment. */
 static inline int tube_ui_tokens(const char *sheet, tube_ui_token_t *tokens, int capacity, size_t *body) {
     int count = 0; const char *at = sheet, *last = NULL;
     while (sheet && (at = strstr(at, "@token ")) != NULL) {
-        char name[24], role[12]; unsigned rgb;
+        char name[24], role[12]; unsigned rgb, look[TUBE_UI_THEMES];
         at += 7; last = at;
-        if (sscanf(at, "%23[a-z-] #%6x %11[a-z]", name, &rgb, role) != 3 || count >= capacity) continue;
+        if (sscanf(at, "%23[a-z-] #%6x %11[a-z] #%6x #%6x #%6x #%6x", name, &rgb, role, &look[0], &look[1], &look[2], &look[3]) != 7 ||
+            count >= capacity) continue;
         memcpy(tokens[count].name, name, sizeof name); tokens[count].rgb = rgb;
+        memcpy(tokens[count].look, look, sizeof look);
         tokens[count].role = !strcmp(role, "accent") ? TUBE_UI_ROLE_ACCENT : !strcmp(role, "text") ? TUBE_UI_ROLE_TEXT : TUBE_UI_ROLE_BASE;
         ++count;
     }
@@ -379,7 +398,7 @@ static inline int tube_ui_scheme_sheet(const char *sheet, int scheme, char *out,
         if (i >= body && sheet[i] == '#' && i + 7 <= length && tube_ui_hex(sheet + i + 1, 6, &rgb) &&
             (!tube_ui_hex_digit(sheet[i + 7]) || (i + 9 <= length && tube_ui_hex_digit(sheet[i + 8]) && !tube_ui_hex_digit(sheet[i + 9]))))
             for (int k = 0; k < count && !replaced; ++k) if (tokens[k].rgb == rgb) {
-                snprintf(out + used, 8, "#%06x", tube_ui_scheme_color(scheme, tokens[k].role, rgb));
+                snprintf(out + used, 8, "#%06x", tube_ui_token_color(&tokens[k], scheme));
                 used += 7; i += 6; replaced = 1;
             }
         if (!replaced) out[used++] = sheet[i];
@@ -400,7 +419,7 @@ static const struct { const char *id, *title, *detail; int count; } g_tube_ui_gr
     {"settings:ui:scroll-speed", "Title scroll speed", "How fast a long title moves", TUBE_SCROLL_SPEEDS},
     {"settings:ui:subtitle-lines", "Multiline subtitles", "Two lines for the channel and details of a card", 2},
     {"settings:ui:rounded", "Rounded card corners", "Round or square corners for cards and thumbnails", 2},
-    {"settings:ui:scheme", "Color scheme", "Colours of the browser; the true black ones suit OLED screens", TUBE_UI_SCHEMES},
+    {"settings:ui:scheme", "Theme", "Colours of the browser; the true black ones suit OLED screens", TUBE_UI_SCHEMES},
     {"settings:ui:exit", "Circle on the main menu", "Whether Circle closes ProsperoTube from the main menu", 3},
     {"settings:ui:search-exit", "Leaving search results", "One press of Circle, or two", 2}
 };

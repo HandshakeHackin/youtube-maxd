@@ -94,6 +94,12 @@ def main():
         shutil.copyfile(ROOT / "native/vendor/cJSON" / name, WORK / player / target / name)
     for name in ("youtube.rml", "youtube.rcss"):
         shutil.copyfile(ROOT / "native" / name, WORK / player / "assets/rml" / name)
+    # The mark of the browser header and of About (scripts/bake_mark.py): next to the document, where its
+    # <img> names it, and among the icons, where both renderers find a bundled picture by its file name.
+    for name in ("tube-mark.png", "tube-mark-large.png"):
+        for folder in ("assets/rml", "assets/icons"):
+            (WORK / player / folder).mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / "native/art" / name, WORK / player / folder / name)
     for name in ("icon0.png", "pic0.png", "pic1.png"):
         shutil.copyfile(ROOT / "native/branding" / name, WORK / player / "sce_sys" / name)
     notices = WORK / player / "assets/prosperotube-notices"

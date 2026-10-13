@@ -56,11 +56,26 @@ int main(void) {
     show("settings:ui");assert(last_count==TUBE_UI_GROUPS);
     assert(find("Interface scale: 1x")==0 && find("Video grid scale: 1x")==1 && find("Card title lines: 1")==2 && find("Scroll long titles: Off")==3);
     assert(find("Title scroll speed: 1x")==4 && find("Multiline subtitles: Off")==5 && find("Rounded card corners: On")==6);
-    assert(find("Color scheme: ProsperoTube")==7 && find("Circle on the main menu: Does nothing")==8 && find("Video actions menu")==9);
+    assert(find("Theme: Afterglow")==7 && find("Circle on the main menu: Does nothing")==8 && find("Video actions menu")==9);
     assert(!strcmp(row,"settings:menu") && at("settings:ui:search-exit")<0);
     show("settings:search");assert(find("Leaving search results: Press Circle once")==last_count-1 && !strcmp(row,"settings:ui:search-exit"));
     /* Every group lists its values with the current one marked, and every value can be chosen. */
     for(int group=0;group<TUBE_UI_GROUPS;++group) {
+        if(group==TUBE_UI_GROUP_SCHEME) {
+            /* Theme: the four themes and the row of the classic colours; the classic schemes are that row's list. */
+            for(int i=TUBE_UI_SCHEMES-1;i>=0;--i) {
+                char id[80],expected[96];snprintf(id,sizeof id,"%s:%d",g_tube_ui_groups[group].id,i);
+                tube_ui_group_label(group,i,expected,sizeof expected);
+                const unsigned revision=tube_ui_revision();
+                const int classic=i>=TUBE_UI_THEMES,slot=classic?i-TUBE_UI_THEMES:i;
+                show(id);assert(ui()->scheme==i && last_count==(classic?TUBE_UI_SCHEMES-TUBE_UI_THEMES:TUBE_UI_THEMES+1));
+                assert(!strcmp(last_items[slot].id,id) && !strcmp(last_items[slot].title,expected));
+                for(int k=0;k<last_count;++k)assert((k==slot)==!strcmp(last_items[k].subtitle,"Selected"));
+                assert(tube_ui_revision()!=revision);            /* the browser restyles itself */
+            }
+            assert(!strcmp(last_items[TUBE_UI_THEMES].id,"settings:ui:scheme:classic") && !strcmp(last_items[TUBE_UI_THEMES].title,"Classic colours"));
+            continue;
+        }
         show(g_tube_ui_groups[group].id);
         const int count=tube_ui_group_count(group),selected=tube_ui_group_selected(ui(),group);
         assert(last_count==count && !strcmp(last_items[selected].subtitle,"Selected"));
@@ -81,19 +96,19 @@ int main(void) {
     assert(!memcmp(ui(),&defaults,sizeof defaults));
     /* Unlisted values are refused and change nothing. */
     const char *invalid[]={"settings:ui:scale:19","settings:ui:scale:-1","settings:ui:scale:x","settings:ui:scale:3junk","settings:ui:scale:",
-        "settings:ui:nope","settings:ui:nope:1","settings:ui:grid:13","settings:ui:title-lines:4","settings:ui:scheme:9","settings:ui:exit:3",
+        "settings:ui:nope","settings:ui:nope:1","settings:ui:grid:13","settings:ui:title-lines:4","settings:ui:scheme:13","settings:ui:scheme:classic:1","settings:ui:scheme:classics","settings:ui:exit:3",
         "settings:ui:search-exit:2","settings:ui:scale:99999999999999999999","settings:ui:"};
     for(unsigned i=0;i<sizeof invalid/sizeof *invalid;++i){refuse(invalid[i]);assert(!memcmp(ui(),&defaults,sizeof defaults));}
     p->list_catalog("settings:ui:nope",1,items_cb,NULL);assert(!last_ok);
 
     /* Saved per profile under their own names. */
     show("settings:ui:scale:6");show("settings:ui:grid:8");show("settings:ui:title-lines:2");show("settings:ui:title-scroll:1");
-    show("settings:ui:scroll-speed:3");show("settings:ui:subtitle-lines:1");show("settings:ui:rounded:0");show("settings:ui:scheme:4");
+    show("settings:ui:scroll-speed:3");show("settings:ui:subtitle-lines:1");show("settings:ui:rounded:0");show("settings:ui:scheme:8");
     show("settings:ui:exit:1");show("settings:ui:search-exit:1");
     assert(ui()->ui_scale==80 && ui()->grid_scale==125 && ui()->title_lines==3 && ui()->title_scroll==1 && ui()->scroll_speed==25);
-    assert(ui()->subtitle_lines==2 && ui()->square==1 && ui()->scheme==4 && ui()->app_exit==TUBE_UI_EXIT_DOUBLE && ui()->search_exit==1);
+    assert(ui()->subtitle_lines==2 && ui()->square==1 && ui()->scheme==8 && ui()->app_exit==TUBE_UI_EXIT_DOUBLE && ui()->search_exit==1);
     show("settings:ui");assert(find("Interface scale: 0.8x")==0 && find("Video grid scale: 1.25x")==1 && find("Rounded card corners: Off")==6 &&
-        find("Color scheme: Dark grey (true black)")==7 && find("Circle on the main menu: Press twice to close ProsperoTube")==8);
+        find("Theme: Dark grey (true black)")==7 && find("Circle on the main menu: Press twice to close ProsperoTube")==8);
     cJSON *store=read_store(),*guest=profile_row(store,"guest");assert(guest);
     assert(cJSON_GetObjectItem(guest,"ui_scale")->valueint==80 && cJSON_GetObjectItem(guest,"video_grid_scale")->valueint==125);
     assert(cJSON_GetObjectItem(guest,"card_title_lines")->valueint==3 && cJSON_IsTrue(cJSON_GetObjectItem(guest,"card_title_scroll")));
@@ -110,6 +125,31 @@ int main(void) {
     p->shutdown();assert(!p->init());assert(!memcmp(ui(),&chosen,sizeof chosen));
     show("library:profile:alice");assert(ui()->scheme==7 && ui()->ui_scale==110 && ui()->grid_scale==100 && !ui()->app_exit);
     show("library:profile:guest");
+
+    /* Theme lists the four themes and the row of the classic colours; that row lists the nine classic schemes,
+     * and a choice made in either list shows that list again. */
+    show("settings:ui:scheme");assert(last_count==TUBE_UI_THEMES+1 && find("Afterglow")==0 && find("Onyx")==1 && find("Daybreak")==2 &&
+        find("High contrast")==3 && find("Classic colours: Dark grey (true black)")==4 && !strcmp(row,"settings:ui:scheme:classic"));
+    show("settings:ui:scheme:classic");assert(last_count==TUBE_UI_SCHEMES-TUBE_UI_THEMES && find("Classic ProsperoTube")==0 && find("Teal")==1 &&
+        find("Dark blue (true black)")==8 && find("Afterglow")<0 && ui()->scheme==8);
+    show("settings:ui:scheme:5");assert(ui()->scheme==5 && last_count==TUBE_UI_SCHEMES-TUBE_UI_THEMES && find("Teal")==1);
+    show("settings:ui:scheme:1");assert(ui()->scheme==1 && last_count==TUBE_UI_THEMES+1 && find("Onyx")==1 && find("Classic colours")==4);
+    show("settings:ui:scheme:8");
+    /* A file written before the themes: "default", which every profile that never chose carried, is the first
+     * theme; a classic scheme that was chosen stays chosen. Afterglow is saved under its own name. */
+    chosen=*ui();
+    p->shutdown();store=read_store();guest=profile_row(store,"guest");
+    cJSON_ReplaceItemInObject(guest,"color_scheme",cJSON_CreateString("default"));
+    write_store(store);cJSON_Delete(store);assert(!p->init());
+    assert(!ui()->scheme && !strcmp(g_tube_schemes[ui()->scheme].id,"afterglow") && ui()->ui_scale==chosen.ui_scale);
+    p->shutdown();store=read_store();guest=profile_row(store,"guest");
+    cJSON_ReplaceItemInObject(guest,"color_scheme",cJSON_CreateString("teal-oled"));
+    write_store(store);cJSON_Delete(store);assert(!p->init());
+    assert(ui()->scheme==9 && !strcmp(g_tube_schemes[9].label,"Teal (true black)"));
+    show("settings:ui:scheme:0");
+    store=read_store();guest=profile_row(store,"guest");
+    assert(!strcmp(cJSON_GetObjectItem(guest,"color_scheme")->valuestring,"afterglow"));cJSON_Delete(store);
+    show("settings:ui:scheme:8");
 
     /* Corrupt values fall back one by one; a file without the fields reads as the defaults. */
     p->shutdown();store=read_store();guest=profile_row(store,"guest");

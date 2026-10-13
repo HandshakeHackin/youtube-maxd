@@ -46,6 +46,7 @@ FORMATTERS = {"snprintf": 2, "std::snprintf": 2, "sprintf": 1, "format": 2}
 TEXT_NAME = re.compile(r"label|error|detail|hint|title|text|line|note|message|summary|status|caption|overview|notice|reason|when|value|name|buffer|buf\b")
 ID_NAME = re.compile(r"\b(id|url|path|key|target|expected|query|parent|address|catalog|file|header|headers|rerun|link|body|cursor|code|token|json|request)\b|_id\b|_url\b|_path\b")
 NAMES = {"ProsperoTube", "YouTube", "SponsorBlock", "DeArrow", "Return YouTube Dislike", "PT", "AV1", "AVC", "HEVC", "VP9", "EVO",
+         "Afterglow", "Onyx", "Daybreak",
          "PROSPEROTUBE", "YOUTUBE", "SPONSORBLOCK"}
 # Protocol, style and test words that look like labels.
 NOT_SHOWN = {"Accept", "Range", "normal;", "white-space", "simulated failure"}

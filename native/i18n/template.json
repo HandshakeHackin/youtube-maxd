@@ -1459,6 +1459,18 @@
    ]
   },
   {
+   "source": "Classic ProsperoTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Classic colours",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Clear its new-content mark in Subscribed channels",
    "context": [
     "browser"
@@ -1552,12 +1564,6 @@
   },
   {
    "source": "Color markers on timeline",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Color scheme",
    "context": [
     "browser"
    ]
@@ -3060,6 +3066,12 @@
   },
   {
    "source": "Hide watched from Watch later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "High contrast",
    "context": [
     "browser"
    ]
@@ -7779,6 +7791,12 @@
    ]
   },
   {
+   "source": "The colour schemes of earlier versions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The comment rating was not confirmed.",
    "context": [
     "status"
@@ -8338,6 +8356,12 @@
   },
   {
    "source": "The video, embed, channel and playlist links, each with a QR code",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Theme",
    "context": [
     "browser"
    ]
