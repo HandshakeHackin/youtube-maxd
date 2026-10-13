@@ -7,8 +7,13 @@ small listener on `127.0.0.1` answers **the same HTTP API as
 address and token. Media bytes are never relayed: manifests and playlists name
 YouTube's servers.
 
-Everything here runs and is tested on a PC. Nothing was run on a console. The
-app is wired to it since (`standalone/ps5/README.md`, section 8). Live numbers are from 2026-10-11, Guest, no
+Everything here runs and is tested on a PC. The app is wired to it since
+(`standalone/ps5/README.md`, section 8), and inside the app it ran on a console
+in one bounded Guest session on 2026-10-13 (`docs/HARDWARE_ACCEPTANCE.md`):
+start on the loopback address, Discover and one topic, one resolve, and H.264
+1080p with AAC played from YouTube directly, with a seek and a pause. Other
+codecs and 4K, a link expiring during playback and accounts are not yet
+verified on a console. Live numbers are from 2026-10-11, Guest, no
 cookies. The subscriptions import and the phone receiver (2026-10-13) have run
 offline only.
 
@@ -38,7 +43,8 @@ offline only.
 standalone/build_host.sh                 # build/tube_js + build/tube_js.bundle.js
 standalone/test_host.sh                  # offline tests, plain and under ASan/UBSan
 build/tube_js serve --host 127.0.0.1 --port N --state-dir DIR [--token T] [--sponsorblock]
-                    [--sponsorblock-server https://host] [--pairing-code 123456] [--ranged-manifest] [--account-playback]
+                    [--sponsorblock-server https://host] [--return-youtube-dislike]
+                    [--pairing-code 123456] [--ranged-manifest] [--account-playback]
                     [--lounge-base http://127.0.0.1:N/api/lounge]   # tests only: a stand-in for YouTube's phone service
 build/tube_js search|info|comments|channel|resolve|probe|ranges|library|version|selftest ...   # one-shot diagnosis
 ```
@@ -65,9 +71,9 @@ Routes, with the Python service's fields, error codes, statuses and bounds:
 | `POST /v1/library` | every action of `library.mjs`, through the same 8 KiB / 16 pending / 30 s / 1 MiB bounds and error mapping as `library.py`; account actions need an account profile (`account_required` for Guest) and run behind the one-attempt guards |
 | `GET /v1/search`, `/v1/catalog`, `/v1/video/{id}`, `POST /v1/resolve` | direct forms |
 | `GET`/`HEAD /media/{session}/{key}` | `dN.mpd` manifest, `hN.m3u8` live playlist, `cN.srt` captions (fetched as WebVTT, converted), `sbL-M.jpg` storyboard sheets (fetched through the engine), `pN` muxed file (302 to YouTube; no test covers it yet) |
-| `GET /v1/sponsor/{id}` | hashed-prefix query, categories, `alt`, one-hour cache; off unless enabled |
+| `GET /v1/sponsor/{id}` | hashed-prefix query, categories, `alt`, one-hour cache; off unless enabled. `server=https://host` names the alternative server for this request (see below) |
 | `GET /art/dearrow/{key}` + DeArrow titles/thumbnails on pages | as `dearrow.py` |
-| `GET /v1/dislikes/{id}` | `{"enabled": false}` |
+| `GET /v1/dislikes/{id}` | the Return YouTube Dislike relay, as `dislikes.py`; `{"enabled": false}` and nothing sent unless enabled (see below) |
 | `POST /v1/subscriptions/import` | the export file itself as the body, up to 1 MiB on this route alone; answers `{format, channels[{channel_id, title, group?}], skipped, truncated}` as `subscriptions_import.py` |
 | `POST /v1/remote` | the phone receiver, as `remote_lounge.py`: `start`, `pair`, `poll`, `update`, `stop`; see Phone receiver |
 
@@ -75,9 +81,35 @@ Routes, with the Python service's fields, error codes, statuses and bounds:
 thumbnail_source storyboards translated_captions video_details library
 content_filters channel_pages kids stream_reminder playlist_order
 subscribe_notifications comment_post search_first channel_new_content device_auth
-subscriptions_import remote embedded`. `remote` is this service's name for the
-phone receiver (the Python service has the route without listing it). Left out
-because they do not exist here: `relay`, `voice`, `dislikes`, `proxy`.
+subscriptions_import remote sponsorblock_server embedded`. `remote` is this
+service's name for the phone receiver (the Python service has the route
+without listing it). `sponsorblock_server` says that a segments request may
+name the alternative server. `dislikes` is listed only while the relay is
+enabled. Left out because they do not exist here: `relay`, `voice`, `proxy`.
+
+**Dislikes.** `js/extras.js` (`Dislikes`, `votes`) is `dislikes.py` ported:
+off unless the host enables it (`--return-youtube-dislike`,
+`tube_service_options.return_youtube_dislike`); enabled, one
+`GET https://returnyoutubedislikeapi.com/votes?videoId=<id>` without any
+credential, five seconds and 64 KiB at most, and only an object for that video
+whose `likes` and `dislikes` are non-negative integers up to 10^12, written as
+integers, is accepted. A count is kept for an hour and "not available" for
+five minutes, 128 videos at most; a failure is never an error. That service
+learns which video is asked about, so the app enables the relay at start and
+asks only for a profile whose **Show dislikes** switch is on, once per opened
+details or description page (`native/tube_provider.c`, `detail_finish`): the
+switch can change while the service runs, so it cannot be a start option, and
+with the switch off no request reaches this route. The option keeps the relay
+off for every other embedder and for the host tool, as it is in the companion.
+
+**Alternative SponsorBlock server.** The companion's host starts it with
+`--sponsorblock-server`; that option exists here too. The app has no host to
+choose a server, so the address the user typed (SponsorBlock actions >
+Alternative server, kept in `youtube.json` as `sponsorblock_server`) comes with
+the request as `server=`, and a change needs no restart. It is used only
+together with `alt=true`, passes the same rule as the option (an `https://`
+origin: a plain host name, no port, path, query or user; `invalid_server` 400
+otherwise) and is cached apart from the default server's answers.
 
 Not offered, answered with the existing conventions: `/v1/voice`
 (`voice_unavailable` 503; `docs/VOICE_SEARCH.md` has the assessment), a profile
@@ -383,7 +415,8 @@ continuation, video/link queries, channel and playlist (with playback
 contexts), library actions and account refusals, details, resolve record,
 manifest text, HEAD, caption SRT, storyboard sheet, automatic and translated
 captions, frame-rate and codec limits, removed video, live playlist,
-SponsorBlock, DeArrow title and image, thumbnail source, ranged manifest,
+SponsorBlock and a server named by the request, the dislike relay (off, on,
+refused answers), DeArrow title and image, thumbnail source, ranged manifest,
 structured chapters, a Short with a paid-promotion notice, manifest refresh,
 refused links, clean shutdown. Everything runs a second time under AddressSanitizer + UBSan
 with leak detection; shutdown must leave nothing on stderr.
@@ -409,11 +442,14 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
 - Console build: compile `src/tube_engine.c`, `src/tube_listener.c` with EVO's
   flags next to the `ps5/` units; the bundle and the roots come from
   `ps5/embed_data.py` as `tube_js_bundle` and `tube_js_ca_pem`; sockets use
-  `SO_NBIO` there. Settings (SponsorBlock, ranged manifest) go through
-  `tube_service_configure`.
+  `SO_NBIO` there. Settings (SponsorBlock, the dislike relay, ranged manifest)
+  go through `tube_service_configure`.
 - State under `state_dir`: `cache/` (small youtubei.js entries) and, once an
   account signed in, `accounts/oauth-profiles.json` (the tokens; keep it out
-  of logs, uploads and backups). No log. The phone receiver stores nothing:
+  of logs, uploads and backups: the app's own Backup and restore copies
+  `youtube.json` alone, says so on its screen, and a restore neither reads nor
+  replaces this file nor restarts the service; `docs/DECISIONS.md`, "Backups
+  do not hold sign-ins"). No log. The phone receiver stores nothing:
   its identity is the provider's (`youtube.json`), passed with each start.
 - The provider must not send its stream headers to `/media` links' targets
   (it sends none today) and should treat a 403 from YouTube as "resolve again".
@@ -428,9 +464,13 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   FFmpeg; live, a seek to the middle waited one 5 s time-out (above).
 - **Address family**: the IPv4-only fix is supported by one passing run after
   several failing sessions, not by a controlled comparison.
-- **Console unknowns**: everything in `ps5/README.md` section 6, plus the
-  listener (loopback bind in the 20000–39999 range, the datagram wake socket,
-  `poll` on it) and FFmpeg reading YouTube directly with the app's TLS setup.
+- **Console unknowns**: the 2026-10-13 session showed the listener bound on
+  the loopback address (port 37841), requests answered through it and FFmpeg
+  reading one H.264 video from YouTube directly with the app's TLS setup.
+  Still open: what `ps5/README.md` section 6 lists and one short Guest session
+  does not exercise (memory beside a 4K software decode, shutdown with
+  requests in flight, a connection held open for minutes), other codecs and a
+  link expiring during playback.
 - **Accounts** have met canned answers only: the sign-in from this engine,
   the TV client's real list shapes and every change are unproven, and
   signed-in playback is off and unmeasured.

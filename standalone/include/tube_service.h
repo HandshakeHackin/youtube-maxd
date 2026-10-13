@@ -35,6 +35,8 @@ typedef struct tube_service_options {
     const char *ca_file;                /* PEM roots; NULL = embedded roots (console) or the system's (host) */
     int sponsorblock;                   /* answer /v1/sponsor from SponsorBlock (hashed-prefix query) */
     const char *sponsorblock_server;    /* optional alternative https origin */
+    int return_youtube_dislike;         /* answer /v1/dislikes from Return YouTube Dislike, which then learns which video
+                                           is asked about; 0 = "not enabled" is answered and nothing is sent */
     const char *pairing_code;           /* six digits; NULL = /v1/pair answers "expired" (not needed) */
     int allow_player_script;            /* permit the costly player-script fallback (larger stack and heap) */
     int ranged_manifest;                /* DASH manifests with one byte-range segment per fragment (fast seeks);

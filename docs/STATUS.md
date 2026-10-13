@@ -6,8 +6,10 @@ what the first release contains, how far each part was checked, and what is
 left before it ships. **The application is self-sufficient**: its YouTube
 service runs inside the app ([decision](DECISIONS.md)), as Guest and, since
 2026-10-13, with YouTube accounts signed in on the console (host-tested only;
-no real account has signed in). The self-sufficient build has not run on a
-console.
+no real account has signed in). The self-sufficient build passed one bounded
+console session on its Guest core path on 2026-10-13
+([hardware acceptance](HARDWARE_ACCEPTANCE.md)); what that session did not
+cover is listed under [Checked on a console](#checked-on-a-console).
 
 Three levels of evidence are kept apart on this page:
 
@@ -47,10 +49,10 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   self-update ([updates](UPDATES.md)). The check cannot answer while the
   repository is private.
 - **Added 2026-10-13, host-tested only:** the interface in 21 languages
-  besides English ([localization](LOCALIZATION.md)): browser, preferences,
-  messages and toasts follow the PS5 system language or the **Interface
-  language** preference. The player (controls, in-player menus, pickers,
-  keyboard) stays English: its fonts hold no accented letters.
+  besides English ([localization](LOCALIZATION.md)): browser, preferences
+  and messages follow the PS5 system language or the **Interface language**
+  preference. The player (controls, in-player menus, pickers, keyboard) and
+  toasts stay English: their fonts hold no accented letters.
 - **Added 2026-10-13, host-tested only:** interface preferences per profile
   (interface and grid scale, card text, themes and classic colour schemes,
   the video actions menu, Circle rules) and the drawn seek preview.
@@ -98,9 +100,12 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   sanitizers, and the provider end to end (sign-in, profile, subscriptions, one
   change, removal). Every profile resolves videos as Guest; health says
   `account_playback: false`.
-- The PS5 package compiled, linked and packed with the Guest-only service; the
-  package with accounts has not been built in this step. **Never run on a
-  console.**
+- The PS5 package compiled, linked and packed with the Guest-only service. An
+  instrumented build of `6b3b1c41`, a tree that has the account code, **ran on
+  a console once, as Guest** (2026-10-13,
+  [hardware acceptance](HARDWARE_ACCEPTANCE.md)): the service's start,
+  Discover, one resolve and direct playback. Accounts, the subscriptions
+  import and the phone receiver have not run on a console.
 
 ## Updates
 
@@ -120,9 +125,10 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   The PS5 objects compile and add no import the app did not already have.
   **Never run on a console, and never against GitHub**; [updates](UPDATES.md)
   lists what only a console can show.
-- `.github/workflows/build.yml` builds pull requests, version tags and manual
-  runs, and publishes a tag as a pre-release with `PPSA99142.zip` and
-  `SHA256SUMS`. It has not run: the first run shows what a hosted runner lacks.
+- `.github/workflows/build.yml` builds version tags and manual runs (pull
+  request builds are off), and publishes a tag as a pre-release with
+  `PPSA99142.zip` and `SHA256SUMS`. It has not run: the first run shows what a
+  hosted runner lacks.
 
 ## Implemented and tested
 
@@ -143,7 +149,8 @@ accepted on hardware or equivalent to SmartTube in every edge case.
   sizing, zoom, aspect, rotation and mirror; volume, auto volume and audio
   delay; sleep timer; screen dimming and screen off; in-player video actions,
   button switches and a suggestions list; seven end-of-video modes; Next and
-  Previous with playlist position; recovery and the error fixer.
+  Previous with playlist position; recovery and the error fixer; a video
+  buffer choice (how far ahead a stream is read).
 - **Local state:** profiles with favorites, history, resume, queue, follows and
   preferences (shared or per account); backups, automatic backup and
   subscriptions import; About with links, credits and changes.
@@ -176,26 +183,32 @@ evidence, not console acceptance.
 
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Player and playback | 41 | 23 | 9 | 5 | 78 |
+| Player and playback | 41 | 24 | 8 | 5 | 78 |
 | Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
-| Accounts, remote control and integrations | 19 | 8 | 1 | 1 | 29 |
+| Accounts, remote control and integrations | 20 | 7 | 1 | 1 | 29 |
 | General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
-| **All** | **149** | **62** | **21** | **13** | **245** |
+| **All** | **150** | **62** | **20** | **13** | **245** |
 
 Voice search moved from done to partial on 2026-10-13: the release has no
-speech recogniser, so it exists only with the development companion. For the
-same reason the SponsorBlock alternative server moved from done to partial
-(the built-in service is given none), and the web proxy and the dislike
-counts stay partial: the built-in service has neither.
+speech recogniser, so it exists only with the development companion. The
+SponsorBlock alternative server had moved to partial for the same reason and
+is done again: with the built-in service its address is typed on the console
+and sent with the segments request. The built-in service also has the Return
+YouTube Dislike relay now, asked only for a profile that turned **Show
+dislikes** on; the dislike counts stay partial for where they are shown. The
+web proxy stays partial: the built-in service has none, and nothing in its
+menus offers one.
 
 The tracker's files were brought up to date on 2026-10-13 for the built-in
 service, accounts on the console, the update rows, the interface languages,
-the interface preferences and the seek preview. Of the 21 missing items, ten
+the interface preferences and the seek preview. Of the 20 missing items, ten
 need hardware work (auto frame rate, background playback, a remembered live
 position, card previews), six need a Google sign-in with Drive access (cloud
-backup) and five are not built: the video buffer size, the player's interface
-switches, the network settings group, buttons at the top of the main window
-and playlists as rows. The 62 partial items are mostly the English player and
+backup) and four are not built: the player's interface switches, the network
+settings group (it would be empty), buttons at the top of the main window and
+playlists as rows (the browser has no shelf layout). The video buffer is a
+setting now and partial: it sets how far ahead a stream is read, without
+SmartTube's back buffer. The 62 partial items are mostly the English player and
 the languages that need other fonts, shaping or right-to-left layout, states
 and entry points the in-player list of actions lacks, interface preferences
 that reach the browser but not the player, and what only the development
@@ -203,8 +216,9 @@ companion offers.
 
 ## Verified only on the host
 
-The built-in service and everything that depends on it (which is every
-request the app makes) are in this section. None of the following has run on a
+The built-in service ran on a console for the Guest core path only (next
+section); everything else that depends on it (which is every request the app
+makes) is in this section. None of the following has run on a
 console. Where an earlier check against the
 live service exists it is named; everything else has seen fixtures only.
 
@@ -232,20 +246,34 @@ live service exists it is named; everything else has seen fixtures only.
   release has no recogniser).
 - GPU presentation of zoom, rotation and mirror, long sessions and controller
   feel.
+- Recovery when a media link expires during playback, the update check and
+  self-update, the interface languages, the interface preferences and the
+  drawn seek preview.
 
 The PS5 package of the frozen tree compiles, links and packs (see the
 2026-10-11 entry in [validation](VALIDATION.md)); that package has not been
-installed or started.
+installed or started. The build that ran on 2026-10-13 is a later,
+instrumented one.
 
 ## Checked on a console
 
-Earlier development builds only, in bounded cases: startup with storage access,
-pairing and search; a public video in hardware AVC with captions and Guest
-history; pause, resume and seek; public 1080p60 AVC/AAC confirmed smooth and in
-sync by the owner; and, with generated media and a fixture service, resume,
-speed controls, the SponsorBlock review, the unavailable-video queue advance,
-paused dual captions, the chat reader, artwork decoding and phone commands from
-a test receiver. Nothing added on 2026-10-11 has run on a console.
+The self-sufficient build, in one bounded Guest session on 2026-10-13 with no
+companion running: the built-in service's start, Discover and one topic
+through it, a public video resolved on the console and played from YouTube
+directly (H.264 1080p on the hardware decoder, AAC), a +10 s seek, pause, the
+caption picker and playback options, Stop, the saved history record and a
+clean park and close. Not assessed in it: sound and motion by a person,
+captions on screen, VP9, AV1, HEVC and 4K, expiry recovery, accounts, phone
+casting, updates, the interface languages, the interface preferences and the
+seek preview.
+
+Earlier development builds, with the companion, in bounded cases: startup with
+storage access, pairing and search; a public video in hardware AVC with
+captions and Guest history; pause, resume and seek; public 1080p60 AVC/AAC
+confirmed smooth and in sync by the owner; and, with generated media and a
+fixture service, resume, speed controls, the SponsorBlock review, the
+unavailable-video queue advance, paused dual captions, the chat reader, artwork
+decoding and phone commands from a test receiver.
 
 ## Inferred about the live service
 
@@ -291,11 +319,14 @@ are unverified.
    change of each kind, then history reports.
 2. **Frozen candidate: built** from the standalone tree (release and
    instrumented packages, hashes in the validation record).
-3. **One bounded console session on the core path**, under the shared-console
-   protocol (`tools/console/session.py`): idle check first, verified install,
-   startup, the service's start line, search, playback with pause, seek and
-   options, end, history, clean park and close. This is the first time the
-   engine, the HTTPS client and direct playback run on a console.
+3. **One bounded console session on the core path: passed** (2026-10-13,
+   [hardware acceptance](HARDWARE_ACCEPTANCE.md)), under the shared-console
+   protocol (`tools/console/session.py`): startup, the service's start,
+   Discover, playback with seek, pause and options, Stop, history, clean park
+   and close. It was the first time the engine, the HTTPS client and direct
+   playback ran on a console. Its record names Discover and Stop where this
+   gate asked for search and the end of a video, and leaves open: sound and
+   motion by a person, VP9, AV1 and 4K, long sessions, sign-in.
 4. Fix what the session finds, then release.
 5. **Phone casting with a real phone**, after the core path holds: link with a
    TV code, cast one video and one queue, control it, leave it idle for some

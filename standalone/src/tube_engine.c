@@ -597,6 +597,7 @@ static JSValue service_settings(JSContext *ctx, void *opaque) {
   set_string(ctx, config, "pairing_code", service.options.pairing_code);
   set_string(ctx, config, "lounge_base", service.options.lounge_base);
   JS_SetPropertyStr(ctx, config, "sponsorblock", JS_NewBool(ctx, service.options.sponsorblock));
+  JS_SetPropertyStr(ctx, config, "return_youtube_dislike", JS_NewBool(ctx, service.options.return_youtube_dislike));
   JS_SetPropertyStr(ctx, config, "ranged_manifest", JS_NewBool(ctx, service.options.ranged_manifest));
   JS_SetPropertyStr(ctx, config, "account_playback", JS_NewBool(ctx, service.options.account_playback));
   return config;

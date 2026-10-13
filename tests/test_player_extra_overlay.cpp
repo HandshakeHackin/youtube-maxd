@@ -196,6 +196,8 @@ static void test_picker() {
     int row=picker.find(KindExtraGroup,TUBE_EXTRA_VOLUME);
     assert(row>0 && picker.m_tracks[row].label=="Player volume: 100%");
     assert(picker.m_tracks[picker.find(KindExtraGroup,TUBE_EXTRA_LOOP_SHORTS)].label=="Loop Shorts: Off");
+    /* The video buffer is a row of the in-player options too, as it is of SmartTube's playback settings. */
+    assert(picker.find(KindExtraGroup,TUBE_EXTRA_VIDEO_BUFFER)>0 && picker.m_tracks[picker.find(KindExtraGroup,TUBE_EXTRA_VIDEO_BUFFER)].label=="Video buffer: Medium");
 
     /* A group opens its choices in place with the cursor on the current one. */
     picker.m_selectedIndex=row; picker.activate();

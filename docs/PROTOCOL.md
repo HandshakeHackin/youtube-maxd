@@ -295,6 +295,13 @@ Without the option `alt` is ignored and the primary server is used. The
 alternative host SmartTube's own service uses could not be established from the
 reference tree, so it is host configuration rather than a built-in address.
 
+The built-in service has no host to start it with a server. It lists the
+feature `sponsorblock_server`, and a request may then carry
+`server=https://HOST` beside `alt=true`: the address the user typed on the
+console (SponsorBlock actions > Alternative server), under the same rule
+(`invalid_server` 400 otherwise). The app sends it only for a profile whose
+"Use alternative server" switch is on.
+
 ## Third-batch request and response fields
 
 All fields below are optional; without them a request behaves as before, and a

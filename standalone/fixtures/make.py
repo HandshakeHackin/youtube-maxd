@@ -219,6 +219,13 @@ def main():
             {"category": "selfpromo", "actionType": "skip", "segment": [100, 90]},
             {"category": "intro", "actionType": "skip", "segment": [0, 5]},
             {"category": "poi_highlight", "actionType": "poi", "segment": [60, 60]}]}])
+    # The same video on an alternative SponsorBlock server, which lists another segment.
+    write("sponsor_alt.json", [{"videoID": VIDEO, "segments": [{"category": "sponsor", "actionType": "skip", "segment": [3, 9]}]}])
+    # Return YouTube Dislike: a good answer, one for another video, one whose count is not written as an integer, one too large.
+    write("dislikes.json", {"id": VIDEO, "likes": 120, "dislikes": 7, "viewCount": 9, "rating": 4.5})
+    write("dislikes_other.json", {"id": "zzzzzzzzzzz", "likes": 1, "dislikes": 1})
+    write("dislikes_float.json", '{"id": "%s", "likes": 5.0, "dislikes": 1}\n' % SHORT)
+    write("dislikes_large.json", "[" + "1," * 40000 + "1]")
     write("branding.json", {ZOO: {"titles": [{"title": "The first > video", "original": False, "votes": 3, "locked": False}],
                                   "thumbnails": [{"timestamp": 7.5, "original": False, "votes": 0, "locked": True}]}})
     write("index.json", {
@@ -242,6 +249,14 @@ def main():
         "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},
+        f"GET sb.example.org/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor_alt.json", "tag": "sponsor-alt"},
+        "GET returnyoutubedislikeapi.com/votes": [
+            {"url_contains": f"videoId={VIDEO}", "file": "dislikes.json", "tag": "dislikes"},
+            {"url_contains": f"videoId={LIVE}", "file": "dislikes_other.json", "tag": "dislikes"},
+            {"url_contains": f"videoId={SHORT}", "file": "dislikes_float.json", "tag": "dislikes"},
+            {"url_contains": f"videoId={DENIED}", "file": "dislikes_large.json", "tag": "dislikes"},
+            {"url_contains": f"videoId={GONE}", "status": 500, "file": "captions.vtt", "type": "text/plain", "tag": "dislikes"},
+            {"url_contains": f"videoId={ZOO}", "file": "captions.vtt", "type": "text/plain", "tag": "dislikes"}],
         f"GET sponsor.ajay.app/api/branding/{prefix(ZOO)}": {"file": "branding.json"},
         "GET dearrow-thumb.ajay.app/api/v1/getThumbnail": {"file": "sheet.jpg", "type": "image/jpeg"}})
 

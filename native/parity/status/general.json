@@ -232,11 +232,11 @@
    "smarttube": "Checked category holding 'Use Web Proxy' and 'Enable Conscrypt'.",
    "ps5_evidence": [],
    "gaps": [
-    "No network settings group"
+    "No Network settings group, because it would be empty: of its two members the web proxy does not exist with the built-in service (GeneralSettingsPresenter.appendProxyManager) and Conscrypt is an Android TLS provider with no counterpart (the app's TLS library and its embedded roots are fixed at build time). The one address a user can set, the alternative SponsorBlock server, is a row of SponsorBlock actions, where SmartTube has its switch too"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Container only; see proxy item."
+   "notes": "Container only. It gets a meaning if a proxy is ever offered on the console; nothing else on the console is a network choice (the service's IPv4-only connections are not a setting)."
   },
   {
    "id": "GeneralSettingsPresenter.appendProxyManager",
@@ -246,7 +246,7 @@
    "ps5_evidence": [
     "companion/prosperotube/__main__.py --proxy URL, companion/prosperotube/proxy.py: one HTTP or HTTPS proxy for the resolvers, the library worker (companion/innertube/proxy_fetch.mjs: CONNECT tunnel, no direct fallback), the relays, DeArrow, SponsorBlock and the phone client; GET /v1/health reports only proxy true/false",
     "tests/test_third_batch.py (proxy tests), companion/innertube/third_batch.test.mjs",
-    "standalone/js/companion.js: no proxy in the built-in service (FEATURES, health 'proxy: false'); standalone/test/service_test.py ('health hides what does not')"
+    "standalone/js/companion.js: no proxy in the built-in service (FEATURES, health 'proxy: false'); standalone/test/service_test.py ('health hides what does not'); tests/test_embedded_service.c (no_proxy_offer): no row or text of the menus and settings screens names a proxy in built-in mode"
    ],
    "gaps": [
     "Not available with the built-in service (the release): it lists no proxy feature, and the app's HTTPS client and FFmpeg connect directly",
@@ -413,13 +413,15 @@
    "title": "Playlists section style (disabled upstream)",
    "status": "missing",
    "smarttube": "Radio: Grid / Rows; superseded by the misc toggle 'Show Playlists section as rows'.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: library:playlists 'Your playlists' lists one folder card per playlist in the browser's paged grid, which is SmartTube's Grid style"
+   ],
    "gaps": [
-    "Grid vs rows presentation of Your playlists"
+    "No Grid / Rows choice: Your playlists always has the Grid style. Rows shows every playlist as a horizontal row of its own videos; the browser has one layout, a paged grid of cards (native/youtube.rml #tube-grid, native/tube_ui_style.h tube_ui_layout), so Rows needs shelves that scroll sideways on their own and one playlist request per row, neither of which exists"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": ""
+   "size": "L",
+   "notes": "Disabled upstream: the call is commented out in MainUISettingsPresenter and the live switch is 'Show Playlists section as rows' of Main UI misc (MainUISettingsPresenter.appendMiscCategory), which has the same gap. A shelf layout would also serve pinned-channel rows and the Home shelves; it is browser work in the pinned player's document, not a setting."
   },
   {
    "id": "MainUISettingsPresenter.appendScaleUI",
@@ -809,12 +811,13 @@
    "ps5_evidence": [
     "native/tube_backup.c: dated copies of the settings and library file in the backup folder of the app data, validation, safety copy of the replaced state before a restore",
     "native/tube_provider.c: settings:backup:create, settings:backup:list, settings:backup:entry:<file> review with 'Restore this backup' / 'Delete this backup'; the provider reloads from the restored file",
-    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c"
+    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c",
+    "Built-in service: the Backup and restore screen states that sign-ins to YouTube are not part of a backup (settings:backup:create detail, the notice row account:notice:backup-accounts, the restore review); tests/test_embedded_service.c: the backup folder holds the state file alone with nothing of accounts/oauth-profiles.json in it, a restore leaves that file (content and mode 0600) and the running service untouched, and a restored selection whose sign-in is gone moves to Guest at the next profile list"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "A backup includes the companion pairing token and stays in the app data folder (no USB target). Offline evidence in a temporary data directory only. A backup is youtube.json alone: the sign-ins made on the console (accounts/oauth-profiles.json of the built-in service) are not part of it."
+   "notes": "A backup stays in the app data folder (no USB target) and is youtube.json alone. With a development companion it includes the pairing token. The sign-ins made on the console (accounts/oauth-profiles.json of the built-in service) are deliberately not part of it and there is no option to include them (docs/DECISIONS.md, 'Backups do not hold sign-ins'): what a backup holds for an account profile is used again only while that sign-in is still on the console. Offline evidence in a temporary data directory only."
   },
   {
    "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",

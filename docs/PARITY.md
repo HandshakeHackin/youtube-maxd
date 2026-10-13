@@ -7,11 +7,11 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Player and playback | 41 | 23 | 9 | 5 | 78 |
+| Player and playback | 41 | 24 | 8 | 5 | 78 |
 | Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
-| Accounts, remote control and integrations | 19 | 8 | 1 | 1 | 29 |
+| Accounts, remote control and integrations | 20 | 7 | 1 | 1 | 29 |
 | General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
-| **All** | **149** | **62** | **21** | **13** | **245** |
+| **All** | **150** | **62** | **20** | **13** | **245** |
 
 ## Player and playback
 
@@ -19,6 +19,7 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
+| Video buffer size (`PlayerSettingsPresenter.appendVideoBufferCategory`) | High and Highest keep no back buffer: SmartTube also retains 50 s behind the position, so a short rewind needs no request; here a seek back reads again; A change applies from the next video; SmartTube restarts the player engine when the choice changes; Without the packet ring (direct memory refused at open) High and Highest stay at the player's ten seconds: the flexible pool's ceilings hold no more | yes | S |
 | Video presets (resolution/fps/codec) (`PlayerSettingsPresenter.appendVideoPresetsCategory`) | No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'; The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits; No 4320p entries | yes | M |
 | Audio delay (shift) (`PlayerSettingsPresenter.appendAudioDelayCategory`) | Fixed list of 29 values in the picker instead of free numeric entry; Negative delay is unverified in the PS5 audio engine | yes | M |
 | Preview while seeking (`PlayerSettingsPresenter.appendSeekingPreviewCategory`) | Drawn by the kit player controls only; the RmlUi fallback HUD shows no tiles; Never run on a console: the sheet fetch, the decode and the texture upload are host-tested only | yes | M |
@@ -30,10 +31,10 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Video loading, next/previous, end-of-video handling (`behavior.VideoLoaderController`) | No preloading of the next video's formats; Next/previous are picker rows or the optional quick-skip D-pad mode; no 'next up' title in the HUD; No automatic aspect handling for vertical/Shorts video; No playlist restart-at-end handling for repeat of a whole list; Videos that need the account (age-restricted, private, members-only, purchased) do not play with the built-in service: every profile resolves as Guest and account_playback is off (standalone/js/account_playback.js) | yes | M |
 | Playback state: resume, history, speed, formats, live edge (`behavior.VideoStateController`) | Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline'); No music-video no-resume rule; No pitch restore (no pitch setting); No resume-state expiry; A quality chosen in the player is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted | yes | L |
 | Player overlay UI and button actions (`behavior.PlayerUIController`) | No metadata-driven button states (liked, subscribed, in playlist) inside the player: the rows are the browser's video actions with fixed labels; No long-press secondary dialogs (the secondary settings are separate rows); Open channel, Search and the QR codes of Share link stop playback and leave for the browser | yes | L |
-| Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; No video buffer row; No pitch effect; A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
+| Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; The video buffer row applies from the next video (see PlayerSettingsPresenter.appendVideoBufferCategory); No pitch effect; A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
 | Automatic playback error fixing (`behavior.ErrorFixerController`) | No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering); An audio decoder or output failure gets a message but no fix (no other audio format can be requested); No handling of a stream that ended while watching (live ended -> reload as VOD); settings:error-fixer turns off the decoder and buffering fixes only; the stream refresh after an input failure has no off switch | yes | M |
 | Suggestions, chapters and next-video selection (`behavior.SuggestionsController`) | Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls; No chapter markers on the seek bar; No live title/description refresh; Like/dislike counts are on Video details and Open description only, not appended to the player's metadata | yes | L |
-| Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own; Dislike counts are not available with the built-in service (the release): it has no Return YouTube Dislike relay; they need a development companion started with --return-youtube-dislike | yes | M |
+| Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own | yes | M |
 | Button: Subtitles (`extra.Button.Subtitles`) | No per-channel remember switch in the picker (YouTube preferences only); No separate human/auto-generated groups (flat list tagged '(automatic)' / '(translated)'); No recently-used ordering | yes | M |
 | Button: Advanced playback settings (`extra.Button.HighQuality`) | See behavior.HQDialogController | yes | M |
 | Button: Chat/Comments (`extra.Button.Chat`) | Comments cannot be opened while the video plays (browser R3 only) | yes | M |
@@ -47,7 +48,6 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Video buffer size (`PlayerSettingsPresenter.appendVideoBufferCategory`) | No buffer-size preference: EVO's prebuffer depth is fixed; the built-in service relays no media (FFmpeg reads YouTube directly) and the relay of a development companion (companion/prosperotube/hls_buffer.py) has fixed depths too; No settings row or in-player options row | yes | M |
 | Auto frame rate switches (`AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory`) | No display refresh-rate switching to match video fps; 'settings:frame-rate' is only a stream fps limit | no | L |
 | Auto frame rate pause (`AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory`) | Depends on auto frame rate, which is absent | no | S |
 | Auto frame rate: supported display modes (`AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory`) | No display-mode enumeration screen | no | S |
@@ -113,7 +113,6 @@ Remove from history (video menu), Playlist / uploads grid, Video details screen,
 | --- | --- | :---: | :---: |
 | Protect account with password (`AccountSettingsPresenter.appendProtectAccountWithPassword`) | The PS5 keyboard shows the typed text (no masked entry) | yes | M |
 | SponsorBlock links (server status, about) (`SponsorBlockSettingsPresenter.appendLinks`) | The two addresses are rows of text: no QR code as the About links have (SmartTube's buttons open the pages; it does not probe the server either) | yes | S |
-| SponsorBlock misc: paid content notice, don't skip again, alternative server (`SponsorBlockSettingsPresenter.appendMiscCategory`) | 'Use alternative server' has no effect with the built-in service (the release): no alternative server is configured there (health says sponsorblock_alt false), so segments always come from sponsor.ajay.app; it works only with a development companion started with --sponsorblock-server | yes | S |
 | DeArrow switches: unlocalized titles, crowdsourced titles, crowdsourced thumbnails (`DeArrowSettingsPresenter.appendSwitches`) | 'Unlocalized video titles' switch is absent, with its mutual exclusion against crowdsourced titles | yes | M |
 | DeArrow links (server status, about) (`DeArrowSettingsPresenter.appendLinks`) | The two addresses are rows of text: no QR code as the About links have (SmartTube's buttons open the pages; it does not probe the server either) | yes | S |
 | Phone remote control behaviour (`behavior.RemoteController`) | Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'; No 'device disconnected' message shown before closing the app; 10-second start delay after app init not mirrored (harmless) | yes | M |
@@ -128,7 +127,7 @@ Remove from history (video menu), Playlist / uploads grid, Video details screen,
 
 ### Done
 
-Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, Exclude current channel from SponsorBlock, Thumbnail source when there is no DeArrow submission, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher, YouTube device-code sign-in.
+Select account (None + signed-in accounts), Sign out (remove account) with confirmation, Sign in button, Show account selection on boot, Use separate settings per account (multi profiles), Remote control (device link) on/off, Add device (TV code), Remove all devices, Remote misc: close app on disconnect, disable history under remote control, SponsorBlock enable, SponsorBlock per-category action, SponsorBlock colour markers on progress bar, Ignore short segments, SponsorBlock misc: paid content notice, don't skip again, alternative server, Exclude current channel from SponsorBlock, Thumbnail source when there is no DeArrow submission, Live chat in player, Add device screen (pairing code), Sign-in view dispatcher, YouTube device-code sign-in.
 
 ### Not applicable on PS5
 
@@ -162,10 +161,10 @@ Select account (None + signed-in accounts), Sign out (remove account) with confi
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
 | Background playback mode (`GeneralSettingsPresenter.appendBackgroundPlaybackCategory`) | No background mode at all: leaving the player stops playback; In-app equivalent (keep audio/video while browsing, return-to-video entry) not implemented | no | L |
-| Network settings category (`GeneralSettingsPresenter.appendInternetCensorship`) | No network settings group | yes | S |
+| Network settings category (`GeneralSettingsPresenter.appendInternetCensorship`) | No Network settings group, because it would be empty: of its two members the web proxy does not exist with the built-in service (GeneralSettingsPresenter.appendProxyManager) and Conscrypt is an Android TLS provider with no counterpart (the app's TLS library and its embedded roots are fixed at build time). The one address a user can set, the alternative SponsorBlock server, is a row of SponsorBlock actions, where SmartTube has its switch too | yes | S |
 | Buttons at the top of the main window (`MainUISettingsPresenter.appendTopButtonsCategory`) | No row of focusable buttons at the top of the browser (Search, Language/Country, Accounts), hence no switches for it | yes | S |
 | Card preview (`MainUISettingsPresenter.appendCardPreviews`) | Focused-card video preview and its setting | no | L |
-| Playlists section style (disabled upstream) (`MainUISettingsPresenter.appendPlaylistsCategoryStyle`) | Grid vs rows presentation of Your playlists | yes | M |
+| Playlists section style (disabled upstream) (`MainUISettingsPresenter.appendPlaylistsCategoryStyle`) | No Grid / Rows choice: Your playlists always has the Grid style. Rows shows every playlist as a horizontal row of its own videos; the browser has one layout, a paged grid of cards (native/youtube.rml #tube-grid, native/tube_ui_style.h tube_ui_layout), so Rows needs shelves that scroll sideways on their own and one playlist request per row, neither of which exists | yes | L |
 | Google Drive backup (entry) (`BackupSettingsPresenter.appendGDriveBackupCategory`) | No cloud backup | no | L |
 | Google Drive: restore app data (`BackupSettingsPresenter.appendGDriveRestoreSettings`) | Drive restore | no | M |
 | Google Drive: backup app data (`BackupSettingsPresenter.appendGDriveBackupSettings`) | Drive backup | no | M |

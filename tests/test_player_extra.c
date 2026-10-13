@@ -30,6 +30,9 @@ static void test_storage(void) {
     assert(defaults.buttons == TUBE_BUTTONS_DEFAULT && defaults.suggestions == 1 && !defaults.chapter_notice);
     assert(defaults.error_fixer == 1 && !defaults.remember_quality && !defaults.dim_timeout && defaults.dim_amount == 80);
     assert(!defaults.screen_off_timeout && defaults.screen_off_amount == 100);
+    /* Medium is the player's own read-ahead. */
+    assert(defaults.video_buffer == TUBE_BUFFER_MEDIUM && tube_buffer_seconds(defaults.video_buffer, 30.0, 1) == 30.0 &&
+           tube_buffer_seconds(defaults.video_buffer, 10.0, 0) == 10.0);
 
     TubePlayerExtra read = tube_player_extra_read(NULL);
     assert(!memcmp(&read, &defaults, sizeof read));
@@ -48,12 +51,12 @@ static void test_storage(void) {
     chosen.loop_shorts = 1; chosen.remember_short = 0;
     chosen.buttons = 1 << TUBE_BUTTON_SHARE; chosen.suggestions = 0; chosen.chapter_notice = 1; chosen.error_fixer = 0;
     chosen.remember_quality = 1; chosen.dim_timeout = 300; chosen.dim_amount = 85; chosen.screen_off_timeout = 7;
-    chosen.screen_off_amount = 40;
+    chosen.screen_off_amount = 40; chosen.video_buffer = TUBE_BUFFER_HIGHEST;
     cJSON *object = cJSON_CreateObject();
     cJSON_AddStringToObject(object, "name", "Profile");
     cJSON_AddNumberToObject(object, "volume", 5);          /* replaced, not duplicated */
     assert(tube_player_extra_write(object, &chosen));
-    assert(cJSON_GetArraySize(object) == 28);
+    assert(cJSON_GetArraySize(object) == 29 && cJSON_GetObjectItem(object, "video_buffer")->valueint == TUBE_BUFFER_HIGHEST);
     assert(!strcmp(cJSON_GetObjectItem(object, "name")->valuestring, "Profile"));
     read = tube_player_extra_read(object);
     assert(!memcmp(&read, &chosen, sizeof read));
@@ -70,7 +73,7 @@ static void test_storage(void) {
                          "\"keys_lr\":5,\"keys_ud\":5,\"seek_preview\":-1,\"speed_list\":0,\"loop_shorts\":{},"
                          "\"remember_short\":false,\"buttons\":2097152,\"suggestions\":2,\"chapter_notice\":-1,\"error_fixer\":\"no\","
                          "\"remember_quality\":3,\"dim_timeout\":7,\"dim_amount\":5,\"screen_off_timeout\":10801,"
-                         "\"screen_off_amount\":95}");
+                         "\"screen_off_amount\":95,\"video_buffer\":4}");
     assert(parsed);
     read = tube_player_extra_read(parsed);
     TubePlayerExtra expected = defaults;
@@ -81,10 +84,18 @@ static void test_storage(void) {
     read = tube_player_extra_read(parsed);
     assert(read.subtitle_position == 1000 && read.subtitle_scale == 10 && read.volume == 300 && read.audio_delay_ms == -2000);
     cJSON_Delete(parsed);
-    parsed = cJSON_Parse("{\"subtitle_position\":12,\"volume\":302,\"subtitle_scale\":210}");
+    parsed = cJSON_Parse("{\"subtitle_position\":12,\"volume\":302,\"subtitle_scale\":210,\"video_buffer\":-1}");
     read = tube_player_extra_read(parsed);
     assert(!memcmp(&read, &defaults, sizeof read));
     cJSON_Delete(parsed);
+    /* A file from before the video buffer existed reads as Medium; each saved choice reads back. */
+    for (int buffer = TUBE_BUFFER_LOW; buffer <= TUBE_BUFFER_HIGHEST; ++buffer) {
+        char saved[32]; snprintf(saved, sizeof saved, "{\"video_buffer\":%d}", buffer);
+        parsed = cJSON_Parse(saved); read = tube_player_extra_read(parsed); cJSON_Delete(parsed);
+        assert(read.video_buffer == buffer);
+    }
+    parsed = cJSON_Parse("{\"volume\":150}"); read = tube_player_extra_read(parsed); cJSON_Delete(parsed);
+    assert(read.video_buffer == TUBE_BUFFER_MEDIUM && read.volume == 150);
 
     TubePlayerExtra broken = chosen;
     broken.volume = 301; broken.keys_lr = -1;
@@ -176,7 +187,23 @@ static void test_groups(void) {
         assert(!tube_extra_group_label(group, count, label, sizeof label) && !label[0]);
     }
     assert(total == 7 + 20 + 42 + 61 + 2 + 2 + 29 + 2 + 2 + 2 + 2 + 2 + 3 + 5 + 7 + 4 + 3 + 2 + 2 +
-                    2 + 2 + 2 + 2 + 19 + 12 + 17 + 10 + 2 * TUBE_BUTTON_COUNT);
+                    2 + 2 + 2 + 2 + 4 + 19 + 12 + 17 + 10 + 2 * TUBE_BUTTON_COUNT);
+    /* Video buffer: SmartTube's four names, a row of the player screen and of the in-player options; a change is saved
+     * and read by the next stream that opens. */
+    static const char *const buffers[] = { "Low", "Medium", "High", "Highest" };
+    assert(!strcmp(tube_extra_group_id(TUBE_EXTRA_VIDEO_BUFFER), "settings:video-buffer") && tube_extra_group_count(TUBE_EXTRA_VIDEO_BUFFER) == 4);
+    assert(!strcmp(tube_extra_group_title(TUBE_EXTRA_VIDEO_BUFFER), "Video buffer") && strstr(tube_extra_group_detail(TUBE_EXTRA_VIDEO_BUFFER), "next video"));
+    assert(tube_extra_group_screen(TUBE_EXTRA_VIDEO_BUFFER) == 2 && tube_extra_group_in_player(TUBE_EXTRA_VIDEO_BUFFER));
+    assert(tube_extra_group_selected(TUBE_EXTRA_VIDEO_BUFFER) == TUBE_BUFFER_MEDIUM && tube_extra_buffer() == TUBE_BUFFER_MEDIUM);
+    assert(tube_extra_read_ahead_seconds(30.0, 1) == 30.0 && tube_extra_read_ahead_seconds(10.0, 0) == 10.0);
+    for (int choice = 0; choice < 4; ++choice) {
+        assert(tube_extra_group_label(TUBE_EXTRA_VIDEO_BUFFER, choice, label, sizeof label) && !strcmp(label, buffers[choice]));
+        assert(tube_extra_group_select(TUBE_EXTRA_VIDEO_BUFFER, choice) && tube_extra_buffer() == choice);
+    }
+    assert(tube_extra_read_ahead_seconds(30.0, 1) == 100.0 && tube_extra_read_ahead_seconds(10.0, 0) == 10.0);
+    assert(tube_extra_set_buffer(TUBE_BUFFER_LOW) && tube_extra_read_ahead_seconds(30.0, 1) == 5.0 && tube_extra_read_ahead_seconds(10.0, 0) == 5.0);
+    assert(!tube_extra_set_buffer(4) && !tube_extra_set_buffer(-1) && tube_extra_buffer() == TUBE_BUFFER_LOW);
+    assert(tube_extra_set_buffer(TUBE_BUFFER_MEDIUM));
     assert(tube_extra_group_find("settings:nothing") == -1 && tube_extra_group_find(NULL) == -1);
     assert(!tube_extra_group_count(-1) && !tube_extra_group_count(TUBE_EXTRA_GROUPS) && tube_extra_group_selected(99) == -1);
     TubePlayerExtra defaults;

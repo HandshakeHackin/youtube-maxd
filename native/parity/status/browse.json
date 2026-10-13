@@ -87,7 +87,7 @@
     "native/tube_provider.c: 'Video details' row of the video menu (details:<id>, details_result): channel and subscribers, date, views, likes, optional dislikes, badges, description excerpt; asked only of a companion that lists video_details",
     "companion/innertube/video_description.mjs and the yt-dlp path without the worker (docs/LIBRARY_SERVICE.md 'Video details')",
     "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
-    "Built-in service: video_details in its feature list, answered by the bundled companion/innertube/video_description.mjs; standalone/test/service_test.py ('details job', 'video route'); dislikes are not offered there ('dislikes are off')"
+    "Built-in service: video_details in its feature list, answered by the bundled companion/innertube/video_description.mjs; standalone/test/service_test.py ('details job', 'video route'); the dislike row comes from the service's own Return YouTube Dislike relay when the profile turned 'Show dislikes' on (tests/test_embedded_e2e.c)"
    ],
    "gaps": [],
    "offline_feasible": true,

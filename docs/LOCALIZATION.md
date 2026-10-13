@@ -1,7 +1,7 @@
 # Interface languages
 
-ProsperoTube shows its browser, its preferences, its messages and its toasts
-in 21 languages besides English. This page says how that works, how to add a
+ProsperoTube shows its browser, its preferences and its messages in 21
+languages besides English; toasts and the player stay English for now. This page says how that works, how to add a
 language, what to do after the interface changes, and what is not translated
 yet.
 
@@ -71,7 +71,7 @@ Four places, each a single passage:
 |---|---|---|
 | Browser rows | `EvoRmlProviderHost::ApplyItems` (`evo_rmlui_provider.cpp`) | Title, line below and note of every row the provider marks `tube_interface`. `folder()` in `native/tube_provider.c` sets the mark: every menu, preference and notice row is built by it. Rows parsed from the service (videos, channels, playlists, comments) never carry it |
 | Status line, page counter | `SetStatus`, `SetLoading`, `PublishRowWindow` (same file) | Every error of `tube_set_error`, every status the browser screen sets |
-| Toasts | `toast()` (`src/evo_toast.c`) | Title and message, after the English classification of the toast |
+| Toasts | `toast()` (`src/evo_toast.c`) | Title and message, after the English classification of the toast. A toast is drawn by the player interface, so it is asked for as one of its lines: English until those fonts hold the letters (see below) |
 | Browser document | `youtube.rml` | Each static text becomes `{{ 'text' \| tr(i18n) }}`; `tr` asks the catalog, `i18n` is the language serial, so a language change redraws them |
 
 `scripts/i18n_overlay.py` installs the four passages when
@@ -160,8 +160,10 @@ short as the English, because a card shows one line and cuts the rest.
 ## What is not translated
 
 - **The player interface**: controls, in-player menus and lists, pickers,
-  dialogs and the on-screen keyboard. Its fonts are baked atlases with 113
-  characters, ASCII and a few signs: not one accented letter. A catalog is
+  dialogs, the on-screen keyboard and toasts (a toast is drawn by the same
+  kit, also over the browser). Its fonts are baked atlases with 113
+  characters, ASCII and a few signs: not one accented letter, and a letter
+  without a glyph is drawn as a question mark. A catalog is
   drawn there only when it sets `"player_interface": true` and
   `i18n_build.py` finds every letter of every text in all four atlases; none
   does. The texts ProsperoTube adds there are in the template and translated,

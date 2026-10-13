@@ -1,8 +1,8 @@
 // Optional decorations and third-party lookups: thumbnail frames, DeArrow,
-// SponsorBlock. SPDX-License-Identifier: GPL-3.0-or-later
+// SponsorBlock, Return YouTube Dislike. SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Ports of companion/prosperotube/thumbnail_source.py, dearrow.py and the
-// sponsor route of app.py. None of them may fail a catalog or playback.
+// Ports of companion/prosperotube/thumbnail_source.py, dearrow.py, dislikes.py
+// and the sponsor route of app.py. None of them may fail a catalog or playback.
 import { createHash } from './node_crypto.js';
 import { safeRemote } from './errors.js';
 import { deadline, scoped, tokenUrlsafe } from './core.js';
@@ -150,9 +150,10 @@ export class Sponsor {
     const chosen = Array.from(new Set(String(categories).split(',')));
     return chosen.every(name => CATEGORIES.includes(name)) ? chosen.sort() : null;
   }
-  async segments(id, chosen, alt) {
+  // `named`: the alternative server a request brought itself (the app, which has no host to configure one).
+  async segments(id, chosen, alt, named = null) {
     if (!this.enabled) return { segments: [], enabled: false };
-    const server = alt && this.server ? this.server : 'https://sponsor.ajay.app';
+    const server = alt && (named ?? this.server) ? named ?? this.server : 'https://sponsor.ajay.app';
     const key = `${id}|${chosen.join(',')}|${server}`, cached = this.cache.get(key);
     if (cached && cached.until > host.now()) return { segments: cached.segments, enabled: true };
     const segments = [];
@@ -175,5 +176,46 @@ export class Sponsor {
     if (this.cache.size >= 128) this.cache.delete(this.cache.keys().next().value);
     this.cache.set(key, { until: host.now() + 3600000, segments: segments.slice(0, 128) });
     return { segments: segments.slice(0, 128), enabled: true };
+  }
+}
+
+// ---- Return YouTube Dislike (dislikes.py): off unless the host enables it ----
+// The query names the video, so that service learns which videos are asked
+// about; while the relay is off nothing is sent.
+const VOTE_LIMIT = 10 ** 12;
+// A string, or a number as it is written. Python's `type(x) is int` refuses a
+// count written 5.0 or 5e0, which is the integer 5 once parsed here: the
+// spelling is kept beside the value so that the same answers are refused.
+const TOKEN = /"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+export function votes(text, id) {   // dislikes.votes: an object for this video with plain non-negative integer counts
+  let payload, spelled;
+  try {
+    payload = JSON.parse(text);
+    spelled = JSON.parse(text.replace(TOKEN, token => token[0] === '"' ? token : `"${token}"`));
+  } catch { return null; }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || payload.id !== id) return null;
+  const plain = name => typeof payload[name] === 'number' && /^-?\d+$/.test(spelled[name]) && payload[name] >= 0 && payload[name] <= VOTE_LIMIT;
+  return plain('likes') && plain('dislikes') ? { likes: payload.likes + 0, dislikes: payload.dislikes + 0 } : null;
+}
+export class Dislikes {
+  constructor(enabled, fetch = scoped(['returnyoutubedislikeapi.com'], { timeout: 5000, limit: 65536 })) {
+    this.enabled = !!enabled; this.fetch = fetch; this.cache = new Map();
+  }
+  async get(id) {
+    if (!this.enabled) return { api_version: 1, enabled: false };
+    const cached = this.cache.get(id);
+    let counts = null;
+    if (cached && cached.until > host.now()) counts = cached.counts;
+    else {
+      try {
+        const response = await this.fetch(`https://returnyoutubedislikeapi.com/votes?videoId=${id}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (response.status === 200 && bytes.length <= 65536) counts = votes(host.utf8Decode(bytes), id);
+      } catch { /* an optional service never fails playback or details */ }
+      if (this.cache.size >= 128) this.cache.delete(this.cache.keys().next().value);
+      // Unavailable answers are retried sooner than known counts.
+      this.cache.set(id, { until: host.now() + (counts ? 3600000 : 300000), counts });
+    }
+    return { api_version: 1, enabled: true, id, available: counts !== null, ...(counts ?? {}) };
   }
 }

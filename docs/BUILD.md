@@ -87,8 +87,10 @@ record and is not inferred from running the packager.
 
 ## Releasing
 
-A release is a tag. `.github/workflows/build.yml` builds pull requests, tags
-`vNN.NNN.NNN` and runs started by hand; a push to a branch builds nothing. A
+A release is a tag. `.github/workflows/build.yml` builds tags `vNN.NNN.NNN`
+(`v` + the content version) and runs started by hand (**Run workflow**); a
+push to a branch builds nothing, and neither does a pull request: those builds
+stay off until a first manual run has filled the toolchain caches. A
 tag's build is published as a **pre-release** with `PPSA99142.zip` (every entry
 stored 0777) and `SHA256SUMS`; installed copies find it through the update
 check ([updates](UPDATES.md)), which compares the tag with their content

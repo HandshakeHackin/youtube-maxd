@@ -24,7 +24,7 @@ enum { F_SUBTITLE_STYLE, F_SUBTITLE_SCALE, F_SUBTITLE_POSITION, F_VOLUME, F_AUTO
        F_AUDIO_DELAY_MS, F_AUDIO_DELAY_ENABLED, F_CLOCK, F_QUALITY_INFO, F_QUALITY_BITRATE,
        F_CLOCK_12H, F_EXIT_MODE, F_KEYS_LR, F_KEYS_UD, F_SEEK_PREVIEW, F_SPEED_LIST,
        F_LOOP_SHORTS, F_REMEMBER_SHORT, F_BUTTONS, F_SUGGESTIONS, F_CHAPTER_NOTICE, F_ERROR_FIXER,
-       F_REMEMBER_QUALITY, F_DIM_TIMEOUT, F_DIM_AMOUNT, F_SCREEN_OFF_TIMEOUT, F_SCREEN_OFF_AMOUNT, F_COUNT };
+       F_REMEMBER_QUALITY, F_DIM_TIMEOUT, F_DIM_AMOUNT, F_SCREEN_OFF_TIMEOUT, F_SCREEN_OFF_AMOUNT, F_VIDEO_BUFFER, F_COUNT };
 static const field_t fields[F_COUNT] = {
     FIELD(subtitle_style, 0, 0, 6, 1, NO_ALT),
     FIELD(subtitle_scale, 100, 10, 200, 10, NO_ALT),
@@ -53,6 +53,7 @@ static const field_t fields[F_COUNT] = {
     FIELD(dim_amount, 80, 10, 100, 5, NO_ALT),
     FIELD(screen_off_timeout, 0, 0, 10800, 1, NO_ALT),
     FIELD(screen_off_amount, 100, 10, 100, 10, NO_ALT),
+    FIELD(video_buffer, TUBE_BUFFER_MEDIUM, TUBE_BUFFER_LOW, TUBE_BUFFER_HIGHEST, 1, NO_ALT),
 };
 _Static_assert(TUBE_EXTRA_GROUPS == TUBE_EXTRA_BUTTON_FIRST + TUBE_BUTTON_COUNT, "one switch per player button");
 
@@ -186,6 +187,7 @@ ACCESSORS(tube_extra_dim_timeout, tube_extra_set_dim_timeout, dim_timeout, F_DIM
 ACCESSORS(tube_extra_dim_amount, tube_extra_set_dim_amount, dim_amount, F_DIM_AMOUNT)
 ACCESSORS(tube_extra_screen_off_timeout, tube_extra_set_screen_off_timeout, screen_off_timeout, F_SCREEN_OFF_TIMEOUT)
 ACCESSORS(tube_extra_screen_off_amount, tube_extra_set_screen_off_amount, screen_off_amount, F_SCREEN_OFF_AMOUNT)
+ACCESSORS(tube_extra_buffer, tube_extra_set_buffer, video_buffer, F_VIDEO_BUFFER)
 int tube_extra_button(int button) {
     return button >= 0 && button < TUBE_BUTTON_COUNT && (prefs()->buttons >> button & 1);
 }
@@ -551,6 +553,7 @@ static const char *const keys_ud_labels[] = {
     "Captions on or off / suggestions" };
 static const char *const preview_labels[] = { "Disabled", "Single frame", "Carousel (slow)", "Carousel (fast)" };
 static const char *const speed_list_labels[] = { "Short speed list", "Long speed list", "Extra long speed list" };
+static const char *const buffer_labels[] = { "Low", "Medium", "High", "Highest" };
 static const int delay_values[] = { -2000, -1500, -1000, -750, -500, -400, -300, -250, -200, -150, -100, -75, -50, -25,
                                     0, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000 };
 #define DELAY_COUNT ((int)(sizeof delay_values / sizeof *delay_values))
@@ -586,6 +589,7 @@ static const group_t groups[TUBE_EXTRA_GROUPS] = {
     { "settings:chapter-notification", "Chapter notification", "Announce a chapter when it starts; R1 skips it", G_SWITCH, F_CHAPTER_NOTICE, 2, NULL, NULL, 0 },
     { "settings:error-fixer", "Fix playback errors", "Reload the stream or lower its quality after decoder errors and long buffering", G_SWITCH, F_ERROR_FIXER, 2, NULL, NULL, 0 },
     { "settings:remember-quality", "Remember chosen quality", "A quality chosen in the player becomes the maximum for this profile", G_SWITCH, F_REMEMBER_QUALITY, 2, NULL, NULL, 0 },
+    { "settings:video-buffer", "Video buffer", "How far ahead of playback a video is loaded; applies from the next video", G_LABELS, F_VIDEO_BUFFER, 4, buffer_labels, NULL, 0 },
     { "settings:dim-timeout", "Screen dimming", "Dim the picture while paused or browsing after this time without input", G_SECONDS, F_DIM_TIMEOUT, VALUES(dim_timeout_values) },
     { "settings:dim-amount", "Screen dimming amount", "How dark the dimmed picture is", G_PERCENT, F_DIM_AMOUNT, VALUES(dim_amount_values) },
     { "settings:screen-off-timeout", "Screen off timeout", "Turn the picture off in the player after this time without input; sound keeps playing", G_SECONDS, F_SCREEN_OFF_TIMEOUT, VALUES(screen_off_timeout_values) },
@@ -840,6 +844,16 @@ int tube_buffering_tick(tube_buffering_t *state, uint64_t now_ms, int buffering)
     state->window_ms = now_ms; state->waited_ms = 0;
     return 1;
 }
+
+/* ---- Video buffer. ---- */
+double tube_buffer_seconds(int buffer, double base, int ring) {
+    /* SmartTube's load control (ExoPlayerInitializer): 5 s, 30 s, 50 s and up to 100 s of media ahead. */
+    static const double seconds[] = { 5.0, 30.0, 50.0, 100.0 };
+    if (buffer == TUBE_BUFFER_MEDIUM || buffer < TUBE_BUFFER_LOW || buffer > TUBE_BUFFER_HIGHEST || !(base > 0)) return base;
+    if (buffer == TUBE_BUFFER_LOW) return seconds[buffer] < base ? seconds[buffer] : base;   /* never deeper than Medium */
+    return ring && seconds[buffer] > base ? seconds[buffer] : base;                          /* never shallower; the pool goes no deeper */
+}
+double tube_extra_read_ahead_seconds(double base, int ring) { return tube_buffer_seconds(prefs()->video_buffer, base, ring); }
 
 /* ---- Video presets. ---- */
 static const int preset_heights[] = { 2160, 1440, 1080, 720, 480, 360, 240, 144 };

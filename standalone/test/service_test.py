@@ -158,6 +158,8 @@ def basics(s):
     same("pairing code shape", s.call("POST", "/v1/pair", {"code": "12"}, token=None)[0], 422)
     same("dislikes are off", s.call("GET", f"/v1/dislikes/{VIDEO}")[::2], (200, {"api_version": 1, "enabled": False}))
     same("dislikes video id", s.call("GET", "/v1/dislikes/short")[2]["error"]["code"], "invalid_video")
+    same("dislikes off: nothing is asked of Return YouTube Dislike",
+         [r for r in s.call("GET", "/v1/_upstream")[2]["requests"] if "dislike" in r["key"]], [])
     # Sign-in is offered (standalone/test/account_test.py); here Google has no canned answer, so a start fails cleanly.
     for path, code, status in (("/v1/voice", "voice_unavailable", 503), ("/v1/auth/start", "auth_failed", 502)):
         got = s.call("POST", path, {})
@@ -421,6 +423,42 @@ def sponsor(s):
     same("sponsor category refused", s.call("GET", f"/v1/sponsor/{VIDEO}?categories=sponsor,nonsense")[::2],
          (400, {"api_version": 1, "error": {"code": "invalid_categories", "message": "An unsupported SponsorBlock category was requested."}}))
     same("sponsor video id", s.call("GET", "/v1/sponsor/short")[0], 400)
+    # No host named a server and the request names none: `alt` alone stays with the default one.
+    same("sponsor alt without a server", s.call("GET", f"/v1/sponsor/{VIDEO}?alt=true")[2]["segments"], [{"start": 12.5, "end": 40, "category": "sponsor"}])
+    named = "server=https%3A%2F%2Fsb.example.org"
+    same("sponsor, the alternative server a request names", s.call("GET", f"/v1/sponsor/{VIDEO}?alt=true&{named}")[::2],
+         (200, {"segments": [{"start": 3, "end": 9, "category": "sponsor"}], "enabled": True}))
+    same("a named server waits for alt", s.call("GET", f"/v1/sponsor/{VIDEO}?{named}")[2]["segments"], [{"start": 12.5, "end": 40, "category": "sponsor"}])
+    for bad in ("http%3A%2F%2Fsb.example.org", "https%3A%2F%2Fsb.example.org%3A8443", "https%3A%2F%2Fuser%40sb.example.org",
+                "https%3A%2F%2Fsb.example.org%2Fpath", "https%3A%2F%2Fsb.example.org%3Fq%3D1", "sb.example.org", ""):
+        same(f"sponsor server refused: {bad}", s.call("GET", f"/v1/sponsor/{VIDEO}?alt=true&server={bad}")[::2],
+             (400, {"api_version": 1, "error": {"code": "invalid_server", "message": "The SponsorBlock server must be an https:// origin."}}))
+    same("the alternative server was asked once", [r["key"] for r in s.call("GET", "/v1/_upstream")[2]["requests"] if r["tag"] == "sponsor-alt"],
+         ["GET sb.example.org/api/skipSegments/d2e4"])
+
+
+def dislikes(binary):
+    """Return YouTube Dislike behind its host option: strict answers, one upstream request per video, silence on failure."""
+    s = Service(binary, "--token", TOKEN, "--return-youtube-dislike")
+    try:
+        asked = lambda: [r for r in s.call("GET", "/v1/_upstream")[2]["requests"] if r["key"] == "GET returnyoutubedislikeapi.com/votes"]
+        features = s.call("GET", "/v1/health", token=None)[2]["features"]
+        check("health lists dislikes once enabled", "dislikes" in features, features)
+        same("dislikes need the token", s.call("GET", f"/v1/dislikes/{VIDEO}", token=None)[0], 401)
+        same("dislikes video id, nothing asked", (s.call("GET", "/v1/dislikes/short")[0], asked()), (400, []))
+        expected = {"api_version": 1, "enabled": True, "id": VIDEO, "available": True, "likes": 120, "dislikes": 7}
+        same("dislike counts", s.call("GET", f"/v1/dislikes/{VIDEO}")[::2], (200, expected))
+        same("dislike counts, asked again", s.call("GET", f"/v1/dislikes/{VIDEO}")[2], expected)
+        same("one upstream request, without the bearer", asked(), [{"key": "GET returnyoutubedislikeapi.com/votes", "bearer": False, "tag": "dislikes"}])
+        for name, other in (("another video's answer", LIVE), ("a count that is not written as an integer", SHORT), ("an answer over 64 KiB", "fixtureDENY"),
+                            ("an upstream error", GONE), ("an answer that is not JSON", "jNQXAC9IVRw"), ("no answer", "AAAAAAAAAAA")):
+            got = s.call("GET", f"/v1/dislikes/{other}", raw=True)
+            same(f"dislikes unavailable: {name}", (got[0], json.loads(got[2])), (200, {"api_version": 1, "enabled": True, "id": other, "available": False}))
+            check(f"nothing of the upstream answer is passed on: {name}", b"WEBVTT" not in got[2] and len(got[2]) < 200, got[2][:80])
+        same("an unavailable answer is kept for a while too", (s.call("GET", f"/v1/dislikes/{GONE}")[2]["available"], len(asked())), (False, 7))
+    finally:
+        code, errors = s.stop()
+    same("clean shutdown (dislikes)", (code, errors.strip()), (0, ""))
 
 
 def main():
@@ -471,6 +509,7 @@ def main():
     finally:
         code, errors = ranged.stop()
     same("clean shutdown (ranged)", (code, errors.strip()), (0, ""))
+    dislikes(binary)
 
     for failure in failures:
         print("FAIL", failure)

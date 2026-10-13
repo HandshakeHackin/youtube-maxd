@@ -45,6 +45,9 @@ ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n_kit"
 for name in tube_i18n.h tube_i18n_data.h; do cmp "${root}/native/${name}" "${evo}/addons/include/${name}"; done
 cmp "${root}/native/tube_i18n.c" "${evo}/addons/src/tube_i18n.c"
 grep -q "addons/src/tube_i18n.c" "${evo}/Makefile"
+# Toasts are drawn by the player interface: both of their lines are asked for with its flag, so
+# they stay English until its fonts hold the letters of a language.
+[[ "$(grep -c 'tube_i18n_field(prospero_toast_.*TUBE_I18N_KIT);' "${evo}/src/evo_toast.c")" == 2 ]]
 objects=()
 for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${root}/native/tube_player_extra.c" "${root}/native/tube_backup.c" \
               "${root}/native/tube_phone.c" "${root}/native/tube_i18n.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do

@@ -18,6 +18,7 @@ static int serve(tube_service_options *options, int argc, char **argv) {
   for (int i = 0; i < argc; i++) {
     const char *value = i + 1 < argc ? argv[i + 1] : NULL;
     if (!strcmp(argv[i], "--sponsorblock")) { options->sponsorblock = 1; continue; }
+    if (!strcmp(argv[i], "--return-youtube-dislike")) { options->return_youtube_dislike = 1; continue; }
     if (!strcmp(argv[i], "--ranged-manifest")) { options->ranged_manifest = 1; continue; }
     if (!strcmp(argv[i], "--account-playback")) { options->account_playback = 1; continue; }
     if (!value) { fprintf(stderr, "tube_js: %s needs a value\n", argv[i]); return 2; }
