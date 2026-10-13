@@ -3,7 +3,8 @@
 # every upstream request is answered from standalone/fixtures.
 #   1. engine self-test (shims, format policy, manifest, request models, one parser path)
 #   2. HTTP service test: requests against `tube_js serve` on 127.0.0.1
-#   3. both again under AddressSanitizer + UBSan with leak detection (TUBE_JS_SANITIZE=0 skips)
+#   3. accounts: sign-in, the credential file, account lists and changes (test/account_test.py)
+#   4. all again under AddressSanitizer + UBSan with leak detection (TUBE_JS_SANITIZE=0 skips)
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -21,6 +22,7 @@ run() {
   echo "$label self-test: $result"
   case "$result" in *'"ok":true'*'"failed":[]'*) ;; *) echo "standalone self-test FAILED ($label)" >&2; exit 1 ;; esac
   python3 "$here/test/service_test.py" "$binary"
+  python3 "$here/test/account_test.py" "$binary"
 }
 run "$here/build/tube_js" plain
 if [ -n "${TUBE_JS_SANITIZE:-}" ]; then run "$here/build/asan/tube_js" sanitized; fi

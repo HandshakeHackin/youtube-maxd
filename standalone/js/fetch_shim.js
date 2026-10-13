@@ -97,18 +97,29 @@ export class Response extends reader(Object) {
 
 // Canned answers: index.json maps "METHOD host/path" to one entry or a list;
 // an entry may require a text in the address (`url_contains`) or the request
-// body (`body_contains`); the first that fits answers.
+// body (`body_contains`, one text or a list that must all occur) or in one
+// request header (`header_contains`, as "name: value"); `times` lets an entry
+// answer that many requests and then step aside for the next one that fits.
+// The first that fits answers. `fixtureRequests` is what the tests read back:
+// the key, whether a bearer was sent, and the entry's `tag`.
 let fixtures = null;
 export const fixtureLog = [];
+export const fixtureRequests = [];
 function canned(request) {
   const directory = host.getenv('TUBE_JS_FIXTURES');
   if (!directory) return null;
   fixtures ??= JSON.parse(host.utf8Decode(host.readFile(`${directory}/index.json`)));
   const url = new URL(request.url), key = `${request.method} ${url.hostname}${url.pathname}`;
   const body = typeof request._body === 'string' ? request._body : request._body ? host.utf8Decode(bytesOf(request._body)) : '';
+  const lines = [];
+  request.headers.forEach((value, name) => lines.push(`${name}: ${value}`));
   const entry = [fixtures[key] ?? []].flat().find(candidate =>
-    (!candidate.body_contains || body.includes(candidate.body_contains)) && (!candidate.url_contains || request.url.includes(candidate.url_contains)));
+    [candidate.body_contains ?? []].flat().every(part => body.includes(part)) && (!candidate.url_contains || request.url.includes(candidate.url_contains)) &&
+    (!candidate.header_contains || lines.some(line => line.includes(candidate.header_contains))) &&
+    (candidate.times === undefined || (candidate.used ?? 0) < candidate.times));
   if (fixtureLog.length < 256) fixtureLog.push(key);
+  if (fixtureRequests.length < 4096) fixtureRequests.push({ key, bearer: /^Bearer /.test(request.headers.get('authorization') ?? ''), tag: entry?.tag ?? '' });
+  if (entry) entry.used = (entry.used ?? 0) + 1;
   if (!entry) throw new TypeError(`fetch failed: no canned response for ${key}`);
   const data = entry.file ? host.readFile(`${directory}/${entry.file}`) : new ArrayBuffer(0);
   if (data === undefined) throw new TypeError(`fetch failed: missing fixture ${entry.file}`);

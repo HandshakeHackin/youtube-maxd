@@ -4,27 +4,30 @@
 // Same routes, fields, error codes and bounds as the Python service, so the
 // native provider only needs another address and token. What differs: media
 // bytes are never relayed (manifests and playlists name YouTube's servers,
-// a muxed file answers with a redirect), there is one profile (Guest), and
-// sign-in, phone remote, voice, import and proxy are not offered.
+// a muxed file answers with a redirect), accounts are signed in on the console
+// itself and their credentials live in the app's data directory, every profile
+// resolves videos without credentials (account_playback.js), and phone remote,
+// voice, import and proxy are not offered.
 import { Catalog, item, videoRecord } from './catalog.js';
-import { config, deadline, extractVideo, libraryExecute, mediaFetch, scoped, tokenUrlsafe } from './core.js';
+import { accountExtract, accountPlayback, needsAccount } from './account_playback.js';
+import { config, deadline, deviceAuth, extractVideo, hasProfile, libraryExecute, mediaFetch, onProfileRemoved, scoped, tokenUrlsafe } from './core.js';
 import { ServiceError } from './errors.js';
 import { DeArrow, Sponsor, thumbnails } from './extras.js';
-import { bytesOf, headerLines } from './fetch_shim.js';
+import { bytesOf, fixtureRequests, headerLines } from './fetch_shim.js';
 import { createPlayback, vttToSrt } from './resolve.js';
-import { Invalid, jobRequest, libraryRequest, queryOptions, resolveRequest, validLocale } from './schema.js';
+import { Invalid, deviceSession, deviceStart, jobRequest, libraryRequest, queryOptions, resolveRequest, validLocale } from './schema.js';
 
 const host = globalThis.__host;
 const VERSION = typeof __TUBE_VERSION__ === 'string' ? __TUBE_VERSION__ : '0.0.0';
 const VIDEO = /^[A-Za-z0-9_-]{11}$/;
-// Exactly what this service implements; no relay, sign-in, voice, import, dislikes or proxy.
+// Exactly what this service implements; no relay, voice, import, dislikes or proxy.
 const FEATURES = ['search', 'channels', 'playlists', 'dash', 'captions', 'dearrow', 'locale', 'thumbnail_source', 'storyboards',
   'translated_captions', 'video_details', 'library', 'content_filters', 'channel_pages', 'kids', 'stream_reminder', 'playlist_order',
-  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'embedded'];
+  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'embedded'];
 const SESSION_TTL = 1800000, JOB_TTL = 120000;
 
 const videoId = value => { if (!VIDEO.test(value ?? '')) throw new ServiceError('invalid_video', 'Enter an eleven-character YouTube video ID.', 400); return value; };
-const guestOnly = profile => { if (profile !== 'guest') throw new ServiceError('unknown_profile', 'Select an available profile.', 404); };
+const known = profile => { if (!hasProfile(profile)) throw new ServiceError('unknown_profile', 'Select an available profile.', 404); };
 const localeOptions = (hl = '', gl = '') => {
   if (!validLocale(hl, gl)) throw new ServiceError('invalid_locale', 'Select a supported content language and country.', 400);
   return { ...(hl ? { hl } : {}), ...(gl ? { gl } : {}) };
@@ -39,8 +42,31 @@ export class Companion {
     this.ranged = !!settings.ranged_manifest;
     this.sponsor = new Sponsor(settings.sponsorblock, settings.sponsorblock_server);
     this.dearrow = new DeArrow();
-    this.catalog = new Catalog(request => libraryExecute({ ...request, profile: 'guest' }, 'playback'), (id, hl) => extractVideo(id, { hl }));
+    this.catalogs = new Map(); this.auth = deviceAuth;
     this.sessions = new Map(); this.jobs = new Map();
+    onProfileRemoved(identity => this.profileRemoved(identity));
+  }
+  // Search and channel pages are public and read with the Guest session in
+  // every profile; a playlist may be private, so it is read with the profile's own.
+  catalog(profile) {
+    if (!this.catalogs.has(profile)) this.catalogs.set(profile, new Catalog(
+      (request, opened) => libraryExecute({ ...request, profile: opened.kind === 'playlist' ? profile : 'guest' }, 'playback'), (id, hl) => extractVideo(id, { hl })));
+    return this.catalogs.get(profile);
+  }
+  // app.profile_removed: what the account still held here ends with it.
+  profileRemoved(identity) {
+    this.catalogs.delete(identity);
+    for (const [key, session] of this.sessions) if (session.profile === identity) this.sessions.delete(key);
+    this.auth.forgetProfile(identity);
+    for (const [key, job] of this.jobs) if (job.profile === identity && !job.removal) { this.jobs.delete(key); this.retire(job); }
+  }
+  // The video's player answer: without credentials for every profile; the
+  // account's own session only behind the switch in account_playback.js.
+  async source(request, fresh, account = false) {
+    if (account) return accountExtract(request.profile, request.id);
+    try { return await extractVideo(request.id, { hl: request.hl, fresh }); }
+    catch (error) { if (!needsAccount(request.profile, error)) throw error; }
+    return accountExtract(request.profile, request.id);
   }
 
   // ---- playback sessions (sessions.Sessions) ----
@@ -55,8 +81,9 @@ export class Companion {
   touch(session) { if (this.sessions.get(session.token) === session) session.deadline = host.now() + SESSION_TTL; }
   async resolve(request) {
     videoId(request.id);
-    guestOnly(request.profile);
-    const source = await extractVideo(request.id, { hl: request.hl, fresh: request.fresh });
+    known(request.profile);
+    const source = await this.source(request, request.fresh);
+    known(request.profile);   // the account may have been removed meanwhile
     const now = host.now();
     for (const [key, session] of this.sessions) if (session.deadline <= now) this.sessions.delete(key);
     if (this.sessions.size >= 32) throw new ServiceError('busy', 'The companion has too many active playback sessions. Retry shortly.', 503);
@@ -71,6 +98,7 @@ export class Companion {
   async fill(session, source) {
     const playback = await createPlayback(source, session.request, `${this.origin}/media/${session.token}`, session, SESSION_TTL / 1000, this.ranged ? mediaFetch : null);
     session.renew = Date.now() + (source.lifetime - 600) * 1000;
+    session.account = source.account === true;
     return playback;
   }
   // The same session with new signed addresses: same names, so a player that
@@ -78,7 +106,7 @@ export class Companion {
   async refresh(session) {
     session.refreshing ??= (async () => {
       const fresh = { ...session, tracks: new Map(), manifests: new Map(), hls_manifests: new Map() };
-      await this.fill(fresh, await extractVideo(session.video_id, { hl: session.request.hl, fresh: true }));
+      await this.fill(fresh, await this.source(session.request, true, session.account));
       Object.assign(session, { tracks: fresh.tracks, manifests: fresh.manifests, hls_manifests: fresh.hls_manifests, renew: fresh.renew });
     })().finally(() => { session.refreshing = null; });
     return session.refreshing;
@@ -123,20 +151,25 @@ export class Companion {
     return thumbnails(await libraryExecute(request), source);
   }
   async page(kind, value, options, profile) {
-    guestOnly(profile);
-    const result = await this.catalog.pageFor({ [kind]: value, page: options.page,
+    known(profile);
+    const result = await this.catalog(profile).pageFor({ [kind]: value, page: options.page,
       options: { ...localeOptions(options.hl, options.gl), ...(options.hide !== null && options.hide !== undefined ? { hide: options.hide } : {}) } });
     return thumbnails(result, options.thumbnails);
   }
   async details(id, profile, hl) {
     videoId(id);
-    guestOnly(profile);
+    known(profile);
     return videoRecord(await extractVideo(id, localeOptions(hl)));
   }
 
   // ---- jobs (app.create_job, poll_job, cancel_job) ----
   retire(job) {
     job.cancelled = job.state === 'pending';
+    // A sign-in step still out is withdrawn; a started sign-in nobody read is cancelled.
+    if (job.auth && job.cancelled) this.auth.abandon(job);
+    if (job.auth === 'start' && job.state === 'done' && !job.delivered && job.value?.result?.state === 'pending') {
+      try { this.auth.cancel(job.value.result.session); } catch { /* already gone */ }
+    }
     // An unread chat that already opened is closed, as a cancelled read would be.
     if (job.chat && job.state === 'done' && !job.delivered && !job.cleaned) {
       const cursor = job.value?.result?.cursor;
@@ -152,7 +185,10 @@ export class Companion {
     if (active() >= 16) throw new ServiceError('job_limit', 'The companion is busy. Wait for the current request or cancel it.', 503);
     if (payload.action === 'resolve' && !payload.playback) throw new ServiceError('invalid_job', 'A playback request is required.', 400);
     if (payload.action === 'library' && !payload.library) throw new ServiceError('invalid_job', 'An enabled library and operation are required.', 400);
-    if (payload.action === 'auth') throw new ServiceError('invalid_job', 'An enabled sign-in service and operation are required.', 400);
+    if (payload.action === 'auth') {
+      if (!payload.auth || payload.auth.action === undefined) throw new ServiceError('invalid_job', 'An enabled sign-in service and operation are required.', 400);
+      if (payload.auth.action !== 'start' && !payload.auth.session) throw new ServiceError('invalid_job', 'A sign-in session is required.', 400);
+    }
     // Finished jobs stay for repeat polling; that cache is bounded separately.
     if (this.jobs.size >= 80) {
       const completed = Array.from(this.jobs).filter(([, job]) => job.state !== 'pending')
@@ -165,17 +201,22 @@ export class Companion {
       else if (payload.action === 'catalog') result = await this.page('parent', payload.parent, payload, payload.profile);
       else if (payload.action === 'resolve') result = await this.resolve(payload.playback);
       else if (payload.action === 'library') result = await this.library(payload.library);
-      else {
+      else if (payload.action === 'auth') {
+        result = payload.auth.action === 'start' ? await this.auth.start(payload.auth.name, job) :
+          payload.auth.action === 'status' ? await this.auth.status(payload.auth.session, job) : this.auth.cancel(payload.auth.session);
+        if (result.state === 'authorized') job.profile = result.profile?.id ?? 'guest';
+      } else {
         const record = await this.details(payload.id, payload.profile, payload.hl);
         result = thumbnails({ item: item(record), chapters: record.chapters }, payload.thumbnails);
       }
-      if (payload.action !== 'resolve') result = await this.dearrow.decorate(result, payload.dearrow_titles, payload.dearrow_thumbnails, this.origin);
+      if (!['resolve', 'auth'].includes(payload.action)) result = await this.dearrow.decorate(result, payload.dearrow_titles, payload.dearrow_thumbnails, this.origin);
       return { state: 'done', result };
     };
     const id = tokenUrlsafe(18);
     const job = { deadline: now + JOB_TTL, state: 'pending', value: null, delivered: false, cancelled: false,
       profile: payload.action === 'resolve' ? payload.playback.profile : payload.action === 'library' ? payload.library.profile : payload.profile,
-      chat: payload.action === 'library' && ['live_chat', 'chat_poll'].includes(payload.library.action) };
+      chat: payload.action === 'library' && ['live_chat', 'chat_poll'].includes(payload.library.action),
+      auth: payload.action === 'auth' ? payload.auth.action : '', removal: payload.action === 'library' && payload.library.action === 'profile_remove' };
     this.jobs.set(id, job);
     work().catch(error => {
       if (!(error instanceof ServiceError) && host.getenv('TUBE_JS_TRACE')) console.error(error?.stack ?? error);
@@ -224,7 +265,9 @@ export class Companion {
       ['GET', /^\/v1\/health$/, () => json({ api_version: 1, version: VERSION, service: 'ProsperoTube', mode: 'youtube', features: FEATURES,
         sponsorblock: this.sponsor.enabled, sponsorblock_alt: this.sponsor.server !== null, proxy: false,
         // Media addresses in manifests and playlists are YouTube's own, not this service's.
-        embedded: true })],
+        embedded: true,
+        // Whether a signed-in profile may resolve a video with its own session; off, every profile resolves as Guest does.
+        account_playback: accountPlayback() })],
       ['POST', /^\/v1\/pair$/, () => json(this.pair(posted()))],
       ['POST', /^\/v1\/library$/, async () => json(await this.library(libraryRequest(posted())))],
       ['POST', /^\/v1\/jobs$/, () => json(this.createJob(jobRequest(posted())))],
@@ -258,7 +301,11 @@ export class Companion {
       }],
       ['GET HEAD', /^\/media\/([^/]+)\/([^/]+)$/, (token, key) => this.media(token, key, method, headers, query)],
       // Not offered by the embedded service: the existing "not available" answers.
-      ['POST', /^\/v1\/auth\/(start|status|cancel)$/, () => { throw new ServiceError('auth_unavailable', 'Enable the library worker on the companion first.', 503); }],
+      ['POST', /^\/v1\/auth\/start$/, async () => json(await this.auth.start(deviceStart(posted()).name))],
+      ['POST', /^\/v1\/auth\/status$/, async () => json(await this.auth.status(deviceSession(posted()).session))],
+      ['POST', /^\/v1\/auth\/cancel$/, () => json(this.auth.cancel(deviceSession(posted()).session))],
+      // Offline tests only: which upstream requests the canned answers saw.
+      ...(host.getenv('TUBE_JS_FIXTURES') ? [['GET', /^\/v1\/_upstream$/, () => json({ requests: query.get('clear') ? fixtureRequests.splice(0) : fixtureRequests })]] : []),
       ['POST', /^\/v1\/voice$/, () => { throw new ServiceError('voice_unavailable', 'Enable local speech recognition on the companion first.', 503); }],
       ['POST', /^\/v1\/remote$/, () => { throw new ServiceError('remote_session', 'Enable phone connection first.', 404); }]
     ];

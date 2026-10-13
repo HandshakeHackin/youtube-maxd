@@ -11,7 +11,8 @@ extern "C" {
 #endif
 
 /* Starts the loopback service (127.0.0.1 only) on its own thread(s). state_dir is the app data
- * directory. On success returns 0 and fills port (host order) and a NUL-terminated bearer token
+ * directory; the service keeps `cache/` and, once an account signed in, `accounts/oauth-profiles.json`
+ * (the accounts' tokens, mode 0600) under it. On success returns 0 and fills port (host order) and a NUL-terminated bearer token
  * (hex, at most 64 chars). Idempotent while running. Never blocks on the network. */
 int tube_service_start(const char *state_dir, unsigned short *port, char token[65]);
 /* Stops accepting, cancels requests, joins the engine thread; safe to call when not running. */
@@ -38,6 +39,8 @@ typedef struct tube_service_options {
     int allow_player_script;            /* permit the costly player-script fallback (larger stack and heap) */
     int ranged_manifest;                /* DASH manifests with one byte-range segment per fragment (fast seeks);
                                            0 = the companion's one-segment-per-file shape */
+    int account_playback;               /* let a signed-in profile resolve with its own session a video that needs an
+                                           account; 0 = every profile resolves as Guest does. Unverified: leave 0 */
 } tube_service_options;
 void tube_service_configure(const tube_service_options *options);
 

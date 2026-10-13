@@ -214,7 +214,9 @@ static void make_parents(const char *path) {
   for (char *slash = directory + 1; (slash = strchr(slash, '/')); slash++) { *slash = 0; mkdir(directory, 0700); *slash = '/'; }
 }
 
-/* Private file, written through a temporary name so a crash never leaves half an entry. */
+/* Private file, written through a temporary name and flushed to the device before it
+ * takes the place of the old one, so a crash never leaves half an entry (the account
+ * credentials are kept this way). */
 static int store(const char *path, const uint8_t *data, size_t size) {
   char temporary[1040];
   make_parents(path);
@@ -226,6 +228,7 @@ static int store(const char *path, const uint8_t *data, size_t size) {
     ssize_t wrote = write(fd, data + sent, size - sent);
     if (wrote <= 0) ok = 0; else sent += (size_t)wrote;
   }
+  ok = ok && fsync(fd) == 0;
   ok = close(fd) == 0 && ok;
   if (!ok || rename(temporary, path)) { remove(temporary); return -1; }
   return 0;
@@ -571,6 +574,7 @@ static JSValue service_settings(JSContext *ctx, void *opaque) {
   set_string(ctx, config, "pairing_code", service.options.pairing_code);
   JS_SetPropertyStr(ctx, config, "sponsorblock", JS_NewBool(ctx, service.options.sponsorblock));
   JS_SetPropertyStr(ctx, config, "ranged_manifest", JS_NewBool(ctx, service.options.ranged_manifest));
+  JS_SetPropertyStr(ctx, config, "account_playback", JS_NewBool(ctx, service.options.account_playback));
   return config;
 }
 

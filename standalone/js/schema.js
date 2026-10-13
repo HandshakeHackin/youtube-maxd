@@ -174,7 +174,7 @@ const JOB = {
   playback: value => value === undefined || value === null ? null : resolveRequest(value),
   library: value => value === undefined || value === null ? null : libraryRequest(value),
   auth: value => value === undefined || value === null ? null : build({ action: choice(undefined, ['start', 'status', 'cancel']),
-    name: text('YouTube account', 150), session: text('', undefined, /^(|[0-9a-f]{32})$/) }, value, { forbidExtra: true }),
+    name: (value, name) => deviceStart(value === undefined ? {} : { name: value }).name, session: text('', undefined, /^(|[0-9a-f]{32})$/) }, value, { forbidExtra: true }),
   id: text('', 11), profile: text('guest', undefined, PROFILE), hl: text('', 8), gl: text('', 2),
   hide: list(null, HIDE, 16), thumbnails: choice('default', THUMBNAILS)
 };
@@ -184,6 +184,17 @@ export function jobRequest(input) {
   if (!distinct(r.hide)) throw new Invalid('Value error, Content filters must be distinct.');
   return r;
 }
+
+// DeviceStartRequest and DeviceSessionRequest of the direct sign-in routes.
+export const deviceStart = input => build({ name: (value, name) => {
+  if (value === undefined) return 'YouTube account';
+  if (typeof value !== 'string' || length(value) < 1 || length(value) > 150) throw new Invalid('String should have 1 to 150 characters', name);
+  return value;
+} }, input, { forbidExtra: true });
+export const deviceSession = input => build({ session: (value, name) => {
+  if (typeof value !== 'string' || !/^[0-9a-f]{32}$/.test(value)) throw new Invalid('String should match pattern', name);
+  return value;
+} }, input, { forbidExtra: true });
 
 // Query-string parameters of the direct GET routes.
 export function queryOptions(params, extra = {}) {

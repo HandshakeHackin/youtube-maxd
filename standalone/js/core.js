@@ -4,7 +4,8 @@
 import { cacheDirectory } from './platform.js';
 import { Innertube, Log, Player, UniversalCache } from 'youtubei.js';
 import { Library, LibraryError } from '../../companion/innertube/library.mjs';
-import { createProfileClient } from '../../companion/innertube/device_auth.mjs';
+import { DeviceAuthorization, createProfileClient } from '../../companion/innertube/device_auth.mjs';
+import { DeviceAuth, Guards, OAuthProfiles } from './accounts.js';
 import { ServiceError, resolverError } from './errors.js';
 import { PLAYBACK_ORDER, SCRIPTLESS, extract } from './resolve.js';
 
@@ -39,83 +40,87 @@ export async function deadline(milliseconds, work, onTimeout) {
   } finally { clearTimeout(timer); }
 }
 
-// ---- library (companion/prosperotube/library.py, LibraryService.execute, for the Guest profile) ----
-let library = null;
+// ---- library (companion/prosperotube/library.py, LibraryService) ----
+// Guest plus the accounts signed in on this console. The library object is
+// rebuilt whenever an account is added or removed, which retires every client,
+// cursor and retained feed it held, as restarting the worker process does.
+let library = null, removed = () => {};
+export const accounts = new OAuthProfiles(config.mode === 'serve' ? config.state_dir : '');
+export const hasProfile = identity => identity === 'guest' || accounts.has(identity);
+export const onProfileRemoved = listener => { removed = listener; };
+const guards = new Guards(identity => accounts.has(identity));
+function rebuild() { library = null; guards.blockWatches(); }
+// A refreshed access token is kept; if it cannot be written, the one in
+// memory still serves and the next start refreshes again.
+function refreshed(identity, credentials) { try { accounts.update(identity, credentials); } catch { /* see above */ } }
+async function profileClient(profile, locale) {
+  try { return await createProfileClient(profile, Innertube, youtubeFetch, refreshed, locale); }
+  catch (error) {
+    // Google refused the stored sign-in (revoked, or removed in the account's settings).
+    if (profile.oauth && /refresh access token: 40[01]/.test(String(error?.message)))
+      throw new LibraryError('authentication_required', 'Sign in to the YouTube account again.', 403);
+    throw error;
+  }
+}
 export function catalog() {
-  library ??= new Library((profile, locale) => createProfileClient(profile, Innertube, youtubeFetch, () => {}, locale), []);
+  library ??= new Library(profileClient, accounts.profiles.map(profile => structuredClone(profile)));
   return library;
 }
-const VIDEO = /^[A-Za-z0-9_-]{11}$/, SESSION = /^[A-Za-z0-9_-]{1,64}$/;
-const filled = value => typeof value === 'string' && value !== '';
-// Changes that belong to an account are refused before anything is sent, with
-// the same validation order and codes as the Python service.
-function accountGuard(r) {
-  const owner = r.profile ?? 'guest';
-  const need = (ok, code, message) => { if (!ok) throw new ServiceError(code, message, 400); };
-  switch (r.action) {
-    case 'profile_remove':
-      throw owner === 'guest' ? new ServiceError('account_required', 'Select an account profile first.', 400) :
-        new ServiceError('unknown_profile', 'Select an available profile.', 404);
-    case 'chat_send':
-      need(SESSION.test(r.session ?? '') && SESSION.test(r.cursor ?? '') && VIDEO.test(r.id ?? '') && typeof r.text === 'string' &&
-        r.text.trim() && Array.from(r.text).length <= 200 && !/[\x00-\x1f\x7f]/.test(r.text), 'invalid_message', 'Enter a message of 1 to 200 characters.');
-      break;
-    case 'comment_rate':
-      need(SESSION.test(r.cursor ?? '') && ['like', 'dislike', 'none'].includes(r.rating), 'invalid_rating', 'Select an available comment rating.');
-      break;
-    case 'watch_progress':
-      need(SESSION.test(r.session ?? '') && VIDEO.test(r.id ?? ''), 'invalid_progress', 'The playback report is invalid.');
-      break;
-    case 'mark_watched':
-      need(SESSION.test(r.session ?? '') && VIDEO.test(r.id ?? ''), 'invalid_progress', 'A video and confirmation session are required.');
-      break;
-    case 'feedback':
-      need(SESSION.test(r.cursor ?? '') && VIDEO.test(r.id ?? '') && ['not_interested', 'dont_recommend_channel', 'hide'].includes(r.feedback),
-        'invalid_feedback', 'Select an available feedback choice.');
-      break;
-    case 'playlist_save': case 'playlist_unsave': case 'history_pause': case 'history_resume': case 'history_clear':
-      need(SESSION.test(r.session ?? '') && (!r.action.startsWith('playlist_') || (typeof r.playlist === 'string' && !['WL', 'LL'].includes(r.playlist) &&
-        /^[A-Za-z0-9_-]{10,100}$/.test(r.playlist))), 'invalid_request', 'The account change needs a confirmation session and a valid target.');
-      break;
-    case 'stream_reminder': case 'playlist_order': case 'comment_post': case 'comment_reply': {
-      if ((r.action === 'stream_reminder' && r.reminder === 'status') || (r.action === 'playlist_order' && !r.playlist_order)) return;
-      const fields = { stream_reminder: ['id', 'reminder'], playlist_order: ['playlist', 'playlist_order'], comment_post: ['id', 'text'], comment_reply: ['id', 'cursor', 'text'] }[r.action];
-      need(SESSION.test(r.session ?? '') && fields.every(field => filled(r[field])), 'invalid_request', 'The change needs a confirmation session and a valid target.');
-      break;
+const authorization = new DeviceAuthorization(() => Innertube.create({ client_type: 'TVHTML5', retrieve_player: false,
+  retrieve_innertube_config: false, generate_session_locally: true, fetch: youtubeFetch }), youtubeFetch);
+// The offline tests run the sign-in clock faster; outside them it is the real one.
+const pace = host.getenv('TUBE_JS_FIXTURES') ? Number(host.getenv('TUBE_JS_AUTH_CLOCK')) || 1 : 1;
+export const deviceAuth = new DeviceAuth(request => libraryExecute(request, 'device'), accounts, rebuild, () => host.now() / 1000 * pace);
+
+// library._remove_profile: the private file first; a failed write keeps the
+// account, its clients and its sessions. Nothing is changed on YouTube.
+function removeProfile(request) {
+  const identity = request.profile ?? 'guest';
+  if (identity === 'guest') throw new ServiceError('account_required', 'Select an account profile first.', 400);
+  if (!accounts.has(identity)) throw new ServiceError('unknown_profile', 'Select an available profile.', 404);
+  accounts.remove(identity);
+  guards.forget(identity);
+  rebuild();
+  removed(identity);
+  return { api_version: 1, success: true, profile: identity };
+}
+
+// One operation of the library or of sign-in, with only the adapter's bounded
+// public errors crossing this boundary.
+async function send(request, operation) {
+  let result;
+  try {
+    result = operation === 'device' ? await authorization.execute(request) : operation === 'playback' ? await catalog().playback(request) :
+      operation === 'client' ? await catalog().client(request.profile) : await catalog().execute(request);
+  } catch (error) {
+    if (!(error instanceof LibraryError)) {
+      if (host.getenv('TUBE_JS_TRACE')) console.error(error?.stack ?? error);
+      throw new ServiceError('upstream_failure', 'YouTube could not complete this operation.', 502);
     }
-    default: return;
+    const code = typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? error.code : 'library_failure';
+    const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599 ? error.status : 502;
+    throw new ServiceError(code, typeof error.message === 'string' && error.message.length <= 256 ? error.message : 'The library operation failed.', status);
   }
-  throw owner === 'guest' ? new ServiceError('account_required', 'Select an account profile first.', 401) :
-    new ServiceError('unknown_profile', 'Select an available profile.', 404);
+  if (operation === 'client') return result;
+  if (!result || typeof result !== 'object' || Array.isArray(result))
+    throw new ServiceError('library_transport', 'The library worker returned invalid operation data.');
+  if (JSON.stringify(result).length > 1048576) throw new ServiceError('response_limit', 'The returned operation exceeds the response limit.', 502);
+  return result;
 }
 
 let pending = 0, queue = Promise.resolve();
+// `operation`: execute (a library action, behind the one-attempt guards),
+// playback (catalog pages), device (one sign-in step) or client (the profile's
+// session itself, for the signed-in playback path).
 export async function libraryExecute(request, operation = 'execute') {
-  if (!request || typeof request !== 'object' || host.utf8Encode(JSON.stringify(request)).byteLength > 8192)
+  if (!request || typeof request !== 'object' || host.utf8Encode(JSON.stringify(request)).byteLength > (operation === 'device' ? 16384 : 8192))
     throw new ServiceError('library_request_limit', 'The library operation exceeds its request limit.', 400);
   if (pending >= 16) throw new ServiceError('library_busy', 'The library is busy. Retry shortly.', 429);
   pending++;
   // One operation at a time, as the worker process does: the adapter keeps
   // cursors and retained feeds that must not interleave.
-  const run = queue.then(async () => {
-    if (operation === 'execute') accountGuard(request);
-    let result;
-    try { result = operation === 'playback' ? await catalog().playback(request) : await catalog().execute(request); }
-    catch (error) {
-      // Only the adapter's bounded public errors cross this boundary.
-      if (!(error instanceof LibraryError)) {
-        if (host.getenv('TUBE_JS_TRACE')) console.error(error?.stack ?? error);
-        throw new ServiceError('upstream_failure', 'YouTube could not complete this operation.', 502);
-      }
-      const code = typeof error.code === 'string' && /^[a-z_]{1,64}$/.test(error.code) ? error.code : 'library_failure';
-      const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599 ? error.status : 502;
-      throw new ServiceError(code, typeof error.message === 'string' && error.message.length <= 256 ? error.message : 'The library operation failed.', status);
-    }
-    if (!result || typeof result !== 'object' || Array.isArray(result))
-      throw new ServiceError('library_transport', 'The library worker returned invalid operation data.');
-    if (JSON.stringify(result).length > 1048576) throw new ServiceError('response_limit', 'The returned operation exceeds the response limit.', 502);
-    return result;
-  });
+  const run = queue.then(() => operation !== 'execute' ? send(request, operation) :
+    request.action === 'profile_remove' ? removeProfile(request) : guards.run(request, () => send(request, operation)));
   queue = run.catch(() => {});
   try {
     return await deadline(30000, run, () => new ServiceError('library_timeout', 'The operation timed out. Check the account before repeating a change.', 504));

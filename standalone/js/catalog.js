@@ -45,7 +45,8 @@ function context(row, playlist, channel) {
 }
 
 export class Catalog {
-  // execute(request) runs a library `playback` operation; video(id, hl) resolves one video.
+  // execute(request, opened) runs a library `playback` operation (`opened` is the request the list was opened with);
+  // video(id, hl) resolves one video.
   constructor(execute, video) { this.execute = execute; this.video = video; this.catalogs = new Map(); this.lock = Promise.resolve(); }
 
   // oauth_extractor._catalog: page N is reached by following cursors in order;
@@ -65,7 +66,7 @@ export class Catalog {
       while (entry.next <= page) {
         if (entry.next && !entry.cursor) return { entries: [], more: false };
         let result;
-        try { result = await this.execute(entry.next ? { action: 'catalog', cursor: entry.cursor } : operation); }
+        try { result = await this.execute(entry.next ? { action: 'catalog', cursor: entry.cursor } : operation, operation); }
         catch (error) { this.catalogs.delete(key); throw error; }
         const records = result.items, cursor = result.cursor ?? '';
         if (!Array.isArray(records) || records.length > 24 || typeof result.has_more !== 'boolean' ||

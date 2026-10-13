@@ -140,11 +140,11 @@ def basics(s):
     same("health status", (status, headers.get("content-type")), (200, "application/json"))
     same("health fields", {k: v for k, v in health.items() if k != "features"},
          {"api_version": 1, "version": "0.1.0", "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
-          "sponsorblock_alt": False, "proxy": False, "embedded": True})
+          "sponsorblock_alt": False, "proxy": False, "embedded": True, "account_playback": False})
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",
-                                          "video_details", "translated_captions", "locale", "thumbnail_source", "dearrow"} <= set(features), features)
-    check("health hides what does not", not {"relay", "device_auth", "voice", "subscriptions_import", "dislikes", "proxy"} & set(features), features)
+                                          "video_details", "translated_captions", "locale", "thumbnail_source", "dearrow", "device_auth"} <= set(features), features)
+    check("health hides what does not", not {"relay", "voice", "subscriptions_import", "dislikes", "proxy"} & set(features), features)
 
     same("no token", s.call("GET", "/v1/jobs/x", token=None)[::2],
          (401, {"error": {"code": "unauthorized", "message": "Pair the PS5 with this companion first."}}))
@@ -158,8 +158,9 @@ def basics(s):
     same("pairing code shape", s.call("POST", "/v1/pair", {"code": "12"}, token=None)[0], 422)
     same("dislikes are off", s.call("GET", f"/v1/dislikes/{VIDEO}")[::2], (200, {"api_version": 1, "enabled": False}))
     same("dislikes video id", s.call("GET", "/v1/dislikes/short")[2]["error"]["code"], "invalid_video")
+    # Sign-in is offered (standalone/test/account_test.py); here Google has no canned answer, so a start fails cleanly.
     for path, code, status in (("/v1/remote", "remote_session", 404), ("/v1/voice", "voice_unavailable", 503),
-                               ("/v1/auth/start", "auth_unavailable", 503)):
+                               ("/v1/auth/start", "auth_failed", 502)):
         got = s.call("POST", path, {})
         same(f"not offered {path}", (got[0], got[2]["error"]["code"]), (status, code))
     same("no import route", s.call("POST", "/v1/subscriptions/import", {})[0], 404)
@@ -194,7 +195,7 @@ def bounds(s):
     same("invalid library field", s.call("POST", "/v1/library", {"action": "home", "nonsense": 1})[0], 422)
     detail = s.call("POST", "/v1/library", {"action": "search"})
     check("422 shape", detail[0] == 422 and isinstance(detail[2].get("detail"), list) and "msg" in detail[2]["detail"][0], detail[2])
-    same("auth job", s.call("POST", "/v1/jobs", {"action": "auth", "auth": {"action": "start"}})[::2],
+    same("auth job without an operation", s.call("POST", "/v1/jobs", {"action": "auth"})[::2],
          (400, {"api_version": 1, "error": {"code": "invalid_job", "message": "An enabled sign-in service and operation are required."}}))
     same("resolve job needs playback", s.call("POST", "/v1/jobs", {"action": "resolve"})[2]["error"]["code"], "invalid_job")
     same("library job needs an operation", s.call("POST", "/v1/jobs", {"action": "library"})[2]["error"]["code"], "invalid_job")
