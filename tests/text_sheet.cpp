@@ -210,6 +210,66 @@ struct Item
     int board = 0;
 };
 
+// One more board: what is drawn when no face has an emoji or a script. Each row has a context
+// of its own (the policy is the context's).
+bool fallback_board(const std::string &path, float scale, bool stream)
+{
+    struct Row
+    {
+        const char *label;
+        const char *text;
+        bool symbols;       // a face with outline emoji is there
+        EmojiPolicy policy;
+    };
+    const char *emoji = "\U0001F525 NEW \U0001F525 My family \U0001F468\U0000200D\U0001F469\U0000200D\U0001F467 in Japan "
+                        "\U0001F1EF\U0001F1F5 day 1\U0000FE0F\U000020E3 \U00002764\U0000FE0F \U0001F44D\U0001F3FD 100%";
+    const Row rows[] = {
+        {"A face with emoji outlines (here Segoe UI Symbol): drawn in one colour, sequences as their parts", emoji, true, EmojiPolicy::strip},
+        {"No such face, policy strip (the default): sequences are left out, with the space they would leave double", emoji, false, EmojiPolicy::strip},
+        {"No such face, policy placeholder: one dot a sequence", emoji, false, EmojiPolicy::placeholder},
+        {"Emoji only, policy strip: an empty line, nothing fails", "\U0001F525\U0001F525\U0001F525", false, EmojiPolicy::strip},
+        {"A script no face has (Tibetan, Ethiopic, Cherokee): one box a character, counted in Layout::missing",
+         "Tibetan \U00000F56\U00000F7C\U00000F51\U00000F0B\U00000F61\U00000F72\U00000F42 \U000000B7 Ethiopic \U0000134A\U000012F0\U0000120D \U000000B7 Cherokee \U000013E3\U000013B3\U000013A9", false,
+         EmojiPolicy::strip},
+        {"Ill-formed UTF-8 (a cut sequence, a stray byte): one replacement character each, the rest is read",
+         "caf\xc3 au lait \xe2\x82 5 \xff ok", false, EmojiPolicy::strip},
+    };
+    Canvas canvas(static_cast<int>(1480.0f * scale), static_cast<int>(560.0f * scale), Color{16, 18, 22});
+    float y = 24.0f;
+    for (const Row &row : rows)
+    {
+        Config config = text_host::stand_in(text_host::windows("segoeui.ttf"));
+        if (!row.symbols)
+            config.faces.pop_back();
+        config.emoji = row.policy;
+        config.pixel_scale = scale;
+        config.io = stream ? IoMode::stream : IoMode::automatic;
+        std::unique_ptr<Context> context = Context::create(config);
+        if (!context)
+            return false;
+        Style small;
+        small.size = 18.0f;
+        small.tracking = 1.0f;
+        Style style;
+        style.size = 30.0f;
+        Layout label;
+        Layout text;
+        for (int frame = 0; frame < 1000; ++frame)
+        {
+            context->advance_frame();
+            context->layout(row.label, small, {}, &label);
+            context->layout(row.text, style, {}, &text);
+            if (label.pending == 0 && text.pending == 0)
+                break;
+        }
+        draw(canvas, *context, label, 24.0f, y, scale, Color{132, 140, 152});
+        canvas.fill(24.0f * scale, (y + 28.0f) * scale, 1456.0f * scale, (y + 70.0f) * scale, Color{255, 255, 255}, 0.06f);
+        draw(canvas, *context, text, 32.0f, y + 30.0f, scale, Color{236, 238, 242});
+        y += 88.0f;
+    }
+    return write_png(path, canvas);
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -432,6 +492,11 @@ int main(int argc, char **argv)
         char name[64];
         std::snprintf(name, sizeof(name), "/atlas-%s-%d.png", scale >= 1.5f ? "4k" : "1080p", page + 1);
         write_png(folder + name, canvas);
+    }
+    if (!fallback_board(folder + (scale >= 1.5f ? "/fallbacks-4k.png" : "/fallbacks-1080p.png"), scale, stream))
+    {
+        std::fprintf(stderr, "text_sheet: cannot write the fallback board\n");
+        return 1;
     }
 
     const Stats stats = context->stats();

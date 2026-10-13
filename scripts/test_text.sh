@@ -22,3 +22,7 @@ export ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1
 "${CXX:-c++}" "${TEXT_FLAGS[@]}" "$root/tests/text_sheet.cpp" "${TEXT_OBJECTS[@]}" "${TEXT_LIBS[@]}" -lz -o "$out/text_sheet"
 "$out/text_sheet" "$scratch/sheet" 1
 "$out/text_sheet" "$scratch/sheet" 2 stream
+# The link probe of native/text/ps5, on the host: the folder the tests laid out
+# like the console's stands in for /preinst/common/font.
+"${CXX:-c++}" "${TEXT_FLAGS[@]}" "$root/native/text/ps5/text_probe.cpp" "${TEXT_OBJECTS[@]}" "${TEXT_LIBS[@]}" -o "$out/text_probe"
+TUBE_TEXT_FONTS="$scratch/preinst" "$out/text_probe"
