@@ -33,6 +33,15 @@
 #include "tube_qr_page.h"
 #include "tube_about.h"
 #include "tube_backup.h"
+#include "tube_update.h"
+/* Host tests link the provider without the updater: each use asks for the function first. */
+void tube_update_app_init(void) __attribute__((weak));
+void tube_update_app_shutdown(void) __attribute__((weak));
+void tube_update_app_tick(int service_ready) __attribute__((weak));
+int tube_update_app_rows(tube_update_row *rows, int capacity) __attribute__((weak));
+int tube_update_app_action(const char *action) __attribute__((weak));
+const char *tube_update_app_notes(void) __attribute__((weak));
+const char *tube_update_app_notes_title(void) __attribute__((weak));
 #include <sys/stat.h>
 #ifdef EVO_TARGET_PS5
 /* The application sandbox has no working opendir(). */
@@ -2419,6 +2428,7 @@ static int init(void) {
     embedded_select();
     int rc = init_store();
     embedded_adopt();
+    if (tube_update_app_init) tube_update_app_init();   /* first: an interrupted update is settled before anything else */
     return rc;
 }
 
@@ -4312,6 +4322,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 }
 
 void tube_poll(void) {
+    if (tube_update_app_tick) tube_update_app_tick(!g_embedded || embedded_ready());
     caption_switch_tick();
     if (g_remote_enabled && tube_remote_state() == TUBE_REMOTE_LISTENING &&
         !strcmp(g_remote_device, tube_remote_device()) && *tube_remote_screen() &&
@@ -4642,6 +4653,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER(id,g_blocked[i].name,"Cross unblocks this channel for the selected profile");
         }
         cb(1,out,n,total>(page+1)*LOCAL_PAGE,ud);return 1;
+    }
+    if(parent && !strcmp(parent,"description:update")) {
+        /* The newest release's notes in the long-text reader. */
+        const char *notes=tube_update_app_notes?tube_update_app_notes():"",*title=tube_update_app_notes_title?tube_update_app_notes_title():"";
+        memset(&g_description,0,sizeof g_description);
+        copy(g_description.id,sizeof g_description.id,"description:text:update");
+        copy(g_description.content,sizeof g_description.content,*notes?notes:"This release has no notes.");
+        copy(g_description.profile,sizeof g_description.profile,g_library_profile);g_description.scope=g_playlist_scope;
+        CATALOG_FOLDER(g_description.id,*title?title:"Release notes","Release notes; L2 / R2 scroll");
+        copy(out[n-1].overview,sizeof out[n-1].overview,g_description.content);
+        cb(1,out,n,0,ud);return 1;
     }
     if(parent && !strncmp(parent,"description:text:",17)) {
         CATALOG_FOLDER("account:notice","Circle to return","L2 / R2 scroll the description");
@@ -5496,6 +5518,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             if (audio) copy(g_audio_language, sizeof g_audio_language, value); else copy(g_language, sizeof g_language, value);
             save();
         }
+        else if (!strncmp(parent, "settings:update:", 16)) { if (tube_update_app_action) tube_update_app_action(parent + 16); }
         else if (!strcmp(parent, "settings:clear-history")) {
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) {
                 g_records[i].updated = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0;
@@ -5588,13 +5611,17 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 g_embedded ? "Phone pairing, chat and comment posting, account history controls, feedback actions and the profile password" :
                 "Phone pairing, voice search, chat and comment posting, account history controls, feedback actions and the profile password");
             for (int i = 0; i < n; ++i) experimental(&out[i]);
-        } else if (!strcmp(parent, "settings:about")) {
+        } else if (!strcmp(parent, "settings:about") || !strncmp(parent, "settings:update:", 16)) {
+            /* An update row acts in place: About is listed again with its new state. */
             char title[96]; tube_about_title(title, sizeof title);
             CATALOG_FOLDER( "account:notice:version", title, TUBE_ABOUT_TAGLINE "; " TUBE_ABOUT_LICENSE);
             CATALOG_FOLDER( "link:about", "Releases and source code", "Project links, each with a QR code to open on another device");
             CATALOG_FOLDER( "link:feedback", "Feedback", "Report a problem or ask for a feature");
             CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");
             CATALOG_FOLDER( "settings:about:changelog", "What changed in this version", "The changes listed for the installed version");
+            tube_update_row rows[10];
+            const int count = tube_update_app_rows ? tube_update_app_rows(rows, 10) : 0;
+            for (int i = 0; i < count; ++i) CATALOG_FOLDER( rows[i].id, rows[i].title, rows[i].detail);
         } else if (!strcmp(parent, "settings:about:credits")) {
             const tube_about_credit *credit;
             for (int i = page * LOCAL_PAGE; n < LOCAL_PAGE && (credit = tube_about_credit_at(i)) != NULL; ++i) {
@@ -5864,6 +5891,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( id, hidden ? "Show section" : "Hide section", hidden ? "Return it to its menu" : "Remove it from its menu; YouTube preferences can show it again");
             CATALOG_FOLDER( "settings:sections", "All sections", "Show, hide and order every section and pin");
             CATALOG_FOLDER( "settings:refresh", "Refresh section", "Reload the list this section was shown in");
+            tube_update_row updater[1];   /* SmartTube's section menu starts the update check too */
+            if (tube_update_app_rows && tube_update_app_rows(updater, 1))
+                CATALOG_FOLDER( "settings:update:check", "Check for updates", "Ask now for a newer ProsperoTube; About lists the answer");
         } else if (!strncmp(parent, "settings:pin:", 13)) {
             int verb; const char *target = pin_target(parent + 13, &verb);
             if (!target) { tube_set_error("Select a channel or playlist to pin."); cb(0,NULL,0,0,ud); return 1; }
@@ -7484,7 +7514,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
+static void tube_shutdown(void) { if (tube_update_app_shutdown) tube_update_app_shutdown(); tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
     tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end(); cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL; }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",

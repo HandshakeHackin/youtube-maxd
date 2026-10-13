@@ -85,6 +85,40 @@ pinned library dependencies and rebuild its bundle on the companion host.
 Packaging records artifact hashes; test evidence belongs in the validation
 record and is not inferred from running the packager.
 
+## Releasing
+
+A release is a tag. `.github/workflows/build.yml` builds pull requests, tags
+`vNN.NNN.NNN` and runs started by hand; a push to a branch builds nothing. A
+tag's build is published as a **pre-release** with `PPSA99142.zip` (every entry
+stored 0777) and `SHA256SUMS`; installed copies find it through the update
+check ([updates](UPDATES.md)), which compares the tag with their content
+version.
+
+1. Raise the content version: `contentVersion="NN.NNN.NNN"` in
+   `scripts/prepare_native.py` (it is written into `sce_sys/param.json`). An
+   update exists for a copy whose content version is lower.
+2. When the version shown to people changes too, add its `## X.Y.Z` section to
+   `CHANGELOG.md`, set the same number in the `VERSION` line of
+   `scripts/prepare_native.py` and in `scripts/package_release.py`, and run
+   `python3 scripts/generate_about.py` (`--check` fails when they disagree).
+3. Release notes are `docs/releases/<content version>.md` when that file
+   exists, else the `CHANGELOG.md` section of the version. They are what the
+   app shows under **What is new**.
+4. `bash scripts/test_all.sh`, commit, and check what will be released:
+   `python3 scripts/release_version.py` prints title, content version and
+   version; `--tag` the tag; `--notes` the notes.
+5. Tag that commit `v<content version>` and push the tag. The workflow refuses
+   a tag that is not the tree's content version, runs the offline checks,
+   builds, verifies the ZIP (one app folder, `eboot.bin`, 0777, the version)
+   and creates the pre-release. It never replaces a ZIP a release already has.
+
+The workflow needs no secret. Its first run, and any run after a pin changes,
+compiles the PS5 shader compiler, dav1d and FFmpeg (hours); they are then
+restored from the Actions cache, keyed by the EVO pin and the scripts that
+build them. Only the compiler and its library are cached, not its build tree.
+While the repository is private the ZIP is not attested and the app's update
+check gets no answer.
+
 ## The built-in service
 
 `scripts/build_ps5.sh` builds the self-sufficient application by default
