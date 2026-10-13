@@ -167,6 +167,8 @@ static void ui_prefs_write(cJSON *row, const TubeUiPrefs *ui) {
     cJSON_AddStringToObject(row,"color_scheme",g_tube_schemes[ui->scheme].id);
     cJSON_AddNumberToObject(row,"app_exit",ui->app_exit);
     cJSON_AddBoolToObject(row,"search_exit_double",ui->search_exit);
+    TubeUiPrefs plain; tube_ui_defaults(&plain);   /* absent = the built-in menu */
+    if (!ui->menu_hidden && !memcmp(ui->menu_order,plain.menu_order,sizeof plain.menu_order)) return;
     cJSON *menu = cJSON_AddArrayToObject(row,"video_menu");
     for (int k = 0; menu && k < TUBE_MENU_KEYS; ++k) {
         cJSON *entry = cJSON_CreateObject(); if (!entry) break;

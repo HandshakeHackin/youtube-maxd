@@ -100,7 +100,7 @@ int main(void) {
     assert(cJSON_GetObjectItem(guest,"card_scroll_speed")->valueint==25 && cJSON_IsTrue(cJSON_GetObjectItem(guest,"card_multiline_subtitle")));
     assert(cJSON_IsTrue(cJSON_GetObjectItem(guest,"card_square_corners")) && !strcmp(cJSON_GetObjectItem(guest,"color_scheme")->valuestring,"dark-grey-oled"));
     assert(cJSON_GetObjectItem(guest,"app_exit")->valueint==1 && cJSON_IsTrue(cJSON_GetObjectItem(guest,"search_exit_double")));
-    assert(cJSON_GetArraySize(cJSON_GetObjectItem(guest,"video_menu"))==TUBE_MENU_KEYS);
+    assert(!cJSON_GetObjectItem(guest,"video_menu"));           /* the built-in menu is not written out */
     cJSON_Delete(store);
     TubeUiPrefs chosen=*ui();
     const unsigned before=tube_ui_revision();
@@ -119,7 +119,7 @@ int main(void) {
     cJSON_ReplaceItemInObject(guest,"card_scroll_speed",cJSON_CreateNumber(27));
     cJSON_ReplaceItemInObject(guest,"color_scheme",cJSON_CreateString("neon"));
     cJSON_ReplaceItemInObject(guest,"app_exit",cJSON_CreateNumber(7));
-    cJSON_ReplaceItemInObject(guest,"video_menu",cJSON_CreateString("everything"));
+    cJSON_DeleteItemFromObject(guest,"video_menu");cJSON_AddItemToObject(guest,"video_menu",cJSON_CreateString("everything"));
     write_store(store);cJSON_Delete(store);assert(!p->init());
     assert(ui()->ui_scale==100 && ui()->grid_scale==100 && ui()->title_lines==1 && ui()->scroll_speed==10 && !ui()->scheme && !ui()->app_exit);
     assert(ui()->title_scroll==1 && ui()->subtitle_lines==2 && ui()->square==1 && ui()->search_exit==1);   /* the valid ones stay */
