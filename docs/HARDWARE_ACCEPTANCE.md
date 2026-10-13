@@ -1,5 +1,26 @@
 # Hardware acceptance — in progress
 
+- 2026-10-13 | self-sufficient core path, Guest | 6b3b1c41 (instrumented, `prosperotube-6b3b1c41_1013-1226`) | PS5 | pass: built-in service, Discover, direct playback, seek, pause, pickers, stop, history, clean park and close | evidence kept outside the repository (`tools/console/session.py` run of 13:18Z) | sound and motion by a person, VP9/AV1/4K, long sessions, sign-in
+
+The first session of the build that needs no PC. No companion was running. The
+built-in service listened on 127.0.0.1:37841; Discover listed 15 rows and the
+Science topic 15 videos through it. The first video (a 1 h 01 min upload) was
+resolved on the console and played from YouTube directly: DASH manifest from the
+loopback service, media from `googlevideo.com`, H.264 1920x1080 at 29.97 fps on
+the hardware decoder with AAC stereo. Position advanced 1.07 to 2.09 s in one
+second; a +10 s seek landed at 12.39 s (target 12.09) with the first frame after
+2.2 s; pause held; the caption picker and playback options opened; Stop through
+the confirmation returned to the browser. The engine published 125 frames with
+7 late drops (5.6%) over about 22 s that included the seek and two pickers. The
+history record was saved under `/data/prosperotube` and the saved state holds no
+service address. Memory while playing: 696 MB live, flexible pool 770 MB free.
+The app parked in 6 s, the exact-title close left no sandbox, the previous state
+was restored and the lock released. One capture of the paused player was read
+back. Not assessed: sound, motion smoothness, captions on screen (the video had
+none selected), other codecs and resolutions, expiry recovery, accounts.
+
+- 2026-10-13 | same build, first attempt | 6b3b1c41 | PS5 | no functional result: the app started, drew the main menu, started the service and closed cleanly, but the driver's readiness check expected another interface layer and ended the session after 90 s | same evidence root, run of 12:46Z | driver corrected from the captured snapshot
+
 Console scheduling: `192.168.4.40` is shared with another agent. Before every
 console test session, check the shared local lock and the console's running
 applications through the established idle-check protocol. Do not interrupt a
