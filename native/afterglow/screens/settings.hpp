@@ -10,9 +10,11 @@
 // the tiles and their headings by the start of their ids, and a row it does
 // not know still gets a place, so a new preference never disappears.
 //
-//   settings.cpp        the screen: reading, focus, changes on their way, input
-//   settings_model.cpp  tiles, the grouping table, a row as a form row
-//   settings_draw.cpp   tiles, form rows, bones, the previews
+//   settings_model.cpp   tiles, the grouping table, a row as a form row
+//   settings_draw.cpp    a tile, a form row, bones, the previews
+//   settings_screen.hpp  the screen itself, written in settings.cpp (the frame's
+//                        side, reading), settings_changes.cpp, settings_input.cpp
+//                        and settings_view.cpp
 
 #pragma once
 
@@ -166,8 +168,9 @@ void draw_notice(G &g, Icon glyph, std::string_view title, std::string_view body
 // "SETTINGS > CAPTIONS" over the page's name.
 void draw_path(G &g, const std::vector<std::string> &path, float amount);
 // The panel in which the focused row explains itself.
-// alert: the words are the provider's, about a change it refused.
-void draw_help(G &g, const Rect &r, std::string_view words, std::string_view more, bool alert = false);
+// heading: the row's name in full, for a name its row had to cut. alert: the words are the provider's,
+// about a change it refused.
+void draw_help(G &g, const Rect &r, std::string_view heading, std::string_view words, std::string_view more, bool alert = false);
 
 enum class PreviewKind : std::uint8_t
 {

@@ -487,7 +487,7 @@ void draw_path(G &g, const std::vector<std::string> &path, float amount)
         text(g, g.f.display, fit(g.f.display, path.back(), kTypePage, 1300.0f), kLeft - 2.0f, 146.0f, kTypePage, k.ink);
 }
 
-void draw_help(G &g, const Rect &r, std::string_view words, std::string_view more, bool alert)
+void draw_help(G &g, const Rect &r, std::string_view heading, std::string_view words, std::string_view more, bool alert)
 {
     const Look &k = g.k;
     glass_panel(g, r, 24.0f);
@@ -496,9 +496,16 @@ void draw_help(G &g, const Rect &r, std::string_view words, std::string_view mor
     g.l.circle(r.x + 44.0f, r.y + 46.0f, 20.0f, k.raised);
     icon(g, alert ? Icon::alert : Icon::info, r.x + 44.0f, r.y + 46.0f, 24.0f, k.ink);
     const float width = r.w - 116.0f;
-    const int room = static_cast<int>((r.h - 40.0f) / 31.0f);
+    int room = static_cast<int>((r.h - 40.0f) / 31.0f);
+    float top = r.y + 52.0f;
+    if (!heading.empty())
+    {
+        const int taken = std::min(measure_block(g.f.semibold, heading, 22.0f, width, 31.0f, 2).lines, 2);
+        top = paragraph(g, g.f.semibold, heading, r.x + 82.0f, top, 22.0f, width, 31.0f, k.ink, 2);
+        room -= taken;
+    }
     const TextBlock first = measure_block(g.f.regular, words, 22.0f, width, 31.0f, std::max(room, 1));
-    const float after = paragraph(g, g.f.regular, words, r.x + 82.0f, r.y + 52.0f, 22.0f, width, 31.0f, alert ? k.ink : k.ink2, std::max(room, 1));
+    const float after = paragraph(g, g.f.regular, words, r.x + 82.0f, top, 22.0f, width, 31.0f, alert ? k.ink : k.ink2, std::max(room, 1));
     const int left = static_cast<int>((r.y + r.h - 22.0f - after) / 28.0f) + 1;
     if (!more.empty() && first.lines > 0 && left > 0)
         paragraph(g, g.f.regular, more, r.x + 82.0f, after + 8.0f, kTypeMeta, width, 28.0f, k.ink3, left);

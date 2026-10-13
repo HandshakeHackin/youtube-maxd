@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "settings:backup:restore:7:backup-20261013-0912", "is_folder": true, "interface": true, "title": "Restore this backup", "subtitle": "Replaces the settings and library on this PS5; the current state is kept as a safety copy", "label": "Restore this backup", "kind": "action", "confirm": "The settings and the library of this PS5 are replaced by the backup of today, 09:12. What is here now is kept as a safety copy.", "confirm_label": "Restore", "done": "Backup restored", "overview": "Backup of today, 09:12. Sign-ins to YouTube are not part of it: the accounts on this PS5 stay as they are."},
+  {"id": "settings:backup:delete:7:backup-20261013-0912", "is_folder": true, "interface": true, "title": "Delete this backup", "subtitle": "Removes this file only", "label": "Delete this backup", "kind": "action", "danger": true, "confirm": "The backup of today, 09:12 is deleted. Nothing else changes.", "confirm_label": "Delete", "done": "Backup deleted"}
+ ],
+ "has_more": false
+}
