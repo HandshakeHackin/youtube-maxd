@@ -103,11 +103,16 @@ unsigned ProviderSource::revision()
         last_profile_ = now;
         ++profile_changes_;
     }
+    // Another profile, an account signed in or out. A sign-in in progress and the phone link change more often
+    // than pages go stale: the screens that show them read their own catalogs again.
     return profile_changes_ * 65536u + tube_accounts_revision();
 }
 
 std::string ProviderSource::menu(const std::string &row, const std::string &title)
 {
+    // A video's actions are the provider's menu of that video; a folder's (a channel, a playlist) its section menu.
+    if (is_video_id(row))
+        return "account:menu:" + row;
     const char *menu = tube_folder_menu(row.c_str(), title.c_str());
     return menu != nullptr ? std::string(menu) : std::string();
 }

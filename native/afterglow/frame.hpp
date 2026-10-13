@@ -136,6 +136,7 @@ class Frame final : private Nav
     void root(const Route &route) override;
     void open_rail() override;
     void toast(std::string_view text, ToastKind kind) override;
+    void toast(std::string_view text, std::string_view detail, ToastKind kind) override;
     void confirm(std::string_view title, std::string_view body, std::string_view confirm_label,
                  std::function<void(bool)> answered) override;
     void ambient(std::string_view picture_url) override;

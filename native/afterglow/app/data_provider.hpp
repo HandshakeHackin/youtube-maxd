@@ -71,7 +71,6 @@ class ProviderSource final : public Source
     bool flying_dropped_ = false; // ... and whether it was cancelled meanwhile
     Done flying_done_;
     unsigned next_ticket_ = 1;
-    unsigned serial_ = 0;      // tells a late answer of an abandoned request apart
     std::function<bool(const model::Video &)> player_;
     std::string last_profile_;
     unsigned profile_changes_ = 0;

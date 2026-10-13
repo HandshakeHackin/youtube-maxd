@@ -117,6 +117,9 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
         title = entry.route.title;
     if (!title.empty())
         text(g, g.f.display, fit(g.f.display, title, kTypePage, 1200.0f), kLeft - 2.0f, 128.0f, kTypePage, k.ink);
+    const std::string subtitle = entry.screen->subtitle();
+    if (!subtitle.empty())
+        text(g, g.f.regular, fit(g.f.regular, subtitle, 22.0f, 1200.0f), kLeft, 166.0f, 22.0f, k.ink2);
     int hour = 0;
     int minute = 0;
     platform_.wall_clock(&hour, &minute);

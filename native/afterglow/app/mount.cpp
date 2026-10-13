@@ -1,0 +1,386 @@
+// ProsperoTube Afterglow - the mount: the frame inside EVO's kit application.
+// Copyright (C) 2026 BlackBearReloaded
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// The app's Platform (EVO's AGC batch for textures, EVO's network for
+// pictures, the asset bundle, the app's catalogs), the frame's life, the pad
+// and the hand-over of a chosen video to the player the classic browser uses.
+// Console only: nothing here is compiled for the host.
+
+#include "afterglow/app/mount.hpp"
+
+#include "afterglow/app/afterglow.h"
+#include "afterglow/app/data_provider.hpp"
+#include "afterglow/frame.hpp"
+#include "afterglow/text_engine.hpp"
+
+#include "evo_rmlui_bundle.h"
+
+extern "C"
+{
+#include "evo_boot_log.h"
+#include "evo_data_path.h"
+#include "evo_net.h"
+#include "tube_i18n.h"
+#include "tube_provider.h"
+#include "tube_ui_style.h"
+}
+
+#include <cstdio>
+#include <ctime>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+
+namespace afterglow
+{
+
+namespace
+{
+
+double monotonic_seconds()
+{
+    timespec now{};
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return static_cast<double>(now.tv_sec) + static_cast<double>(now.tv_nsec) * 1e-9;
+}
+
+bool file_exists(const char *name)
+{
+    std::FILE *file = std::fopen(evo_data_path(name), "rb");
+    if (file == nullptr)
+        return false;
+    std::fclose(file);
+    return true;
+}
+
+class AppPlatform final : public Platform
+{
+  public:
+    void set_batch(evo::hui_agc::AgcBatch *batch)
+    {
+        batch_ = batch;
+    }
+
+    std::uint32_t create_texture(int width, int height, const std::uint8_t *rgba) override
+    {
+        return batch_ != nullptr ? batch_->create_texture(width, height, rgba) : 0;
+    }
+    void release_texture(std::uint32_t handle) override
+    {
+        if (batch_ != nullptr && handle != 0)
+            batch_->release_texture(handle);
+    }
+
+    unsigned fetch(const std::string &url, Fetched done) override
+    {
+        if (!tube_art_url_allowed(url.c_str()))
+            return 0;
+        auto *request = new Request{next_ticket_, this, std::move(done)};
+        if (evo_net_request_async("GET", url.c_str(), nullptr, nullptr, 0, &AppPlatform::fetched, request) != 0)
+        {
+            delete request;
+            return 0;
+        }
+        waiting_.insert(next_ticket_);
+        return next_ticket_++;
+    }
+    void cancel_fetch(unsigned ticket) override
+    {
+        waiting_.erase(ticket); // the answer still arrives; nobody is told
+    }
+
+    bool read_asset(const std::string &path, std::string *bytes) override
+    {
+        const EvoRmlBundleFile *file = evo_rmlui_bundle_find(path);
+        if (file == nullptr)
+            return false;
+        bytes->assign(reinterpret_cast<const char *>(file->data), file->size);
+        return true;
+    }
+
+    void wall_clock(int *hour, int *minute) override
+    {
+        const std::time_t now = std::time(nullptr);
+        std::tm local{};
+        localtime_r(&now, &local);
+        *hour = local.tm_hour;
+        *minute = local.tm_min;
+    }
+
+    const char *translate(const char *english) override
+    {
+        if (language_ != tube_i18n_generation())
+        {
+            language_ = tube_i18n_generation();
+            texts_.clear();
+        }
+        const auto found = texts_.find(english);
+        if (found != texts_.end())
+            return found->second.c_str();
+        char out[1024];
+        const bool changed = tube_i18n_translate(english, out, sizeof out, TUBE_I18N_LABELS) != 0;
+        return texts_.emplace(english, changed ? out : english).first->second.c_str();
+    }
+    unsigned language_revision() override
+    {
+        return tube_i18n_generation();
+    }
+
+    void log(const char *line) override
+    {
+        evo_boot_log("afterglow: %s", line);
+    }
+
+  private:
+    struct Request
+    {
+        unsigned ticket;
+        AppPlatform *platform;
+        Fetched done;
+    };
+    static void fetched(int success, int status, const char *body, size_t size, void *user)
+    {
+        std::unique_ptr<Request> request(static_cast<Request *>(user));
+        AppPlatform &self = *request->platform;
+        if (self.waiting_.erase(request->ticket) == 0)
+            return; // cancelled meanwhile
+        const bool ok = success != 0 && status >= 200 && status < 300 && body != nullptr && size > 0;
+        request->done(ok, ok ? std::string(body, size) : std::string());
+    }
+
+    evo::hui_agc::AgcBatch *batch_ = nullptr;
+    std::set<unsigned> waiting_;
+    unsigned next_ticket_ = 1;
+    std::map<std::string, std::string> texts_;
+    unsigned language_ = 0;
+};
+
+// The faces of the approved boards travel in the asset bundle; the text engine
+// reads font files, so they are written into the app's data folder once.
+std::string font_file(Platform &platform, const char *name)
+{
+    std::string bytes;
+    if (!platform.read_asset(std::string("fonts/") + name, &bytes))
+        return {};
+    const std::string path = evo_data_path(name);
+    std::FILE *have = std::fopen(path.c_str(), "rb");
+    if (have != nullptr)
+    {
+        std::fseek(have, 0, SEEK_END);
+        const long size = std::ftell(have);
+        std::fclose(have);
+        if (size == static_cast<long>(bytes.size()))
+            return path;
+    }
+    std::FILE *file = std::fopen(path.c_str(), "wb");
+    if (file == nullptr)
+        return {};
+    const bool written = std::fwrite(bytes.data(), 1, bytes.size(), file) == bytes.size();
+    std::fclose(file);
+    return written ? path : std::string();
+}
+
+struct Mount
+{
+    AppPlatform platform;
+    ProviderSource source;
+    std::unique_ptr<TextEngine> text;
+    std::unique_ptr<Frame> frame;
+    gfx::DrawList world;
+    gfx::DrawList ui;
+    InputFrame input;
+    model::Video play;
+    bool play_pending = false;
+    bool shown = false;
+    bool failed = false;
+    int scheme = -1;
+    double last_render = 0.0;
+    std::string snapshot;
+};
+
+Mount *g_mount = nullptr;
+bool g_cold = true; // the first frame of this run opens with the opening moment
+
+} // namespace
+
+bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, float dt, int width, int height)
+{
+    if (!tube_afterglow_enabled())
+    {
+        if (g_mount != nullptr)
+            g_mount->shown = false;
+        return false;
+    }
+    if (g_mount == nullptr)
+        g_mount = new Mount();
+    Mount &m = *g_mount;
+    if (m.failed)
+        return false;
+    m.platform.set_batch(&batch);
+    const TubeUiPrefs *prefs = tube_ui_prefs();
+    if (!m.frame)
+    {
+        TextSetup setup;
+        setup.regular = font_file(m.platform, "afterglow-inter-regular.ttf");
+        setup.semibold = font_file(m.platform, "afterglow-inter-semibold.ttf");
+        setup.display = font_file(m.platform, "afterglow-montserrat-medium.ttf");
+        setup.mono = font_file(m.platform, "afterglow-dejavu-sans-mono.ttf");
+        setup.font_dirs = tube::text::system_font_folders();
+        setup.language = tube_i18n_language();
+        setup.pixel_scale = static_cast<float>(height) / gfx::kVirtualHeight;
+        setup.page_size = 1024;
+        setup.max_pages = 4;
+        std::string why;
+        m.text = TextEngine::create(m.platform, setup, &why);
+        if (m.text)
+            m.text->bind(fonts);
+        else
+            evo_boot_log("afterglow: the text engine did not start (%s); the kit's baked fonts draw", why.c_str());
+        FrameOptions options;
+        options.scheme = prefs != nullptr ? prefs->scheme : 0;
+        options.opening = g_cold;
+        g_cold = false;
+        m.scheme = options.scheme;
+        m.source.set_player([](const model::Video &video)
+        {
+            if (g_mount == nullptr)
+                return false;
+            g_mount->play = video;
+            g_mount->play_pending = true;
+            return true;
+        });
+        m.frame = std::make_unique<Frame>(m.platform, m.source, fonts, options);
+        evo_boot_log("afterglow: interface up, look %s, %dx%d", m.frame->look().id, width, height);
+    }
+    if (prefs != nullptr && prefs->scheme != m.scheme)
+    {
+        m.scheme = prefs->scheme;
+        m.frame->set_scheme(m.scheme);
+    }
+    // Back on screen after the player or another screen of the app had it.
+    const double now = monotonic_seconds();
+    if (m.last_render != 0.0 && now - m.last_render > 1.0)
+        m.frame->resume();
+    m.last_render = now;
+
+    if (m.text)
+        m.text->begin_frame();
+    m.frame->update(m.input, dt);
+    m.input = InputFrame{};
+    m.world.clear();
+    m.ui.clear();
+    m.frame->draw(m.world, m.ui, 0); // no blurred copy on this backend yet: panels are solid
+    if (m.text)
+        m.text->end_frame();
+    const gfx::Viewport viewport = gfx::fit_viewport(width, height);
+    batch.draw(m.world, viewport, width, height);
+    batch.draw(m.ui, viewport, width, height);
+    m.shown = true;
+    return true;
+}
+
+} // namespace afterglow
+
+using afterglow::g_mount;
+
+extern "C" int tube_afterglow_enabled(void)
+{
+    static double checked = -10.0;
+    static bool on_file = false;
+    static bool off_file = false;
+    const double now = afterglow::monotonic_seconds();
+    if (now - checked > 1.0)
+    {
+        checked = now;
+        on_file = afterglow::file_exists("afterglow.on");
+        off_file = afterglow::file_exists("afterglow.off");
+    }
+    if (off_file)
+        return 0;
+    const TubeUiPrefs *prefs = tube_ui_prefs();
+    return on_file || (prefs != nullptr && prefs->interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) ? 1 : 0;
+}
+
+extern "C" int tube_afterglow_shown(void)
+{
+    // The frame before last still counts: input arrives between two renders.
+    return g_mount != nullptr && g_mount->shown && afterglow::monotonic_seconds() - g_mount->last_render < 0.5 ? 1 : 0;
+}
+
+extern "C" void tube_afterglow_input(uint32_t pressed, uint32_t held)
+{
+    using afterglow::Action;
+    if (g_mount == nullptr)
+        return;
+    static const struct
+    {
+        uint32_t pad;
+        Action action;
+    } kButtons[] = {{hui::pad_bits::kCross, Action::confirm},   {hui::pad_bits::kCircle, Action::back},
+                    {hui::pad_bits::kTriangle, Action::north},  {hui::pad_bits::kSquare, Action::west},
+                    {hui::pad_bits::kL1, Action::page_prev},    {hui::pad_bits::kR1, Action::page_next},
+                    {hui::pad_bits::kL2, Action::jump_prev},    {hui::pad_bits::kR2, Action::jump_next},
+                    {hui::pad_bits::kOptions, Action::menu},    {hui::pad_bits::kTouchpad, Action::touch},
+                    {hui::pad_bits::kL3, Action::l3},           {hui::pad_bits::kR3, Action::r3}};
+    afterglow::InputFrame &input = g_mount->input;
+    for (const auto &button : kButtons)
+    {
+        if ((pressed & button.pad) != 0)
+            input.pressed |= hui::action_bit(button.action);
+        if ((held & button.pad) != 0)
+            input.held |= hui::action_bit(button.action);
+    }
+    if ((pressed & hui::pad_bits::kUp) != 0)
+        input.nav = afterglow::Direction::up;
+    else if ((pressed & hui::pad_bits::kDown) != 0)
+        input.nav = afterglow::Direction::down;
+    else if ((pressed & hui::pad_bits::kLeft) != 0)
+        input.nav = afterglow::Direction::left;
+    else if ((pressed & hui::pad_bits::kRight) != 0)
+        input.nav = afterglow::Direction::right;
+}
+
+extern "C" int tube_afterglow_take_play(char *item, size_t item_size, char *title, size_t title_size, int *is_live, long long *resume_sec)
+{
+    if (g_mount == nullptr || !g_mount->play_pending)
+        return 0;
+    g_mount->play_pending = false;
+    const afterglow::model::Video &video = g_mount->play;
+    std::snprintf(item, item_size, "%s", video.id.c_str());
+    std::snprintf(title, title_size, "%s", video.title.c_str());
+    if (is_live != nullptr)
+        *is_live = (video.badges & afterglow::model::kBadgeLive) != 0 ? 1 : 0;
+    if (resume_sec != nullptr)
+        *resume_sec = video.progress > 0.02f && video.progress < 0.97f ? static_cast<long long>(video.progress * static_cast<float>(video.duration_s)) : 0;
+    return 1;
+}
+
+extern "C" int tube_afterglow_take_exit(void)
+{
+    return g_mount != nullptr && g_mount->frame && g_mount->frame->take_exit_request() ? 1 : 0;
+}
+
+extern "C" uint64_t tube_afterglow_now_ms(void)
+{
+    return static_cast<uint64_t>(afterglow::monotonic_seconds() * 1000.0);
+}
+
+extern "C" const char *tube_afterglow_snapshot(void)
+{
+    if (!tube_afterglow_shown() || !g_mount->frame)
+        return "";
+    g_mount->snapshot = g_mount->frame->snapshot_json();
+    return g_mount->snapshot.c_str();
+}
+
+extern "C" void tube_afterglow_close(void)
+{
+    if (g_mount == nullptr)
+        return;
+    g_mount->frame.reset();
+    g_mount->text.reset();
+    g_mount->shown = false;
+    g_mount->last_render = 0.0;
+}

@@ -57,12 +57,18 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   (interface and grid scale, card text, themes and classic colour schemes,
   the video actions menu, Circle rules) and the drawn seek preview.
 - **Afterglow, approved 2026-10-13, in progress:** the interface of the
-  [proposal](afterglow/design-notes.md) is being built on the UI kit, and the
-  first release waits for all of its screens ([decision](DECISIONS.md)). So
-  far the browser has the **Theme** preference with the four Afterglow
-  palettes (Afterglow by default, Onyx, Daybreak, High contrast; contrast of
-  every text checked at 4.5:1 by `tests/test_ui_style.c`) and the new mark in
-  its header and on About. Host-tested only.
+  [proposal](afterglow/design-notes.md) is being built on the UI kit
+  ([architecture](afterglow/ARCHITECTURE.md)), and the first release waits for
+  all of its screens ([decision](DECISIONS.md)). Built so far, host-tested
+  only: the frame (rail, hand-overs, toasts, dialog, attract mode), Home and
+  the opening, the reader, the data layer on the shipping provider, the text
+  engine for every script behind the kit's fonts, and the four looks, with 38
+  boards drawn and checked in each look (`scripts/test_afterglow.sh`). It is
+  linked into the PS5 package behind **Interface: Afterglow (preview)** under
+  YouTube preferences > Interface; **Classic** stays the default, and pages
+  Afterglow lacks say so. It has never run on a console. The browser's own
+  **Theme** preference (Afterglow by default, Onyx, Daybreak, High contrast)
+  and the new mark are in the classic interface.
 - **Deferred:** the remaining interface options (buttons at the top of the
   main window, card previews, playlists as rows), a translated player,
   languages that need other fonts, shaping or right-to-left layout, auto

@@ -122,7 +122,7 @@ void Frame::set_scheme(int scheme)
 
 UpdateContext Frame::context(bool top)
 {
-    return UpdateContext{services_, *this, feedback_, 0.0f, clock_, options_.reduced_motion, top};
+    return UpdateContext{services_, *this, feedback_, 0.0f, clock_, options_.reduced_motion, top, look_};
 }
 
 ScreenId Frame::screen() const
@@ -203,11 +203,16 @@ void Frame::open_rail()
 
 void Frame::toast(std::string_view text, ToastKind kind)
 {
+    toast(text, {}, kind);
+}
+
+void Frame::toast(std::string_view text, std::string_view detail, ToastKind kind)
+{
     const ui::StatusKind status = kind == ToastKind::success   ? ui::StatusKind::success
                                   : kind == ToastKind::warning ? ui::StatusKind::warning
                                   : kind == ToastKind::error   ? ui::StatusKind::danger
                                                                : ui::StatusKind::info;
-    toasts_.push(status, std::string(text));
+    toasts_.push(status, std::string(text), std::string(detail));
     toast_log_.emplace_back(text);
     if (toast_log_.size() > 4)
         toast_log_.erase(toast_log_.begin());

@@ -40,6 +40,7 @@ typedef struct TubeUiPrefs {
     int subtitle_lines;  /* 1..2 lines of a card subtitle */
     int square;          /* 0/1: square card corners instead of rounded ones */
     int scheme;          /* index into g_tube_schemes: a theme, or a classic colour scheme */
+    int interface_kind;  /* TUBE_UI_INTERFACE_*: which interface draws the browser */
     int app_exit;        /* TUBE_UI_EXIT_*: Circle on the main menu */
     int search_exit;     /* 0 = one press of Circle leaves search results, 1 = two */
     unsigned char menu_order[TUBE_MENU_KEYS]; /* a permutation of the menu keys */
@@ -47,6 +48,9 @@ typedef struct TubeUiPrefs {
 } TubeUiPrefs;
 
 enum { TUBE_UI_EXIT_NONE = 0, TUBE_UI_EXIT_DOUBLE = 1, TUBE_UI_EXIT_SINGLE = 2 };
+/* Classic: the RmlUi browser, complete. Afterglow: the interface on the UI kit (native/afterglow), a preview
+ * until every one of its pages exists; pages it lacks say so and point back here. */
+enum { TUBE_UI_INTERFACE_CLASSIC = 0, TUBE_UI_INTERFACE_AFTERGLOW = 1 };
 enum { TUBE_UI_PRESS_PASS = 0, TUBE_UI_PRESS_NOW = 1, TUBE_UI_PRESS_ARMED = 2 };
 #define TUBE_UI_DOUBLE_MS 2000
 
@@ -100,6 +104,7 @@ static inline int tube_ui_validate(TubeUiPrefs *prefs) {
     if (prefs->subtitle_lines < 1 || prefs->subtitle_lines > 2) { prefs->subtitle_lines = 1; ++changed; }
     if (prefs->square < 0 || prefs->square > 1) { prefs->square = 0; ++changed; }
     if (prefs->scheme < 0 || prefs->scheme >= TUBE_UI_SCHEMES) { prefs->scheme = 0; ++changed; }
+    if (prefs->interface_kind < TUBE_UI_INTERFACE_CLASSIC || prefs->interface_kind > TUBE_UI_INTERFACE_AFTERGLOW) { prefs->interface_kind = TUBE_UI_INTERFACE_CLASSIC; ++changed; }
     if (prefs->app_exit < TUBE_UI_EXIT_NONE || prefs->app_exit > TUBE_UI_EXIT_SINGLE) { prefs->app_exit = TUBE_UI_EXIT_NONE; ++changed; }
     if (prefs->search_exit < 0 || prefs->search_exit > 1) { prefs->search_exit = 0; ++changed; }
     for (int i = 0; i < TUBE_MENU_KEYS; ++i) {
@@ -410,7 +415,7 @@ static inline int tube_ui_scheme_sheet(const char *sheet, int scheme, char *out,
 /* ---- Preference groups: one table for the settings screens. ---- */
 enum { TUBE_UI_GROUP_SCALE, TUBE_UI_GROUP_GRID, TUBE_UI_GROUP_TITLE_LINES, TUBE_UI_GROUP_TITLE_SCROLL, TUBE_UI_GROUP_SCROLL_SPEED,
        TUBE_UI_GROUP_SUBTITLE_LINES, TUBE_UI_GROUP_ROUNDED, TUBE_UI_GROUP_SCHEME, TUBE_UI_GROUP_APP_EXIT, TUBE_UI_GROUP_SEARCH_EXIT,
-       TUBE_UI_GROUPS };
+       TUBE_UI_GROUP_INTERFACE, TUBE_UI_GROUPS };
 static const struct { const char *id, *title, *detail; int count; } g_tube_ui_groups[TUBE_UI_GROUPS] = {
     {"settings:ui:scale", "Interface scale", "Size of everything in the browser; smaller shows more", TUBE_UI_SCALES},
     {"settings:ui:grid", "Video grid scale", "Size of the video cards; smaller shows more cards on a page", TUBE_GRID_SCALES},
@@ -421,7 +426,8 @@ static const struct { const char *id, *title, *detail; int count; } g_tube_ui_gr
     {"settings:ui:rounded", "Rounded card corners", "Round or square corners for cards and thumbnails", 2},
     {"settings:ui:scheme", "Theme", "Colours of the browser; the true black ones suit OLED screens", TUBE_UI_SCHEMES},
     {"settings:ui:exit", "Circle on the main menu", "Whether Circle closes ProsperoTube from the main menu", 3},
-    {"settings:ui:search-exit", "Leaving search results", "One press of Circle, or two", 2}
+    {"settings:ui:search-exit", "Leaving search results", "One press of Circle, or two", 2},
+    {"settings:ui:interface", "Interface", "Classic is complete; Afterglow is a preview of the new interface", 2}
 };
 static inline int tube_ui_group_find(const char *id) {
     for (int i = 0; id && i < TUBE_UI_GROUPS; ++i) if (!strcmp(id, g_tube_ui_groups[i].id)) return i;
@@ -430,6 +436,7 @@ static inline int tube_ui_group_find(const char *id) {
 static inline int tube_ui_group_count(int group) { return group >= 0 && group < TUBE_UI_GROUPS ? g_tube_ui_groups[group].count : 0; }
 static inline int tube_ui_group_label(int group, int choice, char *out, size_t size) {
     static const char *const exits[] = {"Does nothing", "Press twice to close ProsperoTube", "Closes ProsperoTube"};
+    static const char *const interfaces[] = {"Classic", "Afterglow (preview)"};
     if (!out || !size) return 0;
     out[0] = 0;
     if (choice < 0 || choice >= tube_ui_group_count(group)) return 0;
@@ -441,6 +448,7 @@ static inline int tube_ui_group_label(int group, int choice, char *out, size_t s
     case TUBE_UI_GROUP_SCHEME: snprintf(out, size, "%s", g_tube_schemes[choice].label); break;
     case TUBE_UI_GROUP_APP_EXIT: snprintf(out, size, "%s", exits[choice]); break;
     case TUBE_UI_GROUP_SEARCH_EXIT: snprintf(out, size, "%s", choice ? "Press Circle twice" : "Press Circle once"); break;
+    case TUBE_UI_GROUP_INTERFACE: snprintf(out, size, "%s", interfaces[choice]); break;
     default: snprintf(out, size, "%s", choice ? "On" : "Off"); break;
     }
     return 1;
@@ -457,6 +465,7 @@ static inline int tube_ui_group_selected(const TubeUiPrefs *p, int group) {
     case TUBE_UI_GROUP_SCHEME: return p->scheme;
     case TUBE_UI_GROUP_APP_EXIT: return p->app_exit;
     case TUBE_UI_GROUP_SEARCH_EXIT: return p->search_exit;
+    case TUBE_UI_GROUP_INTERFACE: return p->interface_kind;
     default: return -1;
     }
 }
@@ -474,6 +483,7 @@ static inline int tube_ui_group_select(TubeUiPrefs *p, int group, int choice) {
     case TUBE_UI_GROUP_SCHEME: p->scheme = choice; break;
     case TUBE_UI_GROUP_APP_EXIT: p->app_exit = choice; break;
     case TUBE_UI_GROUP_SEARCH_EXIT: p->search_exit = choice; break;
+    case TUBE_UI_GROUP_INTERFACE: p->interface_kind = choice; break;
     default: return 0;
     }
     return 1;

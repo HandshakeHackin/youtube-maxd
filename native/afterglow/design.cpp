@@ -88,6 +88,8 @@ void icon(G &g, Icon which, float cx, float cy, float size, Color color)
 
     switch (which)
     {
+    case Icon::count:
+        break;
     case Icon::home:
         L(3.5f, 11.5f, 12, 4);
         L(12, 4, 20.5f, 11.5f);
@@ -431,6 +433,13 @@ void lift(G &g, const Rect &r, float radius, float amount)
 {
     g.l.shadow({r.x, r.y + 18.0f * amount, r.w, r.h}, radius, 44.0f,
                kBlack.with_alpha((g.k.dark ? 0.5f : 0.2f) * amount));
+}
+
+void avatar_tint(std::string_view key, Color *top, Color *bottom)
+{
+    const Tint tint = tint_of(key);
+    *top = tint.top;
+    *bottom = tint.bottom;
 }
 
 void avatar(G &g, float cx, float cy, float radius, std::string_view name, std::string_view id, const Picture &picture)

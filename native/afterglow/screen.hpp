@@ -104,6 +104,8 @@ class Nav
     // Left at the left edge of a screen: gives the focus to the rail.
     virtual void open_rail() = 0;
     virtual void toast(std::string_view text, ToastKind kind = ToastKind::info) = 0;
+    // The same with a second, quieter line under the first (what it concerns).
+    virtual void toast(std::string_view text, std::string_view detail, ToastKind kind) = 0;
     // A question with two answers; answered runs once, with true for confirm.
     virtual void confirm(std::string_view title, std::string_view body, std::string_view confirm_label,
                          std::function<void(bool)> answered) = 0;
@@ -131,6 +133,7 @@ struct UpdateContext
     float time = 0.0f;  // free-running seconds
     bool reduced_motion = false;
     bool top = true;    // false while the screen is leaving or covered: ignore input
+    const Look *look = nullptr; // the look in use, for what depends on it while updating
 };
 
 // What draw() receives. world is the page ground's layer (ambient pictures,
@@ -211,6 +214,11 @@ class Screen
 
     // The header: the page title beside the mark; "" hides the header.
     virtual std::string title() const
+    {
+        return {};
+    }
+    // A second, quieter line under the title: where the page is ("Settings / Captions"), what it shows.
+    virtual std::string subtitle() const
     {
         return {};
     }

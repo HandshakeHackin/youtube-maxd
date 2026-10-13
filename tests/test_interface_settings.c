@@ -56,7 +56,7 @@ int main(void) {
     show("settings:ui");assert(last_count==TUBE_UI_GROUPS);
     assert(find("Interface scale: 1x")==0 && find("Video grid scale: 1x")==1 && find("Card title lines: 1")==2 && find("Scroll long titles: Off")==3);
     assert(find("Title scroll speed: 1x")==4 && find("Multiline subtitles: Off")==5 && find("Rounded card corners: On")==6);
-    assert(find("Theme: Afterglow")==7 && find("Circle on the main menu: Does nothing")==8 && find("Video actions menu")==9);
+    assert(find("Theme: Afterglow")==7 && find("Circle on the main menu: Does nothing")==8 && find("Interface: Classic")==9 && find("Video actions menu")==10);
     assert(!strcmp(row,"settings:menu") && at("settings:ui:search-exit")<0);
     show("settings:search");assert(find("Leaving search results: Press Circle once")==last_count-1 && !strcmp(row,"settings:ui:search-exit"));
     /* Every group lists its values with the current one marked, and every value can be chosen. */

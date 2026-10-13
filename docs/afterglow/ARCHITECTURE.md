@@ -19,13 +19,14 @@ to build and who owns which files.
 | Looks, design language, text seam, picture cache, data layer, screen interface, frame | done, on the host |
 | Host harness: boards, fixtures, pictures, checks (`scripts/test_afterglow.sh`) | done |
 | Placeholder for every screen; the reader as the worked example | done |
-| Home (boards 03 to 08 of the proposal) | in progress (frame owner) |
+| Home and the opening (boards 02 to 08 of the proposal), 22 boards | done, on the host |
+| The text engine behind the kit's fonts (`native/text`, `text_engine.cpp`), boards of other scripts | done, on the host |
 | `ProviderSource`: the data layer on the shipping provider (`scripts/test_afterglow_data.sh`) | done |
 | Row facts (section 5.5): the store, and a video's `views`, `published`, `channel_art_url`, `badges` from the service | done |
 | Row facts of the other catalogs of section 5.5 | open: with the screen that needs them, through the frame owner |
-| The mount in the app, the Interface switch, the console session driver | in progress (frame owner) |
+| The mount in the app (`app/mount.cpp`, `scripts/afterglow_overlay.py`) and the Interface preference | built for the PS5; never run on a console |
+| The console session driver for the new snapshot (`tools/console`) | open (frame owner) |
 | Every other screen (section 12) | open: one work package each |
-| Text engine (`native/text/`): system fonts, shaping, bidi | another worker; seam in section 7 |
 | The player's controls | stay the existing ones in this stage |
 
 Until every screen exists the RmlUi browser stays the interface people get:
@@ -378,15 +379,33 @@ That is all the bookkeeping there is.
 
 **The seam.** Screens and `design.cpp` never call a font. They call
 `text()`, `paragraph()` (drawing, with a `G`), `measure()`, `fit()`,
-`measure_block()`, `covers()` and `drawable()` (`text.hpp`) with a `Face`,
-which today is one of the kit's baked fonts (`g.f.regular`, `g.f.semibold`,
-`g.f.display`, `g.f.mono`). `text_kit.cpp` is the one implementation. The text
-engine replaces that file with an implementation of the same functions on its
-own measure, wrap and draw interface; a `Face` then names a font role instead
-of a baked atlas. The kit's standard components (keyboard, dialog, toasts,
-forms) draw through `ui::Fonts` themselves; the engine serves them by adding
-fallback faces to those fonts (`gfx::Font::add_fallback`). Do not call
+`measure_block()`, `covers()` and `clean()` (`text.hpp`) with a `Face`
+(`g.f.regular`, `g.f.semibold`, `g.f.display`, `g.f.mono`). Do not call
 `ui::text`, `ui::paragraph`, `font->measure` or `DrawList::text` in a screen.
+
+**The engine.** `native/text` ([TEXT.md](TEXT.md)) shapes every script with
+HarfBuzz, FriBidi and FreeType into distance-field quads. The kit draws every
+text through `gfx::Font`, whose functions are not virtual, so the builds
+compile a patched *copy* of the kit's `gfx/font.hpp` and `gfx/font.cpp`
+(`scripts/kit_text_patch.py`; the pinned kit is never touched) in which a font
+asks an installed shaper first. `text_engine.cpp` is that shaper. With the
+interface's four fonts bound to it, every text of every screen, of the design
+language and of the kit's own components (keyboard, dialog, toasts) is
+measured, cut, wrapped and laid out by the engine, with no change above
+`text.hpp`. Whoever runs the frame owns the `TextEngine`: `begin_frame()`
+before the frame's update, `end_frame()` after its draw. If the engine cannot
+start, the kit's baked fonts draw as before and `clean()` removes what they
+lack.
+
+**Fonts** (a decision taken on the owner's behalf with the approved boards in
+view; it is his to overrule): Latin, Greek and Cyrillic are drawn with the
+faces the boards used (Inter, Inter SemiBold, Montserrat Medium, DejaVu Sans
+Mono, carried as assets), and the console's system fonts
+(`/preinst/common/font`) are the fallback chain for every other script; on the
+host the stand-ins of the engine's tests take their place. Emoji are drawn
+where a face has an outline for them and left out otherwise. A right-to-left
+title is ordered and cut correctly but still hangs from the left edge of its
+column: the kit aligns a line by its left edge.
 
 **Interface texts** are written in English in the source and shown through
 `tr("...")`. The English text is the key of the catalogs in `native/i18n/`.
@@ -538,8 +557,10 @@ frame's snapshot: `screen`, `focus` (the focus id), any top-level number
 has the focus; its rectangle is on the screen; no glyph crosses the edge of the
 screen outside a clip rectangle; the page is not empty; the picture has more
 than a handful of colours; the snapshot is valid JSON. The looks themselves are
-held to 4.5:1 for every text colour on its ground. A run with `--lang de` or
-`--lang ru` fails on an interface text the catalog lacks.
+held to 4.5:1 for every text colour on its ground. A board may name `pixels`
+(points of the output, in virtual pixels, with the colour expected there). A
+run with `--lang de` or `--lang ru` fails on an interface text the catalog
+lacks.
 
 **The provider itself** is tested in `tests/afterglow/provider/provider_test.cpp`
 (`scripts/test_afterglow_data.sh`): `ProviderSource` and `Data` on the real
@@ -591,6 +612,143 @@ owner, who makes the change once for everybody. Interface texts are the one
 shared thing a screen adds to: new `tr()` texts go into the 21 catalogs in the
 same change (`scripts/i18n_extract.py`, then the catalogs, then
 `scripts/i18n_build.py`).
+
+## 12a. In the app: the mount, the preference, the snapshot
+
+`scripts/afterglow_overlay.py` (called by `prepare_native.py`) copies
+`native/afterglow` and `native/text` beside EVO's kit screens, adds them to
+EVO's Makefile, ships the four faces as assets and hooks EVO in three places:
+
+1. **Drawing.** `EvoRmlProviderHost::Render` asks `evo_hui_render_afterglow()`
+   first for the YouTube provider. EVO's kit application (the owner of the AGC
+   batch and of the fonts) calls `afterglow::mount_render(batch, fonts, dt,
+   width, height)` (`app/mount.cpp`), which runs one step of the frame and
+   draws its two lists. When it returns false the classic browser draws.
+2. **The pad.** `ProviderHostScreen::handleInput` gives the pad to
+   `tube_afterglow_input()` while the interface is shown. A video chosen with
+   `Data::play()` is offered as the classic browser offers one
+   (`evo_rmlui_provider_offer_selection`) and `startSelected()` resolves and
+   plays it: the player and everything in it are the existing ones. Circle on
+   the interface's last screen falls through to the classic rule for Circle on
+   the main menu.
+3. **The report.** `evo_hui_dev_focus_json()` answers with the document name
+   `afterglow` and `Frame::snapshot_json()` while the interface is shown.
+
+**The preference.** YouTube preferences > Interface > **Interface**:
+**Classic** (the default) or **Afterglow (preview)**; stored per profile as
+`interface`. For a console session, a file `afterglow.on` in the app's data
+folder (`/data/prosperotube`) turns the interface on whatever the preference
+says, and `afterglow.off` keeps the classic browser; both are looked at once a
+second, so a session can switch without restarting the app.
+
+**The snapshot** is one JSON object: `interface` (`afterglow`), `look`,
+`screen`, `stack` (screens with their arguments), `moving`, `rail_open`,
+`attract`, `dialog`, `focus` (`id`, `text`, `index`, `total`, `rect`),
+`focusable` (ids and texts), `toasts`, `state` (the screen's own values and
+`lists`), `stats` (`frame_ms`, `worst_frame_ms`, `update_ms`, `draw_ms`,
+`instances`, `runs`, `fill`, `pictures_ready`, `pictures_pending`,
+`picture_bytes`, `data_pending`). Home: `focus.id` is `<shelf>/<index>`,
+`state.row` the focused shelf, `state.lists["shelf:<id>"]` the titles.
+
+**What the console has not shown yet**, in the order to look: the frame at all
+(the batch drawing two lists a frame, the fonts bound to the shaper); glyph
+pages (the engine's atlas goes into ordinary RGBA textures, re-sent whole when
+glyphs are added, because the batch has no one-channel update; 1024-pixel
+pages keep that at 4 MiB a time); the system fonts being found and read from
+`/preinst/common/font`; pictures through EVO's network and `stb_image`, one
+decode a frame; panels without the blur (solid, as designed for this backend);
+frame time and `fill` at 4K; the clock's time zone; sounds (cues are collected
+by the frame and not played yet).
+
+## 12b. The player package
+
+The player stays EVO's `PlayerScreen` with ProsperoTube's overlays: it owns
+playback, the pad and every in-player menu. Its picture is already a kit
+screen: `evo::kit::OsdScreen` (`ui_kit/src/evo_hui_osd.cpp`), fed through
+`evo_hui_update_playback()` and drawn by `evo_hui_render_playback_osd()`, with
+ProsperoTube's additions patched into it (sponsor markers, chapters, the seek
+preview, player chat, the accent of the theme). The Afterglow player is a
+second way to **draw** that same state, not a second player:
+
+- **Mount:** in `evo_hui_render_playback_osd()`, when
+  `tube_afterglow_enabled()`, call `afterglow::player_render(batch, fonts, dt,
+  width, height, params)` instead of `OsdScreen::draw`; the same for the
+  pickers and sheets EVO draws with the kit (`SubtitlePicker`, the dialog, the
+  toast). The pad is untouched.
+- **View model:** `player/view.hpp`: one `PlayerView` filled from
+  `evo_playback_osd_params_t` and the accessors the overlays already use
+  (`tube_player_extra.h`, `tube_sponsor_draw.h`, `tube_seek_sheets.h`,
+  `tube_caption_track_*`, `tube_speed_*`, the player menu's rows). The first
+  task of the package is to read those and write the struct down here.
+- **Files it owns:** `native/afterglow/player/*.cpp|hpp`, the boards
+  `tests/afterglow/boards/player*.json` and fixtures
+  `tests/afterglow/fixtures/<set>/player/*.json` (a `PlayerView` as JSON; the
+  harness draws it over a painted frame).
+- **It uses** the looks, `design.hpp`, the text seam and the kit's components
+  as screens do, and the frame's motion and sound rules (design notes 8 and
+  9, boards 16 to 24).
+- **It must keep** everything the overlays draw today: sponsor segments on the
+  timeline, chapters, the seek preview thumbnail or carousel, the chat column,
+  the paid-content notice, screen dimming.
+- **Open, for the frame owner:** the hand-over picture from the video page to
+  the player (`Move::zoom` ends at the screen's rectangle; the player begins
+  with the same picture) needs the frame and the player to share the last
+  thumbnail; it follows once package B's video page exists.
+
+## 12c. Decided, and still open
+
+**Home against board 03.** Shelves are named as the board names them
+(Continue watching, Recommended for you, New from your subscriptions; Guest:
+Browse by topic, Trending now). The hero shows the 4K and CC chips when the
+video carries them. Differences that stand until their part exists: Square
+opens Search, not Watch later (an account action is a confirm row and then an
+apply row of the provider; it arrives with the shared actions sheet); the bell
+has no count (the provider does not say how many notifications are unread:
+fact `unread` of `library:notifications`); the board's fourth shelf, Live now,
+is not built.
+
+**Pictures are stored top row first everywhere**: what the decoder hands over,
+what `Platform::create_texture` takes, what `gfx::kFullUv` draws. The host
+harness turns its own capture once, where it reads the frame back, and uses no
+global switch of the PNG writer (that switch once turned the fixtures' painted
+pictures instead). The board `frame-picture-upright` draws a picture whose top
+half is red and bottom half blue and reads the colours back from the output.
+
+**Rulings on what the screen packages asked for** (their request files are
+`docs/afterglow/requests/<package>.md` on their branches):
+
+| Asked by | What | Ruling |
+| --- | --- | --- |
+| A, D, F | the look while updating | done: `UpdateContext::look` |
+| D, E, F | a second line under the page title | done: `Screen::subtitle()`, drawn by the frame; a route to `sign_in` or `link_phone` carries no title |
+| E | a toast with a second line | done: `Nav::toast(text, detail, kind)` |
+| F | an avatar's colours | done: `avatar_tint()` |
+| D | the actions of a video | done: `Data::menu()` answers `account:menu:<video>` for a video row |
+| A, D, F | one hand-over helper, one actions sheet, shared cards (playlist, section, channel), a message block | accepted: built once in `design.*` and the frame from the packages' stand-ins when they are merged; every screen then switches to it |
+| E, F | typed answers (`Data::act(row, text)`), text entry as a frame service | accepted: the frame owns the kit keyboard and hands the text to the provider's armed prompt |
+| F | a question with three answers, own labels, a destructive one, a safe default | accepted: `Nav::ask()` beside `confirm()` |
+| A | `Nav::back_to(screen)` | accepted |
+| F | a revision that follows sign-in and the phone link | declined as asked: those change more often than pages go stale, and a revision change empties every page; the screens that show them read their own catalogs again (`data.forget`) |
+| A, D, E, F | facts and catalogs the provider lacks (section 5.5 plus `search-suggest:<text>`, `search-preview:<text>`, `search-with:<options>:<query>`, linked-phone rows, subscription counts, `settings:reset:<tile>`, mark-read rows, acting rows for queue and favourite) | accepted as the bridge's list; each gets an assertion in `provider_test.cpp` when the provider produces it |
+| E | interface sound, vibration and reduced motion as preferences | accepted for the bridge; they are the frame's options already |
+| D | three more type sizes | to be looked at with its pictures at merge; the scale of `theme.hpp` stays the only source |
+| D | queue reorder | not in the design notes: out of Afterglow's first release; the classic interface keeps what it has |
+| A, D | the harness draws once; steps cannot hold a button; cost per board | changed: the lists are built on every fourth simulated frame; `--only <text>` runs one screen's boards (`bash scripts/afterglow_host.sh out --only library`); a held button in a step is open |
+
+**Rules that came out of the packages.** In a list of preferences Left and
+Right never change a value: Left at the left edge opens the rail everywhere
+(section 8, rule 5); a value changes with Cross, and a slider is adjusted
+after Cross takes it (Left and Right then, Cross or Circle to leave). The
+Accounts tile of Settings opens the `accounts` screen itself. A preference the
+provider does not have is not drawn. A screen file past about 800 lines is
+split by its parts at merge. Generators of fixtures and boards live in
+`tests/afterglow/tools/`.
+
+**Open for the frame owner**, in order: merge the packages (F, E, A, D, then B
+and C) with the shared pieces above; the catalogs (`tr()` and `tr_mark()` of
+`native/afterglow` into `scripts/i18n_extract.py`, then 21 languages); the
+console session driver for the snapshot of section 12a; sounds; the
+one-channel glyph pages and the blur on the AGC batch.
 
 ## 12. What is left, as work packages
 

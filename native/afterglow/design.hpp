@@ -143,6 +143,8 @@ void lift(G &g, const Rect &r, float radius, float amount = 1.0f);
 // A channel's avatar: its picture, or two colours taken from its id and its initial.
 void avatar(G &g, float cx, float cy, float radius, std::string_view name, std::string_view id,
             const Picture &picture);
+// The two colours an avatar without a picture has, always the same for one id (or name).
+void avatar_tint(std::string_view key, Color *top, Color *bottom);
 // A small tag ("4K", "NEW"); returns its width. solid tags are filled.
 float tag(G &g, float x, float cy, std::string_view label, Color fill, Color ink, float height = 28.0f);
 float tag_width(G &g, std::string_view label, float height = 28.0f);

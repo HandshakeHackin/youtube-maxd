@@ -146,6 +146,7 @@ static void ui_prefs_read(TubeUiPrefs *ui, const cJSON *root) {
     ui->subtitle_lines = boolean(root,"card_multiline_subtitle") ? 2 : 1;
     ui->square = boolean(root,"card_square_corners");
     for (int i = 0; i < TUBE_UI_SCHEMES; ++i) if (!strcmp(str(root,"color_scheme"),g_tube_schemes[i].id)) ui->scheme = i;
+    if (!strcmp(str(root,"interface"),"afterglow")) ui->interface_kind = TUBE_UI_INTERFACE_AFTERGLOW;
     ui->app_exit = settings_integer(root,"app_exit",TUBE_UI_EXIT_NONE,TUBE_UI_EXIT_SINGLE,TUBE_UI_EXIT_NONE);
     ui->search_exit = boolean(root,"search_exit_double");
     if (cJSON_IsArray(rows)) cJSON_ArrayForEach(row,rows) {
@@ -165,6 +166,7 @@ static void ui_prefs_write(cJSON *row, const TubeUiPrefs *ui) {
     cJSON_AddBoolToObject(row,"card_multiline_subtitle",ui->subtitle_lines > 1);
     cJSON_AddBoolToObject(row,"card_square_corners",ui->square);
     cJSON_AddStringToObject(row,"color_scheme",g_tube_schemes[ui->scheme].id);
+    cJSON_AddStringToObject(row,"interface",ui->interface_kind==TUBE_UI_INTERFACE_AFTERGLOW?"afterglow":"classic");
     cJSON_AddNumberToObject(row,"app_exit",ui->app_exit);
     cJSON_AddBoolToObject(row,"search_exit_double",ui->search_exit);
     TubeUiPrefs plain; tube_ui_defaults(&plain);   /* absent = the built-in menu */

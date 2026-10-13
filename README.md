@@ -152,6 +152,9 @@ next section lists the part that also ran on a PS5.
   keyboard, dialogs and player settings, and the player controls while the
   theme is **Classic ProsperoTube**. A profile saved before the themes existed
   opens in Afterglow unless it had chosen one of the classic schemes.
+- **Interface: Afterglow (preview)** (YouTube preferences > Interface) shows
+  the interface that is being built on the UI kit: Home is there, and pages
+  that are not built yet say so. **Classic**, the default, is complete.
 - **Backup and restore** in `/data/prosperotube/backup` with an optional
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the

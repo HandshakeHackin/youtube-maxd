@@ -44,6 +44,8 @@ struct TextSetup
     std::vector<tube::text::FaceSpec> faces;
     std::string language;     // the interface language ("ja-JP"): which Han forms are preferred
     float pixel_scale = 1.0f; // output pixels per virtual pixel: 1 at 1080p, 2 at 4K
+    int page_size = 2048;     // one page of the glyph atlas, pixels a side
+    int max_pages = 2;
 };
 
 class TextEngine final : public gfx::Font::Shaper

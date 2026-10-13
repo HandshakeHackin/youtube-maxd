@@ -53,6 +53,9 @@ def main():
         stamp.write_text(PIN)
     elif stamp.read_text().strip() != PIN:
         raise RuntimeError("Native work directory has a different upstream pin.")
+    # The UI kit ProsperoTube pins replaces the copy EVO pins before any overlay patches a kit file.
+    import afterglow_overlay
+    afterglow_overlay.stage_kit(WORK)
     transform_stamp = WORK / ".prosperotube-video-transform.json"
     transform_stamp.unlink(missing_ok=True)  # Only successful preparation can publish this stamp.
     player = "projects/evoplayer/"
@@ -376,6 +379,8 @@ static const char* tube_dev_path(unsigned index) {
     # Interface localization marks the finished browser document, so it follows every other overlay.
     from i18n_overlay import apply_i18n_overlay
     apply_i18n_overlay(replace, player, WORK, ROOT)
+    # The Afterglow interface: sources, fonts and its three hooks in EVO (scripts/afterglow_overlay.py).
+    afterglow_overlay.apply(ROOT, WORK, replace, player)
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()

@@ -173,7 +173,7 @@ APP_EXIT = '''            // ProsperoTube app exit (extracted by host tests).
 def levels():
     """Settings ids of the interface preferences that open a list of their own."""
     groups = re.findall(r'\{"(settings:ui:[a-z-]+)", "', (ROOT / "native/tube_ui_style.h").read_text(encoding="utf-8"))
-    if len(groups) != 10 or len(set(groups)) != 10:
+    if len(groups) != 11 or len(set(groups)) != 11:
         raise RuntimeError("Interface preference groups changed: update the settings levels")
     # The classic colour schemes are a list under Theme: a level too, so Circle returns to Theme.
     return ["settings:ui", "settings:menu", "settings:ui:scheme:classic"] + groups

@@ -70,6 +70,8 @@ std::unique_ptr<TextEngine> TextEngine::create(Platform &platform, const TextSet
     config.discover = !setup.font_dirs.empty();
     config.language = setup.language;
     config.pixel_scale = setup.pixel_scale;
+    config.page_size = setup.page_size;
+    config.max_pages = setup.max_pages;
     config.emoji = tube::text::EmojiPolicy::strip;
     std::string why;
     std::unique_ptr<tube::text::Context> context = tube::text::Context::create(config, &why);

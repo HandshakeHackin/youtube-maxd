@@ -241,6 +241,27 @@ class HostPlatform final : public Platform
     {
         if (url.rfind("file://", 0) == 0)
             return read_file(fixtures_ + "/pictures/" + url.substr(7), bytes);
+        if (url.rfind("probe://", 0) == 0)
+        {
+            // A picture whose orientation can be read back: the top half red, the bottom half blue,
+            // with a green left edge.
+            constexpr int kW = 320;
+            constexpr int kH = 180;
+            std::vector<std::uint8_t> probe(static_cast<std::size_t>(kW * kH * 4));
+            for (int y = 0; y < kH; ++y)
+                for (int x = 0; x < kW; ++x)
+                {
+                    std::uint8_t *p = &probe[static_cast<std::size_t>(y * kW + x) * 4u];
+                    p[0] = x >= 40 && y < kH / 2 ? 255 : 0;
+                    p[1] = x < 40 ? 255 : 0;
+                    p[2] = x >= 40 && y >= kH / 2 ? 255 : 0;
+                    p[3] = 255;
+                }
+            stbi_write_png_to_func([](void *context, void *data, int size)
+                                   { static_cast<std::string *>(context)->append(static_cast<const char *>(data), static_cast<std::size_t>(size)); },
+                                   bytes, kW, kH, 4, probe.data(), kW * 4);
+            return !bytes->empty();
+        }
         if (url.rfind("art://", 0) != 0)
             return false;
         char scene[24] = "";
@@ -556,13 +577,13 @@ int main(int argc, char **argv)
 
     constexpr float kDt = 1.0f / 60.0f;
     std::vector<unsigned char> pixels(static_cast<std::size_t>(options.width) * static_cast<std::size_t>(options.height) * 4u);
-    stbi_flip_vertically_on_write(1);
+    std::vector<unsigned char> row(static_cast<std::size_t>(options.width) * 4u);
     std::FILE *reel = nullptr;
     if (!options.reel.empty())
     {
         char command[512];
         std::snprintf(command, sizeof command,
-                      "ffmpeg -v error -y -f rawvideo -pix_fmt rgba -s %dx%d -r 60 -i - -vf vflip -c:v libx264 -preset veryfast -crf 18 "
+                      "ffmpeg -v error -y -f rawvideo -pix_fmt rgba -s %dx%d -r 60 -i - -c:v libx264 -preset veryfast -crf 18 "
                       "-pix_fmt yuv420p '%s'",
                       options.width, options.height, options.reel.c_str());
         reel = popen(command, "w");
@@ -639,6 +660,17 @@ int main(int argc, char **argv)
                     renderer.present(framebuffer, options.width, options.height);
                     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
                     glReadPixels(0, 0, options.width, options.height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+                    // OpenGL hands the bottom row first. The capture is turned here, once, so that pixels[] is the
+                    // picture as it is seen, top row first: for the PNG, the reel and the pixel checks alike. No
+                    // global switch of the PNG writer is used: it would also turn the pictures painted for fixtures.
+                    for (int y = 0; y < options.height / 2; ++y)
+                    {
+                        unsigned char *upper = &pixels[static_cast<std::size_t>(y) * row.size()];
+                        unsigned char *lower = &pixels[static_cast<std::size_t>(options.height - 1 - y) * row.size()];
+                        std::memcpy(row.data(), upper, row.size());
+                        std::memcpy(upper, lower, row.size());
+                        std::memcpy(lower, row.data(), row.size());
+                    }
                     for (std::size_t i = 3; i < pixels.size(); i += 4)
                         pixels[i] = 255;
                     if (to_reel && reel != nullptr)
@@ -657,14 +689,20 @@ int main(int argc, char **argv)
                         {
                             present(true);
                         }
-                        else
+                        else if (i % 4 == 3 || i + 1 == frames)
                         {
-                            // Every frame is drawn, as in the app: pictures are asked for by drawing them.
+                            // The lists are built as the app builds them (pictures are asked for by drawing
+                            // them), on every fourth frame: the boards wait whole seconds, the checks read
+                            // the last frame, and the run takes a quarter of the time.
                             world.clear();
                             ui.clear();
                             frame.draw(world, ui, renderer.glass_texture());
                             if (engine)
                                 engine->end_frame();
+                        }
+                        else if (engine)
+                        {
+                            engine->end_frame();
                         }
                     }
                 };
@@ -729,6 +767,26 @@ int main(int argc, char **argv)
                         const std::string got = source.played().empty() ? std::string() : source.played().back();
                         if (got != wanted->valuestring)
                             fail(results, name, look_id, "played '" + got + "', expected '" + wanted->valuestring + "'");
+                    }
+                    else if (key == "pixels")
+                    {
+                        // The colour of the picture at points given in virtual pixels: [x, y, r, g, b] each.
+                        const cJSON *point = nullptr;
+                        cJSON_ArrayForEach(point, wanted)
+                        {
+                            int v[5] = {0, 0, 0, 0, 0};
+                            for (int n = 0; n < 5; ++n)
+                                v[n] = static_cast<int>(cJSON_GetArrayItem(point, n) != nullptr ? cJSON_GetArrayItem(point, n)->valuedouble : 0);
+                            const int px = std::clamp(v[0] * options.width / 1920, 0, options.width - 1);
+                            const int py = std::clamp(v[1] * options.height / 1080, 0, options.height - 1);
+                            const unsigned char *got = &pixels[(static_cast<std::size_t>(py) * static_cast<std::size_t>(options.width) + static_cast<std::size_t>(px)) * 4u];
+                            if (std::abs(got[0] - v[2]) > 70 || std::abs(got[1] - v[3]) > 70 || std::abs(got[2] - v[4]) > 70)
+                            {
+                                char line[160];
+                                std::snprintf(line, sizeof line, "the picture at %d,%d is %d,%d,%d, expected about %d,%d,%d", v[0], v[1], got[0], got[1], got[2], v[2], v[3], v[4]);
+                                fail(results, name, look_id, line);
+                            }
+                        }
                     }
                     else if (key == "asked")
                     {
