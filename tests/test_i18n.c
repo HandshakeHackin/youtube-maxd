@@ -62,6 +62,20 @@ int main(void) {
         assert(tr("Seek interval: 1 second", 0) && strstr(out, "1"));
         assert(tr("Seek interval: 10 seconds", 0) && strstr(out, "10"));
         assert(tr("12 channels marked as watched", 0) && strstr(out, "12"));
+        /* Lines the updater makes at run time: versions, percentages and names pass through, a known reason is translated. */
+        assert(tr("Version 1.2.3 is available. Open Settings, About to read what is new and update.", 0) && strstr(out, "1.2.3"));
+        assert(tr("Downloading: 37% - select to pause", 0) && strstr(out, "37"));
+        assert(tr("Installed 0.1.0; latest 0.2.0 (ProsperoTube 0.2.0)", 0) && strstr(out, "0.1.0") && strstr(out, "ProsperoTube 0.2.0"));
+        assert(tr("What is new in ProsperoTube 0.2.0", 0) && strstr(out, "ProsperoTube 0.2.0") && strcmp(out, "What is new in ProsperoTube 0.2.0"));
+        assert(tr("The update server could not be reached (too many redirects).", 0) && !strstr(out, "too many redirects"));
+        assert(tr("The update server could not be reached (Connection reset by peer).", 0) && strstr(out, "(Connection reset by peer)"));
+        assert(tr("Notify about updates: on", TUBE_I18N_LABELS) && tr("Color scheme: Teal (true black)", TUBE_I18N_LABELS));
+        char notice[256] = "ProsperoTube was updated to version 0.2.0.";        /* a toast's own buffer */
+        tube_i18n_field(notice, sizeof notice, TUBE_I18N_LABELS);
+        assert(strstr(notice, "0.2.0") && strstr(notice, "ProsperoTube") && strcmp(notice, "ProsperoTube was updated to version 0.2.0."));
+        /* Interface preferences: a label with a value that is a number, a name or a term of the catalog. */
+        assert(tr("Interface scale: 1.25x", TUBE_I18N_LABELS) && strstr(out, "1.25x") && tr("4K: any", TUBE_I18N_LABELS) && !strncmp(out, "4K", 2));
+        assert(tr("1.3333:1 (4:3 display)", 0) && strstr(out, "1.3333:1") && strstr(out, "4:3"));
 #ifdef TUBE_I18N_TEST_KIT
         /* The player interface path: whole lines and counted lines, never the two-part label rule. */
         assert(tube_i18n_language_kit((int)i) && tube_i18n_kit("Subscriptions", out, sizeof out) && tr("Subscriptions", TUBE_I18N_KIT));

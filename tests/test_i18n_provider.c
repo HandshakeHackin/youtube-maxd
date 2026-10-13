@@ -1,5 +1,7 @@
 /* Interface language through the provider: its rows are the same in every language and carry a mark,
- * the marked rows translate where they are shown, rows of YouTube content never do. */
+ * the marked rows translate where they are shown, rows of YouTube content never do. The main menu,
+ * YouTube preferences on all their pages, the Interface screens, the video actions menu setup, About
+ * and more are walked in six languages: a row that stays English fails the test. */
 #define main existing_provider_regression
 #include "test_native.c"
 #undef main
@@ -19,13 +21,62 @@ static int shown(const evo_provider_item_t *item, char *title, char *subtitle) {
     changed += 2 * tube_i18n_translate(item->subtitle, subtitle, EVO_PROVIDER_MAX_SUBTITLE * 3, TUBE_I18N_LABELS);
     return changed;
 }
+/* A title the catalog is not meant to hold: a number with its unit ("1.25x", "2"), or the app's own name. */
+static int untranslatable(const char *text) {
+    if (!strncmp(text, "ProsperoTube", 12)) return 1;
+    for (; *text; ++text) if (!strchr("0123456789.:x ", *text)) return 0;
+    return 1;
+}
+/* The pages walked in every language: lists of interface rows that ask nothing of the service and change nothing. */
+static const char *const pages[] = {"", "settings", "discover", "library", "settings:ui", "settings:ui:scale", "settings:ui:title-lines",
+    "settings:ui:title-scroll", "settings:ui:scheme", "settings:ui:exit", "settings:ui:search-exit", "settings:menu", "settings:menu:like",
+    "settings:about", "settings:search", "settings:sections", "settings:hide", "settings:experimental", "settings:extra:player", "settings:pixel-ratio"};
+#define PAGES ((int)(sizeof pages / sizeof *pages))
+#define LISTS 40
+static evo_provider_item_t english[LISTS][24];
+static int counts[LISTS], lists;
+/* language NULL: remember what English lists. Else: the provider lists the same, and every text of it translates. */
+static void walk(const char *language) {
+    char title[EVO_PROVIDER_MAX_TITLE * 3], subtitle[EVO_PROVIDER_MAX_SUBTITLE * 3];
+    int list = 0;
+    for (int page = 0; page < PAGES; ++page) for (int part = 0, more = 1; more; ++part, ++list) {
+        p->list_catalog(pages[page], part, items_cb, NULL);
+        assert(last_ok && !pending_count && last_count > 0 && last_count <= 24 && list < LISTS);
+        more = last_more;
+        if (!language) { counts[list] = last_count; memcpy(english[list], last_items, sizeof last_items); lists = list + 1; }
+        assert(list < lists && last_count == counts[list]);
+        for (int i = 0; i < last_count; ++i) {
+            const evo_provider_item_t *item = &last_items[i];
+            assert(item->tube_interface == 1);
+            if (!language) { assert(!shown(item, title, subtitle) && !strcmp(title, item->title)); continue; }
+            if (!strcmp(item->id, TUBE_I18N_SETTING)) continue;        /* names the chosen language */
+            /* The provider's own rows do not depend on the language: tests, the player menu and logs read English. */
+            assert(!strcmp(item->title, english[list][i].title) && !strcmp(item->subtitle, english[list][i].subtitle));
+            /* Every text of these pages is in the catalog: no English line is left among translated ones. */
+            const int changed = shown(item, title, subtitle), wanted = (untranslatable(item->title) ? 0 : 1) + (*item->subtitle ? 2 : 0);
+            if (changed != wanted) {
+                fprintf(stderr, "%s: not translated on page '%s': '%s' / '%s'\n", language, pages[page], item->title, item->subtitle);
+                assert(0);
+            }
+            assert(*title && strlen(title) < sizeof title - 1 && strlen(subtitle) < sizeof subtitle - 1);
+        }
+    }
+    assert(list == lists);
+}
+/* YouTube preferences span several lists: leaves the one with the Interface language row listed; -1 without it. */
+static int setting_row(void) {
+    for (int part = 0, more = 1; more; ++part) {
+        p->list_catalog("settings", part, items_cb, NULL); assert(last_ok && !pending_count);
+        more = last_more;
+        if (find_id(TUBE_I18N_SETTING) >= 0) return find_id(TUBE_I18N_SETTING);
+    }
+    return -1;
+}
 static const char *videos = "{\"state\":\"done\",\"result\":{\"kind\":\"catalog\",\"items\":[{\"id\":\"abcdefghijk\",\"title\":\"Subscriptions\",\"subtitle\":\"History\","
     "\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\"}],\"has_more\":false}}";
 
 int main(void) {
     char dir[] = "/tmp/tube-i18n-provider-XXXXXX", title[EVO_PROVIDER_MAX_TITLE * 3], subtitle[EVO_PROVIDER_MAX_SUBTITLE * 3];
-    static evo_provider_item_t english[4][24]; static int counts[4];
-    static const char *const pages[] = {"", "settings", "discover", "library"};
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE", dir, 1));
     p = &evo_provider_youtube; assert(!p->init());
     SEPARATE_SETTINGS();
@@ -34,14 +85,9 @@ int main(void) {
 
     /* English: the preference row exists, every menu row is marked, nothing is translated. */
     assert(!strcmp(tube_i18n_language(), "en"));
-    for (int page = 0; page < 4; ++page) {
-        show(pages[page]); assert(last_count > 2 && last_count <= 24);
-        counts[page] = last_count; memcpy(english[page], last_items, sizeof last_items);
-        for (int i = 0; i < last_count; ++i) assert(last_items[i].tube_interface == 1 && !shown(&last_items[i], title, subtitle) && !strcmp(title, last_items[i].title));
-    }
-    show("settings");
-    int row = find_id(TUBE_I18N_SETTING);
-    if (row < 0) { p->list_catalog("settings", 1, items_cb, NULL); assert(last_ok); row = find_id(TUBE_I18N_SETTING); }
+    walk(NULL);
+    assert(lists >= PAGES + 2);                     /* YouTube preferences alone fill three lists */
+    int row = setting_row();
     assert(row >= 0 && !strcmp(last_items[row].title, "Interface language: System default"));
     assert(!strcmp(last_items[row].subtitle, "Language of ProsperoTube's menus and messages") && last_items[row].is_folder);
 
@@ -63,24 +109,8 @@ int main(void) {
         assert(shown(&last_items[row], title, subtitle) == 2 && !strcmp(title, last_items[row].title) && strcmp(subtitle, "Selected"));
         assert(shown(&last_items[0], title, subtitle) == 3 && strcmp(title, "System default"));
         /* The provider's own rows do not depend on the language: tests, the player menu and logs read English. */
-        tube_i18n_misses(1);
-        for (int page = 0; page < 4; ++page) {
-            show(pages[page]); assert(last_count == counts[page]);
-            for (int i = 0; i < last_count; ++i) {
-                if (!strcmp(last_items[i].id, TUBE_I18N_SETTING)) continue;     /* names the chosen language */
-                assert(!strcmp(last_items[i].title, english[page][i].title) && !strcmp(last_items[i].subtitle, english[page][i].subtitle));
-                /* Every text of these pages is in the catalog: no English line is left among translated ones. */
-                const int changed = shown(&last_items[i], title, subtitle);
-                if (changed != (*last_items[i].subtitle ? 3 : 1)) {
-                    fprintf(stderr, "%s: not translated on page '%s': '%s' / '%s'\n", languages[language], pages[page], last_items[i].title, last_items[i].subtitle);
-                    assert(0);
-                }
-                assert(*title && strlen(title) < sizeof title - 1 && strlen(subtitle) < sizeof subtitle - 1);
-            }
-        }
-        assert(!tube_i18n_misses(0));
-        show("settings"); row = find_id(TUBE_I18N_SETTING);
-        if (row < 0) { p->list_catalog("settings", 1, items_cb, NULL); assert(last_ok); row = find_id(TUBE_I18N_SETTING); }
+        walk(languages[language]);
+        row = setting_row();
         assert(row >= 0 && !strncmp(last_items[row].title, "Interface language: ", 20) && strcmp(last_items[row].title + 20, "System default"));
         assert(shown(&last_items[row], title, subtitle) == 3 && strncmp(title, "Interface", 9) && strstr(title, last_items[row].title + 20));
 

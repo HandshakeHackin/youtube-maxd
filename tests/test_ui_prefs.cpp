@@ -107,9 +107,14 @@ int main(int argc,char**argv) {
         if(host.m_model.rows.size()!=expected || shown.size()!=expected) {
             fprintf(stderr,"page of %zu: %zu rows, %zu cards\n",expected,host.m_model.rows.size(),shown.size()); assert(false);
         }
-        float px,py,pw,ph,fx,fy,fw,fh; box(host.m_doc->GetElementById("tube-preview"),px,py,pw,ph);
+        float px,py,pw,ph,fx,fy,fw,fh,nx,ny,nw,nh; box(host.m_doc->GetElementById("tube-preview"),px,py,pw,ph);
         box(host.m_doc->GetElementById("tube-footer"),fx,fy,fw,fh);
-        assert(fy+fh<=height+0.5f && fx+fw<=width+0.5f && py+ph<=fy+0.5f);
+        box(host.m_doc->GetElementById("tube-selected-overview"),nx,ny,nw,nh);
+        /* The key line takes a second line above the first when one does not hold it (a large scale, a
+         * long language): it stays on screen, at most two lines high, and clear of the preview's text. */
+        const float dp=host.m_context->GetDensityIndependentPixelRatio();
+        assert(fy+fh<=height+0.5f && fx+fw<=width+0.5f && fh<=56.0f*dp && ny+nh<=fy+0.5f && py+ph<=fy+fh+0.5f);
+        assert(host.m_doc->GetElementById("tube-footer")->GetScrollHeight()<=host.m_doc->GetElementById("tube-footer")->GetClientHeight()+1.0f);
         std::set<int> lefts,tops;
         for(size_t i=0;i<shown.size();++i) {
             float x,y,w,h; box(shown[i],x,y,w,h);

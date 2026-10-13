@@ -50,7 +50,7 @@ def rml_localize(rml):
 
 
 RCSS = """/* interface languages */
-#tube-footer, #tube-discussion-footer, #tube-chat-footer, #tube-review-footer, #tube-auth-footer, #tube-description-footer, #tube-link-footer { height: auto; min-height: 40dp; background: #101116; }
+#tube-footer, #tube-discussion-footer, #tube-chat-footer, #tube-review-footer, #tube-auth-footer, #tube-description-footer, #tube-link-footer { height: auto; min-height: 40dp; }
 """
 TOAST = '''    snprintf(prospero_toast_title,   sizeof(prospero_toast_title),   "%s", title);
     snprintf(prospero_toast_message, sizeof(prospero_toast_message), "%s", msg);
@@ -137,8 +137,9 @@ void EvoRmlProviderHost::SetStatus(const std::string& msg, bool error)
     text = document.read_text(encoding="utf-8")
     if "| tr(i18n) }}" not in text:
         document.write_text(rml_localize(text), encoding="utf-8")
-    # A translated key line can be longer than the screen: it takes a second line above the first
-    # instead of leaving the screen. One line, as in English, keeps the size it had.
+    # A key line can be longer than the page (a long language, a large interface scale): it takes a
+    # second line above the first instead of leaving the page. One line keeps the size it had. The
+    # rule follows the sheet the interface preferences restyle, so it holds at every scale.
     style = work / player / "assets/rml/youtube.rcss"
     rules = style.read_text(encoding="utf-8")
     if "/* interface languages */" not in rules:
