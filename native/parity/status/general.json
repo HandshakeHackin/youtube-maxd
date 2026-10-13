@@ -23,7 +23,8 @@
     "companion/innertube/home_feed.mjs: filterHomeFeed/watchedSuggestion always drops watched cards from the primary Home grid (no switch)",
     "companion/innertube/library.mjs: cards carry is_upcoming, is_live, played, watch_percent (data needed for filters is present)",
     "docs/STATUS.md: 'Home watched filtering'",
-    "native/tube_provider.c: 16 switches; companion hide[] filters; tests/test_companion_features.c"
+    "native/tube_provider.c: 16 switches; companion hide[] filters; tests/test_companion_features.c",
+    "Built-in service: content_filters in its feature list; the hide list goes with search, catalog and library requests (standalone/js/schema.js, standalone/js/catalog.js) to the bundled companion/innertube/content_filters.mjs; content filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -33,32 +34,37 @@
   {
    "id": "GeneralSettingsPresenter.appendContextMenuItemsCategory",
    "title": "Context menu items on/off",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checked list of ~40 context-menu entries (play next, queue, mark watched, open channel, not interested, share, pin, block channel, playlist ops, etc.); enabling one also opens its position dialog.",
    "ps5_evidence": [
-    "native/tube_provider.c: actions menu is hard-coded (labels 'Play next', 'Mark as watched locally', 'Remove from local history', 'Related videos', 'Block channel', playlist:pick/prompt entries)"
+    "native/tube_ui_style.h: g_tube_menu_keys (the 33 rows of the video actions menu), menu_hidden, tube_ui_menu_key, tube_ui_menu_arrange",
+    "native/tube_provider.c: settings:menu 'Video actions menu' under YouTube preferences > Interface; settings:menu:<row>:toggle ('Hide row' / 'Show row'), settings:menu:reset; ui_menu_arrange() on the video menu, which the in-player Video actions list shares; saved per profile as video_menu",
+    "tests/test_ui_style.c (test_menu), tests/test_interface_settings.c (a hidden row leaves the browser menu and the in-player list; per profile; damaged files), tests/test_i18n_provider.c"
    ],
    "gaps": [
-    "Per-profile enabled mask for action-menu entries",
-    "settings checklist UI",
-    "Action menu builder must honour the mask"
+    "Only the video actions menu (browser and in-player list) is covered: the rows of the playlist menu, the comment menu, the section menu and the pin menu cannot be hidden"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "Only meaningful for entries ProsperoTube actually has."
+   "size": "S",
+   "notes": "33 rows that exist on PS5 against SmartTube's 39 entries. Offline evidence only."
   },
   {
    "id": "GeneralSettingsPresenter.appendContextMenuSortingCategory",
    "title": "Context menu sorting",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio list of enabled menu items; choosing one opens 'Position of <item>' with numbered slots to reorder.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_ui_style.h: menu_order (a permutation of the 33 menu rows), tube_ui_menu_move, tube_ui_menu_rank",
+    "native/tube_provider.c: settings:menu:<row>:up / :down ('Move up' / 'Move down') and settings:menu:reset 'Restore the default menu'; the order applies to the video menu in the browser and in the player, per profile",
+    "tests/test_ui_style.c (test_menu), tests/test_interface_settings.c"
+   ],
    "gaps": [
-    "Persisted order of action-menu entries and a reorder UI"
+    "Only the video actions menu is covered (see GeneralSettingsPresenter.appendContextMenuItemsCategory); the other menus keep their fixed order",
+    "A row moves one place per press; there is no 'Position of <item>' list of numbered places"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "Depends on the item above."
+   "size": "S",
+   "notes": "Offline evidence only."
   },
   {
    "id": "GeneralSettingsPresenter.appendBootToSection",
@@ -78,18 +84,18 @@
   {
    "id": "GeneralSettingsPresenter.appendAppExitCategory",
    "title": "Exit from the app shortcut",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio: Don't exit / Double back / Single back.",
    "ps5_evidence": [
-    "native/tube_provider.c: root entry `app:exit` 'Close ProsperoTube'; scripts/prepare_native.py routes it to Application::requestSoftClose()"
+    "native/tube_provider.c: root entry `app:exit` 'Close ProsperoTube'; scripts/prepare_native.py routes it to Application::requestSoftClose()",
+    "native/tube_ui_style.h: TUBE_UI_EXIT_NONE / DOUBLE / SINGLE, tube_ui_press (a second press within two seconds); native/tube_provider.c: settings:ui:exit 'Circle on the main menu' (Does nothing / Press twice to close ProsperoTube / Closes ProsperoTube), tube_app_exit_press, per profile",
+    "scripts/ui_prefs_overlay.py: 'ProsperoTube app exit' block of the provider screen (toast 'Press Circle again to close ProsperoTube', Application::requestSoftClose())",
+    "tests/test_ui_style.c (test_press), tests/test_interface_settings.c, tests/test_ui_exit.cpp (scripts/test_ui_exit.sh)"
    ],
-   "gaps": [
-    "Setting with three values",
-    "Circle at provider root: nothing / confirm-on-second-press / immediate soft close"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Exit itself exists; only the back-button policy is missing."
+   "notes": "The default is 'Does nothing', as before. Offline evidence only."
   },
   {
    "id": "GeneralSettingsPresenter.appendBackgroundPlaybackCategory",
@@ -205,14 +211,14 @@
    "ps5_evidence": [
     "native/tube_profile_settings.h: ProfileSettings per profile (always on) = 'separate settings per account'; tests/test_profile_settings.c",
     "native/tube_provider.c: settings:separate-settings 'Separate settings per account' switch; tests/test_account_settings.c",
-    "native/tube_player_extra.c: settings:player-exit 'Press Circle twice to exit'; tests/test_player_extra_overlay.cpp (test_exit)"
+    "native/tube_player_extra.c: settings:player-exit 'Press Circle twice to exit'; tests/test_player_extra_overlay.cpp (test_exit)",
+    "native/tube_provider.c: settings:ui:search-exit 'Leaving search results: Press Circle once / Press Circle twice' in Search options, per profile (scripts/ui_prefs_overlay.py 'ProsperoTube search exit' block); tests/test_interface_settings.c, tests/test_ui_exit.cpp (scripts/test_ui_exit.sh)"
    ],
    "gaps": [
     "Settings password and master password (only a profile password exists)",
     "Child mode (locks search/suggestions, restricted sections/buttons)",
     "Disable screensaver switch",
     "Disable long-press switch",
-    "Search exit double-back",
     "Remember last position in Subscriptions / pinned playlists"
    ],
    "offline_feasible": true,
@@ -239,15 +245,16 @@
    "smarttube": "Toggle 'Use Web Proxy' opening a proxy dialog (host/port/credentials) and switching the player data source to OkHttp.",
    "ps5_evidence": [
     "companion/prosperotube/__main__.py --proxy URL, companion/prosperotube/proxy.py: one HTTP or HTTPS proxy for the resolvers, the library worker (companion/innertube/proxy_fetch.mjs: CONNECT tunnel, no direct fallback), the relays, DeArrow, SponsorBlock and the phone client; GET /v1/health reports only proxy true/false",
-    "tests/test_third_batch.py (proxy tests), companion/innertube/third_batch.test.mjs"
+    "tests/test_third_batch.py (proxy tests), companion/innertube/third_batch.test.mjs",
+    "standalone/js/companion.js: no proxy in the built-in service (FEATURES, health 'proxy: false'); standalone/test/service_test.py ('health hides what does not')"
    ],
    "gaps": [
-    "Host start-up option only: no 'Use Web Proxy' switch and no host/port/credentials dialog on the console",
-    "SOCKS proxies are refused"
+    "Not available with the built-in service (the release): it lists no proxy feature, and the app's HTTPS client and FFmpeg connect directly",
+    "With a development companion it is a start-up option of the host only (--proxy): no 'Use Web Proxy' switch and no host/port/credentials dialog on the console; SOCKS proxies are refused"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Belongs in the companion while the companion is required."
+   "notes": "Was implemented for the PC companion; the release runs without one."
   },
   {
    "id": "GeneralSettingsPresenter.appendConscrypt",
@@ -266,15 +273,17 @@
    "status": "partial",
    "smarttube": "Radio: Default (system) + 47 languages (res/values/languages.xml); sets UI locale and YouTube hl, restarts.",
    "ps5_evidence": [
-    "native/tube_provider.c: `settings:languages` / `settings:audio-languages` only choose caption and audio track language from 10 codes (en fr es de it pt ja ko zh ru)",
-    "native/tube_provider.c: content language sent as hl"
+    "native/tube_i18n.c, native/tube_i18n.h: settings:interface-language 'Interface language' in YouTube preferences (System default, English and 21 languages), one line in /data/prosperotube/interface-language for all profiles; otherwise the PS5 system language decides (tube_i18n_system_tag)",
+    "native/tube_provider.c: settings:content-language and settings:content-country (hl and gl sent with the requests)",
+    "tests/test_i18n.c (language choice, the preference file and its rows), tests/test_i18n_provider.c (scripts/test_i18n.sh), tests/test_i18n_ui.cpp (scripts/test_i18n_ui.sh); docs/LOCALIZATION.md"
    ],
    "gaps": [
-    "Interface strings are not translated (see extra.Localization)"
+    "22 interface languages (English and 21 catalogs) against SmartTube's 47: none that needs other fonts, shaping or right-to-left layout (Chinese, Japanese, Korean, Thai, Hindi, Telugu, Arabic, Persian, Hebrew), and the remaining Latin and Cyrillic ones have no catalog yet (docs/LOCALIZATION.md)",
+    "The player interface stays English (see extra.Localization)"
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "Content-language half (hl plumbing) is M and independent of UI translation."
+   "notes": "Interface language and content language (hl) are two preferences here; SmartTube sets both with one choice. No restart is needed. Offline evidence only: the system language query has not run on a console."
   },
   {
    "id": "LanguageSettingsPresenter.appendCountryCategory",
@@ -282,7 +291,8 @@
    "status": "done",
    "smarttube": "Radio: Default + 92 countries (res/values/countries.xml); sets YouTube gl, restarts.",
    "ps5_evidence": [
-    "native/tube_provider.c: country sent as gl"
+    "native/tube_provider.c: country sent as gl",
+    "Built-in service: hl and gl checked and passed on (standalone/js/schema.js validLocale, standalone/js/companion.js localeOptions); locale checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -295,14 +305,14 @@
    "status": "missing",
    "smarttube": "Checked: Search, Language/Country, Accounts buttons.",
    "ps5_evidence": [
-    "README.md controls table: Square = Search, Options = companion address; no on-screen top buttons"
+    "README.md controls table: Square = Search, Options = retry the built-in service; native/youtube.rml: the header holds the name, the breadcrumb and the page counter, no buttons"
    ],
    "gaps": [
-    "No top-button row, hence nothing to toggle"
+    "No row of focusable buttons at the top of the browser (Search, Language/Country, Accounts), hence no switches for it"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Low value until a top bar exists."
+   "notes": "Not built rather than not applicable: such a row would have a meaning here. Search is on Square; accounts and languages are rows of the main menu and of YouTube preferences. Deferred (docs/STATUS.md)."
   },
   {
    "id": "MainUISettingsPresenter.appendColorScheme",
@@ -310,17 +320,18 @@
    "status": "partial",
    "smarttube": "Radio of 8 schemes: Teal, Dark grey, Red, Dark grey OLED, Teal OLED, Dark grey monochrome, Dark blue, Dark blue OLED.",
    "ps5_evidence": [
-    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: SettingKey::Theme 'THEME' (evo_theme_count/evo_theme_name)",
-    "native/tube_provider.c: root entry `app:settings` 'Player settings' -> ScreenId::Settings (scripts/prepare_native.py)"
+    "native/tube_ui_style.h: g_tube_schemes (ProsperoTube, then Teal, Dark grey, Red, Dark grey (true black), Teal (true black), Dark grey monochrome, Dark blue, Dark blue (true black)), tube_ui_scheme_color, tube_ui_scheme_sheet over the @token palette of native/youtube.rcss",
+    "native/tube_provider.c: settings:ui:scheme 'Color scheme' under YouTube preferences > Interface, saved per profile as color_scheme; scripts/ui_prefs_overlay.py: TubeApplyStyle restyles the browser at once and lends the scheme's accent to the player controls (OsdScreen::draw)",
+    "tests/test_ui_style.c (test_schemes), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh), scripts/test_ui_exit.sh (the accent block of the player controls)",
+    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: EVO's own device-wide THEME still colours the player with the default scheme"
    ],
    "gaps": [
-    "Palettes are EVO's, not SmartTube's eight (no OLED/monochrome equivalents verified)",
-    "Device-wide (evo_player_settings.cfg), not per profile",
-    "native/youtube.rcss adoption of theme tokens not verified"
+    "The eight schemes named as SmartTube's are each one background and one accent from which the browser palette is shifted; the values are not SmartTube's themes",
+    "In the player only the accent of the controls follows the scheme; in-player menus, pickers and the keyboard keep EVO's device-wide theme"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Offline evidence only (CPU rasteriser on the host)."
   },
   {
    "id": "MainUISettingsPresenter.appendCardPreviews",
@@ -338,28 +349,33 @@
   {
    "id": "MainUISettingsPresenter.appendCardStyle",
    "title": "Cards style",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checked: multiline titles, multiline subtitles, auto-scroll cropped title, unlocalized video titles, rounded card corners.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_ui_style.h + native/tube_provider.c: settings:ui:title-lines 'Card title lines' (1 to 4), settings:ui:subtitle-lines 'Multiline subtitles', settings:ui:title-scroll 'Scroll long titles' (tube_ui_marquee), settings:ui:rounded 'Rounded card corners'; per profile; tube_ui_rules adds the style rules to native/youtube.rcss",
+    "scripts/ui_prefs_overlay.py: TubeApplyStyle, TubeMarquee (the focused card's title travels to its end and starts over)",
+    "tests/test_ui_style.c (test_rules, test_marquee), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh), tests/test_i18n_ui.cpp (card text in other languages)"
+   ],
    "gaps": [
-    "All five toggles; card layout is fixed in native/youtube.rml / youtube.rcss"
+    "'Unlocalized video titles' switch absent: titles always come in the content language"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "RCSS class switches driven by a setting; preview via scripts/preview_native.sh."
+   "size": "S",
+   "notes": "Four of the five switches. The title scrolls only with one title line. Offline evidence only."
   },
   {
    "id": "MainUISettingsPresenter.appendCardTitleLines",
    "title": "Card title lines number (disabled upstream)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio 1/2/3/4 lines; not called from show() in the pinned revision.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Title line-count setting"
+   "ps5_evidence": [
+    "native/tube_ui_style.h + native/tube_provider.c: settings:ui:title-lines 'Card title lines' 1 / 2 / 3 / 4, per profile; more lines shrink the cards instead of costing a row (tube_ui_layout)",
+    "tests/test_ui_style.c (test_layout, test_rules), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Dead upstream."
+   "notes": "Dead upstream. Offline evidence only."
   },
   {
    "id": "MainUISettingsPresenter.appendThumbSource",
@@ -367,8 +383,9 @@
    "status": "done",
    "smarttube": "Radio: Default / Start of the video / Middle / End (clickbait remover).",
    "ps5_evidence": [
-    "native/tube_provider.c: only DeArrow thumbnails (`settings:dearrow:thumbnails`) alter art_url",
-    "native/tube_provider.c + companion thumbnails field"
+    "native/tube_provider.c: settings:thumbnails 'Thumbnail source' (Default / Video start / Video middle / Video end), per profile, sent as thumbnails with listing requests to a service that lists thumbnail_source",
+    "companion/prosperotube/thumbnail_source.py; in the built-in service standalone/js/extras.js thumbnails() (hq1 / hq2 / hq3 frames), standalone/js/schema.js",
+    "tests/test_companion_features.c, tests/test_content_options.py, standalone/test/service_test.py ('thumbnail source'), standalone/js/selftest.js"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -407,41 +424,48 @@
   {
    "id": "MainUISettingsPresenter.appendScaleUI",
    "title": "UI scale",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio 0.4x..1.4x (19 values), restart.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_ui_style.h: g_tube_ui_scales (SmartTube's 19 values, 0.4x to 1.4x), tube_ui_layout, tube_ui_rules; native/tube_provider.c: settings:ui:scale 'Interface scale' under YouTube preferences > Interface, per profile",
+    "scripts/ui_prefs_overlay.py: TubeApplyStyle sets the RmlUi dp ratio and the page size of the browser at once (no restart) and keeps the focused row",
+    "tests/test_ui_style.c (test_layout, test_rules), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh), tests/test_i18n_ui.cpp (languages at 0.4x to 1.4x)"
+   ],
    "gaps": [
-    "Scale setting applied as RmlUi dp ratio for provider/player documents"
+    "Scales the browser only: the player controls, the in-player menus and pickers and the on-screen keyboard keep their size"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Offline evidence only (CPU rasteriser on the host); readability on a television is unassessed."
   },
   {
    "id": "MainUISettingsPresenter.appendCardTextScrollSpeed",
    "title": "Card text scroll speed",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio 1x..8x step 0.5.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Depends on auto-scrolled titles, which do not exist"
+   "ps5_evidence": [
+    "native/tube_ui_style.h + native/tube_provider.c: settings:ui:scroll-speed 'Title scroll speed' 1x to 8x in steps of 0.5 (SmartTube's 15 values), tube_ui_marquee; scripts/ui_prefs_overlay.py: TubeMarquee",
+    "tests/test_ui_style.c (test_marquee), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Applies while 'Scroll long titles' is on. Offline evidence only."
   },
   {
    "id": "MainUISettingsPresenter.appendVideoGridScale",
    "title": "Video grid scale",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio 0.5x..1.5x (13 values), restart.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Card-size/columns scale for catalog grids"
+   "ps5_evidence": [
+    "native/tube_ui_style.h: g_tube_grid_scales (SmartTube's 13 values, 0.5x to 1.5x), tube_ui_layout (columns and rows of a page, at most eight columns and four rows); native/tube_provider.c: settings:ui:grid 'Video grid scale', per profile",
+    "scripts/ui_prefs_overlay.py: evo_provider_page_size, tube_grid_columns, D-pad paging for any number of columns",
+    "tests/test_ui_style.c (test_layout), tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Applies at once, without a restart. Offline evidence only."
   },
   {
    "id": "MainUISettingsPresenter.appendTimeFormatCategory",
@@ -481,28 +505,30 @@
   {
    "id": "UIScaleSettingsPresenter.appendVideoGridScale",
    "title": "Video grid scale (stand-alone dialog)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Radio 0.5x..1.5x (11 values).",
-   "ps5_evidence": [],
-   "gaps": [
-    "Same as MainUISettingsPresenter.appendVideoGridScale"
+   "ps5_evidence": [
+    "Same preference as MainUISettingsPresenter.appendVideoGridScale: native/tube_provider.c settings:ui:grid; tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Duplicate entry point."
+   "notes": "Duplicate entry point upstream; its 11 values are among the 13 offered here. Offline evidence only."
   },
   {
    "id": "UIScaleSettingsPresenter.appendScaleUI",
    "title": "UI scale (stand-alone dialog)",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio 0.6x..1.2x step 0.05.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "Same preference as MainUISettingsPresenter.appendScaleUI: native/tube_provider.c settings:ui:scale; tests/test_interface_settings.c, tests/test_ui_prefs.cpp (scripts/test_ui_prefs.sh)"
+   ],
    "gaps": [
-    "Same as MainUISettingsPresenter.appendScaleUI"
+    "Same as MainUISettingsPresenter.appendScaleUI: the browser is scaled, the player and the keyboard are not"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Duplicate entry point."
+   "notes": "Duplicate entry point upstream; its 13 values (0.6x to 1.2x) are among the 19 offered here. Offline evidence only."
   },
   {
    "id": "SearchSettingsPresenter.appendSpeechRecognizerCategory",
@@ -525,43 +551,49 @@
    "smarttube": "Toggles: disable typing auto-correction; search exit = double back; disable search history; background play while searching/browsing a channel; instant voice search; autofocus on search results; show keyboard automatically; prevent OK from opening keyboard.",
    "ps5_evidence": [
     "native/tube_provider.c: settings:search-history 'Search history' switch and Recent searches, per profile; tests/test_search_history.c",
-    "scripts/prepare_native.py: Square opens evo_keyboard_open('Search YouTube videos...'); scripts/voice_controls_overlay.py: L3 hold = voice"
+    "scripts/prepare_native.py: Square opens evo_keyboard_open('Search YouTube videos...'); scripts/voice_controls_overlay.py: L3 hold = voice",
+    "native/tube_provider.c: settings:ui:search-exit 'Leaving search results: Press Circle once / Press Circle twice' in Search options, per profile; scripts/ui_prefs_overlay.py: 'ProsperoTube search exit' block (toast 'Press Circle again to leave the results'); tests/test_interface_settings.c, tests/test_ui_exit.cpp (scripts/test_ui_exit.sh)"
    ],
    "gaps": [
-    "Search exit double-back",
-    "Instant voice search on opening search",
-    "Autofocus results / auto-show keyboard switches",
-    "Background play while searching/browsing"
+    "Background play while searching or browsing a channel: missing (no background playback, see extra.Misc.BackgroundPlayWhileSearching)",
+    "Instant voice search on opening search: missing, and the release has no speech recogniser (docs/VOICE_SEARCH.md)",
+    "Autofocus on results and automatic keyboard have no switches: Square always opens the PS5 keyboard and its confirmation lists the results (fixed behaviour)"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Typing-correction and the G20s keyboard fix are Android IME workarounds."
+   "notes": "Two of the eight are switches here (search history, two presses to leave). Android-only: typing auto-correction and 'prevent OK from opening the keyboard' (IME and remote workarounds)."
   },
   {
    "id": "AboutSettingsPresenter.appendAutoUpdateSwitch",
    "title": "Notify about updates",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: Disabled / Show notification in sidebar / Notify via pop-up dialog.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_update_app.c: settings:update:notify 'Notify about updates: on / off' in About; the notice at start, once per start, when a newer version is listed (docs/UPDATES.md); the switch is kept in /data/prosperotube/update/check.json",
+    "native/tube_update.c: the check against the project's GitHub releases, once a day and on request",
+    "tests/test_update_provider.c, tests/test_update.c (scripts/test_update.sh), scripts/test_update_host.py"
+   ],
    "gaps": [
-    "No update check of any kind in native/ or scripts/"
+    "On / off only: SmartTube's choice between a sidebar notification and a pop-up dialog is not offered (one notice at start; About always lists a newer version)"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "GitHub-release check; host-testable with a fixture response."
+   "size": "S",
+   "notes": "Off silences the notice; the daily check and the About rows stay. Offline evidence only: never run on a console or against GitHub, and the check gets no answer while the repository is private (docs/UPDATES.md)."
   },
   {
    "id": "AboutSettingsPresenter.appendUpdateCheckButton",
    "title": "Check for updates",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Button running the update check now.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Manual update check entry"
+   "ps5_evidence": [
+    "native/tube_update_app.c + native/tube_provider.c: settings:update:check 'Check for updates' in About, with the installed and the latest version; it asks at once and reports the outcome",
+    "native/tube_update.c (release list, version comparison, the required asset and digest), native/tube_update_http.c (the app's HTTPS client in a client of its own)",
+    "tests/test_update_provider.c, tests/test_update.c (scripts/test_update.sh)"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "After the item above."
+   "notes": "The app also updates itself in place (docs/UPDATES.md). Offline evidence only: never run on a console or against GitHub, and the check gets no answer while the repository is private."
   },
   {
    "id": "AboutSettingsPresenter.appendUpdateChangelogButton",
@@ -570,7 +602,8 @@
    "smarttube": "List of changes for the installed version.",
    "ps5_evidence": [
     "native/tube_about_data.h, generated from CHANGELOG.md by scripts/generate_about.py; native/tube_provider.c: settings:about:changelog 'What changed in this version'",
-    "tests/test_about.c (scripts/test_about.sh: the committed header against CHANGELOG.md), tests/test_links_about.c"
+    "tests/test_about.c (scripts/test_about.sh: the committed header against CHANGELOG.md), tests/test_links_about.c",
+    "native/tube_update_app.c: description:update 'What is new in <release>' shows the notes of an offered release in the long-text reader; tests/test_update_provider.c"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -641,28 +674,28 @@
   {
    "id": "AboutSimpleSettingsPresenter.appendAutoUpdateSwitch",
    "title": "Notify about updates (simple)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Single on/off switch.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Same as AboutSettingsPresenter.appendAutoUpdateSwitch"
+   "ps5_evidence": [
+    "Same switch as AboutSettingsPresenter.appendAutoUpdateSwitch: native/tube_update_app.c settings:update:notify 'Notify about updates: on / off'; tests/test_update_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Duplicate."
+   "notes": "Duplicate upstream: one on/off switch, which is what About offers here. Off silences the notice at start; the daily check stays. Offline evidence only."
   },
   {
    "id": "AboutSimpleSettingsPresenter.appendUpdateCheckButton",
    "title": "Check for updates (simple)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Button.",
-   "ps5_evidence": [],
-   "gaps": [
-    "Same as AboutSettingsPresenter.appendUpdateCheckButton"
+   "ps5_evidence": [
+    "Same row as AboutSettingsPresenter.appendUpdateCheckButton: settings:update:check; tests/test_update_provider.c"
    ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Duplicate."
+   "notes": "Duplicate. Offline evidence only."
   },
   {
    "id": "AboutSimpleSettingsPresenter.appendInstallBridge",
@@ -686,7 +719,7 @@
    ],
    "offline_feasible": false,
    "size": "L",
-   "notes": "Would run in the companion with a Google device-code sign-in; needs a live account to validate."
+   "notes": "Would run in the built-in service with a Google device-code sign-in (Drive scope); needs a live account to validate."
   },
   {
    "id": "BackupSettingsPresenter.appendGDriveRestoreSettings",
@@ -781,7 +814,7 @@
    "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "A backup includes the companion pairing token and stays in the app data folder (no USB target). Offline evidence in a temporary data directory only."
+   "notes": "A backup includes the companion pairing token and stays in the app data folder (no USB target). Offline evidence in a temporary data directory only. A backup is youtube.json alone: the sign-ins made on the console (accounts/oauth-profiles.json of the built-in service) are not part of it."
   },
   {
    "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",
@@ -802,23 +835,23 @@
   {
    "id": "extra.Localization",
    "title": "UI localization",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "46 translated strings.xml catalogs plus default English (47 UI languages; languages.xml lists 47 selectable languages, countries.xml 92 countries).",
    "ps5_evidence": [
-    "native/tube_provider.c: every label is an English literal inside CATALOG_FOLDER(...)/snprintf/tube_set_error",
-    "third_party/evo/projects/evoplayer/core/src/screens/SettingsScreen.cpp: upper-case English literals; no catalog, no TranslateString override, no system-language query found anywhere in projects/evoplayer",
-    "third_party/evo/projects/evoplayer/assets/fonts: Lato, Roboto, NotoSans, DejaVuSans (Latin/Cyrillic/Greek coverage; no CJK, Arabic, Hebrew, Thai, Devanagari faces)"
+    "native/tube_i18n.c, native/tube_i18n.h: lookup by the English source, patterns, counted patterns with each language's plural rules, label-and-value rows; native/tube_i18n_data.h generated from native/i18n/<tag>.json (21 catalogs: cs da de el es fi fr hu id it nb nl pl pt-BR pt-PT ro ru sv tr uk vi)",
+    "scripts/i18n_extract.py (the template of every translatable text), scripts/i18n_build.py (checks and tables), scripts/i18n_overlay.py (browser rows, status line, toasts and the static texts of native/youtube.rml)",
+    "The language follows the PS5 system language or the 'Interface language' preference (settings:interface-language)",
+    "tests/test_i18n.c, tests/test_i18n_provider.c (scripts/test_i18n.sh: template and tables current, 99% coverage per catalog), tests/test_i18n_ui.cpp (scripts/test_i18n_ui.sh: all 21 languages drawn with the app's fonts); docs/LOCALIZATION.md"
    ],
    "gaps": [
-    "String catalog mechanism (EVO offers none): key table + per-language files + lookup helper used by tube_provider.c, overlays and RML",
-    "Language selection (PS5 system language default + setting)",
-    "Catalogs converted from SmartTube strings.xml for shared labels; new strings for PS5-only labels",
-    "Fonts/shaping for non-Latin scripts and RTL",
-    "Toasts/errors in scripts/*_overlay.py are inline literals too"
+    "The player interface (controls, in-player menus and lists, pickers, dialogs, on-screen keyboard) stays English: its fonts are baked atlases without accented letters",
+    "No Chinese, Japanese, Korean, Thai, Hindi, Telugu, Arabic, Persian or Hebrew: the packaged fonts lack the glyphs, and the pinned RmlUi has no shaping and no right-to-left layout",
+    "21 of SmartTube's 46 translations; the other Latin and Cyrillic languages only need a catalog (list in docs/LOCALIZATION.md)",
+    "EVO's own texts (its player settings screen, toasts and dialogs), the credits, the changelog and messages worded by the service are not translated"
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "RmlUi's SystemInterface::TranslateString is the natural hook for RML text but EVO does not implement it; provider strings need their own lookup."
+   "notes": "The catalogs are new translations keyed by the English source, not conversions of SmartTube's strings.xml. Offline evidence only: the system language query and the GPU text path have not run on a console."
   },
   {
    "id": "extra.SettingsScreenStructure",
@@ -834,7 +867,7 @@
     "tests/test_profile_settings.c + scripts/test_native.sh case `profile_settings`"
    ],
    "gaps": [
-    "Flat list of ~35 rows, no categories mirroring SmartTube's dialogs",
+    "One list of about 50 rows under YouTube preferences, a dozen of them screens of their own (Interface, Search options, Menu sections, Player controls, Hide content, Backup and restore, About and others); not the categories of SmartTube's dialogs",
     "Two parallel per-profile stores (ProfileSettings and g_player_preferences) plus device-wide EVO cfg",
     "No description of options beyond 'Selected' in the detail text; no radio/check widgets"
    ],

@@ -37,7 +37,7 @@
    "smarttube": "Radio: Low / Medium / High / Highest buffer (PlayerData.BUFFER_*)",
    "ps5_evidence": [],
    "gaps": [
-    "No buffer-size preference; EVO prebuffer and companion relay (companion/prosperotube/hls_buffer.py) use fixed depths",
+    "No buffer-size preference: EVO's prebuffer depth is fixed; the built-in service relays no media (FFmpeg reads YouTube directly) and the relay of a development companion (companion/prosperotube/hls_buffer.py) has fixed depths too",
     "No settings row or in-player options row"
    ],
    "offline_feasible": true,
@@ -135,14 +135,19 @@
    "status": "partial",
    "smarttube": "Radio: Disabled / Single frame / Carousel (slow, by keyframes) / Carousel (fast); uses YouTube storyboards",
    "ps5_evidence": [
-    "native/tube_storyboard.h; companion storyboards relay"
+    "native/tube_player_extra.c: settings:seek-preview 'Preview while seeking' (Disabled / Single frame / Carousel (slow) / Carousel (fast)), per profile; storyboard levels of the resolve answer (tube_extra_storyboard)",
+    "native/tube_storyboard.h, native/tube_seek_sheets.h, native/tube_seek_sheets.c: the sheet under the seek target is fetched through EVO's HTTP client once the target rests on it, decoded with FFmpeg's JPEG / WebP / PNG decoders, and at most four sheets are kept",
+    "scripts/seek_preview_overlay.py: 'ProsperoTube seek preview HUI' block of the player controls: the target's tile above the seek bar with its time, the carousel's two neighbours on each side",
+    "Storyboards: the companion's relay; in the built-in service standalone/js/resolve.js (storyboards) and GET /media/<session>/sbL-M.jpg, standalone/test/service_test.py ('storyboard sheet')",
+    "tests/test_storyboard.c, tests/test_seek_sheets.c, tests/test_seek_preview_hud.cpp (scripts/test_seek_preview.sh), tests/test_player_extra.c"
    ],
    "gaps": [
-    "Preview tiles are not drawn: the HUD has no network texture path"
+    "Drawn by the kit player controls only; the RmlUi fallback HUD shows no tiles",
+    "Never run on a console: the sheet fetch, the decode and the texture upload are host-tested only"
    ],
    "offline_feasible": true,
-   "size": "L",
-   "notes": "Companion: expose storyboard spec/tiles; native: fetch+decode tile and draw in both HUDs; fixture-testable on host."
+   "size": "M",
+   "notes": "The two carousels differ by how long the target must rest before a sheet is fetched (250 ms and 60 ms)."
   },
   {
    "id": "PlayerSettingsPresenter.appendRememberSpeedCategory",
@@ -227,7 +232,7 @@
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Seek interval list (1,2,3,5,7,10,15,20,30,60 s) also matches: settings:seek-interval, KindSeekInterval."
+   "notes": "Seek interval list (1,2,3,5,7,10,15,20,30,60 s) also matches: settings:seek-interval, KindSeekInterval. A regular +10 s seek through the built-in service: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md); the confirmation modes were not part of that session."
   },
   {
    "id": "PlayerSettingsPresenter.appendEndingTimeCategory",
@@ -286,7 +291,7 @@
    "gaps": [],
    "offline_feasible": false,
    "size": "S",
-   "notes": "Android library choice; PS5 fetches media through the FFmpeg/companion relay path only."
+   "notes": "Android library choice; PS5 reads media with FFmpeg only (directly from YouTube with the built-in service, through the relay with a development companion)."
   },
   {
    "id": "PlayerSettingsPresenter.appendPlayerExitCategory",
@@ -300,7 +305,7 @@
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Add settings:player-exit and gate the confirmation in a PlayerScreen overlay."
+   "notes": "Add settings:player-exit and gate the confirmation in a PlayerScreen overlay. Stop through the confirmation, back to the browser: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "PlayerSettingsPresenter.appendSleepTimerCategory",
@@ -355,7 +360,8 @@
     "native/tube_provider.c: settings:codec AVC (covers 'prefer avc over vp9')",
     "companion/prosperotube/hls.py, live_hls.py: live streams already go through HLS relay (covers 'live stream fix' as fixed behaviour)",
     "scripts/playback_recovery_overlay.py: automatic stream recovery (no off switch)",
-    "native/tube_player_extra.c: settings:error-fixer 'Fix playback errors'; tests/test_player_extra.c"
+    "native/tube_player_extra.c: settings:error-fixer 'Fix playback errors'; tests/test_player_extra.c",
+    "Built-in service: live streams play from YouTube's HLS master, one small master per choice (standalone/js/resolve.js hlsVariants; standalone/test/service_test.py 'live choices', 'live playlist'); its HTTPS client is IPv4-only (standalone/src/tube_engine.c ipv4_only)"
    ],
    "gaps": [
     "'Disable network error fixing': settings:error-fixer turns off the decoder and long-buffering fixes only; the stream refresh after an input failure has no off switch",
@@ -364,7 +370,7 @@
     "No 'disable buffer on streams' (live latency) switch",
     "No alt presets (bandwidth cap) behaviour",
     "No 'hide Settings section' switch",
-    "IPv4/Google DNS preference not exposed (would be a companion flag)"
+    "No IPv4 / Google DNS switch: the built-in service always connects over IPv4 (fixed) and uses the console's DNS"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -434,7 +440,8 @@
     "native/tube_provider.c: settings:more-subtitles 'Unlock more subtitles' (per profile) adds translated_captions to the resolve for a companion that lists the feature; g_caption_tracks[].translated, tube_caption_track_translated",
     "scripts/caption_controls_overlay.py: '(translated)' detail and TRANSLATED tag in the caption picker",
     "companion/prosperotube/extractor.py, app.py: machine translations listed on request and served by the caption relay",
-    "tests/test_third_captions.c, tests/test_third_batch.py (test_translated_tracks_are_listed_on_request_and_flagged), scripts/test_caption_picker_snapshot.py"
+    "tests/test_third_captions.c, tests/test_third_batch.py (test_translated_tracks_are_listed_on_request_and_flagged), scripts/test_caption_picker_snapshot.py",
+    "Built-in service: translated_captions in its feature list; standalone/js/resolve.js captionMaps(info, translated); standalone/test/service_test.py ('translated captions', 'automatic captions, wanted language first')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -508,18 +515,19 @@
     "scripts/playlist_context_overlay.py: Previous/Next video rows",
     "companion/prosperotube/resolver_errors.py: allowlisted unplayable reasons",
     "tests/test_playback_next.c, tests/test_manual_navigation.c, tests/test_queue_failure.c, tests/test_resolver_errors.py",
-    "native/tube_player_extra.c: quick skip on the D-pad (settings:keys-left-right / settings:keys-up-down); tests/test_player_extra_overlay.cpp (test_dpad)"
+    "native/tube_player_extra.c: quick skip on the D-pad (settings:keys-left-right / settings:keys-up-down); tests/test_player_extra_overlay.cpp (test_dpad)",
+    "Built-in service: standalone/js/resolve.js (player answer of the VISIONOS client, format policy, DASH manifest naming YouTube's servers, live HLS), standalone/js/errors.js (resolverError: the unplayable reasons), standalone/js/companion.js (playback sessions, refresh); standalone/test/service_test.py, tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh); standalone/test/account_test.py ('a video that needs an account stays refused while the switch is off')"
    ],
    "gaps": [
     "No preloading of the next video's formats",
     "Next/previous are picker rows or the optional quick-skip D-pad mode; no 'next up' title in the HUD",
     "No automatic aspect handling for vertical/Shorts video",
     "No playlist restart-at-end handling for repeat of a whole list",
-    "Standalone (no companion) loading absent"
+    "Videos that need the account (age-restricted, private, members-only, purchased) do not play with the built-in service: every profile resolves as Guest and account_playback is off (standalone/js/account_playback.js)"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Loading and direct H.264 1080p playback through the built-in service: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md); other codecs and resolutions were not assessed."
   },
   {
    "id": "behavior.VideoStateController",
@@ -532,7 +540,8 @@
     "native/tube_profile_settings.h: quality/codec/caption/audio-language restore",
     "tests/test_resume_timeline.cpp, tests/test_speed_memory.c, tests/test_sleep_timer.c, tests/test_history_actions.py, tests/test_catalog_progress.c",
     "native/tube_provider.c: 'Play incognito' (no local history, resume position or account report); tests/test_history_modes.c",
-    "native/tube_player_extra.c: settings:remember-short-position, settings:player-volume, settings:remember-quality (tube_player_remember_height in native/tube_provider.c); tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_menu.c"
+    "native/tube_player_extra.c: settings:remember-short-position, settings:player-volume, settings:remember-quality (tube_player_remember_height in native/tube_provider.c); tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_menu.c",
+    "Built-in service: history reports sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('first report: tracking data, history entry, position', 'a later position sends one update', 'stop report')"
    ],
    "gaps": [
     "Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline')",
@@ -543,7 +552,7 @@
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "Live DVR is the large part and needs companion + console work; the remaining rules are small."
+   "notes": "Live DVR is the large part and needs service and console work; the remaining rules are small. The local history record of a played video was saved: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "behavior.PlayerUIController",
@@ -602,7 +611,8 @@
     "native/tube_player_extra.c: tube_error_fix_decide (reload; next lower resolution down to 720p; AVC at up to 1080p30 after a video decoder failure; captions off first on long buffering), tube_buffering_tick (20 s of waiting inside 60 s), tube_error_fix_message, settings:error-fixer",
     "native/tube_provider.c: tube_error_fix_begin / tube_error_fix_choice on the bounded recovery (three attempts per video)",
     "scripts/player_actions_overlay.py: 'error fixer: decoder failure' and 'error fixer: long buffering' blocks of PlayerScreen",
-    "tests/test_player_extra.c, tests/test_player_menu.c, tests/test_player_extra_overlay.cpp (test_error_fixer_blocks)"
+    "tests/test_player_extra.c, tests/test_player_menu.c, tests/test_player_extra_overlay.cpp (test_error_fixer_blocks)",
+    "Built-in service: a recovery resolves again with 'fresh' set and gets new links (native/tube_provider.c resolve job); standalone/js/companion.js refresh() (GET /media/<session>/<manifest>?refresh=1); standalone/test/service_test.py ('refreshed manifest', 'captions after a refresh', 'refused links are retried with pauses')"
    ],
    "gaps": [
     "No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering)",
@@ -639,7 +649,8 @@
     "tests/test_suggestions.c, tests/test_suggestions_request.py, companion/innertube/suggestions.test.mjs, playback_next.test.mjs",
     "scripts/player_actions_overlay.py: 'Related videos' (TUBE_PLAYER_SUGGESTIONS), 'Playback queue' and the playlist as lists of the in-player options, with a 'More results' row; settings:player-suggestions; Down with the controls shown opens the list when Up / Down is set to suggestions (scripts/player_extra_overlay.py)",
     "native/tube_player_extra.c: chapter titles in both HUDs (tube_extra_chapter_title_at, also for the seek target), chapter list, tube_extra_chapter_notice",
-    "tests/test_player_menu.c, tests/test_player_extra.c, tests/test_player_extra_overlay.cpp (test_action_lists, test_chapter_notification)"
+    "tests/test_player_menu.c, tests/test_player_extra.c, tests/test_player_extra_overlay.cpp (test_action_lists, test_chapter_notification)",
+    "Built-in service: the bundled suggestions.mjs, playback_next.mjs and remote_recommendations.mjs; chapters from the watch page's structured list, then from the description (standalone/js/resolve.js chapterList; standalone/test/service_test.py 'resolve result'); related videos checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls",
@@ -657,7 +668,8 @@
    "status": "done",
    "smarttube": "Checkbox: normalise volume using the stream's loudness value",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c",
+    "Built-in service: loudness_db in the resolve answer (standalone/js/resolve.js createPlayback); standalone/test/service_test.py ('resolve fields', 'resolve result')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -698,7 +710,8 @@
    "status": "done",
    "smarttube": "Checkbox: repeat Shorts automatically",
    "ps5_evidence": [
-    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c"
+    "native/tube_player_extra.c + scripts/player_extra_overlay.py; scripts/test_player_extra.sh, tests/test_extra_provider.c",
+    "Built-in service: is_short from the player answer's microformat or, without one, the video's shape (standalone/js/resolve.js isShort); standalone/test/service_test.py ('short, paid promotion, description chapters out of range', 'an ordinary video is no short')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -798,15 +811,17 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'account:notice:likes' (like_count) and 'account:notice:dislikes' (GET /v1/dislikes/<id>) rows of Video details and Open description; settings:dislikes 'Show dislikes' per profile; both pages are listed during playback through Video actions",
     "companion/prosperotube/dislikes.py (Return YouTube Dislike relay behind --return-youtube-dislike), description like_count",
-    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
+    "Built-in service: like_count comes with the description and details of the bundled library modules; standalone/js/companion.js answers GET /v1/dislikes/<id> with enabled false (standalone/test/service_test.py 'dislikes are off')"
    ],
    "gaps": [
     "Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them",
-    "The like count has no switch of its own"
+    "The like count has no switch of its own",
+    "Dislike counts are not available with the built-in service (the release): it has no Return YouTube Dislike relay; they need a development companion started with --return-youtube-dislike"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "The dislike relay is a host option of the companion and tells that service which videos' details are opened. Service mapping inferred, not verified live."
+   "notes": "The dislike relay is a host option of the development companion and tells that service which videos' details are opened; the built-in service has none. Service mapping inferred, not verified live."
   },
   {
    "id": "extra.Misc.NumberKeySeek",
@@ -837,11 +852,11 @@
    "smarttube": "Seven checkboxes tuning the Leanback button rows",
    "ps5_evidence": [],
    "gaps": [
-    "No button rows, so none of these switches exist"
+    "None of the seven switches exists: 'show UI on next video' and 'UI animations' are not built; tooltips, the long-press hint, the real channel icon, row focus sync and the old speed-button behaviour tune button rows the PS5 player does not have (its actions are rows of the R2 options list)"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Only meaningful after a button row exists; lowest priority."
+   "notes": "Kept as missing rather than not applicable: two of the seven would have a meaning without button rows. Lowest priority."
   },
   {
    "id": "extra.Button.PlayPause",
@@ -854,7 +869,7 @@
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Pause held during playback: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "extra.Button.NextPrevious",
@@ -917,7 +932,7 @@
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Adds a secondary-caption feature SmartTube lacks."
+   "notes": "Adds a secondary-caption feature SmartTube lacks. Opening the caption picker during playback: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md); captions on screen were not assessed."
   },
   {
    "id": "extra.Button.HighQuality",
@@ -933,7 +948,7 @@
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "Opening the playback options during playback: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "extra.Button.VideoZoom",
@@ -1065,7 +1080,8 @@
     "native/tube_provider.c: g_account_actions subscribe/unsubscribe (browser Touchpad menu)",
     "tests/test_video_actions.c",
     "scripts/player_actions_overlay.py: TUBE_PLAYER_SUBSCRIBE row in the in-player options; Video actions there also lists 'Subscription notifications' (notify:<channel>: all / personalized / none through subscribe or subscribe_notifications)",
-    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh), tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh), tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('subscribe with a notification level', 'notification level alone', 'unsubscribe')"
    ],
    "gaps": [
     "No subscribed state shown in the player: the direct row always subscribes; Unsubscribe is under Video actions"
@@ -1083,7 +1099,8 @@
     "native/tube_provider.c: g_account_actions like/dislike/unrate (browser Touchpad menu)",
     "tests/test_video_actions.c",
     "scripts/player_actions_overlay.py: TUBE_PLAYER_LIKE / TUBE_PLAYER_DISLIKE rows in the in-player options",
-    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('a change YouTube refuses is not a success', 'guest cannot rate'); tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh): one like, sent once"
    ],
    "gaps": [
     "Current rating state is not shown; each rating is confirmed on a review row rather than toggled"
@@ -1101,7 +1118,8 @@
     "README: video actions add/remove from account playlist, create private playlist (browser)",
     "tests/test_library.py",
     "scripts/player_actions_overlay.py: TUBE_PLAYER_PLAYLIST_ADD opens the account playlist picker in the in-player options while the video plays",
-    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
+    "tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist add', 'playlist create')"
    ],
    "gaps": [],
    "offline_feasible": true,

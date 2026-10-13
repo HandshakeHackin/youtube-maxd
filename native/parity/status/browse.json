@@ -9,7 +9,8 @@
     "native/tube_provider.c: local_catalog() 'local:video:%u:forget' -> tube_remove_history(), label \"Remove from local history\"",
     "native/tube_provider.c: g_account_actions {\"history_remove\",\"Remove from YouTube history\"} with history_remove_cursor scope/deadline checks",
     "companion/innertube/history_actions.mjs (feedback endpoint)",
-    "tests/test_history_remove.c, tests/test_video_actions.c, tests/test_history_actions.py, companion/innertube/history_actions.test.mjs"
+    "tests/test_history_remove.c, tests/test_video_actions.c, tests/test_history_actions.py, companion/innertube/history_actions.test.mjs",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('history remove', \"history remove with another account's reference\")"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -27,7 +28,8 @@
     "scripts/discussion_overlay.py: Touchpad pushes 'account:menu:<id>' / 'playlist:menu:<id>'",
     "tests/test_native.c, tests/test_topic_catalog.c, tests/test_group_navigation.c",
     "native/tube_provider.c: g_sections (Trending, Shorts, Kids, My videos, Subscribed channels, Notifications), per-profile order and visibility, pinned channels and playlists, section and pin Touchpad menus, settings:boot-section, settings:channel-sort",
-    "tests/test_library_sections.c, tests/test_section_order.c, tests/test_browse_sections.cpp, tests/test_third_sections.c, tests/test_channel_marks.c"
+    "tests/test_library_sections.c, tests/test_section_order.c, tests/test_browse_sections.cpp, tests/test_third_sections.c, tests/test_channel_marks.c",
+    "Built-in service: every list of the browser is answered inside the app (native/tube_provider.c embedded mode; tests/test_embedded_service.c, tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh))"
    ],
    "gaps": [
     "Discover sections sit one level below the main menu (two-level tree), not a flat sidebar",
@@ -36,7 +38,7 @@
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "Individual gaps are tracked as extra.Section.* / extra.Menu.* items below. Password protection is per profile (AccountSettingsPresenter.appendProtectAccountWithPassword)."
+   "notes": "Individual gaps are tracked as extra.Section.* / extra.Menu.* items below. Password protection is per profile (AccountSettingsPresenter.appendProtectAccountWithPassword). The main menu, Discover and one topic grid through the built-in service: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "behavior.ChannelPresenter",
@@ -48,7 +50,8 @@
     "companion/innertube/library.mjs: kind 'channel' -> client.getChannel(id).getVideos(); action 'channel_window'",
     "native/tube_provider.c: valid_catalog_id() accepts 'channel:UC...'; 'subscriptions' folder emits 'channel:%.24s' rows",
     "tests/test_group_block_window.c, companion/innertube/channel_window.test.mjs",
-    "native/tube_provider.c: channel sections, sort orders, search in channel"
+    "native/tube_provider.c: channel sections, sort orders, search in channel",
+    "Built-in service: standalone/js/catalog.js (channel pages) and the bundled library modules (channel tabs, sort orders, search in channel); standalone/test/service_test.py ('channel catalog', 'channel page'); channel tabs, order and search checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "Channel Home skips Shorts and featured-channel shelves"
@@ -67,7 +70,8 @@
     "native/tube_provider.c: catalog() 'library:playlist:<id>' / 'playlist:<id>' paging; parse_playlist_context / tube_select_playlist_context",
     "tests/test_playlist_context.c, tests/test_playlist_window.c, tests/test_playlist_context.py, companion/innertube/playlist_context.test.mjs",
     "native/tube_provider.c: 'Open channel' and 'Open playlist' rows of the video menu; tests/test_video_menu.c",
-    "native/tube_provider.c: library:channels 'Subscribed channels' with the New mark; tests/test_channel_marks.c, tests/test_library_sections.c"
+    "native/tube_provider.c: library:channels 'Subscribed channels' with the New mark; tests/test_channel_marks.c, tests/test_library_sections.c",
+    "Built-in service: standalone/js/catalog.js (pageFor: search, channel and playlist pages with their playback contexts, links and the video: / channel: / playlist: forms) over the bundled library modules; standalone/test/service_test.py ('search page shape', 'search by link', 'channel catalog', 'playlist catalog'), tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -82,7 +86,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'Video details' row of the video menu (details:<id>, details_result): channel and subscribers, date, views, likes, optional dislikes, badges, description excerpt; asked only of a companion that lists video_details",
     "companion/innertube/video_description.mjs and the yt-dlp path without the worker (docs/LIBRARY_SERVICE.md 'Video details')",
-    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
+    "Built-in service: video_details in its feature list, answered by the bundled companion/innertube/video_description.mjs; standalone/test/service_test.py ('details job', 'video route'); dislikes are not offered there ('dislikes are off')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -101,12 +106,13 @@
     "native/tube_voice.c + scripts/voice_controls_overlay.py (L3 push-to-talk)",
     "tests/test_native.c, tests/test_companion.py, tests/test_voice_search_provider.c",
     "native/tube_provider.c: Recent searches, Suggestions folder, Search options (date, duration, type, features, order, channel and playlist cards), 'Play the first result'",
-    "tests/test_search_history.c, tests/test_search_options.c, tests/test_third_sections.c"
+    "tests/test_search_history.c, tests/test_search_options.c, tests/test_third_sections.c",
+    "Built-in service: standalone/js/catalog.js (pageFor: search, channel and playlist pages with their playback contexts, links and the video: / channel: / playlist: forms) over the bundled library modules; standalone/test/service_test.py ('search page shape', 'search by link', 'channel catalog', 'playlist catalog'), tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh)",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "No as-you-type suggestion tags while the keyboard is open",
     "YouTube's 'last hour' date filter and the upload-date and rating orders are not offered",
-    "Channel and playlist results need the library worker path",
     "Play-first-result is a Search options row for the last query; voice and phone requests do not use it",
     "Voice search is not available with the built-in service (docs/VOICE_SEARCH.md)"
    ],
@@ -123,7 +129,8 @@
     "native/tube_provider.c: resolve(), chosen(), progress() (resume position, played flag)",
     "native/tube_provider.c: tube_manual_navigation_begin (Next/Previous), tube_chapter_target",
     "tests/test_manual_navigation.c, tests/test_resume_timeline.cpp, tests/test_catalog_progress.c",
-    "native/tube_provider.c: 'Play incognito'; tests/test_history_modes.c, tests/test_menu_launch.c"
+    "native/tube_provider.c: 'Play incognito'; tests/test_history_modes.c, tests/test_menu_launch.c",
+    "Built-in service: standalone/js/companion.js resolve() (playback sessions), standalone/js/resolve.js; standalone/test/service_test.py, tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh)"
    ],
    "gaps": [
     "No background playback while browsing with a Return to background video action (isRunningInBackground)",
@@ -131,7 +138,7 @@
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Player-controller behaviour is outside this scope; only the presenter-level entry points were assessed. PIP is Android-only."
+   "notes": "Player-controller behaviour is outside this scope; only the presenter-level entry points were assessed. PIP is Android-only. Opening a video from its card and playing it directly from YouTube: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "behavior.WebBrowserPresenter",
@@ -152,12 +159,13 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('library:home', \"Home recommendations\") and library 'home' action",
     "companion/innertube/home_feed.mjs: HomeCatalog rows/filters, watchedSuggestion()",
-    "companion/innertube/home_feed.test.mjs, tests/test_library.py"
+    "companion/innertube/home_feed.test.mjs, tests/test_library.py",
+    "Built-in service: the bundled companion/innertube/home_feed.mjs; standalone/test/account_test.py ('home', 'home cards carry feedback references, not tokens'); Guest Home checked live as Guest on 2026-10-11 (standalone/README.md), tests/test_guest_sections.c"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Lives under Discover rather than as the boot section; needs the companion library worker. Other Home layouts are listed as open in docs/STATUS.md."
+   "notes": "Lives under Discover rather than as the boot section. A Guest gets a notice with rows leading on (YouTube sends a Guest no recommendations). Other Home layouts are listed as open in docs/STATUS.md."
   },
   {
    "id": "extra.Section.Shorts",
@@ -165,12 +173,13 @@
    "status": "done",
    "smarttube": "Dedicated Shorts grid (getShortsObserve) with paging.",
    "ps5_evidence": [
-    "companion/innertube/topic_catalog.mjs + native Discover section"
+    "companion/innertube/topic_catalog.mjs + native Discover section",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md); tests/test_guest_sections.c (a section YouTube withholds says so)"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": ""
+   "notes": "The live Guest check of 2026-10-11 got 'unavailable' from YouTube for this section (standalone/README.md); the app says so to a Guest. With an account it is unverified."
   },
   {
    "id": "extra.Section.Trending",
@@ -178,12 +187,13 @@
    "status": "done",
    "smarttube": "Trending rows (getTrendingObserve).",
    "ps5_evidence": [
-    "companion/innertube/topic_catalog.mjs + native Discover section"
+    "companion/innertube/topic_catalog.mjs + native Discover section",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md); tests/test_guest_sections.c (a section YouTube withholds says so)"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Would reuse the existing topic-section plumbing."
+   "notes": "Would reuse the existing topic-section plumbing. The live Guest check of 2026-10-11 got 'unavailable' from YouTube for this section (standalone/README.md); the app says so to a Guest. With an account it is unverified."
   },
   {
    "id": "extra.Section.Kids",
@@ -193,7 +203,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: g_sections 'section:kids' Kids under Discover; topics / topic_open with section kids, asked only of a companion that lists the kids feature",
     "companion/innertube/kids.mjs (pinned Kids client: home feed and category tabs)",
-    "tests/test_third_sections.c, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, companion/innertube/third_batch.test.mjs",
+    "Built-in service: kids in its feature list, answered by the bundled companion/innertube/kids.mjs; checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -208,7 +219,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('section:sports', \"Sports\"); topic_section()",
     "companion/innertube/topic_catalog.mjs: sections set",
-    "tests/test_topic_catalog.c, companion/innertube/topic_catalog.test.mjs"
+    "tests/test_topic_catalog.c, companion/innertube/topic_catalog.test.mjs",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -223,7 +235,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('section:live', \"Live\")",
     "companion/innertube/topic_catalog.mjs: sections set",
-    "tests/test_topic_catalog.c"
+    "tests/test_topic_catalog.c",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -238,7 +251,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('section:gaming', \"Gaming\")",
     "companion/innertube/topic_catalog.mjs",
-    "tests/test_topic_catalog.c"
+    "tests/test_topic_catalog.c",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -253,7 +267,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('section:news', \"News\")",
     "companion/innertube/topic_catalog.mjs",
-    "tests/test_topic_catalog.c"
+    "tests/test_topic_catalog.c",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -268,7 +283,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('section:music', \"Music\"); g_browse_music / music_origin",
     "companion/innertube/topic_catalog.mjs (incl. liked-music continuation)",
-    "tests/test_music_context.c, tests/test_topic_catalog.c"
+    "tests/test_music_context.c, tests/test_topic_catalog.c",
+    "Built-in service: the bundled companion/innertube/topic_catalog.mjs answers topics / topic_open inside the app (standalone/js/schema.js sections); checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -281,12 +297,13 @@
    "status": "done",
    "smarttube": "Grid of the signed-in user's own uploads (getMyVideosObserve).",
    "ps5_evidence": [
-    "companion topics my_videos + native folder"
+    "companion topics my_videos + native folder",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('my videos', 'my videos need an account')"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Private videos of the account are listed but do not play with the built-in service (account_playback is off)."
   },
   {
    "id": "extra.Section.Channels",
@@ -298,7 +315,8 @@
     "native/tube_provider.c: tube_toggle_subscription()",
     "companion/innertube/account_sections.mjs + native library:channels",
     "native/tube_provider.c: 'New' mark from channels new_content (has_new), g_channel_marks (marks as watched per profile on this PS5), settings:channel-sort (account order / by name / new content first); companion/innertube/channel_marks.mjs",
-    "tests/test_channel_marks.c, tests/test_library_sections.c, companion/innertube/third_batch.test.mjs"
+    "tests/test_channel_marks.c, tests/test_library_sections.c, companion/innertube/third_batch.test.mjs",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('subscribed channels')"
    ],
    "gaps": [
     "Sorting by last viewed is absent (account order takes its place)"
@@ -315,7 +333,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('library:subscriptions', \"Subscriptions\")",
     "companion/innertube/library.mjs: case 'subscriptions' -> getSubscriptionsFeed()",
-    "companion/innertube/worker.test.mjs (pagination), tests/test_fixture_library.py"
+    "companion/innertube/worker.test.mjs (pagination), tests/test_fixture_library.py",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('subscriptions feed'), tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -330,7 +349,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('library:history', \"YouTube history\") and root 'history' (\"Continue watching & history\")",
     "companion/innertube/library.mjs: case 'history'",
-    "tests/test_history_remove.c, tests/test_native.c"
+    "tests/test_history_remove.c, tests/test_native.c",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('history', 'history rows carry a removal reference')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -359,7 +379,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('library:playlists', \"Your playlists\"), 'library:watch_later', 'library:playlist:<id>' (WL/LL accepted)",
     "companion/innertube/library.mjs: case 'playlists' / 'playlist' / 'watch_later'",
-    "companion/innertube/worker.test.mjs: 'account playlists retain a separate navigation namespace'"
+    "companion/innertube/worker.test.mjs: 'account playlists retain a separate navigation namespace'",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('playlists', 'watch later', 'liked videos')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -372,7 +393,8 @@
    "status": "partial",
    "smarttube": "Grid of account notifications (getNotificationItemsObserve) with hide-notification action.",
    "ps5_evidence": [
-    "companion/innertube/account_sections.mjs + native library:notifications"
+    "companion/innertube/account_sections.mjs + native library:notifications",
+    "Built-in service: listed on the console with the signed-in profile's session (standalone/js/accounts.js, standalone/js/core.js over the bundled library modules); standalone/test/account_test.py ('notifications')"
    ],
    "gaps": [
     "Hiding a notification is not available"
@@ -442,12 +464,13 @@
    "smarttube": "Menu entry that starts playback of the card.",
    "ps5_evidence": [
     "native/tube_provider.c: resolve()",
-    "README.md: Controls table 'D-pad / Cross: Focus / open or watch'"
+    "README.md: Controls table 'D-pad / Cross: Focus / open or watch'",
+    "Built-in service: standalone/js/companion.js resolve(), standalone/js/resolve.js; standalone/test/service_test.py ('resolve result', 'manifest text'), tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Not a menu row; Cross on the card plays."
+   "notes": "Not a menu row; Cross on the card plays. A video opened from its card and played through the built-in service: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
   },
   {
    "id": "extra.Menu.PlayVideoIncognito",
@@ -483,11 +506,12 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'Stream reminder' row on upcoming videos (g_upcoming), reminder:<id> state page, reminder:confirm:set / unset through stream_reminder, one confirmation",
     "companion/innertube/stream_reminder.mjs",
-    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('reminder status needs no account', 'reminder set', 'reminder repeat', 'reminder for guest')"
    ],
    "gaps": [
     "This is YouTube's account 'Notify me' reminder; SmartTube's local reminder, which polls the stream and starts playback when it goes live, is absent",
-    "Needs an account profile and a companion that lists stream_reminder"
+    "Needs an account profile (the built-in service lists stream_reminder; a development companion must list it too)"
    ],
    "offline_feasible": true,
    "size": "M",
@@ -500,7 +524,8 @@
    "smarttube": "One-tap add/remove for the last playlist used, with membership state.",
    "ps5_evidence": [
     "native/tube_provider.c: g_recent_playlists; 'Add to <playlist>' and 'Remove from <playlist>' rows of the video menu for the playlist the profile used last (playlist:confirm:add / remove)",
-    "tests/test_third_sections.c"
+    "tests/test_third_sections.c",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist add', 'playlist remove')"
    ],
    "gaps": [
     "Membership state is not shown: both rows are listed and each asks for confirmation instead of one tap"
@@ -517,7 +542,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: g_account_actions 'watch_later_add' / 'watch_later_remove'",
     "companion/innertube/library.mjs: case 'watch_later_add'",
-    "tests/test_native.c, companion/innertube/worker.test.mjs ('mutations use the requested stable IDs')"
+    "tests/test_native.c, companion/innertube/worker.test.mjs ('mutations use the requested stable IDs')",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('watch later add', 'watch later remove')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -531,7 +557,8 @@
    "smarttube": "Dialog listing the user's playlists with checkboxes to add/remove the video.",
    "ps5_evidence": [
     "native/tube_provider.c: 'playlist:pick:add:<id>' / 'playlist:pick:remove:<id>' -> 'playlist:confirm:*' -> account_intent('playlist_add'|'playlist_remove')",
-    "tests/test_native.c, tests/test_fixture_library.py"
+    "tests/test_native.c, tests/test_fixture_library.py",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist add', 'playlist remove')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -545,7 +572,8 @@
    "smarttube": "Creates an empty playlist from the Playlists section menu.",
    "ps5_evidence": [
     "native/tube_provider.c: CATALOG_FOLDER('playlist:prompt:create:', \"Create YouTube playlist\"); tube_submit_playlist_name()",
-    "companion/innertube/worker.test.mjs: 'playlist creation explicitly requests private visibility'"
+    "companion/innertube/worker.test.mjs: 'playlist creation explicitly requests private visibility'",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist create', 'playlist title bounds')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -559,7 +587,8 @@
    "smarttube": "Renames an owned playlist from the Playlists section.",
    "ps5_evidence": [
     "native/tube_provider.c: 'playlist:menu:<id>' -> 'playlist:prompt:rename:<id>' (\"Rename YouTube playlist\")",
-    "tests/test_native.c (playlist:menu:PL...)"
+    "tests/test_native.c (playlist:menu:PL...)",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist rename')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -573,7 +602,8 @@
    "smarttube": "Creates a playlist containing the selected video.",
    "ps5_evidence": [
     "native/tube_provider.c: 'playlist:prompt:create:<video id>' (\"Create playlist with this video\")",
-    "companion/innertube/library.mjs: case 'playlist_create' with videoIds"
+    "companion/innertube/library.mjs: case 'playlist_create' with videoIds",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist create')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -588,7 +618,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'playlist:confirm:delete:<id>' (\"Delete YouTube playlist\") -> 'playlist_delete'",
     "companion/innertube/library.mjs: case 'playlist_delete'",
-    "native/tube_provider.c + companion playlist_save; tests/test_account_changes.c"
+    "native/tube_provider.c + companion playlist_save; tests/test_account_changes.c",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist save', 'playlist unsave', 'playlist delete')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -603,7 +634,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'Playlist order' row in the Touchpad menu of an own playlist, playlist-order:<id> list of the orders YouTube offers, playlist-order:confirm through playlist_order",
     "companion/innertube/playlist_order.mjs (date added newest/oldest, popularity, date published newest/oldest)",
-    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, tests/test_third_batch.py, companion/innertube/third_batch.test.mjs",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('playlist order read', 'playlist order change')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -616,7 +648,8 @@
    "status": "done",
    "smarttube": "On Home/Shorts cards: sends the feedback token (optionally a reason) and removes the card.",
    "ps5_evidence": [
-    "companion/innertube/feedback_actions.mjs + native confirmation flow"
+    "companion/innertube/feedback_actions.mjs + native confirmation flow",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('feedback', 'feedback repeat', 'unconfirmed feedback is not sent again')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -629,7 +662,8 @@
    "status": "done",
    "smarttube": "On Home/Shorts cards: sends the second feedback token so the channel stops being recommended.",
    "ps5_evidence": [
-    "companion/innertube/feedback_actions.mjs + native confirmation flow"
+    "companion/innertube/feedback_actions.mjs + native confirmation flow",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('feedback', 'feedback repeat', 'unconfirmed feedback is not sent again')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -642,7 +676,8 @@
    "status": "partial",
    "smarttube": "Removes a video from the Subscriptions feed (feedback token) or hides a notification.",
    "ps5_evidence": [
-    "native/tube_provider.c: hide Subscriptions card"
+    "native/tube_provider.c: hide Subscriptions card",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('hide a subscriptions entry')"
    ],
    "gaps": [
     "Notifications rows cannot be hidden"
@@ -674,7 +709,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'local:video:%u:watched:<id>' -> tube_mark_watched(); g_account_actions 'mark_watched'",
     "companion/prosperotube/library.py: mark_watched handling",
-    "tests/test_video_actions.c, tests/test_history_actions.py"
+    "tests/test_video_actions.c, tests/test_history_actions.py",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('mark watched', 'mark watched repeat')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -757,7 +793,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: g_account_actions 'subscribe' / 'unsubscribe' (channel=1); tube_toggle_subscription() for local follows",
     "companion/innertube/library.mjs: case 'subscribe' / 'unsubscribe'",
-    "tests/test_native.c, companion/innertube/worker.test.mjs"
+    "tests/test_native.c, companion/innertube/worker.test.mjs",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('subscribe with a notification level', 'unsubscribe')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -798,7 +835,8 @@
    "status": "done",
    "smarttube": "Loads the video's metadata and shows the full description in a long-text dialog.",
    "ps5_evidence": [
-    "native/tube_provider.c: description reader; companion/innertube/video_description.mjs"
+    "native/tube_provider.c: description reader; companion/innertube/video_description.mjs",
+    "Built-in service: the bundled companion/innertube/video_description.mjs; video details, description and related videos checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -813,7 +851,8 @@
    "ps5_evidence": [
     "scripts/discussion_overlay.py: pushes 'discussion:top:<id>' on R3",
     "native/tube_provider.c: catalog() 'discussion:top|newest|replies:'",
-    "tests/test_comment_ratings.py, companion/innertube/worker.test.mjs (comment normalization, replies)"
+    "tests/test_comment_ratings.py, companion/innertube/worker.test.mjs (comment normalization, replies)",
+    "Built-in service: comments and replies through the bundled library modules; standalone/test/account_test.py ('comments', 'comment references, no private fields'); top, newest and replies checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -885,7 +924,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'settings:history-sync' (\"Sync YouTube history: on/off\"), watch_flush()",
     "docs/LIBRARY_SERVICE.md: 'Playback history reports'",
-    "native/tube_provider.c + companion history_pause/resume"
+    "native/tube_provider.c + companion history_pause/resume",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('history pause', 'history pause repeat')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -900,7 +940,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'settings:clear-history' (\"Clear local history\")",
     "tests/test_native.c: list_catalog('settings:clear-history')",
-    "native/tube_provider.c + companion history_clear"
+    "native/tube_provider.c + companion history_clear",
+    "Built-in service: sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('history clear')"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -990,15 +1031,16 @@
   {
    "id": "extra.Menu.UpdateCheck",
    "title": "Check for updates (section menu)",
-   "status": "missing",
+   "status": "done",
    "smarttube": "Section menu entry that starts the app update check.",
-   "ps5_evidence": [],
-   "gaps": [
-    "No update check or self-update code in ProsperoTube"
+   "ps5_evidence": [
+    "native/tube_provider.c: 'Check for updates' (settings:update:check) is the last row of a main-menu section's menu (settings:section:<n>, Touchpad on its row), listed when the updater is part of the build; native/tube_update_app.c",
+    "tests/test_update_provider.c (scripts/test_update.sh): the row is absent without the updater, last in the section menu with it, and nothing is asked until it is selected"
    ],
+   "gaps": [],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "Belongs with the About settings audit; the owner's boilerplate update-check kit applies."
+   "size": "S",
+   "notes": "The answer is listed in About. Offline evidence only: never run on a console or against GitHub (docs/UPDATES.md)."
   },
   {
    "id": "extra.Search.Query",
@@ -1010,7 +1052,8 @@
     "companion/prosperotube/catalog.py: page_for(query=...)",
     "companion/innertube/library.mjs: kind 'search' -> client.search()",
     "scripts/prepare_native.py: evo_keyboard_open(\"Search YouTube videos...\")",
-    "tests/test_native.c, tests/test_companion.py"
+    "tests/test_native.c, tests/test_companion.py",
+    "Built-in service: standalone/js/catalog.js (pageFor: search, channel and playlist pages with their playback contexts, links and the video: / channel: / playlist: forms) over the bundled library modules; standalone/test/service_test.py ('search page shape', 'search by link', 'channel catalog', 'playlist catalog'), tests/test_embedded_e2e.c (scripts/test_embedded_e2e.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -1039,7 +1082,8 @@
    "status": "partial",
    "smarttube": "Search tags provider returns completions for the typed text and popular/recent queries when empty; clicking a tag searches.",
    "ps5_evidence": [
-    "native/tube_provider.c: Suggestions folder; companion search_suggestions"
+    "native/tube_provider.c: Suggestions folder; companion search_suggestions",
+    "Built-in service: search_suggestions of the bundled library modules; search suggestions checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "No as-you-type list while the keyboard is open"
@@ -1086,7 +1130,8 @@
    "status": "partial",
    "smarttube": "Any / last hour / today / this week / this month / this year.",
    "ps5_evidence": [
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "\"Last hour\" is not offered by the pinned library"
@@ -1101,7 +1146,8 @@
    "status": "done",
    "smarttube": "Any / under 4 min / 4-20 min / over 20 min.",
    "ps5_evidence": [
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -1114,7 +1160,8 @@
    "status": "done",
    "smarttube": "Any / video / channel / playlist / movie.",
    "ps5_evidence": [
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -1127,7 +1174,8 @@
    "status": "done",
    "smarttube": "Multi-select feature filters.",
    "ps5_evidence": [
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -1140,7 +1188,8 @@
    "status": "partial",
    "smarttube": "Relevance / upload date / view count / rating.",
    "ps5_evidence": [
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "Upload-date and rating orders are not offered by the pinned library"
@@ -1152,18 +1201,17 @@
   {
    "id": "extra.Search.ChannelAndPlaylistResults",
    "title": "Channel and playlist cards in results",
-   "status": "partial",
+   "status": "done",
    "smarttube": "Results include channels (open channel page) and playlists (open grid).",
    "ps5_evidence": [
     "companion/innertube/library.mjs: normalizePlaylist() -> is_folder rows in page()",
-    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py"
+    "native/tube_provider.c + companion/innertube/search_catalog.mjs: library search options; tests/test_search_options.c, tests/test_search_sections.py",
+    "Built-in service: the bundled companion/innertube/search_catalog.mjs behind the library search (standalone/js/core.js libraryExecute; 'library' is always in its feature list); standalone/test/service_test.py ('library search', 'library continuation'); filters checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
-   "gaps": [
-    "Cards appear only on the library search path, not on the Guest extractor path"
-   ],
+   "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Listed when 'Channels and playlists in results' is on (off by default) or a filter is set. With the built-in service the library search is always there; a development companion without its library worker lists videos only."
   },
   {
    "id": "extra.Search.PlayFirstResult",
@@ -1173,7 +1221,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: 'Play the first result: <query>' (search-first:<scope>) in Search options; search with first_playable, search_first_result",
     "companion/innertube/library.mjs: first_playable",
-    "tests/test_third_sections.c, companion/innertube/third_batch.test.mjs"
+    "tests/test_third_sections.c, companion/innertube/third_batch.test.mjs",
+    "Built-in service: search_first in its feature list (standalone/js/companion.js), first_playable answered by the bundled library modules; first playable result checked live as Guest on 2026-10-11 (standalone/README.md)"
    ],
    "gaps": [
     "Offered only as a Search options row for the last query; phone and voice 'play ...' requests do not use it"
