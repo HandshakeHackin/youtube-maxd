@@ -11,6 +11,9 @@
 #define TUBE_LISTENER_CONNECTIONS 32
 #define TUBE_LISTENER_HEAD_LIMIT 8192      /* request line + headers */
 #define TUBE_LISTENER_BODY_LIMIT 8192      /* as the companion: 8 KiB request bodies */
+/* POST /v1/subscriptions/import alone: the body is the user's export file, up
+ * to 1 MiB as the companion allows; one such body is received at a time. */
+#define TUBE_LISTENER_LARGE_BODY_LIMIT (1024 * 1024)
 
 typedef struct TubeListener TubeListener;
 

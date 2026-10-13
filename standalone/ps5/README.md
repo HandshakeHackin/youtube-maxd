@@ -239,7 +239,7 @@ int      tube_js_timers_next_delay(timers, now_ms);    uint32_t tube_js_timers_p
 `./test_bindings.sh` - clang, `-fsanitize=address,undefined`, leak detection on:
 
 ```
-test_bindings: 466 checks, 0 failures, 98 requests served on 127.0.0.1 (libcurl/8.18.0 OpenSSL/3.5.5 ...)
+test_bindings: 580 checks, 0 failures, 135 requests served on 127.0.0.1 (libcurl/8.18.0 OpenSSL/3.5.5 ...)
 test_random_console: 0 failures
 engine 0.17.0: 0 {"sum":42,"re":"34","big":"1180591620717411303424","date":"1970-01-01T00:00:00.000Z","map":["k"]}
 test_bindings: ok
@@ -257,8 +257,15 @@ root as a file and in memory, wrong host name, unknown root, wrong root in
 memory, bytes that are no certificate, a missing root file (all fail closed);
 hash vectors including one million `a` in odd-sized pieces; the console random
 path against a stand-in kernel call that fails, answers short and answers too
-long. The host's libcurl is the same 8.18.0 as the console's. No test resolves
-a name over the network or leaves the machine.
+long. Streaming requests (2026-10-13, for the phone receiver's long poll; over
+plain HTTP, with the console's sliced wait, and over TLS): pieces 100 ms apart
+handed over as they arrive and long before the answer ends, an empty body at
+completion, the limit as the longest silence and not the length, a silent
+stream ending as a timeout, cancellation, a waiting piece ending the wait at
+once, untaken pieces becoming the body, the bound on what waits, a followed
+redirect's body left out, an ordinary request beside an open stream, and a
+client freed with a stream open. The host's libcurl is the same 8.18.0 as the
+console's. No test resolves a name over the network or leaves the machine.
 
 ## 4. Threading and lifecycle (design; nothing of this is wired in yet)
 
@@ -415,6 +422,9 @@ it) from the relink of the app's own objects:
    not show it; `curl --http1.1 --compressed` with `br` removed would).
 8. **Shutdown inside the soft-close window**: stop, join and park with requests
    in flight and a name lookup pending.
+9. **A connection held open for minutes** (the phone receiver's long poll):
+   that pieces of a chunked answer reach the engine promptly through the sliced
+   wait, and that nothing on the console ends an idle TLS connection early.
 
 ## 7. Checked against the hardware-proven libcurl reference
 

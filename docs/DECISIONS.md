@@ -166,3 +166,53 @@ pinned library's own method builds an endpoint without an API path and throws
 before sending (found by the offline tests). Subscriptions import stays out of
 the built-in service: it needs a larger request limit in the listener and a
 file path on the console, which is more than this step.
+
+## 2026-10-13: subscriptions import and the phone receiver in the built-in service; voice search left out
+
+Later the same day the two remaining companion-only features moved into the
+app, and the third was weighed and left out. Offline only: no phone was linked
+and nothing was sent to YouTube ([validation](VALIDATION.md)).
+
+**Subscriptions import.** The parser is ported as it is. The listener keeps
+its 8 KiB body limit and lets this one route carry 1 MiB, one such body at a
+time, received into a block that goes to the engine without a second copy.
+The file path is the provider's, as before: it reads the user's file from the
+import folder and posts it.
+
+**The phone receiver, and how its back channel is read.** YouTube's Lounge
+service answers the back-channel request with one long-lived chunked response
+(`CI=0`), and the service's HTTPS client delivered whole bodies. Two ways:
+
+- ask for the buffered form (`CI=1`), in which the server ends the response
+  after each batch of frames, and keep the client as it was; or
+- teach the client to hand a response over in pieces.
+
+The second was chosen. The buffered form is a different server path than the
+one the Python receiver was checked against live, nothing in this repository
+shows YouTube's phone service honouring it, and this step may not ask YouTube.
+A streaming request keeps the wire identical to the checked one and costs
+little: one flag on a request, one call that hands over what arrived, the
+request's time limit read as its longest silence, the same completion and
+cancellation as before, in the C that already runs on host and console
+(`standalone/ps5/tube_js_http.*`). Its use is confined to the receiver.
+
+**Identity stays with the provider.** It creates and saves the receiver's
+device and screen identifiers and passes them with every start; the service
+stores nothing about the receiver, so that "Reset phone pairing" forgets
+everything there is to forget. Tokens and sessions of the phone service exist
+in memory only.
+
+**Offered by the feature list.** The service lists `subscriptions_import` and
+`remote`; the provider shows the rows unless a service it has asked does not
+list them, the rule accounts already follow.
+
+**Not done at exit.** Stopping the service on the first soft-close frame does
+not wait for a request that ends the channel upstream; the phone learns of the
+exit when YouTube notices the closed connection. The exit path was accepted on
+hardware and is not lengthened for this.
+
+**Voice search is left out.** A recogniser on the console means whisper.cpp
+and a 31 to 75 MiB model as new third-party code and data, with memory and
+time that nobody has measured there; YouTube.js has no speech endpoint and
+YouTube's own recogniser is a cloud service. With a phone linked, the YouTube
+app's voice search does the job from the phone. [Assessment](VOICE_SEARCH.md).

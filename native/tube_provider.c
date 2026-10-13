@@ -1704,7 +1704,10 @@ enum { COMPANION_LOCALE = 1, COMPANION_THUMBNAILS = 2, COMPANION_FILTERS = 4, CO
        COMPANION_COMMENT_POST = 8192, COMPANION_SEARCH_FIRST = 16384, COMPANION_NEW_CONTENT = 32768,
        COMPANION_DISLIKES = 65536,
        /* sign-in by device code; the built-in service lists it once it keeps accounts itself */
-       COMPANION_DEVICE_AUTH = 131072 };
+       COMPANION_DEVICE_AUTH = 131072,
+       /* the phone receiver (POST /v1/remote). Only the built-in service lists it; a companion has
+        * always had the route, so the bit is asked about in built-in mode alone (embedded_lacks). */
+       COMPANION_REMOTE = 262144 };
 static struct { char source[512]; unsigned features; int known; } g_companion;
 static int companion_known(void) { return g_companion.known && *g_source && !strcmp(g_companion.source, g_source); }
 static int companion_has(unsigned feature) { return companion_known() && (g_companion.features & feature) == feature; }
@@ -1713,6 +1716,9 @@ static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion)
  * rows are replaced by one explanation. Before its feature list was read, and whenever
  * the list names sign-in, accounts are offered as with a companion. */
 static int embedded_guest_only(void) { return g_embedded && companion_known() && !companion_has(COMPANION_DEVICE_AUTH); }
+/* The same rule for every other part: a built-in service that does not list it has no
+ * row for it; before the list was read, the service the app carries is assumed. */
+static int embedded_lacks(unsigned feature) { return g_embedded && companion_known() && !companion_has(feature); }
 
 int tube_embedded_mode(void) { return g_embedded; }
 const char *tube_embedded_address(void) { return g_embedded && !strncmp(g_source, "http://", 7) ? g_source + 7 : ""; }
@@ -1783,7 +1789,7 @@ static void companion_read(const cJSON *root) {
         {"kids", COMPANION_KIDS}, {"stream_reminder", COMPANION_REMINDER}, {"playlist_order", COMPANION_PLAYLIST_ORDER},
         {"subscribe_notifications", COMPANION_NOTIFICATIONS}, {"comment_post", COMPANION_COMMENT_POST},
         {"search_first", COMPANION_SEARCH_FIRST}, {"channel_new_content", COMPANION_NEW_CONTENT}, {"dislikes", COMPANION_DISLIKES},
-        {"device_auth", COMPANION_DEVICE_AUTH}
+        {"device_auth", COMPANION_DEVICE_AUTH}, {"remote", COMPANION_REMOTE}
     };
     const cJSON *features = cJSON_GetObjectItemCaseSensitive(root, "features"), *feature;
     companion_forget();
@@ -2119,7 +2125,9 @@ static int extra_saved(const TubePlayerExtra *prefs, void *user) {
 static cJSON *g_resolved_facts;
 
 static void remote_configure(void) {
-    if (!g_embedded && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && *g_source && *g_token && !*g_remote_device) {
+    /* A built-in service without the phone receiver (an older service bundle) is never asked for one. */
+    const int offered = !embedded_lacks(COMPANION_REMOTE);
+    if (offered && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && *g_source && *g_token && !*g_remote_device) {
         unsigned char bytes[16];
         if (tube_random_bytes(bytes, sizeof bytes)) {
             g_remote_entropy_failed = 1;
@@ -2134,7 +2142,7 @@ static void remote_configure(void) {
         g_remote_identity_saved = 0; save();
     }
     tube_remote_configure(g_source, g_token, g_library_profile,
-        !g_embedded && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
+        offered && g_remote_enabled && !g_remote_entropy_failed && g_store_writable && g_remote_identity_saved && !g_remote_write_failed,
         g_remote_device, g_remote_screen);
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
@@ -5403,10 +5411,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
         }
         else if (!strcmp(parent, "settings:remote:toggle") || !strcmp(parent, "settings:remote:pair")) {
-            if (g_embedded) {
-                tube_set_error("Linking a phone is not part of the built-in YouTube service yet.");
+            if (embedded_lacks(COMPANION_REMOTE)) {
+                tube_set_error("Linking a phone is not part of this built-in YouTube service.");
             } else if (!g_store_writable || !*g_source || !*g_token) {
-                tube_set_error("Pair with the companion and check local storage before linking a phone.");
+                tube_set_error(g_embedded ? "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry." :
+                    "Pair with the companion and check local storage before linking a phone.");
             } else {
                 g_remote_entropy_failed = 0;
                 g_remote_enabled = !strcmp(parent, "settings:remote:pair") ? 1 : !g_remote_enabled;
@@ -5567,7 +5576,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "account:notice:experimental:1", "They may fail or change in a later version",
                 "Each acts only when you select it or turn it on; your saved choices are kept");
             CATALOG_FOLDER( "account:notice:experimental:2", "Marked in this version",
-                g_embedded ? "Chat and comment posting, account history controls, feedback actions and the profile password" :
+                g_embedded ? "Phone pairing, chat and comment posting, account history controls, feedback actions and the profile password" :
                 "Phone pairing, voice search, chat and comment posting, account history controls, feedback actions and the profile password");
             for (int i = 0; i < n; ++i) experimental(&out[i]);
         } else if (!strcmp(parent, "settings:about")) {
@@ -5652,7 +5661,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 snprintf(id, sizeof id, "settings:backup:auto:%d", periods[(period + 1) % 4]);
                 snprintf(label, sizeof label, "Automatic backup: %s", names[period]);
                 CATALOG_FOLDER( id, label, "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5");
-                if (!g_embedded) /* the built-in service cannot read an export yet: not offered */
+                if (!embedded_lacks(COMPANION_IMPORT)) /* a built-in service that cannot read an export: not offered */
                     CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
             }
         } else if (!strncmp(parent, "settings:lock:", 14)) {
@@ -6057,7 +6066,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             char interval_label[80]; snprintf(interval_label,sizeof interval_label,"Seek interval: %d seconds",tube_player_seek_seconds());
             CATALOG_FOLDER("settings:seek-interval",interval_label,"Choose the Left / Right seek interval for this profile");
             CATALOG_FOLDER("settings:player-seek",label,"Choose timeline confirmation behavior for this profile");
-            if (!g_embedded) { /* phone linking still needs the PC companion: the row is not offered at all */
+            if (!embedded_lacks(COMPANION_REMOTE)) { /* a built-in service without the phone receiver: the row is not offered at all */
                 CATALOG_FOLDER( "settings:remote", "Phone pairing" EXPERIMENTAL, "Link the YouTube app with a TV code; off until a phone is linked"); experimental(&out[n - 1]);
             }
             CATALOG_FOLDER( "settings:sb", "SponsorBlock actions", "Category actions, minimum skip, excluded channels and rewind behavior");

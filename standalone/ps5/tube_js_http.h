@@ -78,7 +78,23 @@ typedef struct tube_js_http_request {
     int redirect;                          /* TUBE_JS_HTTP_REDIRECT_* */
     long timeout_ms;                       /* 0 = the client's */
     size_t max_response_bytes;             /* 0 = the client's */
+    /* 1 = a streaming request, for an answer that stays open and is read as it
+     * arrives (a long poll). Its body is not collected: after each
+     * tube_js_http_poll() the pieces that arrived are handed over by
+     * tube_js_http_take_chunk(). For such a request `timeout_ms` bounds each
+     * silence (the wait for the answer and between two pieces) instead of the
+     * whole request, and `max_response_bytes` bounds what waits to be taken.
+     * It ends like any other request: completed, taken, freed; or cancelled. */
+    int stream;
 } tube_js_http_request;
+
+/* One piece of a streaming request's body. */
+typedef struct tube_js_http_chunk {
+    uint32_t id;
+    long status;                           /* of the answer the piece belongs to */
+    const unsigned char *data;             /* valid until the next call on this client */
+    size_t length;
+} tube_js_http_chunk;
 
 typedef struct tube_js_http_response {
     uint32_t id;
@@ -107,13 +123,22 @@ int tube_js_http_start(tube_js_http *client, const tube_js_http_request *request
 int tube_js_http_cancel(tube_js_http *client, uint32_t id);
 
 /* Moves the transfers along, waiting up to `wait_ms` for network activity or a
- * wake (0 = do not wait). Returns how many completed requests can be taken. */
+ * wake (0 = do not wait). Returns how many completed requests can be taken.
+ * It does not wait while a piece of a streaming request is waiting to be taken. */
 int tube_js_http_poll(tube_js_http *client, int wait_ms);
 
 /* The next completed request in completion order, or NULL. The caller owns it
  * until tube_js_http_response_free(). */
 tube_js_http_response *tube_js_http_take(tube_js_http *client);
 void tube_js_http_response_free(tube_js_http_response *response);
+
+/* 1 and the bytes that arrived for one streaming request since its last
+ * piece; 0 when none waits. Empty it after every tube_js_http_poll() and before
+ * taking completed requests: a request's pieces then come in order and before
+ * its completion, whose body is empty. (What was not taken by then is the
+ * completed response's body.) The body of a redirect that is followed is never
+ * handed over; a request that fails drops what was not yet taken. */
+int tube_js_http_take_chunk(tube_js_http *client, tube_js_http_chunk *chunk);
 
 int tube_js_http_active(const tube_js_http *client);   /* requests not yet complete */
 

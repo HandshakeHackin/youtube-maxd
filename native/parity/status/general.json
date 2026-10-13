@@ -510,12 +510,13 @@
    "status": "not_applicable",
    "smarttube": "Radio: System / External 1 (intent) / External 2 (gotev) Android recognizers.",
    "ps5_evidence": [
-    "native/tube_voice.c + companion/prosperotube/voice.py: single engine (companion whisper.cpp); docs/VOICE_SEARCH.md"
+    "native/tube_voice.c + companion/prosperotube/voice.py: single engine (companion whisper.cpp); docs/VOICE_SEARCH.md",
+    "docs/VOICE_SEARCH.md 'Without a companion': the built-in service has no recognizer at all"
    ],
    "gaps": [],
    "offline_feasible": false,
    "size": "S",
-   "notes": "The three choices are Android speech services; ProsperoTube has exactly one recognizer."
+   "notes": "The three choices are Android speech services; ProsperoTube has exactly one recognizer. With the built-in service there is none; the single recognizer exists only with the development companion."
   },
   {
    "id": "SearchSettingsPresenter.appendMiscCategory",
@@ -790,7 +791,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: settings:backup:import lists the export files of the import folder (at most 1 MiB), POST /v1/subscriptions/import, the channel count shown for one confirmation, channels added to Followed channels (bounded)",
     "companion/prosperotube/subscriptions_import.py (NewPipe, PocketTube, GrayJay)",
-    "tests/test_subscriptions_import.c, tests/test_third_batch.py"
+    "tests/test_subscriptions_import.c, tests/test_third_batch.py",
+    "Built-in service: standalone/js/subscriptions_import.js (the same parser inside the app, 1 MiB body on this route), standalone/test/import_test.py, tests/test_embedded_e2e.c"
    ],
    "gaps": [],
    "offline_feasible": true,

@@ -12,7 +12,11 @@ application carries its own YouTube service (a small JavaScript engine running
 video straight from YouTube's servers. It browses and plays as **Guest**, and
 YouTube accounts can be signed in on the console itself with a device code.
 The account features were tested offline only: **no real account has signed in
-with this build yet** (see [Accounts](#accounts-on-the-console)).
+with this build yet** (see [Accounts](#accounts-on-the-console)). The YouTube
+app on a phone can cast to it with a TV code (experimental, tested offline
+only: **no real phone has been linked yet**), and subscriptions can be imported
+from an export file. The one thing that still needs a computer is voice search,
+which this release does not have.
 
 Release 0.1.0 is being prepared. [docs/STATUS.md](docs/STATUS.md) states what is
 implemented, what was tested and where, and what is still open before release.
@@ -108,6 +112,19 @@ next section lists the part that also ran on a PS5.
   create, rename, delete, order and save. Every change is reviewed on a
   confirmation screen and sent once.
 
+**Phone casting** (experimental; the receiver runs inside the app, see
+[docs/REMOTE_SERVICE.md](docs/REMOTE_SERVICE.md))
+
+- **Phone pairing** in the player preferences: **Link a phone** shows a TV
+  code; enter it in the YouTube app under *Watch on TV > Enter TV code*. Off
+  until a phone is linked; **Reset phone pairing** forgets this TV's identity.
+- From the phone: start a video or a queue, play, pause, seek, next, previous,
+  volume, captions and stop; the phone shows what plays and where. A choice of
+  what happens when the phone disconnects (keep playing, stop, close the app),
+  and whether phone playback enters the history.
+- Host-tested against a stand-in for YouTube's phone service. Whether a real
+  phone links, and how the connection behaves over an evening, is unknown.
+
 **Settings** (YouTube preferences; English interface)
 
 - Player and caption choices above, per profile or shared (**Separate settings
@@ -195,10 +212,11 @@ password need a signed-in account. Their rows end in
 - Update check and self-update.
 - Playing videos that need the account itself (age-restricted, private,
   members-only, purchased): a signed-in profile resolves videos as Guest does.
-- Phone casting and voice search (they need a service the app does not carry
-  yet; their rows and the L3 shortcut are hidden).
-- Importing subscriptions from another application.
-- The code of the last three remains in the tree, inactive in this build.
+- Voice search: there is no speech recogniser on the console, so the L3
+  shortcut is hidden ([docs/VOICE_SEARCH.md](docs/VOICE_SEARCH.md) weighs the
+  ways to add one). With a phone linked, the YouTube app's own voice search
+  works from the phone. The voice code remains in the tree for the
+  development companion.
 - Trending and Shorts as sections: YouTube does not offer them to a Guest; the
   app shows one explanatory row.
 - Automatic frame-rate switching, HDR and background playback.

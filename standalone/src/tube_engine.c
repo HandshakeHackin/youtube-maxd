@@ -50,8 +50,9 @@ typedef struct {
   tube_js_http *http;
   tube_js_timers *timers;
   TubeListener *listener;
-  JSValue on_timer, http_done, on_request;
+  JSValue on_timer, http_done, http_chunk, on_request;
   atomic_int stop;
+  int loopback_http;             /* tests: plain http to 127.0.0.1 may be asked for (see tube_service_options.lounge_base) */
   unsigned requests, served;
   uint64_t bytes_in;
   double bundle_ms;
@@ -313,9 +314,12 @@ static double number_property(JSContext *ctx, JSValueConst object, const char *n
   return number;
 }
 
-/* httpStart({method, url, headers: [[name, value]...], body, redirect, timeout_ms, max_bytes}) -> id.
+/* httpStart({method, url, headers: [[name, value]...], body, redirect, timeout_ms, max_bytes, stream}) -> id.
  * `redirect` is 0 follow, 1 manual, 2 error. The answer arrives later through
- * __tubeHttpDone(id, {status, url, redirected, headers, body} | undefined, error). */
+ * __tubeHttpDone(id, {status, url, redirected, headers, body} | undefined, error).
+ * With `stream` the body comes first, piece by piece as it arrives, through
+ * __tubeHttpChunk(id, status, bytes); `timeout_ms` is then the longest silence
+ * and the final answer's body is empty. */
 static JSValue host_http_start(JSContext *ctx, JSValueConst self, int argc, JSValueConst *argv) {
   (void)self; (void)argc;
   Engine *engine = JS_GetContextOpaque(ctx);
@@ -336,9 +340,13 @@ static JSValue host_http_start(JSContext *ctx, JSValueConst self, int argc, JSVa
   uint8_t *body_data = bytes_of(ctx, body, &body_size);
   tube_js_http_request request = { method, url, headers, count, body_data, body_size,
     (int)number_property(ctx, argv[0], "redirect", TUBE_JS_HTTP_REDIRECT_FOLLOW), (long)number_property(ctx, argv[0], "timeout_ms", 0),
-    (size_t)number_property(ctx, argv[0], "max_bytes", 0) };
+    (size_t)number_property(ctx, argv[0], "max_bytes", 0), 0 };
+  JSValue stream = JS_GetPropertyStr(ctx, argv[0], "stream");
+  request.stream = JS_ToBool(ctx, stream) > 0;
+  JS_FreeValue(ctx, stream);
   uint32_t id = 0;
-  int error = url && !strncmp(url, "https://", 8) ? tube_js_http_start(engine->http, &request, &id) : TUBE_JS_HTTP_INVALID;
+  int allowed = url && (!strncmp(url, "https://", 8) || (engine->loopback_http && !strncmp(url, "http://127.0.0.1:", 17)));
+  int error = allowed ? tube_js_http_start(engine->http, &request, &id) : TUBE_JS_HTTP_INVALID;
   if (!error) engine->requests++;
   for (size_t i = 0; i < count; i++) { JS_FreeCString(ctx, names[i]); JS_FreeCString(ctx, values[i]); }
   JS_FreeValue(ctx, list); JS_FreeValue(ctx, body);
@@ -428,6 +436,14 @@ static void deliver_transfer(Engine *engine, const tube_js_http_response *respon
   call_and_free(engine, engine->http_done, 3, argv);
 }
 
+static void deliver_chunk(Engine *engine, const tube_js_http_chunk *chunk) {
+  JSContext *ctx = engine->ctx;
+  engine->bytes_in += chunk->length;
+  JSValue argv[3] = { JS_NewUint32(ctx, chunk->id), JS_NewInt32(ctx, (int32_t)chunk->status), JS_NewArrayBufferCopy(ctx, chunk->data, chunk->length) };
+  if (JS_IsFunction(ctx, engine->http_chunk)) call_and_free(engine, engine->http_chunk, 3, argv);
+  else for (int i = 0; i < 3; i++) JS_FreeValue(ctx, argv[i]);
+}
+
 static void deliver_request(Engine *engine, const TubeRequest *request) {
   JSContext *ctx = engine->ctx;
   engine->served++;
@@ -457,6 +473,9 @@ static void engine_loop(Engine *engine, JSValueConst promise) {
     if (command && delay < 0 && !busy && !tube_js_http_active(engine->http)) { fprintf(stderr, "tube_js: the operation stalled\n"); break; }
     /* The cap keeps the loop correct even where the wake cannot be delivered. */
     tube_js_http_poll(engine->http, busy ? 0 : delay < 0 || delay > 100 ? 100 : delay);
+    /* Pieces of streaming answers first: each request's pieces precede its completion. */
+    tube_js_http_chunk chunk;
+    while (tube_js_http_take_chunk(engine->http, &chunk)) deliver_chunk(engine, &chunk);
     tube_js_http_response *response;
     while ((response = tube_js_http_take(engine->http))) { deliver_transfer(engine, response); tube_js_http_response_free(response); }
   }
@@ -467,11 +486,13 @@ static int interrupted(JSRuntime *runtime, void *opaque) { (void)runtime; return
 /* Creates the runtime and evaluates the bundle on the calling thread.
  * `config` becomes `__host.config` (consumed). */
 static const char *engine_open(Engine *engine, const tube_service_options *options, JSValue (*settings)(JSContext *, void *), void *opaque) {
-  engine->on_timer = engine->http_done = engine->on_request = JS_UNDEFINED;
+  engine->on_timer = engine->http_done = engine->http_chunk = engine->on_request = JS_UNDEFINED;
+  engine->loopback_http = options->lounge_base != NULL;
   /* IPv4 only: media links are bound to the address that asked for them, and
    * the player (FFmpeg) reaches the media servers over IPv4. With links
    * obtained over IPv6 every read by the player was refused with 403. */
-  tube_js_http_config http = { .ca_file = options->ca_file, .timeout_ms = 20000, .max_requests = 32, .ipv4_only = 1 };
+  /* Ten connections: up to four phone receivers each hold one open for their long poll, and six stay as before. */
+  tube_js_http_config http = { .ca_file = options->ca_file, .timeout_ms = 20000, .max_requests = 32, .max_connections = 10, .ipv4_only = 1 };
 #ifdef TUBE_SERVICE_EMBEDDED
   if (!options->ca_file) { http.ca_data = tube_js_ca_pem; http.ca_length = tube_js_ca_pem_length; }
   http.socket_setup = tube_js_console_socket_setup;
@@ -516,6 +537,7 @@ static const char *engine_open(Engine *engine, const tube_service_options *optio
     else {
       engine->on_timer = JS_GetPropertyStr(ctx, global, "__tubeTimer");
       engine->http_done = JS_GetPropertyStr(ctx, global, "__tubeHttpDone");
+      engine->http_chunk = JS_GetPropertyStr(ctx, global, "__tubeHttpChunk");   /* absent in an older bundle: nothing streams then */
       engine->on_request = JS_GetPropertyStr(ctx, global, "__tubeRequest");
       if (!JS_IsFunction(ctx, engine->on_timer) || !JS_IsFunction(ctx, engine->http_done) || !JS_IsFunction(ctx, engine->on_request))
         failure = "The service bundle is not a service.";
@@ -532,6 +554,7 @@ static void engine_close(Engine *engine) {
   if (engine->ctx) {
     JS_FreeValue(engine->ctx, engine->on_timer);
     JS_FreeValue(engine->ctx, engine->http_done);
+    JS_FreeValue(engine->ctx, engine->http_chunk);
     JS_FreeValue(engine->ctx, engine->on_request);
     JS_FreeContext(engine->ctx);
   }
@@ -572,6 +595,7 @@ static JSValue service_settings(JSContext *ctx, void *opaque) {
   set_string(ctx, config, "state_dir", service.state_dir);
   set_string(ctx, config, "sponsorblock_server", service.options.sponsorblock_server);
   set_string(ctx, config, "pairing_code", service.options.pairing_code);
+  set_string(ctx, config, "lounge_base", service.options.lounge_base);
   JS_SetPropertyStr(ctx, config, "sponsorblock", JS_NewBool(ctx, service.options.sponsorblock));
   JS_SetPropertyStr(ctx, config, "ranged_manifest", JS_NewBool(ctx, service.options.ranged_manifest));
   JS_SetPropertyStr(ctx, config, "account_playback", JS_NewBool(ctx, service.options.account_playback));

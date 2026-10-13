@@ -33,10 +33,16 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   ratings, subscriptions, playlist editing, and the experimental chat and
   comment posting, account-history controls and feedback actions. Offered
   whenever the service's feature list names `device_auth`.
-- **In the tree, inactive in the release:** phone casting, voice search,
-  subscriptions import, and signed-in playback of videos that need the account
-  (`account_playback`, off). They still work against the development
-  companion.
+- **Added 2026-10-13, host-tested only:** in the built-in service, the
+  subscriptions import (`subscriptions_import`) and the phone receiver
+  (`remote`: TV-code pairing, the phone's commands, player-state feedback).
+  Their rows are offered whenever the service's feature list names them. The
+  receiver has met a local stand-in for YouTube's phone service only: **no
+  real phone has been linked to this build.**
+- **In the tree, inactive in the release:** voice search (no speech recogniser
+  on the console; [assessment](VOICE_SEARCH.md)) and signed-in playback of
+  videos that need the account (`account_playback`, off). Voice search still
+  works against the development companion.
 - **Deferred:** localization, remaining interface options, drawn seek
   previews, update check and self-update, auto frame rate, HDR and background
   playback.
@@ -45,8 +51,21 @@ the console is a hard requirement; the first MVP is Guest, standalone.
 
 - `standalone/`: QuickJS-NG 0.17.0 running YouTube.js 18.1.0 and the
   companion's library modules; a loopback listener with the companion's API;
-  libcurl + OpenSSL with an embedded root list. Host-tested (20 engine and 132
+  libcurl + OpenSSL with an embedded root list. Host-tested (20 engine and 131
   HTTP checks, plain and under sanitizers) and checked live as Guest.
+- Subscriptions import: `POST /v1/subscriptions/import` takes the export file
+  as its body, up to 1 MiB, on this one route (the others keep 8 KiB); the
+  parser is the companion's, ported, with its test cases. Host-tested: 51 HTTP
+  checks, plain and under sanitizers, and the provider end to end.
+- Phone receiver: `POST /v1/remote` with the companion's request and answer
+  shapes ([details](REMOTE_SERVICE.md)). The back channel is a long poll read
+  as it arrives, which the HTTPS client gained for it (a streaming request
+  with a silence limit; 114 more checks of the bindings on plain HTTP, the
+  console's way of waiting and TLS). Host-tested: 272 HTTP checks against a
+  stand-in for YouTube's phone service with a streamed back channel, plain and
+  under sanitizers, and the provider with its driver end to end (TV code,
+  commands in order, state report, off). Voice commands from the phone stay
+  unsupported: the receiver never advertises a microphone.
 - The provider starts it after storage is ready, uses its address and token in
   memory only, never pairs, retries from a visible row when it did not start,
   and stops it on the first soft-close frame. Host-tested against a stand-in
@@ -95,9 +114,9 @@ accepted on hardware or equivalent to SmartTube in every edge case.
   later, playlists and own videos; ratings, subscribe with notification level,
   playlist edits and order, stream reminders; comments with replies and rating;
   live chat and chat replay.
-- **Experimental:** phone casting, voice search, chat and comment posting,
-  account-history pause/resume/clear, feedback actions and the profile
-  password. All are host-tested, labelled **(experimental)** in the interface
+- **Experimental:** phone casting, voice search (development companion only),
+  chat and comment posting, account-history pause/resume/clear, feedback
+  actions and the profile password. All are host-tested, labelled **(experimental)** in the interface
   and inactive until the user turns them on or selects them.
 
 On 2026-10-11 `bash scripts/test_all.sh` passed all 58 of its steps on the
@@ -117,10 +136,13 @@ evidence, not console acceptance.
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Player and playback | 41 | 23 | 9 | 5 | 78 |
-| Browsing, search and menus | 62 | 15 | 2 | 1 | 80 |
+| Browsing, search and menus | 61 | 16 | 2 | 1 | 80 |
 | Accounts, remote control and integrations | 19 | 7 | 2 | 1 | 29 |
 | General, interface and maintenance | 18 | 9 | 25 | 6 | 58 |
-| **All** | **140** | **54** | **38** | **13** | **245** |
+| **All** | **139** | **55** | **38** | **13** | **245** |
+
+Voice search moved from done to partial on 2026-10-13: the release has no
+speech recogniser, so it exists only with the development companion.
 
 The open items are mostly interface options, localization, update checks and
 hardware-dependent features, which the first release defers.
@@ -146,10 +168,14 @@ live service exists it is named; everything else has seen fixtures only.
 - Backups, restore, subscriptions import, About and the QR pages.
 - Kids, stream reminders, playlist order, notification levels, video details,
   likes and dislikes, comment posting and new-content marks.
-- Phone casting with a real phone (the companion's receiver registered against
-  the live service once, with a temporary receiver), and voice search with a
-  real microphone (recognition was tested with real whisper.cpp inference on
-  the host).
+- Phone casting with a real phone. The companion's receiver registered against
+  the live service once, with a temporary receiver; the built-in receiver
+  speaks the same protocol but has met only a local stand-in, and the cadence
+  of YouTube's keep-alive frames against its 65-second silence limit is
+  unobserved from this engine.
+- Voice search with a real microphone (recognition was tested with real
+  whisper.cpp inference on the host, through the development companion; the
+  release has no recogniser).
 - GPU presentation of zoom, rotation and mirror, long sessions and controller
   feel.
 
@@ -217,10 +243,13 @@ are unverified.
    options, end, history, clean park and close. This is the first time the
    engine, the HTTPS client and direct playback run on a console.
 4. Fix what the session finds, then release.
+5. **Phone casting with a real phone**, after the core path holds: link with a
+   TV code, cast one video and one queue, control it, leave it idle for some
+   minutes, turn it off ([what to look at](REMOTE_SERVICE.md#built-in-receiver)).
 
 Known limits that stay after the release: accounts unverified against the
-live service and no playback of videos that need the account, no phone
-casting, voice search or subscriptions import, one YouTube client identity
+live service and no playback of videos that need the account, phone casting
+unverified with a real phone, no voice search, one YouTube client identity
 (`VISIONOS`) with no fallback but HLS, English only, no auto frame rate, HDR or
 background playback.
 

@@ -24,6 +24,8 @@ account has signed in, and the self-sufficient build has not run on a console;
 - Comments with replies and comment rating, live chat and chat replay.
 - Video actions, a suggestions list, chapter notification and screen dimming in the player.
 - Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links.
+- Import subscriptions from a NewPipe, PocketTube or GrayJay export file placed in /data/prosperotube/import; the file is read inside the app.
+- Phone casting (experimental): link the YouTube app with a TV code; play, pause, seek, queue, volume and captions from the phone. The receiver runs inside the app. Tested offline only; no real phone has been linked yet.
 - Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has.
-- Experimental, marked (experimental) and tested offline only: chat and comment posting, account-history controls, feedback actions and the profile password.
-- Not included yet: videos that need the account itself (age-restricted, private, members-only), phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback.
+- Experimental, marked (experimental) and tested offline only: phone pairing, chat and comment posting, account-history controls, feedback actions and the profile password.
+- Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback.

@@ -6,8 +6,8 @@
 // bytes are never relayed (manifests and playlists name YouTube's servers,
 // a muxed file answers with a redirect), accounts are signed in on the console
 // itself and their credentials live in the app's data directory, every profile
-// resolves videos without credentials (account_playback.js), and phone remote,
-// voice, import and proxy are not offered.
+// resolves videos without credentials (account_playback.js), and voice search
+// and a proxy are not offered.
 import { Catalog, item, videoRecord } from './catalog.js';
 import { accountExtract, accountPlayback, needsAccount } from './account_playback.js';
 import { config, deadline, deviceAuth, extractVideo, hasProfile, libraryExecute, mediaFetch, onProfileRemoved, scoped, tokenUrlsafe } from './core.js';
@@ -15,15 +15,18 @@ import { ServiceError } from './errors.js';
 import { DeArrow, Sponsor, thumbnails } from './extras.js';
 import { bytesOf, fixtureRequests, headerLines } from './fetch_shim.js';
 import { createPlayback, vttToSrt } from './resolve.js';
+import { Lounge, remoteRequest } from './lounge.js';
+import { parseImport } from './subscriptions_import.js';
 import { Invalid, deviceSession, deviceStart, jobRequest, libraryRequest, queryOptions, resolveRequest, validLocale } from './schema.js';
 
 const host = globalThis.__host;
 const VERSION = typeof __TUBE_VERSION__ === 'string' ? __TUBE_VERSION__ : '0.0.0';
 const VIDEO = /^[A-Za-z0-9_-]{11}$/;
-// Exactly what this service implements; no relay, voice, import, dislikes or proxy.
+// Exactly what this service implements; no relay, voice, dislikes or proxy. `remote` is the phone
+// connection (POST /v1/remote); the Python service has the route without listing it.
 const FEATURES = ['search', 'channels', 'playlists', 'dash', 'captions', 'dearrow', 'locale', 'thumbnail_source', 'storyboards',
   'translated_captions', 'video_details', 'library', 'content_filters', 'channel_pages', 'kids', 'stream_reminder', 'playlist_order',
-  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'embedded'];
+  'subscribe_notifications', 'comment_post', 'search_first', 'channel_new_content', 'device_auth', 'subscriptions_import', 'remote', 'embedded'];
 const SESSION_TTL = 1800000, JOB_TTL = 120000;
 
 const videoId = value => { if (!VIDEO.test(value ?? '')) throw new ServiceError('invalid_video', 'Enter an eleven-character YouTube video ID.', 400); return value; };
@@ -44,6 +47,8 @@ export class Companion {
     this.dearrow = new DeArrow();
     this.catalogs = new Map(); this.auth = deviceAuth;
     this.sessions = new Map(); this.jobs = new Map();
+    this.remote = null;   // the phone receiver exists only once a `start` asked for it
+    this.loungeBase = settings.lounge_base ?? '';
     onProfileRemoved(identity => this.profileRemoved(identity));
   }
   // Search and channel pages are public and read with the Guest session in
@@ -241,6 +246,19 @@ export class Companion {
     return { state: 'cancelled' };
   }
 
+  // POST /v1/remote (app.remote_operation). Nothing is contacted before an explicit `start`.
+  remoteOperation(payload) {
+    // "mic" needs a speech recogniser on this side as well; there is none here.
+    payload.voice_enabled = false;
+    if (!this.remote) {
+      if (payload.action !== 'start') throw new ServiceError('remote_session', 'Enable phone connection first.', 404);
+      // The stand-in of the offline tests may run its lease and retry clock faster.
+      const pace = this.loungeBase ? Number(host.getenv('TUBE_JS_REMOTE_CLOCK')) || 1 : 1;
+      this.remote = new Lounge({ base: this.loungeBase, playlistLoader: request => libraryExecute(request), clock: () => host.now() / 1000 * pace });
+    }
+    return this.remote.execute(payload);
+  }
+
   pair(body) {
     if (!body || typeof body !== 'object' || typeof body.code !== 'string' || !/^[0-9]{6}$/.test(body.code)) throw new Invalid('String should match pattern', 'code');
     const now = host.now();
@@ -286,6 +304,8 @@ export class Companion {
         const options = queryOptions(query), record = await this.details(id, options.profile, options.hl);
         return json({ api_version: 1, item: item(record), chapters: record.chapters, caption_languages: record.caption_languages });
       }],
+      // The body is the export file itself; nothing is stored and no account is touched.
+      ['POST', /^\/v1\/subscriptions\/import$/, () => json(parseImport(body))],
       ['GET', /^\/v1\/dislikes\/([^/]+)$/, id => { videoId(id); return json({ api_version: 1, enabled: false }); }],
       ['GET', /^\/v1\/sponsor\/([^/]+)$/, async id => {
         videoId(id);
@@ -300,14 +320,14 @@ export class Companion {
         return image ? { status: 200, type: image.type, headers: [['Cache-Control', 'private, max-age=300']], body: image.bytes } : { status: 404, type: 'text/plain', headers: [], body: '' };
       }],
       ['GET HEAD', /^\/media\/([^/]+)\/([^/]+)$/, (token, key) => this.media(token, key, method, headers, query)],
-      // Not offered by the embedded service: the existing "not available" answers.
       ['POST', /^\/v1\/auth\/start$/, async () => json(await this.auth.start(deviceStart(posted()).name))],
       ['POST', /^\/v1\/auth\/status$/, async () => json(await this.auth.status(deviceSession(posted()).session))],
       ['POST', /^\/v1\/auth\/cancel$/, () => json(this.auth.cancel(deviceSession(posted()).session))],
       // Offline tests only: which upstream requests the canned answers saw.
       ...(host.getenv('TUBE_JS_FIXTURES') ? [['GET', /^\/v1\/_upstream$/, () => json({ requests: query.get('clear') ? fixtureRequests.splice(0) : fixtureRequests })]] : []),
-      ['POST', /^\/v1\/voice$/, () => { throw new ServiceError('voice_unavailable', 'Enable local speech recognition on the companion first.', 503); }],
-      ['POST', /^\/v1\/remote$/, () => { throw new ServiceError('remote_session', 'Enable phone connection first.', 404); }]
+      ['POST', /^\/v1\/remote$/, async () => json(await this.remoteOperation(remoteRequest(posted())))],
+      // Not offered by the embedded service: the existing "not available" answer.
+      ['POST', /^\/v1\/voice$/, () => { throw new ServiceError('voice_unavailable', 'Voice search is not part of the built-in YouTube service.', 503); }]
     ];
     let known = false;
     for (const [methods, pattern, handler] of routes) {

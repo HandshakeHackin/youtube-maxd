@@ -102,7 +102,7 @@ static void sent_to_service(unsigned port, const char *token) {
         assert(!strcmp(pending[0].method, "GET") && strstr(pending[0].headers, header));
         reply(0, 1, 200, service_accounts ?
               "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"account_playback\":false,\"features\":[\"search\","
-              "\"channels\",\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"device_auth\",\"embedded\"]}" :
+              "\"channels\",\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"device_auth\",\"subscriptions_import\",\"remote\",\"embedded\"]}" :
               "{\"api_version\":1,\"service\":\"ProsperoTube\",\"mode\":\"youtube\",\"embedded\":true,\"features\":[\"search\",\"channels\","
               "\"dash\",\"captions\",\"locale\",\"library\",\"content_filters\",\"channel_pages\",\"embedded\"]}");
         assert(pending_count == 1 && !strncmp(pending[0].url, prefix, strlen(prefix)));
@@ -157,7 +157,8 @@ int main(void) {
     sent_to_service(23456, TOKEN_A);
     assert(service_starts == 1);          /* running: the request did not start it again */
     poll_job(none); assert(last_ok && !pending_count);
-    /* No address to set, no phone or voice rows, and their scope stays closed. */
+    /* No address to set. This service bundle lists no phone receiver: no phone rows, and nothing is asked of it.
+     * Voice search is never part of the built-in service: its scope stays closed. */
     assert(p->set_source("http://192.168.1.60:8765#654321") < 0 && !strcmp(p->get_source(), "http://127.0.0.1:23456"));
     assert(!settings_has("settings:remote"));
     p->list_catalog("settings:remote:pair", 0, items_cb, NULL); assert(!pending_count);
@@ -166,7 +167,9 @@ int main(void) {
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL); assert(last_ok);
     assert(!strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 
-    /* A service that does not list sign-in (an older service bundle): no sign-in, no profile or account rows, one explanation; Home stays. */
+    /* A service that does not list sign-in (an older service bundle): no sign-in, no profile or account rows, one explanation; Home stays.
+     * Nor does it list the subscriptions import: that row is gone as well. */
+    p->list_catalog("settings:backup", 0, items_cb, NULL); assert(last_ok && find("settings:backup:create") >= 0 && find("settings:backup:import") < 0);
     p->list_catalog("discover", 0, items_cb, NULL);
     assert(last_ok && find("library") >= 0 && !strcmp(last_items[find("library")].title, "Accounts") &&
            strstr(last_items[find("library")].subtitle, "later version") && !strstr(last_items[find("library:home")].subtitle, "ompanion"));
@@ -258,7 +261,35 @@ int main(void) {
            find("library:channels") >= 0 && find("library:notifications") >= 0 && find("section:my_videos") >= 0);
     assert(strstr(last_items[find("library:profiles")].subtitle, "signed in on this PS5"));
     for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion"));
-    assert(!settings_has("settings:remote"));   /* phone linking is still not offered */
+    /* The service lists the phone receiver: its rows are back, and linking a phone asks the service itself, with its token. */
+    assert(settings_has("settings:remote"));
+    p->list_catalog("settings:experimental", 0, items_cb, NULL);
+    assert(last_ok && strstr(last_items[2].subtitle, "Phone pairing") && !strstr(last_items[2].subtitle, "oice"));
+    p->list_catalog("settings:remote:pair", 0, items_cb, NULL); assert(last_ok && !pending_count);
+    tube_poll();
+    assert(pending_count == 1 && !strcmp(pending[0].url, "http://127.0.0.1:23456/v1/remote") && !strcmp(pending[0].method, "POST"));
+    assert(strstr(pending[0].headers, "Authorization: Bearer " TOKEN_B "\n") && !strstr(pending[0].body, "voice_enabled"));
+    cJSON *sent = cJSON_Parse(pending[0].body); assert(sent && !strcmp(cJSON_GetObjectItem(sent, "action")->valuestring, "start"));
+    char device[40], answer[512]; snprintf(device, sizeof device, "%s", cJSON_GetObjectItem(sent, "device_id")->valuestring);
+    assert(strlen(device) == 36 && !strcmp(stored("remote_device"), device) && !*cJSON_GetObjectItem(sent, "screen_id")->valuestring);
+    cJSON_Delete(sent);
+    snprintf(answer, sizeof answer, "{\"api_version\":1,\"session\":\"0123456789abcdef0123456789abcdef\",\"device_id\":\"%s\","
+             "\"screen_id\":\"screen-123\",\"name\":\"ProsperoTube PS5\",\"state\":\"listening\",\"error\":\"\"}", device);
+    reply(0, 1, 200, answer);
+    tube_poll();
+    assert(pending_count == 1 && strstr(pending[0].body, "\"action\":\"pair\"") && !strcmp(stored("remote_screen"), "screen-123"));
+    reply(0, 1, 200, "{\"api_version\":1,\"session\":\"0123456789abcdef0123456789abcdef\",\"state\":\"listening\",\"error\":\"\",\"pairing_code\":\"123456789012\"}");
+    p->list_catalog("settings:remote", 0, items_cb, NULL);
+    assert(last_ok && !strcmp(last_items[0].title, "Phone connection: ready") && !strcmp(last_items[1].title, "TV code: 123 456 789 012"));
+    for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion"));
+    assert(!tube_voice_scope(source, sizeof source, token, sizeof token, profile, sizeof profile));   /* voice search stays out */
+    /* The saved state keeps the receiver's identity and nothing of the session, the code or the service. */
+    assert(!strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("remote_device"), device));
+    p->list_catalog("settings:remote:toggle", 0, items_cb, NULL);   /* off: the receiver is closed at the service, the identity is kept */
+    assert(pending_count == 1 && strstr(pending[0].body, "\"action\":\"stop\"") && strstr(pending[0].url, "http://127.0.0.1:23456/v1/remote"));
+    reply(0, 1, 200, "{\"api_version\":1,\"state\":\"stopped\"}");
+    tube_poll(); assert(!pending_count && !strcmp(stored("remote_device"), device) && !strcmp(stored("remote_screen"), "screen-123"));
+    p->list_catalog("settings:backup", 0, items_cb, NULL); assert(last_ok && find("settings:backup:import") >= 0);   /* the service reads exports */
     p->shutdown();
     assert(service_stops == 2 && !strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
 

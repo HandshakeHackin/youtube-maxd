@@ -54,6 +54,8 @@ typedef struct {
   uint64_t deadline;
   char in[TUBE_LISTENER_HEAD_LIMIT + TUBE_LISTENER_BODY_LIMIT + 1];
   size_t in_size, head_size, body_size;
+  uint8_t *large;                /* a body over TUBE_LISTENER_BODY_LIMIT, for the one route that takes it */
+  size_t large_size;
   char headers[TUBE_LISTENER_HEAD_LIMIT];
   char *method, *target;
   uint8_t *out;
@@ -81,7 +83,8 @@ static void drop(Connection *connection) {
   if (connection->state == FREE) return;
   close(connection->fd);
   free(connection->out);
-  connection->out = NULL;
+  free(connection->large);
+  connection->out = connection->large = NULL;
   connection->state = FREE;
 }
 
@@ -128,6 +131,14 @@ static void refuse(Connection *connection, int status) {
   if (bytes) send_block(connection, bytes, size, head_size); else drop(connection);
 }
 
+/* The one request whose body is a user's file instead of a small JSON object. */
+static int takes_large_body(const Connection *connection) {
+  static const char route[] = "/v1/subscriptions/import";
+  size_t size = sizeof route - 1;
+  return !strcmp(connection->method, "POST") && !strncmp(connection->target, route, size) &&
+         (!connection->target[size] || connection->target[size] == '?');
+}
+
 /* Splits the request head in place. Returns 0 when it is acceptable. */
 static int parse_head(Connection *connection, long *content_length) {
   char *head = connection->in, *line_end = strstr(head, "\r\n");
@@ -164,7 +175,7 @@ static int parse_head(Connection *connection, long *content_length) {
     line = end + 2;
   }
   connection->headers[used] = 0;
-  if (*content_length > TUBE_LISTENER_BODY_LIMIT) return 413;
+  if (*content_length > (takes_large_body(connection) ? TUBE_LISTENER_LARGE_BODY_LIMIT : TUBE_LISTENER_BODY_LIMIT)) return 413;
   return 0;
 }
 
@@ -184,8 +195,11 @@ static void queue_request(TubeListener *listener, Connection *connection) {
     request->target = copy_text(connection->target);
     request->headers = copy_text(connection->headers);
     request->body_size = connection->body_size;
-    request->body = malloc(connection->body_size + 1);
-    if (request->body) memcpy(request->body, connection->in + connection->head_size, connection->body_size);
+    if (connection->large) { request->body = connection->large; connection->large = NULL; }   /* handed over, not copied */
+    else {
+      request->body = malloc(connection->body_size + 1);
+      if (request->body) memcpy(request->body, connection->in + connection->head_size, connection->body_size);
+    }
     if (!request->target || !request->headers || !request->body) { tube_request_free(request); free(queued); queued = NULL; }
   }
   if (!queued) { refuse(connection, 503); return; }
@@ -199,9 +213,16 @@ static void queue_request(TubeListener *listener, Connection *connection) {
 }
 
 static void read_request(TubeListener *listener, Connection *connection) {
-  ssize_t got = recv(connection->fd, connection->in + connection->in_size, sizeof connection->in - 1 - connection->in_size, 0);
+  ssize_t got = connection->large ?
+    recv(connection->fd, connection->large + connection->large_size, connection->body_size - connection->large_size, 0) :
+    recv(connection->fd, connection->in + connection->in_size, sizeof connection->in - 1 - connection->in_size, 0);
   if (got < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) return;
   if (got <= 0) { drop(connection); return; }
+  if (connection->large) {
+    connection->large_size += (size_t)got;
+    if (connection->large_size >= connection->body_size) queue_request(listener, connection);
+    return;
+  }
   connection->in_size += (size_t)got;
   connection->in[connection->in_size] = 0;
   if (!connection->head_size) {
@@ -215,6 +236,19 @@ static void read_request(TubeListener *listener, Connection *connection) {
     int refused = connection->head_size > TUBE_LISTENER_HEAD_LIMIT ? 431 : parse_head(connection, &length);
     if (refused) { refuse(connection, refused); return; }
     connection->body_size = (size_t)length;
+    if (connection->body_size > TUBE_LISTENER_BODY_LIMIT) {
+      /* The rest of this body goes to the heap. One such request is received
+       * at a time; a second one is told to come back. */
+      size_t have = connection->in_size - connection->head_size;
+      for (int i = 0; i < TUBE_LISTENER_CONNECTIONS; i++)
+        if (listener->connections[i].state != FREE && listener->connections[i].large) { refuse(connection, 503); return; }
+      if (!(connection->large = malloc(connection->body_size + 1))) { refuse(connection, 503); return; }
+      if (have > connection->body_size) have = connection->body_size;
+      memcpy(connection->large, connection->in + connection->head_size, have);
+      connection->large_size = have;
+      if (have >= connection->body_size) queue_request(listener, connection);
+      return;
+    }
   }
   if (connection->in_size - connection->head_size >= connection->body_size) queue_request(listener, connection);
 }
@@ -239,7 +273,7 @@ static void accept_connections(TubeListener *listener) {
     socket_quiet(fd);
     slot->fd = fd; slot->state = READING; slot->head_only = 0; slot->deadline = tube_js_monotonic_ms() + READ_MS;
     slot->in_size = slot->head_size = slot->body_size = 0;
-    slot->in[0] = 0; slot->out = NULL;
+    slot->in[0] = 0; slot->out = NULL; slot->large = NULL; slot->large_size = 0;
     if (!++listener->next_id) ++listener->next_id;
     slot->id = listener->next_id;
   }

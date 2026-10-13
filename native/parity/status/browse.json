@@ -107,7 +107,8 @@
     "No as-you-type suggestion tags while the keyboard is open",
     "YouTube's 'last hour' date filter and the upload-date and rating orders are not offered",
     "Channel and playlist results need the library worker path",
-    "Play-first-result is a Search options row for the last query; voice and phone requests do not use it"
+    "Play-first-result is a Search options row for the last query; voice and phone requests do not use it",
+    "Voice search is not available with the built-in service (docs/VOICE_SEARCH.md)"
    ],
    "offline_feasible": true,
    "size": "L",
@@ -1063,7 +1064,7 @@
   {
    "id": "extra.Search.Voice",
    "title": "Voice search",
-   "status": "done",
+   "status": "partial",
    "smarttube": "Voice recognition fills the query and searches; optional instant voice search on opening search.",
    "ps5_evidence": [
     "native/tube_voice.c, native/tube_microphone.c",
@@ -1071,10 +1072,13 @@
     "companion/prosperotube/voice.py (/v1/voice)",
     "tests/test_voice_search_provider.c, tests/test_voice.py, docs/VOICE_SEARCH.md"
    ],
-   "gaps": [],
+   "gaps": [
+    "Not available with the built-in service (the release): no speech recognizer on the console; L3 and its help line are hidden. Works only with the external development companion (docs/VOICE_SEARCH.md, 'Without a companion')",
+    "No instant voice search on opening search"
+   ],
    "offline_feasible": false,
    "size": "S",
-   "notes": "Physical microphone acceptance is still open; no instant-voice-on-open option. Needs the companion whisper service."
+   "notes": "Was 'done' while the companion was the service; the release runs without one. Physical microphone acceptance is still open. With a phone linked, the YouTube app's own voice search works from the phone."
   },
   {
    "id": "extra.Search.FilterUploadDate",

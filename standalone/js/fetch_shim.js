@@ -2,8 +2,14 @@
 // client. SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Bodies are whole buffers: nothing in the catalog or resolve paths streams.
+// The one exception is an answer that stays open (the phone connection's long
+// poll): `fetch(url, { onChunk, idle_ms })` hands each piece of the body to
+// `onChunk(bytes, status)` as it arrives and resolves, with an empty body, when
+// the answer ends; `idle_ms` is the longest silence; what `onChunk` throws ends
+// the transfer and rejects the fetch.
 // With TUBE_JS_FIXTURES set, requests are answered from canned files and the
-// network is never touched (the offline tests).
+// network is never touched (the offline tests); `uncanned` exempts a request
+// that a test serves from a stand-in on this machine.
 import { URL, URLSearchParams } from './url_shim.js';
 const host = globalThis.__host;
 
@@ -136,6 +142,18 @@ globalThis.__tubeHttpDone = (id, answer, error) => {
   if (!answer) transfer.reject(new TypeError(`fetch failed: ${error}`));
   else transfer.resolve(new Response(answer.body, { status: answer.status, headers: answer.headers, url: answer.url, redirected: answer.redirected }));
 };
+// A streaming transfer's pieces, in order and before its completion.
+globalThis.__tubeHttpChunk = (id, status, bytes) => {
+  const transfer = pending.get(id);
+  if (!transfer?.onChunk) return;
+  try { transfer.onChunk(new Uint8Array(bytes), status); }
+  catch (error) {   // the reader refused the piece: the transfer ends with its reason
+    pending.delete(id);
+    transfer.signal?.removeEventListener('abort', transfer.abort);
+    host.httpCancel(id);
+    transfer.reject(error);
+  }
+};
 
 // Headers a script may not choose; the client negotiates encoding (whatever
 // its build can decode: never brotli on the console) and decodes it.
@@ -145,17 +163,24 @@ const REDIRECT = { follow: 0, manual: 1, error: 2 };
 export async function fetch(input, init) {
   const request = new Request(input, init);
   request.signal?.throwIfAborted();
-  const offline = canned(request);
-  if (offline) return offline;
+  const onChunk = typeof init?.onChunk === 'function' ? init.onChunk : null;
+  const offline = init?.uncanned ? null : canned(request);
+  if (offline) {
+    if (!onChunk) return offline;
+    const bytes = bytesOf(offline._body);   // a canned stream is one piece
+    if (bytes?.length) onChunk(bytes, offline.status);
+    return new Response(null, { status: offline.status, headers: offline.headers, url: offline.url });
+  }
   const headers = [];
   request.headers.forEach((value, name) => { if (!managed.has(name)) headers.push([name, value]); });
   const deadline = request.signal?.deadline;
   return new Promise((resolve, reject) => {
     const id = host.httpStart({ method: request.method, url: request.url, headers, body: bytesOf(request._body) ?? undefined,
       redirect: REDIRECT[request.redirect] ?? 0,
-      timeout_ms: deadline === undefined ? 15000 : Math.max(1, Math.round(deadline - host.now())), max_bytes: init?.max_bytes });
+      timeout_ms: onChunk ? init.idle_ms ?? 65000 : deadline === undefined ? 15000 : Math.max(1, Math.round(deadline - host.now())),
+      max_bytes: init?.max_bytes, stream: !!onChunk });
     const abort = () => { if (pending.delete(id)) { host.httpCancel(id); reject(request.signal.reason); } };
-    pending.set(id, { resolve, reject, signal: request.signal, abort });
+    pending.set(id, { resolve, reject, signal: request.signal, abort, onChunk });
     request.signal?.addEventListener('abort', abort, { once: true });
   });
 }

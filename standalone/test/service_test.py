@@ -144,7 +144,7 @@ def basics(s):
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",
                                           "video_details", "translated_captions", "locale", "thumbnail_source", "dearrow", "device_auth"} <= set(features), features)
-    check("health hides what does not", not {"relay", "voice", "subscriptions_import", "dislikes", "proxy"} & set(features), features)
+    check("health hides what does not", not {"relay", "voice", "dislikes", "proxy"} & set(features), features)
 
     same("no token", s.call("GET", "/v1/jobs/x", token=None)[::2],
          (401, {"error": {"code": "unauthorized", "message": "Pair the PS5 with this companion first."}}))
@@ -159,11 +159,12 @@ def basics(s):
     same("dislikes are off", s.call("GET", f"/v1/dislikes/{VIDEO}")[::2], (200, {"api_version": 1, "enabled": False}))
     same("dislikes video id", s.call("GET", "/v1/dislikes/short")[2]["error"]["code"], "invalid_video")
     # Sign-in is offered (standalone/test/account_test.py); here Google has no canned answer, so a start fails cleanly.
-    for path, code, status in (("/v1/remote", "remote_session", 404), ("/v1/voice", "voice_unavailable", 503),
-                               ("/v1/auth/start", "auth_failed", 502)):
+    for path, code, status in (("/v1/voice", "voice_unavailable", 503), ("/v1/auth/start", "auth_failed", 502)):
         got = s.call("POST", path, {})
         same(f"not offered {path}", (got[0], got[2]["error"]["code"]), (status, code))
-    same("no import route", s.call("POST", "/v1/subscriptions/import", {})[0], 404)
+    # The phone receiver is offered (standalone/test/remote_test.py); nothing exists before a start asks for it.
+    got = s.call("POST", "/v1/remote", {"action": "poll", "session": "0" * 32})
+    same("no phone receiver before a start", (got[0], got[2]["error"]["code"], "remote" in features), (404, "remote_session", True))
 
 
 def bounds(s):

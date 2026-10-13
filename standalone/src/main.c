@@ -28,6 +28,10 @@ static int serve(tube_service_options *options, int argc, char **argv) {
     else if (!strcmp(argv[i], "--token")) options->token = value;
     else if (!strcmp(argv[i], "--sponsorblock-server")) options->sponsorblock_server = value;
     else if (!strcmp(argv[i], "--pairing-code")) options->pairing_code = value;
+    else if (!strcmp(argv[i], "--lounge-base")) {   /* tests: a local stand-in for YouTube's phone connection service */
+      if (strncmp(value, "http://127.0.0.1:", 17)) { fprintf(stderr, "tube_js: --lounge-base must be on http://127.0.0.1\n"); return 2; }
+      options->lounge_base = value;
+    }
     else { fprintf(stderr, "tube_js: unknown option %s\n", argv[i]); return 2; }
     i++;
   }

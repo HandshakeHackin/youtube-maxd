@@ -27,6 +27,8 @@ typedef struct transfer {
     unsigned char *request_body;
     size_t request_body_length;
     int has_body, redirect_mode, redirects;
+    int stream;                       /* body handed over in pieces; deadline_ms is then the end of the current silence */
+    long idle_ms, stream_status;
     uint64_t deadline_ms;
     size_t max_bytes;
     unsigned char *body;
@@ -51,6 +53,7 @@ struct tube_js_http {
     int ipv4_only;
     int poll_slice_ms;
     atomic_int woken;
+    int chunks;                       /* a streaming request may have a piece waiting */
     transfer *active, *done_head, *done_tail;
     int active_count, done_count;
     uint32_t last_id;
@@ -183,9 +186,20 @@ static void reset_answer(transfer *t) {
 
 /* ---- libcurl callbacks ---- */
 
+static int is_redirect(long status) { return status == 301 || status == 302 || status == 303 || status == 307 || status == 308; }
+
 static size_t on_body(char *data, size_t size, size_t count, void *user) {
     transfer *t = user;
     size_t length = size * count;
+    if (t->stream) {
+        long status = 0;
+        (void)curl_easy_getinfo(t->easy, CURLINFO_RESPONSE_CODE, &status);
+        t->deadline_ms = tube_js_monotonic_ms() + (uint64_t)t->idle_ms;
+        /* The body of a redirect that will be followed is not part of the stream. */
+        if (t->redirect_mode == TUBE_JS_HTTP_REDIRECT_FOLLOW && is_redirect(status)) return length;
+        t->stream_status = status;
+        t->client->chunks = 1;
+    }
     if (length > t->max_bytes - t->body_length) {
         t->too_large = 1;
         return CURL_WRITEFUNC_ERROR;
@@ -222,6 +236,7 @@ static size_t on_header(char *data, size_t size, size_t count, void *user) {
     transfer *t = user;
     size_t length = size * count;
     const char *end = data + length;
+    if (t->stream) t->deadline_ms = tube_js_monotonic_ms() + (uint64_t)t->idle_ms;
     if (length >= 5 && !memcmp(data, "HTTP/", 5)) {   /* a new answer (after 1xx): start over */
         reset_answer(t);
         return length;
@@ -303,7 +318,7 @@ static int configure(transfer *t) {
     SET(CURLOPT_HEADERFUNCTION, on_header);
     SET(CURLOPT_HEADERDATA, t);
     SET(CURLOPT_CONNECTTIMEOUT_MS, client->connect_timeout_ms < remaining ? client->connect_timeout_ms : remaining);
-    SET(CURLOPT_TIMEOUT_MS, remaining);
+    SET(CURLOPT_TIMEOUT_MS, t->stream ? 0L : remaining);   /* a stream has no whole-request limit: drive() ends a silent one */
     SET(CURLOPT_SSL_VERIFYPEER, 1L);
     SET(CURLOPT_SSL_VERIFYHOST, 2L);
     if (client->ca_data) {
@@ -483,7 +498,7 @@ static void finish(transfer *t, CURLcode result) {
     }
     long status = 0;
     (void)curl_easy_getinfo(t->easy, CURLINFO_RESPONSE_CODE, &status);
-    if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308) {
+    if (is_redirect(status)) {
         if (t->redirect_mode == TUBE_JS_HTTP_REDIRECT_ERROR) {
             complete(t, TUBE_JS_HTTP_REDIRECT, "the request does not allow redirects");
             return;
@@ -523,6 +538,12 @@ static void drive(tube_js_http *client) {
         }
         if (count == FINISH_BATCH) again = 1;
     } while (again);
+    /* A streaming request that has been silent for longer than it allows. */
+    uint64_t now = tube_js_monotonic_ms();
+    for (transfer *t = client->active, *next; t; t = next) {
+        next = t->next;
+        if (t->stream && now >= t->deadline_ms) complete(t, TUBE_JS_HTTP_TIMEOUT, "the stream was silent for too long");
+    }
 }
 
 /* ---- Public interface ---- */
@@ -613,7 +634,9 @@ int tube_js_http_start(tube_js_http *client, const tube_js_http_request *request
     t->has_body = has_body;
     t->redirect_mode = request->redirect;
     t->max_bytes = request->max_response_bytes ? request->max_response_bytes : client->max_response_bytes;
-    t->deadline_ms = tube_js_monotonic_ms() + (uint64_t)(request->timeout_ms > 0 ? request->timeout_ms : client->timeout_ms);
+    t->stream = request->stream != 0;
+    t->idle_ms = request->timeout_ms > 0 ? request->timeout_ms : client->timeout_ms;
+    t->deadline_ms = tube_js_monotonic_ms() + (uint64_t)t->idle_ms;
     int failed = !(t->url = copy_string(request->url));
     if (!failed && request->body_length) {
         failed |= !(t->request_body = malloc(request->body_length));
@@ -669,7 +692,7 @@ int tube_js_http_cancel(tube_js_http *client, uint32_t id) {
 int tube_js_http_poll(tube_js_http *client, int wait_ms) {
     if (!client) return 0;
     drive(client);
-    if (wait_ms > 0 && !client->done_count) {
+    if (wait_ms > 0 && !client->done_count && !client->chunks) {
         uint64_t deadline = tube_js_monotonic_ms() + (uint64_t)wait_ms;
         /* A wake that came before this wait ends it at once. */
         while (!atomic_exchange(&client->woken, 0)) {
@@ -683,10 +706,29 @@ int tube_js_http_poll(tube_js_http *client, int wait_ms) {
                 atomic_store(&client->woken, 0);
                 break;
             }
-            if (client->done_count) break;
+            if (client->done_count || client->chunks) break;
         }
     }
     return client->done_count;
+}
+
+int tube_js_http_take_chunk(tube_js_http *client, tube_js_http_chunk *chunk) {
+    if (!client || !chunk || !client->chunks) return 0;
+    for (int done = 0; done < 2; done++) {
+        for (transfer *t = done ? client->done_head : client->active; t; t = t->next) {
+            if (!t->stream || !t->body_length) continue;
+            chunk->id = t->response.id;
+            chunk->status = t->stream_status;
+            chunk->data = t->body;
+            chunk->length = t->body_length;
+            t->body_length = 0;              /* the bytes stay where they are until the next call */
+            t->response.body = (const unsigned char *)"";
+            t->response.body_length = 0;
+            return 1;
+        }
+    }
+    client->chunks = 0;
+    return 0;
 }
 
 tube_js_http_response *tube_js_http_take(tube_js_http *client) {

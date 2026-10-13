@@ -1,5 +1,87 @@
 # Offline validation record — 0.1.0
 
+## Subscriptions import and phone casting in the built-in service: offline only — 2026-10-13
+
+The two features that still needed the PC companion are answered by the service
+inside the app. **No phone was linked, nothing was sent to YouTube, no account
+or token was involved, and nothing ran on a console.** Every check below ran on
+a PC; YouTube's phone service was played by a server on 127.0.0.1.
+
+`bash scripts/test_all.sh` ends with `62 passed, 0 failed` (the same steps; four
+of them grew).
+
+- **Streaming answers in the HTTPS client** (`standalone/ps5/tube_js_http.*`,
+  `standalone/ps5/test_bindings.sh`, ASan + UBSan): 580 checks, 114 of them new,
+  run three times over (plain HTTP, the console's sliced wait, TLS). A chunked
+  answer whose pieces arrive 100 ms apart is handed over piece by piece, long
+  before it ends, and completes with an empty body; the limit of such a request
+  is its longest silence, not its length; a silent stream ends as a timeout
+  after delivering what came first; cancellation; a waiting piece ends the wait
+  at once; pieces nobody took become the completed body; the bound on what
+  waits; a followed redirect's body is never part of the stream; an ordinary
+  request beside an open stream; freeing the client with a stream open.
+- **Subscriptions import** (`standalone/test/import_test.py`, 51 checks, plain
+  and under sanitizers): the three formats with the Python tests' inputs and
+  expected answers, address recognition by identity only, every refused input
+  of the Python tests plus invalid UTF-8, a second byte-order mark and
+  truncated sequences; the route: bearer, a file far over 8 KiB, exactly one
+  mebibyte, one byte more (413), the other routes' unchanged 8 KiB limit, a
+  body arriving in pieces, a second large body meanwhile (503), an abandoned
+  one freeing its place, nothing sent upstream.
+- **Phone receiver** (`standalone/test/remote_test.py`, 272 checks, plain and
+  under sanitizers), through the real service and its real HTTP client against
+  the stand-in, whose back channel stays open and delivers frames in pieces of
+  three to seven bytes:
+  - registration (screen, token, first bind, the back channel's parameters),
+    the same device never opening a second receiver, the TV code and its form;
+  - commands in order with sequence numbers; a lost poll consuming nothing;
+    acknowledgments that cannot pass what was delivered or move back; 32
+    commands per poll; every typed command; unknown names ignored; wire numbers
+    already seen not applied again; names split inside a multi-byte character;
+  - the state report's complete form, its numbering across reports, a repeated
+    report sending nothing, other data under a used identifier refused;
+  - a completed long poll followed by the next one from the last frame after a
+    pause, and empty answers not hammered;
+  - queues of 500 and 10,000 videos as 128-video windows, refills after
+    confirmed feedback, no refill for local playback, a stop retiring the queue;
+  - 33 malformed frames and invalid commands each ending the channel with its
+    code and without leaking or applying anything; a gap, an overflow, a
+    truncated frame, `stop` and `close`;
+  - upstream failures: a refused pairing, a report whose answer never comes
+    (not sent again), the channel failing while a report is in flight (no
+    success published), a refused and a cut-off back channel, a registration
+    that does not complete (ended upstream, nothing left behind);
+  - identity reuse and its conflicts, four receivers at most, the microphone
+    capability never advertised, the 120-second lease (clock run 40 times
+    faster), every expired channel closed and ended upstream;
+  - a partial queue grown through the library's WatchNext read (canned): after
+    the launch is acknowledged, once, with sparse positions kept, an unusable
+    answer changing nothing and backing off, an ended last video;
+  - no Lounge token, session or identifier in any answer, and a clean stop
+    with nothing on the error output.
+- **The provider on the built-in service** (`scripts/test_embedded_service.sh`,
+  `scripts/test_embedded_e2e.sh`): the import and phone rows shown when the
+  service lists the features and absent when it does not; an export file read
+  from the import folder and answered by the real service; "Link a phone"
+  through the shipping provider and driver to the real service to the
+  stand-in: TV code on the settings screen, three commands in order with
+  acknowledgments, the state report arriving upstream, the receiver closed and
+  ended upstream when turned off; nothing of it in the saved state.
+- **PS5 objects**: `standalone/ps5/build_ps5.sh` compiled the changed bindings
+  and linked and converted its probe; `tube_engine.c`, `tube_listener.c`,
+  `tube_provider.c` and `tube_remote.c` compiled with the PS5 toolchain and
+  EVO's flags. The script's last stage (relinking a prepared EVO tree with the
+  engine added) stops on duplicate engine symbols, because every prepared tree
+  already carries the engine since the service was wired in; that stage
+  predates the wiring and says nothing about this change. No package was built.
+
+Not checked, and not claimed: a real phone, YouTube's real phone service from
+this engine (frame cadence, the 65-second silence limit, how long one long
+poll lasts), the receiver on a console, and what the phone shows when the app
+closes without ending the channel.
+
+Voice search was assessed, not implemented: [docs/VOICE_SEARCH.md](VOICE_SEARCH.md).
+
 ## Accounts in the built-in service: offline only — 2026-10-13
 
 Sign-in, account profiles, account lists and account changes are answered by
