@@ -42,13 +42,14 @@ struct Request
     std::uint8_t direction;
     std::uint8_t ellipsis;
     std::uint8_t align;
+    std::uint8_t family;
 
     bool operator==(const Request &other) const
     {
         return size == other.size && tracking == other.tracking && line_height == other.line_height &&
                max_width == other.max_width && max_lines == other.max_lines && weight == other.weight &&
                tabular == other.tabular && direction == other.direction && ellipsis == other.ellipsis &&
-               align == other.align;
+               align == other.align && family == other.family;
     }
 };
 
@@ -65,6 +66,7 @@ Request request_of(const Style &style, const Constraints &constraints)
     request.direction = static_cast<std::uint8_t>(style.direction);
     request.ellipsis = static_cast<std::uint8_t>(constraints.ellipsis);
     request.align = static_cast<std::uint8_t>(constraints.align);
+    request.family = style.family & 15;
     return request;
 }
 
@@ -88,7 +90,8 @@ std::uint64_t hash_of(std::string_view text, const Request &request)
     hash = mix(hash, &request.line_height, sizeof(float));
     hash = mix(hash, &request.max_width, sizeof(float));
     hash = mix(hash, &request.max_lines, sizeof(std::int32_t));
-    const std::uint8_t rest[5] = {request.weight, request.tabular, request.direction, request.ellipsis, request.align};
+    const std::uint8_t rest[6] = {request.weight, request.tabular, request.direction,
+                                  request.ellipsis, request.align,   request.family};
     return mix(hash, rest, sizeof(rest));
 }
 
@@ -446,6 +449,39 @@ bool Context::can_draw(std::string_view text)
     return impl_->shaped(text, Style{}, constraints).missing == 0;
 }
 
+std::string Context::fit(std::string_view text, const Style &style, float max_width, Ellipsis ellipsis)
+{
+    if (ellipsis == Ellipsis::none || !(max_width > 0.0f))
+        return std::string(text);
+    const char *mark = can_draw("\xe2\x80\xa6") ? "\xe2\x80\xa6" : "...";
+    Constraints constraints;
+    constraints.ellipsis = ellipsis;
+    float limit = max_width;
+    // The cut text is laid out again by the caller as a text of its own, where the letter at the
+    // cut may take another form than it had inside its word (an Arabic letter that no longer
+    // joins what followed, and is wider for it): a string that then measures too wide gives up
+    // one more cluster, and again.
+    for (int round = 0; round < 16; ++round)
+    {
+        constraints.max_width = limit;
+        const Shaped &shaped = impl_->shaped(text, style, constraints);
+        if (shaped.lines.empty() || !shaped.lines.front().ellipsis)
+            return std::string(text);
+        const ShapedLine &line = shaped.lines.front();
+        const float cut_width = line.width;
+        const std::string kept(text.substr(line.text_begin, line.text_end - line.text_begin));
+        if (kept.empty())
+            break;
+        std::string result = ellipsis == Ellipsis::start ? mark + kept : kept + mark;
+        if (measure(result, style).width <= max_width + 0.01f)
+            return result;
+        limit = cut_width - 0.05f; // narrower than this cut: the next one is shorter
+        if (!(limit > 0.0f))
+            break;
+    }
+    return mark;
+}
+
 const std::vector<AtlasUpdate> &Context::atlas_updates()
 {
     return impl_->atlas.updates();
@@ -491,7 +527,7 @@ void Context::font_metrics(const Style &style, float *ascent, float *descent, fl
     float a = 0.0f;
     float d = 0.0f;
     float gap = 0.0f;
-    impl_->fonts.metrics(impl_->fonts.primary(), &a, &d, &gap);
+    impl_->fonts.metrics(impl_->fonts.primary(style.family), &a, &d, &gap);
     const float size = style.size > 0.0f ? style.size : 1.0f;
     if (ascent != nullptr)
         *ascent = a * size;

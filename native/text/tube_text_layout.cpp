@@ -131,7 +131,7 @@ void Shaper::shape(std::string_view text, const Style &style_in, const Constrain
     float ascent = 0.0f;
     float descent = 0.0f;
     float line_gap = 0.0f;
-    fonts_->metrics(fonts_->primary(), &ascent, &descent, &line_gap);
+    fonts_->metrics(fonts_->primary(style.family), &ascent, &descent, &line_gap);
     out->ascent = ascent * style.size;
     out->descent = descent * style.size;
     out->line_height = style.line_height > 0.0f && std::isfinite(style.line_height)
@@ -212,7 +212,7 @@ void Shaper::filter_emoji(const Style &style)
             ++j;
         const char32_t base = p_[i];
         if ((uni::pictographic(base) || uni::regional_indicator(base)) &&
-            fonts_->pick(&p_[i], j - i, HB_SCRIPT_COMMON, HB_SCRIPT_COMMON, HanForms::japanese, bold, -1) < 0)
+            fonts_->pick(&p_[i], j - i, HB_SCRIPT_COMMON, HB_SCRIPT_COMMON, HanForms::japanese, bold, -1, style.family) < 0)
         {
             changed = true;
             if (config_.emoji == EmojiPolicy::strip)
@@ -394,7 +394,8 @@ void Shaper::assign_faces(const Style &style, Shaped *out)
         else if (is_common(own_script_[i]))
             face_[i] = kUnset;
         else
-            face_[i] = static_cast<std::int16_t>(fonts_->pick(&p_[i], j - i, own_script_[i], script_[i], han_, bold, -1));
+            face_[i] = static_cast<std::int16_t>(
+                fonts_->pick(&p_[i], j - i, own_script_[i], script_[i], han_, bold, -1, style.family));
         i = j;
     }
     // Then spaces, digits and punctuation: the face of the text beside them when it has them.
@@ -408,7 +409,8 @@ void Shaper::assign_faces(const Style &style, Shaped *out)
             for (std::uint32_t k = j; neighbour < 0 && k < count; k = cluster_end(k))
                 if (face_[k] >= 0)
                     neighbour = face_[k];
-            face_[i] = static_cast<std::int16_t>(fonts_->pick(&p_[i], j - i, own_script_[i], script_[i], han_, bold, neighbour));
+            face_[i] = static_cast<std::int16_t>(
+                fonts_->pick(&p_[i], j - i, own_script_[i], script_[i], han_, bold, neighbour, style.family));
         }
         if (face_[i] >= 0)
             previous = face_[i];
@@ -604,14 +606,14 @@ const Shaper::Mark &Shaper::mark_for(int face_hint, const Style &style)
     if (face < 0)
     {
         const char32_t ellipsis = 0x2026;
-        face = fonts_->pick(&ellipsis, 1, HB_SCRIPT_COMMON, HB_SCRIPT_LATIN, han_, bold, -1);
+        face = fonts_->pick(&ellipsis, 1, HB_SCRIPT_COMMON, HB_SCRIPT_LATIN, han_, bold, -1, style.family);
     }
     if (face < 0)
     {
         const char32_t stop = '.';
         face = face_hint >= 0 && fonts_->has(face_hint, stop)
                    ? face_hint
-                   : fonts_->pick(&stop, 1, HB_SCRIPT_COMMON, HB_SCRIPT_LATIN, han_, bold, -1);
+                   : fonts_->pick(&stop, 1, HB_SCRIPT_COMMON, HB_SCRIPT_LATIN, han_, bold, -1, style.family);
         text[0] = text[1] = text[2] = '.';
         length = 3;
     }

@@ -90,18 +90,21 @@ class Fonts
     // The face for one cluster: `own` is the script of its first character, `resolved` that of the
     // text around it when its own is none (a space, a digit, a full stop); `neighbour` is the face
     // of the cluster beside it, or -1. Returns -1 when no face has the cluster's first character.
+    // `family` is the style's: faces of that family are asked before those of family 0, faces of
+    // other families never.
     int pick(const char32_t *cluster, std::size_t count, hb_script_t own, hb_script_t resolved, HanForms han,
-             bool bold, int neighbour);
-    // The first face of that role, or -1.
-    int role_face(FaceRole role);
+             bool bold, int neighbour, int family = 0);
+    // The first regular face of that role (of the family, else of family 0), or -1.
+    int role_face(FaceRole role, int family = 0);
     // True when the face has every one of these characters.
     bool has_all(int face, const char32_t *cps, std::size_t count);
 
     hb_font_t *shaper(int face);        // sized in font units
     FT_FaceRec_ *outlines(int face);    // null when FreeType cannot read the face
     float units_per_em(int face);
-    // The face line metrics come from: the first usable interface face, else the first usable one.
-    int primary();
+    // The face line metrics come from: the first usable interface face of the family (else of
+    // family 0), else the first usable face.
+    int primary(int family = 0);
     // In em; of the face, or plausible values for -1.
     void metrics(int face, float *ascent, float *descent, float *line_gap);
     // The widest digit in em, with tabular figures on when the face has them; 0: no digits.
@@ -125,9 +128,10 @@ class Fonts
     struct Face;
 
   private:
-    void add(const std::string &path, int index, FaceRole role, bool bold, bool discovered);
+    void add(const std::string &path, int index, FaceRole role, bool bold, bool discovered, int family);
     bool covers(int face, const char32_t *need, std::size_t count);
-    int search(const char32_t *need, std::size_t count, const int *preferred, int preferred_count, bool bold_faces);
+    int search(const char32_t *need, std::size_t count, const int *preferred, int preferred_count, bool bold_faces,
+               int family);
 
     Config config_;
     std::vector<std::string> *messages_;
@@ -136,7 +140,7 @@ class Fonts
     std::unordered_map<std::string, std::weak_ptr<FontFile>> files_;
     std::unordered_map<std::uint64_t, std::int16_t> picked_;
     hb_buffer_t *buffer_ = nullptr;
-    int primary_ = -2; // -2: not looked for yet
+    int primary_[16]; // by family; -2: not looked for yet
     std::uint32_t open_count_ = 0;
     std::uint64_t bytes_mapped_ = 0;
     double open_seconds_ = 0.0;

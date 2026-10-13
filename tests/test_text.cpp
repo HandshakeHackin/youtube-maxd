@@ -1167,6 +1167,97 @@ void check_quads(const Context &context, const Layout &layout)
     }
 }
 
+void test_families()
+{
+    if (skip("families", text_host::have_dejavu() && text_host::exists(text_host::dejavu("DejaVuSansMono.ttf")),
+             "DejaVu Sans and DejaVu Sans Mono"))
+        return;
+    Config config = dejavu_only(); // face 0, for every text
+    FaceSpec fixed_width{text_host::dejavu("DejaVuSansMono.ttf"), 0, FaceRole::latin, false};
+    fixed_width.family = 1;
+    config.faces.push_back(fixed_width); // face 1, for styles of family 1
+    Engine engine(config);
+    const Style plain = at(20.0f);
+    Style fixed = at(20.0f);
+    fixed.family = 1;
+    // A style of the family takes its letters from the family's face: here each as wide as the next.
+    CHECK_EQ(engine.shape("iiii", fixed).glyphs[0].face, 1);
+    CHECK_NEAR(engine.shape("iiii", fixed).width, engine.shape("WWWW", fixed).width, 0.001);
+    // Other styles never see that face.
+    CHECK_EQ(engine.shape("iiii", plain).glyphs[0].face, 0);
+    CHECK(engine.shape("iiii", plain).width < engine.shape("WWWW", plain).width - 10.0f);
+    Style other = plain;
+    other.family = 7; // a family nobody named: the shared faces
+    CHECK_EQ(engine.shape("iiii", other).glyphs[0].face, 0);
+    // What the family's face lacks comes from the shared faces, in the same line.
+    char32_t lacking = 0;
+    for (const char32_t c : {U'\U00002D30', U'\U000005D0', U'\U00000531', U'\U00000E01', U'\U000010D0', U'\U00002654'})
+        if (lacking == 0 && engine.fonts.has(0, c) && !engine.fonts.has(1, c))
+            lacking = c;
+    CHECK(lacking != 0);
+    if (lacking != 0)
+    {
+        const Shaped mixed = engine.shape(utf8(std::u32string{U'a', lacking}), fixed);
+        CHECK_EQ(mixed.missing, 0);
+        CHECK_EQ(mixed.glyphs.size(), 2);
+        CHECK_EQ(mixed.glyphs[0].face, 1);
+        CHECK_EQ(mixed.glyphs[1].face, 0);
+    }
+    // Line metrics are the family's own face's.
+    CHECK_EQ(engine.fonts.primary(1), 1);
+    CHECK_EQ(engine.fonts.primary(0), 0);
+    CHECK_EQ(engine.fonts.primary(7), 0);
+    // The two styles are kept apart in the cache of shaped texts.
+    std::unique_ptr<Context> context = make(config);
+    const float fixed_width_of = context->measure("iiii", fixed).width;
+    CHECK(context->measure("iiii", plain).width < fixed_width_of - 5.0f);
+    CHECK_NEAR(context->measure("iiii", fixed).width, fixed_width_of, 0.001);
+    CHECK(context->describe().find("DejaVuSansMono.ttf (latin family 1") != std::string::npos);
+}
+
+void test_fit()
+{
+    if (skip("fit", text_host::have_dejavu(), "DejaVu Sans"))
+        return;
+    std::unique_ptr<Context> context = make(dejavu_only());
+    const Style style = at(20.0f);
+    const std::string mark = "\xe2\x80\xa6";
+    const std::string text = "The quick brown fox jumps over the lazy dog";
+    const float full = context->measure(text, style).width;
+    CHECK(context->fit(text, style, full + 1.0f) == text);
+    CHECK(context->fit(text, style, 0.0f) == text);
+    CHECK(context->fit(text, style, 10.0f, Ellipsis::none) == text);
+    // Cut at the end: a start of the text and the mark, as much as fits.
+    const std::string cut = context->fit(text, style, full * 0.5f);
+    CHECK(cut.size() > mark.size() + 5 && cut.size() < text.size());
+    CHECK(cut.compare(cut.size() - mark.size(), mark.size(), mark) == 0);
+    CHECK(text.compare(0, cut.size() - mark.size(), cut, 0, cut.size() - mark.size()) == 0);
+    CHECK(context->measure(cut, style).width <= full * 0.5f + 0.02f);
+    CHECK(context->measure(cut, style).width > full * 0.5f - 16.0f);
+    // Cut at the start: the mark and an end of the text.
+    const std::string tail = context->fit(text, style, full * 0.5f, Ellipsis::start);
+    CHECK(tail.compare(0, mark.size(), mark) == 0);
+    CHECK(text.size() > tail.size() - mark.size() &&
+          text.compare(text.size() - (tail.size() - mark.size()), std::string::npos, tail, mark.size(), std::string::npos) == 0);
+    CHECK(context->measure(tail, style).width <= full * 0.5f + 0.02f);
+    // No room: the mark alone.
+    CHECK(context->fit(text, style, 1.0f) == mark);
+    // Arabic: the letter at the cut changes its form once the word is cut there (it no longer
+    // joins what followed). Whatever the width, the string that comes back still fits when it
+    // is measured as a text of its own.
+    const std::string arabic = "\U00000623\U00000641\U00000636\U00000644 \U00000639\U00000634\U00000631 \U00000648\U0000062C\U00000647\U00000627\U0000062A \U00000633\U0000064A\U00000627\U0000062D\U0000064A\U00000629 \U00000641\U0000064A \U00000627\U00000644\U00000639\U00000627\U00000644\U00000645 \U00000627\U00000644\U00000639\U00000631\U00000628\U0000064A \U00000644\U00000639\U00000627\U00000645";
+    const float arabic_full = context->measure(arabic, style).width;
+    int cuts = 0;
+    for (float width = context->measure(mark, style).width + 0.5f; width < arabic_full; width += 3.7f)
+    {
+        const std::string fitted = context->fit(arabic, style, width);
+        CHECK(context->measure(fitted, style).width <= width + 0.02f);
+        cuts += fitted != arabic ? 1 : 0;
+    }
+    CHECK(cuts > 20);
+    CHECK(context->fit(arabic, style, arabic_full + 1.0f) == arabic);
+}
+
 void test_budget()
 {
     if (skip("frame budget", text_host::have_dejavu(), "DejaVu Sans"))
@@ -1854,6 +1945,8 @@ int main(int argc, char **argv)
     test_wrap();
     test_alignment();
     test_digits_tracking_bold();
+    test_families();
+    test_fit();
     test_budget();
     test_atlas_updates();
     test_eviction();

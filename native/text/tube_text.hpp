@@ -46,6 +46,9 @@ struct FaceSpec
     int index = 0; // the face inside a collection (.ttc)
     FaceRole role = FaceRole::other;
     bool bold = false; // a bold cut: asked for bold text only, and before the regular faces
+    // 0: for every text. 1 to 15: only for styles of that family, and before the others (a display
+    // face, a fixed-width face); what such a face lacks comes from the faces of family 0.
+    std::uint8_t family = 0;
 };
 
 // How font files are read.
@@ -136,6 +139,7 @@ struct Style
     float line_height = 0.0f; // baseline to baseline; 0: the interface face's own
     bool tabular_digits = false; // every digit as wide as the widest (clocks, time codes)
     Direction direction = Direction::automatic;
+    std::uint8_t family = 0; // the faces named with this family first (FaceSpec::family); 0: none in particular
 };
 
 enum class Align : std::uint8_t
@@ -274,6 +278,10 @@ class Context
     void prewarm(std::string_view text, const Style &style);
     // True when every cluster of the text has a glyph (after the emoji policy).
     bool can_draw(std::string_view text);
+    // The text as one line no wider than max_width: itself when it fits, else cut at a cluster with
+    // the mark (U+2026, or three full stops when no face has it) at the cut end. For callers that
+    // keep strings; the string measures within max_width when it is laid out again.
+    std::string fit(std::string_view text, const Style &style, float max_width, Ellipsis ellipsis = Ellipsis::end);
 
     // What changed in the atlas since the last advance_frame(). Call it after the frame's last
     // layout() and upload before drawing.

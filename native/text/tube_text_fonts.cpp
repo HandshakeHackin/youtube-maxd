@@ -282,6 +282,7 @@ struct Fonts::Face
     FaceRole role = FaceRole::other;
     bool bold = false;
     bool discovered = false;
+    int family = 0;
 
     enum class State : std::uint8_t
     {
@@ -436,9 +437,11 @@ Fonts::Fonts(const Config &config, std::vector<std::string> *messages) : config_
     }
     library_ = library;
     buffer_ = hb_buffer_create();
+    for (int &primary : primary_)
+        primary = -2;
 
     for (const FaceSpec &spec : config_.faces)
-        add(spec.path, spec.index, spec.role, spec.bold, false);
+        add(spec.path, spec.index, spec.role, spec.bold, false, spec.family & 15);
 
     for (const Group &group : kGroups)
     {
@@ -452,7 +455,7 @@ Fonts::Fonts(const Config &config, std::vector<std::string> *messages) : config_
                 const std::string path = folder + "/" + name;
                 if (exists(path))
                 {
-                    add(path, 0, group.role, false, false);
+                    add(path, 0, group.role, false, false, 0);
                     found = true;
                 }
             }
@@ -489,7 +492,7 @@ Fonts::Fonts(const Config &config, std::vector<std::string> *messages) : config_
             closedir(dir);
             std::sort(names.begin(), names.end());
             for (const std::string &name : names)
-                add(folder + "/" + name, 0, FaceRole::other, false, true);
+                add(folder + "/" + name, 0, FaceRole::other, false, true, 0);
         }
 #endif
     }
@@ -504,12 +507,12 @@ Fonts::~Fonts()
         FT_Done_FreeType(library_);
 }
 
-void Fonts::add(const std::string &path, int index, FaceRole role, bool bold, bool discovered)
+void Fonts::add(const std::string &path, int index, FaceRole role, bool bold, bool discovered, int family)
 {
     if (static_cast<int>(faces_.size()) >= kMaxFaces)
         return;
     for (const auto &face : faces_)
-        if (face->path == path && face->index == index)
+        if (face->path == path && face->index == index && face->family == family)
             return;
     auto face = std::make_unique<Face>();
     face->path = path;
@@ -517,6 +520,7 @@ void Fonts::add(const std::string &path, int index, FaceRole role, bool bold, bo
     face->role = role;
     face->bold = bold;
     face->discovered = discovered;
+    face->family = family;
     faces_.push_back(std::move(face));
 }
 
@@ -642,33 +646,46 @@ bool Fonts::covers(int index, const char32_t *need, std::size_t count)
     return true;
 }
 
-int Fonts::role_face(FaceRole role)
+int Fonts::role_face(FaceRole role, int family)
 {
-    for (int i = 0; i < count(); ++i)
-        if (faces_[static_cast<std::size_t>(i)]->role == role && !faces_[static_cast<std::size_t>(i)]->bold && usable(i))
-            return i;
+    for (const int of : {family, 0})
+    {
+        for (int i = 0; i < count(); ++i)
+        {
+            const Face &face = *faces_[static_cast<std::size_t>(i)];
+            if (face.role == role && !face.bold && face.family == of && usable(i))
+                return i;
+        }
+    }
     return -1;
 }
 
 int Fonts::search(const char32_t *need, std::size_t need_count, const int *preferred, int preferred_count,
-                  bool bold_faces)
+                  bool bold_faces, int family)
 {
+    const auto asked = [&](int face, int of)
+    {
+        const Face &candidate = *faces_[static_cast<std::size_t>(face)];
+        return candidate.bold == bold_faces && candidate.family == of;
+    };
     for (int k = 0; k < preferred_count; ++k)
     {
         const int face = preferred[k];
-        if (face >= 0 && face < count() && faces_[static_cast<std::size_t>(face)]->bold == bold_faces &&
-            covers(face, need, need_count))
+        if (face >= 0 && face < count() && (asked(face, family) || asked(face, 0)) && covers(face, need, need_count))
             return face;
     }
-    for (int face = 0; face < count(); ++face)
-        if (faces_[static_cast<std::size_t>(face)]->bold == bold_faces && covers(face, need, need_count))
-            return face;
+    // The family's own faces, then the faces every text shares; in the order they were named.
+    for (int pass = family != 0 ? 0 : 1; pass < 2; ++pass)
+        for (int face = 0; face < count(); ++face)
+            if (asked(face, pass == 0 ? family : 0) && covers(face, need, need_count))
+                return face;
     return -1;
 }
 
 int Fonts::pick(const char32_t *cluster, std::size_t cluster_count, hb_script_t own, hb_script_t resolved,
-                HanForms han, bool bold, int neighbour)
+                HanForms han, bool bold, int neighbour, int family)
 {
+    family &= 15;
     // What the face must have: everything that draws. Joiners, selectors and skin tones do not.
     char32_t need[8];
     std::size_t need_count = 0;
@@ -676,7 +693,7 @@ int Fonts::pick(const char32_t *cluster, std::size_t cluster_count, hb_script_t 
         if (!uni::default_ignorable(cluster[i]) && !uni::emoji_modifier(cluster[i]))
             need[need_count++] = cluster[i];
     if (need_count == 0)
-        return neighbour >= 0 ? neighbour : primary();
+        return neighbour >= 0 ? neighbour : primary(family);
 
     const bool common = is_common(own);
     const hb_script_t context = common ? resolved : own;
@@ -713,7 +730,8 @@ int Fonts::pick(const char32_t *cluster, std::size_t cluster_count, hb_script_t 
         }
         key = need[0] | (static_cast<std::uint64_t>(bold) << 21) | (situation << 22) |
               (static_cast<std::uint64_t>(latin_first) << 26) |
-              (static_cast<std::uint64_t>(by_neighbour ? neighbour + 1 : 0) << 27);
+              (static_cast<std::uint64_t>(by_neighbour ? neighbour + 1 : 0) << 27) |
+              (static_cast<std::uint64_t>(family) << 40);
         if (const auto found = picked_.find(key); found != picked_.end())
             return found->second;
     }
@@ -722,9 +740,11 @@ int Fonts::pick(const char32_t *cluster, std::size_t cluster_count, hb_script_t 
     int preferred_count = 0;
     const auto prefer_role = [&](FaceRole wanted)
     {
-        for (int i = 0; i < count() && preferred_count < 8; ++i)
-            if (faces_[static_cast<std::size_t>(i)]->role == wanted)
-                preferred[preferred_count++] = i;
+        for (int pass = family != 0 ? 0 : 1; pass < 2; ++pass)
+            for (int i = 0; i < count() && preferred_count < 8; ++i)
+                if (faces_[static_cast<std::size_t>(i)]->role == wanted &&
+                    faces_[static_cast<std::size_t>(i)]->family == (pass == 0 ? family : 0))
+                    preferred[preferred_count++] = i;
     };
     if (by_neighbour)
         preferred[preferred_count++] = neighbour;
@@ -740,9 +760,9 @@ int Fonts::pick(const char32_t *cluster, std::size_t cluster_count, hb_script_t 
     {
         // Bold text: a bold cut first, then a regular face (its outline is widened).
         if (bold)
-            chosen = search(need, wanted, preferred, preferred_count, true);
+            chosen = search(need, wanted, preferred, preferred_count, true, family);
         if (chosen < 0)
-            chosen = search(need, wanted, preferred, preferred_count, false);
+            chosen = search(need, wanted, preferred, preferred_count, false, family);
         if (wanted == 1)
             break; // no face has the whole cluster: one that has its first character will do
     }
@@ -803,18 +823,20 @@ FT_FaceRec_ *Fonts::outlines(int index)
     return face.ft_face;
 }
 
-int Fonts::primary()
+int Fonts::primary(int family)
 {
-    if (primary_ != -2)
-        return primary_;
-    primary_ = role_face(FaceRole::latin);
-    for (int i = 0; primary_ < 0 && i < count(); ++i)
-        if (!faces_[static_cast<std::size_t>(i)]->bold && usable(i))
-            primary_ = i;
-    for (int i = 0; primary_ < 0 && i < count(); ++i)
+    family &= 15;
+    int &primary = primary_[family];
+    if (primary != -2)
+        return primary;
+    primary = role_face(FaceRole::latin, family);
+    for (int i = 0; primary < 0 && i < count(); ++i)
+        if (!faces_[static_cast<std::size_t>(i)]->bold && faces_[static_cast<std::size_t>(i)]->family == 0 && usable(i))
+            primary = i;
+    for (int i = 0; primary < 0 && i < count(); ++i)
         if (usable(i))
-            primary_ = i;
-    return primary_;
+            primary = i;
+    return primary;
 }
 
 void Fonts::metrics(int index, float *ascent, float *descent, float *line_gap)
@@ -884,6 +906,8 @@ std::string Fonts::describe() const
         if (face->index != 0)
             text += "#" + std::to_string(face->index);
         text += std::string(" (") + role_name(face->role) + (face->bold ? " bold" : "");
+        if (face->family != 0)
+            text += " family " + std::to_string(face->family);
         if (face->state == Face::State::ready)
         {
             const std::size_t size = face->file ? face->file->size() : 0;
