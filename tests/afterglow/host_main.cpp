@@ -13,6 +13,7 @@
 //   --lang <tag>         interface language: a catalog of --catalogs (default en); a text the
 //                        catalog lacks is shown in English and counted
 //   --strict-lang        ... and fails the run
+//   --snapshots          writes each board's snapshot as <look>/<board>.json
 //   --catalogs <dir>     native/i18n
 //   --size <W>x<H>       picture size (default 1920x1080)
 //   --only <text>        boards whose name contains the text
@@ -368,6 +369,7 @@ struct Options
     bool pictures = true;
     bool baked = false;
     bool strict_lang = false;
+    bool snapshots = false;
 };
 
 struct Results
@@ -539,6 +541,8 @@ int main(int argc, char **argv)
             options.baked = true;
         else if (flag == "--strict-lang")
             options.strict_lang = true;
+        else if (flag == "--snapshots")
+            options.snapshots = true;
         else
         {
             std::fprintf(stderr, "unknown option %s\n", flag.c_str());
@@ -711,6 +715,7 @@ int main(int argc, char **argv)
                 frame_options.reduced_motion = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "reduced_motion"));
                 frame_options.attract_after = static_cast<float>(number_of(board, "attract_after", kAttractAfter));
                 Frame frame(platform, source, fonts, frame_options);
+                frame.set_output(options.width, options.height);
                 const cJSON *route = cJSON_GetObjectItemCaseSensitive(board, "route");
                 ScreenId screen = ScreenId::home;
                 if (cJSON_IsObject(route) && screen_from_name(text_of(route, "screen", "home"), &screen))
@@ -790,6 +795,12 @@ int main(int argc, char **argv)
                         {
                             frame.resume();
                         }
+                        if (engine)
+                        {
+                            const tube::text::Stats text = engine->stats();
+                            frame.set_text_stats(true, static_cast<int>(text.pages), static_cast<int>(text.glyphs), static_cast<int>(text.faces_open),
+                                                 static_cast<int>(engine->missing()));
+                        }
                         frame.update(input, kDt);
                         if (reel != nullptr)
                         {
@@ -847,6 +858,17 @@ int main(int argc, char **argv)
                 ++results.checks;
                 if (state == nullptr)
                     fail(results, name, look_id, "the snapshot is not JSON: " + snapshot.substr(0, 120));
+                if (options.snapshots)
+                {
+                    // The snapshot as the console session reads it (tools/console), beside the picture.
+                    const std::string folder = options.output + "/" + look_id;
+                    mkdir(folder.c_str(), 0755);
+                    if (std::FILE *file = std::fopen((folder + "/" + name + ".json").c_str(), "wb"))
+                    {
+                        std::fwrite(snapshot.data(), 1, snapshot.size(), file);
+                        std::fclose(file);
+                    }
+                }
                 const cJSON *expect = cJSON_GetObjectItemCaseSensitive(board, "expect");
                 const cJSON *wanted = nullptr;
                 cJSON_ArrayForEach(wanted, expect)

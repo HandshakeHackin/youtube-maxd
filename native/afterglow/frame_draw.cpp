@@ -21,27 +21,66 @@ double now_ms()
     return std::chrono::duration<double, std::milli>(clock::now().time_since_epoch()).count();
 }
 
+// How many bytes the UTF-8 character at value[at] has; 0 when what stands there is not one whole,
+// well-formed character (a title cut inside a character by a fixed-size buffer).
+std::size_t utf8_length(std::string_view value, std::size_t at)
+{
+    const unsigned char lead = static_cast<unsigned char>(value[at]);
+    const std::size_t length = lead < 0x80 ? 1 : lead >= 0xc2 && lead <= 0xdf ? 2 : lead >= 0xe0 && lead <= 0xef ? 3 : lead >= 0xf0 && lead <= 0xf4 ? 4 : 0;
+    if (length == 0 || at + length > value.size())
+        return 0;
+    for (std::size_t i = 1; i < length; ++i)
+    {
+        if ((static_cast<unsigned char>(value[at + i]) & 0xc0u) != 0x80u)
+            return 0;
+    }
+    const unsigned char next = length > 1 ? static_cast<unsigned char>(value[at + 1]) : 0;
+    if ((lead == 0xe0 && next < 0xa0) || (lead == 0xed && next >= 0xa0) || (lead == 0xf0 && next < 0x90) || (lead == 0xf4 && next >= 0x90))
+        return 0;
+    return length;
+}
+
+// The snapshot is JSON whatever the texts are: what is not whole UTF-8 becomes U+FFFD.
 void json_string(std::string &out, std::string_view value)
 {
     out.push_back('"');
-    for (const char c : value)
+    for (std::size_t at = 0; at < value.size();)
     {
+        const char c = value[at];
         const unsigned char u = static_cast<unsigned char>(c);
         if (c == '"' || c == '\\')
         {
             out.push_back('\\');
             out.push_back(c);
+            ++at;
         }
         else if (c == '\n')
+        {
             out += "\\n";
-        else if (u < 0x20)
+            ++at;
+        }
+        else if (u < 0x20 || u == 0x7f)
         {
             char buffer[8];
             std::snprintf(buffer, sizeof buffer, "\\u%04x", u);
             out += buffer;
+            ++at;
+        }
+        else if (u < 0x80)
+        {
+            out.push_back(c);
+            ++at;
+        }
+        else if (const std::size_t length = utf8_length(value, at); length != 0)
+        {
+            out.append(value.substr(at, length));
+            at += length;
         }
         else
-            out.push_back(c);
+        {
+            out += "\xEF\xBF\xBD";
+            ++at;
+        }
     }
     out.push_back('"');
 }
@@ -57,8 +96,9 @@ void json_field(std::string &out, const char *name, std::string_view value, bool
 
 void json_number(std::string &out, const char *name, double value, bool comma = true)
 {
-    char buffer[48];
-    std::snprintf(buffer, sizeof buffer, "\"%s\":%.6g%s", name, value, comma ? "," : "");
+    // ... and whatever the numbers are: one that is none (a division by no frames) is written as 0.
+    char buffer[64];
+    std::snprintf(buffer, sizeof buffer, "\"%s\":%.6g%s", name, std::isfinite(value) ? value : 0.0, comma ? "," : "");
     out += buffer;
 }
 
@@ -67,6 +107,8 @@ void json_focus(std::string &out, const FocusInfo &focus)
     out += "{";
     json_field(out, "id", focus.id);
     json_field(out, "text", focus.text);
+    json_field(out, "kind", focus.kind);
+    json_number(out, "live", focus.live ? 1 : 0);
     json_number(out, "index", focus.index);
     json_number(out, "total", focus.total);
     char buffer[96];
@@ -411,6 +453,17 @@ std::string Frame::snapshot_json() const
             out += "}";
         }
     }
+    if (!stack_.empty() && rail_open_ && !dialog_.is_open())
+    {
+        // While the rail has the focus, its destinations are what can be focused.
+        for (std::size_t i = 0; i < destinations_.size(); ++i)
+        {
+            out += i == 0 ? "{" : ",{";
+            json_field(out, "id", std::string("rail/") + screen_name(destinations_[i].screen));
+            json_field(out, "text", destinations_[i].label, false);
+            out += "}";
+        }
+    }
     out += "],\"toasts\":[";
     for (std::size_t i = 0; i < toast_log_.size(); ++i)
     {
@@ -454,6 +507,16 @@ std::string Frame::snapshot_json() const
     json_number(out, "fill", stats_.fill);
     json_number(out, "pictures_ready", stats_.pictures_ready);
     json_number(out, "pictures_pending", stats_.pictures_pending);
+    json_number(out, "pictures_failed", stats_.pictures_failed);
+    json_number(out, "frames", static_cast<double>(stats_.frames));
+    json_number(out, "slow_frames", static_cast<double>(stats_.slow_frames));
+    json_number(out, "output_w", stats_.output_w);
+    json_number(out, "output_h", stats_.output_h);
+    json_number(out, "text_engine", stats_.text_engine ? 1 : 0);
+    json_number(out, "glyph_pages", stats_.glyph_pages);
+    json_number(out, "glyphs", stats_.glyphs);
+    json_number(out, "fonts", stats_.fonts);
+    json_number(out, "missing_glyphs", stats_.missing_glyphs);
     json_number(out, "picture_bytes", static_cast<double>(stats_.picture_bytes));
     json_number(out, "data_pending", stats_.data_pending, false);
     out += "}}";

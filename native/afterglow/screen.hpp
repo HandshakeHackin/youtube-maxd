@@ -244,6 +244,11 @@ struct FocusInfo
     Rect rect{};      // where it is drawn, virtual pixels
     int index = 0;    // 0-based position in its row or list
     int total = 0;    // how many that row or list has
+    // What Cross does there, for whoever drives the interface from outside:
+    // "video" (it plays), "topic", "channel", "playlist", "action", "key",
+    // "tab", "row", "tile"; "" where the screen does not say.
+    std::string kind;
+    bool live = false; // a video that is a live stream
 };
 
 // A screen's own state for snapshots: flat name/value pairs and named lists.

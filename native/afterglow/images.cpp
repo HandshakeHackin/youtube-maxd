@@ -276,6 +276,14 @@ int ImageCache::ready() const
     return count;
 }
 
+int ImageCache::failed() const
+{
+    int count = 0;
+    for (const auto &pair : entries_)
+        count += pair.second->state == Entry::State::failed;
+    return count;
+}
+
 Picture ImageCache::get(std::string_view url, PictureSize size)
 {
     if (url.empty())

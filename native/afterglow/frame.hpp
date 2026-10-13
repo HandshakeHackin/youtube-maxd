@@ -47,8 +47,19 @@ struct FrameStats
     float worst_frame_ms = 0.0f; // the longest of the last 120
     int pictures_ready = 0;
     int pictures_pending = 0;
+    int pictures_failed = 0;    // given up on for now: the address failed or the bytes were no picture
     std::size_t picture_bytes = 0;
     int data_pending = 0;
+    unsigned long long frames = 0;      // update() calls since the frame was built
+    unsigned long long slow_frames = 0; // ... that came later than one and a half display intervals (25 ms)
+    // Told by whoever runs the frame (set_output, set_text_stats): the frame owns neither.
+    int output_w = 0;
+    int output_h = 0;
+    bool text_engine = false; // the shaping engine of native/text draws (false: the kit's baked fonts)
+    int glyph_pages = 0;
+    int glyphs = 0;         // glyphs in the atlas
+    int fonts = 0;          // font files opened: the four faces and the system fonts together
+    int missing_glyphs = 0; // characters no font had, in the last frames
 };
 
 class Frame final : private Nav
@@ -88,6 +99,21 @@ class Frame final : private Nav
     const Look &look() const
     {
         return *look_;
+    }
+    // The size the interface is drawn at, for the snapshot.
+    void set_output(int width, int height)
+    {
+        stats_.output_w = width;
+        stats_.output_h = height;
+    }
+    // The text engine's numbers, for the snapshot; engine false when the kit's baked fonts draw.
+    void set_text_stats(bool engine, int glyph_pages, int glyphs, int fonts, int missing_glyphs)
+    {
+        stats_.text_engine = engine;
+        stats_.glyph_pages = glyph_pages;
+        stats_.glyphs = glyphs;
+        stats_.fonts = fonts;
+        stats_.missing_glyphs = missing_glyphs;
     }
 
     // Replaces the stack: what the app opens the interface with, and tests.

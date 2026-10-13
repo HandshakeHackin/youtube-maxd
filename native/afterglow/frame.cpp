@@ -500,6 +500,9 @@ void Frame::update(const InputFrame &input, float dt)
     feedback_.clear();
     clock_ += dt;
     stats_.frame_ms = dt * 1000.0f;
+    ++stats_.frames;
+    if (stats_.frame_ms > 25.0f)
+        ++stats_.slow_frames;
     frame_times_[frame_time_at_] = stats_.frame_ms;
     frame_time_at_ = (frame_time_at_ + 1) % frame_times_.size();
     stats_.worst_frame_ms = *std::max_element(frame_times_.begin(), frame_times_.end());
@@ -615,6 +618,7 @@ void Frame::update(const InputFrame &input, float dt)
     stats_.data_pending = data_.pending();
     stats_.pictures_pending = images_.pending();
     stats_.pictures_ready = images_.ready();
+    stats_.pictures_failed = images_.failed();
     stats_.picture_bytes = images_.bytes();
     stats_.update_ms = static_cast<float>(now_ms() - started);
 }
@@ -640,6 +644,7 @@ FocusInfo Frame::focus() const
         const Destination &item = destinations_[static_cast<std::size_t>(rail_focus_)];
         info.id = std::string("rail/") + screen_name(item.screen);
         info.text = item.label;
+        info.kind = "action";
         info.rect = {24.0f, item.y - 36.0f, kRail + 272.0f - 48.0f, 72.0f};
         info.index = rail_focus_;
         info.total = static_cast<int>(destinations_.size());

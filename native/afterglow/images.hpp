@@ -91,6 +91,8 @@ class ImageCache
     }
     int pending() const;
     int ready() const;
+    // Pictures given up on for now (the address failed or the bytes were no picture).
+    int failed() const;
 
   private:
     struct Entry;

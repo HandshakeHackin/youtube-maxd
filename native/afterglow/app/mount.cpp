@@ -279,6 +279,14 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
 
     if (m.text)
         m.text->begin_frame();
+    // What the snapshot cannot know by itself: the size drawn at, and the text engine's numbers.
+    m.frame->set_output(width, height);
+    if (m.text)
+    {
+        const tube::text::Stats text = m.text->stats();
+        m.frame->set_text_stats(true, static_cast<int>(text.pages), static_cast<int>(text.glyphs), static_cast<int>(text.faces_open),
+                                static_cast<int>(m.text->missing()));
+    }
     m.frame->update(m.input, dt);
     m.input = InputFrame{};
     m.world.clear();
