@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice:done", "is_folder": true, "interface": true, "title": "Comment posted", "subtitle": "Reload the comments to see it"}
+ ],
+ "has_more": false
+}

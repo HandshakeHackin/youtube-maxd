@@ -1,0 +1,204 @@
+{
+ "about": "The comments of a video: the thread, its replies, top or newest, liking, and writing with the kit's keyboard.",
+ "boards": [
+  {
+   "name": "comments-top",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "expect": {"screen": "comments", "focus": "comment/0", "rail_open": 0, "state": {"video": "pT5xRidgeLn", "order": "top", "load": "ready", "comments": "8", "replies_shown": "0", "count": "1,284", "can_write": "1", "writing": "no", "pages": "1"}, "asked": ["discussion:top:pT5xRidgeLn", "details:pT5xRidgeLn"]}
+  },
+  {
+   "name": "comments-thread",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "discussion:top:pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/1", "state": {"comments": "8", "replies_shown": "1", "scroll": "0"}, "asked": ["discussion:replies:rpMirela0001"]}
+  },
+  {
+   "name": "comments-replies",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "down", "wait": 0.8}, {"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "comments", "focus": "comment/4", "state": {"replies_shown": "4"}}
+  },
+  {
+   "name": "comments-reply-to-parent",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "down", "wait": 0.8}, {"press": "down"}, {"press": "left"}, {"press": "right"}],
+   "expect": {"screen": "comments", "focus": "comment/1", "rail_open": 0, "state": {"replies_shown": "0"}}
+  },
+  {
+   "name": "comments-more",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "comments", "focus": "comment/9", "state": {"comments": "14", "pages": "2", "scroll": "912"}}
+  },
+  {
+   "name": "comments-long-comment",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/11", "state": {"lines": "5"}}
+  },
+  {
+   "name": "comments-end",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "up"}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/13", "state": {"comments": "14"}}
+  },
+  {
+   "name": "comments-newest",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "r1", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/0", "state": {"order": "newest", "load": "ready", "comments": "14", "scroll": "0"}, "asked": ["discussion:newest:pT5xRidgeLn"]}
+  },
+  {
+   "name": "comments-like-pending",
+   "fixture": "signed-in",
+   "source": {"delay": 30},
+   "settle": 2.5,
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 0.25}],
+   "expect": {"screen": "comments", "focus": "comment/1", "state": {"pending": "like", "liked": "0"}}
+  },
+  {
+   "name": "comments-like",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 0.5}],
+   "expect": {"screen": "comments", "focus": "comment/1", "state": {"pending": "", "liked": "1"}, "asked": ["menu:discussion:replies:rpMirela0001", "comment:confirm:like:rcMirela0001", "account:apply:301"]}
+  },
+  {
+   "name": "comments-like-refused",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "triangle", "wait": 1.0}],
+   "expect": {"screen": "comments", "focus": "comment/2", "state": {"pending": "", "liked": "0"}, "asked": ["comment:confirm:like:rcQuietpixel1", "account:apply:321"]}
+  },
+  {
+   "name": "comments-reply",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "down"}, {"press": "right"}, {"press": "cross"}, {"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"press": "triangle"}, {"press": "left"}, {"press": "left"}, {"press": "left"}, {"press": "left"}, {"press": "cross"}, {"press": "left"}, {"press": "cross"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"press": "left"}, {"press": "left"}, {"press": "left"}, {"press": "left"}, {"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "comments", "focus": "write/key", "state": {"writing": "reply", "text": "so true"}}
+  },
+  {
+   "name": "comments-reply-asks",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross"}, {"press": "cross"}, {"press": "options", "wait": 0.8}],
+   "expect": {"screen": "comments", "dialog": 1, "state": {"writing": "reply", "text": "qq", "pending": ""}}
+  },
+  {
+   "name": "comments-reply-posted",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross"}, {"press": "cross"}, {"press": "options", "wait": 0.8}, {"press": "cross", "wait": 1.6}],
+   "expect": {"screen": "comments", "focus": "comment/1", "dialog": 0, "state": {"writing": "no", "text": "", "pending": "", "replies_shown": "2"}, "asked": ["menu:discussion:replies:rpMirela0001", "comment:reply:rcMirela0001", "comment:review:302", "account:apply:302"]}
+  },
+  {
+   "name": "comments-reply-refused",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross"}, {"press": "options", "wait": 0.8}, {"press": "cross", "wait": 1.2}],
+   "expect": {"screen": "comments", "focus": "write/key", "dialog": 0, "state": {"writing": "reply", "text": "q", "pending": "", "trouble": "The comment was not confirmed. Reload the comments before writing it again."}}
+  },
+  {
+   "name": "comments-reply-cancelled",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross"}, {"press": "square"}, {"press": "options"}, {"press": "circle", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/1", "dialog": 0, "state": {"writing": "no", "text": ""}}
+  },
+  {
+   "name": "comments-new-comment",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "square", "wait": 0.8}, {"press": "cross"}, {"press": "options", "wait": 0.6}, {"press": "cross", "wait": 1.6}],
+   "expect": {"screen": "comments", "focus": "comment/0", "state": {"writing": "no", "comments": "9", "pending": ""}, "asked": ["comment:post:pT5xRidgeLn", "comment:review:331", "account:apply:331"]}
+  },
+  {
+   "name": "comments-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "comments", "focus": "thread", "state": {"load": "loading", "comments": "0"}}
+  },
+  {
+   "name": "comments-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "comments", "focus": "retry", "state": {"load": "offline", "comments": "0"}}
+  },
+  {
+   "name": "comments-failed",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "gone0000000"},
+   "steps": [{"press": "down"}, {"press": "triangle"}, {"press": "square"}],
+   "expect": {"screen": "comments", "focus": "retry", "state": {"load": "failed", "writing": "no"}}
+  },
+  {
+   "name": "comments-empty",
+   "fixture": "empty",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "comments", "focus": "compose", "state": {"load": "ready", "comments": "0", "count": "0", "can_write": "1"}}
+  },
+  {
+   "name": "comments-empty-write",
+   "fixture": "empty",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "write/key", "state": {"writing": "comment"}}
+  },
+  {
+   "name": "comments-guest",
+   "fixture": "guest",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "comments", "focus": "comment/1", "state": {"load": "ready", "comments": "8", "can_write": "0", "count": "1,284"}}
+  },
+  {
+   "name": "comments-guest-reply",
+   "fixture": "guest",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "comments", "dialog": 1, "state": {"writing": "no"}}
+  },
+  {
+   "name": "comments-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "comment/1", "state": {"comments": "4", "count": "1.284.019", "lines": "8"}}
+  },
+  {
+   "name": "comments-long-texts-reply",
+   "fixture": "long-texts",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "comments", "focus": "write/key", "state": {"writing": "reply"}}
+  },
+  {
+   "name": "comments-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "left"}],
+   "expect": {"screen": "comments", "focus": "rail/home", "rail_open": 1}
+  },
+  {
+   "name": "comments-back-to-video",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "r2", "wait": 1.0}, {"press": "down"}, {"press": "circle", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "related/0", "moving": 0, "state": {"zone": "related"}}
+  }
+ ]
+}

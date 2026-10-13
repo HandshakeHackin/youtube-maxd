@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "comment:confirm:like:rcAtlasPinned", "is_folder": true, "interface": true, "title": "Like comment"},
+  {"id": "comment:confirm:dislike:rcAtlasPinned", "is_folder": true, "interface": true, "title": "Dislike comment"},
+  {"id": "comment:reply:rcAtlasPinned", "is_folder": true, "interface": true, "title": "Reply to comment"}
+ ],
+ "has_more": false
+}
