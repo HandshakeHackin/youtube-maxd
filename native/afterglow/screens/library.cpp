@@ -117,6 +117,13 @@ std::string fill(const char *pattern, std::string_view value)
     return out;
 }
 
+// REQUEST: the data layer cleans a row's title and subtitle of what no face
+// draws, but not its facts; a fact that is shown is cleaned here meanwhile.
+std::string shown_fact(const model::Row &row, std::string_view name)
+{
+    return clean(row.fact(name));
+}
+
 std::string videos_text(std::size_t count)
 {
     return count == 1 ? std::string(tr("1 video")) : fill(tr("{0} videos"), std::to_string(count));
@@ -807,7 +814,7 @@ class Library final : public Screen
                     cell.video = *video;
                     cell.card = *video;
                     // History says when the video was watched instead of how many watched it.
-                    const std::string &watched = row.fact("watched");
+                    const std::string watched = shown_fact(row, "watched");
                     if (index == kHistory && !watched.empty())
                     {
                         cell.card.views.clear();
@@ -817,9 +824,9 @@ class Library final : public Screen
                 else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
                 {
                     cell.kind = Kind::playlist;
-                    const std::string &owner = row.fact("owner").empty() ? row.subtitle : row.fact("owner");
+                    const std::string owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
                     cell.line = owner.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + owner;
-                    const std::string &amount = row.fact("count");
+                    const std::string amount = shown_fact(row, "count");
                     cell.count = all_digits(amount) ? (amount == "1" ? std::string(tr("1 video")) : fill(tr("{0} videos"), amount)) : amount;
                 }
                 else
