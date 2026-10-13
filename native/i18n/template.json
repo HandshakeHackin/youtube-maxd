@@ -38,6 +38,24 @@
    ]
   },
   {
+   "source": "360 degrees",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "3D",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "4K",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "A dated copy of settings, library and companion pairing in the app data folder",
    "context": [
     "browser"
@@ -50,13 +68,67 @@
    ]
   },
   {
+   "source": "A file could not be created while unpacking",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A file could not be replaced and the update could not be undone completely. It is undone at the next start.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A file could not be replaced. The update was undone; the installed version is unchanged.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A file could not be written while unpacking. Is the storage full?",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A file in the archive is damaged",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A folder could not be created while unpacking",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "A frame of the video instead of its published thumbnail",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "A native YouTube client for PS5 homebrew; GPL-3.0-or-later",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "A new private playlist on the selected account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A notice once per start when a newer version exists; the check itself runs at most once a day",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "A path in the archive is too long",
    "context": [
     "browser"
    ]
@@ -74,9 +146,27 @@
    ]
   },
   {
+   "source": "A row of the video actions menu, in the browser and in the player",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "AUDIO STOPPED",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "About DeArrow",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "About SponsorBlock",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -225,6 +315,12 @@
    ]
   },
   {
+   "source": "Add to the last used playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Add to {0}",
    "context": [
     "browser"
@@ -338,6 +434,42 @@
    ]
   },
   {
+   "source": "An unpacked file could not be read back",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An unpacked file does not match the archive",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An unpacked file has the wrong permissions",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An unpacked file has the wrong size",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An unpacked file is missing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "An unpacked folder is missing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Announce a chapter when it starts; R1 skips it",
    "context": [
     "browser"
@@ -417,6 +549,12 @@
   },
   {
    "source": "Ask before stopping",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Ask now for a newer ProsperoTube; About lists the answer",
    "context": [
     "browser"
    ]
@@ -604,6 +742,12 @@
    ]
   },
   {
+   "source": "Block or unblock channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Blocked channels",
    "context": [
     "browser"
@@ -738,6 +882,7 @@
   {
    "source": "Cancelled",
    "context": [
+    "browser",
     "toast"
    ]
   },
@@ -791,6 +936,12 @@
   },
   {
    "source": "Captions turned on or off while watching apply to that channel's next videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Card title lines",
    "context": [
     "browser"
    ]
@@ -993,6 +1144,12 @@
    ]
   },
   {
+   "source": "Check for updates",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Check the chat before composing another message",
    "context": [
     "browser"
@@ -1000,6 +1157,20 @@
   },
   {
    "source": "Check your account before repeating an unconfirmed change",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Checking and unpacking: {0}% - select to cancel",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Checking...",
    "context": [
     "browser"
    ]
@@ -1197,6 +1368,18 @@
    ]
   },
   {
+   "source": "Circle on the main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Circle on typed results; saved for this profile",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Circle returns",
    "context": [
     "browser",
@@ -1356,6 +1539,12 @@
    ]
   },
   {
+   "source": "Closes ProsperoTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Colombia",
    "context": [
     "browser"
@@ -1363,6 +1552,18 @@
   },
   {
    "source": "Color markers on timeline",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Color scheme",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Colours of the browser; the true black ones suit OLED screens",
    "context": [
     "browser"
    ]
@@ -1784,6 +1985,36 @@
    ]
   },
   {
+   "source": "Dark blue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dark blue (true black)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dark grey",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dark grey (true black)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Dark grey monochrome",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Date added, newest first",
    "context": [
     "browser"
@@ -1815,6 +2046,12 @@
   },
   {
    "source": "DeArrow community attribution",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "DeArrow status",
    "context": [
     "browser"
    ]
@@ -1916,6 +2153,12 @@
    ]
   },
   {
+   "source": "Discard the prepared update",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Discover",
    "context": [
     "browser"
@@ -1983,7 +2226,19 @@
    ]
   },
   {
+   "source": "Does nothing",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Dominican Republic",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Don't recommend channel",
    "context": [
     "browser"
    ]
@@ -1999,6 +2254,22 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Downloading: {0}% - select to pause",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "Downloads {0} MB, checks it against the release and prepares the new version",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
   },
   {
    "source": "Duration",
@@ -2038,6 +2309,12 @@
   },
   {
    "source": "Earlier in its menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Earlier in the menu",
    "context": [
     "browser"
    ]
@@ -2224,6 +2501,18 @@
   },
   {
    "source": "Estonian",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Every row shown, in the original order",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Every video action is hidden",
    "context": [
     "browser"
    ]
@@ -2574,6 +2863,18 @@
    ]
   },
   {
+   "source": "HD",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "HDR",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "HOLD L3",
    "context": [
     "document"
@@ -2666,6 +2967,12 @@
    "args": "n"
   },
   {
+   "source": "Hide from this list",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Hide from this list (experimental)",
    "context": [
     "browser"
@@ -2690,6 +2997,12 @@
    ],
    "pattern": true,
    "args": "n"
+  },
+  {
+   "source": "Hide row",
+   "context": [
+    "browser"
+   ]
   },
   {
    "source": "Hide section",
@@ -2854,6 +3167,12 @@
    ]
   },
   {
+   "source": "How fast a long title moves",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Human captions are preferred",
    "context": [
     "browser"
@@ -2937,13 +3256,49 @@
    ]
   },
   {
+   "source": "Installed {0} is the latest version",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Installed {0}; latest {1} ({2})",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "sss"
+  },
+  {
+   "source": "Installed {0}; the latest version is not known yet",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Interaction reminder",
    "context": [
     "browser"
    ]
   },
   {
+   "source": "Interface",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Interface language",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Interface scale",
    "context": [
     "browser"
    ]
@@ -2980,6 +3335,12 @@
   },
   {
    "source": "Italy",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Its files are listed on the release page: Releases and source code has the address",
    "context": [
     "browser"
    ]
@@ -3179,6 +3540,12 @@
    ]
   },
   {
+   "source": "Later in the menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Latvia",
    "context": [
     "browser"
@@ -3192,6 +3559,12 @@
   },
   {
    "source": "Learning",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Leaving search results",
    "context": [
     "browser"
    ]
@@ -3240,6 +3613,12 @@
   },
   {
    "source": "Likes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Lines a card keeps for its title",
    "context": [
     "browser"
    ]
@@ -3562,6 +3941,12 @@
    ]
   },
   {
+   "source": "Multiline subtitles",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Music",
    "context": [
     "browser"
@@ -3768,6 +4153,12 @@
    ]
   },
   {
+   "source": "No notice at start for this version; it stays listed here",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "No notifications",
    "context": [
     "browser"
@@ -3781,6 +4172,18 @@
   },
   {
    "source": "No recent searches",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No release was found.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "No releases were found at the update address.",
    "context": [
     "browser"
    ]
@@ -3801,6 +4204,12 @@
    "source": "No supported playback choices were returned.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "No verified update is waiting.",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -3840,6 +4249,12 @@
    ]
   },
   {
+   "source": "Not interested",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Not interested (experimental)",
    "context": [
     "browser"
@@ -3870,9 +4285,21 @@
    ]
   },
   {
+   "source": "Notify about updates",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "OPTIONS",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "Off",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -3912,6 +4339,12 @@
    ]
   },
   {
+   "source": "On",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "On the main menu of the selected profile",
    "context": [
     "browser"
@@ -3919,6 +4352,12 @@
   },
   {
    "source": "On: after a video from a section, shelf or channel, continue with the next one listed there",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "One press of Circle, or two",
    "context": [
     "browser"
    ]
@@ -4050,6 +4489,12 @@
   },
   {
    "source": "Original or an aspect override; independent of zoom",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Out of memory",
    "context": [
     "browser"
    ]
@@ -4547,9 +4992,27 @@
    ]
   },
   {
+   "source": "Press Circle again to close ProsperoTube",
+   "context": [
+    "toast"
+   ]
+  },
+  {
    "source": "Press Circle again to exit",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "Press Circle again to leave the results",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "Press Circle once",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -4559,7 +5022,19 @@
    ]
   },
   {
+   "source": "Press Circle twice",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Press Circle twice to exit",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Press twice to close ProsperoTube",
    "context": [
     "browser"
    ]
@@ -4633,6 +5108,42 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "ProsperoTube is installed as an image, which cannot be updated in place. Replace the image with the new version's.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "ProsperoTube is not installed in {0}, the only folder it updates in place. Get the new version from the release page.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "ProsperoTube is up to date.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "ProsperoTube runs from {0}. Only a copy in {1} updates itself; get the new version from the release page.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
+  },
+  {
+   "source": "ProsperoTube was updated to version {0}.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Protect this profile with a password (experimental)",
@@ -4798,6 +5309,12 @@
    ]
   },
   {
+   "source": "Red",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Refresh section",
    "context": [
     "browser"
@@ -4818,6 +5335,18 @@
   },
   {
    "source": "Related videos",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Release notes",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Release notes; L2 / R2 scroll",
    "context": [
     "browser"
    ]
@@ -5034,6 +5563,12 @@
    ]
   },
   {
+   "source": "Remove from the last used playlist",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Remove from {0}",
    "context": [
     "browser"
@@ -5049,6 +5584,12 @@
   },
   {
    "source": "Remove it from its menu; YouTube preferences can show it again",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Remove it from the menu; this screen shows it again",
    "context": [
     "browser"
    ]
@@ -5127,6 +5668,12 @@
   },
   {
    "source": "Removed from local history",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Removes the downloaded version; the installed one stays",
    "context": [
     "browser"
    ]
@@ -5247,6 +5794,12 @@
    ]
   },
   {
+   "source": "Replaces the app's files and closes ProsperoTube; open it again. The previous version is kept until the new one has started",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Replaces the settings and library on this PS5; the current state is kept as a safety copy",
    "context": [
     "browser"
@@ -5313,6 +5866,14 @@
    ]
   },
   {
+   "source": "Restart to finish updating to {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Restore or delete a backup",
    "context": [
     "browser"
@@ -5320,6 +5881,12 @@
   },
   {
    "source": "Restore the default",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Restore the default menu",
    "context": [
     "browser"
    ]
@@ -5346,6 +5913,12 @@
   },
   {
    "source": "Return it to its menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Return it to the menu",
    "context": [
     "browser"
    ]
@@ -5408,6 +5981,18 @@
    "args": "n"
   },
   {
+   "source": "Round or square corners for cards and thumbnails",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Rounded card corners",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Rows ending in (experimental) were tested offline only",
    "context": [
     "browser"
@@ -5441,6 +6026,12 @@
    "source": "SDR tracks; AV1 uses software decoding. HDR remains deferred",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "SEARCH",
+   "context": [
+    "toast"
    ]
   },
   {
@@ -5535,6 +6126,12 @@
    ]
   },
   {
+   "source": "Scale, video grid, card text, color scheme, video actions menu and Circle on the main menu",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Scan the code or type the address on another device",
    "context": [
     "browser"
@@ -5617,6 +6214,12 @@
    "source": "Scroll details",
    "context": [
     "document"
+   ]
+  },
+  {
+   "source": "Scroll long titles",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -5801,7 +6404,19 @@
    ]
   },
   {
+   "source": "Select a listed value for this interface preference.",
+   "context": [
+    "status"
+   ]
+  },
+  {
    "source": "Select a listed value for this player preference.",
+   "context": [
+    "status"
+   ]
+  },
+  {
+   "source": "Select a row of the video actions menu.",
    "context": [
     "status"
    ]
@@ -5988,6 +6603,12 @@
   },
   {
    "source": "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Select to show, hide or move this row",
    "context": [
     "browser"
    ]
@@ -6187,6 +6808,12 @@
    ]
   },
   {
+   "source": "Show row",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Show section",
    "context": [
     "browser"
@@ -6224,6 +6851,12 @@
   },
   {
    "source": "Show, hide and order the main menu, Discover and pinned sections",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Show, hide and order the rows of the video actions menu",
    "context": [
     "browser"
    ]
@@ -6296,6 +6929,18 @@
    ]
   },
   {
+   "source": "Size of everything in the browser; smaller shows more",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Size of the video cards; smaller shows more cards on a page",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Skip segments again in this channel's videos",
    "context": [
     "browser"
@@ -6306,6 +6951,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Skip version {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Skip with message",
@@ -6494,6 +7147,18 @@
   },
   {
    "source": "SponsorBlock is on for this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock on this channel",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "SponsorBlock status",
    "context": [
     "browser"
    ]
@@ -6786,6 +7451,18 @@
    ]
   },
   {
+   "source": "Teal",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Teal (true black)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Technology",
    "context": [
     "browser"
@@ -6825,6 +7502,72 @@
    "source": "The account change was not confirmed. Check your account before repeating it.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The archive holds a link or a special file",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive holds an unsafe path",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive is empty",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive is encrypted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive is not this app's folder",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive is too large (ZIP64)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive spans disks or is too large (ZIP64)",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive unpacks to more than an update may hold",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive uses a compression this app cannot read",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive's directory could not be read",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The archive's directory is damaged",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -7174,6 +7917,14 @@
    ]
   },
   {
+   "source": "The copy in {0} is not the one that is running, so it is left alone. Get the new version from the release page.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "The description response was invalid.",
    "context": [
     "status"
@@ -7184,6 +7935,58 @@
    "context": [
     "status"
    ]
+  },
+  {
+   "source": "The download could not be opened",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download could not be saved in the app's data.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download could not be written. Is the storage full?",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download does not match the release's SHA-256. Nothing was changed.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download does not match the size the release lists.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download is not a ZIP archive",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The download server answered with status {0}.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "The download stopped ({0}). Select the update again to continue it.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "The excluded channel list is full.",
@@ -7204,6 +8007,12 @@
    ]
   },
   {
+   "source": "The installed version is not touched yet",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The language of the PS5 system settings, or English",
    "context": [
     "browser"
@@ -7219,6 +8028,18 @@
    "source": "The message was not confirmed. Check the chat before sending again.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The new version is in place. ProsperoTube closes now: open it again.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The new version starts when you open the app again",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -7312,6 +8133,18 @@
    ]
   },
   {
+   "source": "The release does not hold this app at the listed version. Nothing was changed.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The release notes, as the developer wrote them",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The reminder response was invalid.",
    "context": [
     "status"
@@ -7356,6 +8189,12 @@
    ]
   },
   {
+   "source": "The selected card's title moves when it does not fit on one line",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The selected discussion was invalid.",
    "context": [
     "status"
@@ -7386,6 +8225,30 @@
    ]
   },
   {
+   "source": "The staged update could not be read. Nothing was changed.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The staged update could not be recorded. Nothing was changed.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The staging folder could not be created",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The staging folder holds something the archive does not",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The startup section could not open. Showing the main menu.",
    "context": [
     "status"
@@ -7405,6 +8268,64 @@
   },
   {
    "source": "The thumbnail the channel published",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update could not be applied.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update could not be recorded. The installed version is unchanged.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update folder in the app's data could not be created.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update is ready. Select Restart to finish in About.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update server answered with status {0}.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "n"
+  },
+  {
+   "source": "The update server could not be reached ({0}).",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "The update server is answering too many requests. Try again in an hour.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The update server's answer could not be read.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The updater is busy. Try again in a moment.",
    "context": [
     "browser"
    ]
@@ -7464,9 +8385,21 @@
    ]
   },
   {
+   "source": "This copy does not update itself",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "This file cannot be read as an export: it is missing, larger than 1 MiB or not text.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "This is a development build. It does not update itself: install a release to get updates.",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -7501,6 +8434,18 @@
   },
   {
    "source": "This playlist cannot be sorted",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This release cannot be installed from here",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "This release has no notes.",
    "context": [
     "browser"
    ]
@@ -7586,6 +8531,12 @@
   },
   {
    "source": "Time remaining",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Title scroll speed",
    "context": [
     "browser"
    ]
@@ -7729,9 +8680,21 @@
    ]
   },
   {
+   "source": "Two lines for the channel and details of a card",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Type",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "UPDATE",
+   "context": [
+    "toast"
    ]
   },
   {
@@ -7899,6 +8862,14 @@
    "args": "n"
   },
   {
+   "source": "Update to {0} now",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Upload date",
    "context": [
     "browser"
@@ -8008,6 +8979,12 @@
    ]
   },
   {
+   "source": "VR180",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Venezuela",
    "context": [
     "browser"
@@ -8028,6 +9005,30 @@
    "args": "s"
   },
   {
+   "source": "Version {0} is available. Open Settings, About to read what is new and update.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Version {0} is available. Settings, About has the release page.",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Version {0} is skipped - select to be told again",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "Video Playback",
    "context": [
     "kit"
@@ -8038,6 +9039,12 @@
    "context": [
     "browser",
     "kit"
+   ]
+  },
+  {
+   "source": "Video actions menu",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -8085,6 +9092,12 @@
   },
   {
    "source": "Video end",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Video grid scale",
    "context": [
     "browser"
    ]
@@ -8330,6 +9343,14 @@
    ]
   },
   {
+   "source": "What is new in {0}",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "What the (experimental) label on a row means",
    "context": [
     "browser"
@@ -8343,6 +9364,12 @@
   },
   {
    "source": "When phone disconnects",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Whether Circle closes ProsperoTube from the main menu",
    "context": [
     "browser"
    ]
@@ -8727,6 +9754,12 @@
    ]
   },
   {
+   "source": "no network transport",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "not set",
    "context": [
     "browser"
@@ -8746,6 +9779,12 @@
     "browser",
     "kit",
     "toast"
+   ]
+  },
+  {
+   "source": "out of memory",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -8831,6 +9870,12 @@
    ]
   },
   {
+   "source": "the address is not one of GitHub's",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "the built-in service",
    "context": [
     "browser"
@@ -8861,6 +9906,12 @@
    ]
   },
   {
+   "source": "the request failed",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "the service gave no address",
    "context": [
     "browser"
@@ -8886,10 +9937,22 @@
    ]
   },
   {
+   "source": "too many redirects",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "total duration",
    "context": [
     "browser",
     "kit"
+   ]
+  },
+  {
+   "source": "version unknown",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -8902,6 +9965,14 @@
    "need": [
     0
    ]
+  },
+  {
+   "source": "{0} ({1} display)",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "ss"
   },
   {
    "source": "{0} KiB; Cross reads it and shows what it lists",
@@ -8969,6 +10040,14 @@
    ],
    "pattern": true,
    "args": "ss"
+  },
+  {
+   "source": "{0} of {1} MB; a paused download continues where it stopped",
+   "context": [
+    "browser"
+   ],
+   "pattern": true,
+   "args": "nn"
   },
   {
    "source": "{0} seconds",

@@ -41,12 +41,14 @@ SHOWN = {
     "SetStatus": ("status", set()), "SetLoading": ("status", set()), "ui::text": ("kit", set()),
     "evo_keyboard_open": ("kit", {1, 2, 3, 4}),
 }
-FORMATTERS = {"snprintf": 2, "std::snprintf": 2, "sprintf": 1}
+FORMATTERS = {"snprintf": 2, "std::snprintf": 2, "sprintf": 1, "format": 2}
 # A formatted destination with one of these words in its name holds a text for the screen.
-TEXT_NAME = re.compile(r"label|detail|hint|title|text|line|note|message|summary|status|caption|overview|notice|reason|when|value|name|buffer|buf\b")
+TEXT_NAME = re.compile(r"label|error|detail|hint|title|text|line|note|message|summary|status|caption|overview|notice|reason|when|value|name|buffer|buf\b")
 ID_NAME = re.compile(r"\b(id|url|path|key|target|expected|query|parent|address|catalog|file|header|headers|rerun|link|body|cursor|code|token|json|request)\b|_id\b|_url\b|_path\b")
-NAMES = {"ProsperoTube", "YouTube", "SponsorBlock", "DeArrow", "Return YouTube Dislike", "PT", "AV1", "AVC", "HEVC", "VP9", "HDR", "HD", "4K", "3D", "VR180", "EVO",
+NAMES = {"ProsperoTube", "YouTube", "SponsorBlock", "DeArrow", "Return YouTube Dislike", "PT", "AV1", "AVC", "HEVC", "VP9", "EVO",
          "PROSPEROTUBE", "YOUTUBE", "SPONSORBLOCK"}
+# Protocol, style and test words that look like labels.
+NOT_SHOWN = {"Accept", "Range", "normal;", "white-space", "simulated failure"}
 SPEC = re.compile(r"%(?:%|[-+ #0]*\d*(?:\.\d+)?(?:hh|h|ll|l|z|j)?[diufgGeExXsc])")
 
 
@@ -245,14 +247,14 @@ class Collector:
     def __init__(self):
         self.entries = {}
 
-    def add(self, source, context, kinds=None, one=None, need=None):
+    def add(self, source, context, kinds=None, one=None, need=None, listed=False):
         source = source if kinds else tidy(source)
         halves = None if kinds else re.fullmatch(r"([^:]{2,60}): ([^:.]{1,40})", source)
         if halves and len(halves.group(2).split()) <= 4:
             self.add(halves.group(1), context)       # "<Label>: <value>": the two parts are translated on their own
             self.add(halves.group(2), context)
             return
-        if not source or source in NAMES or len(source) > 300 or not (letters(source) or need):
+        if not listed and (not source or source in NAMES or source in NOT_SHOWN or len(source) > 300 or not letters(source)):
             return
         entry = self.entries.setdefault(source, {"source": source, "context": set()})
         entry["context"].add(context)
@@ -352,9 +354,9 @@ def collect():
     if MANUAL.exists():
         for entry in json.loads(MANUAL.read_text(encoding="utf-8")):
             if entry.get("args"):
-                collector.add(entry["source"], entry.get("context", "browser"), entry["args"], entry.get("one"), entry.get("need"))
+                collector.add(entry["source"], entry.get("context", "browser"), entry["args"], entry.get("one"), entry.get("need"), listed=True)
             else:
-                collector.add(entry["source"], entry.get("context", "browser"))
+                collector.add(entry["source"], entry.get("context", "browser"), listed=True)
     entries = []
     for source in sorted(collector.entries):
         entry = dict(collector.entries[source])
