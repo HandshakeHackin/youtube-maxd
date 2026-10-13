@@ -1,0 +1,251 @@
+{
+ "about": "Results: the query with its count, the filter chips and their lists, and a grid of videos, channels and playlists (board 10 of the proposal).",
+ "boards": [
+  {
+   "name": "results-aurora",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.15}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.15}, {"press": "cross", "wait": 0.9}, {"press": "down", "wait": 0.6}],
+   "expect": {"screen": "results", "focus": "cell/1", "rail_open": 0, "state": {"query": "aurora", "zone": "grid", "load": "ready", "filters": "features=4k", "cells": "8", "count": "1,240", "row": "0"}, "asked": ["search:aurora", "search-with:features=4k:aurora"]}
+  },
+  {
+   "name": "results-first-page",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "cross", "wait": 0.4}],
+   "expect": {"screen": "results", "focus": "cell/1", "state": {"zone": "grid", "load": "ready", "filters": "none", "cells": "12", "pages": "1", "more": "1", "catalog": "search:aurora"}, "played": "auroraChs30"}
+  },
+  {
+   "name": "results-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "results", "argument": "aurora"},
+   "expect": {"screen": "results", "focus": "grid/loading", "state": {"load": "loading", "cells": "0", "zone": "grid"}}
+  },
+  {
+   "name": "results-loading-chips",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.2}, {"press": "up", "wait": 0.2}, {"press": "right"}],
+   "expect": {"screen": "results", "focus": "chip/duration", "state": {"load": "loading", "zone": "chips"}}
+  },
+  {
+   "name": "results-channel-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left"}],
+   "expect": {"screen": "results", "focus": "cell/0", "rail_open": 0}
+  },
+  {
+   "name": "results-playlist-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left", "wait": 0.15}, {"press": "down"}],
+   "expect": {"screen": "results", "focus": "cell/4"}
+  },
+  {
+   "name": "results-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left", "wait": 0.15}, {"press": "left", "wait": 0.6}],
+   "expect": {"screen": "results", "rail_open": 1, "focus": "rail/search"}
+  },
+  {
+   "name": "results-edge",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "right", "wait": 0.15}, {"press": "right", "wait": 0.15}, {"press": "right", "wait": 0.1}],
+   "expect": {"screen": "results", "focus": "cell/3"}
+  },
+  {
+   "name": "results-chips-end",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "up"}],
+   "expect": {"screen": "results", "focus": "chip/sort", "state": {"zone": "chips"}}
+  },
+  {
+   "name": "results-filter-list",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.2}, {"press": "cross", "wait": 0.5}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.5}],
+   "expect": {"screen": "results", "focus": "menu/3", "state": {"zone": "menu", "filters": "none"}}
+  },
+  {
+   "name": "results-filter-chosen",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.2}, {"press": "cross", "wait": 0.4}, {"press": "down", "wait": 0.15}, {"press": "circle", "wait": 0.4}, {"press": "cross", "wait": 0.4}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "down", "wait": 0.15}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "results", "focus": "chip/date", "state": {"zone": "chips", "filters": "date=month", "load": "ready", "cells": "5", "count": "38", "catalog": "search-with:date=month:aurora"}, "asked": ["search-with:date=month:aurora"]}
+  },
+  {
+   "name": "results-filter-reloading",
+   "fixture": "signed-in",
+   "source": {"delay": 40},
+   "settle": 2.0,
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.2}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "cross", "wait": 0.4}],
+   "expect": {"screen": "results", "focus": "chip/4k", "state": {"zone": "chips", "filters": "features=4k", "load": "loading", "cells": "0"}}
+  },
+  {
+   "name": "results-two-filters",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.2}, {"press": "cross", "wait": 0.4}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "cross", "wait": 0.6}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "cross", "wait": 0.9}, {"press": "down", "wait": 0.6}],
+   "expect": {"screen": "results", "focus": "cell/0", "state": {"zone": "grid", "filters": "date=month,features=4k", "cells": "3", "count": "12"}}
+  },
+  {
+   "name": "results-sorted",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.2}, {"press": "cross", "wait": 0.4}, {"press": "down", "wait": 0.15}, {"press": "cross", "wait": 0.9}],
+   "expect": {"screen": "results", "focus": "chip/sort", "state": {"filters": "order=view_count", "cells": "6"}}
+  },
+  {
+   "name": "results-second-row",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.8}],
+   "expect": {"screen": "results", "focus": "cell/5", "state": {"row": "0", "cells": "20", "pages": "2", "more": "0"}, "asked": ["search:aurora"]}
+  },
+  {
+   "name": "results-scrolled",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "results", "focus": "cell/13", "state": {"row": "2", "cells": "20"}}
+  },
+  {
+   "name": "results-next-page-loading",
+   "fixture": "signed-in",
+   "source": {"delay": 90},
+   "settle": 2.5,
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.2}, {"press": "down", "wait": 0.7}],
+   "expect": {"screen": "results", "focus": "cell/9", "state": {"row": "2", "cells": "12", "pages": "1", "more": "1"}}
+  },
+  {
+   "name": "results-end",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "right", "wait": 0.2}, {"press": "right", "wait": 0.2}, {"press": "right", "wait": 0.7}],
+   "expect": {"screen": "results", "focus": "cell/19", "state": {"row": "3", "cells": "20"}}
+  },
+  {
+   "name": "results-back-up-to-chips",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.3}, {"press": "down", "wait": 0.3}, {"press": "up", "wait": 0.3}, {"press": "up", "wait": 0.3}, {"press": "up", "wait": 0.6}],
+   "expect": {"screen": "results", "focus": "chip/date", "state": {"zone": "chips", "row": "0"}}
+  },
+  {
+   "name": "results-details-and-back",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "down", "wait": 0.3}, {"press": "right", "wait": 0.2}, {"press": "triangle", "wait": 0.8}, {"press": "circle", "wait": 0.8}],
+   "expect": {"screen": "results", "moving": 0, "focus": "cell/6", "state": {"cells": "20", "row": "0"}}
+  },
+  {
+   "name": "results-open-channel",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left", "wait": 0.2}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "channel", "focus": "placeholder", "state": {"argument": "UCnorthlightatlas007"}}
+  },
+  {
+   "name": "results-open-playlist",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left", "wait": 0.2}, {"press": "down", "wait": 0.2}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "grid", "focus": "placeholder", "state": {"argument": "playlist:PLnorthernLights0024"}}
+  },
+  {
+   "name": "results-search-again",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "square", "wait": 0.9}],
+   "expect": {"screen": "search", "moving": 0, "focus": "key/1", "state": {"text": "aurora", "list": "suggestions"}}
+  },
+  {
+   "name": "results-empty",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "zzzz"},
+   "expect": {"screen": "results", "focus": "action/search-again", "state": {"zone": "state", "load": "ready", "cells": "0", "filters": "none"}}
+  },
+  {
+   "name": "results-empty-with-filter",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "zzzz"},
+   "steps": [{"press": "up", "wait": 0.15}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.15}, {"press": "cross", "wait": 0.8}, {"press": "down", "wait": 0.5}],
+   "expect": {"screen": "results", "focus": "action/clear-filters", "state": {"zone": "state", "filters": "features=live", "cells": "0"}}
+  },
+  {
+   "name": "results-filters-cleared",
+   "fixture": "empty",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "up", "wait": 0.15}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.1}, {"press": "right", "wait": 0.15}, {"press": "cross", "wait": 0.8}, {"press": "down", "wait": 0.3}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "results", "focus": "action/search-again", "state": {"zone": "state", "filters": "none", "cells": "0"}}
+  },
+  {
+   "name": "results-failed",
+   "fixture": "signed-in",
+   "route": {"screen": "results", "argument": "broken"},
+   "expect": {"screen": "results", "focus": "action/retry", "state": {"zone": "state", "load": "failed"}}
+  },
+  {
+   "name": "results-failed-retry",
+   "fixture": "signed-in",
+   "source": {"delay": 30},
+   "settle": 2.0,
+   "route": {"screen": "results", "argument": "broken"},
+   "steps": [{"press": "cross", "wait": 0.25}],
+   "expect": {"screen": "results", "focus": "grid/loading", "state": {"zone": "grid", "load": "loading"}}
+  },
+  {
+   "name": "results-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "results", "argument": "aurora"},
+   "expect": {"screen": "results", "focus": "action/retry", "state": {"zone": "state", "load": "offline"}}
+  },
+  {
+   "name": "results-offline-library",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "triangle", "wait": 0.8}],
+   "expect": {"screen": "library", "focus": "placeholder"}
+  },
+  {
+   "name": "results-guest",
+   "fixture": "guest",
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "left"}],
+   "expect": {"screen": "results", "focus": "cell/0", "state": {"cells": "8", "more": "0"}}
+  },
+  {
+   "name": "results-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "results", "argument": "polarlichtjagd bei minus dreissig grad in nordnorwegen die komplette dokumentation in voller laenge"},
+   "steps": [{"press": "left"}],
+   "expect": {"screen": "results", "focus": "cell/0", "state": {"cells": "8", "count": "1.234.567.890"}}
+  },
+  {
+   "name": "results-long-filters",
+   "fixture": "long-texts",
+   "route": {"screen": "results", "argument": "polarlichtjagd bei minus dreissig grad in nordnorwegen die komplette dokumentation in voller laenge"},
+   "steps": [{"press": "up", "wait": 0.15}, {"press": "right", "wait": 0.15}, {"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "results", "focus": "menu/0", "state": {"zone": "menu"}}
+  },
+  {
+   "name": "results-reduced-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "settle": 0.5,
+   "route": {"screen": "results", "argument": "aurora"},
+   "steps": [{"press": "right", "wait": 0.3}],
+   "expect": {"screen": "results", "focus": "cell/2", "state": {"load": "ready"}}
+  }
+ ]
+}

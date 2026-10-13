@@ -2,11 +2,11 @@
  "items": [
   {"id": "settings:search", "title": "Search options", "subtitle": "No filter is set", "is_folder": true, "interface": true, "results": "86"},
   {"id": "search-suggest", "title": "Suggestions", "subtitle": "Completions for this search", "is_folder": true, "interface": true},
-  {"id": "auroraChs30", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/0/145", "views": "2.2M views", "duration_sec": 1198, "published": "8 months ago", "badges": ["4k", "cc"]},
+  {"id": "auroraChs30", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/0/145/400x225", "views": "2.2M views", "duration_sec": 1198, "published": "8 months ago", "badges": ["4k", "cc"]},
   {"id": "channel:UCnorthlightatlas007", "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "is_folder": true, "handle": "@northlightatlas", "subscribers": "2.41M subscribers", "subscribed": true},
-  {"id": "forestNight", "title": "The Forest at Night Sounds Nothing Like You Think", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/2/313", "views": "380K views", "duration_sec": 1329, "published": "6 weeks ago"},
-  {"id": "tealDawnVly", "title": "Teal Dawn Above the Valley", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ridges/2/421", "views": "410K views", "duration_sec": 920, "published": "10 months ago", "badges": ["4k"]},
-  {"id": "blueHourNth", "title": "Blue Hour on the Northern Coast, No Talking", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ocean/1/241", "views": "640K views", "duration_sec": 2490, "published": "2 months ago", "badges": ["4k"]}
+  {"id": "forestNight", "title": "The Forest at Night Sounds Nothing Like You Think", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/2/313/400x225", "views": "380K views", "duration_sec": 1329, "published": "6 weeks ago"},
+  {"id": "tealDawnVly", "title": "Teal Dawn Above the Valley", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ridges/2/421/400x225", "views": "410K views", "duration_sec": 920, "published": "10 months ago", "badges": ["4k"]},
+  {"id": "blueHourNth", "title": "Blue Hour on the Northern Coast, No Talking", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ocean/1/241/400x225", "views": "640K views", "duration_sec": 2490, "published": "2 months ago", "badges": ["4k"]}
  ],
  "has_more": false
 }
