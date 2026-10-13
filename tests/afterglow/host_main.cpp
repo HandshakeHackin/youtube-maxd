@@ -17,9 +17,11 @@
 //   --no-pictures        check only
 //   --baked              the kit's baked fonts instead of the text engine
 //   --reel <file.mp4>    the boards marked "reel", recorded through ffmpeg
+//   --sound <file.wav>   stage S: what the interface's port would play over the whole run, to listen to
 
 #include "afterglow/data_fixture.hpp"
 #include "afterglow/frame.hpp"
+#include "afterglow/sound/recorder.hpp" // stage S
 #include "afterglow/text_engine.hpp"
 #include "art.hpp"
 #include "text_host.hpp"
@@ -302,6 +304,7 @@ struct Options
     int height = 1080;
     bool pictures = true;
     bool baked = false;
+    std::string sound; // stage S: --sound
 };
 
 struct Results
@@ -471,6 +474,8 @@ int main(int argc, char **argv)
             options.pictures = false;
         else if (flag == "--baked")
             options.baked = true;
+        else if (flag == "--sound") // stage S
+            options.sound = value, ++i;
         else
         {
             std::fprintf(stderr, "unknown option %s\n", flag.c_str());
@@ -575,6 +580,29 @@ int main(int argc, char **argv)
     for (const std::string &id : options.looks)
         check_look(look_by_id(id), results);
 
+    // ---- stage S: sound and vibration ------------------------------------------------------------
+    // The recordings come from the pinned kit's sound sets, as the package takes them. Every board runs a
+    // Sound with a Recorder: what was heard and felt is written down, never played, and a board may expect it
+    // ("cues": the names heard in order, "pulses": how many vibration pulses). A Tape renders the mixer as the
+    // console's port would, into --sound's file when one is named.
+    sound::Bank recordings;
+    {
+        const sound::Bank::Report loaded = recordings.load([&](const std::string &file, std::string *bytes)
+                                                           { return read_file(options.kit + "/assets/audio/sfx/" + file, bytes); });
+        for (const std::string &error : loaded.errors)
+            std::fprintf(stderr, "sound: %s\n", error.c_str());
+        ++results.checks;
+        if (loaded.silent != 0 || !loaded.errors.empty())
+            fail(results, "sound", "-", std::to_string(loaded.silent) + " cues of the interface have no recording in the kit");
+    }
+    sound::Tape tape;
+    if (!options.sound.empty() && !tape.open(options.sound))
+    {
+        std::fprintf(stderr, "cannot write %s\n", options.sound.c_str());
+        return 1;
+    }
+    // ---- end of stage S ---------------------------------------------------------------------------
+
     constexpr float kDt = 1.0f / 60.0f;
     std::vector<unsigned char> pixels(static_cast<std::size_t>(options.width) * static_cast<std::size_t>(options.height) * 4u);
     std::vector<unsigned char> row(static_cast<std::size_t>(options.width) * 4u);
@@ -638,6 +666,35 @@ int main(int argc, char **argv)
                 if (cJSON_IsObject(route) && screen_from_name(text_of(route, "screen", "home"), &screen))
                     frame.open(Route{screen, text_of(route, "argument"), text_of(route, "title")});
 
+                // ---- stage S: this board's sound, with what its "sound" object sets of Settings > Interface > Sounds
+                sound::Recorder heard;
+                sound::Sound sounds(recordings, heard);
+                const cJSON *sound_set = cJSON_GetObjectItemCaseSensitive(board, "sound");
+                sound::Options sound_options;
+                sound_options.reduced_motion = frame_options.reduced_motion;
+                sound_options.sounds = !cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(sound_set, "sounds"));
+                sound_options.vibration = !cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(sound_set, "vibration"));
+                sound_options.volume = static_cast<int>(number_of(sound_set, "volume", sound_options.volume));
+                sound_options.quiet_from = static_cast<int>(number_of(sound_set, "quiet_from", -1));
+                sound_options.quiet_until = static_cast<int>(number_of(sound_set, "quiet_until", -1));
+                sounds.set_options(sound_options);
+                if (frame_options.opening)
+                    sounds.opened();
+                const auto hear = [&](bool held)
+                {
+                    int hour = 0;
+                    int minute = 0;
+                    platform.wall_clock(&hour, &minute);
+                    sound::Step step;
+                    step.dt = kDt;
+                    step.held = held;
+                    step.minute = static_cast<int>(number_of(sound_set, "minute", hour * 60 + minute));
+                    step.situation.attract = frame.attracting();
+                    sounds.step(frame.feedback(), step);
+                    tape.run(sounds.mixer(), static_cast<int>(hui::audio::kSampleRate * kDt));
+                };
+                // ---- end of stage S
+
                 gfx::DrawList world;
                 gfx::DrawList ui;
                 const auto present = [&](bool to_reel)
@@ -685,6 +742,7 @@ int main(int argc, char **argv)
                         if (engine)
                             engine->begin_frame();
                         frame.update(i == 0 ? first : InputFrame{}, kDt);
+                        hear(i == 0 && first.nav_repeat); // stage S
                         if (reel != nullptr)
                         {
                             present(true);
@@ -797,6 +855,18 @@ int main(int argc, char **argv)
                                 fail(results, name, look_id, std::string("catalog '") + catalog->valuestring + "' was never asked for");
                         }
                     }
+                    // ---- stage S: what the board was heard and felt to do
+                    else if (key == "cues")
+                    {
+                        if (!cJSON_IsString(wanted) || heard.names() != wanted->valuestring)
+                            fail(results, name, look_id, "heard '" + heard.names() + "', expected '" + (cJSON_IsString(wanted) ? wanted->valuestring : "?") + "'");
+                    }
+                    else if (key == "pulses")
+                    {
+                        if (static_cast<double>(heard.pulses.size()) != wanted->valuedouble)
+                            fail(results, name, look_id, "felt " + std::to_string(heard.pulses.size()) + " pulses, expected " + std::to_string(static_cast<int>(wanted->valuedouble)));
+                    }
+                    // ---- end of stage S
                     else if (cJSON_IsString(wanted))
                     {
                         const std::string got = text_of(state, key.c_str(), "(none)");

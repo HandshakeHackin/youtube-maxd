@@ -1,0 +1,64 @@
+{"boards": [
+ {"name": "sound-home-moves",
+  "fixture": "signed-in", "settle": 2.0,
+  "steps": [{"press": "right"}, {"press": "right"}, {"press": "down"}, {"press": "right"}, {"wait": 0.6}],
+  "expect": {"screen": "home", "focus": "recommended/1", "cues": "focus focus tab focus", "pulses": 0}},
+
+ {"name": "sound-home-edge-and-play",
+  "fixture": "signed-in", "settle": 2.0,
+  "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"},
+            {"press": "right"}, {"press": "right"}, {"press": "cross"}],
+  "expect": {"screen": "home", "focus": "continue/5",
+             "cues": "focus focus focus focus focus error error launch", "pulses": 3}},
+
+ {"name": "sound-home-details-and-back",
+  "fixture": "signed-in", "settle": 2.0,
+  "steps": [{"press": "right"}, {"press": "triangle"}, {"wait": 0.9}, {"press": "circle"}, {"wait": 0.9}],
+  "expect": {"screen": "home", "focus": "continue/1", "cues": "focus open back", "pulses": 0}},
+
+ {"name": "sound-frame-rail",
+  "fixture": "guest", "route": {"screen": "comments", "title": "Comments"},
+  "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "circle"}],
+  "expect": {"screen": "comments", "rail_open": 0, "cues": "focus focus focus back", "pulses": 0}},
+
+ {"name": "sound-frame-rail-destination",
+  "fixture": "guest", "route": {"screen": "comments", "title": "Comments"},
+  "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
+  "expect": {"screen": "library", "rail_open": 0, "cues": "focus focus focus focus tab", "pulses": 0}},
+
+ {"name": "sound-reader-end-of-text",
+  "fixture": "guest", "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+  "steps": [{"press": "down"}, {"press": "r2"}, {"press": "r2"}, {"press": "r2"}, {"press": "down"}],
+  "expect": {"screen": "reader", "focus": "text", "cues": "tick tick error", "pulses": 0}},
+
+ {"name": "sound-home-opening",
+  "fixture": "signed-in", "opening": true, "source": {"hold": true}, "settle": 1.5,
+  "expect": {"screen": "opening", "focus": "opening", "cues": "welcome", "pulses": 0}},
+
+ {"name": "sound-home-attract",
+  "fixture": "signed-in", "attract_after": 2.5, "settle": 6.0,
+  "steps": [{"press": "right", "wait": 1.2}, {"press": "right"}, {"wait": 0.6}],
+  "expect": {"screen": "home", "attract": 0, "cues": "resume focus", "pulses": 0}},
+
+ {"name": "sound-home-sounds-off",
+  "fixture": "signed-in", "settle": 2.0, "opening": false,
+  "sound": {"sounds": false},
+  "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"},
+            {"press": "right"}, {"press": "cross"}],
+  "expect": {"screen": "home", "focus": "continue/5", "cues": "", "pulses": 2}},
+
+ {"name": "sound-home-vibration-off",
+  "fixture": "signed-in", "settle": 2.0,
+  "sound": {"vibration": false},
+  "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"},
+            {"press": "right"}, {"press": "cross"}],
+  "expect": {"screen": "home", "focus": "continue/5", "cues": "focus focus focus focus focus error launch", "pulses": 0}},
+
+ {"name": "sound-home-quiet-hours",
+  "fixture": "signed-in", "settle": 2.0,
+  "sound": {"quiet_from": 1320, "quiet_until": 420, "minute": 1410},
+  "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"},
+            {"press": "right"}, {"press": "cross"}],
+  "expect": {"screen": "home", "focus": "continue/5",
+             "cues": "focus focus focus focus focus error select", "pulses": 0}}
+]}
