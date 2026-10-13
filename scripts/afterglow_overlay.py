@@ -292,7 +292,8 @@ PLAYER_PAGE = "k.idle_frames == 0 && k.drawn_last_frame == Screen::provider && t
 def player_mount(work, replace, player):
     makefile = (work / player / "Makefile").read_text(encoding="utf-8")
     if "ui_kit/src/afterglow/player" not in makefile:
-        sources = "                   $(wildcard ui_kit/src/afterglow/app/*.cpp) $(wildcard ui_kit/src/text/*.cpp)\n"
+        # Stage S runs first and ends the list of sources with its own line.
+        sources = "                   $(wildcard ui_kit/src/afterglow/sound/*.cpp) $(wildcard ui_kit/src/afterglow/sound/app/*.cpp)\n"
         replace(player + "Makefile", sources,
                 sources + "    # package H: the player's controls in the Afterglow design.\n"
                 "    UI_KIT_SRCS += $(wildcard ui_kit/src/afterglow/player/*.cpp) $(wildcard ui_kit/src/afterglow/player/app/*.cpp)\n")
