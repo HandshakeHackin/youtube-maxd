@@ -21,6 +21,18 @@ namespace
 
 constexpr float kLate = 0.12f; // the furniture waits a moment for the picture
 
+// A tracked label in capitals takes more room than its letters: it is cut until it fits.
+std::string fit_overline(G &g, std::string label, float width)
+{
+    float room = width;
+    while (room > 80.0f && measure(g.f.semibold, ui::upper(label), kTypeOver, 3.2f) > width)
+    {
+        room -= 40.0f;
+        label = fit(g.f.semibold, label, kTypeOver, room);
+    }
+    return label;
+}
+
 // Where the mark of a labelled button sits (design.cpp's button()).
 float button_icon_x(G &g, const Rect &r, std::string_view label)
 {
@@ -86,7 +98,7 @@ void VideoPage::draw_details(G &g, const DrawContext &context) const
         else if (d.resume_s > 0 && d.duration_s > 0)
             label = fill(tr("Continue watching  \xC2\xB7  {0} of {1}"), duration_text(d.resume_s), duration_text(d.duration_s));
         if (!label.empty())
-            overline(g, fit(g.f.semibold, label, kTypeOver, kColumn * 0.62f), kLeft + 2.0f, kOverlineY, k.accent);
+            overline(g, fit_overline(g, label, kColumn), kLeft + 2.0f, kOverlineY, k.accent);
         paragraph(g, g.f.display, d.title, kLeft - 2.0f, kTitleY, kTypePage, kColumn, kTitleLine, k.ink, 3);
     }
     {
@@ -445,7 +457,7 @@ void VideoPage::draw_share(G &g, float amount) const
     const float x = panel.x + 532.0f;
     const float room = 432.0f;
     const ShareLink *link = links_.empty() ? nullptr : &links_[static_cast<std::size_t>(link_)];
-    overline(g, tr("Share"), x, panel.y + 92.0f, k.accent);
+    overline(g, fit_overline(g, tr("Share"), room), x, panel.y + 92.0f, k.accent);
     text(g, g.f.display, fit(g.f.display, tr("Take it with you"), kTypeDialog, room), x - 2.0f, panel.y + 148.0f, kTypeDialog, k.ink);
     if (link != nullptr)
     {

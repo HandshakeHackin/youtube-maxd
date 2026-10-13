@@ -24,6 +24,18 @@ std::string counted(int count, const char *one, const char *other)
     return fill(count == 1 ? one : other, std::to_string(count));
 }
 
+// A tracked label in capitals takes more room than its letters: it is cut until it fits.
+std::string fit_overline(G &g, std::string label, float width)
+{
+    float room = width;
+    while (room > 80.0f && measure(g.f.semibold, ui::upper(label), kTypeOver, 3.2f) > width)
+    {
+        room -= 40.0f;
+        label = fit(g.f.semibold, label, kTypeOver, room);
+    }
+    return label;
+}
+
 // The end of a text that is longer than its field: what is being typed stays in view.
 std::string tail_fit(const Face &face, const std::string &value, float size, float width)
 {
@@ -364,7 +376,7 @@ void Comments::draw_writing(G &g, const DrawContext &context, float amount) cons
     const float x = kLeft + 20.0f;
     const Item *to = writing_to_ >= 0 && writing_to_ < static_cast<int>(items_.size()) ? &items_[static_cast<std::size_t>(writing_to_)] : nullptr;
     const std::string label = to != nullptr ? fill(tr("Reply to {0}"), to->author) : std::string(tr("New comment"));
-    overline(g, fit(g.f.semibold, label, kTypeOver, 520.0f), x, 650.0f, k.accent);
+    overline(g, fit_overline(g, label, 740.0f), x, 650.0f, k.accent);
     paragraph(g, g.f.regular, to != nullptr ? to->text : video_title_, x, 692.0f, kTypeNote, 740.0f, 29.0f, k.ink3, 2);
 
     const Rect &field = kField;
