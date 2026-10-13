@@ -26,7 +26,7 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   with rows leading on), Discover sections, channels, playlists, comments and
   chat read-only, playback with captions, quality and speed, local history and
   resume, favorites, queue, followed channels, SponsorBlock, DeArrow, the
-  settings already implemented, English interface.
+  settings already implemented.
 - **Added 2026-10-13, host-tested only:** accounts in the built-in service:
   sign-in by device code, account profiles, subscriptions, subscribed
   channels, history, Watch later, playlists, notifications, own videos,
@@ -46,8 +46,18 @@ the console is a hard requirement; the first MVP is Guest, standalone.
 - **Added 2026-10-13, host-tested only:** the update check and the in-place
   self-update ([updates](UPDATES.md)). The check cannot answer while the
   repository is private.
-- **Deferred:** localization, remaining interface options, drawn seek
-  previews, auto frame rate, HDR and background playback.
+- **Added 2026-10-13, host-tested only:** the interface in 21 languages
+  besides English ([localization](LOCALIZATION.md)): browser, preferences,
+  messages and toasts follow the PS5 system language or the **Interface
+  language** preference. The player (controls, in-player menus, pickers,
+  keyboard) stays English: its fonts hold no accented letters.
+- **Added 2026-10-13, host-tested only:** interface preferences per profile
+  (interface and grid scale, card text, colour schemes, the video actions
+  menu, Circle rules) and the drawn seek preview.
+- **Deferred:** the remaining interface options (buttons at the top of the
+  main window, card previews, playlists as rows), a translated player,
+  languages that need other fonts, shaping or right-to-left layout, auto
+  frame rate, HDR and background playback.
 
 ## The built-in service
 
@@ -168,9 +178,12 @@ evidence, not console acceptance.
 Voice search moved from done to partial on 2026-10-13: the release has no
 speech recogniser, so it exists only with the development companion.
 
-The open items are mostly interface options, localization and
-hardware-dependent features, which the first release defers. The update rows
-are implemented; the tracker's files were not changed for them yet.
+The open items are mostly the remaining interface options, the translated
+player and hardware-dependent features, which the first release defers. The
+update rows, the interface languages (`extra.Localization`,
+`LanguageSettingsPresenter.appendLanguageCategory`), the interface
+preferences and the seek preview are implemented; the tracker's files were
+not changed for them yet.
 
 ## Verified only on the host
 
@@ -278,7 +291,8 @@ update check gets no answer ([updates](UPDATES.md)).
 Known limits that stay after the release: accounts unverified against the
 live service and no playback of videos that need the account, phone casting
 unverified with a real phone, no voice search, one YouTube client identity
-(`VISIONOS`) with no fallback but HLS, English only, no auto frame rate, HDR or
+(`VISIONOS`) with no fallback but HLS, an English player and no language
+outside the Latin, Greek and Cyrillic scripts, no auto frame rate, HDR or
 background playback.
 
 See [validation](VALIDATION.md), [hardware acceptance](HARDWARE_ACCEPTANCE.md),

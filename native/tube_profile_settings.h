@@ -15,12 +15,13 @@ typedef struct {
     char hl[9], gl[3];
     unsigned hide; int hide_set, thumbnails, sb_alt, section_playlist;
     int more_subtitles, caption_memory, dislikes;
+    TubeUiPrefs ui;
 } ProfileSettings;
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
     ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = p.section_playlist = 1;
-    tube_player_extra_defaults(&p.extra);
+    tube_player_extra_defaults(&p.extra); tube_ui_defaults(&p.ui);
     p.speed = p.last_speed = 100; p.speed_mode = 1;
     sections_default(p.section_order);
     copy(p.language,sizeof p.language,"en"); tube_sb_defaults(&p.sb); return p;
@@ -28,6 +29,7 @@ static ProfileSettings profile_settings_defaults(void) {
 static ProfileSettings profile_settings_capture(void) {
     ProfileSettings p;
     p.extra = *tube_player_extra_current();
+    p.ui = g_ui; tube_ui_validate(&p.ui);
     copy(p.hl,sizeof p.hl,g_hl); copy(p.gl,sizeof p.gl,g_gl);
     p.hide = g_hide; p.hide_set = g_hide_set; p.thumbnails = g_thumbnails; p.sb_alt = g_sb_alt;
     p.section_playlist = g_section_playlist;
@@ -85,6 +87,7 @@ static void profile_settings_apply(const ProfileSettings *p) {
     g_hide = p->hide; g_hide_set = p->hide_set; g_thumbnails = p->thumbnails; g_sb_alt = p->sb_alt;
     g_section_playlist = p->section_playlist;
     g_more_subtitles = p->more_subtitles; g_caption_memory = p->caption_memory; g_dislikes = p->dislikes;
+    g_ui = p->ui; tube_ui_validate(&g_ui); ++g_ui_revision; tube_ui_press_reset();
     g_sleep_armed = g_sleep_fired = 0;
     video_geometry_publish();
 }
@@ -127,6 +130,52 @@ static void sections_read(ProfileSettings *p, const cJSON *root) {
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(row,"hidden"))) p->section_hidden |= 1u << s;
     }
     for (int s = 0; s < SECTIONS; ++s) if (!(seen >> s & 1)) p->section_order[n++] = (unsigned char)s;
+}
+/* Interface preferences: absent in older files, default field by field when
+ * corrupt. The menu reads like the sections: saved order first, then any row it
+ * does not name, in the built-in order. */
+static void ui_prefs_read(TubeUiPrefs *ui, const cJSON *root) {
+    const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"video_menu"), *row;
+    uint64_t seen = 0; int n = 0;
+    tube_ui_defaults(ui);
+    ui->ui_scale = settings_integer(root,"ui_scale",40,140,100);
+    ui->grid_scale = settings_integer(root,"video_grid_scale",50,150,100);
+    ui->title_lines = settings_integer(root,"card_title_lines",1,4,1);
+    ui->title_scroll = boolean(root,"card_title_scroll");
+    ui->scroll_speed = settings_integer(root,"card_scroll_speed",10,80,10);
+    ui->subtitle_lines = boolean(root,"card_multiline_subtitle") ? 2 : 1;
+    ui->square = boolean(root,"card_square_corners");
+    for (int i = 0; i < TUBE_UI_SCHEMES; ++i) if (!strcmp(str(root,"color_scheme"),g_tube_schemes[i].id)) ui->scheme = i;
+    ui->app_exit = settings_integer(root,"app_exit",TUBE_UI_EXIT_NONE,TUBE_UI_EXIT_SINGLE,TUBE_UI_EXIT_NONE);
+    ui->search_exit = boolean(root,"search_exit_double");
+    if (cJSON_IsArray(rows)) cJSON_ArrayForEach(row,rows) {
+        const int key = tube_ui_menu_find(str(row,"id")); if (key < 0 || (seen >> key & 1)) continue;
+        seen |= (uint64_t)1 << key; ui->menu_order[n++] = (unsigned char)key;
+        if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(row,"hidden"))) ui->menu_hidden |= (uint64_t)1 << key;
+    }
+    for (int key = 0; key < TUBE_MENU_KEYS; ++key) if (!(seen >> key & 1)) ui->menu_order[n++] = (unsigned char)key;
+    tube_ui_validate(ui);
+}
+static void ui_prefs_write(cJSON *row, const TubeUiPrefs *ui) {
+    cJSON_AddNumberToObject(row,"ui_scale",ui->ui_scale);
+    cJSON_AddNumberToObject(row,"video_grid_scale",ui->grid_scale);
+    cJSON_AddNumberToObject(row,"card_title_lines",ui->title_lines);
+    cJSON_AddBoolToObject(row,"card_title_scroll",ui->title_scroll);
+    cJSON_AddNumberToObject(row,"card_scroll_speed",ui->scroll_speed);
+    cJSON_AddBoolToObject(row,"card_multiline_subtitle",ui->subtitle_lines > 1);
+    cJSON_AddBoolToObject(row,"card_square_corners",ui->square);
+    cJSON_AddStringToObject(row,"color_scheme",g_tube_schemes[ui->scheme].id);
+    cJSON_AddNumberToObject(row,"app_exit",ui->app_exit);
+    cJSON_AddBoolToObject(row,"search_exit_double",ui->search_exit);
+    TubeUiPrefs plain; tube_ui_defaults(&plain);   /* absent = the built-in menu */
+    if (!ui->menu_hidden && !memcmp(ui->menu_order,plain.menu_order,sizeof plain.menu_order)) return;
+    cJSON *menu = cJSON_AddArrayToObject(row,"video_menu");
+    for (int k = 0; menu && k < TUBE_MENU_KEYS; ++k) {
+        cJSON *entry = cJSON_CreateObject(); if (!entry) break;
+        cJSON_AddStringToObject(entry,"id",g_tube_menu_keys[ui->menu_order[k]].id);
+        cJSON_AddBoolToObject(entry,"hidden",ui->menu_hidden >> ui->menu_order[k] & 1);
+        cJSON_AddItemToArray(menu,entry);
+    }
 }
 static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     *p = profile_settings_defaults();
@@ -184,6 +233,7 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     /* Fields of the third batch. */
     p->more_subtitles = boolean(root,"more_subtitles"); p->caption_memory = boolean(root,"caption_memory");
     p->dislikes = boolean(root,"show_dislikes");
+    ui_prefs_read(&p->ui,root);
 }
 static void profile_settings_load(const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"profile_settings"), *row;
@@ -260,6 +310,7 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddBoolToObject(row,"more_subtitles",p->more_subtitles);
         cJSON_AddBoolToObject(row,"caption_memory",p->caption_memory);
         cJSON_AddBoolToObject(row,"show_dislikes",p->dislikes);
+        ui_prefs_write(row,&p->ui);
         cJSON_AddItemToArray(rows,row);
     }
 }

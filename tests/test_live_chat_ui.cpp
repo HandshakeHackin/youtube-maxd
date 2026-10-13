@@ -142,7 +142,7 @@ int main(int argc,char**argv) {
     /* Settings choosers push a real folder; selection retains its parent level. */
     host.m_stack.push_back("settings"); host.m_crumbs.push_back("Preferences");
     host.RequestPage("settings",0);pump();assert(host.m_has_more);
-    host.RequestPage("settings",1);pump();assert(!host.m_has_more);
+    for(int page=1;host.m_has_more;++page){host.RequestPage("settings",page);pump();}
     assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
         [](const EvoProviderRow& row){return row.id=="settings:clear-queue";}));
     for(int enabled=1;enabled>=0;--enabled) {

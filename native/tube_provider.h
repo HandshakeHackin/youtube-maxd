@@ -3,6 +3,7 @@
 #ifndef TUBE_PROVIDER_H
 #define TUBE_PROVIDER_H
 #include "evo_provider.h"
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,6 +33,17 @@ int tube_phone_stop_on_disconnect(void);
 /* Startup preferences for the UI host; main thread, after provider init.
  * Section: a catalog id to open instead of the main menu ("" = main menu). */
 int tube_select_account_on_boot(void);
+/* Interface preferences of the selected profile (native/tube_ui_style.h); the
+ * revision changes whenever the browser must restyle itself. Main thread only. */
+struct TubeUiPrefs;
+const struct TubeUiPrefs *tube_ui_prefs(void);
+unsigned tube_ui_revision(void);
+/* Circle on the main menu and on typed search results: TUBE_UI_PRESS_PASS (the
+ * press keeps its earlier meaning), _ARMED (say that a second press acts) or
+ * _NOW (close the app; leave the results). */
+int tube_app_exit_press(uint64_t now_ms);
+int tube_search_exit_press(uint64_t now_ms);
+void tube_ui_press_reset(void);
 const char *tube_boot_section(void);
 const char *tube_boot_section_title(void);
 /* Touchpad on a folder row: the catalog id of its section menu, "" for none.

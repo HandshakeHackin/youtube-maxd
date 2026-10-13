@@ -60,7 +60,7 @@ int main(void) {
     assert(last_count==1 && !search_lead); /* a Discover topic is not a typed search */
     /* The options page cycles each filter and rejects unknown rows. */
     p->list_catalog("settings",1,items_cb,NULL);assert(last_ok && find("Search options")>=0 && !strcmp(row,"settings:search"));
-    show("settings:search");assert(last_count==20 && find("Search again: cats")==0 && find("Suggestions")==1 && find("Play the first result: cats")==19);
+    show("settings:search");assert(last_count==21 && find("Search again: cats")==0 && find("Suggestions")==1 && find("Play the first result: cats")==19);
     snprintf(again,sizeof again,"%s",last_items[0].id);
     assert(find("Upload date: Any time")==2 && find("Duration: Any duration")==3 && find("Type: All types")==4 && find("Sort by: Relevance")==5);
     assert(find("Live: any")==6 && find("Channels and playlists in results: off")==17 && find("Reset search filters")==18 && !strcmp(last_items[18].subtitle,"No filter is set"));
@@ -130,7 +130,7 @@ int main(void) {
     /* Another profile starts without filters or cards and cannot run this profile's rows. */
     show("library:profile:alice");
     p->list_catalog(again,0,items_cb,NULL);assert(!last_ok && !pending_count);
-    show("settings:search");assert(last_count==17 && find("Upload date: Any time")==0 && find("Channels and playlists in results: off")==15);
+    show("settings:search");assert(last_count==18 && find("Upload date: Any time")==0 && find("Channels and playlists in results: off")==15);
     assert(!p->search("alice query",0,items_cb,NULL));assert(plain("alice query"));drain();
     show("settings:search:duration");assert(!p->search("alice query",0,items_cb,NULL) && !strcmp(field("duration"),"short") && !strcmp(field("profile"),"alice"));drain();
     show("library:profile:guest");
@@ -163,7 +163,7 @@ int main(void) {
     snprintf(suggestion,sizeof suggestion,"%s",last_items[0].id);
     show("library:profile:alice");p->list_catalog(suggestion,0,items_cb,NULL);assert(!last_ok && !pending_count);
     p->list_catalog("search-suggest",0,items_cb,NULL);assert(!strcmp(field("query"),"") && !strcmp(field("profile"),"alice"));drain();
-    show("settings:search");assert(last_count==17);
+    show("settings:search");assert(last_count==18);
     /* Reload keeps the saved cards choice only; a corrupt value falls back to off. */
     p->shutdown();assert(!p->init());show("library:profile:guest");
     assert(!p->search("after reload",0,items_cb,NULL) && !strcmp(field("type"),"all") && !strcmp(field("upload_date"),"any") && !strcmp(field("profile"),"guest"));drain();
@@ -174,7 +174,7 @@ int main(void) {
     write_store(store);cJSON_Delete(store);assert(!p->init());
     show("library:profile:guest");assert(!p->search("corrupt",0,items_cb,NULL));assert(plain("corrupt"));drain();
     assert(!p->set_source("http://127.0.0.1:8766#123456"));
-    show("settings:search");assert(last_count==17 && find("Upload date: Any time")==0);
+    show("settings:search");assert(last_count==18 && find("Upload date: Any time")==0);
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
     puts("PASS: search options, library search and continuation, worker fallback, channel and playlist cards, suggestions, profile isolation and corrupt values");
 }
