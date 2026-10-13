@@ -1,0 +1,13 @@
+{
+ "items": [
+  {"id": "saltFlatsBk", "title": "Crossing the Salt Flats by Bicycle", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails003", "art_url": "art://dunes/3/133/400x225", "views": "720K views", "duration_sec": 2000, "published": "3 months ago", "badges": ["4k"]},
+  {"id": "lighthouseS", "title": "Sunrise Set From the Lighthouse Roof", "subtitle": "Nacre Sound", "channel_id": "UCnacresound007", "art_url": "art://ocean/0/361/400x225", "views": "196K views", "duration_sec": 4360, "published": "5 weeks ago"},
+  {"id": "channel:UCvantortrails003", "title": "Vantor Trails", "subtitle": "960K subscribers", "is_folder": true, "handle": "@vantortrails", "subscribers": "960K subscribers", "subscribed": false},
+  {"id": "neonRain4hr", "title": "Neon Rain: Four Hours of City Ambience", "subtitle": "Fennwick Hours", "channel_id": "UCfennwickhours007", "art_url": "art://city/2/433/400x225", "views": "2.9M views", "duration_sec": 14400, "published": "6 months ago"},
+  {"id": "sunsetWorld", "title": "What Would a Sunset Look Like on Another World?", "subtitle": "Orbitwell", "channel_id": "UCorbitwell001", "art_url": "art://space/0/35/400x225", "views": "3.4M views", "duration_sec": 847, "published": "2 months ago", "badges": ["4k", "cc"]},
+  {"id": "rainyWindow", "title": "Rainy Window, Warm Lamp — 3 Hours of Calm Piano", "subtitle": "Fennwick Hours", "channel_id": "UCfennwickhours007", "art_url": "art://blobs/1/121/400x225", "views": "6.1M views", "duration_sec": 10800, "published": "1 year ago"},
+  {"id": "forestAirMp", "title": "We Mapped a Forest From the Air", "subtitle": "Orbitwell", "channel_id": "UCorbitwell001", "art_url": "art://globe/0/301/400x225", "views": "1.0M views", "duration_sec": 1065, "published": "4 months ago", "badges": ["cc"]},
+  {"id": "gridRunnerS", "title": "Grid Runner — Full Synthwave Set", "subtitle": "Nacre Sound", "channel_id": "UCnacresound007", "art_url": "art://synth/2/445/400x225", "views": "730K views", "duration_sec": 3380, "published": "3 months ago"}
+ ],
+ "has_more": false
+}

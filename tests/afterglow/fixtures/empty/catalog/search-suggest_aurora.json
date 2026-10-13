@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "No suggestions", "subtitle": "Circle returns to the search", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

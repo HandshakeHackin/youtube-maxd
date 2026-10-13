@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "search-suggest:run:1:0", "title": "quiet hiking films without narration", "subtitle": "Cross searches for this", "is_folder": true, "detail": "Northlight Atlas"},
+  {"id": "search-suggest:run:1:1", "title": "quick weeknight dinners", "subtitle": "Cross searches for this", "is_folder": true, "detail": "Ostrel Kitchen"},
+  {"id": "search-suggest:run:1:2", "title": "quarter final highlights", "subtitle": "Cross searches for this", "is_folder": true, "detail": "Quarterline"}
+ ],
+ "has_more": false
+}

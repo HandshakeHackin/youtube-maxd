@@ -1,0 +1,19 @@
+{
+ "items": [
+  {"id": "settings:search", "title": "Search options", "subtitle": "No filter is set", "is_folder": true, "interface": true, "results": "1,240"},
+  {"id": "search-suggest", "title": "Suggestions", "subtitle": "Completions for this search", "is_folder": true, "interface": true},
+  {"id": "channel:UCnorthlightatlas007", "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "is_folder": true, "handle": "@northlightatlas", "subscribers": "2.41M subscribers", "subscribed": true},
+  {"id": "auroraChs30", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/0/145/400x225", "views": "2.2M views", "duration_sec": 1198, "published": "8 months ago", "badges": ["4k", "cc"]},
+  {"id": "forestNight", "title": "The Forest at Night Sounds Nothing Like You Think", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/2/313/400x225", "views": "380K views", "duration_sec": 1329, "published": "6 weeks ago"},
+  {"id": "blueHourNth", "title": "Blue Hour on the Northern Coast, No Talking", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ocean/1/241/400x225", "views": "640K views", "duration_sec": 2490, "published": "2 months ago", "badges": ["4k"]},
+  {"id": "playlist:PLnorthernLights0024", "title": "Northern Lights, Start to Finish", "subtitle": "Northlight Atlas", "art_url": "art://aurora/0/145/400x225", "is_folder": true, "count": 24, "owner": "Northlight Atlas"},
+  {"id": "tidalIsland", "title": "A Year on a Tidal Island", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ocean/3/385/400x225", "views": "4.8M views", "duration_sec": 3484, "published": "2 years ago", "badges": ["4k", "cc"]},
+  {"id": "moonDuneSea", "title": "Moonrise Over the Dune Sea in Real Time", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails003", "art_url": "art://dunes/1/373/400x225", "views": "540K views", "duration_sec": 372, "published": "1 year ago", "badges": ["4k"]},
+  {"id": "tealDawnVly", "title": "Teal Dawn Above the Valley", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ridges/2/421/400x225", "views": "410K views", "duration_sec": 920, "published": "10 months ago", "badges": ["4k"]},
+  {"id": "ridgeLine7d", "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://ridges/0/11/400x225", "views": "1.2M views", "duration_sec": 2892, "published": "3 weeks ago", "badges": ["4k", "cc"], "resume_sec": 1880},
+  {"id": "violetHourF", "title": "Violet Hour: A Short Film", "subtitle": "Slowreel", "channel_id": "UCslowreel013", "art_url": "art://ridges/6/409/400x225", "views": "233K views", "duration_sec": 451, "published": "3 weeks ago"},
+  {"id": "duskEmberRd", "title": "Dusk Run: Ember Ridge in One Take", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails003", "art_url": "art://ridges/3/397/400x225", "views": "76K views", "duration_sec": 768, "published": "2 days ago", "badges": ["new"]},
+  {"id": "lanternWalk", "title": "Night Walk Through the Lantern District", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails003", "art_url": "art://city/0/253/400x225", "views": "1.6M views", "duration_sec": 3138, "published": "4 months ago", "badges": ["4k"]}
+ ],
+ "has_more": true
+}

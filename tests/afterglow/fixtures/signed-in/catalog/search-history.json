@@ -1,0 +1,13 @@
+{
+ "items": [
+  {"id": "search-history:remove", "title": "Remove a recent search", "subtitle": "Choose one query to forget", "is_folder": true, "interface": true},
+  {"id": "search-history:clear:1", "title": "Clear recent searches", "subtitle": "Forget every query saved for the selected profile", "is_folder": true, "interface": true},
+  {"id": "search-history:run:7", "title": "aurora chasing", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:6", "title": "one pan dinners", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:5", "title": "tiny renderer", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:4", "title": "night train map", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:3", "title": "synth session live", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:2", "title": "lighthouse sunrise set", "subtitle": "Cross searches again", "is_folder": true}
+ ],
+ "has_more": false
+}

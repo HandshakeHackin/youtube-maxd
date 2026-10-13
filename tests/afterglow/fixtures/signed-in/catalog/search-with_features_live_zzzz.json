@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "settings:search", "title": "Search options", "subtitle": "Live", "is_folder": true, "interface": true},
+  {"id": "search-suggest", "title": "Suggestions", "subtitle": "Completions for this search", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

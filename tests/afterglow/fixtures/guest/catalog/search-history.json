@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "No recent searches", "subtitle": "Square searches; queries are saved for the selected profile", "is_folder": true, "interface": true, "state": "empty"}
+ ],
+ "has_more": false
+}
