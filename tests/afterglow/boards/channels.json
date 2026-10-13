@@ -1,0 +1,171 @@
+{
+ "about": "The channels a profile follows, as tiles (board 28 of the proposal). The signed-in set keeps the provider's order 'new content first'; the long-texts set keeps 'by name'.",
+ "boards": [
+  {
+   "name": "channels-tiles",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "expect": {"screen": "channels", "focus": "channel/0", "rail_open": 0,
+              "state": {"mode": "account", "load": "ready", "zone": "tiles", "channels": "18", "pages": "2", "order": "new", "marks": "5", "guest": "0", "scroll": "0"},
+              "asked": ["library:channels", "settings:channel-sort"]}
+  },
+  {
+   "name": "channels-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "channels", "focus": "channel/2", "state": {"zone": "tiles"}}
+  },
+  {
+   "name": "channels-third-row",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}],
+   "expect": {"screen": "channels", "focus": "channel/13", "state": {"scroll": "364"}}
+  },
+  {
+   "name": "channels-edge",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "channels", "focus": "channel/5"}
+  },
+  {
+   "name": "channels-order-focus",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "up"}, {"press": "right"}],
+   "expect": {"screen": "channels", "focus": "order/name", "state": {"zone": "order", "order": "new"}}
+  },
+  {
+   "name": "channels-order-chosen",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "channels", "focus": "order/name", "state": {"order": "name", "action": "confirmed", "mode": "account"},
+              "asked": ["settings:channel-sort:1"]}
+  },
+  {
+   "name": "channels-order-pending",
+   "fixture": "signed-in",
+   "source": {"delay": 40},
+   "settle": 3.0,
+   "route": {"screen": "channels"},
+   "steps": [{"press": "square", "wait": 0.3}],
+   "expect": {"screen": "channels", "focus": "channel/0", "state": {"order": "new", "action": "pending"}}
+  },
+  {
+   "name": "channels-order-square",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "square"}, {"wait": 0.6}, {"press": "square"}, {"wait": 0.8}],
+   "expect": {"screen": "channels", "focus": "channel/0", "state": {"order": "account", "action": "confirmed"},
+              "asked": ["settings:channel-sort:1", "settings:channel-sort:0"]}
+  },
+  {
+   "name": "channels-marked-watched",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "triangle"}, {"wait": 1.0}],
+   "expect": {"screen": "channels", "focus": "channel/0", "state": {"marks": "0", "action": "confirmed"}, "asked": ["channels:watched"]}
+  },
+  {
+   "name": "channels-open",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "cross"}, {"wait": 0.9}],
+   "expect": {"screen": "channel", "focus": "tab/home", "moving": 0, "state": {"channel": "UCnorthlightatlas0000000", "load": "ready"}}
+  },
+  {
+   "name": "channels-open-moving",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "cross", "wait": 0.18}],
+   "expect": {"screen": "channel", "moving": 1}
+  },
+  {
+   "name": "channels-open-and-back",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.9}, {"press": "circle"}, {"wait": 0.9}],
+   "expect": {"screen": "channels", "focus": "channel/7", "moving": 0, "state": {"mode": "account", "channels": "18"}}
+  },
+  {
+   "name": "channels-actions",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.6}, {"press": "down"}],
+   "expect": {"screen": "channels", "focus": "sheet/1", "state": {"sheet": "1", "sheet_load": "ready"}, "asked": ["menu:channel:UCorbitwell0000000000000"]}
+  },
+  {
+   "name": "channels-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "channels", "rail_open": 1, "focus": "rail/subscriptions"}
+  },
+  {
+   "name": "channels-guest",
+   "fixture": "guest",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}],
+   "expect": {"screen": "channels", "focus": "state/discover", "state": {"mode": "invite", "guest": "1", "zone": "notice", "channels": "0"}, "asked": ["subscriptions"]}
+  },
+  {
+   "name": "channels-guest-signs-in",
+   "fixture": "guest",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "sign_in", "focus": "placeholder"}
+  },
+  {
+   "name": "channels-guest-follows",
+   "fixture": "guest-follows",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}],
+   "expect": {"screen": "channels", "focus": "channel/1", "state": {"mode": "local", "guest": "1", "channels": "3", "zone": "tiles"}}
+  },
+  {
+   "name": "channels-empty",
+   "fixture": "empty",
+   "route": {"screen": "channels"},
+   "expect": {"screen": "channels", "focus": "state/search", "state": {"mode": "empty", "load": "ready", "channels": "0"}}
+  },
+  {
+   "name": "channels-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "channels"},
+   "expect": {"screen": "channels", "focus": "state/retry", "state": {"mode": "trouble", "load": "offline"}}
+  },
+  {
+   "name": "channels-kept",
+   "fixture": "offline",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "channels", "focus": "channel/2", "state": {"mode": "kept", "load": "offline", "channels": "3"}}
+  },
+  {
+   "name": "channels-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "channels"},
+   "expect": {"screen": "channels", "focus": "state/loading", "state": {"mode": "loading", "load": "loading"}}
+  },
+  {
+   "name": "channels-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "channels"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "channels", "focus": "channel/3", "state": {"mode": "account", "order": "name", "channels": "8"}}
+  },
+  {
+   "name": "channels-less-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "channels"},
+   "steps": [{"press": "down"}, {"press": "down", "wait": 0.2}],
+   "expect": {"screen": "channels", "focus": "channel/12", "state": {"scroll": "364"}}
+  }
+ ]
+}
