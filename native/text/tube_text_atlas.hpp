@@ -34,20 +34,25 @@ class Rasteriser
   public:
     // The glyph's outline with the em at `em` pixels, as a distance field spreading `spread`
     // pixels; `bold` pixels are added to every stroke on each side. False when FreeType cannot
-    // draw it (the caller keeps it as an empty glyph).
-    bool glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spread, float bold, GlyphImage *out);
+    // draw it (the caller keeps it as an empty glyph). The outline is filled at `fill` times the
+    // size and averaged down; 0 picks the factor by size (supersampling()).
+    bool glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spread, float bold, GlyphImage *out, int fill = 0);
+    static int supersampling(int em);
     void box(int em, float spread, GlyphImage *out);
     void dot(int em, float spread, GlyphImage *out);
 
   private:
-    void distances(std::vector<float> &grid, int width, int height);
+    bool distances(int width, int height, int x0, int y0, int x1, int y1);
 
-    std::vector<std::uint8_t> coverage_;
-    std::vector<float> outer_;
-    std::vector<float> inner_;
+    // Kept between glyphs so that drawing one allocates nothing once the largest was seen.
+    std::vector<std::uint8_t> coverage_; // how much of each pixel the glyph covers
+    std::vector<float> grid_;            // squared distances, then the signed distance
+    std::vector<float> offset_;          // of an edge pixel: how far inside its centre is
+    std::vector<int> nearest_row_;       // of a pixel: the row of the nearest edge pixel in its column
     std::vector<float> f_;
     std::vector<float> d_;
     std::vector<float> z_;
+    std::vector<int> from_;
     std::vector<int> v_;
 };
 

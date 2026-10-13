@@ -4,9 +4,9 @@
 //
 // The distance field follows the family's other apps (ProsperoEden's gfx/system_fonts.cpp, same
 // author, same licence): the outline is filled above the output size, the squared Euclidean
-// distance transform of Felzenszwalb and Huttenlocher measures both sides of the edge, and the
-// result is averaged down. Here FreeType fills the outline and partly covered pixels start the
-// transform at their own sub-pixel distance.
+// distance transform of Felzenszwalb and Huttenlocher finds the nearest edge, and the result is
+// averaged down. Here FreeType fills the outline, the pixels an edge passes through place it
+// within themselves from their coverage, and one transform serves both sides of the edge.
 
 #include "tube_text_atlas.hpp"
 
@@ -26,8 +26,8 @@ namespace
 
 constexpr float kFar = 1e20f;
 
-// One row or column: d[q] = min over p of (q - p)^2 + f[p].
-void transform(const float *f, int count, float *d, int *v, float *z)
+// One row or column: d[q] = min over p of (q - p)^2 + f[p], and from[q] = the p that gives it.
+void transform(const float *f, int count, float *d, int *from, int *v, float *z)
 {
     const auto crossing = [f](int p, int q)
     {
@@ -60,7 +60,28 @@ void transform(const float *f, int count, float *d, int *v, float *z)
             ++k;
         const int p = v[k];
         d[q] = static_cast<float>((q - p) * (q - p)) + f[p];
+        from[q] = p;
     }
+}
+
+// How far inside the glyph the centre of a pixel is (negative: outside), from the share of the
+// pixel the glyph covers and the direction the coverage rises in (Gustavson and Strand,
+// "Anti-aliased Euclidean distance transform", 2011): exact for a straight edge.
+float edge_offset(float covered, float gx, float gy)
+{
+    if (gx == 0.0f || gy == 0.0f)
+        return covered - 0.5f; // an edge along the pixel grid
+    const float length = std::sqrt(gx * gx + gy * gy);
+    gx = std::fabs(gx) / length;
+    gy = std::fabs(gy) / length;
+    if (gx < gy)
+        std::swap(gx, gy);
+    const float corner = 0.5f * gy / gx; // the coverage at which the edge passes a corner of the pixel
+    if (covered < corner)
+        return std::sqrt(2.0f * gx * gy * covered) - 0.5f * (gx + gy);
+    if (covered < 1.0f - corner)
+        return (covered - 0.5f) * gx;
+    return 0.5f * (gx + gy) - std::sqrt(2.0f * gx * gy * (1.0f - covered));
 }
 
 int floor_to(int value, int step)
@@ -93,31 +114,103 @@ float round_box(float px, float py, float half_x, float half_y, float radius)
 
 } // namespace
 
-void Rasteriser::distances(std::vector<float> &grid, int width, int height)
+// The signed distance of every pixel of coverage_ (width x height) to the glyph's outline, into
+// grid_: positive inside, in pixels of that grid. False when the glyph has no outline in it.
+//
+// The pixels an edge passes through know where it is (edge_offset). Every other pixel takes the
+// nearest of those: its distance to that pixel's centre, on its own side, plus how far inside that
+// centre is. One Euclidean distance transform (Felzenszwalb and Huttenlocher) finds the nearest.
+bool Rasteriser::distances(int width, int height, int x0, int y0, int x1, int y1)
 {
+    const std::size_t count = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+    const std::size_t stride = static_cast<std::size_t>(width);
+    const auto covered = [&](int x, int y) -> int
+    {
+        return x < 0 || y < 0 || x >= width || y >= height ? 0 : coverage_[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x)];
+    };
+    grid_.assign(count, kFar);
+    offset_.resize(count);
+    bool any = false;
+    // Only around the filled rectangle can an edge be.
+    for (int y = std::max(y0 - 1, 0); y < std::min(y1 + 1, height); ++y)
+    {
+        for (int x = std::max(x0 - 1, 0); x < std::min(x1 + 1, width); ++x)
+        {
+            const int a = covered(x, y);
+            bool edge = a != 0 && a != 255;
+            if (!edge)
+            {
+                // A sharp edge between two pixels: both know it is half a pixel away.
+                const int other = a == 0 ? 255 : 0;
+                edge = covered(x - 1, y) == other || covered(x + 1, y) == other || covered(x, y - 1) == other ||
+                       covered(x, y + 1) == other;
+            }
+            if (!edge)
+                continue;
+            constexpr float kDiagonal = 1.41421356f;
+            const float gx = static_cast<float>(covered(x + 1, y - 1) + covered(x + 1, y + 1) - covered(x - 1, y - 1) - covered(x - 1, y + 1)) +
+                             kDiagonal * static_cast<float>(covered(x + 1, y) - covered(x - 1, y));
+            const float gy = static_cast<float>(covered(x - 1, y + 1) + covered(x + 1, y + 1) - covered(x - 1, y - 1) - covered(x + 1, y - 1)) +
+                             kDiagonal * static_cast<float>(covered(x, y + 1) - covered(x, y - 1));
+            const std::size_t i = static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x);
+            grid_[i] = 0.0f;
+            offset_[i] = edge_offset(static_cast<float>(a) / 255.0f, gx, gy);
+            any = true;
+        }
+    }
+    if (!any)
+        return false;
+
     const std::size_t longest = static_cast<std::size_t>(std::max(width, height));
     f_.resize(longest);
     d_.resize(longest);
+    from_.resize(longest);
     v_.resize(longest);
     z_.resize(longest + 1);
+    nearest_row_.resize(count);
+    // Down every column: the nearest edge pixel of that column.
     for (int x = 0; x < width; ++x)
     {
         for (int y = 0; y < height; ++y)
-            f_[static_cast<std::size_t>(y)] = grid[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)];
-        transform(f_.data(), height, d_.data(), v_.data(), z_.data());
+            f_[static_cast<std::size_t>(y)] = grid_[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x)];
+        transform(f_.data(), height, d_.data(), from_.data(), v_.data(), z_.data());
         for (int y = 0; y < height; ++y)
-            grid[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)] = d_[static_cast<std::size_t>(y)];
+        {
+            const std::size_t i = static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x);
+            grid_[i] = d_[static_cast<std::size_t>(y)];
+            nearest_row_[i] = from_[static_cast<std::size_t>(y)];
+        }
     }
+    // Along every row: the nearest of the columns' answers, and the signed distance from it.
     for (int y = 0; y < height; ++y)
     {
-        float *row = grid.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(width);
+        float *row = grid_.data() + static_cast<std::size_t>(y) * stride;
         std::copy(row, row + width, f_.begin());
-        transform(f_.data(), width, d_.data(), v_.data(), z_.data());
-        std::copy(d_.begin(), d_.begin() + width, row);
+        transform(f_.data(), width, d_.data(), from_.data(), v_.data(), z_.data());
+        for (int x = 0; x < width; ++x)
+        {
+            const std::size_t column = static_cast<std::size_t>(from_[static_cast<std::size_t>(x)]);
+            const std::size_t edge = static_cast<std::size_t>(nearest_row_[static_cast<std::size_t>(y) * stride + column]) * stride + column;
+            const float away = std::sqrt(d_[static_cast<std::size_t>(x)]);
+            const bool inside = coverage_[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x)] >= 128;
+            row[x] = (inside ? away : -away) + offset_[edge];
+        }
     }
+    return true;
 }
 
-bool Rasteriser::glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spread, float bold, GlyphImage *out)
+int Rasteriser::supersampling(int em)
+{
+    // Filled at twice the size, 99 of 100 pixels near an outline are within 0.2 pixel of the true
+    // distance; filled at the size itself, within 0.75 (corners, and strokes so thin that two
+    // edges share a pixel): nicks one can see where strokes are three or four pixels wide. At
+    // 112 pixels strokes are wide enough for one fill, which costs a quarter of the time.
+    // scripts/text_bench.sh prints the measurements.
+    return em < 80 ? 2 : 1;
+}
+
+bool Rasteriser::glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spread, float bold, GlyphImage *out,
+                       int fill)
 {
     out->w = 0;
     out->h = 0;
@@ -126,8 +219,7 @@ bool Rasteriser::glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spr
     out->pixels.clear();
     if (face == nullptr || em <= 0 || spread <= 0.0f)
         return false;
-    // Small sizes are filled at twice the size: distances are then within a quarter pixel.
-    const int super = em <= 64 ? 2 : 1;
+    const int super = fill > 0 ? std::min(fill, 8) : supersampling(em);
     if (FT_Set_Pixel_Sizes(face, 0, static_cast<FT_UInt>(em * super)) != 0)
         return false;
     if (FT_Load_Glyph(face, glyph, FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP) != 0)
@@ -161,38 +253,17 @@ bool Rasteriser::glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spr
     const int height = bottom - top;
     const std::size_t count = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
 
-    outer_.assign(count, kFar); // from a pixel outside the glyph to the glyph
-    inner_.assign(count, 0.0f); // from a pixel inside the glyph to its outside
+    coverage_.assign(count, 0);
     for (int row = 0; row < bitmap_h; ++row)
     {
         const unsigned char *source = bitmap.pitch >= 0
                                           ? bitmap.buffer + static_cast<std::ptrdiff_t>(row) * bitmap.pitch
                                           : bitmap.buffer - static_cast<std::ptrdiff_t>(bitmap_h - 1 - row) * bitmap.pitch;
-        const std::size_t base = static_cast<std::size_t>(y0 - top + row) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x0 - left);
-        for (int column = 0; column < bitmap_w; ++column)
-        {
-            const unsigned char a = source[column];
-            if (a == 0)
-                continue;
-            const std::size_t i = base + static_cast<std::size_t>(column);
-            if (a == 255)
-            {
-                outer_[i] = 0.0f;
-                inner_[i] = kFar;
-            }
-            else
-            {
-                // A pixel the edge crosses: the edge is about (0.5 - coverage) from its centre.
-                const float covered = static_cast<float>(a) / 255.0f;
-                const float out_d = std::max(0.0f, 0.5f - covered);
-                const float in_d = std::max(0.0f, covered - 0.5f);
-                outer_[i] = out_d * out_d;
-                inner_[i] = in_d * in_d;
-            }
-        }
+        std::memcpy(&coverage_[static_cast<std::size_t>(y0 - top + row) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x0 - left)],
+                    source, static_cast<std::size_t>(bitmap_w));
     }
-    distances(outer_, width, height);
-    distances(inner_, width, height);
+    if (!distances(width, height, x0 - left, y0 - top, x0 - left + bitmap_w, y0 - top + bitmap_h))
+        return true; // filled, but nothing of it is ink: as good as a space
 
     out->w = width / super;
     out->h = height / super;
@@ -209,10 +280,7 @@ bool Rasteriser::glyph(FT_FaceRec_ *face, std::uint32_t glyph, int em, float spr
             {
                 const std::size_t row = static_cast<std::size_t>(y * super + dy) * static_cast<std::size_t>(width);
                 for (int dx = 0; dx < super; ++dx)
-                {
-                    const std::size_t i = row + static_cast<std::size_t>(x * super + dx);
-                    sum += std::sqrt(inner_[i]) - std::sqrt(outer_[i]);
-                }
+                    sum += grid_[row + static_cast<std::size_t>(x * super + dx)];
             }
             out->pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(out->w) + static_cast<std::size_t>(x)] =
                 encode(sum * scale + bold, spread);
