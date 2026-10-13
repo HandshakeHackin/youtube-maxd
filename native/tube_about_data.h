@@ -4,7 +4,7 @@
 #define TUBE_ABOUT_DATA_H
 
 #define TUBE_ABOUT_CHANGELOG_VERSION "0.1.0"
-#define TUBE_ABOUT_CHANGELOG_ROWS 15
+#define TUBE_ABOUT_CHANGELOG_ROWS 16
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
@@ -20,8 +20,9 @@
     {"0.1.0", "Comments with replies and comment rating, live chat and chat replay."}, \
     {"0.1.0", "Video actions, a suggestions list, chapter notification and screen dimming in the player."}, \
     {"0.1.0", "Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links."}, \
+    {"0.1.0", "Updates: a daily check of the project's releases with a notice, Check for updates and Notify about updates in About, release notes, and a verified in-place update that keeps the previous version until the new one has run. Tested offline only."}, \
     {"0.1.0", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
     {"0.1.0", "Experimental, marked (experimental) and tested offline only: chat and comment posting, account-history controls, feedback actions and the profile password."}, \
-    {"0.1.0", "Not included yet: videos that need the account itself (age-restricted, private, members-only), phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, update check and self-update, auto frame rate, HDR and background playback."}
+    {"0.1.0", "Not included yet: videos that need the account itself (age-restricted, private, members-only), phone casting, voice search, subscriptions import, translations, the remaining interface options, drawn seek previews, auto frame rate, HDR and background playback."}
 
 #endif

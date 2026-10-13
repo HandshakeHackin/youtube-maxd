@@ -17,6 +17,16 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   build recipe are adapted from ProsperoTV
   `a33031e9e50b4942ca0e2287cc757271345d874f`; existing/resident/helper regression
   coverage derives from ProsperoLight. Source: `native/elevation`.
+* The update check and self-update (`native/tube_update*`) follow the design of
+  the update kit in
+  [ps5-native-app-boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
+  (GPL-3.0-or-later, same author): content-version comparison, the archive
+  rules, mode 0777 for unpacked files, replacing top-level entries in place,
+  the home-screen copies of `sce_sys` and ShadowMountPlus's mount records.
+  The code is written for this project; `scripts/zip_open_modes.py` is adapted
+  from that repository's `tools/zip-open-modes.py`, and
+  `.github/workflows/build.yml` follows its release workflow. ZIP data is
+  inflated by zlib, which the package already carries.
 * PS5 UUID entropy adapts the checked `kern.rng_pseudo` reader from
   [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight/blob/b0149a941617c9e92a3be475b78304052c718d7c/platform/ps5/ps5_entropy.c)
   (GPL-3.0-or-later). Adapted source is in `native/tube_random.h`.

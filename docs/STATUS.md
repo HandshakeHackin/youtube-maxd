@@ -37,9 +37,11 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   subscriptions import, and signed-in playback of videos that need the account
   (`account_playback`, off). They still work against the development
   companion.
+- **Added 2026-10-13, host-tested only:** the update check and the in-place
+  self-update ([updates](UPDATES.md)). The check cannot answer while the
+  repository is private.
 - **Deferred:** localization, remaining interface options, drawn seek
-  previews, update check and self-update, auto frame rate, HDR and background
-  playback.
+  previews, auto frame rate, HDR and background playback.
 
 ## The built-in service
 
@@ -63,6 +65,28 @@ the console is a hard requirement; the first MVP is Guest, standalone.
 - The PS5 package compiled, linked and packed with the Guest-only service; the
   package with accounts has not been built in this step. **Never run on a
   console.**
+
+## Updates
+
+- `native/tube_update*.c`: the check against this repository's GitHub releases
+  (once a day and on request, answer kept in `/data/prosperotube/update`), the
+  ranged download with resume and cancel, size and SHA-256 against the release,
+  validated unpacking with every file read back, a journaled replacement of the
+  installed top-level entries, the previous version kept until the new one has
+  run, rollback after two failed starts. About lists **Check for updates**,
+  **Notify about updates**, the release notes, update, restart and skip.
+- It uses the app's HTTPS client in a client of its own on a worker thread and
+  does not need the JavaScript service. The console side exists only in the
+  package that carries the built-in service.
+- Host-tested (`scripts/test_update.sh`, `scripts/test_update_host.py`,
+  `scripts/test_release.py`): a loopback server over HTTP and HTTPS, a failure
+  and a power loss injected at every step, the About rows through the provider.
+  The PS5 objects compile and add no import the app did not already have.
+  **Never run on a console, and never against GitHub**; [updates](UPDATES.md)
+  lists what only a console can show.
+- `.github/workflows/build.yml` builds pull requests, version tags and manual
+  runs, and publishes a tag as a pre-release with `PPSA99142.zip` and
+  `SHA256SUMS`. It has not run: the first run shows what a hosted runner lacks.
 
 ## Implemented and tested
 
@@ -122,8 +146,9 @@ evidence, not console acceptance.
 | General, interface and maintenance | 18 | 9 | 25 | 6 | 58 |
 | **All** | **140** | **54** | **38** | **13** | **245** |
 
-The open items are mostly interface options, localization, update checks and
-hardware-dependent features, which the first release defers.
+The open items are mostly interface options, localization and
+hardware-dependent features, which the first release defers. The update rows
+are implemented; the tracker's files were not changed for them yet.
 
 ## Verified only on the host
 
@@ -217,6 +242,9 @@ are unverified.
    options, end, history, clean park and close. This is the first time the
    engine, the HTTPS client and direct playback run on a console.
 4. Fix what the session finds, then release.
+
+Before the first public release the repository has to be public, or the
+update check gets no answer ([updates](UPDATES.md)).
 
 Known limits that stay after the release: accounts unverified against the
 live service and no playback of videos that need the account, no phone
