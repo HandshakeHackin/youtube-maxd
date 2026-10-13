@@ -5,7 +5,8 @@
 #   2. HTTP service test: requests against `tube_js serve` on 127.0.0.1
 #   3. accounts: sign-in, the credential file, account lists and changes (test/account_test.py)
 #   4. subscriptions import: the export parser and its one-mebibyte route (test/import_test.py)
-#   5. all again under AddressSanitizer + UBSan with leak detection (TUBE_JS_SANITIZE=0 skips)
+#   5. phone receiver: the Lounge protocol against a local stand-in with a streamed back channel (test/remote_test.py)
+#   6. all again under AddressSanitizer + UBSan with leak detection (TUBE_JS_SANITIZE=0 skips)
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -25,6 +26,7 @@ run() {
   python3 "$here/test/service_test.py" "$binary"
   python3 "$here/test/account_test.py" "$binary"
   python3 "$here/test/import_test.py" "$binary"
+  python3 "$here/test/remote_test.py" "$binary"
 }
 run "$here/build/tube_js" plain
 if [ -n "${TUBE_JS_SANITIZE:-}" ]; then run "$here/build/asan/tube_js" sanitized; fi

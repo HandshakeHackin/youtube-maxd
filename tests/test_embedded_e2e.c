@@ -7,6 +7,7 @@
  *   fetched through the provider's HTTP path -> stop
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "tube_provider.h"
+#include "tube_remote.h"
 #include "tube_service.h"
 #include "evo_net.h"
 #include "evo_data_path.h"
@@ -24,6 +25,7 @@ void __wrap_tube_service_configure(const tube_service_options *options) {
     static tube_service_options host;
     host = *options;
     host.bundle_path = getenv("TUBE_E2E_BUNDLE");
+    host.lounge_base = getenv("TUBE_E2E_LOUNGE");   /* the stand-in for YouTube's phone connection service; unset = YouTube */
     __real_tube_service_configure(&host);
 }
 
@@ -160,11 +162,64 @@ int main(void) {
     assert(!strcmp(last_items[1].title, "Add 2 channels to Followed channels"));
     printf("import: \"%s\" (%s)\n", last_items[0].title, last_items[0].subtitle);
 
+    /* Phone: "Link a phone" registers the receiver through the service (here with a stand-in for YouTube's
+     * Lounge service whose back channel stays open), the TV code comes back, the phone's commands reach the
+     * driver in order and are acknowledged, the player's state goes out, and turning it off ends the channel. */
+    if (getenv("TUBE_E2E_LOUNGE")) {
+        int remote_row = 0;
+        for (int page = 0; page < 8 && !remote_row; ++page) {
+            p->list_catalog("settings", page, items_cb, NULL);
+            for (int i = 0; i < last_count; ++i) if (!strcmp(last_items[i].id, "settings:remote")) remote_row = 1;
+        }
+        assert(remote_row);
+        p->list_catalog("settings:remote:pair", 0, items_cb, NULL); assert(last_ok);
+        for (double end = seconds() + 20; seconds() < end && !*tube_remote_code();) { evo_net_poll(); tube_poll(); usleep(5000); }
+        assert(!strcmp(tube_remote_code(), "123456789012") && tube_remote_state() == TUBE_REMOTE_LISTENING);
+        assert(tube_remote_identity_valid(tube_remote_device()) && !strcmp(tube_remote_screen(), "screen-1"));
+        p->list_catalog("settings:remote", 0, items_cb, NULL);
+        assert(last_ok && !strcmp(last_items[0].title, "Phone connection: ready") && !strcmp(last_items[1].title, "TV code: 123 456 789 012"));
+        static tube_remote_command command;
+        static const int expected[] = {TUBE_REMOTE_QUERY, TUBE_REMOTE_PLAYLIST, TUBE_REMOTE_PAUSE};
+        for (int i = 0; i < 3; ++i) {
+            int have = 0;
+            for (double end = seconds() + 20; seconds() < end && !(have = tube_remote_take(&command));) { evo_net_poll(); tube_poll(); usleep(5000); }
+            assert(have && command.sequence == i + 1 && command.action == expected[i]);
+            if (i == 1) assert(!strcmp(command.video, "fixtureVID1") && command.count == 2 && !strcmp(command.videos[1], "zyxwvutsrqp") &&
+                               command.position == 12.5 && !strcmp(command.ctt, "opaque") && !command.has_window);
+            assert(tube_remote_finish(command.owner, command.sequence, 1));
+        }
+        printf("phone: TV code %s, commands query, playlist %s (+%d) at %.1f s, pause\n", tube_remote_code(), "fixtureVID1", 1, 12.5);
+        tube_remote_player playing = {.video = "fixtureVID1", .ctt = "opaque", .state = 2, .volume = 80, .position = 12.5, .duration = 60, .next = 1};
+        tube_remote_report(&playing);
+        char calls_url[160], lounge_origin[96];
+        snprintf(lounge_origin, sizeof lounge_origin, "%s", getenv("TUBE_E2E_LOUNGE"));
+        *strstr(lounge_origin, "/api/lounge") = 0;
+        snprintf(calls_url, sizeof calls_url, "%s/_calls", lounge_origin);
+        int reported = 0;
+        for (double end = seconds() + 20; seconds() < end && !reported;) {
+            for (int i = 0; i < 60; ++i) { evo_net_poll(); tube_poll(); usleep(5000); }
+            fetch(calls_url, 0);
+            reported = fetch_ok && strstr(fetched, "\"req0__sc\": \"nowPlaying\"") && strstr(fetched, "\"req0_videoId\": \"fixtureVID1\"") &&
+                       strstr(fetched, "\"req2_volume\": \"80\"") && strstr(fetched, "\"req3_hasNext\": \"true\"");
+        }
+        assert(reported && strstr(fetched, "\"errors\": []") && !strstr(fetched, "\"TYPE\": \"terminate\""));
+        assert(tube_remote_state() == TUBE_REMOTE_LISTENING);
+        p->list_catalog("settings:remote:toggle", 0, items_cb, NULL);   /* off */
+        int ended = 0;
+        for (double end = seconds() + 20; seconds() < end && !ended;) {
+            for (int i = 0; i < 40; ++i) { evo_net_poll(); tube_poll(); usleep(5000); }
+            fetch(calls_url, 0);
+            ended = fetch_ok && strstr(fetched, "\"TYPE\": \"terminate\"") != NULL;
+        }
+        assert(ended && strstr(fetched, "\"errors\": []") && tube_remote_state() == TUBE_REMOTE_OFF);
+        puts("phone: state reported, receiver closed at the service and ended upstream");
+    }
+
     /* The saved state never names the service. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     FILE *state = fopen(evo_data_path("youtube.json"), "rb"); assert(state);
     static char text[1 << 16]; got = fread(text, 1, sizeof text - 1, state); fclose(state); text[got] = 0;
-    assert(!strstr(text, "127.0.0.1") && strstr(text, "\"token\":\"\""));
+    assert(!strstr(text, "127.0.0.1") && strstr(text, "\"token\":\"\"") && !strstr(text, "123456789012") && !strstr(text, "private-"));
 
     /* Stop: joined and silent; the old port no longer answers; a request fails without going out. */
     tube_embedded_stop();
@@ -184,6 +239,6 @@ int main(void) {
     p->shutdown();
     assert(!tube_service_running());
     evo_net_shutdown();
-    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, stop and restart");
+    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, import, phone, stop and restart");
     return 0;
 }

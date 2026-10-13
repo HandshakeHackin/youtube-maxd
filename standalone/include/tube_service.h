@@ -41,6 +41,9 @@ typedef struct tube_service_options {
                                            0 = the companion's one-segment-per-file shape */
     int account_playback;               /* let a signed-in profile resolve with its own session a video that needs an
                                            account; 0 = every profile resolves as Guest does. Unverified: leave 0 */
+    const char *lounge_base;            /* tests only: "http://127.0.0.1:<port>/..." of a stand-in for YouTube's phone
+                                           connection service, and the one case in which the engine may use plain http
+                                           (to that loopback address only). NULL, as the app leaves it = YouTube */
 } tube_service_options;
 void tube_service_configure(const tube_service_options *options);
 
