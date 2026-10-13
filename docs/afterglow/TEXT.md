@@ -308,8 +308,10 @@ defaults. By area, at 85% packing, a 2048 page holds roughly 2,300 CJK or
 4,500 Latin glyphs at 28, 600 or 1,300 at 56, 160 or 340 at 112. Shaped texts:
 `layout_cache_bytes` (4 MiB). Fonts: mapped files, or what was read from them.
 
-**Measured** (Ryzen 9 3900X, one thread, `-O2`, the pinned libraries, fonts on
-the local disk; `scripts/text_bench.sh`):
+**Measured** (Ryzen 9 3900X, one thread, `-O2`, the pinned libraries;
+`scripts/text_bench.sh` with `TUBE_TEXT_WINDOWS_FONTS` naming a copy of the
+fonts on the Linux disk: read through WSL's bridge to the Windows disk,
+opening a font and reading it on demand are several times slower):
 
 | | |
 |---|---|
