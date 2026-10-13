@@ -717,7 +717,7 @@ void Sheet::draw(G &g) const
         if (load_ == model::Load::failed || load_ == model::Load::offline)
         {
             icon(g, trouble_icon(load_), kSheetX + 88.0f, 236.0f, 40.0f, g.k.ink2);
-            paragraph(g, g.f.regular, error_.empty() ? tr("The actions did not arrive. Cross asks again.") : error_.c_str(), kSheetX + 126.0f, 244.0f,
+            paragraph(g, g.f.regular, error_.empty() ? tr("The actions did not arrive. Choose again to ask once more.") : error_.c_str(), kSheetX + 126.0f, 244.0f,
                       kTypeBody, 440.0f, kNoticeLine, g.k.ink2, 4);
         }
         else

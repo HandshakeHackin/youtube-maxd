@@ -1,9 +1,10 @@
-// ProsperoTube Afterglow - the channel page: what its two source files share.
+// ProsperoTube Afterglow - the channel page: what its three source files share.
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// channel.cpp reads the page, takes the input and moves things; channel_draw.cpp
-// draws it. Nothing outside these two files includes this header.
+// channel.cpp reads the page, asks the account and moves things;
+// channel_input.cpp takes the controller; channel_draw.cpp draws. Nothing
+// outside these three files includes this header.
 
 #pragma once
 
