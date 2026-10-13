@@ -9,7 +9,8 @@ YouTube's servers.
 
 Everything here runs and is tested on a PC. Nothing was run on a console. The
 app is wired to it since (`standalone/ps5/README.md`, section 8). Live numbers are from 2026-10-11, Guest, no
-cookies.
+cookies. The subscriptions import and the phone receiver (2026-10-13) have run
+offline only.
 
 | Part | Where |
 |---|---|
@@ -27,15 +28,18 @@ cookies.
 | Player answer, format policy, manifest, captions, chapters, storyboards, HLS | `js/resolve.js` |
 | Manifests with byte-range segments | `js/segments.js` |
 | Thumbnails, DeArrow, SponsorBlock | `js/extras.js` |
+| Subscriptions import (NewPipe, PocketTube, GrayJay exports) | `js/subscriptions_import.js` |
+| Phone receiver (YouTube Lounge, "Link with TV code") | `js/lounge.js` |
 | Web-platform shims | `js/host_shims.js`, `js/url_shim.js`, `js/fetch_shim.js`, `js/platform.js`, `js/node_crypto.js` |
 | Canned upstream answers, generator | `fixtures/`, `fixtures/make.py` |
-| Tests | `test_host.sh`, `test/service_test.py`, `test/account_test.py`, `js/selftest.js`, `scripts/test_standalone.sh` |
+| Tests | `test_host.sh`, `test/service_test.py`, `test/account_test.py`, `test/import_test.py`, `test/remote_test.py`, `js/selftest.js`, `scripts/test_standalone.sh` |
 
 ```
 standalone/build_host.sh                 # build/tube_js + build/tube_js.bundle.js
 standalone/test_host.sh                  # offline tests, plain and under ASan/UBSan
 build/tube_js serve --host 127.0.0.1 --port N --state-dir DIR [--token T] [--sponsorblock]
                     [--sponsorblock-server https://host] [--pairing-code 123456] [--ranged-manifest] [--account-playback]
+                    [--lounge-base http://127.0.0.1:N/api/lounge]   # tests only: a stand-in for YouTube's phone service
 build/tube_js search|info|comments|channel|resolve|probe|ranges|library|version|selftest ...   # one-shot diagnosis
 ```
 
@@ -44,7 +48,9 @@ the generated one to `DIR/token` (mode 0600) for tools, never to the output.
 Environment: `TUBE_JS_FIXTURES=<dir>` (answer every upstream request from
 canned files), `TUBE_JS_TRACE`, `TUBE_JS_VERBOSE`, `TUBE_JS_STATS`,
 `TUBE_JS_CA_BUNDLE`, `TUBE_JS_LOCAL_SESSION`, `TUBE_JS_PLAYER_SCRIPT`,
-`TUBE_JS_SHOW_URLS`, `TUBE_JS_MINIFY` (build), `TUBE_JS_SANITIZE=0` (tests).
+`TUBE_JS_SHOW_URLS`, `TUBE_JS_MINIFY` (build), `TUBE_JS_SANITIZE=0` (tests),
+`TUBE_JS_AUTH_CLOCK` and `TUBE_JS_REMOTE_CLOCK` (tests: the sign-in clock with
+canned answers, the receiver's lease clock with `--lounge-base`).
 
 ## What is implemented
 
@@ -62,18 +68,20 @@ Routes, with the Python service's fields, error codes, statuses and bounds:
 | `GET /v1/sponsor/{id}` | hashed-prefix query, categories, `alt`, one-hour cache; off unless enabled |
 | `GET /art/dearrow/{key}` + DeArrow titles/thumbnails on pages | as `dearrow.py` |
 | `GET /v1/dislikes/{id}` | `{"enabled": false}` |
+| `POST /v1/subscriptions/import` | the export file itself as the body, up to 1 MiB on this route alone; answers `{format, channels[{channel_id, title, group?}], skipped, truncated}` as `subscriptions_import.py` |
+| `POST /v1/remote` | the phone receiver, as `remote_lounge.py`: `start`, `pair`, `poll`, `update`, `stop`; see Phone receiver |
 
 `features`: `search channels playlists dash captions dearrow locale
 thumbnail_source storyboards translated_captions video_details library
 content_filters channel_pages kids stream_reminder playlist_order
 subscribe_notifications comment_post search_first channel_new_content device_auth
-embedded`. Left out because they do not exist here: `relay`,
-`subscriptions_import`, `voice`, `dislikes`, `proxy`.
+subscriptions_import remote embedded`. `remote` is this service's name for the
+phone receiver (the Python service has the route without listing it). Left out
+because they do not exist here: `relay`, `voice`, `dislikes`, `proxy`.
 
-Not in this stage, answered with the existing conventions: `/v1/voice`
-(`voice_unavailable` 503), `/v1/remote` (`remote_session` 404),
-`/v1/subscriptions/import` (404), a profile that is neither `guest` nor a
-signed-in account (`unknown_profile` 404).
+Not offered, answered with the existing conventions: `/v1/voice`
+(`voice_unavailable` 503; `docs/VOICE_SEARCH.md` has the assessment), a profile
+that is neither `guest` nor a signed-in account (`unknown_profile` 404).
 
 Known differences from the Python answers:
 
@@ -91,6 +99,60 @@ Known differences from the Python answers:
 - 422 answers keep FastAPI's `{"detail": [...]}` shape but not pydantic's wording.
 - An expired signed caption/storyboard address answers `expired_session` (410)
   instead of being renewed behind the client's back; the provider resolves again.
+- Subscriptions import: a body over its limit is refused by the listener (413)
+  before the bearer is looked at; PocketTube groups whose names are whole
+  numbers are read before the others (JavaScript's key order), which can
+  change the order of the channels, not the set; a number written as `NaN` in
+  the file is not JSON here.
+- Phone receiver: a start that names no microphone and one that does are the
+  same receiver (the capability is always off); a request that the client
+  abandons is not cancelled upstream, it ends by its own time limit.
+
+## Subscriptions import
+
+`js/subscriptions_import.js` is `subscriptions_import.py` ported: strict UTF-8
+with one optional byte-order mark, JSON, then the first reader that fits
+(NewPipe's `subscriptions` list with service 0, GrayJay's list of addresses or
+records, PocketTube's groups without its `ysc_` keys), channels recognised only
+by a channel ID or a `youtube.com/channel/UC…` address, duplicates dropped,
+2,048 channels at most, titles and group names bounded. Nothing is stored and
+no account is touched.
+
+The listener's request-body limit stays 8 KiB. `POST /v1/subscriptions/import`
+alone may carry 1 MiB (`TUBE_LISTENER_LARGE_BODY_LIMIT`): the rest of such a
+body is received into one heap block that is handed to the engine without
+another copy, one such request at a time (a second is answered 503), and a
+request that is not complete 15 seconds after it connected is dropped, as any other.
+
+## Phone receiver
+
+`js/lounge.js` is `remote_lounge.py` ported: the same five actions on
+`POST /v1/remote`, the same typed command list, queue windows, expansion
+through `remote_playlist`, lease, bounds and error codes. Nothing is contacted
+before a `start`. `docs/REMOTE_SERVICE.md` (Built-in receiver) describes the
+contract and what differs; here is what the service had to gain for it.
+
+- **Streaming answers.** YouTube's back channel is one long chunked response
+  that carries frames as they happen, and the HTTPS client delivered whole
+  bodies. `tube_js_http_request.stream` makes a request a streaming one: its
+  pieces are handed over after each `tube_js_http_poll()` by
+  `tube_js_http_take_chunk()` (id, status, bytes), its `timeout_ms` bounds each
+  silence instead of the whole request, `max_response_bytes` bounds what waits
+  to be taken, and it completes, fails or is cancelled like any other. The
+  engine passes the pieces to `__tubeHttpChunk(id, status, bytes)` before the
+  completion; in JavaScript, `fetch(url, { onChunk, idle_ms })` calls
+  `onChunk(bytes, status)` for each piece and resolves with an empty body when
+  the answer ends; what `onChunk` throws ends the transfer. The same C runs on
+  the host and the console (`ps5/tube_js_http.c`, libcurl multi).
+- **Framing.** A strict incremental UTF-8 decoder (a character split between
+  two pieces waits for its rest), then frames of a decimal length, a newline
+  and that many UTF-16 code units of JSON.
+- **Connections.** The client's connection limit went from six to ten, so
+  that four receivers, each holding one connection open, leave the six there
+  were.
+- **Tests only:** `--lounge-base` (`tube_service_options.lounge_base`) points
+  the receiver at a stand-in on `http://127.0.0.1` and is the one case in
+  which the engine starts a request that is not HTTPS. The app never sets it.
 
 ## Accounts
 
@@ -305,9 +367,15 @@ run would not fit this round's request limit. So: 25 of 25, over two runs.
 ## Tests
 
 `test_host.sh` (also `scripts/test_standalone.sh`, picked up by
-`scripts/test_all.sh`): 20 engine checks, 132 HTTP checks and 201 account
+`scripts/test_all.sh`): 20 engine checks, 131 HTTP checks, 201 account
 checks (`test/account_test.py`: sign-in, storage, refresh, lists, changes and
-their guards, history reports, removal, the playback switch) against a running
+their guards, history reports, removal, the playback switch), 51 import checks
+(`test/import_test.py`: the three formats, addresses, refusals, the one-mebibyte
+route) and 272 phone-receiver checks (`test/remote_test.py`: a stand-in for
+YouTube's phone service on 127.0.0.1 with a back channel that stays open and
+arrives in small pieces; registration, TV code, commands and acknowledgments,
+state reports, reconnects, queue windows and expansion, every refusal and
+upstream failure, identity, capacity and the lease) against a running
 `tube_js serve` with canned InnerTube answers: health, authorisation,
 unknown routes and methods, body/header/connection bounds, 24 parallel
 connections, pairing, job lifecycle and cancellation, search pages and
@@ -345,7 +413,8 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   `tube_service_configure`.
 - State under `state_dir`: `cache/` (small youtubei.js entries) and, once an
   account signed in, `accounts/oauth-profiles.json` (the tokens; keep it out
-  of logs, uploads and backups). No log.
+  of logs, uploads and backups). No log. The phone receiver stores nothing:
+  its identity is the provider's (`youtube.json`), passed with each start.
 - The provider must not send its stream headers to `/media` links' targets
   (it sends none today) and should treat a 403 from YouTube as "resolve again".
 
@@ -367,6 +436,12 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   signed-in playback is off and unmeasured.
 - **No relay** means storyboards and captions still pass through the engine
   (small), and nothing can renew a link behind the player's back.
+- **The phone receiver** has met a stand-in only. Unobserved from this engine:
+  whether YouTube's phone service accepts it as it accepted the Python
+  receiver, how often keep-alive frames come against the 65-second silence
+  limit, how long one long poll lasts, and long-lived streaming through the
+  console's libcurl and its sliced wait. Closing the app does not end the
+  channel upstream.
 
 ## Earlier findings kept for reference
 

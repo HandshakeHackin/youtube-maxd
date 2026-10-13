@@ -8,10 +8,10 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Player and playback | 41 | 23 | 9 | 5 | 78 |
-| Browsing, search and menus | 62 | 15 | 2 | 1 | 80 |
+| Browsing, search and menus | 61 | 16 | 2 | 1 | 80 |
 | Accounts, remote control and integrations | 19 | 7 | 2 | 1 | 29 |
 | General, interface and maintenance | 18 | 9 | 25 | 6 | 58 |
-| **All** | **140** | **54** | **38** | **13** | **245** |
+| **All** | **139** | **55** | **38** | **13** | **245** |
 
 ## Player and playback
 
@@ -77,7 +77,7 @@ OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, P
 | --- | --- | :---: | :---: |
 | Main browse screen / sidebar (`behavior.BrowsePresenter`) | Discover sections sit one level below the main menu (two-level tree), not a flat sidebar; No playlists rows-vs-grid style; Channel sorting has no last-viewed order | yes | L |
 | Channel page (`behavior.ChannelPresenter`) | Channel Home skips Shorts and featured-channel shelves | yes | L |
-| Search screen (`behavior.SearchPresenter`) | No as-you-type suggestion tags while the keyboard is open; YouTube's 'last hour' date filter and the upload-date and rating orders are not offered; Channel and playlist results need the library worker path; Play-first-result is a Search options row for the last query; voice and phone requests do not use it | yes | L |
+| Search screen (`behavior.SearchPresenter`) | No as-you-type suggestion tags while the keyboard is open; YouTube's 'last hour' date filter and the upload-date and rating orders are not offered; Channel and playlist results need the library worker path; Play-first-result is a Search options row for the last query; voice and phone requests do not use it; Voice search is not available with the built-in service (docs/VOICE_SEARCH.md) | yes | L |
 | Playback entry point (`behavior.PlaybackPresenter`) | No background playback while browsing with a Return to background video action (isRunningInBackground); No open-at-time entry (openVideo(videoId, finishOnEnded, timeMs)) from links such as ?t= | yes | M |
 | Channels section (subscribed channels) (`extra.Section.Channels`) | Sorting by last viewed is absent (account order takes its place) | yes | M |
 | Notifications section (`extra.Section.Notifications`) | Hiding a notification is not available | yes | M |
@@ -86,6 +86,7 @@ OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, P
 | Hide from Subscriptions / Notifications feed (`extra.Menu.RemoveFromSubscriptions`) | Notifications rows cannot be hidden | yes | S |
 | Typing / commit behaviour (`extra.Search.TypingCommit`) | The query is not kept editable on a search screen: no visible search field to refine, and nothing happens while typing; No re-run of the last query without retyping | yes | M |
 | Search suggestions / autocomplete (incl. popular searches) (`extra.Search.Suggestions`) | No as-you-type list while the keyboard is open | yes | M |
+| Voice search (`extra.Search.Voice`) | Not available with the built-in service (the release): no speech recognizer on the console; L3 and its help line are hidden. Works only with the external development companion (docs/VOICE_SEARCH.md, 'Without a companion'); No instant voice search on opening search | no | S |
 | Filter: upload date (`extra.Search.FilterUploadDate`) | "Last hour" is not offered by the pinned library | yes | M |
 | Sort results (`extra.Search.Sort`) | Upload-date and rating orders are not offered by the pinned library | yes | S |
 | Channel and playlist cards in results (`extra.Search.ChannelAndPlaylistResults`) | Cards appear only on the library search path, not on the Guest extractor path | yes | S |
@@ -100,7 +101,7 @@ OK button behavior, Auto-hide player UI, Video zoom, Preferred audio language, P
 
 ### Done
 
-Remove from history (video menu), Playlist / uploads grid, Video details screen, Home section, Shorts section, Trending section, Kids section, Sports section, Live section, Gaming section, News section, Music section, My videos section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Pinned playlists / channels in the sidebar, Show/hide and reorder sidebar sections, boot section, Play video, Play video incognito, Play from start, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Save playlist to library / remove playlist, Playlist order, Not interested, Don't recommend channel, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Open channel (and channel uploads), Open playlist, Subscribe / unsubscribe, Exclude channel from SponsorBlock, Pin playlist / channel to sidebar, Open description, Open comments, Share link, Share link as QR code, Share embed link, Select account, Pause / resume watch history, Clear history, Refresh section, Move section up / down, Rename pinned section, Unpin / hide section from sidebar, Mark all channels as watched / mark channel as watched, Text search with paged results, Search history, Voice search, Filter: duration, Filter: content type, Filter: features (Live, 4K, HDR).
+Remove from history (video menu), Playlist / uploads grid, Video details screen, Home section, Shorts section, Trending section, Kids section, Sports section, Live section, Gaming section, News section, Music section, My videos section, Subscriptions section, History section, Blocked channels section, Playlists section, Playback queue section, Settings section, Pinned playlists / channels in the sidebar, Show/hide and reorder sidebar sections, boot section, Play video, Play video incognito, Play from start, Add to Watch later, Add to / remove from playlist, Create playlist, Rename playlist, Add video to new playlist, Save playlist to library / remove playlist, Playlist order, Not interested, Don't recommend channel, Block / unblock channel, Mark as watched, Add to / remove from playback queue, Play next, Show playback queue, Open channel (and channel uploads), Open playlist, Subscribe / unsubscribe, Exclude channel from SponsorBlock, Pin playlist / channel to sidebar, Open description, Open comments, Share link, Share link as QR code, Share embed link, Select account, Pause / resume watch history, Clear history, Refresh section, Move section up / down, Rename pinned section, Unpin / hide section from sidebar, Mark all channels as watched / mark channel as watched, Text search with paged results, Search history, Filter: duration, Filter: content type, Filter: features (Live, 4K, HDR).
 
 ### Not applicable on PS5
 
@@ -188,7 +189,7 @@ Set-up sections (show/hide sidebar sections), Hide content (16 toggles), Boot to
 ### Not applicable on PS5
 
 - Enable Conscrypt: Android security-provider switch; no PS5 counterpart. Inventory labels for this id are polluted by the context-menu name map that follows it in the file.
-- Voice search engine: The three choices are Android speech services; ProsperoTube has exactly one recognizer.
+- Voice search engine: The three choices are Android speech services; ProsperoTube has exactly one recognizer. With the built-in service there is none; the single recognizer exists only with the development companion.
 - Donation: Project-specific links of another author, not a client feature.
 - Select update source: APK mirror selection.
 - Install ATV/Amazon bridge: Android bridge APK install.

@@ -102,12 +102,13 @@
    "ps5_evidence": [
     "native/tube_provider.c: \"settings:remote:toggle\" ('Turn phone connection on/off'), g_remote_enabled, remote_configure()",
     "native/tube_remote.c",
-    "tests/test_remote_native.c, tests/test_remote_lounge.py"
+    "tests/test_remote_native.c, tests/test_remote_lounge.py",
+    "Built-in service: standalone/js/lounge.js (POST /v1/remote inside the app), standalone/test/remote_test.py, tests/test_embedded_service.c, tests/test_embedded_e2e.c"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Overlay permission part is Android-only."
+   "notes": "Overlay permission part is Android-only. Offered in the built-in mode when the service lists 'remote'."
   },
   {
    "id": "RemoteControlSettingsPresenter.appendAddDeviceButton",
@@ -116,12 +117,13 @@
    "smarttube": "Button: enables the link and opens the pairing-code screen",
    "ps5_evidence": [
     "native/tube_provider.c: \"settings:remote:pair\" ('Link a phone' / 'Get a new TV code') -> tube_remote_pair(); \"settings:remote:code\" 'TV code: %s' grouped by three digits",
-    "docs/REMOTE_SERVICE.md 'Native pairing settings'"
+    "docs/REMOTE_SERVICE.md 'Native pairing settings'",
+    "Built-in service: standalone/js/lounge.js (POST /v1/remote inside the app), standalone/test/remote_test.py, tests/test_embedded_service.c, tests/test_embedded_e2e.c"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "The TV code comes from the receiver inside the app; no real phone has entered one."
   },
   {
    "id": "RemoteControlSettingsPresenter.appendRemoveAllDevicesButton",
@@ -329,7 +331,8 @@
     "native/tube_remote.c / tube_remote.h: typed commands, update reporting",
     "companion/prosperotube (Lounge receiver), docs/REMOTE_SERVICE.md",
     "tests/test_remote_native.c, tests/test_phone_player.c, tests/test_phone_provider.c, tests/test_remote_lounge.py",
-    "native/tube_provider.c: settings:remote:history 'History for phone playback'; tests/test_remote_history.c"
+    "native/tube_provider.c: settings:remote:history 'History for phone playback'; tests/test_remote_history.c",
+    "Built-in service: standalone/js/lounge.js (POST /v1/remote inside the app), standalone/test/remote_test.py, tests/test_embedded_service.c, tests/test_embedded_e2e.c; standalone/ps5/test_bindings.c (the streamed back channel)"
    ],
    "gaps": [
     "Play / pause / seek / next / previous received with no active player are acknowledged without reopening the current or last remote video (SmartTube calls openNewVideo(getVideo() or getLastVideo())); no saved 'last video'",
@@ -338,7 +341,7 @@
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "Real-phone acceptance is still open per docs/REMOTE_SERVICE.md."
+   "notes": "Real-phone acceptance is still open per docs/REMOTE_SERVICE.md. With the built-in service the receiver never advertises a microphone, so the phone's voice start/stop does not arrive."
   },
   {
    "id": "behavior.SponsorBlockController",
@@ -404,7 +407,8 @@
    "ps5_evidence": [
     "native/tube_provider.c: \"settings:remote:code\" row, state label 'Phone connection: ready / connecting / stopped; retry linking'",
     "native/tube_remote.c: tube_remote_pair(), tube_remote_code()",
-    "tests/test_remote_native.c"
+    "tests/test_remote_native.c",
+    "Built-in service: standalone/js/lounge.js (POST /v1/remote inside the app), standalone/test/remote_test.py, tests/test_embedded_service.c, tests/test_embedded_e2e.c"
    ],
    "gaps": [],
    "offline_feasible": true,

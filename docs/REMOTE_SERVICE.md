@@ -1,5 +1,77 @@
 # YouTube phone receiver — backend integration
 
+## Built-in receiver
+
+Since 2026-10-13 the receiver also runs inside the app: `standalone/js/lounge.js`
+is a port of `companion/prosperotube/remote_lounge.py`, answered by the built-in
+service on the same `POST /v1/remote` with the same actions, fields, bounds and
+error codes. The native driver and the provider are unchanged apart from when
+the rows are shown. Everything below about the protocol and the native side
+applies to both; this section lists what is particular to the built-in one.
+**Host-tested only, against a stand-in for YouTube's service. No real phone has
+been linked to it.**
+
+- **Offered by the feature list.** The built-in service lists `remote` in
+  `GET /v1/health`; the provider shows **Phone pairing (experimental)** and
+  starts a saved receiver unless a service it has asked does not list it. (The
+  Python companion has the route without listing it; nothing is asked of it.)
+- **The back channel is read as it arrives.** YouTube answers the back-channel
+  request (`RID=rpc`, `CI=0`, `TYPE=xmlhttp`) with one long-lived chunked
+  response that carries frames as the phone acts. The service's HTTPS client
+  delivered whole bodies only, so it gained a streaming request
+  (`tube_js_http_request.stream`, `tube_js_http_take_chunk()`; in the engine
+  `fetch(url, { onChunk, idle_ms })`): each piece goes to the frame parser at
+  once. The alternative, asking the server to end the response after each
+  batch (`CI=1`, as for a buffering proxy), would have needed no new code in
+  the client, but it is a different server path than the one the Python
+  receiver was checked against live, and nothing here may ask YouTube which of
+  the two it honours; the streaming request keeps the wire exactly as it was.
+- **Limits.** A back channel silent for 65 seconds ends as a failure, as the
+  Python client's read timeout does; a completed long poll is followed by the
+  next after 250 ms; a frame is at most 262,144 UTF-16 code units and what
+  waits undelivered at most 512 KiB. Up to four receivers, each holding one of
+  the client's ten connections.
+- **Identity.** The provider remains the only keeper of the receiver's
+  identity: it creates the device UUID, saves it and the returned screen ID in
+  `/data/prosperotube/youtube.json` (the directory the service keeps its own
+  state in) and passes both with every `start`. The service writes nothing
+  about the receiver: a second copy could bring back an identity that **Reset
+  phone pairing** forgot. Lounge token, SID, gsessionid, the session and the
+  TV code exist in memory only.
+- **No microphone.** `voice_enabled` is always treated as false: there is no
+  speech recogniser on the console ([assessment](VOICE_SEARCH.md)), so `mic` is
+  never advertised and the phone offers no voice button for this TV.
+- **Queue expansion** uses the library inside the same engine (`remote_playlist`
+  with the receiver's profile), as the companion uses its worker.
+- **Closing the app.** Turning the connection off, a reset and a profile change
+  end the channel upstream (`TYPE=terminate`, two seconds at most). Closing the
+  app stops the service on the first soft-close frame without that request, so
+  the phone learns of it when YouTube notices the closed back channel.
+- **Tests.** `standalone/test/remote_test.py` (the scenarios of
+  `tests/test_remote_lounge.py` and `tests/test_remote_playlist.py` through
+  the real service, plain and under sanitizers), `standalone/ps5/test_bindings.c`
+  (the streaming request), `tests/test_embedded_service.c` and
+  `tests/test_embedded_e2e.c` (the provider and driver on the service). The
+  stand-in is reached through `--lounge-base` /
+  `tube_service_options.lounge_base`, a test-only setting the app never sets
+  and the one case in which the engine may use plain HTTP (to 127.0.0.1 only).
+
+What a real phone on the console has to show, in this order:
+
+1. **Link a phone** answers with "Phone connection: ready" and a TV code within
+   a few seconds (registration and HTTPS to YouTube's phone service from the
+   console).
+2. The YouTube app accepts the code and lists "ProsperoTube PS5".
+3. A video cast from the phone starts at the phone's position; pause, play,
+   seek and volume follow within about a second; the phone shows progress.
+4. After five idle minutes with the phone connected, a command still arrives
+   (the long poll is renewed and no silence passes 65 seconds).
+5. A playlist or a queue: next and previous, and the phone's queue view.
+6. **Turn phone connection off**: the phone shows the TV gone at once. Closing
+   the app while linked: how long the phone takes to notice.
+7. After restarting the app the receiver returns with the same identity and
+   the phone reconnects without a new code.
+
 The disconnect preference now cycles keep playing → stop phone playback → close
 the app. Existing saved stop preferences retain their meaning. The close choice
 matches SmartTube's whole-app behavior, including while browsing; retired
