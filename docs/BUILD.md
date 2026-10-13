@@ -133,6 +133,8 @@ bash scripts/test_native.sh
 bash scripts/test_recovery_handoff.sh
 bash scripts/test_elevation.sh
 bash scripts/test_subtitles.sh
+bash scripts/test_i18n.sh
+bash scripts/test_i18n_ui.sh
 python3 scripts/generate_fixtures.py
 PYTHONPATH=companion .venv/bin/python scripts/probe_companion.py
 bash scripts/preview_native.sh

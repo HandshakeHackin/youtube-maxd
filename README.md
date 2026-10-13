@@ -125,7 +125,7 @@ next section lists the part that also ran on a PS5.
 - Host-tested against a stand-in for YouTube's phone service. Whether a real
   phone links, and how the connection behaves over an evening, is unknown.
 
-**Settings** (YouTube preferences; English interface)
+**Settings** (YouTube preferences)
 
 - Player and caption choices above, per profile or shared (**Separate settings
   per account**), **Start in** section, **Choose account at startup**, menu
@@ -135,6 +135,20 @@ next section lists the part that also ran on a PS5.
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the
   version, project links as QR codes, credits and changes.
+
+**Languages**
+
+- The browser, the preferences, messages and toasts in 21 languages besides
+  English: Čeština, Dansk, Deutsch, Ελληνικά, Español, Suomi, Français, Magyar,
+  Bahasa Indonesia, Italiano, Norsk bokmål, Nederlands, Polski, Português
+  (Brasil), Português (Portugal), Română, Русский, Svenska, Türkçe, Українська
+  and Tiếng Việt. The app follows the language of the PS5 system settings;
+  **YouTube preferences > Interface language** chooses another one or English.
+- The player (controls, in-player menus, pickers, the keyboard) stays English:
+  its fonts hold no accented letters yet. Languages that need other fonts,
+  shaping or right-to-left layout (Chinese, Japanese, Korean, Thai, Hindi,
+  Arabic, Hebrew) are not included.
+  [docs/LOCALIZATION.md](docs/LOCALIZATION.md) has the details and the plan.
 
 ### Accounts on the console
 
@@ -205,7 +219,8 @@ password need a signed-in account. Their rows end in
 
 ## Not included yet
 
-- Translations: the interface is English only.
+- Translations of the player interface, and languages outside the Latin,
+  Greek and Cyrillic scripts ([docs/LOCALIZATION.md](docs/LOCALIZATION.md)).
 - The remaining SmartTube interface options (card styles, scaling, colour
   schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
 - Drawn thumbnails while seeking.
