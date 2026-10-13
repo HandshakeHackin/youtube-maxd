@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-13 | self-sufficient core path, Guest, with the Theme setting and the new mark | a86f8664 (instrumented, `prosperotube-a86f8664_1013-1809`) | PS5 | pass: same core path, 103 frames published with 0 late drops, +10 s seek landed at 11.88 s (target 11.32), no texture failure reported, clean park and close | evidence kept outside the repository (`tools/console/session.py` run of 18:10Z) | the browser itself was not captured as a picture, so the Afterglow palette and the mark are unseen on the console; themes were not switched
+
 - 2026-10-13 | self-sufficient core path, Guest, after the update, language, interface and casting merges | 7ec0ac3e (instrumented, `prosperotube-7ec0ac3e_1013-1611`) | PS5 | pass: same core path as the morning session, 98 frames published with 0 late drops, +10 s seek landed at 12.13 s (target 11.32), clean park and close | evidence kept outside the repository (`tools/console/session.py` run of 17:03Z) | the features those merges added were not exercised: update check, interface languages, themes and scale, seek preview, casting, accounts
 
 The session repeated the morning's route (Discover, Science, first video, H.264
