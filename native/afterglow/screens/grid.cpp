@@ -282,7 +282,7 @@ void playlist_card(G &g, const Rect &r, const Cell &cell, const Picture &picture
     g.l.rounded_rect(side, kRadiusThumb, kBlack.with_alpha(0.66f));
     icon(g, Icon::queue, side.cx(), side.cy() - (cell.count.empty() ? 0.0f : 18.0f), 34.0f, kWhite);
     if (!cell.count.empty())
-        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 16.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
+        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 8.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
              kWhite, gfx::Align::center);
     const float after = paragraph(g, g.f.semibold, cell.title, r.x + 2.0f, r.y + r.h + 36.0f, kTypeCard, r.w - 4.0f, 30.0f,
                                   g.k.ink.with_alpha(0.82f + 0.18f * f), 2);
@@ -419,6 +419,7 @@ class Grid final : public Screen
         zone_ = Zone::cells;
         bar_focus_ = 0;
         profile_ = context.services.data.profile();
+        language_ = context.services.platform.language_revision();
         bone_.style.kind = ui::SkeletonKind::card;
         bone_.style.picture = 0.7f;
         bone_.style.lines = 2;
@@ -440,7 +441,18 @@ class Grid final : public Screen
         age_ += dt;
         content_age_ += dt;
         nudge_.update(dt, 10.0f);
-        profile_ = data.profile();
+        const model::Profile browsing = data.profile();
+        if (browsing.id != profile_.id || browsing.signed_in != profile_.signed_in)
+        {
+            cells_.clear(); // another profile is browsing: nothing of the one before stays while its list loads
+            feed_.stamp = 0;
+        }
+        profile_ = browsing;
+        if (language_ != context.services.platform.language_revision())
+        {
+            language_ = context.services.platform.language_revision();
+            feed_.stamp = 0; // the row above the grid holds interface texts: build it again
+        }
         if (feed_.poll(data))
             rebuild(context.services.fonts);
 
@@ -863,7 +875,7 @@ class Grid final : public Screen
         };
         if (!count.empty())
             add(videos_text(count));
-        else if (videos > 0 && videos == static_cast<int>(cells_.size()) && !feed_.more && !feed_.growing)
+        else if (videos > 0 && videos == static_cast<int>(cells_.size()) && !feed_.more && !feed_.growing && !feed_.stuck)
             add(videos_text(std::to_string(videos)));
         add(owner);
         add(updated);
@@ -1376,6 +1388,7 @@ class Grid final : public Screen
     tween::Spring bar_pos_;    // the highlight's place in the row above the grid
     tween::Spring bar_amount_; // ... and how much of the focus that row has
     float bar_age_ = 0.0f;
+    unsigned language_ = 0;
     ui::SpringRect ring_;
     bool ring_snap_ = true;
     ui::Pulse nudge_;

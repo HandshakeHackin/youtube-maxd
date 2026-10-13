@@ -284,7 +284,14 @@ class Notifications final : public Screen
         age_ += dt;
         nudge_.update(dt, 10.0f);
         swept_.update(dt, 5.0f);
-        profile_ = data.profile();
+        const model::Profile browsing = data.profile();
+        if (browsing.id != profile_.id || browsing.signed_in != profile_.signed_in)
+        {
+            rows_.clear(); // another profile is browsing: nothing of the one before stays while its list loads
+            read_.clear();
+            feed_.stamp = 0;
+        }
+        profile_ = browsing;
         if (profile_.signed_in && feed_.poll(data))
             rebuild();
 

@@ -1,10 +1,10 @@
 {
  "items": [
-  {"id": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish", "subtitle": "Northlight Atlas", "is_folder": true, "art_url": "art://aurora/0/145", "count": 24, "owner": "Northlight Atlas", "updated": "Updated 3 days ago"},
-  {"id": "library:playlist:PLweeknightcooking02", "title": "Weeknight Cooking With One Pan", "subtitle": "Ostrel Kitchen", "is_folder": true, "art_url": "art://plate/1/217", "count": 18, "owner": "Ostrel Kitchen", "updated": "Updated last week"},
-  {"id": "library:playlist:PLslowmorningmusic03", "title": "Slow Morning Music", "subtitle": "Mara", "is_folder": true, "art_url": "art://blobs/4/289", "count": 42, "owner": "Mara", "updated": "Updated yesterday"},
-  {"id": "library:playlist:PLbuildsforrainyday4", "title": "Builds for a Rainy Weekend", "subtitle": "Mara", "is_folder": true, "art_url": "art://desk/1/337", "count": 9, "owner": "Mara", "updated": "Updated 2 months ago"},
-  {"id": "library:playlist:PLspaceonthetable005", "title": "Space, Explained at the Kitchen Table", "subtitle": "Orbitwell", "is_folder": true, "art_url": "art://space/1/205", "count": 31, "owner": "Orbitwell", "updated": "Updated 5 days ago"}
+  {"id": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish", "subtitle": "Northlight Atlas", "is_folder": true, "art_url": "art://aurora/0/145/448x252", "count": 24, "owner": "Northlight Atlas", "updated": "Updated 3 days ago"},
+  {"id": "library:playlist:PLweeknightcooking02", "title": "Weeknight Cooking With One Pan", "subtitle": "Ostrel Kitchen", "is_folder": true, "art_url": "art://plate/1/217/448x252", "count": 18, "owner": "Ostrel Kitchen", "updated": "Updated last week"},
+  {"id": "library:playlist:PLslowmorningmusic03", "title": "Slow Morning Music", "subtitle": "Mara", "is_folder": true, "art_url": "art://blobs/4/289/448x252", "count": 42, "owner": "Mara", "updated": "Updated yesterday"},
+  {"id": "library:playlist:PLbuildsforrainyday4", "title": "Builds for a Rainy Weekend", "subtitle": "Mara", "is_folder": true, "art_url": "art://desk/1/337/448x252", "count": 9, "owner": "Mara", "updated": "Updated 2 months ago"},
+  {"id": "library:playlist:PLspaceonthetable005", "title": "Space, Explained at the Kitchen Table", "subtitle": "Orbitwell", "is_folder": true, "art_url": "art://space/1/205/448x252", "count": 31, "owner": "Orbitwell", "updated": "Updated 5 days ago"}
  ],
  "has_more": false
 }

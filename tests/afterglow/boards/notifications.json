@@ -6,9 +6,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "down"}, {"wait": 0.6}],
-   "expect": {"screen": "notifications", "focus": "row/1", "rail_open": 0,
-              "state": {"catalog": "library:notifications", "state": "ready", "items": "12", "pages": "2", "more": "0", "unread": "3", "subtitle": "3 new", "signed_in": "1"},
-              "asked": ["library:notifications"]}
+   "expect": {"screen": "notifications", "focus": "row/1", "rail_open": 0, "state": {"catalog": "library:notifications", "state": "ready", "items": "12", "pages": "2", "more": "0", "unread": "3", "subtitle": "3 new", "signed_in": "1"}, "asked": ["library:notifications"]}
   },
   {
    "name": "notifications-live-row",
@@ -28,8 +26,7 @@
    "name": "notifications-end-of-list",
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
-   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"},
-             {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}],
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}],
    "expect": {"screen": "notifications", "focus": "row/11", "state": {"row": "6"}}
   },
   {
@@ -152,14 +149,14 @@
   },
   {
    "name": "notifications-edge",
-   "fixture": "d-signed-in",
+   "fixture": "d-service-today",
    "route": {"screen": "notifications"},
    "steps": [{"press": "up"}, {"press": "right", "wait": 0.08}],
    "expect": {"screen": "notifications", "focus": "row/0"}
   },
   {
    "name": "notifications-rail",
-   "fixture": "d-signed-in",
+   "fixture": "d-service-today",
    "route": {"screen": "notifications"},
    "steps": [{"press": "left"}, {"wait": 0.5}],
    "expect": {"screen": "notifications", "focus": "rail/notifications", "rail_open": 1}

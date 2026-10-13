@@ -6,10 +6,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "right"}, {"wait": 0.6}],
-   "expect": {"screen": "library", "focus": "history/1", "rail_open": 0,
-              "state": {"tab": "history", "catalog": "history", "state": "ready", "zone": "content", "items": "16", "pages": "2", "more": "1",
-                        "signed_in": "1", "watch_later": "12", "queue": "3", "status": "24 videos · on this PS5"},
-              "asked": ["history", "queue", "library:watch_later"]}
+   "expect": {"screen": "library", "focus": "history/1", "rail_open": 0, "state": {"tab": "history", "catalog": "history", "state": "ready", "zone": "content", "items": "16", "pages": "2", "more": "1", "signed_in": "1", "watch_later": "12", "queue": "3", "status": "24 videos · on this PS5"}, "asked": ["history", "queue", "library:watch_later"]}
   },
   {
    "name": "library-scrolled",
@@ -27,7 +24,7 @@
   },
   {
    "name": "library-tabs-focus",
-   "fixture": "d-signed-in",
+   "fixture": "d-guest",
    "route": {"screen": "library"},
    "steps": [{"press": "up"}, {"wait": 0.4}],
    "expect": {"screen": "library", "focus": "tab/history", "state": {"zone": "tabs", "tab": "history"}}
@@ -41,7 +38,7 @@
   },
   {
    "name": "library-first-tab-edge",
-   "fixture": "d-signed-in",
+   "fixture": "d-guest",
    "route": {"screen": "library"},
    "steps": [{"press": "l1"}, {"wait": 0.3}],
    "expect": {"screen": "library", "focus": "history/0", "state": {"tab": "history"}}
@@ -58,16 +55,14 @@
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "r1"}, {"wait": 0.9}],
-   "expect": {"screen": "library", "focus": "watch_later/0",
-              "state": {"tab": "watch_later", "catalog": "library:watch_later", "state": "ready", "items": "12", "status": "12 videos · on YouTube"}}
+   "expect": {"screen": "library", "focus": "watch_later/0", "state": {"tab": "watch_later", "catalog": "library:watch_later", "state": "ready", "items": "12", "status": "12 videos · on YouTube"}}
   },
   {
    "name": "library-playlists",
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "right"}, {"wait": 0.9}],
-   "expect": {"screen": "library", "focus": "playlists/1",
-              "state": {"tab": "playlists", "state": "ready", "items": "5", "status": "5 playlists · on YouTube"}, "asked": ["library:playlists"]}
+   "expect": {"screen": "library", "focus": "playlists/1", "state": {"tab": "playlists", "state": "ready", "items": "5", "status": "5 playlists · on YouTube"}, "asked": ["library:playlists"]}
   },
   {
    "name": "library-open-playlist",
@@ -107,9 +102,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "square"}, {"wait": 0.9}],
-   "expect": {"screen": "library", "focus": "history/0",
-              "state": {"items": "15", "removing": "", "status": "23 videos · on this PS5"},
-              "asked": ["menu:sevenday000", "local:video:7:forget:sevenday000"]}
+   "expect": {"screen": "library", "focus": "history/0", "state": {"items": "15", "removing": "", "status": "23 videos · on this PS5"}, "asked": ["menu:sevenday000", "local:video:7:forget:sevenday000"]}
   },
   {
    "name": "library-remove-pending",
@@ -125,16 +118,14 @@
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "right"}, {"press": "square"}, {"wait": 0.9}],
-   "expect": {"screen": "library", "focus": "history/1", "state": {"items": "16", "removing": ""},
-              "asked": ["menu:writinga009", "local:video:7:forget:writinga009"]}
+   "expect": {"screen": "library", "focus": "history/1", "state": {"items": "16", "removing": ""}, "asked": ["menu:writinga009", "local:video:7:forget:writinga009"]}
   },
   {
    "name": "library-remove-from-account",
    "fixture": "d-signed-in",
    "route": {"screen": "library", "argument": "watch_later"},
    "steps": [{"press": "square"}, {"wait": 1.2}],
-   "expect": {"screen": "library", "focus": "watch_later/0", "state": {"items": "11", "watch_later": "11", "removing": ""},
-              "asked": ["menu:thefores026", "account:confirm:watch_later_remove:thefores026", "account:apply:66"]}
+   "expect": {"screen": "library", "focus": "watch_later/0", "state": {"items": "11", "watch_later": "11", "removing": ""}, "asked": ["menu:thefores026", "account:confirm:watch_later_remove:thefores026", "account:apply:66"]}
   },
   {
    "name": "library-remove-from-queue",
@@ -166,14 +157,14 @@
   },
   {
    "name": "library-edge",
-   "fixture": "d-signed-in",
+   "fixture": "d-guest",
    "route": {"screen": "library"},
-   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.08}],
-   "expect": {"screen": "library", "focus": "history/3"}
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.08}],
+   "expect": {"screen": "library", "focus": "history/2"}
   },
   {
    "name": "library-rail",
-   "fixture": "d-signed-in",
+   "fixture": "d-guest",
    "route": {"screen": "library"},
    "steps": [{"press": "left"}, {"wait": 0.5}],
    "expect": {"screen": "library", "focus": "rail/library", "rail_open": 1}
@@ -243,8 +234,7 @@
    "name": "library-offline",
    "fixture": "d-offline",
    "route": {"screen": "library", "argument": "watch_later"},
-   "expect": {"screen": "library", "focus": "kept/0", "state": {"state": "offline", "zone": "content", "tab": "watch_later"},
-              "asked": ["library:watch_later", "history", "favorites", "queue", "subscriptions"]}
+   "expect": {"screen": "library", "focus": "kept/0", "state": {"state": "offline", "zone": "content", "tab": "watch_later"}, "asked": ["library:watch_later", "history", "favorites", "queue", "subscriptions"]}
   },
   {
    "name": "library-offline-kept",

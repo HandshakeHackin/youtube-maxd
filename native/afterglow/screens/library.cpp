@@ -300,7 +300,7 @@ void playlist_card(G &g, const Rect &r, const Cell &cell, const Picture &picture
     g.l.rounded_rect(side, kRadiusThumb, kBlack.with_alpha(0.66f));
     icon(g, Icon::queue, side.cx(), side.cy() - (cell.count.empty() ? 0.0f : 18.0f), 34.0f, kWhite);
     if (!cell.count.empty())
-        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 16.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
+        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 8.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
              kWhite, gfx::Align::center);
     const float after = paragraph(g, g.f.semibold, cell.title, r.x + 2.0f, r.y + r.h + 36.0f, kTypeCard, r.w - 4.0f, 30.0f,
                                   g.k.ink.with_alpha(0.82f + 0.18f * f), 2);
@@ -478,7 +478,22 @@ class Library final : public Screen
         ripple_age_ += dt;
         swap_.update(dt);
         nudge_.update(dt, 10.0f);
-        profile_ = data.profile();
+        const model::Profile browsing = data.profile();
+        if (browsing.id != profile_.id || browsing.signed_in != profile_.signed_in)
+        {
+            // Another profile is browsing: nothing of the one before stays on the page while its lists load.
+            for (Pane &each : panes_)
+            {
+                each.cells.clear();
+                each.hidden.clear();
+                each.notice.clear();
+                each.total = -1;
+                each.focus = 0;
+                each.first_row = 0;
+            }
+            removal_ = Removal{};
+        }
+        profile_ = browsing;
         if (language_ != context.services.platform.language_revision())
         {
             language_ = context.services.platform.language_revision();
@@ -757,7 +772,7 @@ class Library final : public Screen
             return -1;
         if (pane.total >= 0)
             return std::max(0, pane.total - static_cast<int>(pane.hidden.size()));
-        return pane.feed.more || pane.feed.growing ? -1 : static_cast<int>(pane.cells.size());
+        return pane.feed.more || pane.feed.growing || pane.feed.stuck ? -1 : static_cast<int>(pane.cells.size());
     }
     // The number a tab shows.
     int counted(int index) const

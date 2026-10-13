@@ -6,10 +6,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
    "steps": [{"press": "right"}, {"wait": 0.6}],
-   "expect": {"screen": "grid", "focus": "grid/1", "rail_open": 0,
-              "state": {"catalog": "library:playlist:PLnorthernlights0001", "state": "ready", "zone": "cells", "items": "16", "pages": "2", "more": "1", "bar": "1",
-                        "subtitle": "24 videos · Northlight Atlas · Updated 3 days ago"},
-              "asked": ["library:playlist:PLnorthernlights0001"]}
+   "expect": {"screen": "grid", "focus": "grid/1", "rail_open": 0, "state": {"catalog": "library:playlist:PLnorthernlights0001", "state": "ready", "zone": "cells", "items": "16", "pages": "2", "more": "1", "bar": "1", "subtitle": "24 videos · Northlight Atlas · Updated 3 days ago"}, "asked": ["library:playlist:PLnorthernlights0001"]}
   },
   {
    "name": "grid-play-all",
@@ -129,9 +126,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "grid", "argument": "library:home", "title": "Recommended"},
    "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.9}],
-   "expect": {"screen": "grid", "focus": "bar/2",
-              "state": {"catalog": "library:filter:cccccccccccccccccccccccccccccccccccc", "filter": "Gaming", "items": "5", "bar": "7", "state": "ready"},
-              "asked": ["library:home", "library:filter:cccccccccccccccccccccccccccccccccccc"]}
+   "expect": {"screen": "grid", "focus": "bar/2", "state": {"catalog": "library:filter:cccccccccccccccccccccccccccccccccccc", "filter": "Gaming", "items": "5", "bar": "7", "state": "ready"}, "asked": ["library:home", "library:filter:cccccccccccccccccccccccccccccccccccc"]}
   },
   {
    "name": "grid-filter-loading",
@@ -210,6 +205,13 @@
    "expect": {"screen": "grid", "state": {"state": "loading"}}
   },
   {
+   "name": "grid-more-refused",
+   "fixture": "d-offline",
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/4", "state": {"state": "ready", "items": "8", "more": "0", "pages": "2", "subtitle": ""}, "asked": ["section:trending"]}
+  },
+  {
    "name": "grid-long-texts",
    "fixture": "d-long-texts",
    "route": {"screen": "grid", "argument": "library:playlist:PLlangertitel0000001", "title": "Sieben Tage allein auf dem Grat, ein stiller Wanderfilm in voller Laenge ohne Musik"},
@@ -219,16 +221,16 @@
   {
    "name": "grid-rail",
    "fixture": "d-signed-in",
-   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "route": {"screen": "grid", "argument": "section:gaming:live", "title": "Live now"},
    "steps": [{"press": "left"}, {"wait": 0.5}],
    "expect": {"screen": "grid", "rail_open": 1}
   },
   {
    "name": "grid-edge",
    "fixture": "d-signed-in",
-   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
-   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.08}],
-   "expect": {"screen": "grid", "focus": "grid/3"}
+   "route": {"screen": "grid", "argument": "section:gaming:live", "title": "Live now"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "down"}, {"press": "right", "wait": 0.08}],
+   "expect": {"screen": "grid", "focus": "grid/1"}
   },
   {
    "name": "grid-reduced-motion",

@@ -1,17 +1,17 @@
 {
  "items": [
-  {"id": "section:gaming:live", "title": "Live now", "subtitle": "12 streams", "is_folder": true, "art_url": "art://stage/0/59"},
-  {"id": "section:gaming:trending", "title": "Trending in gaming", "subtitle": "Updated today", "is_folder": true, "art_url": "art://synth/1/169"},
+  {"id": "section:gaming:live", "title": "Live now", "subtitle": "12 streams", "is_folder": true, "art_url": "art://stage/0/59/448x252"},
+  {"id": "section:gaming:trending", "title": "Trending in gaming", "subtitle": "Updated today", "is_folder": true, "art_url": "art://synth/1/169/448x252"},
   {"id": "section:gaming:builders", "title": "Builders and long projects", "subtitle": "", "is_folder": true},
-  {"id": "irebuilt001", "title": "I Rebuilt a Whole City in One Weekend (No Mods)", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://city/1/23", "duration_sec": 1601, "views": "842K views", "published": "5 days ago"},
-  {"id": "speedrun014", "title": "Speedrunning My Own Level and Regretting It", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://synth/1/169", "duration_sec": 902, "views": "1.1M views", "published": "2 weeks ago"},
+  {"id": "irebuilt001", "title": "I Rebuilt a Whole City in One Weekend (No Mods)", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://city/1/23/448x252", "duration_sec": 1601, "views": "842K views", "published": "5 days ago"},
+  {"id": "speedrun014", "title": "Speedrunning My Own Level and Regretting It", "subtitle": "Glassfern Games", "channel_id": "UCglassferngames00000000", "art_url": "art://synth/1/169/448x252", "duration_sec": 902, "views": "1.1M views", "published": "2 weeks ago"},
   {"id": "channel:UCglassferngames00000000", "title": "Glassfern Games", "subtitle": "1.08M subscribers", "is_folder": true, "handle": "@glassfern", "subscribers": "1.08M subscribers", "subscribed": true},
-  {"id": "playlist:PLglassfernbuild006", "title": "Whole Cities, One Weekend at a Time", "subtitle": "Glassfern Games", "is_folder": true, "art_url": "art://city/1/23", "count": 12, "owner": "Glassfern Games"},
-  {"id": "building028", "title": "Building a Pocket Console From Spare Parts", "subtitle": "Lathe & Lumen", "channel_id": "UClathelumen000000000000", "art_url": "art://desk/1/337", "duration_sec": 2090, "views": "1.3M views", "published": "7 months ago"},
-  {"id": "writinga009", "title": "Writing a Tiny Renderer in an Afternoon", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/0/109", "duration_sec": 3764, "views": "148K views", "published": "2 weeks ago", "badges": ["cc"]},
-  {"id": "whyyours029", "title": "Why Your Shadows Look Wrong (and the Fix)", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/1/349", "duration_sec": 1143, "views": "88K views", "published": "3 days ago", "badges": ["new", "cc"]},
-  {"id": "gridrunn037", "title": "Grid Runner — Full Synthwave Set", "subtitle": "Nacre Sound", "channel_id": "UCnacresound000000000000", "art_url": "art://synth/2/445", "duration_sec": 3380, "views": "730K views", "published": "3 months ago"},
-  {"id": "thesmall013", "title": "The Smallest Synth I Own Is the One I Use Most", "subtitle": "Nacre Sound", "channel_id": "UCnacresound000000000000", "art_url": "art://synth/0/157", "duration_sec": 494, "views": "64K views", "published": "6 days ago"}
+  {"id": "playlist:PLglassfernbuild006", "title": "Whole Cities, One Weekend at a Time", "subtitle": "Glassfern Games", "is_folder": true, "art_url": "art://city/1/23/448x252", "count": 12, "owner": "Glassfern Games"},
+  {"id": "building028", "title": "Building a Pocket Console From Spare Parts", "subtitle": "Lathe & Lumen", "channel_id": "UClathelumen000000000000", "art_url": "art://desk/1/337/448x252", "duration_sec": 2090, "views": "1.3M views", "published": "7 months ago"},
+  {"id": "writinga009", "title": "Writing a Tiny Renderer in an Afternoon", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/0/109/448x252", "duration_sec": 3764, "views": "148K views", "published": "2 weeks ago", "badges": ["cc"]},
+  {"id": "whyyours029", "title": "Why Your Shadows Look Wrong (and the Fix)", "subtitle": "Mossbyte", "channel_id": "UCmossbyte00000000000000", "art_url": "art://code/1/349/448x252", "duration_sec": 1143, "views": "88K views", "published": "3 days ago", "badges": ["new", "cc"]},
+  {"id": "gridrunn037", "title": "Grid Runner — Full Synthwave Set", "subtitle": "Nacre Sound", "channel_id": "UCnacresound000000000000", "art_url": "art://synth/2/445/448x252", "duration_sec": 3380, "views": "730K views", "published": "3 months ago"},
+  {"id": "thesmall013", "title": "The Smallest Synth I Own Is the One I Use Most", "subtitle": "Nacre Sound", "channel_id": "UCnacresound000000000000", "art_url": "art://synth/0/157/448x252", "duration_sec": 494, "views": "64K views", "published": "6 days ago"}
  ],
  "has_more": false
 }

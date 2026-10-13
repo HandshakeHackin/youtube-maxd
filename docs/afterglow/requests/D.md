@@ -61,6 +61,7 @@ the `account:apply:<n>` it answers with (Watch later), `account:confirm:unrate:<
 | 6.2 | `host_main.cpp`: `stbi_flip_vertically_on_write(1)` also flips the `art://` pictures that `picture_bytes()` encodes, so every painted picture is upside down in the boards |
 | 6.3 | `host_main.cpp` draws once, after the last step. A picture is asked for when it is drawn, so a board never has pictures unless the screen also asks in `update`. The three screens do (a row ahead of the page, and the focused picture's ambient copy): keep that in mind when the harness changes |
 | 6.4 | `FixtureSource::set_offline()` answers `Load::offline` for the lists the provider serves from the console too (`history`, `favorites`, `queue`, `subscriptions`). The offline boards of this package use the set `d-offline`, whose account catalogs are `{"error": ..., "offline": true}` documents |
+| 6.5 | The harness paints, encodes and decodes every `art://` picture again for every board and every look, which is nearly all of a board's time: a page of sixteen cards takes several seconds per look. This package's fixtures therefore ask for pictures no larger than they are drawn (`/448x252` for cards, `/256x144` for notifications); keeping painted pictures across boards in `HostPlatform` would shorten the whole check far more |
 
 ## 7. Routes these screens open (for the other packages)
 
