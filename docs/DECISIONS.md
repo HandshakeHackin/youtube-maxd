@@ -118,6 +118,30 @@ not revoke it at Google (as in SmartTube); the README says how to do that.
 kept: sign-in sessions in progress (a code shown before the app closed is
 dead), list cursors, and the one-attempt records of account changes.
 
+**Backups do not hold sign-ins, and there is no option to add them.** A local
+backup (YouTube preferences > Backup and restore) is a copy of `youtube.json`:
+the settings and the library kept on the console, for every profile. The
+credential file is not copied, by the automatic backup either, and the screen
+says so when the built-in service is in use. An "include sign-ins" choice was
+considered and left out: the backup folder is read by whoever can read the
+data directory, every further copy of a refresh token is one more thing that
+stays valid until it is revoked at Google, a backup would become a pair of
+files to validate, rotate, delete and restore together, and restored tokens
+would have to replace the accounts of the running service (stop it, which
+retires its playback sessions, sign-in sessions and one-attempt records, and
+start it again). A new sign-in costs a minute and none of that.
+
+A restore therefore neither adds nor removes an account. What a backup holds
+for an account profile (its history, favorites, queue and followed channels,
+and its own preferences when settings are separate per account) is filed
+under the profile ID, so it is used again only while that sign-in is still on
+the console. An account that signs in again is a new profile with a new ID:
+it starts with an empty library and default preferences, and the earlier
+profile's library rows stay in the file unused. If the restored file selects
+a profile that is no longer signed in, the next profile list moves the
+selection to Guest (`tests/test_embedded_service.c`). Guest's library and the
+settings shared by all profiles always return.
+
 **One-attempt guards in one process.** The companion kept them in Python so
 they outlived the Node worker. Here the library object is rebuilt whenever an
 account is added or removed, so the same records sit above it

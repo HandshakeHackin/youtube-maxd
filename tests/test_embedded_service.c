@@ -9,10 +9,12 @@
 #include "evo_data_path.h"
 #include "cJSON.h"
 #include <assert.h>
+#include <dirent.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 /* ---- The stand-in service ---- */
@@ -399,6 +401,62 @@ int main(void) {
     }
     p->list_catalog("settings:sb:alt", 0, items_cb, NULL); p->list_catalog("settings:sponsor", 0, items_cb, NULL);   /* both off again */
     tube_cancel(); drop_pending();
+
+    /* Backups and sign-ins: the service keeps the accounts' tokens in a file of its own. A backup is the state file
+     * alone, the screen says so in this console's words, and a restore leaves that file and the running service alone. */
+    static const char secret[] = "{\"version\":1,\"profiles\":[{\"id\":\"oauth_0123456789abcdef\",\"name\":\"Alice\",\"cookie\":\"\","
+        "\"oauth\":{\"access_token\":\"ya29.SECRET-ACCESS\",\"refresh_token\":\"1//SECRET-REFRESH\"}}]}\n";
+    char accounts[640], name[64], entry[160], copy_path[700], kept[sizeof secret + 8];
+    snprintf(accounts, sizeof accounts, "%s/accounts", dir); assert(!mkdir(accounts, 0700));
+    snprintf(accounts, sizeof accounts, "%s/accounts/oauth-profiles.json", dir);
+    f = fopen(accounts, "wb"); assert(f && fputs(secret, f) >= 0 && !fclose(f) && !chmod(accounts, 0600));
+    p->list_catalog("library:profile:oauth_0123456789abcdef", 0, items_cb, NULL); assert(last_ok);   /* the account's profile is the selected one */
+    assert(!strcmp(stored("library_profile"), "oauth_0123456789abcdef"));
+    p->list_catalog("settings:backup", 0, items_cb, NULL);
+    assert(last_ok && !pending_count && find("settings:backup:create") == 0 && find("account:notice:backup-accounts") == last_count - 1);
+    assert(!strcmp(last_items[0].subtitle, "A dated copy of settings and library in the app data folder; sign-ins to YouTube are not included"));
+    row = find("account:notice:backup-accounts");
+    assert(!strcmp(last_items[row].title, "Sign-ins to YouTube are not part of a backup"));
+    assert(!strcmp(last_items[row].subtitle, "Restoring a backup neither adds nor removes an account on this PS5"));
+    assert(strstr(last_items[row].overview, "starts as a new profile.") && strlen(last_items[row].overview) < sizeof last_items[row].overview - 1);
+    for (int i = 0; i < last_count; ++i) assert(!strstr(last_items[i].title, "ompanion") && !strstr(last_items[i].subtitle, "ompanion") &&
+        !strstr(last_items[i].subtitle, "pair") && !strstr(last_items[i].overview, "ompanion"));
+    p->list_catalog("settings:backup:create", 0, items_cb, NULL);
+    assert(last_ok && !strcmp(last_items[0].title, "Backup created") && find("account:notice:backup-accounts") == last_count - 1);
+    snprintf(name, sizeof name, "%.39s", last_items[0].subtitle);
+    /* The backup folder holds that one file, and nothing of the accounts is in it. */
+    snprintf(copy_path, sizeof copy_path, "%s/backup", dir);
+    DIR *folder = opendir(copy_path); assert(folder);
+    int files = 0;
+    for (struct dirent *e; (e = readdir(folder)) != NULL;) if (e->d_name[0] != '.') { ++files; assert(!strcmp(e->d_name, name)); }
+    closedir(folder); assert(files == 1);
+    snprintf(copy_path, sizeof copy_path, "%s/backup/%s", dir, name);
+    static char copied[1 << 16];
+    f = fopen(copy_path, "rb"); assert(f); copied[fread(copied, 1, sizeof copied - 1, f)] = 0; fclose(f);
+    assert(strstr(copied, "\"library_profile\":\t\"oauth_0123456789abcdef\"") || strstr(copied, "\"library_profile\":\"oauth_0123456789abcdef\""));
+    assert(!strstr(copied, "SECRET") && !strstr(copied, "refresh_token") && !strstr(copied, "ya29") && !strstr(copied, "oauth-profiles"));
+    /* The review of a restore names no pairing here; it says what happens to the accounts. */
+    snprintf(entry, sizeof entry, "settings:backup:entry:%s", name);
+    p->list_catalog(entry, 0, items_cb, NULL);
+    assert(last_ok && last_count == 2 && !strcmp(last_items[0].title, "Restore this backup") && strstr(last_items[0].overview, " UTC. Sign-ins to YouTube are not part of it"));
+    assert(strstr(last_items[0].overview, "stay as they are. Cross restores") && !strstr(last_items[0].overview, "pair") && !strstr(last_items[0].overview, "ompanion"));
+    /* The account signs out (here: its file loses it) and Guest is selected; then the backup is restored. */
+    p->list_catalog("library:profile:guest", 0, items_cb, NULL); assert(last_ok && !strcmp(stored("library_profile"), "guest"));
+    const int stops = service_stops;
+    char restore[160];
+    p->list_catalog(entry, 0, items_cb, NULL); assert(last_ok);
+    snprintf(restore, sizeof restore, "%s", last_items[0].id);
+    p->list_catalog(restore, 0, items_cb, NULL);
+    assert(last_ok && !strcmp(last_items[0].title, "Backup restored") && !pending_count);
+    assert(service_stops == stops && service_up && !strcmp(p->get_source(), "http://127.0.0.1:23456"));   /* the service ran on: no session of it was retired */
+    f = fopen(accounts, "rb"); assert(f); kept[fread(kept, 1, sizeof kept - 1, f)] = 0; fclose(f);
+    struct stat mode; assert(!strcmp(kept, secret) && !stat(accounts, &mode) && (mode.st_mode & 0777) == 0600);
+    p->list_catalog("settings:ask-stream", 0, items_cb, NULL); p->list_catalog("settings:ask-stream", 0, items_cb, NULL);   /* something saves */
+    assert(!strcmp(stored("library_profile"), "oauth_0123456789abcdef"));   /* the backup's selection came back with it */
+    /* That profile's sign-in is not on this console any more: the next profile list says so, and browsing continues as Guest. */
+    assert(p->list_catalog("library:profiles", 0, items_cb, NULL) == 0); sent_to_service(23456, TOKEN_B);
+    poll_job("{\"state\":\"done\",\"result\":{\"api_version\":1,\"profiles\":[{\"id\":\"guest\",\"name\":\"Guest\",\"account_configured\":false}]}}");
+    assert(last_ok && last_count == 1 && !strcmp(stored("library_profile"), "guest"));
     no_proxy_offer();
     p->shutdown();
     assert(service_stops == 2 && !strcmp(stored("source"), "http://192.168.1.50:8765") && !strcmp(stored("token"), "abcdefghijklmnopqrstuvwxabcdefghijkl"));
@@ -437,6 +495,6 @@ int main(void) {
     poll_job(none); assert(last_ok);
     p->shutdown();
     puts("PASS: built-in service start without pairing, token on requests, kept external pairing, failure and retry, stop and resume, development switch, artwork hosts, stream headers, "
-         "dislikes asked only with the profile's switch on, typed SponsorBlock server, no proxy offer");
+         "dislikes asked only with the profile's switch on, typed SponsorBlock server, no proxy offer, backups without the sign-ins");
     return 0;
 }

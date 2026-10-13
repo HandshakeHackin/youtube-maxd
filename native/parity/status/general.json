@@ -809,12 +809,13 @@
    "ps5_evidence": [
     "native/tube_backup.c: dated copies of the settings and library file in the backup folder of the app data, validation, safety copy of the replaced state before a restore",
     "native/tube_provider.c: settings:backup:create, settings:backup:list, settings:backup:entry:<file> review with 'Restore this backup' / 'Delete this backup'; the provider reloads from the restored file",
-    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c"
+    "tests/test_backup.c (scripts/test_backup.sh), tests/test_backup_ui.c",
+    "Built-in service: the Backup and restore screen states that sign-ins to YouTube are not part of a backup (settings:backup:create detail, the notice row account:notice:backup-accounts, the restore review); tests/test_embedded_service.c: the backup folder holds the state file alone with nothing of accounts/oauth-profiles.json in it, a restore leaves that file (content and mode 0600) and the running service untouched, and a restored selection whose sign-in is gone moves to Guest at the next profile list"
    ],
    "gaps": [],
    "offline_feasible": true,
    "size": "M",
-   "notes": "A backup includes the companion pairing token and stays in the app data folder (no USB target). Offline evidence in a temporary data directory only. A backup is youtube.json alone: the sign-ins made on the console (accounts/oauth-profiles.json of the built-in service) are not part of it."
+   "notes": "A backup stays in the app data folder (no USB target) and is youtube.json alone. With a development companion it includes the pairing token. The sign-ins made on the console (accounts/oauth-profiles.json of the built-in service) are deliberately not part of it and there is no option to include them (docs/DECISIONS.md, 'Backups do not hold sign-ins'): what a backup holds for an account profile is used again only while that sign-in is still on the console. Offline evidence in a temporary data directory only."
   },
   {
    "id": "BackupSettingsPresenter.appendSubscriptionsBackupButton",

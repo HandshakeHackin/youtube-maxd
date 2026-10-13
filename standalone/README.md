@@ -446,7 +446,10 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   go through `tube_service_configure`.
 - State under `state_dir`: `cache/` (small youtubei.js entries) and, once an
   account signed in, `accounts/oauth-profiles.json` (the tokens; keep it out
-  of logs, uploads and backups). No log. The phone receiver stores nothing:
+  of logs, uploads and backups: the app's own Backup and restore copies
+  `youtube.json` alone, says so on its screen, and a restore neither reads nor
+  replaces this file nor restarts the service; `docs/DECISIONS.md`, "Backups
+  do not hold sign-ins"). No log. The phone receiver stores nothing:
   its identity is the provider's (`youtube.json`), passed with each start.
 - The provider must not send its stream headers to `/media` links' targets
   (it sends none today) and should treat a 403 from YouTube as "resolve again".

@@ -5803,7 +5803,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 if (!++g_backup_ticket) ++g_backup_ticket;
                 snprintf(id, sizeof id, "settings:backup:restore:%u:%s", g_backup_ticket, name);
                 CATALOG_FOLDER( id, "Restore this backup", "Replaces the settings and library on this PS5; the current state is kept as a safety copy");
-                snprintf(out[0].overview, sizeof out[0].overview, "Backup of %s%s. Restoring it also restores the companion pairing it held: pair again if the companion was paired since. Cross restores; Circle returns without changing anything.",
+                if (g_embedded) /* nothing is paired here, and the accounts are not in the file (below) */
+                    snprintf(out[0].overview, sizeof out[0].overview, "Backup of %s%s. Sign-ins to YouTube are not part of it: the accounts on this PS5 stay as they are. Cross restores; Circle returns without changing anything.",
+                        when, safety ? " (the state a restore replaced)" : "");
+                else snprintf(out[0].overview, sizeof out[0].overview, "Backup of %s%s. Restoring it also restores the companion pairing it held: pair again if the companion was paired since. Cross restores; Circle returns without changing anything.",
                     when, safety ? " (the state a restore replaced)" : "");
                 snprintf(id, sizeof id, "settings:backup:delete:%u:%s", g_backup_ticket, name);
                 CATALOG_FOLDER( id, "Delete this backup", "Removes this file only");
@@ -5813,7 +5816,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 int period = 0; const int count = tube_backup_list(evo_data_dir(), entries, LOCAL_PAGE);
                 for (int i = 0; i < 4; ++i) if (periods[i] == g_backup_auto) period = i;
                 if (*g_backup_notice[0]) CATALOG_FOLDER( "account:notice:backup", g_backup_notice[0], g_backup_notice[1]);
-                CATALOG_FOLDER( "settings:backup:create", "Create a backup now", "A dated copy of settings, library and companion pairing in the app data folder");
+                CATALOG_FOLDER( "settings:backup:create", "Create a backup now", g_embedded ?
+                    "A dated copy of settings and library in the app data folder; sign-ins to YouTube are not included" :
+                    "A dated copy of settings, library and companion pairing in the app data folder");
                 if (count > 0 && !tube_backup_format_time(entries[0].created, when, sizeof when)) snprintf(label, sizeof label, "%d kept; newest: %s", count, when);
                 else copy(label, sizeof label, "No backup yet");
                 CATALOG_FOLDER( "settings:backup:list", "Restore or delete a backup", label);
@@ -5822,6 +5827,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER( id, label, "Select to cycle; made when ProsperoTube starts, the ten newest are kept; applies to this PS5");
                 if (!embedded_lacks(COMPANION_IMPORT)) /* a built-in service that cannot read an export: not offered */
                     CATALOG_FOLDER( "settings:backup:import", "Import subscriptions", "Follow the channels of a NewPipe, PocketTube or GrayJay export");
+                if (g_embedded) { /* a backup is youtube.json alone: the service's file of account tokens is never copied, read or replaced */
+                    CATALOG_FOLDER( "account:notice:backup-accounts", "Sign-ins to YouTube are not part of a backup",
+                        "Restoring a backup neither adds nor removes an account on this PS5");
+                    snprintf(out[n - 1].overview, sizeof out[n - 1].overview, "What a backup holds for an account is used only while that sign-in is still on this PS5. An account that signs in again starts as a new profile.");
+                }
             }
         } else if (!strncmp(parent, "settings:lock:", 14)) {
             CATALOG_FOLDER( "account:notice", "Enter the password", "Circle returns to the account settings without changing it");
