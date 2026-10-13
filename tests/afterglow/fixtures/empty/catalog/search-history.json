@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Search history is off", "subtitle": "Turn it on in YouTube preferences for this profile", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

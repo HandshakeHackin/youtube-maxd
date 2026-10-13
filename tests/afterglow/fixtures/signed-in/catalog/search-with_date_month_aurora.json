@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "settings:search", "title": "Search options", "subtitle": "This month", "is_folder": true, "interface": true, "results": "38"},
+  {"id": "search-suggest", "title": "Suggestions", "subtitle": "Completions for this search", "is_folder": true, "interface": true},
+  {"id": "duskEmberRd", "title": "Dusk Run: Ember Ridge in One Take", "subtitle": "Vantor Trails", "channel_id": "UCvantortrails003", "art_url": "art://ridges/3/397", "views": "76K views", "duration_sec": 768, "published": "2 days ago", "badges": ["new"]},
+  {"id": "violetHourF", "title": "Violet Hour: A Short Film", "subtitle": "Slowreel", "channel_id": "UCslowreel013", "art_url": "art://ridges/6/409", "views": "233K views", "duration_sec": 451, "published": "3 weeks ago"},
+  {"id": "auroraChs30", "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/0/145", "views": "2.2M views", "duration_sec": 1198, "published": "8 months ago", "badges": ["4k", "cc"]},
+  {"id": "channel:UCnorthlightatlas007", "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "is_folder": true, "handle": "@northlightatlas", "subscribers": "2.41M subscribers", "subscribed": true},
+  {"id": "forestNight", "title": "The Forest at Night Sounds Nothing Like You Think", "subtitle": "Northlight Atlas", "channel_id": "UCnorthlightatlas007", "art_url": "art://aurora/2/313", "views": "380K views", "duration_sec": 1329, "published": "6 weeks ago"}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "search-history:forget:6", "title": "one pan dinners", "subtitle": "Cross forgets this query", "is_folder": true},
+  {"id": "search-history:forget:5", "title": "tiny renderer", "subtitle": "Cross forgets this query", "is_folder": true},
+  {"id": "search-history:forget:4", "title": "night train map", "subtitle": "Cross forgets this query", "is_folder": true},
+  {"id": "search-history:forget:3", "title": "synth session live", "subtitle": "Cross forgets this query", "is_folder": true},
+  {"id": "search-history:forget:2", "title": "lighthouse sunrise set", "subtitle": "Cross forgets this query", "is_folder": true}
+ ],
+ "has_more": false
+}
