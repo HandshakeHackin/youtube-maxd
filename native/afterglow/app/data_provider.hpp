@@ -35,6 +35,14 @@ class ProviderSource final : public Source
     {
         player_ = std::move(player);
     }
+    // How the app's player stands with the video it was handed, and how a
+    // start is called back (Source::play_state, cancel_play). Without them the
+    // player is taken to have the screen at once.
+    void set_start(std::function<Start(std::string *)> state, std::function<bool()> cancel)
+    {
+        start_state_ = std::move(state);
+        start_cancel_ = std::move(cancel);
+    }
 
     unsigned catalog(const std::string &id, int page, Done done) override;
     // A typed answer: `row` is listed (it arms the provider's text prompt; "" when a listing before
@@ -44,6 +52,14 @@ class ProviderSource final : public Source
     model::Profile profile() override;
     unsigned revision() override;
     bool play(const model::Video &video) override;
+    Start play_state(std::string *reason) override
+    {
+        return start_state_ ? start_state_(reason) : Start::idle;
+    }
+    bool cancel_play() override
+    {
+        return start_cancel_ ? start_cancel_() : false;
+    }
     std::string menu(const std::string &row, const std::string &title) override;
     void pump() override;
     int pending() const override
@@ -85,6 +101,8 @@ class ProviderSource final : public Source
     std::string typed_listed_; // the catalog the provider named after the text
     unsigned next_ticket_ = 1;
     std::function<bool(const model::Video &)> player_;
+    std::function<Start(std::string *)> start_state_;
+    std::function<bool()> start_cancel_;
     std::string last_profile_;
     unsigned profile_changes_ = 0;
 };

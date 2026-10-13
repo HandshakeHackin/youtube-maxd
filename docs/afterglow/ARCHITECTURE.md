@@ -424,7 +424,15 @@ catalog `menu:<row>`, and a board lists the acting rows it expects under
 `asked`. Questions with two answers go through `nav.confirm()`.
 
 Playing a video is `data.play(video)`: the app's player takes over and the
-frame's `resume()` runs when it closes.
+frame's `resume()` runs when it closes. Whichever screen calls it, the frame
+opens the player's screen at once (`Data::take_handed`): black, the video's
+picture dimmed, its title and the working mark in the middle. It stands while
+`Source::play_state()` answers `starting` and takes the pad meanwhile; Circle
+asks `Source::cancel_play()`. `failed` brings the page back with the app's
+reason as the second line of a toast. A card that names its rectangle
+(`Nav::play`, `play_video`) has its picture grow into that screen instead of
+the fade. In a fixture set a board's `"source"` says how long a start takes
+and how it ends (`start`, `start_fails`, `start_cancel`).
 
 ## 6. Pictures and threading
 
@@ -723,7 +731,15 @@ EVO's Makefile, ships the four faces as assets and hooks EVO in three places:
    `tube_afterglow_input()` while the interface is shown. A video chosen with
    `Data::play()` is offered as the classic browser offers one
    (`evo_rmlui_provider_offer_selection`) and `startSelected()` resolves and
-   plays it: the player and everything in it are the existing ones. Circle on
+   plays it: the player and everything in it are the existing ones. Until
+   that player has the screen (the video is resolved, then its stream opened)
+   the interface is still what is drawn: the provider screen tells it every
+   frame whether a start is pending and can still be called back
+   (`tube_afterglow_play_busy`), its status line carries the reason of a
+   failure (`tube_afterglow_status`), and Circle on the player's screen calls
+   the start back as the classic browser's does (`tube_afterglow_take_cancel`),
+   which EVO allows only until the stream is being opened.
+   `app/play_start.hpp` turns that into `Source::play_state`. Circle on
    the interface's last screen falls through to the classic rule for Circle on
    the main menu.
 3. **The report.** `evo_hui_dev_focus_json()` answers with the document name

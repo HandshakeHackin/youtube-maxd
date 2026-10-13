@@ -339,16 +339,37 @@ void Frame::draw_launch(G &g)
 {
     if (!launch_.active)
         return;
-    // Picture to player: the picture becomes the whole screen (corners to 0) and stands until the
-    // player has its first frame; when the player closes it returns to where it came from.
+    // The player's screen while the video is on its way: black, the video's picture dimmed on it, the
+    // working mark in the middle and the title at the foot. From a card the picture becomes the whole
+    // screen (corners to 0) and returns to where it came from when the player closes; from anywhere
+    // else the screen fades in over the page, with the picture the card already has.
     const float t = launch_.move.running ? launch_.move.progress() : 1.0f;
     const float grown = launch_.returning ? 1.0f - tween::cubic_in_out(t) : tween::quint_out(t);
     const Rect whole{0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight};
-    const Rect r = lerp_rect(launch_.from, whole, grown);
-    g.l.rounded_rect(whole, 0.0f, kBlack.with_alpha(tween::clamp01(grown * 1.5f)));
-    picture_box(g, r, tween::lerp(kRadiusThumb, 0.0f, grown), images_.get(launch_.picture, PictureSize::hero));
-    if (!launch_.returning && !launch_.move.running && launch_.held > 0.8f)
-        spinner(g, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, 28.0f, kWhite.with_alpha(0.85f));
+    const float dim = tween::lerp(1.0f, 0.4f, grown);
+    const Color tint{dim, dim, dim, 1.0f};
+    if (launch_.grows)
+    {
+        g.l.rounded_rect(whole, 0.0f, kBlack.with_alpha(tween::clamp01(grown * 1.5f)));
+        picture_box(g, lerp_rect(launch_.from, whole, grown), tween::lerp(kRadiusThumb, 0.0f, grown), images_.get(launch_.picture, PictureSize::hero), tint);
+    }
+    else
+    {
+        g.l.rounded_rect(whole, 0.0f, kBlack.with_alpha(grown));
+        const Picture picture = images_.get(launch_.picture, PictureSize::card);
+        if (picture.ready())
+            g.l.image(picture.texture, whole, picture.cover(whole.w / whole.h), tint.with_alpha(grown * (g.reduced ? 1.0f : tween::clamp01(picture.age / 0.25f))), 0.0f);
+    }
+    if (launch_.returning)
+        return;
+    const float shown = tween::clamp01(grown * 2.0f - 1.0f);
+    spinner(g, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, 30.0f, kWhite.with_alpha(0.9f * shown));
+    if (!launch_.title.empty())
+    {
+        text(g, g.f.semibold, fit(g.f.semibold, launch_.title, 34.0f, 1500.0f), 96.0f, 944.0f, 34.0f, kWhite.with_alpha(shown));
+        if (!launch_.channel.empty())
+            text(g, g.f.regular, fit(g.f.regular, launch_.channel, 22.0f, 1500.0f), 96.0f, 986.0f, 22.0f, kWhite.with_alpha(0.75f * shown));
+    }
 }
 
 void Frame::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass)
@@ -458,6 +479,8 @@ std::string Frame::snapshot_json() const
     json_number(out, "sheet", sheet_.open() ? 1 : 0);
     json_number(out, "typing", text_sheet_.open() ? 1 : 0);
     json_number(out, "launching", launch_.active ? 1 : 0);
+    json_number(out, "starting", launch_.active && launch_.started ? 1 : 0); // the app is starting the video: the pad is the player's screen's
+    json_field(out, "launch_title", launch_.active ? launch_.title : std::string());
     out += "\"focus\":";
     json_focus(out, focus());
     out += ",\"focusable\":[";
@@ -490,6 +513,13 @@ std::string Frame::snapshot_json() const
         if (i != 0)
             out.push_back(',');
         json_string(out, toast_log_[i]);
+    }
+    out += "],\"toast_details\":[";
+    for (std::size_t i = 0; i < toast_detail_log_.size(); ++i)
+    {
+        if (i != 0)
+            out.push_back(',');
+        json_string(out, toast_detail_log_[i]);
     }
     out += "],\"state\":{";
     Snapshot snapshot;

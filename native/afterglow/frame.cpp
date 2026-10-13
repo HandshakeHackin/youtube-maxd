@@ -246,8 +246,12 @@ void Frame::toast(std::string_view text, std::string_view detail, ToastKind kind
                                                                : ui::StatusKind::info;
     toasts_.push(status, std::string(text), std::string(detail));
     toast_log_.emplace_back(text);
+    toast_detail_log_.emplace_back(detail);
     if (toast_log_.size() > 4)
+    {
         toast_log_.erase(toast_log_.begin());
+        toast_detail_log_.erase(toast_detail_log_.begin());
+    }
 }
 
 void Frame::confirm(std::string_view title, std::string_view body, std::string_view confirm_label,
@@ -308,15 +312,33 @@ bool Frame::play(const model::Video &video, const Rect &carried, std::string_vie
 {
     if (!data_.play(video))
         return false;
-    launch_ = Launch{};
-    if (carried.w > 0.0f && carried.h > 0.0f && !picture.empty())
-    {
-        launch_.active = true;
-        launch_.from = carried;
-        launch_.picture = std::string(picture);
-        launch_.move.start(options_.reduced_motion ? 0.2f : 0.62f);
-    }
+    // The player's screen opens at the end of this update, as for a video any screen hands to Data::play
+    // itself; this one grows out of the picture's rectangle.
+    launch_from_ = carried;
+    launch_picture_ = std::string(picture);
     return true;
+}
+
+void Frame::begin_launch(const model::Video &video)
+{
+    launch_ = Launch{};
+    launch_.active = true;
+    launch_.title = video.title;
+    launch_.channel = video.channel;
+    launch_.grows = launch_from_.w > 0.0f && launch_from_.h > 0.0f && !launch_picture_.empty();
+    launch_.from = launch_.grows ? launch_from_ : Rect{0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight};
+    launch_.picture = launch_.grows ? launch_picture_ : video.thumb;
+    launch_.move.start(options_.reduced_motion ? 0.2f : launch_.grows ? 0.62f : 0.3f);
+    launch_from_ = Rect{};
+    launch_picture_.clear();
+    idle_ = 0.0f;
+}
+
+void Frame::end_launch()
+{
+    launch_.returning = true;
+    launch_.started = false;
+    launch_.move.start(options_.reduced_motion ? 0.2f : launch_.grows ? 0.5f : 0.3f);
 }
 
 void Frame::ambient(std::string_view picture_url)
@@ -527,16 +549,26 @@ void Frame::update(const InputFrame &input, float dt)
     toasts_.update(dt, feedback_);
     dialog_.update(dt);
     launch_.move.update(dt);
-    if (launch_.active && !launch_.move.running)
+    if (launch_.active && launch_.returning)
     {
-        if (launch_.returning)
-        {
+        if (!launch_.move.running)
             launch_ = Launch{};
-        }
-        else if ((launch_.held += dt) > kLaunchHold)
+    }
+    else if (launch_.active)
+    {
+        // The player's screen stands for as long as the app says the video is starting. A start that
+        // failed brings the page back with the app's reason; an app that says nothing took over at once.
+        std::string reason;
+        const Source::Start start = data_.play_state(&reason);
+        launch_.started = start == Source::Start::starting;
+        if (start == Source::Start::failed)
         {
-            launch_.returning = true; // the player never took over: the page comes back
-            launch_.move.start(options_.reduced_motion ? 0.2f : 0.5f);
+            end_launch();
+            toast(tr("This video cannot be played right now."), reason, ToastKind::error);
+        }
+        else if (!launch_.started && !launch_.move.running && (launch_.held += dt) > kLaunchHold)
+        {
+            end_launch(); // the player never took over: the page comes back
         }
     }
     if (stack_.empty())
@@ -561,6 +593,18 @@ void Frame::update(const InputFrame &input, float dt)
         if (!attract_ && idle_ >= options_.attract_after && !dialog_.is_open() && !rail_open_ && !change_.running && !sheet_.open() &&
             !text_sheet_.open() && !launch_.active)
             attract_ = stack_.back()->screen->attract(true);
+    }
+
+    // While a video starts the pad is the player's screen's: Circle calls the start back where the app
+    // still can, and nothing reaches the page underneath.
+    if (launch_.active && launch_.started && !launch_.returning)
+    {
+        if (pressed(routed, Action::back) && data_.cancel_play())
+        {
+            end_launch();
+            feedback_.play(audio::Cue::back);
+        }
+        routed = InputFrame{};
     }
 
     const InputFrame none{};
@@ -617,6 +661,9 @@ void Frame::update(const InputFrame &input, float dt)
     text_sheet_.update(top);
     if (sheet_.take_changed() && sheet_changed_)
         sheet_changed_(); // the screen that asked forgets the lists the action changed
+    // A video went to the player in this update, from whichever screen: its screen opens now.
+    if (model::Video handed; data_.take_handed(&handed))
+        begin_launch(handed);
     apply_requests();
     stats_.data_pending = data_.pending();
     stats_.pictures_pending = images_.pending();

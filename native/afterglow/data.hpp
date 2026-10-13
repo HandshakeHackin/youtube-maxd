@@ -17,6 +17,7 @@
 
 #include "afterglow/models.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -124,6 +125,29 @@ class Source
 
     // Hands a video to the app's player. False when the app refused.
     virtual bool play(const model::Video &video) = 0;
+    // How the start of the video last handed to play() stands. The app's
+    // player needs a moment (the stream is asked for and opened) and takes the
+    // screen only then: `starting` until it does, after which the frame is not
+    // run until the player closes. `failed` is answered once, with the app's
+    // reason in *reason ("" when it gave none): the player never took over.
+    // A source whose player takes over at once answers `idle` always.
+    enum class Start : std::uint8_t
+    {
+        idle,
+        starting,
+        failed,
+    };
+    virtual Start play_state(std::string *reason)
+    {
+        (void)reason;
+        return Start::idle;
+    }
+    // Calls a start back (Circle while it starts). False when it can no longer
+    // be called back: it then ends by itself, one way or the other.
+    virtual bool cancel_play()
+    {
+        return false;
+    }
     // The catalog that lists what can be done with a row (the video actions
     // menu, a channel's, a playlist's); "" when the row has none.
     virtual std::string menu(const std::string &row, const std::string &title) = 0;
@@ -186,9 +210,33 @@ class Data
     {
         return source_.profile();
     }
+    // Hands a video to the app's player. Whichever screen does it, the frame
+    // opens the player's screen at once (take_handed) and keeps it until the
+    // player has taken over or the start failed (play_state).
     bool play(const model::Video &video)
     {
-        return source_.play(video);
+        if (!source_.play(video))
+            return false;
+        handed_ = video;
+        handed_new_ = true;
+        return true;
+    }
+    // The video play() accepted since the last call; true once per video.
+    bool take_handed(model::Video *video)
+    {
+        if (!handed_new_)
+            return false;
+        handed_new_ = false;
+        *video = handed_;
+        return true;
+    }
+    Source::Start play_state(std::string *reason)
+    {
+        return source_.play_state(reason);
+    }
+    bool cancel_play()
+    {
+        return source_.cancel_play();
     }
     int pending() const
     {
@@ -209,6 +257,8 @@ class Data
     bool home_built_ = false;
     unsigned revision_ = 0;
     unsigned language_ = 0;
+    model::Video handed_;
+    bool handed_new_ = false;
     std::shared_ptr<int> alive_;
 };
 

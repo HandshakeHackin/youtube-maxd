@@ -145,6 +145,89 @@
    "expect": {"screen": "grid", "focus": "grid/4", "state": {"state": "ready", "items": "8", "bar": "0", "subtitle": "8 videos"}}
   },
   {
+   "name": "grid-play-opens-player",
+   "about": "Cross on a video of a topic: the player's screen is up at once, the video's picture dimmed behind its title and the working mark, while the app starts the video.",
+   "fixture": "d-guest",
+   "source": {"start": 100000},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 1.2}],
+   "expect": {"screen": "grid", "focus": "grid/0", "played": "everygoa007", "launching": 1, "starting": 1, "launch_title": "Every Goal From a Wild Final Day",
+              "pixels": [[40, 40, 0, 0, 0]]}
+  },
+  {
+   "name": "grid-play-opening",
+   "about": "A sixth of a second after Cross: the player's screen is fading in over the page.",
+   "fixture": "d-guest",
+   "source": {"start": 100000},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 0.1}],
+   "expect": {"screen": "grid", "played": "everygoa007", "launching": 1, "starting": 1}
+  },
+  {
+   "name": "grid-play-keeps-pad",
+   "about": "While the video starts the pad is the player's screen's: the page underneath neither moves nor plays another video.",
+   "fixture": "d-guest",
+   "source": {"start": 100000},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 0.6}, {"press": "right"}, {"press": "down"}, {"press": "cross"}, {"press": "triangle"}, {"wait": 0.5}],
+   "expect": {"screen": "grid", "focus": "grid/0", "played": "everygoa007", "launching": 1, "starting": 1, "sheet": 0}
+  },
+  {
+   "name": "grid-play-started",
+   "about": "The app has started the video: the screen stands until the player draws over it.",
+   "fixture": "d-guest",
+   "source": {"start": 60},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 2.0}],
+   "expect": {"screen": "grid", "played": "everygoa007", "launching": 1, "starting": 0}
+  },
+  {
+   "name": "grid-play-failed",
+   "about": "The video could not be started: the page is back with the focus where it was and a toast gives the app's reason.",
+   "fixture": "d-guest",
+   "source": {"start": 60, "start_fails": "This YouTube video is unavailable or has been removed. Choose another video."},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "right"}, {"press": "cross", "wait": 2.2}],
+   "expect": {"screen": "grid", "focus": "grid/1", "played": "whatwoul002", "launching": 0, "starting": 0,
+              "toast": "This video cannot be played right now.",
+              "toast_detail": "This YouTube video is unavailable or has been removed. Choose another video."}
+  },
+  {
+   "name": "grid-play-failed-no-reason",
+   "about": "The app gave no reason: the toast still says that the video did not start.",
+   "fixture": "d-guest",
+   "source": {"start": 30, "start_fails": ""},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 2.0}],
+   "expect": {"screen": "grid", "focus": "grid/0", "launching": 0, "toast": "This video cannot be played right now.", "toast_detail": ""}
+  },
+  {
+   "name": "grid-play-cancelled",
+   "about": "Circle while the video starts calls the start back: the page returns, nothing is left of the list and no toast speaks of a failure.",
+   "fixture": "d-guest",
+   "source": {"start": 100000},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 0.8}, {"press": "circle", "wait": 1.0}],
+   "expect": {"screen": "grid", "focus": "grid/0", "launching": 0, "starting": 0, "cancelled": 1, "toast": "(none)"}
+  },
+  {
+   "name": "grid-play-too-late-to-cancel",
+   "about": "The app is already opening the stream and can no longer call it back: Circle changes nothing and the screen stays.",
+   "fixture": "d-guest",
+   "source": {"start": 100000, "start_cancel": false},
+   "player": 30,
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "cross", "wait": 0.8}, {"press": "circle", "wait": 1.0}],
+   "expect": {"screen": "grid", "focus": "grid/0", "launching": 1, "starting": 1, "cancelled": 0}
+  },
+  {
    "name": "grid-not-available",
    "fixture": "d-guest",
    "route": {"screen": "grid", "argument": "section:shorts", "title": "Shorts"},

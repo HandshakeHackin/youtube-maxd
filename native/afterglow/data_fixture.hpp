@@ -50,6 +50,21 @@ class FixtureSource final : public Source
         profile_ = profile;
         profile_known_ = true;
     }
+    // The player of the fixtures: a video needs `pumps` pumps to start (0: it
+    // takes over at once), and then fails with `failure` when fails is set.
+    // cancellable: Circle may call the start back while it lasts.
+    void set_start(int pumps, bool fails, std::string failure, bool cancellable)
+    {
+        start_pumps_ = pumps;
+        start_fails_ = fails;
+        start_failure_ = std::move(failure);
+        start_cancellable_ = cancellable;
+    }
+    // Starts that were called back.
+    int cancelled() const
+    {
+        return cancelled_;
+    }
     // Videos handed to play(), oldest first.
     const std::vector<std::string> &played() const
     {
@@ -79,6 +94,8 @@ class FixtureSource final : public Source
         return revision_;
     }
     bool play(const model::Video &video) override;
+    Start play_state(std::string *reason) override;
+    bool cancel_play() override;
     // A row's actions menu is the fixture catalog "menu:<row>".
     std::string menu(const std::string &row, const std::string &title) override
     {
@@ -115,6 +132,13 @@ class FixtureSource final : public Source
     int delay_ = 3;
     bool hold_ = false;
     bool offline_ = false;
+    int start_pumps_ = 0;
+    bool start_fails_ = false;
+    std::string start_failure_;
+    bool start_cancellable_ = true;
+    int start_left_ = 0; // pumps until the start of the video last handed over ends
+    bool start_failed_ = false;
+    int cancelled_ = 0;
 };
 
 } // namespace afterglow

@@ -28,6 +28,20 @@ void tube_afterglow_input(uint32_t pressed, uint32_t held);
 /* 1 = a video was chosen: its row, title, whether it is live and where to
  * resume. The caller hands them to the player the classic browser uses. */
 int tube_afterglow_take_play(char *item, size_t item_size, char *title, size_t title_size, int *is_live, long long *resume_sec);
+/* How the start of that video stands, told by the provider screen every frame
+ * it draws: pending = it is being resolved or its stream is being opened;
+ * cancellable = Circle can still call it back (the stream is not yet being
+ * opened). The interface keeps the player's screen up while it is pending. */
+void tube_afterglow_play_busy(int pending, int cancellable);
+/* The provider screen's status line, as the classic browser shows it: with
+ * error set, the reason a start failed. The interface says it in a toast. */
+void tube_afterglow_status(const char *status, int error);
+/* 1 = Circle was pressed while the video was starting: the caller calls the
+ * start back as the classic browser's Circle does, if it still can. */
+int tube_afterglow_take_cancel(void);
+/* 1 = the interface has just said in its own toast why a video did not start:
+ * the app's notice of the same failure stays away. */
+int tube_afterglow_play_failed_recently(void);
 /* 1 = Circle was pressed on the last screen: the profile's rule for Circle on
  * the main menu applies. */
 int tube_afterglow_take_exit(void);

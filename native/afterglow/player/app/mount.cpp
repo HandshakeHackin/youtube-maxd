@@ -13,6 +13,7 @@
 
 #include "afterglow/player/app/mount.hpp"
 
+#include "afterglow/app/afterglow.h"
 #include "afterglow/player/player.hpp"
 #include "afterglow/text_engine.hpp"
 
@@ -806,6 +807,10 @@ bool player_draw_dialog(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, f
 bool player_draw_toast(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, float dt, unsigned frame, bool page)
 {
     Mount &m = mount();
+    // A video that did not start: the interface has said why in a toast of its own, over the page it
+    // returned to (Frame, Source::play_state). EVO's notice of the same failure is not drawn beside it.
+    if (page && tube_afterglow_play_failed_recently())
+        return true;
     m.toasted = frame;
     player::Player &player = step(m, fonts, dt, frame, !page);
     const bool in_player = recent(m.controls, frame) || recent(m.listed, frame) || recent(m.picked, frame);

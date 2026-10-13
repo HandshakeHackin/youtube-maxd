@@ -10,6 +10,7 @@
 // request; the browsing profile and the revision.
 
 #include "afterglow/app/data_provider.hpp"
+#include "afterglow/app/play_start.hpp"
 
 extern "C"
 {
@@ -318,6 +319,58 @@ int main()
             serve(kTrending);
         }
         assert(after && source.pending() == 0);
+    }
+    {
+        // A chosen video until the player has the screen (app/play_start.hpp), from what the provider
+        // screen tells: pending or not, whether Circle can still call it back, and its status line.
+        using Start = Source::Start;
+        std::string reason = "untouched";
+        PlayStart start;
+        assert(start.state(&reason, 0.0) == Start::idle && !start.step(0.0) && !start.cancel() && !start.take_cancel());
+        // Resolved, opened, and the player takes the screen: starting all the way, no failure, nothing to say.
+        start.busy(true, true); // told about an earlier video: it does not count for the next
+        start.asked(10.0);
+        assert(start.starting() && !start.step(10.0) && start.state(&reason, 10.0) == Start::starting);
+        start.busy(false, false); // the frame the video was chosen in: the provider screen has not taken it yet
+        assert(!start.step(10.02) && start.starting());
+        start.busy(true, true);
+        assert(!start.step(10.04));
+        start.busy(true, false); // the stream is being opened
+        assert(!start.step(14.0) && start.state(&reason, 14.0) == Start::starting && !start.cancel());
+        start.reset(); // the player had the screen
+        assert(start.state(&reason, 60.0) == Start::idle && reason == "untouched" && !start.failed_recently(60.0));
+        // The service refuses the video: the status line's reason, said once; the app's notice stays away for a while.
+        start.asked(100.0);
+        start.busy(true, true);
+        assert(!start.step(100.1));
+        start.status("This YouTube video is unavailable or has been removed. Choose another video.", true);
+        start.busy(false, false);
+        assert(!start.step(101.0) && !start.starting());
+        assert(start.state(&reason, 101.0) == Start::failed && reason == "This YouTube video is unavailable or has been removed. Choose another video.");
+        assert(start.state(&reason, 101.1) == Start::idle && start.failed_recently(103.0) && !start.failed_recently(101.0 + PlayStart::kQuiet + 0.1));
+        start.status("Could not load the catalog", true); // nothing is starting: not a start's reason
+        // The provider screen never takes the video: a failure without a reason, after the grace.
+        start.asked(200.0);
+        start.busy(false, false);
+        assert(!start.step(200.5) && start.starting() && !start.step(200.0 + PlayStart::kGrace + 0.1));
+        reason = "untouched";
+        assert(start.state(&reason, 202.0) == Start::failed && reason.empty());
+        // Circle while the video is resolved calls the start back, once; the provider screen takes it.
+        start.asked(300.0);
+        assert(!start.cancel()); // not yet known to be pending
+        start.busy(true, true);
+        assert(!start.step(300.1) && start.cancel() && !start.starting() && start.take_cancel() && !start.take_cancel());
+        start.busy(false, false);
+        assert(!start.step(300.2) && start.state(&reason, 300.2) == Start::idle);
+        // Too late for Circle once the stream is being opened: the start goes on.
+        start.asked(400.0);
+        start.busy(true, false);
+        assert(!start.step(400.1) && !start.cancel() && start.starting() && !start.take_cancel());
+        // It ends without the player and without a failure (the app says what follows in a notice of its
+        // own, as for the next video of a queue): the page returns as after the player.
+        start.status("Video unavailable. Next queued video in 5 seconds; any button cancels.", false);
+        start.busy(false, false);
+        assert(start.step(400.5) && start.state(&reason, 400.5) == Start::idle);
     }
     p->shutdown();
     std::puts("PASS: Afterglow data on the provider: Guest Home from the provider's catalogs one request at a time, row facts in the view "

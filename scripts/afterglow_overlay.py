@@ -250,8 +250,44 @@ def apply(root, work, replace, player):
         replace(host, "        if (tube_take_playlist_prompt(&prompt)) {",
                 "        if (!tube_afterglow_shown() && tube_take_playlist_prompt(&prompt)) {")
 
+    start_hooks(work, replace, player)
     apply_sound(root, work, replace, player, kit)  # stage S
     player_mount(work, replace, player)  # package H
+
+
+# ---- a chosen video until the player has the screen ---------------------------------------------------
+# The provider screen resolves the video and opens its stream before EVO's player takes the screen; the
+# interface is what is drawn all that time and keeps the player's screen up (Frame, Source::play_state).
+# Three places tell it how the start stands (native/afterglow/app/play_start.hpp): the provider screen
+# says every frame whether a start is pending and can still be called back, its status line carries the
+# reason of a failure, and Circle on the player's screen calls a start back as the classic browser's does.
+
+CANCEL = '''        // Circle while that video starts: called back as the classic browser's Circle does, while the stream is not yet being opened.
+        if (tube_afterglow_take_cancel() && (m_resolving || m_tunePending) && !g_start_running) {
+            ++g_pick_gen; tube_cancel(); m_resolving = false; m_tunePending = false;
+            evo_rmlui_provider_set_tuning(0); evo_rmlui_provider_set_loading(0, "");
+        }
+'''
+
+BUSY = '''    /* ProsperoTube Afterglow: how the start of a chosen video stands, for the player's screen the interface keeps up meanwhile. */
+    tube_afterglow_play_busy((m_resolving || m_tunePending || g_start_running.load()) ? 1 : 0,
+                             ((m_resolving || m_tunePending) && !g_start_running.load()) ? 1 : 0);
+'''
+
+
+def start_hooks(work, replace, player):
+    host = player + "core/src/screens/ProviderHostScreen.cpp"
+    if "tube_afterglow_take_cancel" not in (work / host).read_text(encoding="utf-8"):
+        replace(host, "            startSelected();\n        }\n        if (!tube_afterglow_take_exit()) return true;\n",
+                "            startSelected();\n        }\n" + CANCEL + "        if (!tube_afterglow_take_exit()) return true;\n")
+        replace(host, "    if (!m_opened) return;\n    const bool kit_drew = evo_rmlui_provider_render(framebuffer, width, height) != 0;\n",
+                "    if (!m_opened) return;\n" + BUSY + "    const bool kit_drew = evo_rmlui_provider_render(framebuffer, width, height) != 0;\n")
+    screen = player + "ui_rml/src/evo_rmlui_provider.cpp"
+    if "tube_afterglow_status" not in (work / screen).read_text(encoding="utf-8"):
+        replace(screen, '#include "evo_hui.h"\n', '#include "evo_hui.h"\n#include "tube_afterglow.h"\n')
+        replace(screen, "void evo_rmlui_provider_set_status(const char *status, int error)\n{\n",
+                "void evo_rmlui_provider_set_status(const char *status, int error)\n{\n"
+                "    tube_afterglow_status(status, error); /* ProsperoTube Afterglow: the reason a chosen video did not start */\n")
 
 
 # ---- package H: the player (docs/afterglow/ARCHITECTURE.md, section 12b) ----------------------------

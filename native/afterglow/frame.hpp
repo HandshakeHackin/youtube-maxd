@@ -267,19 +267,34 @@ class Frame final : private Nav
     std::function<void()> sheet_changed_;
     TextSheet text_sheet_;
 
-    // A video handed to the player from its picture: the picture becomes the
-    // whole screen, and returns to where it came from when the player closes.
+    // A video handed to the player, whichever screen did it (Data::play): the
+    // player's screen opens at once, the video's picture dimmed behind its
+    // title and a working mark in the middle, and stands until the player
+    // draws its first frame. From a card that named its rectangle (Nav::play)
+    // the picture grows out of it and returns there when the player closes;
+    // otherwise the screen fades in. A start that fails brings the page back
+    // with the app's reason in a toast; Circle calls a start back while the
+    // app still can.
     struct Launch
     {
         bool active = false;
         bool returning = false;
+        bool grows = false;   // out of a card's rectangle; false: the whole screen fades in
+        bool started = false; // the app says the video is starting: the screen stands until it says otherwise
         tween::Timer move;
-        float held = 0.0f; // seconds the whole-screen picture has stood since the move ended
+        float held = 0.0f; // seconds it has stood without the app saying anything
         Rect from{};
         std::string picture;
+        std::string title;
+        std::string channel;
     };
     Launch launch_;
+    Rect launch_from_{};         // what Nav::play named for the video handed over in this update
+    std::string launch_picture_;
+    void begin_launch(const model::Video &video);
+    void end_launch();
     std::vector<std::string> toast_log_; // the last few, for snapshots
+    std::vector<std::string> toast_detail_log_; // ... and their second lines
 
     FrameStats stats_;
     std::array<float, 120> frame_times_{};

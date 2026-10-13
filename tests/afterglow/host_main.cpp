@@ -899,6 +899,10 @@ int main(int argc, char **argv)
                 source.set_delay(static_cast<int>(number_of(behaviour, "delay", 3)));
                 source.set_hold(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(behaviour, "hold")));
                 source.set_offline(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(behaviour, "offline")));
+                // "start": the pumps the player needs to start a video (0: it takes over at once); "start_fails": the
+                // reason it then gives up with; "start_cancel": false when Circle can no longer call the start back.
+                source.set_start(static_cast<int>(number_of(behaviour, "start", 0)), cJSON_IsString(cJSON_GetObjectItemCaseSensitive(behaviour, "start_fails")),
+                                 text_of(behaviour, "start_fails"), !cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(behaviour, "start_cancel")));
                 // "profile": who is browsing, when it is not the person the set's profile.json names.
                 if (const cJSON *who = cJSON_GetObjectItemCaseSensitive(board, "profile"); cJSON_IsObject(who))
                 {
@@ -1135,6 +1139,20 @@ int main(int argc, char **argv)
                         const std::string got = source.played().empty() ? std::string() : source.played().back();
                         if (got != wanted->valuestring)
                             fail(results, name, look_id, "played '" + got + "', expected '" + wanted->valuestring + "'");
+                    }
+                    else if (key == "toast" || key == "toast_detail")
+                    {
+                        // The newest toast's first line, or its second.
+                        const cJSON *list = cJSON_GetObjectItemCaseSensitive(state, key == "toast" ? "toasts" : "toast_details");
+                        const cJSON *last = cJSON_GetArrayItem(list, cJSON_GetArraySize(list) - 1);
+                        const std::string got = cJSON_IsString(last) ? last->valuestring : "(none)";
+                        if (!cJSON_IsString(wanted) || got != wanted->valuestring)
+                            fail(results, name, look_id, key + " is '" + got + "', expected '" + (cJSON_IsString(wanted) ? wanted->valuestring : "?") + "'");
+                    }
+                    else if (key == "cancelled")
+                    {
+                        if (source.cancelled() != static_cast<int>(wanted->valuedouble))
+                            fail(results, name, look_id, "starts called back: " + std::to_string(source.cancelled()) + ", expected " + std::to_string(static_cast<int>(wanted->valuedouble)));
                     }
                     else if (key == "pixels")
                     {

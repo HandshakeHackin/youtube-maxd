@@ -96,11 +96,36 @@ model::Profile FixtureSource::profile()
 bool FixtureSource::play(const model::Video &video)
 {
     played_.push_back(video.id);
+    start_left_ = start_pumps_;
+    start_failed_ = false;
+    return true;
+}
+
+Source::Start FixtureSource::play_state(std::string *reason)
+{
+    if (start_left_ > 0)
+        return Start::starting;
+    if (!start_failed_)
+        return Start::idle;
+    start_failed_ = false; // said once
+    if (reason != nullptr)
+        *reason = start_failure_;
+    return Start::failed;
+}
+
+bool FixtureSource::cancel_play()
+{
+    if (start_left_ <= 0 || !start_cancellable_)
+        return false;
+    start_left_ = 0;
+    ++cancelled_;
     return true;
 }
 
 void FixtureSource::pump()
 {
+    if (start_left_ > 0 && --start_left_ == 0)
+        start_failed_ = start_fails_;
     if (hold_)
         return;
     // One answer per pump, oldest first: the app's provider answers one request at a time too.

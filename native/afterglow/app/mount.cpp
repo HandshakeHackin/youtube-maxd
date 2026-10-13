@@ -12,6 +12,7 @@
 #include "afterglow/app/afterglow.h"
 #include "afterglow/app/data_provider.hpp"
 #include "afterglow/app/picture_decode.hpp"
+#include "afterglow/app/play_start.hpp"
 #include "afterglow/frame.hpp"
 #include "afterglow/sound/app/sound_app.hpp" // stage S
 #include "afterglow/text_engine.hpp"
@@ -208,6 +209,7 @@ struct Mount
     InputFrame input;
     model::Video play;
     bool play_pending = false;
+    PlayStart start; // how the start of that video stands, while the player's screen is the interface's
     bool shown = false;
     bool failed = false;
     int scheme = -1;
@@ -264,8 +266,33 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
                 return false;
             g_mount->play = video;
             g_mount->play_pending = true;
+            g_mount->start.asked(monotonic_seconds());
             return true;
         });
+        m.source.set_start(
+            [](std::string *reason)
+            {
+                if (g_mount == nullptr)
+                    return Source::Start::idle;
+                const Source::Start state = g_mount->start.state(reason, monotonic_seconds());
+                // The status line is the provider's or EVO's English: said in the profile's language where a catalog has it.
+                if (state == Source::Start::failed && reason != nullptr && !reason->empty())
+                    *reason = g_mount->platform.translate(reason->c_str());
+                return state;
+            },
+            []()
+            {
+                if (g_mount == nullptr)
+                    return false;
+                if (g_mount->play_pending && g_mount->start.starting())
+                {
+                    // The provider screen has not even taken the video yet: it never will.
+                    g_mount->play_pending = false;
+                    g_mount->start.reset();
+                    return true;
+                }
+                return g_mount->start.cancel();
+            });
         m.frame = std::make_unique<Frame>(m.platform, m.source, fonts, options);
         // A startup section that is a protected profile: the accounts screen asks for its password first.
         if (const char *boot = tube_boot_section(); boot != nullptr && std::strncmp(boot, "library:profile:", 16) == 0)
@@ -282,7 +309,14 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     // Back on screen after the player or another screen of the app had it.
     const double now = monotonic_seconds();
     if (m.last_render != 0.0 && now - m.last_render > 1.0)
+    {
+        m.start.reset(); // the player had the screen
         m.frame->resume();
+    }
+    else if (m.start.step(now))
+    {
+        m.frame->resume(); // the start ended without the player and without a failure of its own
+    }
     m.last_render = now;
 
     if (m.text)
@@ -397,6 +431,28 @@ extern "C" int tube_afterglow_take_play(char *item, size_t item_size, char *titl
     if (resume_sec != nullptr)
         *resume_sec = video.progress > 0.02f && video.progress < 0.97f ? static_cast<long long>(video.progress * static_cast<float>(video.duration_s)) : 0;
     return 1;
+}
+
+extern "C" void tube_afterglow_play_busy(int pending, int cancellable)
+{
+    if (g_mount != nullptr)
+        g_mount->start.busy(pending != 0, cancellable != 0);
+}
+
+extern "C" void tube_afterglow_status(const char *status, int error)
+{
+    if (g_mount != nullptr)
+        g_mount->start.status(status, error != 0);
+}
+
+extern "C" int tube_afterglow_take_cancel(void)
+{
+    return g_mount != nullptr && g_mount->start.take_cancel() ? 1 : 0;
+}
+
+extern "C" int tube_afterglow_play_failed_recently(void)
+{
+    return g_mount != nullptr && g_mount->start.failed_recently(afterglow::monotonic_seconds()) ? 1 : 0;
 }
 
 extern "C" int tube_afterglow_take_exit(void)
