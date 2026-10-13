@@ -357,6 +357,9 @@ static const char* tube_dev_path(unsigned index) {
     if embedded_service_overlay.enabled():
         embedded_service_overlay.apply_package(replace, player, WORK, ROOT)
     embedded_service_overlay.retire_stale_objects(WORK, player)
+    # Interface localization marks the finished browser document, so it follows every other overlay.
+    from i18n_overlay import apply_i18n_overlay
+    apply_i18n_overlay(replace, player, WORK, ROOT)
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()

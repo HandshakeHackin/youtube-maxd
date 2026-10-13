@@ -1,6 +1,7 @@
 /* ProsperoTube native YouTube provider; original work, no Android dependency.
  * Copyright (C) 2026 BlackBearReloaded. SPDX-License-Identifier: GPL-3.0-or-later */
 #include "tube_provider.h"
+#include "tube_i18n.h"
 #include "evo_net.h"
 #include "evo_data_path.h"
 /* Defined by the package build (scripts/build_ps5.sh, on by default) and by
@@ -4390,6 +4391,7 @@ static void folder(evo_provider_item_t *out, const char *id, const char *title, 
     copy(out->id, sizeof out->id, id); copy(out->title, sizeof out->title, title);
     copy(out->subtitle, sizeof out->subtitle, hint); out->is_folder = 1; out->kind = EVO_MEDIA_VIDEO;
     embedded_wording(out->title, sizeof out->title); embedded_wording(out->subtitle, sizeof out->subtitle);
+    out->tube_interface = 1;   /* made of interface texts: the browser shows it in the interface language */
 }
 
 /* Menus can exceed a 24-item media page. Reject growth before writing past the
@@ -4445,6 +4447,13 @@ static int extra_group_parent(const char *parent, int *choice) {
 } while (0)
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     evo_provider_item_t out[64]; int n = 0;
+    if (parent && tube_i18n_select && !strncmp(parent, TUBE_I18N_SETTING, sizeof TUBE_I18N_SETTING - 1)) {
+        /* Interface language: tube_i18n.c keeps the choice and names the rows. */
+        if (tube_i18n_select(parent) < 0) { tube_set_error("Select a listed language."); cb(0,NULL,0,0,ud); return 1; }
+        for (int i = page ? tube_i18n_choices() : 0; i < tube_i18n_choices(); ++i)
+            CATALOG_FOLDER(tube_i18n_choice_id(i), tube_i18n_choice_title(i), tube_i18n_choice_detail(i));
+        cb(1, out, n, 0, ud); return 1;
+    }
     if(parent && !strncmp(parent,"link:",5)) {
         /* Addresses to open on another device: a row's overview is its link,
          * which the screen shows as text and as a QR code. */
@@ -6096,6 +6105,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:content-language", label, "Language YouTube uses for titles and sections");
             snprintf(label, sizeof label, "Content country: %s", country_index(g_gl) >= 0 ? g_countries[country_index(g_gl)].name : "default");
             CATALOG_FOLDER( "settings:content-country", label, "Country YouTube uses for recommendations and Trending");
+            if (tube_i18n_setting_title) CATALOG_FOLDER( TUBE_I18N_SETTING, tube_i18n_setting_title(), "Language of ProsperoTube's menus and messages");
             CATALOG_FOLDER( "settings:hide", "Hide content", "Shorts, mixes, watched, live and upcoming videos by section");
             snprintf(label, sizeof label, "Thumbnail source: %s", g_thumbnail_labels[g_thumbnails]);
             CATALOG_FOLDER( "settings:thumbnails", label, "Published thumbnail or a frame from the start, middle or end");
