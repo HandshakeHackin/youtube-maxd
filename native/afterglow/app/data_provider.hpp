@@ -37,6 +37,9 @@ class ProviderSource final : public Source
     }
 
     unsigned catalog(const std::string &id, int page, Done done) override;
+    // A typed answer: `row` is listed (it arms the provider's text prompt; "" when a listing before
+    // armed it), the text is handed to that prompt and the catalog the provider names is listed.
+    unsigned answer(const std::string &row, std::string_view text, Done done) override;
     void cancel(unsigned ticket) override;
     model::Profile profile() override;
     unsigned revision() override;
@@ -55,6 +58,8 @@ class ProviderSource final : public Source
         std::string id;
         int page = 0;
         Done done;
+        bool typed = false; // an answer(): text goes to the prompt the listing of id arms
+        std::string text;
     };
     struct Finished
     {
@@ -64,12 +69,19 @@ class ProviderSource final : public Source
     };
     static void answered(int ok, const ::evo_provider_item *items, int count, int more, void *self);
     void start_next();
+    void list(const std::string &id, int page);
+    void hand_over_text();
+    void finish(Page &&page);
 
     std::deque<Request> waiting_;
     std::deque<Finished> finished_;
     unsigned flying_ = 0;      // the ticket of the request the provider is working on
     bool flying_dropped_ = false; // ... and whether it was cancelled meanwhile
     Done flying_done_;
+    // A typed answer on its way: 0 none, 1 the row that arms the prompt is being listed, 2 the prompt
+    // is armed and waits for the text, 3 the catalog the provider named is being listed.
+    int typed_stage_ = 0;
+    std::string typed_text_;
     unsigned next_ticket_ = 1;
     std::function<bool(const model::Video &)> player_;
     std::string last_profile_;

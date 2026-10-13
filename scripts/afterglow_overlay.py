@@ -171,3 +171,8 @@ def apply(root, work, replace, player):
         replace(host, "    if (m_streamPick) {\n        const int n = g_pending.choice_count;",
                 PAD + "    if (m_streamPick) {\n        const int n = g_pending.choice_count;")
         replace(host, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_afterglow.h"', count=1)
+    # ---- typed text: while the interface is on screen its own sheet takes it (Data::act(row, text)),
+    # so the classic browser leaves the provider's prompt alone ----
+    if "!tube_afterglow_shown() && tube_take_playlist_prompt" not in (work / host).read_text(encoding="utf-8"):
+        replace(host, "        if (tube_take_playlist_prompt(&prompt)) {",
+                "        if (!tube_afterglow_shown() && tube_take_playlist_prompt(&prompt)) {")

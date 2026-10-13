@@ -59,7 +59,22 @@ unsigned ProviderSource::catalog(const std::string &id, int page, Done done)
     if (id.size() >= EVO_PROVIDER_MAX_ITEM_ID || page < 0)
         return 0;
     const unsigned ticket = next_ticket_++;
-    waiting_.push_back({ticket, id, page, std::move(done)});
+    waiting_.push_back({ticket, id, page, std::move(done), false, {}});
+    return ticket;
+}
+
+unsigned ProviderSource::answer(const std::string &row, std::string_view text, Done done)
+{
+    if (row.size() >= EVO_PROVIDER_MAX_ITEM_ID || text.size() > 2400)
+        return 0;
+    const unsigned ticket = next_ticket_++;
+    Request request;
+    request.ticket = ticket;
+    request.id = row;
+    request.done = std::move(done);
+    request.typed = true;
+    request.text = std::string(text);
+    waiting_.push_back(std::move(request));
     return ticket;
 }
 
@@ -110,9 +125,12 @@ unsigned ProviderSource::revision()
 
 std::string ProviderSource::menu(const std::string &row, const std::string &title)
 {
-    // A video's actions are the provider's menu of that video; a folder's (a channel, a playlist) its section menu.
+    // A video's actions are the provider's menu of that video; a comment's what the profile may do with it
+    // (like, answer); a folder's (a channel, a playlist) its section menu.
     if (is_video_id(row))
         return "account:menu:" + row;
+    if (const char *comment = tube_comment_rating(row.c_str()); comment != nullptr && *comment != '\0')
+        return comment;
     const char *menu = tube_folder_menu(row.c_str(), title.c_str());
     return menu != nullptr ? std::string(menu) : std::string();
 }
@@ -127,6 +145,13 @@ void ProviderSource::answered(int ok, const evo_provider_item_t *items, int coun
     ProviderSource *source = g_waiting;
     if (source == nullptr || self != source || source->flying_ == 0)
         return; // an answer nobody waits for any more
+    if (ok && source->typed_stage_ == 1)
+    {
+        // The row that asks for a text was listed: its prompt is armed. The text is handed over from
+        // pump(), never from inside the provider's own call.
+        source->typed_stage_ = 2;
+        return;
+    }
     Page page;
     if (ok)
     {
@@ -180,11 +205,57 @@ void ProviderSource::answered(int ok, const evo_provider_item_t *items, int coun
         page.load = offline ? model::Load::offline : model::Load::failed;
         page.error = *message != '\0' ? tr(message) : tr("This list could not be loaded.");
     }
-    if (!source->flying_dropped_)
-        source->finished_.push_back({source->flying_, std::move(source->flying_done_), std::move(page)});
-    source->flying_ = 0;
-    source->flying_dropped_ = false;
-    source->flying_done_ = nullptr;
+    source->finish(std::move(page));
+}
+
+void ProviderSource::finish(Page &&page)
+{
+    if (!flying_dropped_)
+        finished_.push_back({flying_, std::move(flying_done_), std::move(page)});
+    flying_ = 0;
+    flying_dropped_ = false;
+    flying_done_ = nullptr;
+    typed_stage_ = 0;
+    // A typed text (it may be a password) is overwritten, not only let go.
+    typed_text_.assign(typed_text_.size(), '\0');
+    typed_text_.clear();
+}
+
+void ProviderSource::list(const std::string &id, int page)
+{
+    const unsigned ticket = flying_;
+    g_waiting = this;
+    // The provider may answer before it returns (a local list) or later, from the network poll.
+    const int rc = evo_provider_youtube.list_catalog(id.c_str(), page, &ProviderSource::answered, this);
+    if (rc < 0 && flying_ == ticket)
+        answered(0, nullptr, 0, 0, this);
+}
+
+void ProviderSource::hand_over_text()
+{
+    // The prompt the provider armed takes the text and names the catalog to list next: the choice of a
+    // profile, the review of a comment, the page of the preference that was typed.
+    typed_stage_ = 3;
+    Page refused;
+    refused.load = model::Load::failed;
+    tube_playlist_prompt_t prompt;
+    if (!tube_take_playlist_prompt(&prompt))
+    {
+        refused.error = tr("Nothing is waiting for a text here.");
+        finish(std::move(refused));
+        return;
+    }
+    char next[EVO_PROVIDER_MAX_ITEM_ID] = "";
+    if (tube_submit_playlist_name(prompt.ticket, typed_text_.c_str(), next, sizeof next) != 0)
+    {
+        const char *why = tube_prompt_error();
+        refused.error = why != nullptr && *why != '\0' ? tr(why) : tr("Enter a name of 1 to 150 characters for the current profile");
+        finish(std::move(refused));
+        return;
+    }
+    typed_text_.assign(typed_text_.size(), '\0');
+    typed_text_.clear();
+    list(next, 0);
 }
 
 void ProviderSource::start_next()
@@ -196,16 +267,23 @@ void ProviderSource::start_next()
         flying_ = request.ticket;
         flying_dropped_ = false;
         flying_done_ = std::move(request.done);
-        g_waiting = this;
-        // The provider may answer before it returns (a local list) or later, from the network poll.
-        const int rc = evo_provider_youtube.list_catalog(request.id.c_str(), request.page, &ProviderSource::answered, this);
-        if (rc < 0 && flying_ == request.ticket)
-            answered(0, nullptr, 0, 0, this);
+        typed_stage_ = 0;
+        if (request.typed)
+        {
+            typed_text_ = std::move(request.text);
+            typed_stage_ = request.id.empty() ? 2 : 1;
+        }
+        if (typed_stage_ != 2)
+            list(request.id, request.page);
+        if (flying_ == request.ticket && typed_stage_ == 2)
+            hand_over_text();
     }
 }
 
 void ProviderSource::pump()
 {
+    if (flying_ != 0 && typed_stage_ == 2)
+        hand_over_text(); // the listing that armed the prompt answered from the network poll
     // Answers reach their owners here, never from inside catalog().
     while (!finished_.empty())
     {

@@ -27,6 +27,7 @@ extern "C"
 }
 
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <map>
 #include <memory>
@@ -122,6 +123,14 @@ class AppPlatform final : public Platform
         char out[1024];
         const bool changed = tube_i18n_translate(english, out, sizeof out, TUBE_I18N_LABELS) != 0;
         return texts_.emplace(english, changed ? out : english).first->second.c_str();
+    }
+    // The app's catalogs match the finished English text against their counted patterns and pick the
+    // form of the language's plural rule (native/tube_i18n.c).
+    std::string translate_count(const char *one, const char *other, long count) override
+    {
+        const std::string english = fill(count == 1 ? one : other, std::to_string(count));
+        char out[1024];
+        return tube_i18n_translate(english.c_str(), out, sizeof out, TUBE_I18N_LABELS) != 0 ? std::string(out) : english;
     }
     unsigned language_revision() override
     {
@@ -252,6 +261,9 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
             return true;
         });
         m.frame = std::make_unique<Frame>(m.platform, m.source, fonts, options);
+        // A startup section that is a protected profile: the accounts screen asks for its password first.
+        if (const char *boot = tube_boot_section(); boot != nullptr && std::strncmp(boot, "library:profile:", 16) == 0)
+            m.frame->open(Route{ScreenId::accounts, boot, {}});
         evo_boot_log("afterglow: interface up, look %s, %dx%d", m.frame->look().id, width, height);
     }
     if (prefs != nullptr && prefs->scheme != m.scheme)
@@ -332,14 +344,42 @@ extern "C" void tube_afterglow_input(uint32_t pressed, uint32_t held)
         if ((held & button.pad) != 0)
             input.held |= hui::action_bit(button.action);
     }
-    if ((pressed & hui::pad_bits::kUp) != 0)
-        input.nav = afterglow::Direction::up;
-    else if ((pressed & hui::pad_bits::kDown) != 0)
-        input.nav = afterglow::Direction::down;
-    else if ((pressed & hui::pad_bits::kLeft) != 0)
-        input.nav = afterglow::Direction::left;
-    else if ((pressed & hui::pad_bits::kRight) != 0)
-        input.nav = afterglow::Direction::right;
+    const auto direction_of = [](uint32_t pad)
+    {
+        return (pad & hui::pad_bits::kUp) != 0     ? afterglow::Direction::up
+               : (pad & hui::pad_bits::kDown) != 0 ? afterglow::Direction::down
+               : (pad & hui::pad_bits::kLeft) != 0 ? afterglow::Direction::left
+               : (pad & hui::pad_bits::kRight) != 0 ? afterglow::Direction::right
+                                                    : afterglow::Direction::none;
+    };
+    // A direction that stays down repeats: after 0.4 s, then every 0.1 s. Screens answer a repeat as
+    // a move and stay silent at an edge (input.nav_repeat).
+    static afterglow::Direction held_direction = afterglow::Direction::none;
+    static double held_since = 0.0;
+    static double repeated_at = 0.0;
+    const double now = afterglow::monotonic_seconds();
+    const afterglow::Direction down = direction_of(pressed);
+    const afterglow::Direction still = direction_of(held);
+    if (down != afterglow::Direction::none)
+    {
+        input.nav = down;
+        input.nav_repeat = false;
+        held_direction = down;
+        held_since = repeated_at = now;
+    }
+    else if (still != afterglow::Direction::none && still == held_direction)
+    {
+        if (now - held_since >= 0.4 && now - repeated_at >= 0.1)
+        {
+            input.nav = still;
+            input.nav_repeat = true;
+            repeated_at = now;
+        }
+    }
+    else
+    {
+        held_direction = afterglow::Direction::none;
+    }
 }
 
 extern "C" int tube_afterglow_take_play(char *item, size_t item_size, char *title, size_t title_size, int *is_live, long long *resume_sec)
