@@ -179,7 +179,7 @@ def main():
     about = player + "core/src/screens/AboutSupportScreen.cpp"
     replace(about, 'params.app_name = "EVO PLAYER PRO";', 'params.app_name = "PROSPEROTUBE";')
     replace(about, 'params.tagline = "CINEMATIC MEDIA PLAYER FOR PLAYSTATION 5 HOMEBREW";', 'params.tagline = "NATIVE YOUTUBE CLIENT - EVO / PROSPEROPLAYER FOUNDATION";')
-    replace(about, 'params.themes_info = "PRESS CROSS FOR CHANGELOG, SQUARE FOR DEV TOOLS";', 'params.themes_info = "GPL-3.0-OR-LATER - LAN COMPANION REQUIRED - HARDWARE ACCEPTANCE PENDING";')
+    replace(about, 'params.themes_info = "PRESS CROSS FOR CHANGELOG, SQUARE FOR DEV TOOLS";', 'params.themes_info = "GPL-3.0-OR-LATER";')
     replace(about, "ScreenId::Changelog", "ScreenId::EmbyBrowse")
     replace(about, "ScreenId::MainMenu", "ScreenId::EmbyBrowse")
     replace(host, "        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;", "        if (m_providerId == \"youtube\") {\n            evo_rmlui_provider_show_setup(); return true;\n        }\n        if (sm) sm->navigateTo(ScreenId::MainMenu);\n        return true;")

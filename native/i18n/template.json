@@ -56,6 +56,12 @@
    ]
   },
   {
+   "source": "A dated copy of settings and library in the app data folder; sign-ins to YouTube are not included",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "A dated copy of settings, library and companion pairing in the app data folder",
    "context": [
     "browser"
@@ -423,6 +429,18 @@
   },
   {
    "source": "Also enable --sponsorblock on the companion",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Alternative SponsorBlock server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Alternative server",
    "context": [
     "browser"
    ]
@@ -2440,6 +2458,18 @@
    ]
   },
   {
+   "source": "Enter the alternative server below first; until then segments come from SponsorBlock",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Enter the https address of a SponsorBlock server; applies to this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Enter the name shown on the main menu",
    "context": [
     "browser"
@@ -2732,6 +2762,12 @@
    ]
   },
   {
+   "source": "For when SponsorBlock refuses to work; segments then come from the server below",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "For when SponsorBlock refuses to work; the built-in service host chooses the server",
    "context": [
     "browser"
@@ -2800,12 +2836,6 @@
    "source": "From the companion library service",
    "context": [
     "browser"
-   ]
-  },
-  {
-   "source": "GPL-3.0-OR-LATER - LAN COMPANION REQUIRED - HARDWARE ACCEPTANCE PENDING",
-   "context": [
-    "kit"
    ]
   },
   {
@@ -3065,6 +3095,18 @@
    ]
   },
   {
+   "source": "High",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Highest",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Highlight",
    "context": [
     "browser"
@@ -3162,6 +3204,12 @@
   },
   {
    "source": "How dark the picture is while the screen is off",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "How far ahead of playback a video is loaded; applies from the next video",
    "context": [
     "browser"
    ]
@@ -3775,6 +3823,12 @@
    ]
   },
   {
+   "source": "Low",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Main menu",
    "context": [
     "browser"
@@ -3844,6 +3898,12 @@
   },
   {
    "source": "Maximum resolution for the next video",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Medium",
    "context": [
     "browser"
    ]
@@ -5906,6 +5966,12 @@
    "args": "n"
   },
   {
+   "source": "Restoring a backup neither adds nor removes an account on this PS5",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Resume watch history (experimental)",
    "context": [
     "browser"
@@ -6906,6 +6972,12 @@
   },
   {
    "source": "Sign-in to YouTube arrives in a later version",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Sign-ins to YouTube are not part of a backup",
    "context": [
     "browser"
    ]
@@ -9067,6 +9139,12 @@
    ]
   },
   {
+   "source": "Video buffer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Video codec",
    "context": [
     "browser"
@@ -9332,6 +9410,12 @@
   },
   {
    "source": "What YouTube recommends without an account",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "What a backup holds for an account is used only while that sign-in is still on this PS5. An account that signs in again starts as a new profile.",
    "context": [
     "browser"
    ]
