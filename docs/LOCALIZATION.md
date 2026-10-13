@@ -20,6 +20,11 @@ yet.
 Every catalog covers the whole template; `bash scripts/test_i18n.sh` prints the
 coverage of each and fails below 99%.
 
+Russian, Ukrainian, Greek and Vietnamese write the four face buttons as their
+symbols (✕ ○ □ △), as the key line of the browser does in every language: no
+official PlayStation wording for them could be checked offline. The other
+catalogs use the names PlayStation uses in that language.
+
 The language is chosen in this order:
 
 1. **YouTube preferences > Interface language**: System default, English, or
@@ -75,6 +80,13 @@ document it marks already holds what those added. The provider's own output
 does not depend on the language: its tests, the in-player menus and the logs
 read English.
 
+The overlay also adds one style rule: a key line that does not fit on one line
+(a long language, a large **Interface scale**) takes a second line above the
+first instead of leaving the page. One line keeps the size it always had. The
+rule is part of the sheet the interface preferences restyle, so it holds at
+every scale and in every colour scheme; no language needs a third line at any
+scale (`scripts/test_i18n_ui.sh` and `scripts/test_ui_prefs.sh` check it).
+
 The player interface (controls, in-player menus, pickers, dialogs, the
 keyboard) is drawn by EVO's kit, and every line of it passes through
 `hui::ui::text()`. The overlay puts a fifth passage there, but **no language
@@ -108,12 +120,17 @@ forgotten step.
 
 What the scan picks up: literals passed to `CATALOG_FOLDER`, `LINK_ROW`,
 `folder`, `tube_set_error`, `toast`, the status calls and `ui::text`; formats of
-`snprintf` into a variable named like a text (`label`, `detail`, `hint`,
-`title`, ...), turned into patterns; label tables; the static texts of the
+`snprintf` and of the updater's `format` into a variable named like a text
+(`label`, `detail`, `hint`, `title`, `message`, `error`, ...), turned into
+patterns; label tables; sentences returned as reasons; the static texts of the
 document. A new text reached another way is added to
-`native/i18n/patterns.json`. `tests/test_i18n_provider.c` walks the main menu,
-the preferences, Discover and Accounts & library in six languages and fails on
-the first row that stays English.
+`native/i18n/patterns.json` (today: the generic patterns, the Interface
+language rows, values a label function writes into a plain buffer such as
+`On` and `Off`, and labels that are names or hold an address).
+`tests/test_i18n_provider.c` walks the main menu, every page of YouTube
+preferences, Discover, Accounts & library, the Interface screens, the video
+actions menu setup, About and more in six languages and fails on the first row
+that stays English.
 
 ## Adding a language
 
@@ -156,7 +173,13 @@ short as the English, because a card shows one line and cuts the rest.
 - **Content**: titles, channel names, descriptions, comments, chat, captions,
   section names YouTube sends. The content language is its own preference.
 - **Messages the service words itself**: an error text YouTube.js or YouTube
-  returns is shown as it came.
+  returns is shown as it came. An update message keeps a reason the network
+  library worded (`The update server could not be reached (...)` is translated
+  around it).
+- **Release notes and descriptions**: the text of the release-notes page and of
+  a video description is the author's. The two lines shown in their place
+  when there is none (`This release has no notes.`) take the same path and
+  stay English.
 - **Credits and the changelog** in About.
 - **The breadcrumb** keeps the names of the pages as they were when opened.
 - **Lists of languages and countries**: translated, but sorted as in English.
@@ -230,7 +253,11 @@ The plan for the rest, in order:
   loaded face, every card title is rasterised inside its card and not beside
   it, one-line strips stay one line, the key line takes at most two lines and
   stays clear of the text above it, a video named like a menu entry keeps its
-  name.
+  name. Five languages are drawn again under other interface preferences:
+  German at 1.4x, Russian with two title lines and cards at 0.8x in the red
+  scheme, Greek at 0.8x with four title lines and two subtitle lines, Vietnamese
+  at 0.4x, Ukrainian at 1.2x with the largest cards. The release-notes page
+  shows its title and hint in the language and the notes as written.
 
 The other host tests run in English and are unchanged.
 
