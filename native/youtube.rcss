@@ -1,3 +1,34 @@
+/* Palette. Every colour of this sheet is one of these tokens, each defined here
+ * and nowhere else. A colour scheme (native/tube_ui_style.h, per profile) gives
+ * them other values when the browser loads the sheet: "base" tokens keep their
+ * distance from the scheme's background, "accent" tokens from its accent, and
+ * "text" tokens stay as they are.
+ * @token background #101116 base
+ * @token text #f6f7fb text
+ * @token accent #ef3340 accent
+ * @token text-muted #a9adbb text
+ * @token panel #242633 base
+ * @token error-surface #51252c text
+ * @token error-text #ffe5e5 text
+ * @token card #181a22 base
+ * @token focus #ffffff text
+ * @token card-focus #292d3b base
+ * @token image #282b37 base
+ * @token placeholder #cbd0df text
+ * @token folder-image #202434 base
+ * @token folder-mark #ee5360 accent
+ * @token author #a5aabd text
+ * @token scrim #111111 text
+ * @token live #df3340 accent
+ * @token progress-track #343847 base
+ * @token watched #e77d86 accent
+ * @token overview #959bad text
+ * @token footer #bfc4d3 text
+ * @token rule #2b2e3a base
+ * @token reader #1b1d27 base
+ * @token scroll-track #292c39 base
+ * @token scroll-bar #9399ad text
+ */
 body { margin: 0; font-family: LatoLatin; font-size: 24dp; color: #f6f7fb; background: #101116; }
 div { display: block; box-sizing: border-box; }
 #tube-root { position: absolute; left: 64dp; top: 38dp; width: 1792dp; height: 1004dp; }

@@ -28,6 +28,7 @@
 #include "tube_channel_name.h"
 #include "tube_random.h"
 #include "tube_player_extra.h"
+#include "tube_ui_style.h"
 #include "tube_password.h"
 #include "tube_qr_page.h"
 #include "tube_about.h"
@@ -208,6 +209,21 @@ static double g_player_chat_position = -1;
 enum { TUBE_HISTORY_AUTO=0, TUBE_HISTORY_ENABLED=1, TUBE_HISTORY_DISABLED=2 };
 static int g_history_state;
 static int g_search_history = 1;
+/* Interface preferences of the selected profile (tube_ui_style.h). The
+ * revision changes whenever the browser must restyle itself. */
+static TubeUiPrefs g_ui;
+static unsigned g_ui_revision = 1;
+static uint64_t g_app_exit_armed, g_search_exit_armed;
+const struct TubeUiPrefs *tube_ui_prefs(void) { return &g_ui; }
+unsigned tube_ui_revision(void) { return g_ui_revision; }
+int tube_app_exit_press(uint64_t now_ms) {
+    g_search_exit_armed = 0; return tube_ui_press(g_ui.app_exit, now_ms, &g_app_exit_armed);
+}
+int tube_search_exit_press(uint64_t now_ms) {
+    g_app_exit_armed = 0;
+    return tube_ui_press(g_ui.search_exit ? TUBE_UI_EXIT_DOUBLE : TUBE_UI_EXIT_SINGLE, now_ms, &g_search_exit_armed);
+}
+void tube_ui_press_reset(void) { g_app_exit_armed = g_search_exit_armed = 0; }
 /* Device-owned, like the other phone and startup preferences. */
 static int g_remote_no_history, g_select_account_on_boot;
 /* Root sections a profile may open at startup; "" keeps the main menu. */
@@ -2415,6 +2431,7 @@ static int init_store(void) {
 }
 
 static int init(void) {
+    tube_ui_defaults(&g_ui); ++g_ui_revision; tube_ui_press_reset();
     embedded_select();
     int rc = init_store();
     embedded_adopt();
@@ -4421,6 +4438,44 @@ static void prompt_arm(const char *label) {
     copy(g_playlist_prompt.profile, sizeof g_playlist_prompt.profile, g_library_profile);
     g_playlist_prompt.pending = g_playlist_prompt.active = 1;
 }
+/* "settings:ui:<group>" or "settings:ui:<group>:<choice>" -> the interface
+ * group, -1 when the id names none. choice is -1 for the group itself and -2
+ * for a malformed one. */
+static int ui_group_parent(const char *parent, int *choice) {
+    char id[64]; *choice = -1;
+    int group = tube_ui_group_find(parent);
+    const char *colon = strrchr(parent, ':');
+    if (group >= 0 || !colon || (size_t)(colon - parent) >= sizeof id) return group;
+    memcpy(id, parent, (size_t)(colon - parent)); id[colon - parent] = 0;
+    if ((group = tube_ui_group_find(id)) < 0) return -1;
+    char *end = NULL; long value = isdigit((unsigned char)colon[1]) ? strtol(colon + 1, &end, 10) : -1;
+    *choice = value >= 0 && !*end && value < tube_ui_group_count(group) ? (int)value : -2;
+    return group;
+}
+/* "settings:menu:<key>" or "settings:menu:<key>:<verb>" -> the menu key, -1
+ * when the id names none. verb is "" for the key itself. */
+static int ui_menu_parent(const char *parent, const char **verb) {
+    char id[32]; *verb = "";
+    if (strncmp(parent, "settings:menu:", 14)) return -1;
+    const char *value = parent + 14, *colon = strchr(value, ':');
+    const size_t length = colon ? (size_t)(colon - value) : strlen(value);
+    if (!length || length >= sizeof id) return -1;
+    memcpy(id, value, length); id[length] = 0;
+    if (colon) *verb = colon + 1;
+    return tube_ui_menu_find(id);
+}
+/* The video actions menu as the profile arranged it: hidden rows leave, the
+ * rest follow its order. Returns the new count. */
+static int ui_menu_arrange(evo_provider_item_t *rows, int count) {
+    static evo_provider_item_t arranged[64];
+    int keys[64], index[64];
+    if (count > 64) return count;
+    for (int i = 0; i < count; ++i) keys[i] = tube_ui_menu_key(rows[i].id);
+    const int kept = tube_ui_menu_arrange(&g_ui, keys, count, index);
+    for (int i = 0; i < kept; ++i) arranged[i] = rows[index[i]];
+    memcpy(rows, arranged, (size_t)kept * sizeof *rows);
+    return kept;
+}
 /* Player extras by settings screen, in the order of tube_extra_group_screen():
  * captions, sound, controls and keys, player buttons, screen dimming. */
 static const char *const g_extra_screens[] = {"settings:extra:captions", "settings:extra:audio", "settings:extra:player",
@@ -5000,6 +5055,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     excluded?"Skip segments again in this channel's videos":"Never skip segments in this channel's videos");
             }
             CATALOG_FOLDER("settings:refresh","Refresh section","Reload the list this video was shown in");
+            n = ui_menu_arrange(out, n);
+            if (!n) CATALOG_FOLDER( "account:notice", "Every video action is hidden", "YouTube preferences > Interface > Video actions menu shows them again");
         } else if (!strncmp(parent, "account:confirm:", 16)) {
             const char *value = parent + 16, *colon = strchr(value, ':');
             int found = -1;
@@ -5164,11 +5221,29 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             tube_set_error("Select a listed import file."); cb(0,NULL,0,0,ud); return 1;
         }
         int extra_choice; const int extra_group = extra_group_parent(parent, &extra_choice);
+        int ui_choice = -1; const char *ui_verb = "";
+        const int ui_group = !strncmp(parent, "settings:ui:", 12) ? ui_group_parent(parent, &ui_choice) : -1;
+        const int ui_key = ui_menu_parent(parent, &ui_verb);
         if (!strncmp(parent, "settings:backup", 15)) memset(g_backup_notice, 0, sizeof g_backup_notice);
         if (!page) { /* Fetching a later menu page must not repeat its action. */
         if (extra_group >= 0) {
             if (extra_choice == -2) { tube_set_error("Select a listed value for this player preference."); cb(0,NULL,0,0,ud); return 1; }
             if (extra_choice >= 0 && !tube_extra_group_select(extra_group, extra_choice)) { cb(0,NULL,0,0,ud); return 1; }
+        } else if (!strncmp(parent, "settings:ui:", 12)) {
+            if (ui_group < 0 || ui_choice == -2) { tube_set_error("Select a listed value for this interface preference."); cb(0,NULL,0,0,ud); return 1; }
+            if (ui_choice >= 0) {
+                tube_ui_group_select(&g_ui, ui_group, ui_choice);
+                ++g_ui_revision; tube_ui_press_reset(); save();
+            }
+        } else if (!strncmp(parent, "settings:menu:", 14)) {
+            if (!strcmp(parent, "settings:menu:reset")) { tube_ui_menu_defaults(g_ui.menu_order); g_ui.menu_hidden = 0; save(); }
+            else if (ui_key < 0 || (*ui_verb && strcmp(ui_verb, "up") && strcmp(ui_verb, "down") && strcmp(ui_verb, "toggle"))) {
+                tube_set_error("Select a row of the video actions menu."); cb(0,NULL,0,0,ud); return 1;
+            } else if (*ui_verb) {
+                if (!strcmp(ui_verb, "toggle")) g_ui.menu_hidden ^= (uint64_t)1 << ui_key;
+                else tube_ui_menu_move(&g_ui, ui_key, !strcmp(ui_verb, "up") ? -1 : 1);
+                save();
+            }
         } else if (!strncmp(parent, "settings:content-language:", 26) || !strncmp(parent, "settings:content-country:", 25)) {
             const int country = parent[17] == 'c';
             const char *value = parent + (country ? 25 : 26);
@@ -5823,6 +5898,47 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 snprintf(id, sizeof id, "search-first:%u", g_playlist_scope);
                 CATALOG_FOLDER( id, label, "Run the last search with these options and play its first video");
             }
+            tube_ui_group_label(TUBE_UI_GROUP_SEARCH_EXIT, g_ui.search_exit, clipped, sizeof clipped);
+            snprintf(label, sizeof label, "%s: %s", g_tube_ui_groups[TUBE_UI_GROUP_SEARCH_EXIT].title, clipped);
+            CATALOG_FOLDER( g_tube_ui_groups[TUBE_UI_GROUP_SEARCH_EXIT].id, label, "Circle on typed results; saved for this profile");
+        } else if (!strncmp(parent, "settings:ui:", 12)) {
+            if (ui_group < 0) { tube_set_error("Select a listed value for this interface preference."); cb(0,NULL,0,0,ud); return 1; }
+            const int selected = tube_ui_group_selected(&g_ui, ui_group), count = tube_ui_group_count(ui_group);
+            for (int i = 0; i < count; ++i) {
+                char id[80], label[96]; snprintf(id, sizeof id, "%s:%d", g_tube_ui_groups[ui_group].id, i);
+                tube_ui_group_label(ui_group, i, label, sizeof label);
+                CATALOG_FOLDER( id, label, i == selected ? "Selected" : g_tube_ui_groups[ui_group].detail);
+            }
+        } else if (!strcmp(parent, "settings:ui")) {
+            for (int group = 0; group < TUBE_UI_GROUPS; ++group) {
+                char label[192], value[96];
+                if (group == TUBE_UI_GROUP_SEARCH_EXIT) continue; /* a row of Search options */
+                tube_ui_group_label(group, tube_ui_group_selected(&g_ui, group), value, sizeof value);
+                snprintf(label, sizeof label, "%s: %s", g_tube_ui_groups[group].title, value);
+                CATALOG_FOLDER( g_tube_ui_groups[group].id, label, g_tube_ui_groups[group].detail);
+            }
+            CATALOG_FOLDER( "settings:menu", "Video actions menu", "Show, hide and order the rows of the video actions menu");
+        } else if (!strcmp(parent, "settings:menu") || !strcmp(parent, "settings:menu:reset")) {
+            for (int k = 0; k < TUBE_MENU_KEYS; ++k) {
+                const int key = g_ui.menu_order[k]; char id[64], label[160];
+                snprintf(id, sizeof id, "settings:menu:%s", g_tube_menu_keys[key].id);
+                snprintf(label, sizeof label, "%s: %s", g_tube_menu_keys[key].label, g_ui.menu_hidden >> key & 1 ? "hidden" : "shown");
+                CATALOG_FOLDER( id, label, "Select to show, hide or move this row");
+            }
+            CATALOG_FOLDER( "settings:menu:reset", "Restore the default menu", "Every row shown, in the original order");
+        } else if (!strncmp(parent, "settings:menu:", 14)) {
+            if (ui_key < 0) { tube_set_error("Select a row of the video actions menu."); cb(0,NULL,0,0,ud); return 1; }
+            const int hidden = (int)(g_ui.menu_hidden >> ui_key & 1), rank = tube_ui_menu_rank(&g_ui, ui_key);
+            char id[64], label[160];
+            snprintf(id, sizeof id, "settings:menu:%s", g_tube_menu_keys[ui_key].id);
+            snprintf(label, sizeof label, "%s: %s", g_tube_menu_keys[ui_key].label, hidden ? "hidden" : "shown");
+            CATALOG_FOLDER( id, label, "A row of the video actions menu, in the browser and in the player");
+            snprintf(id, sizeof id, "settings:menu:%s:up", g_tube_menu_keys[ui_key].id);
+            if (rank > 0) CATALOG_FOLDER( id, "Move up", "Earlier in the menu");
+            snprintf(id, sizeof id, "settings:menu:%s:down", g_tube_menu_keys[ui_key].id);
+            if (rank < TUBE_MENU_KEYS - 1) CATALOG_FOLDER( id, "Move down", "Later in the menu");
+            snprintf(id, sizeof id, "settings:menu:%s:toggle", g_tube_menu_keys[ui_key].id);
+            CATALOG_FOLDER( id, hidden ? "Show row" : "Hide row", hidden ? "Return it to the menu" : "Remove it from the menu; this screen shows it again");
         } else if (!strcmp(parent, "settings:sections")) {
             for (int group = SECTION_ROOT; group <= SECTION_DISCOVER; ++group) for (int k = 0; k < SECTIONS; ++k) {
                 const int s = g_section_order[k]; char id[64], label[256];
@@ -6096,6 +6212,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:content-language", label, "Language YouTube uses for titles and sections");
             snprintf(label, sizeof label, "Content country: %s", country_index(g_gl) >= 0 ? g_countries[country_index(g_gl)].name : "default");
             CATALOG_FOLDER( "settings:content-country", label, "Country YouTube uses for recommendations and Trending");
+            CATALOG_FOLDER( "settings:ui", "Interface", "Scale, video grid, card text, color scheme, video actions menu and Circle on the main menu");
             CATALOG_FOLDER( "settings:hide", "Hide content", "Shorts, mixes, watched, live and upcoming videos by section");
             snprintf(label, sizeof label, "Thumbnail source: %s", g_thumbnail_labels[g_thumbnails]);
             CATALOG_FOLDER( "settings:thumbnails", label, "Published thumbnail or a frame from the start, middle or end");

@@ -131,6 +131,18 @@ next section lists the part that also ran on a PS5.
   per account**), **Start in** section, **Choose account at startup**, menu
   sections and pins, content language and country, sixteen hide-content
   switches, thumbnail source, channel blocks by ID or name.
+- **Interface**, per profile: interface scale and video grid scale with
+  SmartTube's values (the page holds more or fewer cards accordingly), one to
+  four title lines, the selected card's long title scrolling at a chosen speed,
+  two-line subtitles, rounded or square cards, nine colour schemes (three of
+  them true black), which rows the video actions menu shows and in what order
+  (in the browser and in the player), and what Circle does on the main menu:
+  nothing, close after a second press, or close at once. **Search options**
+  can ask for two presses of Circle to leave typed results.
+- A colour scheme colours the browser and lends its accent to the player
+  controls. **Player settings > Theme** (EVO's own, shared by every profile)
+  colours the keyboard, dialogs and player settings, and the player controls
+  while the scheme is **ProsperoTube**.
 - **Backup and restore** in `/data/prosperotube/backup` with an optional
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the
@@ -206,8 +218,9 @@ password need a signed-in account. Their rows end in
 ## Not included yet
 
 - Translations: the interface is English only.
-- The remaining SmartTube interface options (card styles, scaling, colour
-  schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
+- The remaining SmartTube interface options (buttons at the top of the main
+  window, card previews, playlists as rows); [docs/PARITY.md](docs/PARITY.md)
+  tracks each.
 - Drawn thumbnails while seeking.
 - Update check and self-update.
 - Playing videos that need the account itself (age-restricted, private,
