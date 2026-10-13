@@ -12,6 +12,7 @@
 #include "afterglow/app/afterglow.h"
 #include "afterglow/app/data_provider.hpp"
 #include "afterglow/frame.hpp"
+#include "afterglow/sound/app/sound_app.hpp" // stage S
 #include "afterglow/text_engine.hpp"
 
 #include "evo_rmlui_bundle.h"
@@ -252,6 +253,8 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
             return true;
         });
         m.frame = std::make_unique<Frame>(m.platform, m.source, fonts, options);
+        // stage S: the interface's recordings (read once per run), and the welcome of a cold start.
+        sound::app_begin(m.platform, options.opening);
         evo_boot_log("afterglow: interface up, look %s, %dx%d", m.frame->look().id, width, height);
     }
     if (prefs != nullptr && prefs->scheme != m.scheme)
@@ -268,6 +271,9 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     if (m.text)
         m.text->begin_frame();
     m.frame->update(m.input, dt);
+    // stage S: what this step asked for is played and felt (the app's park and exit reach the sound through
+    // tube_afterglow_sound.h, from EVO's application).
+    sound::app_step(*m.frame, m.platform, dt);
     m.input = InputFrame{};
     m.world.clear();
     m.ui.clear();

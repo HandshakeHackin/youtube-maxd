@@ -85,6 +85,79 @@ extern "C" void evo_rmlui_provider_offer_selection(const char *item_id, const ch
 '''
 
 
+# stage S: the recordings the interface's cues are served by (native/afterglow/sound/cues.cpp): the kit's glass set
+# whole, the five cues that set lacks from its paper set, and whatever native/afterglow/sound/recordings/<set>/ holds,
+# over the kit's file of the same name. No recording is kept in this repository today.
+SOUND_BORROWED = ("tick", "type", "erase", "favorite_on", "favorite_off")
+SOUND_NOTICE = """Interface sounds of the Afterglow interface (assets/hui/afterglow/sfx in the application).
+
+The recordings named "ps5-homebrew-ui" below are files of the UI kit's two sound sets
+(https://github.com/blackbearreloaded/ps5-homebrew-ui, assets/audio/sfx, at commit {commit}),
+unchanged. The kit's notices say of them: generated for ProsperoEden (glass) and ProsperoPuzzles (paper) with
+ElevenLabs Sound Effects v2, prepared with the kit's tools/process-sfx.py, Copyright (C) 2026 BlackBearReloaded,
+distributed under the kit's licence, GPL-3.0-or-later. Recordings named "ProsperoTube" are this project's own, under
+its licence.
+
+"""
+
+
+def sound_files(root, kit):
+    """(name, file) of every recording the package carries for the interface; the name is its path under hui/afterglow/sfx."""
+    files = {}
+    sets = kit / "assets/audio/sfx"
+    for file in sorted((sets / "glass").glob("*.wav")):
+        files["glass/" + file.name] = file
+    for cue in SOUND_BORROWED:
+        for file in sorted((sets / "paper").glob(cue + "_[0-9][0-9].wav")):
+            files["paper/" + file.name] = file
+    for file in sorted((root / "native/afterglow/sound/recordings").glob("*/*.wav")):
+        files[file.parent.name + "/" + file.name] = file
+    return sorted(files.items())
+
+
+SOUND_PARK = '''                if (m_soundEffectEngine)   m_soundEffectEngine->shutdown();
+                tube_afterglow_sound_park(); /* ProsperoTube stage S: the interface's port and vibration let go */
+'''
+
+SOUND_EXIT = '''    if (m_soundEffectEngine) {
+        m_soundEffectEngine->shutdown();
+    }
+    tube_afterglow_sound_close(); /* ProsperoTube stage S */
+'''
+
+
+def apply_sound(root, work, replace, player, kit):
+    """Interface sound and vibration (native/afterglow/sound): the recordings as assets with where they come from,
+    the sources in EVO's Makefile, and three places of EVO's application: the pad it opened, its park, its exit."""
+    evo = work / player
+    sounds = evo / "assets/hui/afterglow/sfx"
+    shutil.rmtree(sounds, ignore_errors=True)
+    listing = [SOUND_NOTICE.format(commit=ui_kit.COMMIT)]
+    for name, file in sound_files(root, kit):
+        (sounds / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(file, sounds / name)
+        kit_file = kit in file.parents
+        listing.append("%-28s %7d bytes  %s %s\n" % (name, file.stat().st_size, "ps5-homebrew-ui" if kit_file else "ProsperoTube",
+                                                      file.relative_to(kit if kit_file else root).as_posix()))
+    notices = evo / "assets/prosperotube-notices"
+    notices.mkdir(exist_ok=True)
+    (notices / "afterglow-sounds.txt").write_text("".join(listing), encoding="utf-8")
+    shutil.copyfile(root / "native/afterglow/sound/app/tube_afterglow_sound.h", evo / "addons/include/tube_afterglow_sound.h")
+    if "ui_kit/src/afterglow/sound" not in (evo / "Makefile").read_text(encoding="utf-8"):
+        replace(player + "Makefile", "                   $(wildcard ui_kit/src/afterglow/app/*.cpp) $(wildcard ui_kit/src/text/*.cpp)\n",
+                "                   $(wildcard ui_kit/src/afterglow/app/*.cpp) $(wildcard ui_kit/src/text/*.cpp) \\\n"
+                "                   $(wildcard ui_kit/src/afterglow/sound/*.cpp) $(wildcard ui_kit/src/afterglow/sound/app/*.cpp)\n")
+    application = player + "core/src/Application.cpp"
+    if "tube_afterglow_sound" not in (work / application).read_text(encoding="utf-8"):
+        replace(application, '#include "tube_provider.h"\n', '#include "tube_provider.h"\n#include "tube_afterglow_sound.h"\n')
+        replace(application, "    evo_feedback_init(m_padHandle, SoundEffectCallback);\n",
+                "    evo_feedback_init(m_padHandle, SoundEffectCallback);\n"
+                "    tube_afterglow_sound_pad(m_padHandle); /* ProsperoTube stage S: the pad the interface vibrates */\n")
+        replace(application, "                if (m_soundEffectEngine)   m_soundEffectEngine->shutdown();\n", SOUND_PARK)
+        replace(application, "    if (m_soundEffectEngine) {\n        m_soundEffectEngine->shutdown();\n    }\n", SOUND_EXIT)
+# end of stage S
+
+
 def stage_kit(work):
     """The pinned UI kit in place of the copy EVO pins. Called before the overlays, so that the ones
     that patch kit files (the language hook in ui/fonts.hpp) patch the kit that is compiled."""
@@ -171,3 +244,5 @@ def apply(root, work, replace, player):
         replace(host, "    if (m_streamPick) {\n        const int n = g_pending.choice_count;",
                 PAD + "    if (m_streamPick) {\n        const int n = g_pending.choice_count;")
         replace(host, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_afterglow.h"', count=1)
+
+    apply_sound(root, work, replace, player, kit)  # stage S
