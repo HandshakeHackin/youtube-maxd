@@ -40,7 +40,7 @@
    "fixture": "guest",
    "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
    "steps": [{"press": "left"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
-   "expect": {"screen": "search", "focus": "placeholder"}
+   "expect": {"screen": "search"}
   }
  ]
 }

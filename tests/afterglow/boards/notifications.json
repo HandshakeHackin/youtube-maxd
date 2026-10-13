@@ -41,7 +41,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "down"}, {"press": "triangle"}, {"wait": 0.7}],
-   "expect": {"screen": "channel", "moving": 0, "state": {"argument": "UCtidewrit00000000000000"}}
+   "expect": {"screen": "channel", "moving": 0, "argument": "UCtidewrit00000000000000"}
   },
   {
    "name": "notifications-back-from-channel",

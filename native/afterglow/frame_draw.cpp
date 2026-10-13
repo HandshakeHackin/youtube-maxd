@@ -340,6 +340,7 @@ std::string Frame::snapshot_json() const
     json_field(out, "interface", "afterglow");
     json_field(out, "look", look_->id);
     json_field(out, "screen", stack_.empty() ? "" : screen_name(stack_.back()->screen->id()));
+    json_field(out, "argument", stack_.empty() ? "" : stack_.back()->route.argument);
     out += "\"stack\":[";
     for (std::size_t i = 0; i < stack_.size(); ++i)
     {

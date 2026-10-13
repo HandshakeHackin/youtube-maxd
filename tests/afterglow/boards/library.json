@@ -139,7 +139,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}],
-   "expect": {"screen": "video", "moving": 0, "state": {"argument": "writinga009"}}
+   "expect": {"screen": "video", "moving": 0, "argument": "writinga009"}
   },
   {
    "name": "library-back-from-details",

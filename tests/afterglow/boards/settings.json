@@ -6,7 +6,7 @@
   {"name": "settings-home-loading", "fixture": "signed-in", "route": {"screen": "settings"}, "source": {"hold": true}, "expect": {"focus": "tile/player", "state": {"load": "loading"}, "screen": "settings"}},
   {"name": "settings-home-arriving", "fixture": "signed-in", "route": {"screen": "settings"}, "source": {"delay": 30}, "settle": 0.62, "expect": {"focus": "tile/player", "state": {"load": "ready"}, "screen": "settings"}},
   {"name": "settings-home-offline", "fixture": "signed-in", "route": {"screen": "settings"}, "source": {"offline": true}, "steps": [{"press": "down"}, {"press": "right"}], "expect": {"focus": "tile/sponsorblock", "state": {"load": "offline"}, "screen": "settings"}},
-  {"name": "settings-home-empty", "fixture": "empty", "route": {"screen": "settings"}, "expect": {"focus": "tile/player", "state": {"load": "ready", "tiles": "12"}, "screen": "settings"}},
+  {"name": "settings-home-empty", "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true}, "route": {"screen": "settings"}, "expect": {"focus": "tile/player", "state": {"load": "ready", "tiles": "12"}, "screen": "settings"}},
   {"name": "settings-home-long", "fixture": "long-texts", "route": {"screen": "settings"}, "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}], "expect": {"focus": "tile/dearrow", "state": {"tiles": "12"}, "screen": "settings"}},
   {"name": "settings-home-edges", "fixture": "signed-in", "route": {"screen": "settings"}, "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "down"}, {"press": "down"}, {"press": "down"}], "expect": {"focus": "tile/about", "rail_open": 0, "screen": "settings"}},
   {"name": "settings-home-rail", "fixture": "signed-in", "route": {"screen": "settings"}, "steps": [{"press": "left"}], "expect": {"focus": "rail/settings", "rail_open": 1, "screen": "settings"}},
@@ -67,6 +67,6 @@
   {"name": "settings-page-loading", "fixture": "signed-in", "route": {"screen": "settings", "argument": "tile:captions"}, "source": {"hold": true}, "expect": {"focus": "loading", "state": {"load": "loading"}, "screen": "settings"}},
   {"name": "settings-page-offline", "fixture": "signed-in", "route": {"screen": "settings", "argument": "tile:captions"}, "source": {"offline": true}, "expect": {"focus": "action/retry", "state": {"load": "offline"}, "screen": "settings"}},
   {"name": "settings-page-failed", "fixture": "signed-in", "route": {"screen": "settings", "argument": "settings:backup:import", "title": "Backup\u001fImport subscriptions"}, "steps": [{"press": "cross"}, {"wait": 0.4}], "expect": {"focus": "action/retry", "state": {"load": "failed"}, "screen": "settings"}},
-  {"name": "settings-page-empty", "fixture": "empty", "route": {"screen": "settings", "argument": "settings:hide", "title": "Content & language\u001fHide content"}, "expect": {"focus": "action/back", "state": {"load": "ready", "rows": "0"}, "screen": "settings"}}
+  {"name": "settings-page-empty", "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true}, "route": {"screen": "settings", "argument": "settings:hide", "title": "Content & language\u001fHide content"}, "expect": {"focus": "action/back", "state": {"load": "ready", "rows": "0"}, "screen": "settings"}}
  ]
 }

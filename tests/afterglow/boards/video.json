@@ -253,11 +253,11 @@
    "fixture": "guest",
    "route": {"screen": "video", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "up"}, {"press": "cross", "wait": 0.6}, {"press": "cross", "wait": 1.0}],
-   "expect": {"screen": "accounts", "focus": "placeholder", "dialog": 0}
+   "expect": {"screen": "accounts", "dialog": 0}
   },
   {
    "name": "video-empty",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "video", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "down"}, {"press": "touchpad", "wait": 0.8}],
    "expect": {"screen": "video", "focus": "menu/0", "state": {"load": "ready", "related": "0", "description_lines": "0", "layer": "menu", "menu_rows": "0"}}

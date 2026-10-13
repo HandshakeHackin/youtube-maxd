@@ -125,7 +125,7 @@
    "fixture": "guest",
    "route": {"screen": "subscriptions"},
    "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.7}],
-   "expect": {"screen": "home", "focus": "placeholder"}
+   "expect": {"screen": "home"}
   },
   {
    "name": "subscriptions-guest-follows",
@@ -136,7 +136,7 @@
   },
   {
    "name": "subscriptions-empty",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "subscriptions"},
    "expect": {"screen": "subscriptions", "focus": "state/search", "state": {"mode": "empty", "load": "ready"}}
   },

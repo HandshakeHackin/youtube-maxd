@@ -72,7 +72,7 @@
    "fixture": "signed-in",
    "settle": 2.0,
    "steps": [{"press": "triangle"}, {"wait": 0.9}],
-   "expect": {"screen": "video", "moving": 0, "state": {"argument": "vid00xxxxxx"}}
+   "expect": {"screen": "video", "moving": 0, "argument": "vid00xxxxxx"}
   },
   {
    "name": "home-back-from-details",
@@ -116,7 +116,7 @@
    "fixture": "guest",
    "settle": 2.0,
    "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
-   "expect": {"screen": "grid", "state": {"argument": "section:gaming"}}
+   "expect": {"screen": "grid", "argument": "section:gaming"}
   },
   {
    "name": "home-guest-sign-in",

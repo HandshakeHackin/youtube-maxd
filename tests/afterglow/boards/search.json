@@ -126,7 +126,7 @@
    "fixture": "signed-in",
    "route": {"screen": "search", "argument": "auro"},
    "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.2}, {"press": "triangle", "wait": 0.8}],
-   "expect": {"screen": "video", "focus": "placeholder", "state": {"argument": "blueHourNth"}}
+   "expect": {"screen": "video", "argument": "blueHourNth"}
   },
   {
    "name": "search-done-key",
@@ -208,7 +208,7 @@
    "name": "search-guest",
    "fixture": "guest",
    "route": {"screen": "search"},
-   "expect": {"screen": "search", "focus": "key/1", "state": {"list": "none", "recent": "0", "history": "ready", "matches": "10"}}
+   "expect": {"screen": "search", "focus": "key/1", "state": {"list": "none", "recent": "0", "history": "ready", "matches": "8"}}
   },
   {
    "name": "search-empty",

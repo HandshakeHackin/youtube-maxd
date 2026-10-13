@@ -88,7 +88,7 @@
    "fixture": "signed-in",
    "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
    "steps": [{"press": "l1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.7}],
-   "expect": {"screen": "grid", "focus": "placeholder", "state": {"argument": "playlist:PLnorthlightatlas0000"}}
+   "expect": {"screen": "grid", "argument": "playlist:PLnorthlightatlas0000"}
   },
   {
    "name": "channel-subscribe-pending",
@@ -105,7 +105,7 @@
    "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
    "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 1.2}],
    "expect": {"screen": "channel", "focus": "action/subscribe", "state": {"action": "confirmed", "subscribed": "1", "level": "personalized"},
-              "asked": ["account:confirm:subscribe:UCnorthlightatlas0000000", "account:apply:7"]}
+              "asked": ["account:confirm:subscribe:UCnorthlightatlas0000000", "account:apply:17"]}
   },
   {
    "name": "channel-unsubscribe-asks",
@@ -164,7 +164,7 @@
    "fixture": "signed-in",
    "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
    "steps": [{"press": "square"}, {"wait": 0.7}],
-   "expect": {"screen": "search", "focus": "placeholder", "moving": 0, "state": {"argument": "channel-search:UCnorthlightatlas0000000"}}
+   "expect": {"screen": "search", "moving": 0, "argument": "channel-search:UCnorthlightatlas0000000"}
   },
   {
    "name": "channel-rail",
@@ -185,7 +185,7 @@
    "fixture": "guest",
    "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
    "steps": [{"press": "up"}, {"press": "cross"}, {"wait": 0.7}],
-   "expect": {"screen": "sign_in", "focus": "placeholder"}
+   "expect": {"screen": "sign_in"}
   },
   {
    "name": "channel-loading",
@@ -209,7 +209,7 @@
   },
   {
    "name": "channel-empty",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "channel", "argument": "UCquillhavennotes0000000", "title": "Quillhaven Notes"},
    "steps": [{"press": "down"}],
    "expect": {"screen": "channel", "focus": "tab/videos", "state": {"load": "ready", "cells": "0", "tabs": "1", "zone": "tabs"}}

@@ -146,14 +146,14 @@
   },
   {
    "name": "comments-empty",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "down"}],
    "expect": {"screen": "comments", "focus": "compose", "state": {"load": "ready", "comments": "0", "count": "0", "can_write": "1"}}
   },
   {
    "name": "comments-empty-write",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "cross", "wait": 0.8}],
    "expect": {"screen": "comments", "focus": "write/key", "state": {"writing": "comment"}}

@@ -116,7 +116,7 @@
    "fixture": "guest",
    "route": {"screen": "channels"},
    "steps": [{"press": "cross"}, {"wait": 0.7}],
-   "expect": {"screen": "sign_in", "focus": "placeholder"}
+   "expect": {"screen": "sign_in"}
   },
   {
    "name": "channels-guest-follows",
@@ -127,7 +127,7 @@
   },
   {
    "name": "channels-empty",
-   "fixture": "empty",
+   "fixture": "empty", "profile": {"id": "mara", "name": "Mara", "guest": false, "signed_in": true},
    "route": {"screen": "channels"},
    "expect": {"screen": "channels", "focus": "state/search", "state": {"mode": "empty", "load": "ready", "channels": "0"}}
   },

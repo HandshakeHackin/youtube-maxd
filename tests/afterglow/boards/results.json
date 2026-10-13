@@ -151,14 +151,14 @@
    "fixture": "signed-in",
    "route": {"screen": "results", "argument": "aurora"},
    "steps": [{"press": "left", "wait": 0.2}, {"press": "cross", "wait": 0.8}],
-   "expect": {"screen": "channel", "focus": "placeholder", "state": {"argument": "UCnorthlightatlas007"}}
+   "expect": {"screen": "channel", "argument": "UCnorthlightatlas007"}
   },
   {
    "name": "results-open-playlist",
    "fixture": "signed-in",
    "route": {"screen": "results", "argument": "aurora"},
    "steps": [{"press": "left", "wait": 0.2}, {"press": "down", "wait": 0.2}, {"press": "cross", "wait": 0.8}],
-   "expect": {"screen": "grid", "focus": "placeholder", "state": {"argument": "playlist:PLnorthernLights0024"}}
+   "expect": {"screen": "grid", "argument": "playlist:PLnorthernLights0024"}
   },
   {
    "name": "results-search-again",
@@ -215,7 +215,7 @@
    "source": {"offline": true},
    "route": {"screen": "results", "argument": "aurora"},
    "steps": [{"press": "triangle", "wait": 0.8}],
-   "expect": {"screen": "library", "focus": "placeholder"}
+   "expect": {"screen": "library"}
   },
   {
    "name": "results-guest",

@@ -57,7 +57,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
    "steps": [{"press": "right"}, {"press": "triangle"}, {"wait": 0.8}],
-   "expect": {"screen": "video", "moving": 0, "state": {"argument": "thefores026"}}
+   "expect": {"screen": "video", "moving": 0, "argument": "thefores026"}
   },
   {
    "name": "grid-back-from-details",
@@ -91,7 +91,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
    "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.7}],
-   "expect": {"screen": "channel", "moving": 0, "state": {"argument": "UCglassferngames00000000"}}
+   "expect": {"screen": "channel", "moving": 0, "argument": "UCglassferngames00000000"}
   },
   {
    "name": "grid-open-section",

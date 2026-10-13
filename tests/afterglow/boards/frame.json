@@ -1,150 +1,43 @@
 {
- "about": "The frame itself, shown on a page that is not built yet: the stack, the rail, the hand-overs, the dialog and Circle on the last screen.",
+ "about": "The frame itself, shown around the simplest page there is (the reader): a route and its argument, the rail, its destinations, Circle closing it, and a picture drawn the way it was made.",
  "boards": [
   {
-   "name": "frame-placeholder",
+   "name": "frame-route",
+   "about": "A route opens its screen with its argument; nothing moves once it is up.",
    "fixture": "guest",
-   "route": {
-    "screen": "comments",
-    "argument": "discussion:abcdefghijk",
-    "title": "Comments"
-   },
-   "expect": {
-    "screen": "comments",
-    "focus": "placeholder",
-    "rail_open": 0,
-    "moving": 0,
-    "state": {
-     "placeholder": "1",
-     "argument": "discussion:abcdefghijk"
-    }
-   }
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "expect": {"screen": "reader", "argument": "settings:about:credits", "focus": "text", "rail_open": 0, "moving": 0, "dialog": 0}
   },
   {
    "name": "frame-rail-open",
    "fixture": "guest",
-   "route": {
-    "screen": "comments",
-    "title": "Comments"
-   },
-   "steps": [
-    {
-     "press": "left"
-    },
-    {
-     "press": "down"
-    },
-    {
-     "press": "down"
-    }
-   ],
-   "expect": {
-    "screen": "comments",
-    "focus": "rail/subscriptions",
-    "rail_open": 1
-   }
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}],
+   "expect": {"screen": "reader", "focus": "rail/subscriptions", "rail_open": 1}
   },
   {
    "name": "frame-rail-destination",
+   "about": "A destination of the rail replaces the whole stack and closes the rail.",
    "fixture": "guest",
-   "route": {
-    "screen": "comments",
-    "title": "Comments"
-   },
-   "steps": [
-    {
-     "press": "left"
-    },
-    {
-     "press": "down"
-    },
-    {
-     "press": "down"
-    },
-    {
-     "press": "down"
-    },
-    {
-     "press": "cross"
-    },
-    {
-     "wait": 0.6
-    }
-   ],
-   "expect": {
-    "screen": "library",
-    "focus": "placeholder",
-    "rail_open": 0,
-    "moving": 0
-   }
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.6}],
+   "expect": {"screen": "library", "argument": "", "rail_open": 0, "moving": 0}
   },
   {
    "name": "frame-rail-closed-by-circle",
+   "about": "Circle closes the rail and the page has the focus again.",
    "fixture": "guest",
-   "route": {
-    "screen": "comments",
-    "title": "Comments"
-   },
-   "steps": [
-    {
-     "press": "left"
-    },
-    {
-     "press": "circle"
-    }
-   ],
-   "expect": {
-    "screen": "comments",
-    "focus": "placeholder",
-    "rail_open": 0
-   }
+   "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
+   "steps": [{"press": "left"}, {"press": "circle"}],
+   "expect": {"screen": "reader", "focus": "text", "rail_open": 0}
   },
   {
    "name": "frame-picture-upright",
    "about": "A decoded picture is drawn the way it was made: the probe's top half is red, its bottom half blue, its left edge green, on the second card (not focused, so nothing covers it) and in the hero's backdrop.",
    "fixture": "probe",
    "settle": 2.5,
-   "expect": {
-    "screen": "home",
-    "focus": "continue/0",
-    "pixels": [
-     [
-      840,
-      640,
-      220,
-      0,
-      0
-     ],
-     [
-      840,
-      745,
-      0,
-      0,
-      220
-     ],
-     [
-      566,
-      690,
-      0,
-      220,
-      0
-     ],
-     [
-      1700,
-      120,
-      240,
-      0,
-      0
-     ],
-     [
-      1700,
-      300,
-      240,
-      0,
-      0
-     ]
-    ]
-   }
+   "expect": {"screen": "home", "focus": "continue/0",
+              "pixels": [[840, 640, 220, 0, 0], [840, 745, 0, 0, 220], [566, 690, 0, 220, 0], [1700, 120, 240, 0, 0], [1700, 300, 240, 0, 0]]}
   }
  ]
 }
