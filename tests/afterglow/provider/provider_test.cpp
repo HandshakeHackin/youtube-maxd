@@ -254,9 +254,43 @@ int main()
         assert(!cancelled_answered && next_answered && source.pending() == 0);
         assert(source.catalog(std::string(400, 'x'), 0, [](Page &&) {}) == 0); // an id the provider cannot take
         assert(!source.play(model::Video{}));                                  // no player was given
+
+        // A typed answer: the row that asks for a text is listed (which arms the provider's prompt), the
+        // text is handed to that prompt, and the catalog the provider names next is the answer.
+        const auto typed = [&](const char *row, const char *text)
+        {
+            Page answer;
+            bool done = false;
+            assert(source.answer(row, text, [&](Page &&page) { answer = std::move(page); done = true; }) != 0);
+            for (int i = 0; i < 12 && !done; ++i)
+            {
+                source.pump();
+                serve(kTrending);
+            }
+            assert(done && source.pending() == 0);
+            return answer;
+        };
+        // This build has no built-in service and no account, so no row arms a prompt here: what is
+        // proven is that the row is listed first, that a text nobody asked for is refused in words, and
+        // that the queue is free again afterwards. The accepted text is proven with fixtures only
+        // (tests/afterglow/boards) and waits for a console session.
+        const Page unarmed = typed("settings:sb:server", "https://sponsor.example.org");
+        assert(unarmed.load == model::Load::failed && !unarmed.error.empty() && unarmed.rows.empty() && unarmed.listed.empty());
+        const Page nothing = typed("", "a text nobody asked for");
+        assert(nothing.load == model::Load::failed && nothing.error == unarmed.error);
+        assert(source.answer(std::string(400, 'x'), "text", [](Page &&) {}) == 0); // a row the provider cannot take
+        // A listing after a refused text is an ordinary one again.
+        bool after = false;
+        assert(source.catalog("", 0, [&](Page &&page) { after = page.load == model::Load::ready && page.listed.empty(); }) != 0);
+        for (int i = 0; i < 12 && !after; ++i)
+        {
+            source.pump();
+            serve(kTrending);
+        }
+        assert(after && source.pending() == 0);
     }
     p->shutdown();
     std::puts("PASS: Afterglow data on the provider: Guest Home from the provider's catalogs one request at a time, row facts in the view "
-              "models, a failed job, a cancelled request, the browsing profile");
+              "models, a failed job, a cancelled request, a typed text with no prompt armed, the browsing profile");
     return 0;
 }
