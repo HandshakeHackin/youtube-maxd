@@ -79,14 +79,16 @@ def apply_i18n_overlay(replace, player, work, root):
         shutil.copyfile(root / "native" / name, work / player / ("addons/src" if name.endswith(".c") else "addons/include") / name)
     replace(player + "Makefile", "    addons/src/tube_provider.c", "    addons/src/tube_provider.c \\\n    addons/src/tube_i18n.c")
     # Toasts: every caller passes through toast(); its English classification stays ahead of the translation.
+    # They are drawn by the player interface, whose fonts hold no accented letter: translated only in a
+    # language those fonts cover (none today), so a toast is English rather than full of question marks.
     toast = player + "src/evo_toast.c"
     pin = (work / ".prosperotube-source").read_text().strip()
     source = subprocess.check_output(["git", "-C", str(root / "third_party/evo"), "show", f"{pin}:{toast}"])
     (work / toast).write_bytes(source)
     replace(toast, '#include "evo_toast.h"', '#include "evo_toast.h"\n#include "tube_i18n.h"')
     replace(toast, TOAST, TOAST + '''    if (tube_i18n_field) {
-        tube_i18n_field(prospero_toast_title, sizeof(prospero_toast_title), 0);
-        tube_i18n_field(prospero_toast_message, sizeof(prospero_toast_message), TUBE_I18N_LABELS);
+        tube_i18n_field(prospero_toast_title, sizeof(prospero_toast_title), TUBE_I18N_KIT);
+        tube_i18n_field(prospero_toast_message, sizeof(prospero_toast_message), TUBE_I18N_LABELS | TUBE_I18N_KIT);
     }
 ''')
     # Provider rows made of interface texts carry a mark; rows of YouTube content never do.

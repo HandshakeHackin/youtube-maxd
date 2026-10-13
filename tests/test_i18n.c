@@ -84,6 +84,10 @@ int main(void) {
 #else
         /* The player interface fonts hold ASCII and a few signs today: no catalog is drawn there. */
         assert(!tube_i18n_language_kit((int)i) && !tube_i18n_kit("Subscriptions", out, sizeof out) && !tr("Subscriptions", TUBE_I18N_KIT));
+        /* A toast is one of its lines: toast() asks with the same flag, and the line stays as it is. */
+        char toast[64] = "Skipped an optional segment";
+        tube_i18n_field(toast, sizeof toast, TUBE_I18N_LABELS | TUBE_I18N_KIT);
+        assert(!strcmp(toast, "Skipped an optional segment") && tr("Skipped an optional segment", TUBE_I18N_LABELS));
 #endif
     }
     assert(tube_i18n_generation() != english);

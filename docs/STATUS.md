@@ -49,10 +49,10 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   self-update ([updates](UPDATES.md)). The check cannot answer while the
   repository is private.
 - **Added 2026-10-13, host-tested only:** the interface in 21 languages
-  besides English ([localization](LOCALIZATION.md)): browser, preferences,
-  messages and toasts follow the PS5 system language or the **Interface
-  language** preference. The player (controls, in-player menus, pickers,
-  keyboard) stays English: its fonts hold no accented letters.
+  besides English ([localization](LOCALIZATION.md)): browser, preferences
+  and messages follow the PS5 system language or the **Interface language**
+  preference. The player (controls, in-player menus, pickers, keyboard) and
+  toasts stay English: their fonts hold no accented letters.
 - **Added 2026-10-13, host-tested only:** interface preferences per profile
   (interface and grid scale, card text, colour schemes, the video actions
   menu, Circle rules) and the drawn seek preview.
