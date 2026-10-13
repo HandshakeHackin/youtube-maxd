@@ -164,6 +164,7 @@ struct UpNext
     bool open = false;
     std::string title;
     std::string chip;    // "Autoplay is on": tube_autoplay_enabled()
+    bool marks_next = true; // the first video of the list is the one that plays next
     std::string note;    // where the list comes from
     std::string message; // while there are no cards: loading, or why there are none
     bool loading = false;

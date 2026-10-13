@@ -450,6 +450,7 @@ void fill_list(Mount &m)
         shelf.open = true;
         shelf.title = sentence(list.title);
         shelf.chip = tube_autoplay_enabled() ? tr("Autoplay is on") : tr("Autoplay is off");
+        shelf.marks_next = tube_autoplay_enabled() != 0;
         shelf.first = first;
         shelf.total = list.total;
         shelf.focus = focus;

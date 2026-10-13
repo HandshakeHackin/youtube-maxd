@@ -154,7 +154,7 @@ void Player::draw_up_next(G &g, const Motion &m) const
                      k.ink.with_alpha(0.82f + 0.18f * focus));
                 text(g, g.f.regular, fit(g.f.regular, card.channel.empty() ? card.meta : card.channel, kTypeSmall, r.w - 4.0f), r.x + 2.0f, r.y + r.h + 60.0f,
                      kTypeSmall, k.ink2);
-                if (up_next_.first + i == 0)
+                if (up_next_.marks_next && up_next_.first + i == 0)
                     tag(g, r.x + 12.0f, r.y + r.h - 26.0f, tr("NEXT"), k.accent, k.on_accent);
                 if (pass == 1)
                     focus_ring(g, r, kRadiusThumb, shot.ready() ? shot.glow : k.accent);

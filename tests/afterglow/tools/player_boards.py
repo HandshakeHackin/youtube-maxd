@@ -220,8 +220,9 @@ def app_forms():
                        {"label": "Deutsch", "detail": "Machine translation", "tag": "TRANSLATED"},
                        {"label": "Español", "detail": "Machine translation", "tag": "SECONDARY"},
                        {"label": "Auto-sync", "detail": "Not available for this video", "action": True, "disabled": True}],
+              "preview": "The quick brown fox jumps over the lazy dog", "preview_size": 50,
               "hints": [hint("cross", "Choose"), hint("square", "Size"), hint("dpad", "Sync"), hint("circle", "Back")]}
-    related = {"open": True, "title": "Related videos", "chip": "", "note": "", "first": 0, "total": 9, "focus": 1,
+    related = {"open": True, "title": "Related videos", "chip": "Autoplay is off", "marks_next": False, "note": "", "first": 0, "total": 9, "focus": 1,
                "cards": [{**c, "channel": c["channel"] + DOT + c["meta"].split(DOT)[0], "thumb": "", "badges": 0, "duration_s": 0} for c in RELATED],
                "hints": [hint("cross", "Play"), hint("circle", "Back")]}
     return [

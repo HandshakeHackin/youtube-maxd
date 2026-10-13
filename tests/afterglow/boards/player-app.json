@@ -198,6 +198,8 @@
        "disabled": true
       }
      ],
+     "preview": "The quick brown fox jumps over the lazy dog",
+     "preview_size": 50,
      "hints": [
       {
        "button": "cross",
@@ -236,7 +238,8 @@
     "up_next": {
      "open": true,
      "title": "Related videos",
-     "chip": "",
+     "chip": "Autoplay is off",
+     "marks_next": false,
      "note": "",
      "first": 0,
      "total": 9,

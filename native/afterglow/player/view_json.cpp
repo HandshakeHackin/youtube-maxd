@@ -287,6 +287,7 @@ void read(const cJSON *object, UpNext *up_next)
     get(object, "open", &up_next->open);
     get(object, "title", &up_next->title);
     get(object, "chip", &up_next->chip);
+    get(object, "marks_next", &up_next->marks_next);
     get(object, "note", &up_next->note);
     get(object, "message", &up_next->message);
     get(object, "loading", &up_next->loading);
