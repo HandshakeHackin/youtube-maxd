@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Sign-in to YouTube arrives in a later version", "subtitle": "This version browses and plays as Guest, without an account", "is_folder": true, "interface": true},
+  {"id": "account:notice", "title": "Your library on this PS5 needs no account", "subtitle": "History, favorites, the play queue and followed channels are in the main menu", "is_folder": true, "interface": true},
+  {"id": "library:home", "title": "Home", "subtitle": "What YouTube recommends without an account", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}

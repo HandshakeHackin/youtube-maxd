@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "auth:info", "title": "Sign-in canceled", "subtitle": "Account credentials stay in the app data on this PS5", "is_folder": true, "interface": true, "state": "canceled"},
+  {"id": "auth:start", "title": "Start a new sign-in", "subtitle": "Authorize using your phone or computer", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}
