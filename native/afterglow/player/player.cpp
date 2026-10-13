@@ -809,9 +809,10 @@ void Player::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass, 
     const bool flatten = m.dialog > 0.0f && (layers & kDialog) != 0 && &world != &ui;
     gfx::DrawList &surface = flatten ? world : ui;
     if ((layers & kControls) != 0)
-    {
         draw_ground(world, m);
-        G g = make_g(surface, flatten ? 0u : glass);
+    G g = make_g(surface, flatten ? 0u : glass);
+    if ((layers & kControls) != 0)
+    {
         draw_captions(g, m);
         draw_header(g, m);
         draw_foot(g, m);
@@ -821,7 +822,11 @@ void Player::draw(gfx::DrawList &world, gfx::DrawList &ui, std::uint32_t glass, 
         draw_up_next(g, m);
         draw_sheet(g, m);
         draw_next(g, m);
+    }
+    if ((layers & kNotice) != 0)
         draw_notice(g, m);
+    if ((layers & kControls) != 0)
+    {
         draw_stats(g, m);
         if (view_.fps >= 0)
         {

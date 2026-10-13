@@ -284,6 +284,17 @@ void Player::draw_sheet(G &g, const Motion &m) const
         hint_row(g, sheet_.hints, left + 26.0f, 1000.0f, false, false, 760.0f, 32.0f, kTypeNote, 30.0f);
     }
     g.l.pop_transform();
+    if (captions && !sheet_.preview.empty())
+    {
+        // A line in the size that is chosen, where captions show: beside the sheet, over the picture.
+        const float cx = sheet.x * 0.5f;
+        const float size = std::clamp(sheet_.preview_size, 16.0f, 120.0f);
+        const std::string sample = fit(g.f.semibold, sheet_.preview, size, sheet.x - 160.0f);
+        const float width = measure(g.f.semibold, sample, size);
+        overline(g, tr("Preview"), cx, 800.0f - size * 1.5f, kOnVideo.with_alpha(0.6f), gfx::Align::center);
+        g.l.rounded_rect({cx - width * 0.5f - 18.0f, 800.0f - size * 0.95f, width + 36.0f, size * 1.25f}, 10.0f, kBlack.with_alpha(0.55f));
+        text(g, g.f.semibold, sample, cx, 800.0f, size, kOnVideo, gfx::Align::center);
+    }
     g.l.pop_opacity();
 }
 

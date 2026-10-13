@@ -30,10 +30,11 @@ class Player
     // them all.
     enum Layer : unsigned
     {
-        kControls = 1u, // shade, captions, title, timeline, marks, seek, notices, chat, the sheets
-        kDialog = 2u,
-        kToast = 4u,
-        kAll = 7u,
+        kControls = 1u, // shade, captions, title, timeline, marks, seek, chat, the sheets, dimming
+        kNotice = 2u,   // the notice above the timeline (in the app also EVO's toasts while the player is up)
+        kDialog = 4u,
+        kToast = 8u,
+        kAll = 15u,
     };
 
     // images may be null: pictures then stay placeholders.
@@ -159,5 +160,8 @@ class Player
     std::string toast_key_;
     mutable gfx::DrawList scratch_; // for measuring the dialog's panel
 };
+
+// A time of the video: "31:22", "1:02:07"; with negative a leading minus.
+std::string clock_text(double seconds, bool negative = false);
 
 } // namespace afterglow::player

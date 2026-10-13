@@ -68,8 +68,6 @@ struct Player::Motion
     float dialog = 0.0f;
 };
 
-// "31:22", "1:02:07"; with negative a leading minus.
-std::string clock_text(double seconds, bool negative = false);
 // A hint row from the view's hints, cut from the end until it fits max_width.
 // on_video draws it for the picture, otherwise for the look's panels. Returns
 // the width drawn.

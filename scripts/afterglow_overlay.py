@@ -171,3 +171,81 @@ def apply(root, work, replace, player):
         replace(host, "    if (m_streamPick) {\n        const int n = g_pending.choice_count;",
                 PAD + "    if (m_streamPick) {\n        const int n = g_pending.choice_count;")
         replace(host, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_afterglow.h"', count=1)
+
+    player_mount(work, replace, player)  # package H
+
+
+# ---- package H: the player (docs/afterglow/ARCHITECTURE.md, section 12b) ----------------------------
+# The player stays EVO's PlayerScreen with ProsperoTube's overlays: playback, the pad and every menu
+# are untouched. While the Interface preference is Afterglow, what EVO hands its kit application for
+# the player (the controls, the caption picker, the list of the options, the dialog, the toast) is also
+# kept by native/afterglow/player/app/mount.cpp, which draws it instead of EVO's own kit screens. With
+# the preference on Classic none of the lines added here runs.
+
+PLAYER_FOCUS = '''    /* package H: while the Afterglow player drew its controls or a sheet, its own snapshot is the report. */
+    if (k.state == Kit::up && tube_afterglow_enabled())
+    {
+        const char *player_report = afterglow::player_snapshot(k.frame_serial);
+        if (player_report[0] != '\\0')
+        {
+            if (screen_doc)
+                *screen_doc = "afterglow_player";
+            return player_report;
+        }
+    }
+'''
+
+PLAYER_LIST = '''    /* package H: the player's own list (options, their choices, related videos) is a sheet over the video. */
+    if (tube_afterglow_enabled() && afterglow::player_list_is_sheet())
+        return k.render(
+            Screen::list, width, height,
+            [&](float dt, hui::gfx::DrawList &list, const Context &) {
+                k.list.update(dt);
+                afterglow::player_draw_list(list, k.fonts, dt, k.frame_serial);
+            },
+            false);
+'''
+
+# The Afterglow frame drew this frame's screen: a dialog or toast over it belongs to the browser.
+PLAYER_PAGE = "k.idle_frames == 0 && k.drawn_last_frame == Screen::provider && tube_afterglow_shown() != 0"
+
+
+def player_mount(work, replace, player):
+    makefile = (work / player / "Makefile").read_text(encoding="utf-8")
+    if "ui_kit/src/afterglow/player" not in makefile:
+        sources = "                   $(wildcard ui_kit/src/afterglow/app/*.cpp) $(wildcard ui_kit/src/text/*.cpp)\n"
+        replace(player + "Makefile", sources,
+                sources + "    # package H: the player's controls in the Afterglow design.\n"
+                "    UI_KIT_SRCS += $(wildcard ui_kit/src/afterglow/player/*.cpp) $(wildcard ui_kit/src/afterglow/player/app/*.cpp)\n")
+    app = player + "ui_kit/src/evo_hui_app.cpp"
+    if "afterglow::player_" in (work / app).read_text(encoding="utf-8"):
+        return
+    replace(app, '#include "afterglow/app/mount.hpp"\n', '#include "afterglow/app/mount.hpp"\n#include "afterglow/player/app/mount.hpp"\n')
+    # What EVO says is kept for the Afterglow player as well.
+    for member, keep in (("osd.set(*params)", "player_set_playback(*params)"), ("subtitles.set(*params)", "player_set_captions_picker(*params)"),
+                         ("list.set(*params)", "player_set_list(*params)"), ("dialog.set(*params)", "player_set_dialog(*params)"),
+                         ("toast.set(*params)", "player_set_toast(*params)")):
+        replace(app, "    if (params)\n        kit()." + member + ";\n}",
+                "    if (params)\n        kit()." + member + ";\n    if (params && tube_afterglow_enabled()) /* package H */\n        afterglow::" + keep + ";\n}")
+    replace(app, "    if (hud)\n        kit().osd.set_hud(*hud);\n}",
+            "    if (hud)\n        kit().osd.set_hud(*hud);\n    if (hud && tube_afterglow_enabled()) /* package H */\n        afterglow::player_set_details(*hud);\n}")
+    # ... and drawn by it instead of EVO's own kit screen.
+    replace(app, "            k.osd.update(dt);\n            k.osd.draw(list, ctx);\n",
+            "            k.osd.update(dt);\n            /* package H: the same state in the Afterglow design. */\n"
+            "            if (tube_afterglow_enabled() && afterglow::player_draw_controls(list, k.fonts, *k.textures, dt, k.frame_serial))\n"
+            "                return;\n            k.osd.draw(list, ctx);\n")
+    replace(app, "            k.subtitles.update(dt);\n            k.subtitles.draw(list, ctx);\n",
+            "            k.subtitles.update(dt);\n            /* package H */\n"
+            "            if (tube_afterglow_enabled() && afterglow::player_draw_captions_picker(list, k.fonts, dt, k.frame_serial))\n"
+            "                return;\n            k.subtitles.draw(list, ctx);\n")
+    replace(app, "int evo_hui_render_list(int width, int height)\n{\n    Kit &k = kit();\n",
+            "int evo_hui_render_list(int width, int height)\n{\n    Kit &k = kit();\n" + PLAYER_LIST)
+    pad = " " * 32
+    for part, draw in (("dialog", "player_draw_dialog"), ("toast", "player_draw_toast")):
+        replace(app, pad + "k." + part + ".update(dt);\n" + pad + "k." + part + ".draw(list, ctx);\n",
+                pad + "k." + part + ".update(dt);\n" + pad + "/* package H */\n"
+                + pad + "if (tube_afterglow_enabled() && afterglow::" + draw + "(list, k.fonts, dt, k.frame_serial, " + PLAYER_PAGE + "))\n"
+                + pad + "    return;\n" + pad + "k." + part + ".draw(list, ctx);\n")
+    replace(app, "    if (k.state != Kit::up || k.drawn_last_frame == Screen::none)\n        return nullptr;\n    const char *doc = doc_name(k.drawn_last_frame);",
+            PLAYER_FOCUS + "    if (k.state != Kit::up || k.drawn_last_frame == Screen::none)\n        return nullptr;\n    const char *doc = doc_name(k.drawn_last_frame);")
+# ---- end of package H ---------------------------------------------------------------------------------
