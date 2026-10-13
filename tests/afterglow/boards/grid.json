@@ -1,0 +1,242 @@
+{
+ "about": "The grid: any catalog of videos on one page (a playlist, a section with sections in it, recommendations with their filters, the answer 'not available for this profile').",
+ "boards": [
+  {
+   "name": "grid-playlist",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/1", "rail_open": 0,
+              "state": {"catalog": "library:playlist:PLnorthernlights0001", "state": "ready", "zone": "cells", "items": "16", "pages": "2", "more": "1", "bar": "1",
+                        "subtitle": "24 videos · Northlight Atlas · Updated 3 days ago"},
+              "asked": ["library:playlist:PLnorthernlights0001"]}
+  },
+  {
+   "name": "grid-play-all",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "up"}, {"wait": 0.5}],
+   "expect": {"screen": "grid", "focus": "bar/0", "state": {"zone": "bar"}}
+  },
+  {
+   "name": "grid-play-all-plays",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "up"}, {"press": "cross"}, {"press": "down"}, {"wait": 0.4}],
+   "expect": {"screen": "grid", "focus": "grid/0", "played": "aurorach012", "state": {"zone": "cells"}}
+  },
+  {
+   "name": "grid-play",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}],
+   "expect": {"screen": "grid", "focus": "grid/2", "played": "bluehour020"}
+  },
+  {
+   "name": "grid-scrolled",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "grid", "focus": "grid/13", "state": {"row": "2", "items": "24", "pages": "3", "more": "0"}}
+  },
+  {
+   "name": "grid-end-of-list",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/20", "state": {"row": "4", "items": "24"}}
+  },
+  {
+   "name": "grid-loading-more",
+   "fixture": "d-signed-in",
+   "source": {"delay": 45},
+   "settle": 2.4,
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.1}, {"press": "down", "wait": 0.5}],
+   "expect": {"screen": "grid", "focus": "grid/12", "state": {"state": "ready", "items": "16", "more": "1", "pages": "3", "row": "3"}}
+  },
+  {
+   "name": "grid-details",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "right"}, {"press": "triangle"}, {"wait": 0.8}],
+   "expect": {"screen": "video", "moving": 0, "state": {"argument": "thefores026"}}
+  },
+  {
+   "name": "grid-back-from-details",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "triangle"}, {"wait": 0.8}, {"press": "circle"}, {"wait": 0.8}],
+   "expect": {"screen": "grid", "focus": "grid/5", "moving": 0, "state": {"catalog": "library:playlist:PLnorthernlights0001"}}
+  },
+  {
+   "name": "grid-section",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "expect": {"screen": "grid", "focus": "grid/0", "state": {"catalog": "section:gaming", "state": "ready", "items": "12", "bar": "0", "more": "0"}}
+  },
+  {
+   "name": "grid-section-channel",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/5", "state": {"index": "5"}}
+  },
+  {
+   "name": "grid-section-playlist",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/6"}
+  },
+  {
+   "name": "grid-open-channel",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "channel", "moving": 0, "state": {"argument": "UCglassferngames00000000"}}
+  },
+  {
+   "name": "grid-open-section",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "cross"}, {"wait": 1.0}],
+   "expect": {"screen": "grid", "focus": "grid/0", "moving": 0, "state": {"catalog": "section:gaming:live", "items": "2", "state": "ready"}}
+  },
+  {
+   "name": "grid-open-section-moving",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "cross", "wait": 0.14}],
+   "expect": {"screen": "grid", "moving": 1}
+  },
+  {
+   "name": "grid-back-from-section",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "circle"}, {"wait": 0.8}],
+   "expect": {"screen": "grid", "focus": "grid/1", "moving": 0, "state": {"catalog": "section:gaming"}}
+  },
+  {
+   "name": "grid-filters",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:home", "title": "Recommended"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"wait": 0.5}],
+   "expect": {"screen": "grid", "focus": "bar/2", "state": {"catalog": "library:home", "zone": "bar", "bar": "7", "filter": "All", "items": "20"}}
+  },
+  {
+   "name": "grid-filter-chosen",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "library:home", "title": "Recommended"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.9}],
+   "expect": {"screen": "grid", "focus": "bar/2",
+              "state": {"catalog": "library:filter:cccccccccccccccccccccccccccccccccccc", "filter": "Gaming", "items": "5", "bar": "7", "state": "ready"},
+              "asked": ["library:home", "library:filter:cccccccccccccccccccccccccccccccccccc"]}
+  },
+  {
+   "name": "grid-filter-loading",
+   "fixture": "d-signed-in",
+   "source": {"delay": 40},
+   "settle": 2.6,
+   "route": {"screen": "grid", "argument": "library:home", "title": "Recommended"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 0.4}],
+   "expect": {"screen": "grid", "focus": "bar/2", "state": {"state": "loading", "zone": "bar", "filter": "Gaming", "bar": "7"}}
+  },
+  {
+   "name": "grid-guest-trending",
+   "fixture": "d-guest",
+   "route": {"screen": "grid", "argument": "section:trending", "title": "Trending"},
+   "steps": [{"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "grid", "focus": "grid/4", "state": {"state": "ready", "items": "8", "bar": "0", "subtitle": "8 videos"}}
+  },
+  {
+   "name": "grid-not-available",
+   "fixture": "d-guest",
+   "route": {"screen": "grid", "argument": "section:shorts", "title": "Shorts"},
+   "expect": {"screen": "grid", "focus": "action/notice", "state": {"state": "notice", "items": "0"}}
+  },
+  {
+   "name": "grid-not-available-sign-in",
+   "fixture": "d-guest",
+   "route": {"screen": "grid", "argument": "section:shorts", "title": "Shorts"},
+   "steps": [{"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "sign_in", "moving": 0}
+  },
+  {
+   "name": "grid-loading",
+   "fixture": "d-signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "expect": {"screen": "grid", "focus": "grid/0", "state": {"state": "loading", "items": "0"}}
+  },
+  {
+   "name": "grid-empty",
+   "fixture": "d-empty",
+   "route": {"screen": "grid", "argument": "library:playlist:PLslowmorningmusic03", "title": "Slow Morning Music"},
+   "expect": {"screen": "grid", "focus": "action/browse", "state": {"state": "empty", "bar": "0"}}
+  },
+  {
+   "name": "grid-empty-browse-home",
+   "fixture": "d-empty",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "home"}
+  },
+  {
+   "name": "grid-offline",
+   "fixture": "d-offline",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "expect": {"screen": "grid", "focus": "action/library", "state": {"state": "offline"}}
+  },
+  {
+   "name": "grid-offline-open-library",
+   "fixture": "d-offline",
+   "route": {"screen": "grid", "argument": "library:playlist:PLnorthernlights0001", "title": "Northern Lights, Start to Finish"},
+   "steps": [{"press": "cross"}, {"wait": 0.9}],
+   "expect": {"screen": "library", "focus": "history/0", "state": {"state": "ready"}}
+  },
+  {
+   "name": "grid-failed",
+   "fixture": "d-offline",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "expect": {"screen": "grid", "focus": "action/retry", "state": {"state": "failed"}}
+  },
+  {
+   "name": "grid-failed-try-again",
+   "fixture": "d-offline",
+   "source": {"delay": 20},
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "cross", "wait": 0.2}],
+   "expect": {"screen": "grid", "state": {"state": "loading"}}
+  },
+  {
+   "name": "grid-long-texts",
+   "fixture": "d-long-texts",
+   "route": {"screen": "grid", "argument": "library:playlist:PLlangertitel0000001", "title": "Sieben Tage allein auf dem Grat, ein stiller Wanderfilm in voller Laenge ohne Musik"},
+   "steps": [{"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "grid", "focus": "grid/1", "state": {"state": "ready", "items": "11", "bar": "1"}}
+  },
+  {
+   "name": "grid-rail",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "grid", "rail_open": 1}
+  },
+  {
+   "name": "grid-edge",
+   "fixture": "d-signed-in",
+   "route": {"screen": "grid", "argument": "section:gaming", "title": "Gaming"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.08}],
+   "expect": {"screen": "grid", "focus": "grid/3"}
+  },
+  {
+   "name": "grid-reduced-motion",
+   "fixture": "d-signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "grid", "argument": "library:home", "title": "Recommended"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "right"}, {"wait": 0.4}],
+   "expect": {"screen": "grid", "focus": "grid/9", "state": {"row": "1"}}
+  }
+ ]
+}
