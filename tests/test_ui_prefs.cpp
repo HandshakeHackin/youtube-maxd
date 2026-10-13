@@ -235,14 +235,16 @@ int main(int argc,char**argv) {
         for(Rml::Element* card : cards()) { float x,y,w,h; box(card,x,y,w,h); assert(y>=gy-0.5f && y+h<=gy+gh+0.5f && x+w<=width); }
         float tx,ty,tw,th; box(host.m_doc->GetElementById("tube-discussion-text"),tx,ty,tw,th);
         assert(tx+tw<=width+0.5f && ty+th<=fy+0.5f && tw>100 && th>100);
-        if(l.list_rows!=8) {                                    /* one column: Down walks every row, then turns the page */
-            for(int row=1;row<l.list_rows;++row) {
-                key(EvoRmlProviderHost::KeyDown);
-                if(absolute()!=row) { fprintf(stderr,"scale index %d: list Down to row %d of %d reached %d (offset %zu, %zu rows)\n",u,row,l.list_rows,absolute(),host.m_row_offset,host.m_model.rows.size()); assert(false); }
-            }
-            key(EvoRmlProviderHost::KeyDown); assert((int)host.m_row_offset==l.list_rows && absolute()==l.list_rows);
-            key(EvoRmlProviderHost::KeyUp); assert(host.m_row_offset==0 && absolute()==l.list_rows-1);
+        /* One column at every scale, the unscaled eight rows included: Down walks every row, then turns
+         * the page; Up walks back the same way. (Down from the fifth row used to turn the page.) */
+        for(int row=1;row<l.list_rows;++row) {
+            key(EvoRmlProviderHost::KeyDown);
+            if(absolute()!=row) { fprintf(stderr,"scale index %d: list Down to row %d of %d reached %d (offset %zu, %zu rows)\n",u,row,l.list_rows,absolute(),host.m_row_offset,host.m_model.rows.size()); assert(false); }
         }
+        key(EvoRmlProviderHost::KeyDown); assert((int)host.m_row_offset==l.list_rows && absolute()==l.list_rows);
+        key(EvoRmlProviderHost::KeyUp); assert(host.m_row_offset==0 && absolute()==l.list_rows-1);
+        for(int row=l.list_rows-2;row>=0;--row) { key(EvoRmlProviderHost::KeyUp); assert(host.m_row_offset==0 && absolute()==row); }
+        key(EvoRmlProviderHost::KeyUp); assert(host.m_row_offset==0 && absolute()==0);        /* the first row of the first page stays */
     }
     choose("settings:ui:scale:10");
 

@@ -14,14 +14,15 @@ namespace {
 bool g_tube_youtube = false;
 bool g_tube_list_mode = false;
 
-/* Columns the Up/Down paging counts in. A list of the unscaled interface keeps
- * the paging it always had; any other list is one column. */
+/* Columns the Up/Down paging counts in. A list is one column at every scale:
+ * counted as the grid's four, Down from its fifth row turned the page and the
+ * rows below it could not be reached. */
 int tube_grid_columns()
 {
     if (!g_tube_youtube) return 4;
     tube_ui_layout_t layout;
     tube_ui_layout(tube_ui_prefs(), &layout);
-    if (g_tube_list_mode) return layout.list_rows == 8 ? 4 : 1;
+    if (g_tube_list_mode) return 1;
     return layout.columns;
 }
 
