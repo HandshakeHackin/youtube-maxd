@@ -1,0 +1,29 @@
+{
+ "items": [
+  {"id": "settings:lang:en", "is_folder": true, "interface": true, "title": "English", "subtitle": "Selected", "label": "English", "kind": "choice", "selected": true},
+  {"id": "settings:lang:de", "is_folder": true, "interface": true, "title": "Deutsch", "subtitle": "Captions in this language when a video offers them", "label": "Deutsch", "kind": "choice", "selected": false},
+  {"id": "settings:lang:es", "is_folder": true, "interface": true, "title": "Español", "subtitle": "Captions in this language when a video offers them", "label": "Español", "kind": "choice", "selected": false},
+  {"id": "settings:lang:fr", "is_folder": true, "interface": true, "title": "Français", "subtitle": "Captions in this language when a video offers them", "label": "Français", "kind": "choice", "selected": false},
+  {"id": "settings:lang:it", "is_folder": true, "interface": true, "title": "Italiano", "subtitle": "Captions in this language when a video offers them", "label": "Italiano", "kind": "choice", "selected": false},
+  {"id": "settings:lang:nl", "is_folder": true, "interface": true, "title": "Nederlands", "subtitle": "Captions in this language when a video offers them", "label": "Nederlands", "kind": "choice", "selected": false},
+  {"id": "settings:lang:pl", "is_folder": true, "interface": true, "title": "Polski", "subtitle": "Captions in this language when a video offers them", "label": "Polski", "kind": "choice", "selected": false},
+  {"id": "settings:lang:pt", "is_folder": true, "interface": true, "title": "Português", "subtitle": "Captions in this language when a video offers them", "label": "Português", "kind": "choice", "selected": false},
+  {"id": "settings:lang:sv", "is_folder": true, "interface": true, "title": "Svenska", "subtitle": "Captions in this language when a video offers them", "label": "Svenska", "kind": "choice", "selected": false},
+  {"id": "settings:lang:da", "is_folder": true, "interface": true, "title": "Dansk", "subtitle": "Captions in this language when a video offers them", "label": "Dansk", "kind": "choice", "selected": false},
+  {"id": "settings:lang:fi", "is_folder": true, "interface": true, "title": "Suomi", "subtitle": "Captions in this language when a video offers them", "label": "Suomi", "kind": "choice", "selected": false},
+  {"id": "settings:lang:nb", "is_folder": true, "interface": true, "title": "Norsk bokmål", "subtitle": "Captions in this language when a video offers them", "label": "Norsk bokmål", "kind": "choice", "selected": false},
+  {"id": "settings:lang:cs", "is_folder": true, "interface": true, "title": "Čeština", "subtitle": "Captions in this language when a video offers them", "label": "Čeština", "kind": "choice", "selected": false},
+  {"id": "settings:lang:hu", "is_folder": true, "interface": true, "title": "Magyar", "subtitle": "Captions in this language when a video offers them", "label": "Magyar", "kind": "choice", "selected": false},
+  {"id": "settings:lang:ro", "is_folder": true, "interface": true, "title": "Română", "subtitle": "Captions in this language when a video offers them", "label": "Română", "kind": "choice", "selected": false},
+  {"id": "settings:lang:tr", "is_folder": true, "interface": true, "title": "Türkçe", "subtitle": "Captions in this language when a video offers them", "label": "Türkçe", "kind": "choice", "selected": false},
+  {"id": "settings:lang:uk", "is_folder": true, "interface": true, "title": "Українська", "subtitle": "Captions in this language when a video offers them", "label": "Українська", "kind": "choice", "selected": false},
+  {"id": "settings:lang:el", "is_folder": true, "interface": true, "title": "Ελληνικά", "subtitle": "Captions in this language when a video offers them", "label": "Ελληνικά", "kind": "choice", "selected": false},
+  {"id": "settings:lang:id", "is_folder": true, "interface": true, "title": "Bahasa Indonesia", "subtitle": "Captions in this language when a video offers them", "label": "Bahasa Indonesia", "kind": "choice", "selected": false},
+  {"id": "settings:lang:vi", "is_folder": true, "interface": true, "title": "Tiếng Việt", "subtitle": "Captions in this language when a video offers them", "label": "Tiếng Việt", "kind": "choice", "selected": false},
+  {"id": "settings:lang:ru", "is_folder": true, "interface": true, "title": "Русский", "subtitle": "Captions in this language when a video offers them", "label": "Русский", "kind": "choice", "selected": false},
+  {"id": "settings:lang:ca", "is_folder": true, "interface": true, "title": "Català", "subtitle": "Captions in this language when a video offers them", "label": "Català", "kind": "choice", "selected": false},
+  {"id": "settings:lang:hr", "is_folder": true, "interface": true, "title": "Hrvatski", "subtitle": "Captions in this language when a video offers them", "label": "Hrvatski", "kind": "choice", "selected": false},
+  {"id": "settings:lang:sk", "is_folder": true, "interface": true, "title": "Slovenčina", "subtitle": "Captions in this language when a video offers them", "label": "Slovenčina", "kind": "choice", "selected": false}
+ ],
+ "has_more": false
+}

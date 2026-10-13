@@ -1,0 +1,18 @@
+{
+ "items": [
+  {"id": "settings:hide:shorts_all", "is_folder": true, "interface": true, "title": "Shorts everywhere: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts everywhere", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:mixes", "is_folder": true, "interface": true, "title": "Mixes: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Mixes", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:watched_watch_later", "is_folder": true, "interface": true, "title": "Watched videos in Watch later: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Watched videos in Watch later", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:watched_home", "is_folder": true, "interface": true, "title": "Watched videos on Home: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Watched videos on Home", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:watched_subscriptions", "is_folder": true, "interface": true, "title": "Watched videos in Subscriptions: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Watched videos in Subscriptions", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:watched_notifications", "is_folder": true, "interface": true, "title": "Watched videos in Notifications: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Watched videos in Notifications", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_subscriptions", "is_folder": true, "interface": true, "title": "Shorts in Subscriptions: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts in Subscriptions", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_search", "is_folder": true, "interface": true, "title": "Shorts in Search: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts in Search", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_home", "is_folder": true, "interface": true, "title": "Shorts on Home: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts on Home", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_channel", "is_folder": true, "interface": true, "title": "Shorts on channels: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts on channels", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_history", "is_folder": true, "interface": true, "title": "Shorts in History: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts in History", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:shorts_trending", "is_folder": true, "interface": true, "title": "Shorts in Trending: Off", "subtitle": "Left out of newly loaded lists of this profile", "label": "Shorts in Trending", "kind": "switch", "value": "Off", "on": false, "section": "Hide"},
+  {"id": "settings:hide:reset", "is_folder": true, "interface": true, "title": "Restore the default", "subtitle": "Watched videos leave Home, nothing else is hidden", "label": "Restore the default", "kind": "reset", "confirm": "Watched videos leave Home again and nothing else is hidden."}
+ ],
+ "has_more": false
+}

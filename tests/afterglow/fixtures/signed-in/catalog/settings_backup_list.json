@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "settings:backup:entry:backup-20261013-0912", "is_folder": true, "interface": true, "title": "Today, 09:12", "subtitle": "The newest backup", "label": "Today, 09:12", "kind": "page", "value": "184 KiB"},
+  {"id": "settings:backup:entry:backup-20261012-2104", "is_folder": true, "interface": true, "title": "Yesterday, 21:04", "subtitle": "", "label": "Yesterday, 21:04", "kind": "page", "value": "183 KiB"},
+  {"id": "settings:backup:entry:backup-20261005-0830", "is_folder": true, "interface": true, "title": "5 October, 08:30", "subtitle": "", "label": "5 October, 08:30", "kind": "page", "value": "171 KiB"}
+ ],
+ "has_more": false
+}

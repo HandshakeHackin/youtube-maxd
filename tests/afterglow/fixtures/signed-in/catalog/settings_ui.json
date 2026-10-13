@@ -1,0 +1,19 @@
+{
+ "items": [
+  {"id": "settings:ui:scheme", "is_folder": true, "interface": true, "title": "Theme: Afterglow", "subtitle": "The colours of the whole interface; the page changes with it", "label": "Theme", "kind": "list", "value": "Afterglow", "index": 0, "count": 4, "preview": "theme", "look": "afterglow"},
+  {"id": "settings:ui:scale", "is_folder": true, "interface": true, "title": "Interface scale: 1x", "subtitle": "The size of everything; smaller shows more", "label": "Interface scale", "kind": "slider", "value": "1x", "index": 10, "count": 19, "number": 100, "preview": "card.scale"},
+  {"id": "settings:ui:grid", "is_folder": true, "interface": true, "title": "Card size: 1x", "subtitle": "The size of the video cards; smaller shows more cards on a page", "label": "Card size", "kind": "slider", "value": "1x", "index": 5, "count": 13, "number": 100, "preview": "card.grid", "preview_art_url": "art://ridges/0/11/640x360"},
+  {"id": "settings:ui:title-lines", "is_folder": true, "interface": true, "title": "Title lines: 2", "subtitle": "Lines a card keeps for its title", "label": "Title lines", "kind": "slider", "value": "2", "index": 1, "count": 4, "number": 2, "preview": "card.title_lines"},
+  {"id": "settings:ui:title-scroll", "is_folder": true, "interface": true, "title": "Scroll long titles: Off", "subtitle": "The focused card's title moves when it does not fit", "label": "Scroll long titles", "kind": "switch", "value": "Off", "on": false},
+  {"id": "settings:ui:scroll-speed", "is_folder": true, "interface": true, "title": "Title scroll speed: 1x", "subtitle": "How fast a long title moves", "label": "Title scroll speed", "kind": "slider", "value": "1x", "index": 0, "count": 15},
+  {"id": "settings:ui:subtitle-lines", "is_folder": true, "interface": true, "title": "Two lines of details: Off", "subtitle": "Channel, views and age on two lines under a card", "label": "Two lines of details", "kind": "switch", "value": "Off", "on": false, "preview": "card.subtitle_lines"},
+  {"id": "settings:ui:rounded", "is_folder": true, "interface": true, "title": "Rounded corners: On", "subtitle": "Round or square corners for cards and pictures", "label": "Rounded corners", "kind": "switch", "value": "On", "on": true, "preview": "card.corners"},
+  {"id": "settings:ui:exit", "is_folder": true, "interface": true, "title": "Circle on the main menu: Does nothing", "subtitle": "Whether Circle closes ProsperoTube from Home", "label": "Circle on the main menu", "kind": "list", "value": "Does nothing", "index": 0, "count": 3},
+  {"id": "settings:menu", "is_folder": true, "interface": true, "title": "Video actions menu", "subtitle": "Show, hide and order the rows of the actions menu", "label": "Video actions menu", "kind": "page", "value": "16 rows"},
+  {"id": "settings:interface:sounds", "is_folder": true, "interface": true, "title": "Interface sounds: On", "subtitle": "Focus, confirm and notice sounds; the video's own sound is not touched", "label": "Interface sounds", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:interface:volume", "is_folder": true, "interface": true, "title": "Interface volume: 7", "subtitle": "Separate from the player's volume", "label": "Interface volume", "kind": "slider", "value": "7", "index": 7, "count": 11},
+  {"id": "settings:interface:vibration", "is_folder": true, "interface": true, "title": "Vibration: On", "subtitle": "A short pulse at the end of a list and when playback starts", "label": "Vibration", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:interface:reduce-motion", "is_folder": true, "interface": true, "title": "Reduce motion: Off", "subtitle": "Screens fade instead of travelling; nothing drifts", "label": "Reduce motion", "kind": "switch", "value": "Off", "on": false}
+ ],
+ "has_more": false
+}

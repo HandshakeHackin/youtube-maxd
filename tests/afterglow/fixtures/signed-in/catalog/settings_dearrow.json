@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "settings:dearrow:titles", "is_folder": true, "interface": true, "title": "Community titles: On", "subtitle": "Calmer titles written by viewers; off restores the original ones", "label": "Community titles", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:dearrow:thumbnails", "is_folder": true, "interface": true, "title": "Community thumbnails: Off", "subtitle": "A frame of the video chosen by viewers; applies to newly loaded lists", "label": "Community thumbnails", "kind": "switch", "value": "Off", "on": false},
+  {"id": "settings:dearrow", "is_folder": true, "interface": true, "title": "Attribution", "subtitle": "Ajay Ramachandran and contributors; CC BY-NC-SA 4.0", "label": "Attribution", "kind": "info", "value": "dearrow.ajay.app"},
+  {"id": "settings:dearrow:about", "is_folder": true, "interface": true, "title": "About DeArrow", "subtitle": "Project page; open the address on another device", "label": "About DeArrow", "kind": "info", "value": "dearrow.ajay.app"},
+  {"id": "settings:dearrow:status", "is_folder": true, "interface": true, "title": "Service status", "subtitle": "ProsperoTube does not probe it", "label": "Service status", "kind": "info", "value": "status.sponsor.ajay.app"}
+ ],
+ "has_more": false
+}

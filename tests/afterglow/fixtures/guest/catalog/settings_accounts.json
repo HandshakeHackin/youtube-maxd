@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "settings:separate-settings", "is_folder": true, "interface": true, "title": "Separate settings per account: Off", "subtitle": "Off: every profile uses the same preferences; applies to this PS5", "label": "Separate settings per account", "kind": "switch", "value": "Off", "on": false},
+  {"id": "account:notice", "is_folder": true, "interface": true, "title": "Password protection", "subtitle": "Select an account profile to protect it with a password", "label": "Password protection", "kind": "info", "tag": "Experimental"}
+ ],
+ "has_more": false
+}

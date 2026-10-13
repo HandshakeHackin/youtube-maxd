@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "settings:frame-rate:0", "is_folder": true, "interface": true, "title": "Automatic", "subtitle": "Videos above this rate play in the next one below", "label": "Automatic", "kind": "choice", "selected": false},
+  {"id": "settings:frame-rate:30", "is_folder": true, "interface": true, "title": "30 fps", "subtitle": "Videos above this rate play in the next one below", "label": "30 fps", "kind": "choice", "selected": false},
+  {"id": "settings:frame-rate:60", "is_folder": true, "interface": true, "title": "60 fps", "subtitle": "Selected", "label": "60 fps", "kind": "choice", "selected": true}
+ ],
+ "has_more": false
+}

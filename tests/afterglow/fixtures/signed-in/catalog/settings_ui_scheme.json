@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "settings:ui:scheme:0", "is_folder": true, "interface": true, "title": "Afterglow", "subtitle": "Selected", "label": "Afterglow", "kind": "choice", "selected": true, "preview": "theme", "look": "afterglow"},
+  {"id": "settings:ui:scheme:1", "is_folder": true, "interface": true, "title": "Onyx", "subtitle": "The colours of the whole interface", "label": "Onyx", "kind": "choice", "selected": false, "preview": "theme", "look": "onyx"},
+  {"id": "settings:ui:scheme:2", "is_folder": true, "interface": true, "title": "Daybreak", "subtitle": "The colours of the whole interface", "label": "Daybreak", "kind": "choice", "selected": false, "preview": "theme", "look": "daybreak"},
+  {"id": "settings:ui:scheme:3", "is_folder": true, "interface": true, "title": "High contrast", "subtitle": "The colours of the whole interface", "label": "High contrast", "kind": "choice", "selected": false, "preview": "theme", "look": "contrast"},
+  {"id": "settings:ui:scheme:classic", "is_folder": true, "interface": true, "title": "Classic colours", "subtitle": "The colour schemes of earlier versions; the classic interface wears them", "label": "Classic colours", "kind": "page"}
+ ],
+ "has_more": false
+}

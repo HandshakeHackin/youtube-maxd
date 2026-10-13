@@ -1,0 +1,23 @@
+{
+ "items": [
+  {"id": "settings:sb:action:sponsor", "is_folder": true, "interface": true, "title": "Sponsor: Skip with message", "subtitle": "What happens when a video reaches such a segment", "label": "Sponsor", "kind": "cycle", "value": "Skip with message"},
+  {"id": "settings:sb:action:intro", "is_folder": true, "interface": true, "title": "Intro: Do nothing", "subtitle": "What happens when a video reaches such a segment", "label": "Intro", "kind": "cycle", "value": "Do nothing"},
+  {"id": "settings:sb:action:outro", "is_folder": true, "interface": true, "title": "Outro: Do nothing", "subtitle": "What happens when a video reaches such a segment", "label": "Outro", "kind": "cycle", "value": "Do nothing"},
+  {"id": "settings:sb:action:interaction", "is_folder": true, "interface": true, "title": "Interaction reminder: Skip with message", "subtitle": "What happens when a video reaches such a segment", "label": "Interaction reminder", "kind": "cycle", "value": "Skip with message"},
+  {"id": "settings:sb:action:selfpromo", "is_folder": true, "interface": true, "title": "Self promotion: Skip with message", "subtitle": "What happens when a video reaches such a segment", "label": "Self promotion", "kind": "cycle", "value": "Skip with message"},
+  {"id": "settings:sb:action:music_offtopic", "is_folder": true, "interface": true, "title": "Non-music section: Do nothing", "subtitle": "What happens when a video reaches such a segment", "label": "Non-music section", "kind": "cycle", "value": "Do nothing"},
+  {"id": "settings:sb:action:preview", "is_folder": true, "interface": true, "title": "Preview or recap: Do nothing", "subtitle": "What happens when a video reaches such a segment", "label": "Preview or recap", "kind": "cycle", "value": "Do nothing"},
+  {"id": "settings:sb:action:filler", "is_folder": true, "interface": true, "title": "Filler: Do nothing", "subtitle": "What happens when a video reaches such a segment", "label": "Filler", "kind": "cycle", "value": "Do nothing"},
+  {"id": "settings:sb:action:poi_highlight", "is_folder": true, "interface": true, "title": "Highlight: Ask before skipping", "subtitle": "What happens when a video reaches such a segment", "label": "Highlight", "kind": "cycle", "value": "Ask before skipping"},
+  {"id": "settings:sb:minimum", "is_folder": true, "interface": true, "title": "Ignore short segments: Off", "subtitle": "Segments shorter than this are left alone", "label": "Ignore short segments", "kind": "slider", "value": "Off", "index": 0, "count": 41},
+  {"id": "settings:sb:repeat", "is_folder": true, "interface": true, "title": "Skip once only: Off", "subtitle": "A segment you rewound into is not skipped again", "label": "Skip once only", "kind": "switch", "value": "Off", "on": false},
+  {"id": "settings:sb:exclusions", "is_folder": true, "interface": true, "title": "Excluded channels", "subtitle": "Channels whose videos are never skipped", "label": "Excluded channels", "kind": "page", "value": "None"},
+  {"id": "settings:sb:colors", "is_folder": true, "interface": true, "title": "Markers on the timeline", "subtitle": "Which categories are drawn under the timeline", "label": "Markers on the timeline", "kind": "page", "value": "9 categories"},
+  {"id": "settings:sb:paid", "is_folder": true, "interface": true, "title": "Paid-content notices: On", "subtitle": "Shows YouTube's own disclosure when playback starts", "label": "Paid-content notices", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:sb:alt", "is_folder": true, "interface": true, "title": "Use the alternative server: Off", "subtitle": "For when SponsorBlock does not answer; segments then come from the address below", "label": "Use the alternative server", "kind": "switch", "value": "Off", "on": false},
+  {"id": "settings:sb:server", "is_folder": true, "interface": true, "title": "Alternative server: Not set", "subtitle": "The https address of a SponsorBlock server; applies to this PS5", "label": "Alternative server", "kind": "text", "value": "sb.example.org", "text": "https://sb.example.org"},
+  {"id": "settings:sb:about", "is_folder": true, "interface": true, "title": "About SponsorBlock", "subtitle": "Project page; open the address on another device", "label": "About SponsorBlock", "kind": "info", "value": "sponsor.ajay.app"},
+  {"id": "settings:sb:status", "is_folder": true, "interface": true, "title": "Service status", "subtitle": "ProsperoTube does not probe it", "label": "Service status", "kind": "info", "value": "status.sponsor.ajay.app"}
+ ],
+ "has_more": false
+}

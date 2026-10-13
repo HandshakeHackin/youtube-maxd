@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "settings:ui:title-lines:0", "is_folder": true, "interface": true, "title": "1", "subtitle": "Lines a card keeps for its title", "label": "1", "kind": "choice", "selected": false, "preview": "card.title_lines", "number": 1},
+  {"id": "settings:ui:title-lines:1", "is_folder": true, "interface": true, "title": "2", "subtitle": "Lines a card keeps for its title", "label": "2", "kind": "choice", "selected": false, "preview": "card.title_lines", "number": 2},
+  {"id": "settings:ui:title-lines:2", "is_folder": true, "interface": true, "title": "3", "subtitle": "Selected", "label": "3", "kind": "choice", "selected": true, "preview": "card.title_lines", "number": 3},
+  {"id": "settings:ui:title-lines:3", "is_folder": true, "interface": true, "title": "4", "subtitle": "Lines a card keeps for its title", "label": "4", "kind": "choice", "selected": false, "preview": "card.title_lines", "number": 4}
+ ],
+ "has_more": false
+}

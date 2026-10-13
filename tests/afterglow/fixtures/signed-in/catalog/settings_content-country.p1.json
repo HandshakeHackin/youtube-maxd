@@ -1,0 +1,29 @@
+{
+ "items": [
+  {"id": "settings:content-country:BG", "is_folder": true, "interface": true, "title": "Bulgaria", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Bulgaria", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:HR", "is_folder": true, "interface": true, "title": "Croatia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Croatia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:SI", "is_folder": true, "interface": true, "title": "Slovenia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Slovenia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:EE", "is_folder": true, "interface": true, "title": "Estonia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Estonia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:LV", "is_folder": true, "interface": true, "title": "Latvia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Latvia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:LT", "is_folder": true, "interface": true, "title": "Lithuania", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Lithuania", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:UA", "is_folder": true, "interface": true, "title": "Ukraine", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Ukraine", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:TR", "is_folder": true, "interface": true, "title": "Türkiye", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Türkiye", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:CA", "is_folder": true, "interface": true, "title": "Canada", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Canada", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:US", "is_folder": true, "interface": true, "title": "United States", "subtitle": "Country of recommendations, Trending and section shelves", "label": "United States", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:MX", "is_folder": true, "interface": true, "title": "Mexico", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Mexico", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:BR", "is_folder": true, "interface": true, "title": "Brazil", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Brazil", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:AR", "is_folder": true, "interface": true, "title": "Argentina", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Argentina", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:CL", "is_folder": true, "interface": true, "title": "Chile", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Chile", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:AU", "is_folder": true, "interface": true, "title": "Australia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Australia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:NZ", "is_folder": true, "interface": true, "title": "New Zealand", "subtitle": "Country of recommendations, Trending and section shelves", "label": "New Zealand", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:JP", "is_folder": true, "interface": true, "title": "Japan", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Japan", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:KR", "is_folder": true, "interface": true, "title": "South Korea", "subtitle": "Country of recommendations, Trending and section shelves", "label": "South Korea", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:IN", "is_folder": true, "interface": true, "title": "India", "subtitle": "Country of recommendations, Trending and section shelves", "label": "India", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:ID", "is_folder": true, "interface": true, "title": "Indonesia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Indonesia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:VN", "is_folder": true, "interface": true, "title": "Vietnam", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Vietnam", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:ZA", "is_folder": true, "interface": true, "title": "South Africa", "subtitle": "Country of recommendations, Trending and section shelves", "label": "South Africa", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:EG", "is_folder": true, "interface": true, "title": "Egypt", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Egypt", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:MA", "is_folder": true, "interface": true, "title": "Morocco", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Morocco", "kind": "choice", "selected": false}
+ ],
+ "has_more": false
+}

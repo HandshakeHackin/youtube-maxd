@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "settings:backup:create", "is_folder": true, "interface": true, "title": "Create a backup now", "subtitle": "A dated copy of settings and library on this PS5; sign-ins to YouTube are not included", "label": "Create a backup now", "kind": "action", "done": "Backup created"},
+  {"id": "settings:backup:list", "is_folder": true, "interface": true, "title": "Restore or delete a backup", "subtitle": "The ten newest are kept", "label": "Restore or delete a backup", "kind": "page", "value": "3 kept"},
+  {"id": "settings:backup:auto:7", "is_folder": true, "interface": true, "title": "Automatic backup: Daily", "subtitle": "Made when ProsperoTube starts; applies to this PS5", "label": "Automatic backup", "kind": "cycle", "value": "Daily"},
+  {"id": "settings:backup:import", "is_folder": true, "interface": true, "title": "Import subscriptions", "subtitle": "Follow the channels of an export from another app", "label": "Import subscriptions", "kind": "page"},
+  {"id": "account:notice:backup-accounts", "is_folder": true, "interface": true, "title": "Sign-ins are not part of a backup", "subtitle": "Restoring a backup neither adds nor removes an account on this PS5", "label": "Sign-ins are not part of a backup", "kind": "info", "overview": "What a backup holds for an account is used only while that sign-in is still on this PS5. An account that signs in again starts as a new profile."}
+ ],
+ "has_more": false
+}

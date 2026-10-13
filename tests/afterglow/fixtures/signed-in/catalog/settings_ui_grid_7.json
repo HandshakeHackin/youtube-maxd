@@ -1,0 +1,18 @@
+{
+ "items": [
+  {"id": "settings:ui:grid:0", "is_folder": true, "interface": true, "title": "0.5x", "subtitle": "The size of the video cards", "label": "0.5x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 50},
+  {"id": "settings:ui:grid:1", "is_folder": true, "interface": true, "title": "0.6x", "subtitle": "The size of the video cards", "label": "0.6x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 60},
+  {"id": "settings:ui:grid:2", "is_folder": true, "interface": true, "title": "0.7x", "subtitle": "The size of the video cards", "label": "0.7x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 70},
+  {"id": "settings:ui:grid:3", "is_folder": true, "interface": true, "title": "0.8x", "subtitle": "The size of the video cards", "label": "0.8x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 80},
+  {"id": "settings:ui:grid:4", "is_folder": true, "interface": true, "title": "0.9x", "subtitle": "The size of the video cards", "label": "0.9x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 90},
+  {"id": "settings:ui:grid:5", "is_folder": true, "interface": true, "title": "1x", "subtitle": "The size of the video cards", "label": "1x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 100},
+  {"id": "settings:ui:grid:6", "is_folder": true, "interface": true, "title": "1.1x", "subtitle": "The size of the video cards", "label": "1.1x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 110},
+  {"id": "settings:ui:grid:7", "is_folder": true, "interface": true, "title": "1.2x", "subtitle": "Selected", "label": "1.2x", "kind": "choice", "selected": true, "preview": "card.grid", "number": 120},
+  {"id": "settings:ui:grid:8", "is_folder": true, "interface": true, "title": "1.25x", "subtitle": "The size of the video cards", "label": "1.25x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 125},
+  {"id": "settings:ui:grid:9", "is_folder": true, "interface": true, "title": "1.3x", "subtitle": "The size of the video cards", "label": "1.3x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 130},
+  {"id": "settings:ui:grid:10", "is_folder": true, "interface": true, "title": "1.35x", "subtitle": "The size of the video cards", "label": "1.35x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 135},
+  {"id": "settings:ui:grid:11", "is_folder": true, "interface": true, "title": "1.4x", "subtitle": "The size of the video cards", "label": "1.4x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 140},
+  {"id": "settings:ui:grid:12", "is_folder": true, "interface": true, "title": "1.5x", "subtitle": "The size of the video cards", "label": "1.5x", "kind": "choice", "selected": false, "preview": "card.grid", "number": 150}
+ ],
+ "has_more": false
+}

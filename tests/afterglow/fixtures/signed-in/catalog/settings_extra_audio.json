@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "settings:player-volume", "is_folder": true, "interface": true, "title": "Player volume: 100 %", "subtitle": "Above 100 % the sound is boosted and may distort", "label": "Player volume", "kind": "slider", "value": "100 %", "index": 20, "count": 61, "number": 100},
+  {"id": "settings:auto-volume", "is_folder": true, "interface": true, "title": "Auto volume: On", "subtitle": "Loud videos are turned down to YouTube's reference level", "label": "Auto volume", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:player-mute", "is_folder": true, "interface": true, "title": "Mute: Off", "subtitle": "Silences the player until it is switched back", "label": "Mute", "kind": "switch", "value": "Off", "on": false},
+  {"id": "settings:audio-delay", "is_folder": true, "interface": true, "title": "Audio delay: No delay", "subtitle": "Shifts the sound against the picture", "label": "Audio delay", "kind": "slider", "value": "No delay", "index": 14, "count": 29},
+  {"id": "settings:audio-delay-enabled", "is_folder": true, "interface": true, "title": "Use the audio delay: Off", "subtitle": "Choose a delay first: there is nothing to switch on yet", "label": "Use the audio delay", "kind": "switch", "value": "Off", "on": false, "disabled": true}
+ ],
+ "has_more": false
+}
