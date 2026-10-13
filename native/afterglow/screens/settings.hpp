@@ -72,6 +72,7 @@ struct Tile
     Icon icon;
     ScreenId link;          // the screen the tile leads to; ScreenId::settings for a page of its own
     const char *link_label; // English: the row that leads there when the tile has rows as well
+    const char *link_detail; // English: what that row says of itself
     const char *reads[2];   // catalogs whose rows the tile's page lists beside its rows of the main list
     const char *summary[3]; // rows of the main list whose values make the line under the name
     const char *fact;       // the fact of those rows the line is made of
@@ -165,7 +166,8 @@ void draw_notice(G &g, Icon glyph, std::string_view title, std::string_view body
 // "SETTINGS > CAPTIONS" over the page's name.
 void draw_path(G &g, const std::vector<std::string> &path, float amount);
 // The panel in which the focused row explains itself.
-void draw_help(G &g, const Rect &r, std::string_view words, std::string_view more);
+// alert: the words are the provider's, about a change it refused.
+void draw_help(G &g, const Rect &r, std::string_view words, std::string_view more, bool alert = false);
 
 enum class PreviewKind : std::uint8_t
 {

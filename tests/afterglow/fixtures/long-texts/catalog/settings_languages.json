@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "settings:lang:de-AT", "is_folder": true, "interface": true, "title": "Deutsch (Österreich)", "subtitle": "Selected", "label": "Deutsch (Österreich)", "kind": "choice", "selected": true},
+  {"id": "settings:lang:nl-BE", "is_folder": true, "interface": true, "title": "Niederländisch (Belgien, automatisch erzeugt und maschinell übersetzt)", "subtitle": "Untertitel in dieser Sprache verwenden, sobald ein Video sie anbietet", "label": "Niederländisch (Belgien, automatisch erzeugt und maschinell übersetzt)", "kind": "choice", "selected": false},
+  {"id": "settings:lang:pt-BR", "is_folder": true, "interface": true, "title": "Portugiesisch (Brasilien)", "subtitle": "Untertitel in dieser Sprache verwenden, sobald ein Video sie anbietet", "label": "Portugiesisch (Brasilien)", "kind": "choice", "selected": false},
+  {"id": "settings:lang:vi", "is_folder": true, "interface": true, "title": "Vietnamesisch", "subtitle": "Untertitel in dieser Sprache verwenden, sobald ein Video sie anbietet", "label": "Vietnamesisch", "kind": "choice", "selected": false}
+ ],
+ "has_more": false
+}

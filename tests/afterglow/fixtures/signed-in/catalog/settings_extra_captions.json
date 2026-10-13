@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "settings:subtitle-size", "is_folder": true, "interface": true, "title": "Size: 120 %", "subtitle": "The preview shows the size on your screen.", "label": "Size", "kind": "slider", "value": "120 %", "index": 11, "count": 20, "number": 120, "preview": "caption.size", "preview_art_url": "art://ridges/6/409/1280x720"},
+  {"id": "settings:subtitle-style", "is_folder": true, "interface": true, "title": "Style: Box", "subtitle": "How the letters are kept apart from the picture.", "label": "Style", "kind": "list", "value": "Box", "index": 2, "count": 7, "preview": "caption.style", "text_rgb": "ffffff", "background_alpha": 178, "edge": "none"},
+  {"id": "settings:subtitle-position", "is_folder": true, "interface": true, "title": "Position: Bottom", "subtitle": "Where captions sit when the video does not place them itself.", "label": "Position", "kind": "slider", "value": "Bottom", "index": 0, "count": 42, "number": -1, "preview": "caption.position"},
+  {"id": "settings:more-subtitles", "is_folder": true, "interface": true, "title": "Offer translated captions: On", "subtitle": "Adds YouTube's automatic translations to the list; opening a video takes a little longer.", "label": "Offer translated captions", "kind": "switch", "value": "On", "on": true},
+  {"id": "settings:caption-memory", "is_folder": true, "interface": true, "title": "Remember per channel: Off", "subtitle": "Keeps the caption choice you make while watching, channel by channel.", "label": "Remember per channel", "kind": "switch", "value": "Off", "on": false}
+ ],
+ "has_more": false
+}

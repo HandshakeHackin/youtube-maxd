@@ -1,0 +1,29 @@
+{
+ "items": [
+  {"id": "settings:content-country:default", "is_folder": true, "interface": true, "title": "As YouTube chooses", "subtitle": "Let YouTube choose the country", "label": "As YouTube chooses", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:GB", "is_folder": true, "interface": true, "title": "United Kingdom", "subtitle": "Selected", "label": "United Kingdom", "kind": "choice", "selected": true},
+  {"id": "settings:content-country:IE", "is_folder": true, "interface": true, "title": "Ireland", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Ireland", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:DE", "is_folder": true, "interface": true, "title": "Germany", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Germany", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:AT", "is_folder": true, "interface": true, "title": "Austria", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Austria", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:CH", "is_folder": true, "interface": true, "title": "Switzerland", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Switzerland", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:FR", "is_folder": true, "interface": true, "title": "France", "subtitle": "Country of recommendations, Trending and section shelves", "label": "France", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:BE", "is_folder": true, "interface": true, "title": "Belgium", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Belgium", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:NL", "is_folder": true, "interface": true, "title": "Netherlands", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Netherlands", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:LU", "is_folder": true, "interface": true, "title": "Luxembourg", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Luxembourg", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:ES", "is_folder": true, "interface": true, "title": "Spain", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Spain", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:PT", "is_folder": true, "interface": true, "title": "Portugal", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Portugal", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:IT", "is_folder": true, "interface": true, "title": "Italy", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Italy", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:GR", "is_folder": true, "interface": true, "title": "Greece", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Greece", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:DK", "is_folder": true, "interface": true, "title": "Denmark", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Denmark", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:SE", "is_folder": true, "interface": true, "title": "Sweden", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Sweden", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:NO", "is_folder": true, "interface": true, "title": "Norway", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Norway", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:FI", "is_folder": true, "interface": true, "title": "Finland", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Finland", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:IS", "is_folder": true, "interface": true, "title": "Iceland", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Iceland", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:PL", "is_folder": true, "interface": true, "title": "Poland", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Poland", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:CZ", "is_folder": true, "interface": true, "title": "Czechia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Czechia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:SK", "is_folder": true, "interface": true, "title": "Slovakia", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Slovakia", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:HU", "is_folder": true, "interface": true, "title": "Hungary", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Hungary", "kind": "choice", "selected": false},
+  {"id": "settings:content-country:RO", "is_folder": true, "interface": true, "title": "Romania", "subtitle": "Country of recommendations, Trending and section shelves", "label": "Romania", "kind": "choice", "selected": false}
+ ],
+ "has_more": true
+}

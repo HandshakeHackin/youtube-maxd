@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "settings:subtitle-style:0", "is_folder": true, "interface": true, "title": "Player's own", "subtitle": "Text colour, background and edge of captions", "label": "Player's own", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "ffffff", "background_alpha": 140, "edge": "none"},
+  {"id": "settings:subtitle-style:1", "is_folder": true, "interface": true, "title": "White, shadow", "subtitle": "Text colour, background and edge of captions", "label": "White, shadow", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "e4e4e4", "background_alpha": 0, "edge": "shadow"},
+  {"id": "settings:subtitle-style:2", "is_folder": true, "interface": true, "title": "Box", "subtitle": "Text colour, background and edge of captions", "label": "Box", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "ffffff", "background_alpha": 178, "edge": "none"},
+  {"id": "settings:subtitle-style:3", "is_folder": true, "interface": true, "title": "White on black", "subtitle": "Text colour, background and edge of captions", "label": "White on black", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "e4e4e4", "background_alpha": 255, "edge": "outline"},
+  {"id": "settings:subtitle-style:4", "is_folder": true, "interface": true, "title": "Yellow, shadow", "subtitle": "Selected", "label": "Yellow, shadow", "kind": "choice", "selected": true, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "ffff00", "background_alpha": 0, "edge": "shadow"},
+  {"id": "settings:subtitle-style:5", "is_folder": true, "interface": true, "title": "Yellow box", "subtitle": "Text colour, background and edge of captions", "label": "Yellow box", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "ffff00", "background_alpha": 100, "edge": "outline"},
+  {"id": "settings:subtitle-style:6", "is_folder": true, "interface": true, "title": "Yellow on black", "subtitle": "Text colour, background and edge of captions", "label": "Yellow on black", "kind": "choice", "selected": false, "preview": "caption.style", "preview_art_url": "art://ridges/6/409/1280x720", "text_rgb": "ffff00", "background_alpha": 255, "edge": "outline"}
+ ],
+ "has_more": false
+}

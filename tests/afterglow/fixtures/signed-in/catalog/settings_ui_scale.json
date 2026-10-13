@@ -1,0 +1,24 @@
+{
+ "items": [
+  {"id": "settings:ui:scale:0", "is_folder": true, "interface": true, "title": "0.4x", "subtitle": "The size of everything in the interface", "label": "0.4x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 40},
+  {"id": "settings:ui:scale:1", "is_folder": true, "interface": true, "title": "0.5x", "subtitle": "The size of everything in the interface", "label": "0.5x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 50},
+  {"id": "settings:ui:scale:2", "is_folder": true, "interface": true, "title": "0.6x", "subtitle": "The size of everything in the interface", "label": "0.6x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 60},
+  {"id": "settings:ui:scale:3", "is_folder": true, "interface": true, "title": "0.65x", "subtitle": "The size of everything in the interface", "label": "0.65x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 65},
+  {"id": "settings:ui:scale:4", "is_folder": true, "interface": true, "title": "0.7x", "subtitle": "The size of everything in the interface", "label": "0.7x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 70},
+  {"id": "settings:ui:scale:5", "is_folder": true, "interface": true, "title": "0.75x", "subtitle": "The size of everything in the interface", "label": "0.75x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 75},
+  {"id": "settings:ui:scale:6", "is_folder": true, "interface": true, "title": "0.8x", "subtitle": "The size of everything in the interface", "label": "0.8x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 80},
+  {"id": "settings:ui:scale:7", "is_folder": true, "interface": true, "title": "0.85x", "subtitle": "The size of everything in the interface", "label": "0.85x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 85},
+  {"id": "settings:ui:scale:8", "is_folder": true, "interface": true, "title": "0.9x", "subtitle": "The size of everything in the interface", "label": "0.9x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 90},
+  {"id": "settings:ui:scale:9", "is_folder": true, "interface": true, "title": "0.95x", "subtitle": "The size of everything in the interface", "label": "0.95x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 95},
+  {"id": "settings:ui:scale:10", "is_folder": true, "interface": true, "title": "1x", "subtitle": "Selected", "label": "1x", "kind": "choice", "selected": true, "preview": "card.scale", "number": 100},
+  {"id": "settings:ui:scale:11", "is_folder": true, "interface": true, "title": "1.05x", "subtitle": "The size of everything in the interface", "label": "1.05x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 105},
+  {"id": "settings:ui:scale:12", "is_folder": true, "interface": true, "title": "1.1x", "subtitle": "The size of everything in the interface", "label": "1.1x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 110},
+  {"id": "settings:ui:scale:13", "is_folder": true, "interface": true, "title": "1.15x", "subtitle": "The size of everything in the interface", "label": "1.15x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 115},
+  {"id": "settings:ui:scale:14", "is_folder": true, "interface": true, "title": "1.2x", "subtitle": "The size of everything in the interface", "label": "1.2x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 120},
+  {"id": "settings:ui:scale:15", "is_folder": true, "interface": true, "title": "1.25x", "subtitle": "The size of everything in the interface", "label": "1.25x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 125},
+  {"id": "settings:ui:scale:16", "is_folder": true, "interface": true, "title": "1.3x", "subtitle": "The size of everything in the interface", "label": "1.3x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 130},
+  {"id": "settings:ui:scale:17", "is_folder": true, "interface": true, "title": "1.35x", "subtitle": "The size of everything in the interface", "label": "1.35x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 135},
+  {"id": "settings:ui:scale:18", "is_folder": true, "interface": true, "title": "1.4x", "subtitle": "The size of everything in the interface", "label": "1.4x", "kind": "choice", "selected": false, "preview": "card.scale", "number": 140}
+ ],
+ "has_more": false
+}

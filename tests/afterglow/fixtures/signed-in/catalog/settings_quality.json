@@ -1,0 +1,13 @@
+{
+ "items": [
+  {"id": "settings:quality:144", "is_folder": true, "interface": true, "title": "Up to 144p", "subtitle": "Maximum resolution for the next video", "label": "Up to 144p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:240", "is_folder": true, "interface": true, "title": "Up to 240p", "subtitle": "Maximum resolution for the next video", "label": "Up to 240p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:360", "is_folder": true, "interface": true, "title": "Up to 360p", "subtitle": "Maximum resolution for the next video", "label": "Up to 360p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:480", "is_folder": true, "interface": true, "title": "Up to 480p", "subtitle": "Maximum resolution for the next video", "label": "Up to 480p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:720", "is_folder": true, "interface": true, "title": "Up to 720p", "subtitle": "Maximum resolution for the next video", "label": "Up to 720p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:1080", "is_folder": true, "interface": true, "title": "Up to 1080p", "subtitle": "Maximum resolution for the next video", "label": "Up to 1080p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:1440", "is_folder": true, "interface": true, "title": "Up to 1440p", "subtitle": "Maximum resolution for the next video", "label": "Up to 1440p", "kind": "choice", "selected": false},
+  {"id": "settings:quality:2160", "is_folder": true, "interface": true, "title": "Up to 2160p", "subtitle": "Selected", "label": "Up to 2160p", "kind": "choice", "selected": true}
+ ],
+ "has_more": false
+}

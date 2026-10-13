@@ -1,0 +1,7 @@
+{
+ "items": [
+  {"id": "account:notice:credit:0", "is_folder": true, "interface": true, "title": "EVO Player", "overview": "The native player this application is built on: decoding, the audio clock, queues, seeking and the application's life on the console."},
+  {"id": "account:notice:credit:1", "is_folder": true, "interface": true, "title": "ps5-homebrew-ui", "overview": "The interface kit that draws this page: shapes, text, motion and the standard controls."}
+ ],
+ "has_more": false
+}

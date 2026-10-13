@@ -1,0 +1,15 @@
+{
+ "items": [
+  {"id": "account:notice:version", "is_folder": true, "interface": true, "title": "ProsperoTube 0.1.0", "subtitle": "A YouTube client for the PS5; GPL-3.0-or-later", "label": "ProsperoTube 0.1.0", "kind": "info"},
+  {"id": "link:about", "is_folder": true, "interface": true, "title": "Releases and source code", "subtitle": "Project links, each with a QR code to open on another device", "label": "Releases and source code", "kind": "link", "screen": "reader"},
+  {"id": "link:feedback", "is_folder": true, "interface": true, "title": "Feedback", "subtitle": "Report a problem or ask for a feature", "label": "Feedback", "kind": "link", "screen": "reader"},
+  {"id": "settings:about:credits", "is_folder": true, "interface": true, "title": "Credits", "subtitle": "What ProsperoTube builds on; the full notices ship with the package", "label": "Credits", "kind": "link", "screen": "reader"},
+  {"id": "settings:about:changelog", "is_folder": true, "interface": true, "title": "What changed in this version", "subtitle": "The changes listed for the installed version", "label": "What changed in this version", "kind": "link", "screen": "reader"},
+  {"id": "settings:update:check", "is_folder": true, "interface": true, "title": "Check for updates: 0.2.0 is available", "subtitle": "Installed 0.1.0; latest 0.2.0 (Afterglow)", "label": "Check for updates", "kind": "action", "value": "0.2.0 is available", "done": "0.2.0 is the latest version"},
+  {"id": "settings:update:notify", "is_folder": true, "interface": true, "title": "Tell me about updates: On", "subtitle": "A notice once per start when a newer version exists", "label": "Tell me about updates", "kind": "switch", "value": "On", "on": true},
+  {"id": "description:update", "is_folder": true, "interface": true, "title": "What is new in 0.2.0", "subtitle": "The release notes, as the developer wrote them", "label": "What is new in 0.2.0", "kind": "link", "screen": "reader"},
+  {"id": "settings:update:install", "is_folder": true, "interface": true, "title": "Update to 0.2.0 now", "subtitle": "Downloads 48 MB, checks it against the release and prepares the new version", "label": "Update to 0.2.0 now", "kind": "action", "attention": true, "done": "0.2.0 is downloading"},
+  {"id": "settings:update:skip", "is_folder": true, "interface": true, "title": "Skip version 0.2.0", "subtitle": "No notice at start for this version; it stays listed here", "label": "Skip version 0.2.0", "kind": "action"}
+ ],
+ "has_more": false
+}
