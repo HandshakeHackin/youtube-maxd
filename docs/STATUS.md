@@ -62,7 +62,7 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   all of its screens ([decision](DECISIONS.md)). Built so far, host-tested
   only: the frame (rail, hand-overs, toasts, dialog, attract mode), Home and
   the opening, the reader, the data layer on the shipping provider, the text
-  engine for every script behind the kit's fonts, and the four looks, with 38
+  engine for every script behind the kit's fonts, and the four looks, with 39
   boards drawn and checked in each look (`scripts/test_afterglow.sh`). It is
   linked into the PS5 package behind **Interface: Afterglow (preview)** under
   YouTube preferences > Interface; **Classic** stays the default, and pages

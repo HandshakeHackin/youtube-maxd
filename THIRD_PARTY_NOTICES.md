@@ -130,4 +130,3 @@ V3, preserved at `native/licenses/Unicode-3.0.txt` and copied into native assets
   Regular and SemiBold and Montserrat Medium (SIL Open Font License 1.1) and
   DejaVu Sans Mono (Bitstream Vera and DejaVu licences). Their licence texts
   ship under `assets/prosperotube-notices`.
-
