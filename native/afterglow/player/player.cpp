@@ -219,10 +219,12 @@ Player::Player(const ui::Fonts &fonts, ImageCache *images) : fonts_(fonts), imag
         const std::string &value = source.value.empty() ? source.tag : source.value;
         if (!value.empty())
         {
-            // The value never takes more than half of the row: the name is what is being chosen.
+            // The name is what is being chosen: the value takes what the name leaves, and never less than two fifths.
             const float size = options ? kTypeHint : kTypeMeta;
             const Face &face = options ? g.f.regular : g.f.semibold;
-            right -= text(g, face, fit(face, value, size, (right - left) * 0.5f), right, row.cy() + size * 0.36f, size, quiet, gfx::Align::right) + 18.0f;
+            const float free = right - left;
+            const float room = std::max(free * 0.4f, free - measure(g.f.semibold, source.label, kTypeRow) - 18.0f);
+            right -= text(g, face, fit(face, value, size, room), right, row.cy() + size * 0.36f, size, quiet, gfx::Align::right) + 18.0f;
         }
         text(g, g.f.semibold, fit(g.f.semibold, source.label, kTypeRow, std::max(40.0f, right - left)), left, row.cy() + kTypeRow * 0.34f, kTypeRow, ink);
     };

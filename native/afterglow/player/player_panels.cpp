@@ -115,8 +115,16 @@ void Player::draw_up_next(G &g, const Motion &m) const
                                                               : up_next_.message;
         if (up_next_.loading)
         {
+            // The bones of the row: five pictures and the two lines under each, breathing one after another.
             for (int i = 0; i < kUpNextShown; ++i)
-                bone(g, card_rect(i, 0.0f), kRadiusThumb, i);
+            {
+                const Rect r = card_rect(i, 0.0f);
+                g.l.push_opacity(g.reduced ? 0.8f : 0.5f + 0.5f * ui::breathe(g.time + 0.13f * static_cast<float>(i), 1.7f));
+                picture_placeholder(g, r, kRadiusThumb);
+                g.l.rounded_rect({r.x + 2.0f, r.y + r.h + 16.0f, r.w * 0.78f, 18.0f}, 9.0f, k.raised);
+                g.l.rounded_rect({r.x + 2.0f, r.y + r.h + 46.0f, r.w * 0.46f, 14.0f}, 7.0f, k.raised);
+                g.l.pop_opacity();
+            }
         }
         else
         {
@@ -353,9 +361,10 @@ void Player::draw_chat(G &g, const Motion &m) const
             if (i == 0)
                 newest_h = height + 12.0f;
             y -= height + 12.0f;
-            const float dy = i == 0 || g.reduced ? 0.0f : (1.0f - fresh) * newest_h;
+            // The lines above make room first; the new one fades into it over the second half of the move.
+            const float dy = g.reduced ? 0.0f : i == 0 ? (1.0f - fresh) * 14.0f : (1.0f - fresh) * newest_h;
             const float top = y + dy;
-            g.l.push_opacity((i == 0 ? fresh : 1.0f) * tween::clamp01((top - side.y - 70.0f) / 60.0f));
+            g.l.push_opacity((i == 0 ? tween::smoothstep(fresh * 2.0f - 1.0f) : 1.0f) * tween::clamp01((top - side.y - 70.0f) / 60.0f));
             avatar(g, side.x + 44.0f, top + 22.0f, 16.0f, line.author, line.author, picture(line.avatar, PictureSize::avatar));
             const float badge_room = line.badge == 2 ? 70.0f : line.badge == 3 ? 34.0f : 0.0f;
             const float name_w = text(g, g.f.semibold, fit(g.f.semibold, line.author, kTypeSmall, text_w - badge_room), side.x + 72.0f, top + 24.0f, kTypeSmall,
