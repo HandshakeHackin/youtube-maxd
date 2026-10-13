@@ -356,6 +356,10 @@ static const char* tube_dev_path(unsigned index) {
     embedded_service_overlay.apply_host(replace, player, host)
     if embedded_service_overlay.enabled():
         embedded_service_overlay.apply_package(replace, player, WORK, ROOT)
+    # The update check and self-update; their console side needs the built-in service's HTTPS client.
+    import update_overlay
+    update_overlay.apply_update_overlay(replace, player, host, WORK, ROOT, embedded_service_overlay.enabled())
+    update_overlay.retire_stale_objects(WORK, player, embedded_service_overlay.enabled())
     embedded_service_overlay.retire_stale_objects(WORK, player)
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.

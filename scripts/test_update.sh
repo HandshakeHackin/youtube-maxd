@@ -60,3 +60,8 @@ cc "${flags[@]}" -DEVO_TARGET_PS5=1 -I"${evo}/include" "${curl_cflags[@]}" "${ro
   "${root}/native/vendor/cJSON/cJSON.c" "${curl_libs[@]}" -lz -lm -lpthread -o "${out}/test_update_evo"
 ASAN_OPTIONS=detect_leaks=1 "${out}/test_update_evo"
 
+# About's update rows, the setting and the notes page, through the shipping provider.
+cc "${flags[@]}" -I"${evo}/include" -I"${evo}/addons/include" "${root}/tests/test_update_provider.c" "${root}/native/tube_provider.c" \
+  "${root}/native/tube_remote.c" "${root}/native/tube_player_extra.c" "${root}/native/tube_backup.c" "${root}/native/tube_update_app.c" "${engine[@]}" \
+  "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c" -lz -lm -lpthread -o "${out}/test_update_provider"
+ASAN_OPTIONS=detect_leaks=1 "${out}/test_update_provider" "${fixtures}/www/good.zip"
