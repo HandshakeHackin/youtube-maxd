@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "settings:channel-sort:0", "title": "Account order", "subtitle": "Order of the Subscribed channels list for this profile", "is_folder": true, "interface": true, "selected": false, "kind": "list"},
+  {"id": "settings:channel-sort:1", "title": "By name", "subtitle": "Selected", "is_folder": true, "interface": true, "selected": true, "kind": "list"},
+  {"id": "settings:channel-sort:2", "title": "New content first", "subtitle": "Order of the Subscribed channels list for this profile", "is_folder": true, "interface": true, "selected": false, "kind": "list"}
+ ],
+ "has_more": false
+}

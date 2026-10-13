@@ -1,0 +1,13 @@
+{
+ "items": [
+  {"id": "channel:UClangertext030000000000", "title": "Die Wochenendküche für Menschen mit genau einer guten Pfanne", "subtitle": "884.000 Abonnenten", "is_folder": true, "handle": "@wochenendkueche", "subscribers": "884.000 Abonnenten", "subscribed": true, "unseen": 2},
+  {"id": "channel:UClangertext050000000000", "title": "Drehbank & Lichtstrom Werkstattberichte", "subtitle": "655.000 Abonnenten", "is_folder": true, "handle": "@drehbankundlichtstrom", "subscribers": "655.000 Abonnenten", "subscribed": true},
+  {"id": "channel:UClangertext060000000000", "title": "Gezeitenschrift", "subtitle": "1,7 Mio. Abonnenten", "is_folder": true, "handle": "@gezeitenschrift", "subscribers": "1,7 Mio. Abonnenten", "subscribed": true},
+  {"id": "channel:UClangertext010000000000", "title": "Glasfarn Spiele — Aufbauspiele, Speedruns und sehr lange Abende", "subtitle": "1.080.000 Abonnenten", "is_folder": true, "handle": "@glasfarnspiele", "subscribers": "1.080.000 Abonnenten", "subscribed": true},
+  {"id": "channel:UClangertext000000000000", "title": "Nordlicht-Atlas: Langsame Filme aus dem Hochgebirge und von der Küste", "subtitle": "12.345.678 Abonnenten", "is_folder": true, "handle": "@nordlichtatlas.langsamefilme.offiziell", "subscribers": "12.345.678 Abonnenten", "subscribed": true, "unseen": 128},
+  {"id": "channel:UClangertext040000000000", "title": "Perlmutt Klang", "subtitle": "412.000 Abonnenten", "is_folder": true, "handle": "@perlmuttklang", "subscribers": "412.000 Abonnenten", "subscribed": true, "live": true},
+  {"id": "channel:UClangertext020000000000", "title": "Umlaufbahn", "subtitle": "3,9 Mio. Abonnenten", "is_folder": true, "handle": "@umlaufbahn", "subscribers": "3,9 Mio. Abonnenten", "subscribed": true},
+  {"id": "channel:UClangertext070000000000", "title": "Viertellinie — Alle Höhepunkte, nichts vom Geschrei", "subtitle": "2,2 Mio. Abonnenten", "is_folder": true, "handle": "@viertellinie", "subscribers": "2,2 Mio. Abonnenten", "subscribed": true}
+ ],
+ "has_more": false
+}

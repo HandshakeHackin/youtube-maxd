@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice", "title": "Plays next", "subtitle": "Blue Hour on the Northern Coast, No Talking", "is_folder": true, "interface": true}
+ ],
+ "has_more": false
+}
