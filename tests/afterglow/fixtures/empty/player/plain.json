@@ -1,0 +1,23 @@
+{
+ "about": "The player with only what the app can say today (native/afterglow/player/app/mount.cpp): a title, the stream's facts, the buttons the player really answers to; no channel, no views, no chapters, no segments, no storyboard. Every title and number is invented.",
+ "frame": "art://ocean/1/241",
+ "title": "Blue Hour on the Northern Coast, No Talking",
+ "tags": [],
+ "quality": "1080p AVC",
+ "clock": "",
+ "position": 754,
+ "duration": 2490,
+ "show_remaining": false,
+ "controls": ["play_pause", "captions", "quality", "speed", "more"],
+ "hints": [
+  {"button": "dpad", "label": "Seek"},
+  {"button": "r2", "label": "Options"},
+  {"button": "square", "label": "Details"},
+  {"button": "circle", "label": "Back"}
+ ],
+ "seek_hints": [
+  {"button": "dpad", "label": "Hold to scrub"},
+  {"button": "cross", "label": "Play from here"},
+  {"button": "circle", "label": "Cancel"}
+ ]
+}

@@ -1,0 +1,1074 @@
+{
+ "about": "The player: every state beside the nine approved boards. Written by tests/afterglow/tools/player_boards.py.",
+ "boards": [
+  {
+   "name": "player-paused",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "paused": true
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-paused",
+    "state": {
+     "playback": "paused"
+    }
+   }
+  },
+  {
+   "name": "player-loading",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "loading": true,
+    "meta": "Buffering...",
+    "channel": "",
+    "position": 2059,
+    "buffered": -1
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "playback": "loading"
+    }
+   }
+  },
+  {
+   "name": "player-hidden",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "chrome": 0,
+    "captions": {
+     "lines": [
+      "We left the hut before the light came.",
+      "Nobody spoke for an hour."
+     ],
+     "size": 50
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "controls": "hidden",
+     "captions": "2"
+    }
+   }
+  },
+  {
+   "name": "player-captions-styled",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "chrome": 0,
+    "captions": {
+     "lines": [
+      "We left the hut before the light came."
+     ],
+     "second": [
+      "Wir verließen die Hütte vor dem ersten Licht."
+     ],
+     "size": 60,
+     "custom": true,
+     "text_rgb": "#ffff00",
+     "plate_alpha": 0,
+     "edge": 1,
+     "second_top": true,
+     "second_rgb": "#66e3ff"
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "controls": "hidden",
+     "captions": "2"
+    }
+   }
+  },
+  {
+   "name": "player-seek-carousel",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2059,
+    "preview": [
+     {
+      "art": "art://ridges/3/397",
+      "offset": 0
+     },
+     {
+      "art": "art://ridges/0/11",
+      "offset": -1
+     },
+     {
+      "art": "art://ridges/6/409",
+      "offset": 1
+     },
+     {
+      "art": "art://ridges/2/421",
+      "offset": -2
+     },
+     {
+      "art": "art://dunes/3/133",
+      "offset": 2
+     }
+    ]
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "preview": "5"
+    }
+   }
+  },
+  {
+   "name": "player-seek-back",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 1210,
+    "preview": []
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "playback": "seeking",
+     "preview": "0",
+     "chapter": "3",
+     "target": "1210"
+    }
+   }
+  },
+  {
+   "name": "player-seek-edge",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 2880,
+    "preview": [
+     {
+      "art": "art://ridges/3/397",
+      "offset": 0
+     },
+     {
+      "art": "art://ridges/0/11",
+      "offset": -1
+     },
+     {
+      "art": "art://ridges/6/409",
+      "offset": 1
+     },
+     {
+      "art": "art://ridges/2/421",
+      "offset": -2
+     },
+     {
+      "art": "art://dunes/3/133",
+      "offset": 2
+     }
+    ]
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "chapter": "7"
+    }
+   }
+  },
+  {
+   "name": "player-up-next-third",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is on",
+     "note": "From Northlight Atlas and channels like it",
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Aurora Chasing at -30° (We Almost Missed It)",
+       "channel": "Northlight Atlas",
+       "meta": "2.2M views · 8 months ago",
+       "duration_s": 1198,
+       "thumb": "art://aurora/0/145",
+       "badges": 40
+      },
+      {
+       "id": "vid241",
+       "title": "Blue Hour on the Northern Coast, No Talking",
+       "channel": "Northlight Atlas",
+       "meta": "640K views · 2 months ago",
+       "duration_s": 2490,
+       "thumb": "art://ocean/1/241",
+       "badges": 8
+      },
+      {
+       "id": "vid313",
+       "title": "The Forest at Night Sounds Nothing Like You Think",
+       "channel": "Northlight Atlas",
+       "meta": "380K views · 6 weeks ago",
+       "duration_s": 1329,
+       "thumb": "art://aurora/2/313",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "A Year on a Tidal Island",
+       "channel": "Northlight Atlas",
+       "meta": "4.8M views · 2 years ago",
+       "duration_s": 3484,
+       "thumb": "art://ocean/3/385",
+       "badges": 40
+      },
+      {
+       "id": "vid421",
+       "title": "Teal Dawn Above the Valley",
+       "channel": "Northlight Atlas",
+       "meta": "410K views · 10 months ago",
+       "duration_s": 920,
+       "thumb": "art://ridges/2/421",
+       "badges": 8
+      }
+     ],
+     "focus": 2,
+     "first": 0,
+     "total": 5,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/2"
+   }
+  },
+  {
+   "name": "player-up-next-more",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is on",
+     "note": "From Northlight Atlas and channels like it",
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Aurora Chasing at -30° (We Almost Missed It)",
+       "channel": "Northlight Atlas",
+       "meta": "2.2M views · 8 months ago",
+       "duration_s": 1198,
+       "thumb": "art://aurora/0/145",
+       "badges": 40
+      },
+      {
+       "id": "vid241",
+       "title": "Blue Hour on the Northern Coast, No Talking",
+       "channel": "Northlight Atlas",
+       "meta": "640K views · 2 months ago",
+       "duration_s": 2490,
+       "thumb": "art://ocean/1/241",
+       "badges": 8
+      },
+      {
+       "id": "vid313",
+       "title": "The Forest at Night Sounds Nothing Like You Think",
+       "channel": "Northlight Atlas",
+       "meta": "380K views · 6 weeks ago",
+       "duration_s": 1329,
+       "thumb": "art://aurora/2/313",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "A Year on a Tidal Island",
+       "channel": "Northlight Atlas",
+       "meta": "4.8M views · 2 years ago",
+       "duration_s": 3484,
+       "thumb": "art://ocean/3/385",
+       "badges": 40
+      },
+      {
+       "id": "vid421",
+       "title": "Teal Dawn Above the Valley",
+       "channel": "Northlight Atlas",
+       "meta": "410K views · 10 months ago",
+       "duration_s": 920,
+       "thumb": "art://ridges/2/421",
+       "badges": 8
+      },
+      {
+       "id": "vid133",
+       "title": "Crossing the Salt Flats by Bicycle",
+       "channel": "Vantor Trails",
+       "meta": "720K views · 3 months ago",
+       "duration_s": 2000,
+       "thumb": "art://dunes/3/133",
+       "badges": 8
+      },
+      {
+       "id": "vid373",
+       "title": "Moonrise Over the Dune Sea in Real Time",
+       "channel": "Vantor Trails",
+       "meta": "540K views · 1 year ago",
+       "duration_s": 372,
+       "thumb": "art://dunes/1/373",
+       "badges": 8
+      },
+      {
+       "id": "vid409",
+       "title": "Violet Hour: A Short Film",
+       "channel": "Slowreel",
+       "meta": "233K views · 3 weeks ago",
+       "duration_s": 451,
+       "thumb": "art://ridges/6/409",
+       "badges": 0
+      }
+     ],
+     "focus": 6,
+     "first": 0,
+     "total": 8,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/6",
+    "state": {
+     "cards": "8"
+    }
+   }
+  },
+  {
+   "name": "player-up-next-loading",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is on",
+     "note": "From Northlight Atlas and channels like it",
+     "cards": [],
+     "focus": 0,
+     "first": 0,
+     "total": 0,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ],
+     "loading": true
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "up_next": "1",
+     "cards": "0"
+    }
+   }
+  },
+  {
+   "name": "player-up-next-empty",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "up_next": {
+     "open": true,
+     "chip": "Autoplay is off",
+     "note": "",
+     "cards": [],
+     "focus": 0,
+     "first": 0,
+     "total": 0,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play now"
+      },
+      {
+       "button": "square",
+       "label": "Add to queue"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ],
+     "message": "Related videos could not be loaded. The video keeps playing."
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "up_next": "1",
+     "cards": "0"
+    }
+   }
+  },
+  {
+   "name": "player-captions-second",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "tabs": [
+      "Captions",
+      "Second language"
+     ],
+     "tab": 1,
+     "rows": [
+      {
+       "label": "Off",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "English",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "English",
+       "value": "Automatic",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Deutsch",
+       "value": "Translated",
+       "current": true,
+       "focused": false
+      },
+      {
+       "label": "Español",
+       "value": "Translated",
+       "current": false,
+       "focused": true
+      },
+      {
+       "label": "Français",
+       "value": "",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Italiano",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Polski",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Português (Brasil)",
+       "value": "Translated",
+       "current": false,
+       "focused": false
+      }
+     ],
+     "note": "Style, size and position are in Settings, under Captions.",
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "l2",
+       "label": "First or second",
+       "second": "r2"
+      }
+     ]
+    },
+    "captions": {
+     "lines": [
+      "The wind did not stop until morning."
+     ],
+     "second": [
+      "Der Wind hörte erst am Morgen auf."
+     ],
+     "size": 38,
+     "second_rgb": "#ffe9a8"
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/4",
+    "state": {
+     "sheet": "captions"
+    }
+   }
+  },
+  {
+   "name": "player-options-speed",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Playback",
+     "rows": [
+      {
+       "label": "Quality",
+       "value": "Auto",
+       "icon": "quality",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Speed",
+       "value": "1×",
+       "icon": "speed",
+       "chevron": true,
+       "focused": true
+      },
+      {
+       "label": "Audio track",
+       "value": "English",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Volume",
+       "value": "100 %",
+       "icon": "audio",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Video sizing",
+       "value": "Fit",
+       "icon": "grid",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Sleep timer",
+       "value": "Off",
+       "icon": "clock",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "SponsorBlock",
+       "value": "On",
+       "icon": "skip",
+       "chevron": true,
+       "focused": false
+      },
+      {
+       "label": "Playback details",
+       "value": "",
+       "icon": "info",
+       "chevron": true,
+       "focused": false
+      }
+     ],
+     "choices_title": "Speed",
+     "choices": [
+      {
+       "label": "0.5×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "0.75×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "1×",
+       "note": "Normal",
+       "current": true
+      },
+      {
+       "label": "1.25×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "1.5×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "1.75×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "2×",
+       "note": "",
+       "current": false
+      },
+      {
+       "label": "3×",
+       "note": "",
+       "current": false
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Open"
+      },
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/1"
+   }
+  },
+  {
+   "name": "player-options-empty",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Audio track",
+     "rows": [],
+     "choices": [],
+     "empty_title": "No audio tracks",
+     "empty_hint": "This video has one soundtrack and nothing to choose between.",
+     "hints": [
+      {
+       "button": "circle",
+       "label": "Close"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "sheet": "options",
+     "rows": "0"
+    }
+   }
+  },
+  {
+   "name": "player-live",
+   "fixture": "signed-in",
+   "player": "live",
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "live": "1",
+     "chat": "off",
+     "controls": "shown"
+    }
+   }
+  },
+  {
+   "name": "player-live-chat-over",
+   "fixture": "signed-in",
+   "player": "live",
+   "view": {
+    "chat": {
+     "side": 2,
+     "theatre": false,
+     "compose": "",
+     "filter": ""
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "right",
+     "chat_lines": "11"
+    }
+   }
+  },
+  {
+   "name": "player-live-chat-left",
+   "fixture": "signed-in",
+   "player": "live",
+   "view": {
+    "chat": {
+     "side": 1,
+     "theatre": false,
+     "compose": "",
+     "filter": "",
+     "title": "Top chat"
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "left"
+    }
+   }
+  },
+  {
+   "name": "player-live-chat-waiting",
+   "fixture": "signed-in",
+   "player": "live",
+   "view": {
+    "chat": {
+     "side": 2,
+     "theatre": false,
+     "compose": "",
+     "filter": "",
+     "lines": [],
+     "status": "Chat is unavailable for this stream right now. Choose it again in the options to retry."
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "right",
+     "chat_lines": "0"
+    }
+   }
+  },
+  {
+   "name": "player-chat-replay",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "chat": {
+     "side": 2,
+     "theatre": true,
+     "title": "Chat replay",
+     "lines": [
+      {
+       "author": "quietpixel",
+       "text": "the light coming over the ridge. Rewound it four times."
+      },
+      {
+       "author": "Mirela K.",
+       "text": "no voice-over, no music, just wind and boots"
+      },
+      {
+       "author": "Northlight Atlas",
+       "text": "Route notes and the gear list are in the description.",
+       "badge": 3
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Pause"
+      },
+      {
+       "button": "triangle",
+       "label": "Hide chat"
+      },
+      {
+       "button": "options",
+       "label": "Options"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "chat": "theatre",
+     "live": "0",
+     "chat_lines": "3"
+    }
+   }
+  },
+  {
+   "name": "player-ask",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 251,
+    "chrome_hidden": true,
+    "notice": {
+     "shown": true,
+     "kind": "ask",
+     "label": "SponsorBlock",
+     "title": "Skip this sponsor segment? It ends at 5:25.",
+     "rgb": "#00d400",
+     "action": {
+      "button": "cross",
+      "label": "Skip"
+     },
+     "second": {
+      "button": "circle",
+      "label": "Keep"
+     },
+     "left": -1
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sponsor-review",
+    "state": {
+     "notice": "ask",
+     "controls": "hidden"
+    }
+   }
+  },
+  {
+   "name": "player-notice",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "notice": {
+     "shown": true,
+     "kind": "info",
+     "label": "Paid promotion",
+     "title": "This video includes a paid promotion.",
+     "left": 0.7
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "notice": "info"
+    }
+   }
+  },
+  {
+   "name": "player-notice-error",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "notice": {
+     "shown": true,
+     "kind": "error",
+     "label": "Connection lost",
+     "title": "No data from the server. Trying again...",
+     "left": 0.5
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "notice": "error"
+    }
+   }
+  },
+  {
+   "name": "player-notice-next",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "position": 2890,
+    "notice": {
+     "shown": true,
+     "kind": "next",
+     "title": "The next video is on its way",
+     "detail": "Any button cancels"
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "notice": "next"
+    }
+   }
+  },
+  {
+   "name": "player-details",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "stats": {
+     "shown": true,
+     "lines": [
+      "VIDEO  vp9  3840x2160  59.940 fps  (Hardware)",
+      "AUDIO  opus  eng  2ch  48000 Hz",
+      "SUBS  ON  /  EXTERNAL",
+      "RENDER 60 fps  /  DECODE 60 fps  /  UPSCALER Off",
+      "QUEUES  video 61/96  audio 58/96  pcm 4",
+      "CLOCKS  video 1882.41  audio 1882.43  delta -0.020"
+     ],
+     "graphs": [
+      {
+       "label": "GPU",
+       "value": "31%",
+       "samples": [
+        0.2,
+        0.28,
+        0.31,
+        0.26,
+        0.3,
+        0.36,
+        0.33,
+        0.29,
+        0.31,
+        0.3,
+        0.34,
+        0.31
+       ]
+      },
+      {
+       "label": "RAM",
+       "value": "742 MB",
+       "samples": [
+        0.4,
+        0.41,
+        0.41,
+        0.42,
+        0.42,
+        0.43,
+        0.44,
+        0.44,
+        0.44,
+        0.45,
+        0.45,
+        0.45
+       ]
+      },
+      {
+       "label": "CPU",
+       "value": "18%",
+       "samples": [
+        0.12,
+        0.2,
+        0.16,
+        0.18,
+        0.22,
+        0.15,
+        0.17,
+        0.19,
+        0.16,
+        0.2,
+        0.18,
+        0.18
+       ]
+      }
+     ]
+    },
+    "fps": 60
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "details": "1"
+    }
+   }
+  },
+  {
+   "name": "player-dimmed",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "paused": true,
+    "dim": 0.6
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "dim": "60"
+    }
+   }
+  },
+  {
+   "name": "player-resume",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "chrome": 0,
+    "dialog": {
+     "shown": true,
+     "kind": "question",
+     "title": "Continue where you stopped?",
+     "body": "Stopped at 31:12 of 48:12.",
+     "buttons": [
+      {
+       "label": "Resume",
+       "primary": true
+      },
+      {
+       "label": "Start over"
+      }
+     ],
+     "focus": 0
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "dialog/0",
+    "dialog": 1
+   }
+  },
+  {
+   "name": "player-toast",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "chrome": 0,
+    "toast": {
+     "shown": true,
+     "title": "Playing at 1080p",
+     "message": "2160p is not offered for this video",
+     "kind": 0
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "toast": "1"
+    }
+   }
+  }
+ ]
+}

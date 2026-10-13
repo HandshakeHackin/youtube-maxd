@@ -1,0 +1,371 @@
+{
+ "about": "The player with what the app can feed today (the empty fixture set). Written by tests/afterglow/tools/player_boards.py.",
+ "boards": [
+  {
+   "name": "player-app",
+   "fixture": "empty",
+   "player": "plain",
+   "expect": {
+    "screen": "player",
+    "focus": "osd-playing",
+    "state": {
+     "chapters": "0",
+     "segments": "0",
+     "chapter": "0"
+    }
+   }
+  },
+  {
+   "name": "player-app-seek",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "scrubbing": true,
+    "scrub_target": 1404
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "osd-scrub",
+    "state": {
+     "preview": "0"
+    }
+   }
+  },
+  {
+   "name": "player-app-options",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Playback options",
+     "first": 0,
+     "total": 62,
+     "rows": [
+      {
+       "label": "Video actions",
+       "detail": "Like, save, share and more for this video",
+       "value": "",
+       "tag": "",
+       "chevron": true,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Video presets",
+       "detail": "One resolution, frame rate and codec for this profile",
+       "value": "Custom limits",
+       "tag": "",
+       "chevron": true,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "AUTO",
+       "detail": "The best quality available",
+       "value": "",
+       "tag": "",
+       "chevron": false,
+       "current": true,
+       "focused": false
+      },
+      {
+       "label": "2160p",
+       "detail": "3840x2160  -  VP9  -  18.4 Mbps  -  60 fps",
+       "value": "",
+       "tag": "",
+       "chevron": false,
+       "current": false,
+       "focused": true
+      },
+      {
+       "label": "1080p",
+       "detail": "1920x1080  -  AVC  -  4.5 Mbps  -  30 fps",
+       "value": "",
+       "tag": "",
+       "chevron": false,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "eng",
+       "detail": "opus  2 CH  48000 Hz",
+       "value": "",
+       "tag": "STEREO",
+       "chevron": false,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Continuous playback",
+       "detail": "Playback mode; saved for this profile",
+       "value": "",
+       "tag": "",
+       "chevron": false,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Time display",
+       "detail": "Remaining and finish times account for playback speed",
+       "value": "remaining",
+       "tag": "",
+       "chevron": false,
+       "current": false,
+       "focused": false
+      },
+      {
+       "label": "Speed",
+       "detail": "Keep this position and preserve audio pitch",
+       "value": "1.25x",
+       "tag": "",
+       "chevron": false,
+       "current": false,
+       "focused": false
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/3",
+    "state": {
+     "sheet": "options",
+     "rows": "9",
+     "controls": "hidden"
+    }
+   }
+  },
+  {
+   "name": "player-app-captions",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "pills": [
+      "SIZE  MEDIUM",
+      "SYNC: +100 ms"
+     ],
+     "first": 0,
+     "total": 8,
+     "rows": [
+      {
+       "label": "Off",
+       "detail": "No captions",
+       "focused": false
+      },
+      {
+       "label": "English",
+       "detail": "Written by the channel",
+       "current": true,
+       "tag": "PRIMARY"
+      },
+      {
+       "label": "English (auto-generated)",
+       "detail": "Made by speech recognition",
+       "focused": true
+      },
+      {
+       "label": "Deutsch",
+       "detail": "Machine translation",
+       "tag": "TRANSLATED"
+      },
+      {
+       "label": "Español",
+       "detail": "Machine translation",
+       "tag": "SECONDARY"
+      },
+      {
+       "label": "Auto-sync",
+       "detail": "Not available for this video",
+       "action": true,
+       "disabled": true
+      }
+     ],
+     "preview": "The quick brown fox jumps over the lazy dog",
+     "preview_size": 50,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "square",
+       "label": "Size"
+      },
+      {
+       "button": "dpad",
+       "label": "Sync"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/2",
+    "state": {
+     "sheet": "captions",
+     "rows": "6"
+    }
+   }
+  },
+  {
+   "name": "player-app-related",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "up_next": {
+     "open": true,
+     "title": "Related videos",
+     "chip": "Autoplay is off",
+     "marks_next": false,
+     "note": "",
+     "first": 0,
+     "total": 9,
+     "focus": 1,
+     "cards": [
+      {
+       "id": "vid145",
+       "title": "Aurora Chasing at -30° (We Almost Missed It)",
+       "channel": "Northlight Atlas · 2.2M views",
+       "meta": "2.2M views · 8 months ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid241",
+       "title": "Blue Hour on the Northern Coast, No Talking",
+       "channel": "Northlight Atlas · 640K views",
+       "meta": "640K views · 2 months ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid313",
+       "title": "The Forest at Night Sounds Nothing Like You Think",
+       "channel": "Northlight Atlas · 380K views",
+       "meta": "380K views · 6 weeks ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid385",
+       "title": "A Year on a Tidal Island",
+       "channel": "Northlight Atlas · 4.8M views",
+       "meta": "4.8M views · 2 years ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid421",
+       "title": "Teal Dawn Above the Valley",
+       "channel": "Northlight Atlas · 410K views",
+       "meta": "410K views · 10 months ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid133",
+       "title": "Crossing the Salt Flats by Bicycle",
+       "channel": "Vantor Trails · 720K views",
+       "meta": "720K views · 3 months ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid373",
+       "title": "Moonrise Over the Dune Sea in Real Time",
+       "channel": "Vantor Trails · 540K views",
+       "meta": "540K views · 1 year ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      },
+      {
+       "id": "vid409",
+       "title": "Violet Hour: A Short Film",
+       "channel": "Slowreel · 233K views",
+       "meta": "233K views · 3 weeks ago",
+       "duration_s": 0,
+       "thumb": "",
+       "badges": 0
+      }
+     ],
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Play"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "upnext/1",
+    "state": {
+     "cards": "8"
+    }
+   }
+  },
+  {
+   "name": "player-app-stop",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "dialog": {
+     "shown": true,
+     "kind": "question",
+     "title": "Stop watching?",
+     "body": "Your place is kept: 12:34 of 41:30. The video is waiting under Continue watching.",
+     "buttons": [
+      {
+       "label": "Keep watching",
+       "primary": true
+      },
+      {
+       "label": "Stop"
+      }
+     ],
+     "focus": 1
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "dialog/1",
+    "dialog": 1
+   }
+  }
+ ]
+}

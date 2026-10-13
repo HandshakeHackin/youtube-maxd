@@ -1,0 +1,47 @@
+{
+ "about": "The player on a live stream with its chat: board 21 of the proposal. Every name, title, number and message is invented.",
+ "frame": "art://stage/0/59",
+ "title": "Late Night Synth Session — Live from the Boathouse",
+ "channel": "Nacre Sound",
+ "channel_id": "UCfixture000000000000004",
+ "meta": "2,184 watching",
+ "live": true,
+ "live_status": "2,184 watching · started 1 h 42 min ago",
+ "tags": ["1080p", "CC"],
+ "quality": "1080p60 · AVC · AAC",
+ "clock": "21:47",
+ "position": 6130,
+ "duration": 0,
+ "controls": ["play_pause", "captions", "quality", "chat", "more"],
+ "hints": [
+  {"button": "triangle", "label": "Show chat"},
+  {"button": "square", "label": "Captions"},
+  {"button": "options", "label": "Options"}
+ ],
+ "chat": {
+  "side": 0,
+  "theatre": true,
+  "title": "Live chat",
+  "filter": "Top chat",
+  "compose": "Say something",
+  "lines": [
+   {"author": "Halden B.", "text": "that bass line just rearranged my evening"},
+   {"author": "mossgarden", "text": "boathouse acoustics are unfair", "badge": 1},
+   {"author": "Ines Arkwright", "text": "first time catching this live, hello from the night shift"},
+   {"author": "Nacre Sound", "text": "Next piece is new. If it falls apart, it was jazz.", "badge": 3},
+   {"author": "pedal steel pete", "text": "it was always jazz"},
+   {"author": "Okonkwo R.", "text": "the filter sweep at the end, please again", "badge": 1},
+   {"author": "lantern.keys", "text": "which patch is the pad? sounds like glass"},
+   {"author": "Wren (mod)", "text": "Set list and gear are pinned. Be kind in here.", "badge": 2},
+   {"author": "small hours", "text": "volume up, lights off, perfect"},
+   {"author": "Dagny", "text": "can hear the water under the floor between songs"},
+   {"author": "tape.loop", "text": "this is the good part", "badge": 1}
+  ],
+  "hints": [
+   {"button": "cross", "label": "Pause"},
+   {"button": "l2", "second": "r2", "label": "Scroll chat"},
+   {"button": "triangle", "label": "Hide chat"},
+   {"button": "options", "label": "Options"}
+  ]
+ }
+}
