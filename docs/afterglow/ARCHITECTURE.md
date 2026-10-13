@@ -52,14 +52,17 @@ native/afterglow/
   text_kit.cpp        ... on the kit's baked fonts (replaced by the text engine)
   theme.hpp/.cpp      the grid, the type scale, the four looks
   design.hpp/.cpp     icons, panels, buttons, chips, tags, cards, the mark, hints, focus ring
+  design_pieces.cpp   hand-overs, bones, the cards beside the video card, the page with nothing to show
   images.hpp/.cpp     pictures: fetch, decode, scale, upload, retire
   models.hpp          view models
   data.hpp/.cpp       Source (what the app is asked) and Data (what screens read)
   data_rows.hpp/.cpp  a catalog row as it arrives and what it becomes
+  data_feed.hpp/.cpp  a catalog read page by page (Feed), an action followed to its answer (Act)
   data_fixture.hpp/.cpp  Source from files (tests)
   screen.hpp          Screen, Route, Phase, Nav, contexts, the factories
   frame.hpp/.cpp      the stack, hand-overs, input routing, attract mode
   frame_draw.cpp      page ground, rail, header, hints, snapshot
+  sheet.hpp/.cpp      the frame's sheets: a row's actions, a text that is typed
   strings.cpp         the running platform, tr(), screen names
   screens/
     stubs.cpp         a weak placeholder for every screen
@@ -73,6 +76,7 @@ tests/afterglow/
   art.hpp/.cpp        pictures painted from arithmetic (no real thumbnails anywhere)
   boards/<name>.json  boards: what to bring up, how to drive it, what must hold
   fixtures/<set>/     profile.json and catalog/<catalog>.json
+  tools/              the generators of the fixtures and of the settings boards
 scripts/
   ui_kit.py, ui_kit.lock.json   the kit pin
   afterglow_host.sh             build and run the harness
@@ -160,6 +164,42 @@ true and shows it. The next press calls `attract(false)` and is swallowed.
 focus moves to another picture. The frame cross-fades a small blurred copy of
 that picture over the page ground (`Look::wash` says how strongly; High
 contrast has none).
+
+**Questions, sheets and typed text** are the frame's, as toasts are; a screen
+asks through `Nav` and the frame gives them the input while they are up, in
+this order: the dialog, the text sheet, the actions sheet, the rail, the screen.
+
+- `nav.confirm(title, body, label, answered)`: two answers, the first confirms.
+- `nav.ask(Question, answered)`: one to three answers of the screen's own, a
+  destructive one in the warning colour, the focus on the safe one, stacked
+  when the answers are sentences. `answered(index)`, -1 when put away.
+- `nav.ask_text(TextQuestion, answered)`: the kit's keyboard in a sheet (Cross
+  types, Square deletes, Triangle is a space, Options takes the text, Circle
+  puts the sheet away). The screen hands the text on with
+  `data.act(row, text)` and keeps no copy of a secret.
+- `nav.actions(row, about, changed)`: the actions of a video, a channel, a
+  playlist or a comment as the sheet of board 14 (Touchpad wherever such a
+  thing has the focus). The frame reads `data.menu(row, about)`, runs the
+  chosen row, asks first where something is taken away, toasts the result and
+  opens the page a row names. `changed` runs once after an action went
+  through: the screen forgets the lists it shows.
+- `nav.back_to(screen)`: leaves for the nearest such screen below.
+
+A screen that has a layer of its own over the whole page (the video page's
+More actions and Share) draws it in `Screen::draw_over()`, after the frame's
+furniture, and says how much it covers in `over()`; the frame's hint row gives
+way to it.
+
+**Picture to player.** `play_video(context, video, rectangle)` (or
+`nav.play`) hands the video to the player and lets its picture grow from that
+rectangle to the whole screen (0.62 s), where it stands until the player has
+its first frame; `Frame::resume()` returns it to where it came from (0.5 s).
+`Frame::launch_picture()` is that picture's address, for the player.
+
+**The header** is the screen's choice (`Screen::header()`): `title` (the page
+title, the line under it from `subtitle()`, the clock), `clock` (the clock
+alone: the page draws a head of its own), `on_picture` (the clock on a glass
+plate, 28 pixels inside the picture that is the page's head).
 
 **Stats.** `Frame::stats()` and the snapshot carry, per frame: milliseconds
 spent in update and in draw, the caller's frame time and the worst of the last
@@ -309,15 +349,30 @@ adds a line to this table in the same change that uses it:
 | Catalog | Row | Facts |
 | --- | --- | --- |
 | any list of videos | a video | `views`, `published`, `channel_art_url`, `badges` (comma separated: `new,4k,hdr,cc,members`), `is_upcoming`, `is_short`, `upcoming_start_ms` |
-| `search:<query>`, `library:channels`, `subscriptions` | a channel | `subscribers`, `handle`, `subscribed`, `unseen` |
-| `channel:<id>` and `channel-tab:<id>:<section>` | first row `channel:<id>` | `handle`, `subscribers`, `banner_url`, `subscribed`, `tabs` (comma separated), `tab`, `sorts`, `sort` |
-| `details:<video>` | first row | `views`, `published`, `likes`, `dislikes`, `channel`, `channel_id`, `channel_art_url`, `subscribers`, `subscribed`, `rating` (`like`, `dislike`, ""), `saved`, `chapters` (count) |
-| `discussion:<video>`, `discussion:replies:<cursor>` | a comment | `author`, `published`, `likes`, `replies`, `pinned`, `owner`, `member`, `hearted`, `liked`, `disliked`, `author_art_url` |
-| `library:notifications` | a notification | `published`, `channel`, `channel_art_url`, `unread` |
-| `library:playlists`, `library:playlist:<id>` | a playlist | `count`, `owner`, `updated` |
-| `settings` and everything under it | a preference | `value` (the current choice as text), `selected` (the row is the current choice), `kind` (`list`, `switch`, `action`, `text`) |
-| `library` and `library:profile:<id>` | a profile | `guest`, `signed_in`, `selected`, `locked` |
-| `auth:start`, `auth:session` | the code row | `user_code`, `verification_url`, `expires_in`, `state` |
+| any list of videos | a video | also `published_days` (whole days since it was published, 0 for today: the subscriptions feed is grouped by it), `watched` (when it was watched, in `history`) |
+| any list | the first row of the first page | `total` (how many rows the whole list has) |
+| any list | a folder that is a filter or an order of the list | `chip` (`filter` or `sort`), `selected` |
+| `search:<query>`, `search-with:<options>:<query>` | the `settings:search` row (or any row of page 0) | `results` (the count as it is to be shown) |
+| `search:<query>`, `library:channels`, `subscriptions` | a channel | `subscribers`, `handle`, `subscribed`, `unseen`, `live` |
+| `search:<query>`, `library:playlists`, `channel-tab:<id>:playlists` | a playlist (a folder `playlist:<id>` or `library:playlist:<id>`) | `count`, `owner`, `updated` |
+| `search-suggest:<text>` | a completion | `detail` |
+| `search-history` | the `account:notice` row | `state` (`off`, `empty`) |
+| `channel:<id>` and `channel-tab:<id>:<section>` | first row `channel:<id>` | `handle`, `subscribers`, `banner_url`, `subscribed`, `tabs` (comma separated), `tab`, `sorts`, `sort`, `videos` (the count as YouTube words it), `notify` (`all`, `personalized`, `none`), `search` (`0`: no search in this channel) |
+| `details:<video>` | first row | `views`, `published`, `likes`, `dislikes`, `channel`, `channel_id`, `channel_art_url`, `subscribers`, `subscribed`, `rating` (`like`, `dislike`, ""), `saved`, `chapters` (count), `duration`, `resume` (seconds), `segments`, `captions`, `fps`, `quality`, `live`, `upcoming` |
+| `discussion:top:<video>`, `discussion:newest:<video>`, `discussion:replies:<cursor>` | a comment | `author`, `published`, `likes`, `replies`, `pinned`, `owner`, `member`, `hearted`, `liked`, `disliked`, `author_art_url` |
+| `library:notifications` | a notification | `published`, `channel`, `channel_art_url`, `unread`; the row's `channel_id` |
+| `library:playlist:<id>`, `playlist:<id>` | the first row when it is the list itself | `count`, `owner`, `updated` |
+| `settings` and everything under it | a preference | the contract is `requests/e.md`, section 6 (`kind`, `label`, `value`, `on`, `selected`, `index`, `count`, ...) |
+| `library:profiles` | a profile `library:profile:<id>` | `guest`, `signed_in`, `selected`, `locked`, `subscriptions` |
+| `auth:start`, `auth:session`, `auth:cancel` | the first row that has it | `state`, `user_code`, `verification_url`, `expires_in` |
+| `settings:remote` and its acting rows | `settings:remote:info`, `:code`, `:toggle`, `:device:<id>` | `state`, `available`, `value`, `selected`, `connected` (`requests/F.md`, 7) |
+
+A video's own values (`views`, `published`, `channel_art_url`, `channel_id`,
+`badges`, `is_live`, `is_upcoming`, `is_short`, `duration_sec`, `resume_sec`)
+are also facts of its row, whatever the row became: `details:<video>`'s first
+row is a folder and has them all the same. Every fact but an address is
+cleaned of what no face draws. `model::Video::at` and `model::Channel::at` are
+the row's place in `Page::rows`.
 
 Where the service does not send a value yet (`views`, `published`,
 `channel_art_url` and `badges` of a video are the first), the same change adds
@@ -338,7 +393,22 @@ unsigned ticket = data.act(row_id);          // lists the acting row once, never
 const Page &state = data.action(ticket);     // loading -> ready (rows: the provider's answer) or failed (error)
 data.forget("library:watch_later");          // a catalog the action changed: the next read asks again
 std::string menu = data.menu(row_id, title); // the catalog of a row's actions ("" for none): read it with catalog()
+unsigned typed = data.act(row_id, text);     // a row that takes a typed text (a comment, an address, a name)
+unsigned key = data.answer(text);            // ... or the prompt the provider armed already (a profile's password)
 ```
+
+`Act` (`data_feed.hpp`) follows an acting row to its end, the provider's
+second step included (`account:confirm:...` answers with `account:apply:<n>`,
+which is listed in turn): `act.start(data, row)`, then `act.poll(data,
+&answer)` every frame. `Feed` reads a catalog page by page into one list and
+keeps what was read on screen while the data layer reads it again.
+
+A typed text reaches the provider through the prompt it arms
+(`tube_take_playlist_prompt`, `tube_submit_playlist_name`): the row is listed,
+the text handed over, and the catalog the provider names next is the answer.
+In a fixture set the answer is the row's own catalog file (`prompt:answer` for
+the armed prompt), and a board lists what was handed over under `answered`
+(`"<row>=<text>"`).
 
 Show the pending state on the control that was pressed (the kit's spinner, a
 dimmed label), the result as a toast (`nav.toast`), a refusal with the
@@ -429,7 +499,11 @@ class Screen {
     virtual void leave(UpdateContext &context);
     virtual void update(const InputFrame &input, UpdateContext &context) = 0;
     virtual void draw(const DrawContext &context, const Phase &phase) const = 0;
-    virtual std::string title() const;                    // the header; "" for none
+    virtual void draw_over(const DrawContext &, const Phase &) const; // a layer over the frame's furniture
+    virtual float over() const;                           // how much of the page that layer covers, 0..1
+    virtual Header header() const;                        // title (default), clock, on_picture
+    virtual std::string title() const;                    // the page title; "" shows the route's
+    virtual std::string subtitle() const;                 // the line under it
     virtual std::span<const ui::Hint> hints() const;      // the hint bar
     virtual bool shows_rail() const;                      // false: the whole page is the screen's
     virtual bool attract(bool on);                        // true when the screen has an attract mode
@@ -547,11 +621,18 @@ One board:
 
 `steps` are presses (`up`, `down`, `left`, `right`, `cross`, `circle`,
 `triangle`, `square`, `l1`, `r1`, `l2`, `r2`, `l3`, `r3`, `options`,
-`touchpad`) and waits in seconds on a fixed 60 Hz clock. `expect` compares the
-frame's snapshot: `screen`, `focus` (the focus id), any top-level number
-(`rail_open`, `moving`, `attract`, `dialog`), `state` (values of
-`Screen::snapshot`), `asked` (catalogs that must have been requested), `played`
-(the last video handed to the player). Name boards `<screen>-<state>`.
+`touchpad`) and waits in seconds on a fixed 60 Hz clock; `{"hold": "left",
+"wait": 1.5}` keeps a button down for the wait (a held direction repeats after
+0.4 s, every 0.1 s). `expect` compares the frame's snapshot: `screen`,
+`argument` (the top route's), `focus` (the focus id), any top-level number
+(`rail_open`, `moving`, `attract`, `dialog`, `sheet`, `typing`, `launching`),
+`state` (values of `Screen::snapshot`; the frame's sheets add `sheet`,
+`sheet_load`, `sheet_level`, `sheet_acting`, `typing`, `typed`), `asked`
+(catalogs that must have been requested), `answered` (typed texts handed
+over, `"<row>=<text>"`), `played` (the last video handed to the player). A
+board may say who is browsing (`"profile": {"id", "name", "guest",
+"signed_in"}`) and for how long the harness's player plays before it closes
+(`"player"`, seconds, default 1). Name boards `<screen>-<state>`.
 
 **What every board is held to, in every look**, without being asked: something
 has the focus; its rectangle is on the screen; no glyph crosses the edge of the
@@ -559,8 +640,9 @@ screen outside a clip rectangle; the page is not empty; the picture has more
 than a handful of colours; the snapshot is valid JSON. The looks themselves are
 held to 4.5:1 for every text colour on its ground. A board may name `pixels`
 (points of the output, in virtual pixels, with the colour expected there). A
-run with `--lang de` or `--lang ru` fails on an interface text the catalog
-lacks.
+run with `--lang de` shows an interface text the catalog lacks in English and
+counts it (`--strict-lang` fails on it); `--snapshots` writes every board's
+snapshot beside its picture.
 
 **The provider itself** is tested in `tests/afterglow/provider/provider_test.cpp`
 (`scripts/test_afterglow_data.sh`): `ProviderSource` and `Data` on the real
@@ -724,16 +806,16 @@ half is red and bottom half blue and reads the colours back from the output.
 | E | a toast with a second line | done: `Nav::toast(text, detail, kind)` |
 | F | an avatar's colours | done: `avatar_tint()` |
 | D | the actions of a video | done: `Data::menu()` answers `account:menu:<video>` for a video row |
-| A, D, F | one hand-over helper, one actions sheet, shared cards (playlist, section, channel), a message block | accepted: built once in `design.*` and the frame from the packages' stand-ins when they are merged; every screen then switches to it |
-| E, F | typed answers (`Data::act(row, text)`), text entry as a frame service | accepted: the frame owns the kit keyboard and hands the text to the provider's armed prompt |
-| F | a question with three answers, own labels, a destructive one, a safe default | accepted: `Nav::ask()` beside `confirm()` |
-| A | `Nav::back_to(screen)` | accepted |
+| A, D, F | one hand-over helper, one actions sheet, shared cards (playlist, section, channel), a message block | done: `HandOver` / `hand_over()`, `Nav::actions()`, `playlist_card()`, `folder_card()`, `channel_card()`, `Notice` (section 12d) |
+| E, F | typed answers (`Data::act(row, text)`), text entry as a frame service | done: `Nav::ask_text()`, `Data::act(row, text)`, `Data::answer(text)`; the provider's armed prompt takes the text |
+| F | a question with three answers, own labels, a destructive one, a safe default | done: `Nav::ask(Question, answered)` |
+| A | `Nav::back_to(screen)` | done |
 | F | a revision that follows sign-in and the phone link | declined as asked: those change more often than pages go stale, and a revision change empties every page; the screens that show them read their own catalogs again (`data.forget`) |
 | A, D, E, F | facts and catalogs the provider lacks (section 5.5 plus `search-suggest:<text>`, `search-preview:<text>`, `search-with:<options>:<query>`, linked-phone rows, subscription counts, `settings:reset:<tile>`, mark-read rows, acting rows for queue and favourite) | accepted as the bridge's list; each gets an assertion in `provider_test.cpp` when the provider produces it |
 | E | interface sound, vibration and reduced motion as preferences | accepted for the bridge; they are the frame's options already |
 | D | three more type sizes | to be looked at with its pictures at merge; the scale of `theme.hpp` stays the only source |
 | D | queue reorder | not in the design notes: out of Afterglow's first release; the classic interface keeps what it has |
-| A, D | the harness draws once; steps cannot hold a button; cost per board | changed: the lists are built on every fourth simulated frame; `--only <text>` runs one screen's boards (`bash scripts/afterglow_host.sh out --only library`); a held button in a step is open |
+| A, D | the harness draws once; steps cannot hold a button; cost per board | done: the lists are built on every fourth simulated frame; `--only <text>` runs one screen's boards (`bash scripts/afterglow_host.sh out --only library`); `{"hold": ...}` keeps a button down; painted pictures are kept across boards |
 
 **Rules that came out of the packages.** In a list of preferences Left and
 Right never change a value: Left at the left edge opens the rail everywhere
@@ -785,6 +867,70 @@ screen in the four looks beside their approved boards.
 (`tools/console`), sounds and vibration (`native/afterglow/sound`), the player
 on the kit (`native/afterglow/player`). *Still open after this stage:* the
 one-channel glyph pages and the blur on the AGC batch.
+
+## 12d. The shared pieces, and the ruling on every request
+
+What the six packages first wrote for themselves exists once. A screen uses
+these and keeps no copy.
+
+| Piece | Where | In place of |
+| --- | --- | --- |
+| `Motion hand_over(phase, reduced)`, `HandOver` (as `Enter` is), `arrive(age, index)` | `design.hpp` | `acct::Travel`, `search::Handover`, `family::Travel`, B's `Motion`, D's `Hand` |
+| `bone()`, `card_bone()`, `spinner()`, `foot_scrim()`, `picture_box()`, `glyph()` | `design.hpp` | every package's bones, spinners and scrims |
+| `playlist_card()`, `folder_card()`, `channel_card()` with `CardText` | `design.hpp` | D's three cards, A's result cards |
+| `Notice`, `Choice`, `trouble_title()`, `trouble_icon()` | `design.hpp` | `family::Notice`, `ui::EmptyState` configured by hand, `acct::message_page` |
+| `button(..., busy)`, `button_width(fonts, ...)`, `chip_width(fonts, ...)`, `tag_width(fonts, ...)` | `design.hpp` | measuring through a draw list nobody draws |
+| `wear(style, look, reduced)` with `UpdateContext::look` | `design.hpp` | dressing a copy of a kit component in `draw()` |
+| `kCell*`, `kColumns`, `kPageTop`, `kPageBottom`, `kRadiusField`, `kRadiusPicture`, `kRadiusSheet`, `kTypePlayer` to `kTypeFine` | `theme.hpp` | constants at the top of screen files |
+| `fill()`, `tr_n(one, other, count)`, `starts_with()`, `dotted()`, `leading_number()` | `base.hpp` | local helpers; two `tr()` texts for one counted text |
+| `load_name()`, `Data::act(row, text)`, `Data::answer(text)`, facts on every row, `Video::at`, `Video::published_days`, `Channel::live` | `data.hpp`, `models.hpp` | rows kept beside view models, `prompt:answer` |
+| `Feed`, `Act`, `Lists` | `data_feed.hpp` | `family::Feed`, D's `Feed`, every package's action follower |
+| `Nav::ask()`, `ask_text()`, `actions()`, `back_to()`, `play()`, `push(..., picture)`; `UpdateContext::arriving` | `screen.hpp`, the frame | `acct::Question`, Settings' text sheet, `family::Sheet`, opening the video page on Touchpad |
+| `Screen::draw_over()`, `over()`, `header()` | `screen.hpp` | sheets drawn under the clock, a title of one space |
+| `refuse()`, `play_video()`, `route_of_row()`, `icon_of_row()` | `screen.hpp` | `family::refuse`, `family::play`, private tables of row ids |
+
+**Every numbered request.** "done" names the piece above; "bridge" is the list
+of what the provider and the service have to produce (package G: section 5.5
+and the request files are its contract; nothing in the interface waits for it,
+the fixtures stand in).
+
+| Request | Ruling |
+| --- | --- |
+| A 1 (catalogs `search-suggest:<text>`, `search-preview:<text>`, `search-with:<options>:<query>`) | bridge |
+| A 2 (facts `results`, `detail`, `state`, playlists among results) | in section 5.5; bridge |
+| A 3.1 to 3.5 (channel facts, the look, hand-over, `back_to`, actions) | done |
+| A 4.1 to 4.4 (boards and harness) | done |
+| A 5 (umlauts, the reader's bones, `dialog/-1`) | done: the text engine draws them and the fixtures are written with them; `bone()` is visible; the dialog reports the button in focus |
+| B 1 to 9 (draw above the furniture, the carried picture, how a screen arrived, picture to player, the hand-over, no title, one hint row, the look, a toast's second line) | done |
+| B 10 to 13 (`fill`, plurals, radii and sizes, measuring overloads, a glyph) | done; a page's picture has one radius, 24 |
+| B 14 (`Data::menu()` of a comment) | done in `ProviderSource::menu()` (`tube_comment_rating`); the assertion in `provider_test.cpp` is open |
+| B 15 (text with an action) | done; the comments keep their own writing sheet (board 30) and hand the text over |
+| B 16 (reserved names on plain rows) | done |
+| B 17 (the thread's next page after replies were opened) | bridge: the provider keeps one list's paging state; the screen's last row says so until then |
+| B 18 (`discussion:top:` and `:newest:`) | section 5.5 corrected |
+| B 19 to 22 (harness) | done |
+| C 1 to 13 | done |
+| C 14 (umlauts) | done |
+| C section 2 (`videos`, `notify`, `search`, `live`, `published_days`, `channels:watched:<UC...>`) | in section 5.5; bridge. Search in a channel: the search screen takes `channel-search:<UC...>` as its scope |
+| D 1.1 to 1.4, 2.1, 2.2, 2.4 | done |
+| D 2.3 (the message block; the tiles "Kept on this PS5") | `Notice`; the tiles stay the library's, the only screen that has them |
+| D 3.1, 3.2 | done |
+| D 3.3 (whether history is kept) | bridge: a fact of `history`'s first row; the status line says what it knows |
+| D 4.1 to 4.3 (acting rows for the queue, favourites, read notifications) | bridge |
+| D 5 (facts) | in section 5.5 |
+| D 6.1 to 6.5 (harness) | done; a set whose local lists must answer while the account's are offline keeps `{"error": ..., "offline": true}` documents |
+| D, queue reorder | out of this release (ruled before) |
+| E 1, 2, 5 | done |
+| E 3 (a path over the title) | the settings pages draw their own head (`header()` is `clock`); the line under a title is `subtitle()` |
+| E 4 (the look follows the Theme) | done: the mount reads the profile's scheme every frame and calls `Frame::set_scheme()` |
+| E 6 (facts and rows of `settings`) | the contract of the bridge is `requests/e.md`, section 6. A row the provider does not list is not drawn |
+| E 8 | done (`FixtureSource` reads the profile once) |
+| F 1 to 6 | done; sign-in and the phone page draw their own head (`header()` is `clock`) |
+| F 7 (facts) | in section 5.5; bridge |
+| F 8 (a revision that follows sign-in and the phone link) | declined (ruled before) |
+| F 9 (the password asked at start) | done in the mount |
+| F 11 (wording that differs from boards 35 and 41) | stands: the texts say what the app does |
+| drv 1 to 7 | done (`stats`, `focus.kind`, `focus.live`, the rail's `focusable`, JSON whatever the texts are) |
 
 ## 12. What is left, as work packages
 
