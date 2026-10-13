@@ -1,0 +1,10 @@
+{
+ "items": [
+  {"id": "account:notice:title", "is_folder": true, "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film", "subtitle": "48:12", "overview": "", "art_url": "art://ridges/0/11/800x450", "views": "12 views", "published": "1 hour ago", "likes": "0", "channel": "Northlight Atlas", "channel_id": "UCNorthlightAtlas0000001", "channel_art_url": "", "subscribers": "2.41M subscribers", "subscribed": false, "rating": "", "saved": false, "chapters": 0, "segments": 0, "captions": 0, "fps": 0, "quality": "", "duration": 2892, "resume": 0, "live": false},
+  {"id": "channel:UCNorthlightAtlas0000001", "is_folder": true, "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "art_url": ""},
+  {"id": "account:notice:published", "is_folder": true, "interface": true, "title": "1 hour ago", "subtitle": "Published"},
+  {"id": "account:notice:views", "is_folder": true, "interface": true, "title": "12 views", "subtitle": ""},
+  {"id": "account:notice:likes", "is_folder": true, "interface": true, "title": "0 likes", "subtitle": ""}
+ ],
+ "has_more": false
+}

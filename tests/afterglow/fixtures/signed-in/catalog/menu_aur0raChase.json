@@ -1,0 +1,22 @@
+{
+ "items": [
+  {"id": "local:video:m:next:aur0raChase", "is_folder": true, "interface": true, "title": "Play next"},
+  {"id": "local:video:m:restart:aur0raChase", "is_folder": true, "interface": true, "title": "Play from start"},
+  {"id": "local:video:m:incognito:aur0raChase", "is_folder": true, "interface": true, "title": "Play incognito"},
+  {"id": "account:confirm:unrate:aur0raChase", "is_folder": true, "interface": true, "title": "Remove video rating"},
+  {"id": "account:confirm:watch_later_remove:aur0raChase", "is_folder": true, "interface": true, "title": "Remove from YouTube Watch later"},
+  {"id": "playlist:pick:add:aur0raChase", "is_folder": true, "interface": true, "title": "Add to a playlist"},
+  {"id": "account:confirm:unsubscribe:UCNorthlightAtlas0000001", "is_folder": true, "interface": true, "title": "Unsubscribe on YouTube"},
+  {"id": "channel:UCNorthlightAtlas0000001", "is_folder": true, "interface": true, "title": "Open channel"},
+  {"id": "description:aur0raChase", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "details:aur0raChase", "is_folder": true, "interface": true, "title": "Video details"},
+  {"id": "library:suggestions:aur0raChase", "is_folder": true, "interface": true, "title": "Related videos"},
+  {"id": "account:confirm:not_interested:aur0raChase", "is_folder": true, "interface": true, "title": "Not interested"},
+  {"id": "account:confirm:dont_recommend_channel:aur0raChase", "is_folder": true, "interface": true, "title": "Don't recommend this channel"},
+  {"id": "local:video:m:block:aur0raChase", "is_folder": true, "interface": true, "title": "Block channel"},
+  {"id": "local:video:m:watched:aur0raChase", "is_folder": true, "interface": true, "title": "Mark as watched"},
+  {"id": "local:video:m:sbexclude:aur0raChase", "is_folder": true, "interface": true, "title": "Exclude channel from SponsorBlock"},
+  {"id": "link:video:aur0raChase", "is_folder": true, "interface": true, "title": "Share link"}
+ ],
+ "has_more": false
+}

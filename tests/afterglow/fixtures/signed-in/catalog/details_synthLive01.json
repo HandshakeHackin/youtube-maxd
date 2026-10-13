@@ -1,0 +1,11 @@
+{
+ "items": [
+  {"id": "account:notice:title", "is_folder": true, "title": "Late Night Synth Session — Live from the Boathouse", "subtitle": "Live", "overview": "A new set from the boathouse, live. If a piece falls apart, it was jazz.", "art_url": "art://stage/0/59/800x450", "views": "2,184 watching", "published": "Started 40 minutes ago", "likes": "1,902", "channel": "Nacre Sound", "channel_id": "UCNacreSound0000000001", "channel_art_url": "", "subscribers": "412K subscribers", "subscribed": false, "rating": "", "saved": false, "chapters": 0, "segments": 0, "captions": 0, "fps": 0, "quality": "", "duration": 0, "resume": 0, "live": true},
+  {"id": "channel:UCNacreSound0000000001", "is_folder": true, "title": "Nacre Sound", "subtitle": "412K subscribers", "art_url": ""},
+  {"id": "account:notice:published", "is_folder": true, "interface": true, "title": "Started 40 minutes ago", "subtitle": "Published"},
+  {"id": "account:notice:views", "is_folder": true, "interface": true, "title": "2,184 watching", "subtitle": ""},
+  {"id": "account:notice:likes", "is_folder": true, "interface": true, "title": "1,902 likes", "subtitle": ""},
+  {"id": "description:synthLive01", "is_folder": true, "interface": true, "title": "Read the description"}
+ ],
+ "has_more": false
+}

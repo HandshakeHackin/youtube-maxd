@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "account:notice:title", "is_folder": true, "title": "Aurora Chasing at -30° (We Almost Missed It)", "subtitle": "4K | 19:58", "overview": "Three nights on the frozen lake waiting for a gap in the cloud. It came at four in the morning on the last night, for eleven minutes. This is all of them.", "art_url": "art://aurora/0/145/800x450", "views": "2.2M views", "published": "8 months ago", "likes": "96K", "channel": "Northlight Atlas", "channel_id": "UCNorthlightAtlas0000001", "channel_art_url": "", "subscribers": "2.41M subscribers", "subscribed": true, "rating": "like", "saved": true, "chapters": 5, "segments": 0, "captions": 4, "fps": 0, "quality": "4k", "duration": 1198, "resume": 0, "live": false},
+  {"id": "channel:UCNorthlightAtlas0000001", "is_folder": true, "title": "Northlight Atlas", "subtitle": "2.41M subscribers", "art_url": ""},
+  {"id": "account:notice:published", "is_folder": true, "interface": true, "title": "8 months ago", "subtitle": "Published"},
+  {"id": "account:notice:views", "is_folder": true, "interface": true, "title": "2.2M views", "subtitle": ""},
+  {"id": "account:notice:likes", "is_folder": true, "interface": true, "title": "96K likes", "subtitle": ""},
+  {"id": "description:aur0raChase", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "library:suggestions:aur0raChase", "is_folder": true, "interface": true, "title": "Related videos"}
+ ],
+ "has_more": false
+}

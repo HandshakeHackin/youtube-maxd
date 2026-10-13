@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice:done", "is_folder": true, "interface": true, "title": "Channel blocked", "subtitle": "Its videos are hidden on this profile"}
+ ],
+ "has_more": false
+}

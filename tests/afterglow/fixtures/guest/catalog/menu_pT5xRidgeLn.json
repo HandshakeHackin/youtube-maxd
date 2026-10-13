@@ -1,0 +1,17 @@
+{
+ "items": [
+  {"id": "local:video:m:next:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Play next"},
+  {"id": "local:video:m:restart:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Play from start"},
+  {"id": "local:video:m:incognito:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Play incognito"},
+  {"id": "account:notice:profile", "is_folder": true, "interface": true, "title": "Choose an account profile first", "subtitle": "Likes, playlists and subscriptions need a YouTube account"},
+  {"id": "channel:UCNorthlightAtlas0000001", "is_folder": true, "interface": true, "title": "Open channel"},
+  {"id": "description:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Read the description"},
+  {"id": "details:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Video details"},
+  {"id": "library:suggestions:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Related videos"},
+  {"id": "local:video:m:block:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Block channel"},
+  {"id": "local:video:m:watched:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Mark as watched"},
+  {"id": "local:video:m:sbexclude:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Exclude channel from SponsorBlock"},
+  {"id": "link:video:pT5xRidgeLn", "is_folder": true, "interface": true, "title": "Share link"}
+ ],
+ "has_more": false
+}

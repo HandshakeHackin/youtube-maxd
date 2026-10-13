@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "link:row:video", "is_folder": true, "interface": true, "title": "Video link", "overview": "https://youtu.be/synthLive01"},
+  {"id": "link:row:embed", "is_folder": true, "interface": true, "title": "Embed link", "overview": "https://www.youtube.com/embed/synthLive01"},
+  {"id": "link:row:channel", "is_folder": true, "interface": true, "title": "Channel link", "overview": "https://www.youtube.com/channel/UCNacreSound0000000001"}
+ ],
+ "has_more": false
+}

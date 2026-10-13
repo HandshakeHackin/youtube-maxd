@@ -1,0 +1,294 @@
+{
+ "about": "The video page: what a video is, what can be done with it, what to watch after; the More actions sheet and the Share panel over it.",
+ "boards": [
+  {
+   "name": "video-page",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "expect": {"screen": "video", "focus": "action/play", "rail_open": 0, "moving": 0, "state": {"video": "pT5xRidgeLn", "load": "ready", "zone": "actions", "layer": "none", "title_lines": "2", "resume": "1872", "liked": "0", "saved": "0", "subscribed": "0", "likes": "48,213", "related": "8", "related_load": "ready"}, "asked": ["details:pT5xRidgeLn", "library:suggestions:pT5xRidgeLn", "menu:pT5xRidgeLn"], "played": ""}
+  },
+  {
+   "name": "video-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "expect": {"screen": "video", "focus": "action/play", "state": {"load": "loading", "related": "0"}}
+  },
+  {
+   "name": "video-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "down"}],
+   "expect": {"screen": "video", "focus": "action/retry", "state": {"load": "offline"}}
+  },
+  {
+   "name": "video-failed",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "gone0000000"},
+   "steps": [{"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "video", "focus": "action/retry", "state": {"load": "failed"}}
+  },
+  {
+   "name": "video-play",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "cross"}],
+   "expect": {"screen": "video", "focus": "action/play", "played": "pT5xRidgeLn"}
+  },
+  {
+   "name": "video-from-start",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "cross", "wait": 0.6}],
+   "expect": {"screen": "video", "focus": "action/restart", "state": {"pending": ""}, "asked": ["local:video:m:restart:pT5xRidgeLn"], "played": "pT5xRidgeLn"}
+  },
+  {
+   "name": "video-queue",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "action/queue", "state": {"pending": ""}, "asked": ["local:video:m:next:pT5xRidgeLn"], "played": ""}
+  },
+  {
+   "name": "video-like-pending",
+   "fixture": "signed-in",
+   "source": {"delay": 40},
+   "settle": 3.5,
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 0.4}],
+   "expect": {"screen": "video", "focus": "action/like", "state": {"pending": "like", "liked": "0", "likes": "48,213"}}
+  },
+  {
+   "name": "video-like",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 0.3}],
+   "expect": {"screen": "video", "focus": "action/like", "state": {"pending": "", "liked": "1"}, "asked": ["account:confirm:like:pT5xRidgeLn", "account:apply:101"]}
+  },
+  {
+   "name": "video-liked",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.6}],
+   "expect": {"screen": "video", "focus": "action/like", "state": {"pending": "", "liked": "1", "likes": "48,214"}}
+  },
+  {
+   "name": "video-like-refused",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "aur0raChase"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "action/like", "state": {"pending": "", "liked": "1", "likes": "96K"}, "asked": ["account:confirm:unrate:aur0raChase", "account:apply:201"]}
+  },
+  {
+   "name": "video-watch-later",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "action/later", "state": {"saved": "1", "pending": ""}, "asked": ["account:confirm:watch_later_add:pT5xRidgeLn", "account:apply:103"]}
+  },
+  {
+   "name": "video-subscribe",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "up"}, {"press": "cross", "wait": 1.2}],
+   "expect": {"screen": "video", "focus": "channel/subscribe", "state": {"zone": "channel", "subscribed": "1"}, "asked": ["account:confirm:subscribe:UCNorthlightAtlas0000001", "account:apply:105"]}
+  },
+  {
+   "name": "video-unsubscribe-asks",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "aur0raChase"},
+   "steps": [{"press": "up"}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "video", "dialog": 1, "state": {"subscribed": "1", "liked": "1", "saved": "1", "resume": "0"}}
+  },
+  {
+   "name": "video-related",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "video", "focus": "related/2", "state": {"zone": "related", "related": "8", "related_pages": "1"}}
+  },
+  {
+   "name": "video-related-more",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "related/8", "state": {"related": "14", "related_pages": "2"}, "asked": ["library:suggestions:pT5xRidgeLn"]}
+  },
+  {
+   "name": "video-related-play",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "right"}, {"press": "cross"}],
+   "expect": {"screen": "video", "focus": "related/1", "played": "blueHourNth"}
+  },
+  {
+   "name": "video-related-opening",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 0.2}],
+   "expect": {"screen": "video", "moving": 1, "state": {"video": "aur0raChase"}}
+  },
+  {
+   "name": "video-related-opened",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 1.6}],
+   "expect": {"screen": "video", "focus": "action/play", "moving": 0, "state": {"video": "aur0raChase", "load": "ready", "resume": "0", "liked": "1", "saved": "1", "subscribed": "1", "related": "5"}}
+  },
+  {
+   "name": "video-back-to-card",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 1.6}, {"press": "circle", "wait": 0.22}],
+   "expect": {"screen": "video", "focus": "related/0", "moving": 1, "state": {"video": "pT5xRidgeLn", "zone": "related"}}
+  },
+  {
+   "name": "video-more-actions",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "menu/4", "state": {"layer": "menu", "menu_rows": "9"}}
+  },
+  {
+   "name": "video-more-actions-button",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"press": "circle", "wait": 0.6}],
+   "expect": {"screen": "video", "focus": "action/more", "state": {"layer": "none"}}
+  },
+  {
+   "name": "video-playlists",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "down"}],
+   "expect": {"screen": "video", "focus": "menu/1", "state": {"layer": "choices", "menu_rows": "3"}, "asked": ["playlist:pick:add:pT5xRidgeLn"]}
+  },
+  {
+   "name": "video-playlist-added",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "action/play", "state": {"layer": "none", "pending": ""}, "asked": ["playlist:confirm:add:pT5xRidgeLn:PLquietFilms0001", "account:apply:111"]}
+  },
+  {
+   "name": "video-block-asks",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "video", "dialog": 1, "state": {"layer": "none", "pending": ""}}
+  },
+  {
+   "name": "video-read-description",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "reader", "focus": "text", "state": {"catalog": "description:pT5xRidgeLn", "load": "ready"}}
+  },
+  {
+   "name": "video-description-and-back",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "touchpad"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross", "wait": 1.0}, {"press": "circle", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "action/restart", "moving": 0, "state": {"layer": "none", "load": "ready"}}
+  },
+  {
+   "name": "video-share",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "video", "focus": "share/time", "state": {"layer": "share", "link": "https://youtu.be/pT5xRidgeLn?t=1872"}, "asked": ["link:video:pT5xRidgeLn"]}
+  },
+  {
+   "name": "video-share-playlist",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.0}, {"press": "right"}, {"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "video", "focus": "share/playlist", "state": {"layer": "share", "link": "https://www.youtube.com/playlist?list=PLquietFilms0001"}}
+  },
+  {
+   "name": "video-to-comments",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "r2", "wait": 1.2}],
+   "expect": {"screen": "comments", "focus": "comment/0", "moving": 0, "state": {"video": "pT5xRidgeLn", "load": "ready"}}
+  },
+  {
+   "name": "video-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "left"}],
+   "expect": {"screen": "video", "focus": "rail/home", "rail_open": 1}
+  },
+  {
+   "name": "video-edges",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "up"}, {"press": "up"}, {"press": "right"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right", "wait": 0.1}],
+   "expect": {"screen": "video", "focus": "action/more", "rail_open": 0, "state": {"zone": "actions"}}
+  },
+  {
+   "name": "video-live",
+   "fixture": "signed-in",
+   "route": {"screen": "video", "argument": "synthLive01"},
+   "steps": [{"press": "down"}],
+   "expect": {"screen": "video", "focus": "action/play", "state": {"load": "ready", "resume": "0", "related": "0", "zone": "actions"}}
+  },
+  {
+   "name": "video-guest",
+   "fixture": "guest",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "menu/0", "state": {"layer": "menu", "menu_rows": "7"}}
+  },
+  {
+   "name": "video-guest-like",
+   "fixture": "guest",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 0.8}],
+   "expect": {"screen": "video", "dialog": 1, "state": {"liked": "0", "pending": ""}}
+  },
+  {
+   "name": "video-guest-sign-in",
+   "fixture": "guest",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "up"}, {"press": "cross", "wait": 0.6}, {"press": "cross", "wait": 1.0}],
+   "expect": {"screen": "accounts", "focus": "placeholder", "dialog": 0}
+  },
+  {
+   "name": "video-empty",
+   "fixture": "empty",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "touchpad", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "menu/0", "state": {"load": "ready", "related": "0", "description_lines": "0", "layer": "menu", "menu_rows": "0"}}
+  },
+  {
+   "name": "video-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "expect": {"screen": "video", "focus": "action/play", "state": {"load": "ready", "title_lines": "3", "description_lines": "2", "likes": "1.482.213"}}
+  },
+  {
+   "name": "video-long-texts-actions",
+   "fixture": "long-texts",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "touchpad"}, {"press": "up"}, {"press": "down"}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "video", "focus": "menu/2", "state": {"layer": "menu"}}
+  },
+  {
+   "name": "video-long-texts-share",
+   "fixture": "long-texts",
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "cross", "wait": 1.0}, {"press": "right"}, {"press": "right"}],
+   "expect": {"screen": "video", "focus": "share/playlist", "state": {"layer": "share"}}
+  },
+  {
+   "name": "video-reduced-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "video", "argument": "pT5xRidgeLn"},
+   "steps": [{"press": "down"}, {"press": "triangle", "wait": 0.1}],
+   "expect": {"screen": "video", "state": {"video": "aur0raChase"}}
+  }
+ ]
+}

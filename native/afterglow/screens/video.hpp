@@ -10,9 +10,9 @@
 //                             and its facts); the rows after it name the channel,
 //                             the description and the related list
 //   library:suggestions:<id>  the related shelf, page after page
-//   account:menu:<id>         the actions the profile has for this video, in the
+//   Data::menu(<id>)          the actions the profile has for this video, in the
 //                             profile's own order: the More actions sheet, and
-//                             the rows the Queue and From start buttons open
+//                             the rows the Queue and From start buttons act on
 //   link:video:<id>           the addresses the Share panel offers
 //
 // Private to the video page: no other screen includes this file.
@@ -22,10 +22,11 @@
 #include "afterglow/screen.hpp"
 
 #include "ui/components/list.hpp"
+#include "ui/components/progress.hpp"
+#include "ui/components/skeleton.hpp"
 
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -69,6 +70,27 @@ constexpr float kTypeDialog = 38.0f; // a panel's title
 inline bool starts_with(std::string_view text, std::string_view prefix)
 {
     return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
+}
+
+// "local:video:<scope>:<verb>:<video>": the verb.
+inline std::string verb_of(std::string_view id)
+{
+    if (!starts_with(id, "local:video:"))
+        return {};
+    const std::size_t scope_end = id.find(':', 12);
+    if (scope_end == std::string_view::npos)
+        return {};
+    const std::size_t verb_end = id.find(':', scope_end + 1);
+    return std::string(id.substr(scope_end + 1, verb_end == std::string_view::npos ? verb_end : verb_end - scope_end - 1));
+}
+
+// "account:confirm:<action>:<target>": the action.
+inline std::string account_action(std::string_view id)
+{
+    if (!starts_with(id, "account:confirm:"))
+        return {};
+    const std::size_t end = id.find(':', 16);
+    return std::string(id.substr(16, end == std::string_view::npos ? end : end - 16));
 }
 
 // REQUEST: base.hpp has tr() and nothing that puts a value into a translated
@@ -137,21 +159,6 @@ inline Motion hand_over(const Phase &phase, bool reduced)
             m.dx = -110.0f * (1.0f - tween::quint_out(phase.in));
     }
     return m;
-}
-
-// REQUEST: design.hpp has no bone: the resting shape of something on its way.
-inline void bone(G &g, const Rect &r, float radius, float offset = 0.0f)
-{
-    const float light = g.reduced ? 0.5f : ui::breathe(g.time + offset, 1.7f);
-    g.l.rounded_rect(r, radius, g.k.raised.with_alpha(g.k.raised.a * (0.55f + 0.45f * light)));
-}
-
-// REQUEST: design.hpp has no mark for "sent, waiting for the answer".
-inline void spinner(G &g, float cx, float cy, float radius, Color color)
-{
-    const float turn = g.reduced ? 0.0f : g.time * 5.2f;
-    g.l.ring(cx, cy, radius, 2.5f, color.with_alpha(color.a * 0.22f));
-    g.l.arc(cx, cy, radius, 2.5f, turn, 1.7f, color, true);
 }
 
 // ---- what the page knows about its video ---------------------------------------------
@@ -242,6 +249,7 @@ struct MenuRow
 {
     std::string id;
     std::string title;
+    std::string detail; // the row's second line: a playlist's size
     RowKind kind = RowKind::hidden;
     Icon icon = Icon::more;
 };
@@ -254,11 +262,11 @@ struct ShareLink
     Rect chip{};
 };
 
-// One thing asked of YouTube or of the console on the viewer's behalf.
-// REQUEST: Data has no action requests (data.hpp: catalog, home, play). Until
-// Data::submit exists this walks the provider's own two catalogs through
-// Data::catalog: "account:confirm:<action>:<id>" answers with the row
-// "account:apply:<serial>", and listing that row sends the change, once.
+// One thing asked of YouTube or of the console on the viewer's behalf, through
+// Data::act(). An account change takes two rows of the provider: listing
+// "account:confirm:<action>:<id>" prepares it and answers with the row
+// "account:apply:<serial>"; listing that row sends it, once. Everything else is
+// one row.
 struct Request
 {
     enum class Kind : std::uint8_t
@@ -276,10 +284,10 @@ struct Request
         menu, // a row of the sheet
     };
     Kind kind = Kind::none;
-    std::string first;  // the catalog asked first
-    std::string second; // the apply row, once the first has answered
-    std::string label;  // what the toast says when it is confirmed
-    bool prepared = false; // the cache was cleared for a repeated action; ask from the next frame on
+    std::string row;       // the row to act on
+    unsigned ticket = 0;   // Data::act()'s
+    bool applying = false; // the apply row is the one in flight
+    std::string label;     // what the toast says when it is confirmed
 };
 
 class VideoPage final : public Screen
@@ -300,13 +308,14 @@ class VideoPage final : public Screen
   private:
     // ---- video.cpp: reading, input, requests ----
     void read(UpdateContext &context);
-    void read_details(const Page &page, const ui::Fonts &fonts);
+    void read_details(const Page &page);
     void read_related(UpdateContext &context);
     void read_menu(UpdateContext &context);
     void read_links(UpdateContext &context);
     void lay_out(const ui::Fonts &fonts);
     void build_buttons(const ui::Fonts &fonts);
     void fill_sheet(UpdateContext &context);
+    void ask_pictures(UpdateContext &context);
     void animate(UpdateContext &context);
     void input_page(const InputFrame &input, UpdateContext &context);
     void input_menu(const InputFrame &input, UpdateContext &context);
@@ -316,6 +325,10 @@ class VideoPage final : public Screen
     void open_layer(Layer layer, UpdateContext &context);
     void close_layer(UpdateContext &context);
     void start(Request request, UpdateContext &context);
+    void ask_first(Request request, std::string_view title, std::string_view body, std::string_view confirm,
+                   UpdateContext &context);
+    void refuse(const InputFrame &input, UpdateContext &context);
+    void lay_out_links(const ui::Fonts &fonts);
     void advance_request(UpdateContext &context);
     void confirmed(const Page &answer, UpdateContext &context);
     void failed(const std::string &message, UpdateContext &context);
@@ -350,16 +363,21 @@ class VideoPage final : public Screen
     float arrive(int index) const;
     void draw_details(G &g, const DrawContext &context) const;
     void draw_bones(G &g) const;
+    void bone(G &g, const Rect &r, float radius) const;
+    void bone_disc(G &g, float cx, float cy, float radius) const;
     void draw_failure(G &g) const;
-    void draw_actions(G &g) const;
+    void draw_actions(G &g, const DrawContext &context) const;
     void draw_related(G &g, const DrawContext &context) const;
     void draw_hero(G &g, const DrawContext &context, const Phase &phase, const Motion &motion) const;
     void draw_layers(const DrawContext &context, float fade) const;
     void draw_sheet(G &g, const DrawContext &context, float amount) const;
     void draw_share(G &g, float amount) const;
+    void draw_spinner(const DrawContext &context, float cx, float cy, float size, Color color) const;
 
     Route route_;
     std::string id_; // the video's row id
+    std::string details_id_;
+    std::string links_id_;
     model::Profile profile_;
 
     // What the catalogs said.
@@ -369,8 +387,12 @@ class VideoPage final : public Screen
     std::string error_;
     float since_ready_ = 0.0f; // seconds: bones give way to the content
     std::string measured_title_;
+    std::string measured_overview_;
+    int measured_limit_ = 0;
     int title_lines_ = 2;
-    int description_lines_ = 3;
+    int description_lines_ = 3; // lines the excerpt takes (at most what the title leaves)
+    long long likes_number_ = -1; // the like count when YouTube wrote it out in digits
+    std::string likes_separator_;
     float meta_y_ = 0.0f;
     float channel_y_ = 0.0f;
     float description_y_ = 0.0f;
@@ -379,6 +401,7 @@ class VideoPage final : public Screen
     int related_pages_ = 1; // pages asked for so far
     model::Load related_load_ = model::Load::idle;
     bool related_more_ = false; // a further page is on its way
+    std::string menu_id_;           // Data::menu() of the video
     std::vector<MenuRow> menu_all_; // every row of the actions menu
     model::Load menu_load_ = model::Load::idle;
     std::string menu_error_;
@@ -425,13 +448,15 @@ class VideoPage final : public Screen
     std::string sheet_error_;
     int link_ = 0;
     bool link_chosen_ = false;
+    bool share_asked_ = false;
 
     // Requests.
     Request request_;
-    std::set<std::string> asked_; // catalogs already used for a change: the cache must not answer them again
     std::optional<Request> after_dialog_;
     std::shared_ptr<int> answer_ = std::make_shared<int>(0); // the dialog's: 0 none, 1 yes, 2 sign in
     gfx::DrawList nowhere_; // measuring with the design language's own functions
+    ui::Spinner spinner_;   // on the control whose request is in flight
+    ui::Skeleton bones_;    // the shimmer every bone of the page shares
 
     float age_ = 0.0f;
     float clock_ = 0.0f;

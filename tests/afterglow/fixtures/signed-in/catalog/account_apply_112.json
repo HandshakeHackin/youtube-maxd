@@ -1,0 +1,6 @@
+{
+ "items": [
+  {"id": "account:notice:done", "is_folder": true, "interface": true, "title": "YouTube account updated", "subtitle": "The companion confirmed this change"}
+ ],
+ "has_more": false
+}

@@ -1,0 +1,8 @@
+{
+ "items": [
+  {"id": "link:row:video", "is_folder": true, "interface": true, "title": "Video link", "overview": "https://youtu.be/aur0raChase"},
+  {"id": "link:row:embed", "is_folder": true, "interface": true, "title": "Embed link", "overview": "https://www.youtube.com/embed/aur0raChase"},
+  {"id": "link:row:channel", "is_folder": true, "interface": true, "title": "Channel link", "overview": "https://www.youtube.com/channel/UCNorthlightAtlas0000001"}
+ ],
+ "has_more": false
+}
