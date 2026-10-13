@@ -31,8 +31,9 @@ and **the self-sufficient build has not run on a console yet**.
   ProsperoTube keeps its data under `/data/prosperotube` and stops at startup
   when it cannot get access to that folder.
 - An internet connection on the PS5. Nothing else: no computer is involved.
-- The package from the release: a `PPSA99142` folder title, a ZIP of it and a
-  `.ffpfsc` image. Nothing in this repository deploys to a console.
+- The package from the release: `PPSA99142.zip`, the `PPSA99142` folder title
+  (a local build can also make a `.ffpfsc` image). Nothing in this repository
+  deploys to a console.
 
 ## How it works
 
@@ -209,7 +210,6 @@ password need a signed-in account. Their rows end in
 - The remaining SmartTube interface options (card styles, scaling, colour
   schemes, context-menu editing); [docs/PARITY.md](docs/PARITY.md) tracks each.
 - Drawn thumbnails while seeking.
-- Update check and self-update.
 - Playing videos that need the account itself (age-restricted, private,
   members-only, purchased): a signed-in profile resolves videos as Guest does.
 - Voice search: there is no speech recogniser on the console, so the L3
@@ -220,6 +220,29 @@ password need a signed-in account. Their rows end in
 - Trending and Shorts as sections: YouTube does not offer them to a Guest; the
   app shows one explanatory row.
 - Automatic frame-rate switching, HDR and background playback.
+
+## Updates
+
+Host-tested only; the check has not met GitHub yet (the repository is private)
+and nothing here has run on a console. [docs/UPDATES.md](docs/UPDATES.md) has
+the whole mechanism.
+
+- Once a day, some seconds after start, the app asks this project's GitHub
+  releases whether a newer version exists and says so in a notice. **Settings >
+  About** has **Check for updates** (installed and latest version), **Notify
+  about updates** (on by default), the release notes, and **Skip version**.
+- **Update to ... now** downloads the release ZIP in pieces (it can be paused
+  and continues where it stopped), requires the size and SHA-256 the release
+  lists, unpacks it beside the app's data and checks every file. **Restart to
+  finish updating** then replaces the app's files and closes ProsperoTube.
+- The previous version is kept until the new one has run for ten seconds. A
+  power loss during the replacement is undone at the next start; a new version
+  that fails to start twice is replaced by the previous one.
+- Only a copy installed in `/data/homebrew/PPSA99142` updates itself. A copy
+  on a USB drive, an image install and a development build list the newer
+  version and say why they stay as they are.
+- The request carries nothing about the console, the user or the installed
+  version: a generic `User-Agent` and nothing else.
 
 ## Controls
 
@@ -277,6 +300,10 @@ switcher afterward.
   stored as plain text under `/data/prosperotube/accounts`
   ([Accounts](#accounts-on-the-console)).
 - SponsorBlock and DeArrow, when turned on, are asked directly by the console.
+- The update check asks `api.github.com` at most once a day over verified
+  HTTPS, with a generic `User-Agent` and no identifier; a download comes from
+  GitHub's release hosts. **Notify about updates** off silences the notice,
+  not the check.
 - Local history is independent of Google. With an account profile, playback
   reports go to that account unless **History** is disabled or the video is
   played incognito.
@@ -286,8 +313,8 @@ switcher afterward.
 
 ## Build
 
-[docs/BUILD.md](docs/BUILD.md) covers dependencies, the PS5 package build and
-the offline checks (`bash scripts/test_all.sh`).
+[docs/BUILD.md](docs/BUILD.md) covers dependencies, the PS5 package build, the
+offline checks (`bash scripts/test_all.sh`) and the release procedure.
 [docs/VALIDATION.md](docs/VALIDATION.md) is the dated validation record,
 [docs/DECISIONS.md](docs/DECISIONS.md) and the [goal](GOAL.md) explain the
 direction.
