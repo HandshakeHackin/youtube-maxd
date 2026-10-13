@@ -534,7 +534,13 @@ export class Library {
         const title = playlistTitle(input.title);
         response = await client.playlist.setName(requireId(input.playlist, playlistId), title); break;
       }
-      case 'playlist_delete': response = await client.playlist.delete(requireId(input.playlist, playlistId)); break;
+      case 'playlist_delete': {
+        // The pinned PlaylistManager.delete builds an endpoint without an API path and throws before sending.
+        const target = requireId(input.playlist, playlistId);
+        if (!client.session?.logged_in) throw new LibraryError('account_required', 'Sign in to the selected account first.', 401);
+        const deleted = await client.actions.execute('playlist/delete', { playlistId: target });
+        response = { success: deleted?.success, status_code: deleted?.status_code }; break;
+      }
       case 'playlist_add': response = await client.playlist.addVideos(requireId(input.playlist, playlistId), [requireId(input.id, videoId)]); break;
       case 'playlist_remove': response = await client.playlist.removeVideos(requireId(input.playlist, playlistId), [requireId(input.id, videoId)]); break;
       case 'watch_later_add': response = await client.playlist.addVideos('WL', [requireId(input.id, videoId)]); break;
