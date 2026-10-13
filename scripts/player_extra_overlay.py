@@ -557,6 +557,34 @@ def _speed_lists(replace, player):
             Entry e; e.kind = KindSpeed; e.streamIndex = tube_extra_speed_at(i);''')
 
 
+def _video_buffer(replace, player):
+    """The Video buffer preference is the depth of the demuxer's read-ahead on a network stream.
+
+    PlaybackController sizes four ceilings per stream from two fixed depths: thirty seconds when the
+    queued packets live in the packet ring, ten when they live in the flexible pool. The profile's
+    choice replaces the depth; the packet and byte ceilings computed from it keep their bounds.
+    Medium returns the fixed depth itself, so the default sizes exactly what the player sized.
+    """
+    controller = player + 'core/src/services/PlaybackController.cpp'
+    replace(controller, '    const double safeFps = (fps > 1.0 && fps < 1000.0) ? fps : 30.0;\n',
+            '''    const double safeFps = (fps > 1.0 && fps < 1000.0) ? fps : 30.0;
+    // ProsperoTube video buffer
+    const double tubeRingSeconds = tube_extra_read_ahead_seconds(kRingReadAheadSeconds, 1);
+    const double tubePoolSeconds = tube_extra_read_ahead_seconds(kReadAheadSeconds, 0);
+    // End ProsperoTube video buffer
+''')
+    for old, new in (
+            ('        int rvcap = static_cast<int>(kRingReadAheadSeconds * safeFps);', '        int rvcap = static_cast<int>(tubeRingSeconds * safeFps);'),
+            ('            ? static_cast<long long>(kRingReadAheadSeconds * static_cast<double>(rvbps) / 8.0)',
+             '            ? static_cast<long long>(tubeRingSeconds * static_cast<double>(rvbps) / 8.0)'),
+            ('                     kRingReadAheadSeconds, video_packet_cap,', '                     tubeRingSeconds, video_packet_cap,'),
+            ('    int vcap = static_cast<int>(kReadAheadSeconds * safeFps);', '    int vcap = static_cast<int>(tubePoolSeconds * safeFps);'),
+            ('        ? static_cast<long long>(kReadAheadSeconds * static_cast<double>(vbps) / 8.0)',
+             '        ? static_cast<long long>(tubePoolSeconds * static_cast<double>(vbps) / 8.0)'),
+            ('                 kReadAheadSeconds, video_packet_cap,', '                 tubePoolSeconds, video_packet_cap,')):
+        replace(controller, old, new)
+
+
 def apply_player_extra_overlay(replace, player):
     replace(player + 'Makefile', '    addons/src/tube_audio_tempo.c',
             '    addons/src/tube_audio_tempo.c \\\n    addons/src/tube_player_extra.c')
@@ -566,6 +594,7 @@ def apply_player_extra_overlay(replace, player):
     _rml_hud(replace, player)
     _picker(replace, player)
     _speed_lists(replace, player)
+    _video_buffer(replace, player)
     # The in-player actions extend the blocks above.
     from player_actions_overlay import apply_player_actions_overlay
     apply_player_actions_overlay(replace, player)

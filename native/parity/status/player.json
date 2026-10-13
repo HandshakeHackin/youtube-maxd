@@ -33,16 +33,22 @@
   {
    "id": "PlayerSettingsPresenter.appendVideoBufferCategory",
    "title": "Video buffer size",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Radio: Low / Medium / High / Highest buffer (PlayerData.BUFFER_*)",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_player_extra.c: settings:video-buffer 'Video buffer' Low / Medium / High / Highest per profile (video_buffer; tube_buffer_seconds: 5 s, the player's own depth, 50 s and 100 s of media read ahead of playback, SmartTube's load-control depths), a row of Player controls in YouTube preferences and of the in-player options",
+    "scripts/player_extra_overlay.py (_video_buffer): the choice replaces the fixed depth in PlaybackController's sizeReadAhead (30 s with the packet ring, 10 s in the flexible pool), read when a stream opens; the packet and byte ceilings sized from it keep their bounds, and Medium returns the fixed depth itself",
+    "tests/test_video_buffer.cpp (scripts/test_video_buffer.sh): the shipping sizeReadAhead taken from the generated PlaybackController.cpp, run with each choice, with and without the packet ring; Medium equals the player's ceilings for every bitrate and frame rate tried",
+    "tests/test_player_extra.c (default, storage, labels, mapping), tests/test_extra_provider.c (row, choices, saved per profile), tests/test_player_extra_overlay.cpp (row of the in-player options)"
+   ],
    "gaps": [
-    "No buffer-size preference: EVO's prebuffer depth is fixed; the built-in service relays no media (FFmpeg reads YouTube directly) and the relay of a development companion (companion/prosperotube/hls_buffer.py) has fixed depths too",
-    "No settings row or in-player options row"
+    "High and Highest keep no back buffer: SmartTube also retains 50 s behind the position, so a short rewind needs no request; here a seek back reads again",
+    "A change applies from the next video; SmartTube restarts the player engine when the choice changes",
+    "Without the packet ring (direct memory refused at open) High and Highest stay at the player's ten seconds: the flexible pool's ceilings hold no more"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": "Would map to demux prebuffer/read-ahead depth; pacing effect needs console confirmation."
+   "size": "S",
+   "notes": "With the built-in service FFmpeg reads YouTube directly, so the depth is how many seconds of packets the demuxer queues ahead of the decoder. The thresholds for starting and for resuming after a stall are not changed, as SmartTube's are the same for its four choices. Offline evidence only: the sizing runs on the host; its effect on stalls, on memory beside a 4K decode and on YouTube's delivery pace needs a console."
   },
   {
    "id": "PlayerSettingsPresenter.appendVideoPresetsCategory",
@@ -584,12 +590,12 @@
     "scripts/speed_controls_overlay.py: AudioTrackPickerScreen retitled 'PLAYBACK OPTIONS' (quality, audio tracks, speed)",
     "scripts/sleep_timer_overlay.py, video_geometry_overlay.py: KindSleep, KindResize/KindZoom/KindAspect",
     "tests/test_player_chat_options.cpp, tests/test_speed_switch.cpp",
-    "scripts/player_actions_overlay.py: 'Video presets' list and remembered quality after a QUALITY switch; native/tube_player_extra.c: audio delay, volume and mute groups listed in the picker",
+    "scripts/player_actions_overlay.py: 'Video presets' list and remembered quality after a QUALITY switch; native/tube_player_extra.c: audio delay, volume, mute and video buffer groups listed in the picker",
     "tests/test_player_extra_overlay.cpp (test_picker, test_presets_and_screen_off), tests/test_player_menu.c"
    ],
    "gaps": [
     "No audio language preference row in the dialog",
-    "No video buffer row",
+    "The video buffer row applies from the next video (see PlayerSettingsPresenter.appendVideoBufferCategory)",
     "No pitch effect",
     "A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted",
     "Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows)"

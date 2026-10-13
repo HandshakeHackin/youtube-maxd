@@ -142,7 +142,8 @@ accepted on hardware or equivalent to SmartTube in every edge case.
   sizing, zoom, aspect, rotation and mirror; volume, auto volume and audio
   delay; sleep timer; screen dimming and screen off; in-player video actions,
   button switches and a suggestions list; seven end-of-video modes; Next and
-  Previous with playlist position; recovery and the error fixer.
+  Previous with playlist position; recovery and the error fixer; a video
+  buffer choice (how far ahead a stream is read).
 - **Local state:** profiles with favorites, history, resume, queue, follows and
   preferences (shared or per account); backups, automatic backup and
   subscriptions import; About with links, credits and changes.
@@ -175,26 +176,32 @@ evidence, not console acceptance.
 
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Player and playback | 41 | 23 | 9 | 5 | 78 |
+| Player and playback | 41 | 24 | 8 | 5 | 78 |
 | Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
-| Accounts, remote control and integrations | 19 | 8 | 1 | 1 | 29 |
+| Accounts, remote control and integrations | 20 | 7 | 1 | 1 | 29 |
 | General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
-| **All** | **149** | **62** | **21** | **13** | **245** |
+| **All** | **150** | **62** | **20** | **13** | **245** |
 
 Voice search moved from done to partial on 2026-10-13: the release has no
-speech recogniser, so it exists only with the development companion. For the
-same reason the SponsorBlock alternative server moved from done to partial
-(the built-in service is given none), and the web proxy and the dislike
-counts stay partial: the built-in service has neither.
+speech recogniser, so it exists only with the development companion. The
+SponsorBlock alternative server had moved to partial for the same reason and
+is done again: with the built-in service its address is typed on the console
+and sent with the segments request. The built-in service also has the Return
+YouTube Dislike relay now, asked only for a profile that turned **Show
+dislikes** on; the dislike counts stay partial for where they are shown. The
+web proxy stays partial: the built-in service has none, and nothing in its
+menus offers one.
 
 The tracker's files were brought up to date on 2026-10-13 for the built-in
 service, accounts on the console, the update rows, the interface languages,
-the interface preferences and the seek preview. Of the 21 missing items, ten
+the interface preferences and the seek preview. Of the 20 missing items, ten
 need hardware work (auto frame rate, background playback, a remembered live
 position, card previews), six need a Google sign-in with Drive access (cloud
-backup) and five are not built: the video buffer size, the player's interface
-switches, the network settings group, buttons at the top of the main window
-and playlists as rows. The 62 partial items are mostly the English player and
+backup) and four are not built: the player's interface switches, the network
+settings group (it would be empty), buttons at the top of the main window and
+playlists as rows (the browser has no shelf layout). The video buffer is a
+setting now and partial: it sets how far ahead a stream is read, without
+SmartTube's back buffer. The 62 partial items are mostly the English player and
 the languages that need other fonts, shaping or right-to-left layout, states
 and entry points the in-player list of actions lacks, interface preferences
 that reach the browser but not the player, and what only the development

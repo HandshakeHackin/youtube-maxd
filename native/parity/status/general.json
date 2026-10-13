@@ -232,11 +232,11 @@
    "smarttube": "Checked category holding 'Use Web Proxy' and 'Enable Conscrypt'.",
    "ps5_evidence": [],
    "gaps": [
-    "No network settings group"
+    "No Network settings group, because it would be empty: of its two members the web proxy does not exist with the built-in service (GeneralSettingsPresenter.appendProxyManager) and Conscrypt is an Android TLS provider with no counterpart (the app's TLS library and its embedded roots are fixed at build time). The one address a user can set, the alternative SponsorBlock server, is a row of SponsorBlock actions, where SmartTube has its switch too"
    ],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Container only; see proxy item."
+   "notes": "Container only. It gets a meaning if a proxy is ever offered on the console; nothing else on the console is a network choice (the service's IPv4-only connections are not a setting)."
   },
   {
    "id": "GeneralSettingsPresenter.appendProxyManager",
@@ -413,13 +413,15 @@
    "title": "Playlists section style (disabled upstream)",
    "status": "missing",
    "smarttube": "Radio: Grid / Rows; superseded by the misc toggle 'Show Playlists section as rows'.",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "native/tube_provider.c: library:playlists 'Your playlists' lists one folder card per playlist in the browser's paged grid, which is SmartTube's Grid style"
+   ],
    "gaps": [
-    "Grid vs rows presentation of Your playlists"
+    "No Grid / Rows choice: Your playlists always has the Grid style. Rows shows every playlist as a horizontal row of its own videos; the browser has one layout, a paged grid of cards (native/youtube.rml #tube-grid, native/tube_ui_style.h tube_ui_layout), so Rows needs shelves that scroll sideways on their own and one playlist request per row, neither of which exists"
    ],
    "offline_feasible": true,
-   "size": "M",
-   "notes": ""
+   "size": "L",
+   "notes": "Disabled upstream: the call is commented out in MainUISettingsPresenter and the live switch is 'Show Playlists section as rows' of Main UI misc (MainUISettingsPresenter.appendMiscCategory), which has the same gap. A shelf layout would also serve pinned-channel rows and the Home shelves; it is browser work in the pinned player's document, not a setting."
   },
   {
    "id": "MainUISettingsPresenter.appendScaleUI",

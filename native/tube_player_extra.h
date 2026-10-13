@@ -45,6 +45,7 @@ typedef struct {
     int dim_amount;          /* percent of black while dimmed, 10..100 */
     int screen_off_timeout;  /* seconds without input before the screen goes off in the player; 0 = never */
     int screen_off_amount;   /* percent of black while the screen is off, 10..100 */
+    int video_buffer;        /* TUBE_BUFFER_*: how far ahead of playback a stream is read */
 } TubePlayerExtra;
 
 void tube_player_extra_defaults(TubePlayerExtra *prefs);
@@ -114,6 +115,7 @@ enum {
     TUBE_EXTRA_EXIT, TUBE_EXTRA_KEYS_LR, TUBE_EXTRA_KEYS_UD, TUBE_EXTRA_SEEK_PREVIEW,
     TUBE_EXTRA_SPEED_LIST, TUBE_EXTRA_LOOP_SHORTS, TUBE_EXTRA_REMEMBER_SHORT,
     TUBE_EXTRA_SUGGESTIONS, TUBE_EXTRA_CHAPTER_NOTICE, TUBE_EXTRA_ERROR_FIXER, TUBE_EXTRA_REMEMBER_QUALITY,
+    TUBE_EXTRA_VIDEO_BUFFER,
     TUBE_EXTRA_DIM_TIMEOUT, TUBE_EXTRA_DIM_AMOUNT, TUBE_EXTRA_SCREEN_OFF_TIMEOUT, TUBE_EXTRA_SCREEN_OFF_AMOUNT,
     TUBE_EXTRA_BUTTON_FIRST,       /* one switch per TUBE_BUTTON_*, in that order */
     TUBE_EXTRA_GROUPS = TUBE_EXTRA_BUTTON_FIRST + 21
@@ -310,6 +312,20 @@ typedef struct { uint64_t window_ms, last_ms; uint32_t waited_ms; int started; }
 void tube_buffering_reset(tube_buffering_t *state);
 /* 1 = the limit was reached now; the detector starts over. */
 int tube_buffering_tick(tube_buffering_t *state, uint64_t now_ms, int buffering);
+
+/* Video buffer: SmartTube's four choices as the depth of the demuxer's
+ * read-ahead on a network stream, in seconds of media kept ahead of playback.
+ * Medium is the player's own depth, whatever that is, so the default changes
+ * nothing. The depth is read when a stream opens: a change applies from the
+ * next video. */
+enum { TUBE_BUFFER_LOW = 0, TUBE_BUFFER_MEDIUM = 1, TUBE_BUFFER_HIGH = 2, TUBE_BUFFER_HIGHEST = 3 };
+int tube_extra_buffer(void);
+int tube_extra_set_buffer(int buffer);
+/* `base`: the player's depth for the packet store in use. `ring` = 0 when the
+ * queued packets live in the flexible memory pool, whose ceilings hold no more
+ * than `base`: a choice can shorten the read-ahead there, never deepen it. */
+double tube_buffer_seconds(int buffer, double base, int ring);
+double tube_extra_read_ahead_seconds(double base, int ring);
 
 /* Video presets: one resolution, frame rate and codec at a time. Entry 0
  * switches presets off (any frame rate and codec; height 0 = keep the limit). */
