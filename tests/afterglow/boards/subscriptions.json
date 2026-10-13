@@ -1,0 +1,179 @@
+{
+ "about": "New videos from the channels a profile subscribes to (board 26 of the proposal): the strip of faces, the filter and the feed by day.",
+ "boards": [
+  {
+   "name": "subscriptions-feed",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "feed/0", "rail_open": 0,
+              "state": {"mode": "feed", "load": "ready", "zone": "feed", "filter": "all", "channel": "all", "videos": "16", "strip": "13", "pages": "1", "scroll": "0", "guest": "0"},
+              "asked": ["library:subscriptions", "library:channels"]}
+  },
+  {
+   "name": "subscriptions-this-week",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "right"}, {"press": "down"}, {"wait": 0.7}],
+   "expect": {"screen": "subscriptions", "focus": "feed/5", "state": {"zone": "feed", "scroll": "552"}}
+  },
+  {
+   "name": "subscriptions-next-page",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.6}, {"press": "down"}, {"wait": 0.7}],
+   "expect": {"screen": "subscriptions", "focus": "feed/16", "state": {"videos": "24", "pages": "2"}}
+  },
+  {
+   "name": "subscriptions-strip",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "up"}, {"wait": 0.4}],
+   "expect": {"screen": "subscriptions", "focus": "strip/all", "state": {"zone": "strip", "channel": "all", "videos": "16"}}
+  },
+  {
+   "name": "subscriptions-channel",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 0.6}],
+   "expect": {"screen": "subscriptions", "focus": "strip/9", "state": {"zone": "strip", "channel": "UCquarterline00000000000", "videos": "3", "pages": "2"}}
+  },
+  {
+   "name": "subscriptions-channel-feed",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 0.5}, {"press": "down"}, {"press": "down"}, {"wait": 0.5}],
+   "expect": {"screen": "subscriptions", "focus": "feed/1", "state": {"zone": "feed", "channel": "UCtidewrit00000000000000", "videos": "3"}}
+  },
+  {
+   "name": "subscriptions-channel-nothing",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "right"}, {"wait": 0.6}, {"press": "down"}],
+   "expect": {"screen": "subscriptions", "focus": "strip/3", "state": {"filter": "live", "zone": "strip", "channel": "UCorbitwell0000000000000", "videos": "0"}}
+  },
+  {
+   "name": "subscriptions-live",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"wait": 0.6}],
+   "expect": {"screen": "subscriptions", "focus": "feed/0", "state": {"filter": "live", "videos": "2", "zone": "feed"}}
+  },
+  {
+   "name": "subscriptions-today",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "l1"}, {"press": "r1"}, {"wait": 0.6}, {"press": "right"}],
+   "expect": {"screen": "subscriptions", "focus": "feed/1", "state": {"filter": "today", "videos": "4", "pages": "2"}}
+  },
+  {
+   "name": "subscriptions-unwatched",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"wait": 0.5}],
+   "expect": {"screen": "subscriptions", "focus": "feed/0", "state": {"filter": "unwatched", "videos": "22", "pages": "2"}}
+  },
+  {
+   "name": "subscriptions-play",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "right"}, {"press": "cross"}],
+   "expect": {"screen": "subscriptions", "focus": "feed/1", "played": "ptv00000022"}
+  },
+  {
+   "name": "subscriptions-actions",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "touchpad"}, {"wait": 0.6}],
+   "expect": {"screen": "subscriptions", "focus": "sheet/0", "state": {"sheet": "1", "sheet_load": "ready"}, "asked": ["menu:ptv00000007"]}
+  },
+  {
+   "name": "subscriptions-actions-refused",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "touchpad"}, {"wait": 0.6}, {"press": "up"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "cross"}, {"wait": 0.8}],
+   "expect": {"screen": "subscriptions", "focus": "sheet/8", "state": {"sheet": "1", "sheet_acting": "0"}, "asked": ["local:video:1:watched:ptv00000007"]}
+  },
+  {
+   "name": "subscriptions-to-channels",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "triangle"}, {"wait": 0.9}],
+   "expect": {"screen": "channels", "focus": "channel/0", "moving": 0, "state": {"mode": "account"}}
+  },
+  {
+   "name": "subscriptions-to-channel-and-back",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "up"}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.9}, {"press": "circle"}, {"wait": 0.9}],
+   "expect": {"screen": "subscriptions", "focus": "strip/2", "moving": 0, "state": {"zone": "strip", "channel": "UCglassfern0000000000000"}, "asked": ["channel:UCglassfern0000000000000"]}
+  },
+  {
+   "name": "subscriptions-rail",
+   "fixture": "signed-in",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "left"}, {"wait": 0.5}],
+   "expect": {"screen": "subscriptions", "rail_open": 1, "focus": "rail/subscriptions"}
+  },
+  {
+   "name": "subscriptions-guest",
+   "fixture": "guest",
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "state/sign_in", "state": {"mode": "invite", "guest": "1", "zone": "notice", "strip": "0"}}
+  },
+  {
+   "name": "subscriptions-guest-discover",
+   "fixture": "guest",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "home", "focus": "placeholder"}
+  },
+  {
+   "name": "subscriptions-guest-follows",
+   "fixture": "guest-follows",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "up"}, {"press": "right"}],
+   "expect": {"screen": "subscriptions", "focus": "strip/2", "state": {"mode": "invite", "zone": "strip", "strip": "3"}}
+  },
+  {
+   "name": "subscriptions-empty",
+   "fixture": "empty",
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "state/search", "state": {"mode": "empty", "load": "ready"}}
+  },
+  {
+   "name": "subscriptions-offline",
+   "fixture": "signed-in",
+   "source": {"offline": true},
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "state/retry", "state": {"mode": "trouble", "load": "offline"}}
+  },
+  {
+   "name": "subscriptions-kept",
+   "fixture": "offline",
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "state/retry", "state": {"mode": "kept", "load": "offline", "strip": "3", "zone": "notice"}}
+  },
+  {
+   "name": "subscriptions-loading",
+   "fixture": "signed-in",
+   "source": {"hold": true},
+   "route": {"screen": "subscriptions"},
+   "expect": {"screen": "subscriptions", "focus": "state/loading", "state": {"mode": "loading", "load": "loading"}}
+  },
+  {
+   "name": "subscriptions-long-texts",
+   "fixture": "long-texts",
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "right"}],
+   "expect": {"screen": "subscriptions", "focus": "feed/1", "state": {"mode": "feed", "videos": "12"}}
+  },
+  {
+   "name": "subscriptions-less-motion",
+   "fixture": "signed-in",
+   "reduced_motion": true,
+   "route": {"screen": "subscriptions"},
+   "steps": [{"press": "down"}, {"press": "down", "wait": 0.2}],
+   "expect": {"screen": "subscriptions", "focus": "feed/8", "state": {"scroll": "936"}}
+  }
+ ]
+}
