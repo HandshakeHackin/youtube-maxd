@@ -1,5 +1,13 @@
 # Hardware acceptance — in progress
 
+- 2026-10-13 | self-sufficient core path, Guest, after the update, language, interface and casting merges | 7ec0ac3e (instrumented, `prosperotube-7ec0ac3e_1013-1611`) | PS5 | pass: same core path as the morning session, 98 frames published with 0 late drops, +10 s seek landed at 12.13 s (target 11.32), clean park and close | evidence kept outside the repository (`tools/console/session.py` run of 17:03Z) | the features those merges added were not exercised: update check, interface languages, themes and scale, seek preview, casting, accounts
+
+The session repeated the morning's route (Discover, Science, first video, H.264
+1080p on the hardware decoder) on the build that added the update check, the 21
+interface languages, the interface preferences and casting. It shows those
+additions did not disturb start-up, the built-in service, browsing or playback.
+It did not open any of them.
+
 - 2026-10-13 | self-sufficient core path, Guest | 6b3b1c41 (instrumented, `prosperotube-6b3b1c41_1013-1226`) | PS5 | pass: built-in service, Discover, direct playback, seek, pause, pickers, stop, history, clean park and close | evidence kept outside the repository (`tools/console/session.py` run of 13:18Z) | sound and motion by a person, VP9/AV1/4K, long sessions, sign-in
 
 The first session of the build that needs no PC. No companion was running. The
