@@ -596,11 +596,14 @@ int main(int argc, char **argv)
             fail(results, "sound", "-", std::to_string(loaded.silent) + " cues of the interface have no recording in the kit");
     }
     sound::Tape tape;
-    if (!options.sound.empty() && !tape.open(options.sound))
+    std::FILE *cue_times = nullptr; // beside --sound's file: when in it which cue plays, from which recording
+    if (!options.sound.empty() && (!tape.open(options.sound) || (cue_times = std::fopen((options.sound + ".txt").c_str(), "w")) == nullptr))
     {
         std::fprintf(stderr, "cannot write %s\n", options.sound.c_str());
         return 1;
     }
+    if (cue_times != nullptr)
+        std::fprintf(cue_times, "%8s  %-30s %-9s %-15s %-20s %6s %6s %6s\n", "seconds", "board", "look", "cue", "recording", "pitch", "pan", "gain");
     // ---- end of stage S ---------------------------------------------------------------------------
 
     constexpr float kDt = 1.0f / 60.0f;
@@ -690,7 +693,15 @@ int main(int argc, char **argv)
                     step.held = held;
                     step.minute = static_cast<int>(number_of(sound_set, "minute", hour * 60 + minute));
                     step.situation.attract = frame.attracting();
+                    const std::size_t before = heard.heard.size();
                     sounds.step(frame.feedback(), step);
+                    for (std::size_t n = before; cue_times != nullptr && n < heard.heard.size(); ++n)
+                    {
+                        const sound::Heard &voice = heard.heard[n];
+                        std::fprintf(cue_times, "%8.2f  %-30s %-9s %-15s %-20s %6.2f %6.2f %6.2f\n",
+                                     static_cast<double>(tape.frames()) / hui::audio::kSampleRate, name.c_str(), look_id.c_str(), voice.name,
+                                     voice.sample, voice.pitch, voice.pan, voice.gain);
+                    }
                     tape.run(sounds.mixer(), static_cast<int>(hui::audio::kSampleRate * kDt));
                 };
                 // ---- end of stage S
@@ -913,6 +924,10 @@ int main(int argc, char **argv)
     }
     if (reel != nullptr)
         pclose(reel);
+    // stage S: --sound's file gets its length, and the cue times their end
+    tape.close();
+    if (cue_times != nullptr)
+        std::fclose(cue_times);
     if (engine)
     {
         const tube::text::Stats stats = engine->stats();
