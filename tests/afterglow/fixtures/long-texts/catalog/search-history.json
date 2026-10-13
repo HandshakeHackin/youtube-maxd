@@ -3,8 +3,8 @@
   {"id": "search-history:remove", "title": "Remove a recent search", "subtitle": "Choose one query to forget", "is_folder": true, "interface": true},
   {"id": "search-history:clear:1", "title": "Clear recent searches", "subtitle": "Forget every query saved for the selected profile", "is_folder": true, "interface": true},
   {"id": "search-history:run:9", "title": "polarlichtjagd bei minus dreissig grad in nordnorwegen die komplette dokumentation in voller laenge", "subtitle": "Cross searches again", "is_folder": true},
-  {"id": "search-history:run:8", "title": "hochgeschwindigkeitszugverbindungsfahrplanaenderungsbenachrichtigung", "subtitle": "Cross searches again", "is_folder": true},
-  {"id": "search-history:run:7", "title": "eine pfanne sechs abendessen der bequeme wochenplan fuer die ganze familie", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:8", "title": "hochgeschwindigkeitszugverbindungsfahrplanänderungsbenachrichtigung", "subtitle": "Cross searches again", "is_folder": true},
+  {"id": "search-history:run:7", "title": "eine pfanne sechs abendessen der bequeme wochenplan für die ganze familie", "subtitle": "Cross searches again", "is_folder": true},
   {"id": "search-history:run:6", "title": "aurora", "subtitle": "Cross searches again", "is_folder": true},
   {"id": "search-history:run:5", "title": "winziger renderer an einem nachmittag geschrieben ohne bibliotheken", "subtitle": "Cross searches again", "is_folder": true}
  ],
