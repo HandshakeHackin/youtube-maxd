@@ -319,11 +319,24 @@ void a_cue_is_a_voice()
     soft.sound.set_options(options);
     for (Rig *each : {&loud, &soft})
     {
-        each->idle(0.1f); // the bus gain glides to its level
         each->cue(Cue::welcome);
         each->idle(0.6f);
     }
     CHECK(loud.tape.peak() > soft.tape.peak() * 8 && soft.tape.peak() > 0);
+    // A voice has its level from its first sample: a tick right after the volume was turned down is quiet.
+    Rig turned;
+    options.volume = 10;
+    turned.sound.set_options(options);
+    turned.cue(Cue::focus);
+    turned.idle(0.2f);
+    const int full = turned.tape.peak();
+    Rig down;
+    down.sound.set_options(options);
+    options.volume = 2;
+    down.sound.set_options(options);
+    down.cue(Cue::focus);
+    down.idle(0.2f);
+    CHECK(full > 500 && down.tape.peak() > 0 && down.tape.peak() * 15 < full);
 }
 
 void twelve_a_second()
@@ -504,6 +517,13 @@ void rare_moments()
     rig.idle(1.2f);
     rig.cue(Cue::launch);
     CHECK(rig.record.names() == "welcome launch launch" && std::string(rig.last().sample) == "glass/launch");
+    // The interface was away while that video played; time went on, and the next video has its start.
+    rig.at.dt = 1800.0f;
+    rig.idle(kFrame);
+    rig.at.dt = kFrame;
+    rig.cue(Cue::launch);
+    CHECK(rig.record.names() == "welcome launch launch launch" && rig.sound.voices() == 1);
+    rig.record.heard.pop_back();
     rig.cue(kSignedIn);
     rig.idle(3.0f);
     rig.cue(kSignedIn);
@@ -517,6 +537,11 @@ void rare_moments()
     rig.step(pulse);
     CHECK(rig.record.names() == "welcome launch launch signed_in goodbye" && std::string(rig.last().sample) == "glass/back");
     CHECK(rig.record.pulses.empty());
+    // Closed from somewhere else (the player, a timer): no parting sound, and nothing after it either.
+    Rig away;
+    away.sound.closing(false);
+    away.cue(Cue::focus);
+    CHECK(away.heard() == 0);
 }
 
 void beside_the_video()

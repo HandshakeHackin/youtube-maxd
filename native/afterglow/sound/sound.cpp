@@ -62,7 +62,6 @@ Sound::Sound(const Bank &bank, Output &output) : bank_(bank), output_(output)
 {
     last_.fill(kNever);
     ends_.fill(kNever);
-    mixer_.set_bus_gain(audio::Bus::ui, level(options_.volume));
 }
 
 float Sound::level(int volume)
@@ -72,11 +71,8 @@ float Sound::level(int volume)
 
 void Sound::set_options(const Options &options)
 {
-    const int before = options_.volume;
     options_ = options;
     options_.volume = std::clamp(options_.volume, 0, 10);
-    if (options_.volume != before)
-        mixer_.set_bus_gain(audio::Bus::ui, level(options_.volume));
 }
 
 bool Sound::audible() const
@@ -103,14 +99,17 @@ void Sound::opened()
         welcome_due_ = true;
 }
 
-void Sound::closing()
+void Sound::closing(bool parting)
 {
     if (closed_)
         return;
-    audio::CueEvent parting;
-    parting.cue = kGoodbye;
-    bool unused = false;
-    hear(resolve(parting.cue), parting, false, &unused);
+    if (parting)
+    {
+        audio::CueEvent goodbye;
+        goodbye.cue = kGoodbye;
+        bool unused = false;
+        hear(resolve(goodbye.cue), goodbye, false, &unused);
+    }
     closed_ = true;
 }
 
@@ -307,9 +306,11 @@ void Sound::hear(int index, const audio::CueEvent &event, bool held, bool *held_
     // The kit's own touch: up to 3 % of detune, so that a repeat never sounds mechanical.
     jitter_ = jitter_ * 1664525u + 1013904223u;
     const float jitter = 0.97f + 0.06f * static_cast<float>(jitter_ >> 8) / 16777216.0f;
+    // The interface volume is part of each voice: a voice starts at its level from its first sample, whatever
+    // the volume was a moment ago (a gain on the bus would glide there while a tick is already over).
     audio::PlayParams params;
     params.bus = audio::Bus::ui;
-    params.gain = gain;
+    params.gain = gain * level(options_.volume);
     params.pitch = std::clamp(event.pitch * entry.take->pitch, kPitchLow, kPitchHigh) * jitter;
     params.pan = std::clamp(event.pan, -kPan, kPan);
     if (!mixer_.play_clip(&recording.clip, params))

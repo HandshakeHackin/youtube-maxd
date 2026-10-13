@@ -130,8 +130,9 @@ class Sound
     void opened();
     // After every Frame::update(): what that step asked for.
     void step(const ui::Feedback &feedback, const Step &step);
-    // The app closes: the parting sound, then nothing more.
-    void closing();
+    // The app closes: the parting sound (when the interface is what is being
+    // left: parting), then nothing more.
+    void closing(bool parting = true);
 
     // True while a cue can be heard: sounds are on and the device has not failed.
     // (The countdown's last second vibrates only when this is false.)
@@ -152,7 +153,7 @@ class Sound
     }
     // Voices that have not ended yet, by their lengths.
     int voices() const;
-    // The interface volume as the bus gain it sets.
+    // The interface volume as the gain every voice is given: the kit's curve.
     static float level(int volume);
 
   private:

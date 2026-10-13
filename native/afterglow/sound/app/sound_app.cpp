@@ -65,6 +65,7 @@ constexpr unsigned int kFormatS16Stereo = 1;
 constexpr int kVibrationCompatible = 2; // the two motors, not the voice-coil haptics
 constexpr float kParkSeconds = 1.0f;
 constexpr std::int64_t kRefreshEvery = 2000000; // microseconds between looks at the session's files
+constexpr std::int64_t kAwayAfter = 500000;     // no step for this long: the interface was not on screen
 
 std::atomic<int> g_pad{-1};
 TubeAfterglowSound g_preferences = {1, 7, 1, -1, -1, 1, 0};
@@ -185,6 +186,7 @@ struct App final : public Output
     bool joined = false;
     bool thread_failed = false;
     bool parked = false;        // the app parked or exits: nothing starts any more
+    std::int64_t stepped = 0;   // when the interface last took a step
     std::int64_t refreshed = 0;
     int minute = -1;
     Worker::Audio logged = Worker::Audio::closed;
@@ -318,8 +320,13 @@ void app_step(const Frame &frame, Platform &platform, float dt)
         return;
     App &app = *g_app;
     app.refresh(platform);
+    // The interface is not stepped while the player or another screen of the app has the picture; the
+    // rules count in real time, so the first step back carries what passed meanwhile.
+    const std::int64_t now = now_us();
+    const std::int64_t away = app.stepped != 0 ? now - app.stepped : 0;
+    app.stepped = now;
     Step step;
-    step.dt = dt;
+    step.dt = away > kAwayAfter ? static_cast<float>(static_cast<double>(away) * 1.0e-6) : dt;
     step.minute = app.minute;
     step.situation.attract = frame.attracting();
     app.sound.step(frame.feedback(), step);
@@ -353,9 +360,12 @@ extern "C" void tube_afterglow_sound_park(void)
 {
     if (g_app == nullptr || g_app->parked)
         return;
+    // The parting sound belongs to leaving the interface: the app says nothing when it is closed from the
+    // player or by a timer while something else had the picture.
+    const bool leaving = g_app->stepped != 0 && afterglow::sound::now_us() - g_app->stepped < afterglow::sound::kAwayAfter;
     if (g_app->started)
     {
-        g_app->sound.closing();
+        g_app->sound.closing(leaving);
         g_app->worker.park(afterglow::sound::kParkSeconds);
     }
     g_app->parked = true;
