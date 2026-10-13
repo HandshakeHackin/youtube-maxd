@@ -6,8 +6,10 @@ what the first release contains, how far each part was checked, and what is
 left before it ships. **The application is self-sufficient**: its YouTube
 service runs inside the app ([decision](DECISIONS.md)), as Guest and, since
 2026-10-13, with YouTube accounts signed in on the console (host-tested only;
-no real account has signed in). The self-sufficient build has not run on a
-console.
+no real account has signed in). The self-sufficient build passed one bounded
+console session on its Guest core path on 2026-10-13
+([hardware acceptance](HARDWARE_ACCEPTANCE.md)); what that session did not
+cover is listed under [Checked on a console](#checked-on-a-console).
 
 Three levels of evidence are kept apart on this page:
 
@@ -91,9 +93,12 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   sanitizers, and the provider end to end (sign-in, profile, subscriptions, one
   change, removal). Every profile resolves videos as Guest; health says
   `account_playback: false`.
-- The PS5 package compiled, linked and packed with the Guest-only service; the
-  package with accounts has not been built in this step. **Never run on a
-  console.**
+- The PS5 package compiled, linked and packed with the Guest-only service. An
+  instrumented build of `6b3b1c41`, a tree that has the account code, **ran on
+  a console once, as Guest** (2026-10-13,
+  [hardware acceptance](HARDWARE_ACCEPTANCE.md)): the service's start,
+  Discover, one resolve and direct playback. Accounts, the subscriptions
+  import and the phone receiver have not run on a console.
 
 ## Updates
 
@@ -113,9 +118,10 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   The PS5 objects compile and add no import the app did not already have.
   **Never run on a console, and never against GitHub**; [updates](UPDATES.md)
   lists what only a console can show.
-- `.github/workflows/build.yml` builds pull requests, version tags and manual
-  runs, and publishes a tag as a pre-release with `PPSA99142.zip` and
-  `SHA256SUMS`. It has not run: the first run shows what a hosted runner lacks.
+- `.github/workflows/build.yml` builds version tags and manual runs (pull
+  request builds are off), and publishes a tag as a pre-release with
+  `PPSA99142.zip` and `SHA256SUMS`. It has not run: the first run shows what a
+  hosted runner lacks.
 
 ## Implemented and tested
 
@@ -196,8 +202,9 @@ companion offers.
 
 ## Verified only on the host
 
-The built-in service and everything that depends on it (which is every
-request the app makes) are in this section. None of the following has run on a
+The built-in service ran on a console for the Guest core path only (next
+section); everything else that depends on it (which is every request the app
+makes) is in this section. None of the following has run on a
 console. Where an earlier check against the
 live service exists it is named; everything else has seen fixtures only.
 
@@ -225,20 +232,34 @@ live service exists it is named; everything else has seen fixtures only.
   release has no recogniser).
 - GPU presentation of zoom, rotation and mirror, long sessions and controller
   feel.
+- Recovery when a media link expires during playback, the update check and
+  self-update, the interface languages, the interface preferences and the
+  drawn seek preview.
 
 The PS5 package of the frozen tree compiles, links and packs (see the
 2026-10-11 entry in [validation](VALIDATION.md)); that package has not been
-installed or started.
+installed or started. The build that ran on 2026-10-13 is a later,
+instrumented one.
 
 ## Checked on a console
 
-Earlier development builds only, in bounded cases: startup with storage access,
-pairing and search; a public video in hardware AVC with captions and Guest
-history; pause, resume and seek; public 1080p60 AVC/AAC confirmed smooth and in
-sync by the owner; and, with generated media and a fixture service, resume,
-speed controls, the SponsorBlock review, the unavailable-video queue advance,
-paused dual captions, the chat reader, artwork decoding and phone commands from
-a test receiver. Nothing added on 2026-10-11 has run on a console.
+The self-sufficient build, in one bounded Guest session on 2026-10-13 with no
+companion running: the built-in service's start, Discover and one topic
+through it, a public video resolved on the console and played from YouTube
+directly (H.264 1080p on the hardware decoder, AAC), a +10 s seek, pause, the
+caption picker and playback options, Stop, the saved history record and a
+clean park and close. Not assessed in it: sound and motion by a person,
+captions on screen, VP9, AV1, HEVC and 4K, expiry recovery, accounts, phone
+casting, updates, the interface languages, the interface preferences and the
+seek preview.
+
+Earlier development builds, with the companion, in bounded cases: startup with
+storage access, pairing and search; a public video in hardware AVC with
+captions and Guest history; pause, resume and seek; public 1080p60 AVC/AAC
+confirmed smooth and in sync by the owner; and, with generated media and a
+fixture service, resume, speed controls, the SponsorBlock review, the
+unavailable-video queue advance, paused dual captions, the chat reader, artwork
+decoding and phone commands from a test receiver.
 
 ## Inferred about the live service
 
@@ -284,11 +305,14 @@ are unverified.
    change of each kind, then history reports.
 2. **Frozen candidate: built** from the standalone tree (release and
    instrumented packages, hashes in the validation record).
-3. **One bounded console session on the core path**, under the shared-console
-   protocol (`tools/console/session.py`): idle check first, verified install,
-   startup, the service's start line, search, playback with pause, seek and
-   options, end, history, clean park and close. This is the first time the
-   engine, the HTTPS client and direct playback run on a console.
+3. **One bounded console session on the core path: passed** (2026-10-13,
+   [hardware acceptance](HARDWARE_ACCEPTANCE.md)), under the shared-console
+   protocol (`tools/console/session.py`): startup, the service's start,
+   Discover, playback with seek, pause and options, Stop, history, clean park
+   and close. It was the first time the engine, the HTTPS client and direct
+   playback ran on a console. Its record names Discover and Stop where this
+   gate asked for search and the end of a video, and leaves open: sound and
+   motion by a person, VP9, AV1 and 4K, long sessions, sign-in.
 4. Fix what the session finds, then release.
 5. **Phone casting with a real phone**, after the core path holds: link with a
    TV code, cast one video and one queue, control it, leave it idle for some

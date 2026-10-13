@@ -23,7 +23,8 @@ implemented, what was tested and where, and what is still open before release.
 Throughout this page, **host-tested** means covered by the offline test suite on
 a PC, and **checked on a console** means it ran on a PS5; most of 0.1.0 is
 host-tested only (see [What was checked on a console](#what-was-checked-on-a-console)),
-and **the self-sufficient build has not run on a console yet**.
+and **the self-sufficient build has had one bounded console session, on its
+Guest core path** (2026-10-13).
 
 ## What you need
 
@@ -196,8 +197,18 @@ is a profile; **Remove selected account** signs it out of this console.
 
 ### What was checked on a console
 
-Earlier development builds ran on a PS5 for these bounded cases only
+The self-sufficient build ran on a PS5 in one bounded session on 2026-10-13,
+as Guest with no computer involved
 ([hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) has the records):
+
+- The built-in service started, and Discover and one of its topics listed
+  their videos through it.
+- A public video resolved on the console and played from YouTube directly, in
+  hardware-decoded AVC at 1080p with AAC sound: a ten-second seek, pause, the
+  caption picker and the playback options, Stop, the saved Guest history and a
+  clean close. Nobody judged sound or motion, and no caption was on screen.
+
+Earlier development builds ran on a PS5 for these bounded cases only:
 
 - Startup with storage access, companion pairing and search.
 - A public YouTube video through the companion in hardware-decoded AVC with
@@ -211,13 +222,16 @@ Earlier development builds ran on a PS5 for these bounded cases only
   receiver (not a real phone).
 
 Those runs used the companion on a PC, before the service moved into the app.
-Everything else on this page is host-tested only: VP9/HEVC/AV1 playback, real
-live chat, the in-player actions, backups and every settings screen added since
-those runs. **The built-in service, its HTTPS client and the direct playback
-from YouTube have never run on a console**; on the host they pass the offline
-suite and a live Guest check (search, sections, channels, playlists, comments,
-resolve, captions, playback and seeking with the console's FFmpeg patch; see
-[docs/VALIDATION.md](docs/VALIDATION.md)).
+Everything else on this page is host-tested only and not yet verified on a
+console: VP9/HEVC/AV1 and 4K playback, recovery when a media link expires
+during playback, accounts, phone casting, updates, the interface languages,
+real live chat, the in-player actions, backups, the seek preview and every
+settings screen added since those runs, the interface preferences among them.
+**The built-in service, its HTTPS client and the direct playback from YouTube
+have run on a console in that one session only**; on the host they pass the
+offline suite and a live Guest check (search, sections, channels, playlists,
+comments, resolve, captions, playback and seeking with the console's FFmpeg
+patch; see [docs/VALIDATION.md](docs/VALIDATION.md)).
 
 ## Experimental features
 

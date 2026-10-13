@@ -9,7 +9,10 @@ bullet under 300 bytes and run the generator after editing this file.
 
 First release. It runs on the console by itself, as Guest or with YouTube
 accounts signed in on the console. Most of it was tested offline only, no real
-account has signed in, and the self-sufficient build has not run on a console;
+account has signed in, and the self-sufficient build has run on a console in
+one bounded Guest session only (browsing, direct 1080p AVC playback, seek,
+pause, stop, history and a clean close;
+[docs/HARDWARE_ACCEPTANCE.md](docs/HARDWARE_ACCEPTANCE.md));
 [docs/STATUS.md](docs/STATUS.md) records what was tested and where.
 
 - Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. No computer is needed: the YouTube service runs inside the app.

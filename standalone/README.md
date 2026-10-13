@@ -7,8 +7,13 @@ small listener on `127.0.0.1` answers **the same HTTP API as
 address and token. Media bytes are never relayed: manifests and playlists name
 YouTube's servers.
 
-Everything here runs and is tested on a PC. Nothing was run on a console. The
-app is wired to it since (`standalone/ps5/README.md`, section 8). Live numbers are from 2026-10-11, Guest, no
+Everything here runs and is tested on a PC. The app is wired to it since
+(`standalone/ps5/README.md`, section 8), and inside the app it ran on a console
+in one bounded Guest session on 2026-10-13 (`docs/HARDWARE_ACCEPTANCE.md`):
+start on the loopback address, Discover and one topic, one resolve, and H.264
+1080p with AAC played from YouTube directly, with a seek and a pause. Other
+codecs and 4K, a link expiring during playback and accounts are not yet
+verified on a console. Live numbers are from 2026-10-11, Guest, no
 cookies. The subscriptions import and the phone receiver (2026-10-13) have run
 offline only.
 
@@ -428,9 +433,13 @@ void tube_service_configure(const tube_service_options *options);   /* optional,
   FFmpeg; live, a seek to the middle waited one 5 s time-out (above).
 - **Address family**: the IPv4-only fix is supported by one passing run after
   several failing sessions, not by a controlled comparison.
-- **Console unknowns**: everything in `ps5/README.md` section 6, plus the
-  listener (loopback bind in the 20000–39999 range, the datagram wake socket,
-  `poll` on it) and FFmpeg reading YouTube directly with the app's TLS setup.
+- **Console unknowns**: the 2026-10-13 session showed the listener bound on
+  the loopback address (port 37841), requests answered through it and FFmpeg
+  reading one H.264 video from YouTube directly with the app's TLS setup.
+  Still open: what `ps5/README.md` section 6 lists and one short Guest session
+  does not exercise (memory beside a 4K software decode, shutdown with
+  requests in flight, a connection held open for minutes), other codecs and a
+  link expiring during playback.
 - **Accounts** have met canned answers only: the sign-in from this engine,
   the TV client's real list shapes and every change are unproven, and
   signed-in playback is off and unmeasured.
