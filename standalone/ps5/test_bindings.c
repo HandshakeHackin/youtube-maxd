@@ -74,6 +74,22 @@ static void respond(connection *c, int head, int status, const char *extra, cons
     if (!head && length) conn_write(c, body, length);
 }
 
+/* An answer whose length is not known in advance: its head, then pieces. */
+static void stream_open(connection *c) {
+    static const char head[] = "HTTP/1.1 200 Test\r\nTransfer-Encoding: chunked\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n";
+    conn_write(c, head, sizeof head - 1);
+}
+static void stream_piece(connection *c, const char *data, size_t length) {
+    char size[24];
+    int n = snprintf(size, sizeof size, "%zx\r\n", length);
+    conn_write(c, size, (size_t)n);
+    conn_write(c, data, length);
+    conn_write(c, "\r\n", 2);
+}
+static void stream_wait(connection *c, int ms) {
+    for (int waited = 0; waited < ms && !atomic_load(&c->owner->stop); waited += 10) sleep_ms(10);
+}
+
 static void serve(connection *c) {
     enum { REQUEST_MAX = 1 << 17 };
     char *buffer = malloc(REQUEST_MAX);
@@ -103,8 +119,34 @@ static void serve(connection *c) {
     int head = !strcmp(method, "HEAD");
     atomic_fetch_add(&c->owner->served, 1);
     char extra[512];
-    int number = 0;
-    if (!strcmp(path, "/hello")) {
+    int number = 0, gap = 0;
+    if (sscanf(path, "/stream/%d/%d", &number, &gap) == 2) {
+        /* `number` pieces, one every `gap` milliseconds, then the end. */
+        stream_open(c);
+        for (int i = 0; i < number && !atomic_load(&c->owner->stop); i++) {
+            int n = snprintf(extra, sizeof extra, "piece-%d\n", i);
+            stream_piece(c, extra, (size_t)n);
+            stream_wait(c, gap);
+        }
+        conn_write(c, "0\r\n\r\n", 5);
+    } else if (sscanf(path, "/stall/%d", &number) == 1) {
+        /* One piece, then silence for `number` milliseconds. */
+        stream_open(c);
+        stream_piece(c, "first\n", 6);
+        stream_wait(c, number);
+        conn_write(c, "0\r\n\r\n", 5);
+    } else if (sscanf(path, "/flood/%d", &number) == 1) {
+        char *body = malloc((size_t)number + 1);
+        memset(body, 'y', (size_t)number);
+        stream_open(c);
+        stream_piece(c, body, (size_t)number);
+        conn_write(c, "0\r\n\r\n", 5);
+        free(body);
+    } else if (!strcmp(path, "/stream-moved")) {
+        respond(c, head, 302, "Location: /stream/3/20\r\n", "moved", 5);
+    } else if (!strcmp(path, "/stream-refused")) {
+        respond(c, head, 503, NULL, "refused", 7);
+    } else if (!strcmp(path, "/hello")) {
         respond(c, head, 200, "X-Test: yes\r\nX-Two:   spaced value  \r\nSet-Cookie: sid=abc; Path=/\r\n", "hello", 5);
     } else if (!strcmp(path, "/echo")) {
         /* The request back as the body: its head, a blank line, its body. */
@@ -827,6 +869,157 @@ static void test_slices(void) {
     tube_js_http_free(client);
 }
 
+/* Streaming requests: the body arrives in pieces while the answer is still
+ * open. `slice` is the console's way of waiting (0 = the desktop's). */
+typedef struct stream_log {
+    char text[4096];
+    size_t length;
+    int pieces, wrong;
+    uint64_t first_ms, last_ms;
+} stream_log;
+
+/* Polls until the request completes or `limit_ms` passed, taking its pieces as they come. */
+static tube_js_http_response *stream_run(tube_js_http *client, uint32_t id, int limit_ms, stream_log *log) {
+    uint64_t start = tube_js_monotonic_ms();
+    memset(log, 0, sizeof *log);
+    while (tube_js_monotonic_ms() - start < (uint64_t)limit_ms) {
+        tube_js_http_poll(client, 50);
+        tube_js_http_chunk chunk;
+        while (tube_js_http_take_chunk(client, &chunk)) {
+            if (chunk.id != id || chunk.status != 200 || !chunk.length || log->length + chunk.length >= sizeof log->text) log->wrong++;
+            else {
+                memcpy(log->text + log->length, chunk.data, chunk.length);
+                log->length += chunk.length;
+            }
+            log->last_ms = tube_js_monotonic_ms() - start;
+            if (!log->pieces++) log->first_ms = log->last_ms;
+        }
+        tube_js_http_response *response = tube_js_http_take(client);
+        if (response) return response;
+    }
+    return NULL;
+}
+
+static void test_streaming(const char *origin, const char *certificate, int slice) {
+    tube_js_http_config config = {.ca_file = certificate, .poll_slice_ms = slice};
+    tube_js_http *client = tube_js_http_new(&config);
+    char url[160];
+    uint32_t id = 0;
+    stream_log log;
+
+    /* Five pieces 100 ms apart: each is handed over when it arrives, long before
+     * the answer ends, and the completed answer has no body left. */
+    snprintf(url, sizeof url, "%s/stream/5/100", origin);
+    tube_js_http_request request = {.url = url, .stream = 1, .timeout_ms = 3000};
+    uint64_t start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    tube_js_http_response *r = stream_run(client, id, 10000, &log);
+    uint64_t took = tube_js_monotonic_ms() - start;
+    CHECK(r && r->id == id && r->error == TUBE_JS_HTTP_OK && r->status == 200 && r->body_length == 0);
+    CHECK(r && header_of(r, "Content-Type") && !strcmp(header_of(r, "Content-Type"), "text/plain"));
+    CHECK(!log.wrong && log.length == 40 && !memcmp(log.text, "piece-0\npiece-1\npiece-2\npiece-3\npiece-4\n", 40));
+    CHECK(log.pieces >= 4 && log.first_ms < 300 && log.last_ms >= 300 && took >= 450 && took < 5000);
+    tube_js_http_response_free(r);
+
+    /* The limit of a streaming request is its longest silence, not its length. */
+    snprintf(url, sizeof url, "%s/stream/6/150", origin);
+    request.timeout_ms = 500;
+    start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    r = stream_run(client, id, 10000, &log);
+    CHECK(r && r->error == TUBE_JS_HTTP_OK && log.length == 48 && tube_js_monotonic_ms() - start >= 800);
+    tube_js_http_response_free(r);
+
+    /* A stream that goes silent ends as a timeout; what arrived before was delivered. */
+    snprintf(url, sizeof url, "%s/stall/4000", origin);
+    request.timeout_ms = 300;
+    start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    r = stream_run(client, id, 10000, &log);
+    took = tube_js_monotonic_ms() - start;
+    CHECK(r && r->id == id && r->error == TUBE_JS_HTTP_TIMEOUT && r->status == 0 && r->body_length == 0);
+    CHECK(log.pieces == 1 && log.length == 6 && !memcmp(log.text, "first\n", 6) && took >= 250 && took < 2500);
+    tube_js_http_response_free(r);
+
+    /* Cancelled while open: nothing more arrives for it. */
+    request.timeout_ms = 3000;
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    tube_js_http_chunk chunk;
+    int got = 0;
+    for (int i = 0; i < 100 && !(got = tube_js_http_take_chunk(client, &chunk)); i++) tube_js_http_poll(client, 50);
+    CHECK(got && chunk.id == id && chunk.status == 200 && chunk.length == 6 && !memcmp(chunk.data, "first\n", 6));
+    CHECK(!tube_js_http_take_chunk(client, &chunk) && tube_js_http_active(client) == 1);
+    CHECK(tube_js_http_cancel(client, id) == 1 && tube_js_http_active(client) == 0);
+    CHECK(tube_js_http_poll(client, 0) == 1 && !tube_js_http_take_chunk(client, &chunk));
+    r = tube_js_http_take(client);
+    CHECK(r && r->id == id && r->error == TUBE_JS_HTTP_ABORTED);
+    tube_js_http_response_free(r);
+
+    /* A piece that waits ends the wait at once; pieces nobody took are the completed answer's body. */
+    snprintf(url, sizeof url, "%s/stream/3/150", origin);
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    for (int i = 0; i < 10; i++) {   /* the first piece is there, the answer is not over */
+        sleep_ms(10);
+        tube_js_http_poll(client, 0);
+    }
+    start = tube_js_monotonic_ms();
+    CHECK(tube_js_http_poll(client, 2000) == 0 && tube_js_monotonic_ms() - start < 100);
+    for (int i = 0; i < 500 && !tube_js_http_poll(client, 0); i++) sleep_ms(10);
+    r = tube_js_http_take(client);
+    CHECK(r && r->error == TUBE_JS_HTTP_OK && r->body_length == 24 && !memcmp(r->body, "piece-0\npiece-1\npiece-2\n", 24));
+    tube_js_http_response_free(r);
+    CHECK(!tube_js_http_take_chunk(client, &chunk));
+
+    /* What waits to be taken is bounded. */
+    snprintf(url, sizeof url, "%s/flood/200000", origin);
+    request.max_response_bytes = 1000;
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    r = stream_run(client, id, 10000, &log);
+    CHECK(r && r->error == TUBE_JS_HTTP_TOO_LARGE && r->body_length == 0 && log.length <= 1000);
+    tube_js_http_response_free(r);
+    request.max_response_bytes = 0;
+
+    /* A redirect that is followed: only the final answer's body is the stream. */
+    snprintf(url, sizeof url, "%s/stream-moved", origin);
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    r = stream_run(client, id, 10000, &log);
+    CHECK(r && r->error == TUBE_JS_HTTP_OK && r->redirected && r->status == 200 && !log.wrong && log.length == 24 && !memcmp(log.text, "piece-0\n", 8));
+    tube_js_http_response_free(r);
+    /* Not followed, or refused: the pieces carry that answer's status. */
+    request.redirect = TUBE_JS_HTTP_REDIRECT_MANUAL;
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    got = 0;
+    for (int i = 0; i < 100 && !(got = tube_js_http_take_chunk(client, &chunk)); i++) tube_js_http_poll(client, 50);
+    CHECK(got && chunk.status == 302 && chunk.length == 5 && !memcmp(chunk.data, "moved", 5));
+    r = wait_one(client, 10000);
+    CHECK(r && r->error == TUBE_JS_HTTP_OK && r->status == 302 && r->body_length == 0);
+    tube_js_http_response_free(r);
+    request.redirect = TUBE_JS_HTTP_REDIRECT_FOLLOW;
+    snprintf(url, sizeof url, "%s/stream-refused", origin);
+    CHECK(tube_js_http_start(client, &request, &id) == TUBE_JS_HTTP_OK);
+    got = 0;
+    for (int i = 0; i < 100 && !(got = tube_js_http_take_chunk(client, &chunk)); i++) tube_js_http_poll(client, 50);
+    CHECK(got && chunk.status == 503 && chunk.length == 7);
+    r = wait_one(client, 10000);
+    CHECK(r && r->error == TUBE_JS_HTTP_OK && r->status == 503);
+    tube_js_http_response_free(r);
+
+    /* An ordinary request beside an open stream is not held up, and keeps its own rules. */
+    snprintf(url, sizeof url, "%s/stall/4000", origin);
+    uint32_t open_id = 0;
+    CHECK(tube_js_http_start(client, &request, &open_id) == TUBE_JS_HTTP_OK);
+    char other[160];
+    snprintf(other, sizeof other, "%s/hello", origin);
+    tube_js_http_request plain_request = {.url = other};
+    CHECK(tube_js_http_start(client, &plain_request, &id) == TUBE_JS_HTTP_OK);
+    r = stream_run(client, open_id, 5000, &log);
+    CHECK(r && r->id == id && r->error == TUBE_JS_HTTP_OK && r->body_length == 5 && !memcmp(r->body, "hello", 5));
+    tube_js_http_response_free(r);
+    CHECK(tube_js_http_active(client) == 1);
+    /* Freed with the stream still open and a piece possibly waiting. */
+    tube_js_http_free(client);
+}
+
 static char *read_file(const char *path, size_t *length) {
     FILE *file = fopen(path, "rb");
     if (!file) return NULL;
@@ -960,6 +1153,9 @@ int main(int argc, char **argv) {
     test_concurrency();
     test_slices();
     test_tls(argv[1], argv[3]);
+    test_streaming(base, NULL, 0);
+    test_streaming(base, NULL, 10);
+    test_streaming(base_tls, argv[1], 10);
     CHECK(!strcmp(tube_js_http_error_name(TUBE_JS_HTTP_TLS), "TLS failure") && *tube_js_http_error_name(99));
 
     int served = atomic_load(&plain.served) + atomic_load(&second.served) + atomic_load(&secure.served);
