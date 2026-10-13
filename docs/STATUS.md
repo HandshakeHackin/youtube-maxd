@@ -170,20 +170,29 @@ evidence, not console acceptance.
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Player and playback | 41 | 23 | 9 | 5 | 78 |
-| Browsing, search and menus | 61 | 16 | 2 | 1 | 80 |
-| Accounts, remote control and integrations | 19 | 7 | 2 | 1 | 29 |
-| General, interface and maintenance | 18 | 9 | 25 | 6 | 58 |
-| **All** | **139** | **55** | **38** | **13** | **245** |
+| Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
+| Accounts, remote control and integrations | 19 | 8 | 1 | 1 | 29 |
+| General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
+| **All** | **149** | **62** | **21** | **13** | **245** |
 
 Voice search moved from done to partial on 2026-10-13: the release has no
-speech recogniser, so it exists only with the development companion.
+speech recogniser, so it exists only with the development companion. For the
+same reason the SponsorBlock alternative server moved from done to partial
+(the built-in service is given none), and the web proxy and the dislike
+counts stay partial: the built-in service has neither.
 
-The open items are mostly the remaining interface options, the translated
-player and hardware-dependent features, which the first release defers. The
-update rows, the interface languages (`extra.Localization`,
-`LanguageSettingsPresenter.appendLanguageCategory`), the interface
-preferences and the seek preview are implemented; the tracker's files were
-not changed for them yet.
+The tracker's files were brought up to date on 2026-10-13 for the built-in
+service, accounts on the console, the update rows, the interface languages,
+the interface preferences and the seek preview. Of the 21 missing items, ten
+need hardware work (auto frame rate, background playback, a remembered live
+position, card previews), six need a Google sign-in with Drive access (cloud
+backup) and five are not built: the video buffer size, the player's interface
+switches, the network settings group, buttons at the top of the main window
+and playlists as rows. The 62 partial items are mostly the English player and
+the languages that need other fonts, shaping or right-to-left layout, states
+and entry points the in-player list of actions lacks, interface preferences
+that reach the browser but not the player, and what only the development
+companion offers.
 
 ## Verified only on the host
 
