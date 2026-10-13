@@ -635,6 +635,12 @@
    ]
   },
   {
+   "source": "Any button cancels",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Any duration",
    "context": [
     "browser"
@@ -745,6 +751,12 @@
    ]
   },
   {
+   "source": "At the live edge",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "At {0}",
    "context": [
     "afterglow"
@@ -817,6 +829,18 @@
    "source": "Automatic captions",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Autoplay is off",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Autoplay is on",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -1024,6 +1048,12 @@
    ]
   },
   {
+   "source": "Buffering...",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Bulgaria",
    "context": [
     "browser"
@@ -1181,6 +1211,14 @@
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Captions {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
   },
   {
    "source": "Captions: {0} language",
@@ -1354,10 +1392,24 @@
    ]
   },
   {
+   "source": "Chapter",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Chapter notification",
    "context": [
     "browser"
    ]
+  },
+  {
+   "source": "Chapter {0} of {1}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "ss"
   },
   {
    "source": "Chapters",
@@ -1392,6 +1444,7 @@
   {
    "source": "Chat replay",
    "context": [
+    "afterglow",
     "document",
     "kit"
    ]
@@ -2103,6 +2156,12 @@
    "source": "Continue watching & history",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Continue where you stopped?",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -2818,6 +2877,14 @@
    ]
   },
   {
+   "source": "Ends {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
    "source": "English",
    "context": [
     "browser"
@@ -3161,6 +3228,12 @@
    "source": "Finding video; any player button cancels",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "Finding what comes next...",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3714,6 +3787,12 @@
    ]
   },
   {
+   "source": "Hold to scrub",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Home",
    "context": [
     "afterglow",
@@ -4110,6 +4189,12 @@
    ]
   },
   {
+   "source": "Keep watching",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Keeping this segment",
    "context": [
     "toast"
@@ -4433,6 +4518,7 @@
   {
    "source": "Live chat",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -4543,6 +4629,12 @@
    "source": "Low",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "MOD",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -4791,6 +4883,12 @@
    ]
   },
   {
+   "source": "Muted",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "My videos",
    "context": [
     "browser"
@@ -4804,6 +4902,12 @@
   },
   {
    "source": "NEW",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "NEXT",
    "context": [
     "afterglow"
    ]
@@ -5070,6 +5174,12 @@
    ]
   },
   {
+   "source": "No messages yet.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No notice at start for this version; it stays listed here",
    "context": [
     "browser"
@@ -5303,6 +5413,12 @@
    ]
   },
   {
+   "source": "Nothing is lined up after this video.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Nothing is listed here",
    "context": [
     "browser"
@@ -5340,6 +5456,12 @@
   },
   {
    "source": "Nothing saved for later yet",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Nothing to choose here",
    "context": [
     "afterglow"
    ]
@@ -5621,6 +5743,12 @@
    "source": "Optional community replacements; original metadata is retained",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Options",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6019,6 +6147,12 @@
    ]
   },
   {
+   "source": "Play from here",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Play from start",
    "context": [
     "browser"
@@ -6034,6 +6168,12 @@
    "source": "Play next",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Play now",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6053,6 +6193,18 @@
    "source": "Play the track the video was published with",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Playback",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Playback details",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7859,6 +8011,7 @@
   {
    "source": "Seek",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -8634,6 +8787,12 @@
    ]
   },
   {
+   "source": "Size",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Size of everything in the browser; smaller shows more",
    "context": [
     "browser"
@@ -8643,6 +8802,20 @@
    "source": "Size of the video cards; smaller shows more cards on a page",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Size: {0}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "s"
+  },
+  {
+   "source": "Skip",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8945,6 +9118,12 @@
    ]
   },
   {
+   "source": "Start over",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Status checked automatically",
    "context": [
     "document"
@@ -8960,6 +9139,12 @@
    "source": "Still buffering. Reloading at a lower quality...",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Stop",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -8985,6 +9170,12 @@
    "source": "Stop this video and search YouTube",
    "context": [
     "kit"
+   ]
+  },
+  {
+   "source": "Stop watching?",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -9182,6 +9373,12 @@
   },
   {
    "source": "Symbols",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "Sync",
    "context": [
     "afterglow"
    ]
@@ -9977,6 +10174,12 @@
    ]
   },
   {
+   "source": "The next video is on its way",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "The page, its cards and the focus in this theme",
    "context": [
     "afterglow"
@@ -10737,6 +10940,7 @@
   {
    "source": "Top chat",
    "context": [
+    "afterglow",
     "kit"
    ]
   },
@@ -11074,6 +11278,12 @@
    "source": "Up / Down",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Up next",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -11568,6 +11778,12 @@
    ]
   },
   {
+   "source": "Waiting for the server...",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Waiting for your approval",
    "context": [
     "afterglow"
@@ -11836,6 +12052,12 @@
    ]
   },
   {
+   "source": "You watched",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "YouTube Kids categories",
    "context": [
     "browser"
@@ -12083,6 +12305,14 @@
    "context": [
     "afterglow"
    ]
+  },
+  {
+   "source": "Your place is kept: {0} of {1}. The video is waiting under Continue watching.",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "ss"
   },
   {
    "source": "Your playlists",
@@ -12643,6 +12873,14 @@
    ],
    "pattern": true,
    "args": "s"
+  },
+  {
+   "source": "{0} of {1}",
+   "context": [
+    "afterglow"
+   ],
+   "pattern": true,
+   "args": "ss"
   },
   {
    "source": "{0} of {1} MB; a paused download continues where it stopped",
