@@ -91,7 +91,8 @@ README's **Roadmap**). The two recommended first:
    DNS failure for YouTube and homebrew.page. An offline generated 8-second
    3840x2160 VP9 fixture on .40 then opened the native decoder and published
    all 240 frames with zero late drops or GPU faults. It stalled at 7.99/8.0 s:
-   demux EOF was set, but playback did not complete within 45 seconds. Its
+   the video decode-done flag was set, but playback did not complete within
+   45 seconds. Its
    clean teardown restored state and released the .40 lock. This short case
    exercises the integrated display path but does not isolate the GPU-pool
    guard or accept natural EOF, long/network 4K, HDR, audio or seeking. See
