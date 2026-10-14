@@ -374,8 +374,15 @@ int main(void) {
            skipped.rgb == 0x00ff00 && skipped.age_ms < TUBE_SPONSOR_UNDO_MS && *skipped.category);
     tube_sponsor_undo_started(11); assert(tube_sponsor_last_skip(&skipped)); // stale target
     tube_sponsor_undo_started(skipped.from); assert(!tube_sponsor_last_skip(&skipped));
+    tube_sponsor_skip_observe(20,1); assert(!tube_sponsor_last_skip(&skipped));
+    tube_sponsor_skip_observe(20,0); assert(tube_sponsor_last_skip(&skipped)); // asynchronous refusal keeps Undo retryable
+    tube_sponsor_undo_started(skipped.from);tube_sponsor_skip_observe(12,0);
     assert(tube_skip_target(12) < 0 && tube_skip_target(16) < 0 && tube_skip_target(20) < 0);
     assert(tube_skip_target(30) < 0 && tube_skip_target(12) == 20); // later manual rewind follows the repeat policy
+    tube_sponsor_skip_started(12,20);tube_sponsor_skip_observe(20,0);tube_sponsor_undo_started(12);
+    usleep((TUBE_SPONSOR_UNDO_MS + 100) * 1000);
+    tube_sponsor_skip_observe(12,0);assert(tube_skip_target(12)<0); // late successful Undo still suppresses the same segment
+    assert(tube_skip_target(30)<0 && tube_skip_target(12)==20);
     tube_sponsor_skip_started(12, 20); tube_sponsor_skip_observe(20, 0);
     assert(tube_sponsor_last_skip(&skipped));
     usleep((TUBE_SPONSOR_UNDO_MS + 100) * 1000);
@@ -392,12 +399,19 @@ int main(void) {
     assert(tube_skip_target(12) == 20);
     tube_sponsor_skip_started(12, 20); tube_sponsor_skip_observe(20, 0);
     assert(tube_sponsor_last_skip(&skipped));
+    segments("{\"segments\":[{\"start\":10,\"end\":10.5,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(10)==10.5);
+    tube_sponsor_skip_started(10,10.5);tube_sponsor_skip_observe(10.5,0);tube_sponsor_undo_started(10);
+    tube_sponsor_skip_observe(10.5,0);assert(tube_sponsor_last_skip(&skipped)); // short skipped interval is not a rewind landing
+    tube_sponsor_undo_started(10);tube_sponsor_skip_observe(10,0);assert(!tube_sponsor_last_skip(&skipped));
     segments("{\"segments\":[{\"start\":80,\"end\":105,\"category\":\"sponsor\"}]}");
     provider->stream_chosen("abcdefghijk", &selected);
     assert(tube_skip_target(80)==105 && tube_sponsor_finish(105,100));
     tube_sponsor_skip_started(80,105);tube_sponsor_skip_observe(80,0);
     assert(tube_sponsor_last_skip(&skipped) && skipped.from==80 && skipped.to==105);
     tube_completion_seek_started(80);tube_sponsor_undo_started(80);
+    tube_sponsor_skip_observe(80,0);
     tube_completion_seek_observe(80,0);
     assert(!tube_sponsor_completed() && !tube_sponsor_last_skip(&skipped) && tube_skip_target(80)<0);
     provider->set_source("http://localhost:8765"); assert(!tube_sponsor_last_skip(&skipped));

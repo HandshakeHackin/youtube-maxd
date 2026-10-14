@@ -7405,8 +7405,20 @@ void tube_sponsor_skip_started(double from, double to) {
 void tube_sponsor_skip_observe(double position, int busy) {
     if (!g_sb_skip.pending && !g_sb_skip.shown) return;
     const long long now = now_ms();
-    if (!sponsor_playing_scope() || !isfinite(position) || (g_sb_skip.shown &&
-        (now < g_sb_skip.shown || now - g_sb_skip.shown >= TUBE_SPONSOR_UNDO_MS))) {
+    if (!sponsor_playing_scope() || !isfinite(position)) {
+        memset(&g_sb_skip, 0, sizeof g_sb_skip); return;
+    }
+    if (g_sb_skip.pending == 2) {
+        if (busy) return;
+        if (fabs(position - g_sb_skip.from) <= fmin(1.0, (g_sb_skip.to - g_sb_skip.from) * .25)) {
+            g_sb_undo_from = g_sb_skip.from; g_sb_undo_until = g_sb_skip.to;
+            g_sb_last_position = position;
+            memset(&g_sb_skip, 0, sizeof g_sb_skip); return;
+        }
+        g_sb_skip.pending = 0; // A refused asynchronous rewind can be retried while the notice stands.
+    }
+    if (g_sb_skip.shown &&
+        (now < g_sb_skip.shown || now - g_sb_skip.shown >= TUBE_SPONSOR_UNDO_MS)) {
         memset(&g_sb_skip, 0, sizeof g_sb_skip); return;
     }
     if (g_sb_skip.pending && !busy) {
@@ -7416,7 +7428,7 @@ void tube_sponsor_skip_observe(double position, int busy) {
 }
 int tube_sponsor_last_skip(tube_sponsor_skip_t *skip) {
     const long long age = now_ms() - g_sb_skip.shown;
-    if (!skip || !g_sb_skip.shown || !sponsor_playing_scope() || age < 0 || age >= TUBE_SPONSOR_UNDO_MS) return 0;
+    if (!skip || !g_sb_skip.shown || g_sb_skip.pending == 2 || !sponsor_playing_scope() || age < 0 || age >= TUBE_SPONSOR_UNDO_MS) return 0;
     *skip = (tube_sponsor_skip_t){g_sb_skip.from, g_sb_skip.to, g_sb_colors[g_sb_skip.category],
         (unsigned)age, tube_sb_labels[g_sb_skip.category]};
     return 1;
@@ -7424,9 +7436,7 @@ int tube_sponsor_last_skip(tube_sponsor_skip_t *skip) {
 void tube_sponsor_undo_started(double target) {
     tube_sponsor_skip_t skip;
     if (!tube_sponsor_last_skip(&skip) || target != skip.from) return;
-    g_sb_undo_from = skip.from; g_sb_undo_until = skip.to;
-    g_sb_last_position = target;
-    memset(&g_sb_skip, 0, sizeof g_sb_skip);
+    g_sb_skip.pending = 2;
 }
 unsigned tube_sponsor_prompt_rgb(double position) {
     return tube_sponsor_prompt(position) ? g_sb_colors[g_segment_categories[g_sb_prompt]] : 0;
