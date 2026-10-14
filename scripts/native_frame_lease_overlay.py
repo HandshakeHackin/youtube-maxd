@@ -83,7 +83,46 @@ static void ro_reset(evo_vdec_native *n)""")
     replace(native,'        ro_harvest(n, &out);\n        if (n->ro_count', '        ro_harvest(n, &out);\n        tube_frame_lease_release(fb.buffer);\n        if (n->ro_count')
     replace(native,'    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {', '    tube_frame_lease_release(v->tube_received);v->tube_received=NULL;\n    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {')
     replace(native,'    best->used = 0;', '    if(best->borrowed)v->tube_received=best->data;\n    best->used = 0;')
-    replace(native,'    if (v->annexb_extradata) {','    ro_reset(v);\n    if (v->slot && !tube_native_pool_idle(v->slot)) return;\n    if (v->annexb_extradata) {')
+    replace(native,'void evo_vdec_native_close(evo_vdec_native *v)\n{',r"""/* Buffered decode work may still own AU and decoder maps after the last visible frame. */
+static int tube_native_drain_for_close(evo_vdec_native *n) {
+    if (!n->dec && n->dec_calls) goto unsafe;
+    if (!n->dec_calls || n->tube_drain_finished) return 1;
+    const int64_t start=nwd_now_ms();
+    for (int i=0;i<64 && !nwd_hung && nwd_now_ms()-start<NWD_DECODE_MS;i++) {
+        int slot=tube_native_claim_frame(n,n->au_ring % FRAME_POOL_SLOTS);
+        if(slot<0)break;
+        n->au_ring++;
+        SceVideodec2FrameBuffer fb={0};
+        SceVideodec2OutputInfo out={0};
+        fb.size=sizeof fb;
+        fb.buffer=n->frame_mem+(size_t)slot*n->frame_size;
+        fb.buffer_size=n->frame_size;
+        out.size=sizeof out;
+        nwd_enter("Flush (close)",NWD_DECODE_MS);
+        int rc=sceVideodec2Flush(n->dec,&fb,&out);
+        nwd_leave();
+        tube_frame_lease_release(fb.buffer);
+        if(rc!=0 || nwd_hung || (out.valid && out.error))break;
+        if(!out.valid){note("EVO vdec native: close drain complete outputs=%d pool=%p",i,n->frame_mem);n->tube_drain_finished=1;return 1;}
+    }
+unsafe:
+    note("EVO vdec native: close drain incomplete; retaining decoder mappings pool=%p",n->frame_mem);
+    if(n->slot){n->slot->owned=1;n->slot->ready=0;}
+    return 0;
+}
+void evo_vdec_native_close(evo_vdec_native *v)
+{""")
+    replace(native,'    if (v->annexb_extradata) {','    ro_reset(v);\n    if (v->slot && !tube_native_pool_idle(v->slot)) return;\n    if (!tube_native_drain_for_close(v)) return;\n    if (v->annexb_extradata) {')
+    replace(native,'{ nwd_enter("Reset (close)", NWD_RESET_MS); sceVideodec2Reset(v->dec); nwd_leave(); }',r"""{
+                    nwd_enter("Reset (close)",NWD_RESET_MS);
+                    int rc=sceVideodec2Reset(v->dec);
+                    nwd_leave();
+                    if(rc!=0 || nwd_hung){
+                        note("EVO vdec native: close Reset failed rc=0x%08x; retaining decoder mappings",(unsigned)rc);
+                        slot->owned=1;slot->ready=0;return;
+                    }
+                }""")
+
     replace(native,'        slot_teardown(s);\n        rc = slot_bringup(s, d, 1920, 1088, &stage);','        if(slot_teardown(s)!=0)return;\n        rc = slot_bringup(s, d, 1920, 1088, &stage);')
     replace(native,'            slot_teardown(slot);\n            s_depth_override = 0;', '            if(slot_teardown(slot)!=0){s_depth_override=0;return NULL;}\n            s_depth_override = 0;')
     replace(native,'            slot_teardown(slot);\n            stage = "?";', '            if(slot_teardown(slot)!=0)return NULL;\n            stage = "?";')

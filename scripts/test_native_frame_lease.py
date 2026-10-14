@@ -14,6 +14,7 @@ assert 'int fslot = tube_native_claim_frame(' in source
 with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     temp=Path(temp)
     (temp/'native_claim.inc').write_text(function(source,'static int tube_native_claim_frame('))
+    (temp/'native_close_drain.inc').write_text(function(source,'static int tube_native_drain_for_close('))
     (temp/'native_idle.inc').write_text(function(source,'static int tube_native_pool_idle('))
     for name,signature in [('surface','static int tube_native_surface_valid('),('harvest','static void ro_harvest('),('receive','int evo_vdec_native_receive('),('reset','static void ro_reset(')]:
         (temp/f'native_{name}.inc').write_text(function(source,signature))
@@ -24,6 +25,8 @@ with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     includes=['-I'+str(path) for path in (temp,root/'native',work/'pp/include',work/'addons/include',work/'media/include',work/'include')]
     subprocess.run(['cc',*flags,*includes,str(root/'tests/test_native_frame_lease.c'),str(root/'native/tube_frame_lease.c'),str(work/'pp/src/pp_playback.c'),str(work/'pp/src/pp_clock.c'),'-lm','-pthread','-o',str(temp/'test')],check=True)
     subprocess.run([str(temp/'test')],check=True)
+    subprocess.run(['cc',*flags,'-I'+str(temp),str(root/'tests/test_native_close_drain.c'),'-o',str(temp/'test_close')],check=True)
+    subprocess.run([str(temp/'test_close')],check=True)
 
 app=(work/'core/src/Application.cpp').read_text()
 retirement=function(app,'            if (tube_present_source.tube_lease)')
@@ -42,6 +45,9 @@ assert 'if(slot_teardown(slot)!=0){s_depth_override=0;return NULL;}' in source
 assert 'if(slot_teardown(slot)!=0)return NULL;\n            stage = "?"' in source
 
 
+close=function(source,'void evo_vdec_native_close(evo_vdec_native *v)\n{')
+assert close.index('ro_reset(v);')<close.index('tube_native_pool_idle(v->slot)')<close.index('tube_native_drain_for_close(v)')<close.index('sceVideodec2Reset(v->dec)')
+assert 'if(rc!=0 || nwd_hung)' in close and 'slot->owned=1;slot->ready=0;return;' in close
 controller=(work/'core/src/services/PlaybackController.cpp').read_text()
 stop=function(controller,'void PlaybackController::stopPlayback()')
 assert stop.index('pthread_join(video_thread')<stop.index('pp_playback_on_file_close(')<stop.index('evo_vdec_close(')
