@@ -239,6 +239,7 @@ def apply(root, work, replace, player):
     start_hooks(work, replace, player)
     apply_sound(root, work, replace, player, kit)  # stage S
     player_mount(work, replace, player)  # package H
+    stop_confirmation_focus(replace, player)  # H11
     import afterglow_picker_overlay
     afterglow_picker_overlay.apply(root, work, replace, player)
     import background_play_overlay
@@ -359,3 +360,17 @@ def player_mount(work, replace, player):
     replace(app, "    if (k.state != Kit::up || k.drawn_last_frame == Screen::none)\n        return nullptr;\n    const char *doc = doc_name(k.drawn_last_frame);",
             PLAYER_FOCUS + "    if (k.state != Kit::up || k.drawn_last_frame == Screen::none)\n        return nullptr;\n    const char *doc = doc_name(k.drawn_last_frame);")
 # ---- end of package H ---------------------------------------------------------------------------------
+
+
+def stop_confirmation_focus(replace, player):
+    """The real input focus follows Afterglow's safe primary stop action."""
+    modal = player + "core/src/screens/ModalDialogScreen.cpp"
+    replace(modal, '#include "evo_feedback.h"\n',
+            '#include "evo_feedback.h"\n#if defined(EVO_AGC_DEVICE)\n#include "tube_afterglow.h"\n#endif\n')
+    default = '    m_focusedButton = (m_type == ModalType::ExitConfirm) ? 1 : 0; // Default STOP (1) or RESUME (0)\n'
+    replace(modal, default, default +
+            '#if defined(EVO_AGC_DEVICE)\n'
+            '    // ProsperoTube H11: Keep watching is the safe primary action in Afterglow.\n'
+            '    if (m_type == ModalType::ExitConfirm && tube_afterglow_enabled())\n'
+            '        m_focusedButton = 0;\n'
+            '#endif\n')

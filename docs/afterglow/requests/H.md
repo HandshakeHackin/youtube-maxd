@@ -77,9 +77,14 @@ the code they are marked `// REQUEST:`.
     checks and four-look player boards pass; console acceptance remains pending.
 
 11. **The stop confirmation opens on Keep watching** (design notes, section
-    14: "the safe choice is the primary one"): `ModalDialogScreen`,
-    `m_focusedButton = 0` for ExitConfirm. Stand-in: Keep watching is drawn as
-    the primary button, the focus opens where EVO puts it (Stop).
+    14: "the safe choice is the primary one"): implemented in the generated
+    `ModalDialogScreen::onEnter()` through `scripts/afterglow_overlay.py`.
+    Afterglow ExitConfirm opens with action 0 focused, so an initial Cross
+    keeps watching; directions can select Stop, and Circle keeps watching.
+    Classic retains its Stop default and ResumePrompt retains Resume.
+    `scripts/test_stop_confirmation.py` executes the generated entry and input
+    paths with and without the console build flag. Host-tested; console
+    acceptance remains pending.
 12. **Related videos with their facts**: picture address (the profile's
     thumbnail source and DeArrow applied), length and badges in
     `tube_player_menu_row_t`. Stand-in: the mount builds
