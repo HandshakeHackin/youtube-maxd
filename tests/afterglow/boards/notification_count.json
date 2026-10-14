@@ -1,0 +1,118 @@
+{
+ "about": "Account unseen count is independent of loaded or filtered notification video rows. Unknown is not zero.",
+ "boards": [
+  {
+   "fixture": "d-signed-in",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-account-total",
+   "expect": {
+    "screen": "notifications",
+    "notification_unseen": 13,
+    "state": {
+     "unread": "3"
+    },
+    "asked": [
+     "library:notification-count"
+    ],
+    "asked_times": {
+     "library:notification-count": 2
+    }
+   }
+  },
+  {
+   "fixture": "d-signed-in",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-playing-keeps-unread",
+   "steps": [
+    {
+     "press": "cross"
+    },
+    {
+     "wait": 0.3
+    }
+   ],
+   "expect": {
+    "notification_unseen": 13,
+    "state": {
+     "unread": "3"
+    }
+   }
+  },
+  {
+   "fixture": "d-empty",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-zero",
+   "expect": {
+    "notification_unseen": 0
+   }
+  },
+  {
+   "fixture": "d-offline",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-offline-unknown",
+   "expect": {
+    "notification_unseen": -1
+   }
+  },
+  {
+   "fixture": "d-failed",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-malformed-unknown",
+   "expect": {
+    "notification_unseen": -1
+   }
+  },
+  {
+   "fixture": "d-long-texts",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-paged-capped-badge",
+   "expect": {
+    "notification_unseen": 1234
+   }
+  },
+  {
+   "fixture": "guest",
+   "route": {
+    "screen": "notifications"
+   },
+   "name": "notification-count-guest",
+   "expect": {
+    "notification_unseen": -1,
+    "unasked": [
+     "library:notification-count"
+    ]
+   }
+  },
+  {
+   "name": "notification-count-refreshes-without-reloading-video-list",
+   "fixture": "d-signed-in",
+   "route": {
+    "screen": "notifications"
+   },
+   "steps": [
+    {
+     "wait": 61
+    }
+   ],
+   "expect": {
+    "notification_unseen": 13,
+    "asked_times": {
+     "library:notification-count": 3,
+     "library:notifications": 2
+    }
+   }
+  }
+ ]
+}

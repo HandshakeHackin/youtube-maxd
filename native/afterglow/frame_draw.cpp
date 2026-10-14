@@ -245,18 +245,6 @@ void Frame::draw_rail(G &g, float arrive)
         g.l.pop_opacity();
     }
     const model::Profile profile = data_.profile();
-    // Notifications are an account's: for one, the bell counts the rows the provider marks unread
-    // (fact `unread`). The list is the one the Notifications screen shows, asked once and kept.
-    int unread = 0;
-    if (profile.signed_in)
-    {
-        const Page &notifications = data_.catalog("library:notifications");
-        if (notifications.load == model::Load::ready)
-        {
-            for (const model::Row &row : notifications.rows)
-                unread += row.has("unread") ? 1 : 0;
-        }
-    }
     for (int i = 0; i < count; ++i)
     {
         const Destination &item = destinations_[static_cast<std::size_t>(i)];
@@ -274,11 +262,11 @@ void Frame::draw_rail(G &g, float arrive)
             avatar(g, 60.0f, item.y, 24.0f, name, profile.id, Picture{});
         else
             icon(g, item.icon, 60.0f, item.y, 30.0f, ink);
-        if (item.screen == ScreenId::notifications && unread > 0)
+        if (item.screen == ScreenId::notifications && notification_unseen_ > 0)
         {
             // What is new since the last look, as the boards have it: a count on the bell.
             char count[8];
-            std::snprintf(count, sizeof count, unread > 9 ? "9+" : "%d", unread);
+            std::snprintf(count, sizeof count, notification_unseen_ > 9 ? "9+" : "%d", notification_unseen_);
             g.l.circle(77.0f, item.y - 15.0f, 12.0f, k.accent);
             text(g, g.f.semibold, count, 77.0f, item.y - 9.5f, 15.0f, k.on_accent, gfx::Align::center);
         }
@@ -474,6 +462,7 @@ std::string Frame::snapshot_json() const
     out += "],";
     json_number(out, "moving", change_.running ? 1 : 0);
     json_number(out, "rail_open", rail_open_ ? 1 : 0);
+    json_number(out, "notification_unseen", notification_unseen_);
     json_number(out, "attract", attract_ ? 1 : 0);
     json_number(out, "dialog", dialog_.is_open() ? 1 : 0);
     json_number(out, "sheet", sheet_.open() ? 1 : 0);

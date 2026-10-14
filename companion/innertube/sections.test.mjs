@@ -98,6 +98,9 @@ test('pinned notification menu yields video rows, read state and its own continu
   assert.ok(page.has_more);assert.ok(!JSON.stringify(page).includes('private'));
   const next=await library.execute({action:'continue',cursor:page.cursor,profile:'signed'});
   assert.deepEqual(next.items.map(item=>item.id),[pad(3)]);assert.ok(!next.has_more);assert.equal(calls.length,1);
+  const unknown=new YT.NotificationsMenu(actions,{data:menu([notice(4,undefined)])});
+  const unknownPage=await new Library(async()=>({getNotifications:async()=>unknown}),profiles).execute({action:'notifications',profile:'signed'});
+  assert.equal(Object.hasOwn(unknownPage.items[0],'unread'),false);
   const broken=new Library(async()=>({getNotifications:async()=>({})}),profiles);
   await assert.rejects(broken.execute({action:'notifications',profile:'signed'}),{code:'upstream_format'});
 });
@@ -123,4 +126,27 @@ test('description returns the complete bounded text with pinned player metadata'
   const bare=new Library(async()=>({getBasicInfo:async()=>({basic_info:{id,view_count:NaN}})}));
   assert.deepEqual(await bare.execute({action:'description',id}),{api_version:1,kind:'description',id,title:'',channel:'',
     channel_id:'',published:'',views:'',like_count:'',description:'',truncated:false});
+});
+
+test('notification bell uses the account endpoint, not a partial video list',async()=>{
+  const calls=[];
+  const library=new Library(async profile=>({actions:{execute:async(path,args)=>{
+    calls.push([profile.id,path,args]);return response({actions:[{updateNotificationsUnseenCountAction:{unseenCount:'13'}}]});
+  }}}),profiles);
+  await assert.rejects(library.execute({action:'notification_count'}),{code:'account_required'});
+  assert.equal(calls.length,0);
+  assert.deepEqual(await library.execute({action:'notification_count',profile:'signed'}),
+    {api_version:1,kind:'notification_count',unseen_count:13});
+  assert.deepEqual(await library.execute({action:'notification_count',profile:'other'}),
+    {api_version:1,kind:'notification_count',unseen_count:13});
+  assert.deepEqual(calls.map(call=>call.slice(0,2)),[['signed','/notification/get_unseen_count'],['other','/notification/get_unseen_count']]);
+  let document={unseenCount:0};
+  const strict=new Library(async()=>({actions:{execute:async()=>response(document)}}),profiles);
+  assert.equal((await strict.execute({action:'notification_count',profile:'signed'})).unseen_count,0);
+  for(document of [{},{unseenCount:-1},{unseenCount:1.5},{unseenCount:true},{unseenCount:'02'},
+    {unseenCount:2147483648},{unseenCount:9,actions:[{updateNotificationsUnseenCountAction:{unseenCount:8}}]},
+    {error:{code:401},unseenCount:0}])
+    await assert.rejects(strict.execute({action:'notification_count',profile:'signed'}),{code:'upstream_format'});
+  const failed=new Library(async()=>({actions:{execute:async()=>({success:false,status_code:500,data:{unseenCount:0}})}}),profiles);
+  await assert.rejects(failed.execute({action:'notification_count',profile:'signed'}),{code:'upstream_format'});
 });

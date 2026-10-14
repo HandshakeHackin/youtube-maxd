@@ -1,12 +1,12 @@
 {
- "about": "Notifications: who, what happened and when, the video it is about, a dot while unread; opening a row marks it read.",
+ "about": "Notifications: who, what happened and when, the video it is about, the upstream unread dot is preserved when playing or opening a channel.",
  "boards": [
   {
    "name": "notifications-list",
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "down"}, {"wait": 0.6}],
-   "expect": {"screen": "notifications", "focus": "row/1", "rail_open": 0, "state": {"catalog": "library:notifications", "state": "ready", "items": "12", "pages": "2", "more": "0", "unread": "3", "subtitle": "3 new", "signed_in": "1"}, "asked": ["library:notifications"]}
+   "expect": {"screen": "notifications", "focus": "row/1", "rail_open": 0, "state": {"catalog": "library:notifications", "state": "ready", "items": "12", "pages": "2", "more": "0", "unread": "3", "subtitle": "", "signed_in": "1"}, "asked": ["library:notifications"]}
   },
   {
    "name": "notifications-live-row",
@@ -34,7 +34,7 @@
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "cross"}, {"wait": 0.3}],
-   "expect": {"screen": "notifications", "focus": "row/0", "played": "everygoa007", "state": {"unread": "2", "subtitle": "2 new"}}
+   "expect": {"screen": "notifications", "focus": "row/0", "played": "everygoa007", "state": {"unread": "3", "subtitle": ""}}
   },
   {
    "name": "notifications-open-channel",
@@ -48,21 +48,21 @@
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "down"}, {"press": "triangle"}, {"wait": 0.7}, {"press": "circle"}, {"wait": 0.7}],
-   "expect": {"screen": "notifications", "focus": "row/1", "moving": 0, "state": {"unread": "2", "items": "12"}}
+   "expect": {"screen": "notifications", "focus": "row/1", "moving": 0, "state": {"unread": "3", "items": "12"}}
   },
   {
-   "name": "notifications-marking-all-read",
+   "name": "notifications-square-does-not-mark-read",
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "square", "wait": 0.3}],
-   "expect": {"screen": "notifications", "focus": "row/0", "state": {"unread": "0"}}
+   "expect": {"screen": "notifications", "focus": "row/0", "state": {"unread": "3"}}
   },
   {
-   "name": "notifications-all-read",
+   "name": "notifications-square-keeps-upstream-read-flags",
    "fixture": "d-signed-in",
    "route": {"screen": "notifications"},
    "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "square"}, {"wait": 1.0}],
-   "expect": {"screen": "notifications", "focus": "row/3", "state": {"unread": "0", "subtitle": "Nothing unread"}}
+   "expect": {"screen": "notifications", "focus": "row/3", "state": {"unread": "3", "subtitle": ""}}
   },
   {
    "name": "notifications-loading",

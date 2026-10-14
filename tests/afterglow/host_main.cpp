@@ -1193,6 +1193,17 @@ int main(int argc, char **argv)
                                 fail(results, name, look_id, std::string("catalog '") + catalog->valuestring + "' was never asked for");
                         }
                     }
+                    else if (key == "asked_times")
+                    {
+                        const cJSON *catalog = nullptr;
+                        cJSON_ArrayForEach(catalog, wanted)
+                        {
+                            const auto calls = std::count(source.asked().begin(), source.asked().end(), catalog->string);
+                            if (calls != catalog->valueint)
+                                fail(results, name, look_id, std::string("catalog '") + catalog->string + "' was asked " +
+                                     std::to_string(calls) + " times, expected " + std::to_string(catalog->valueint));
+                        }
+                    }
                     else if (key == "unasked")
                     {
                         // Catalogs that must not have been asked for at all.

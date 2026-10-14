@@ -3911,8 +3911,23 @@ static void channel_watched_result(Request *r, const cJSON *result) {
     folder(&item, "account:notice", "Channel marked as watched", "Its uploads were opened for the selected profile; the new-content mark is cleared");
     request_rows(r, &item, 1);
 }
+static void notification_count_result(Request *r, const cJSON *result) {
+    const cJSON *count = cJSON_GetObjectItemCaseSensitive(result, "unseen_count");
+    if (r->intent != g_playlist_scope || strcmp(r->profile, g_library_profile) ||
+        num(result, "api_version") != 1 || strcmp(str(result, "kind"), "notification_count") ||
+        !cJSON_IsNumber(count) || !isfinite(count->valuedouble) || count->valuedouble < 0 ||
+        count->valuedouble > 2147483647 || floor(count->valuedouble) != count->valuedouble) {
+        complete(r, 0); return;
+    }
+    evo_provider_item_t item; char value[16];
+    folder(&item, "library:notification-count", "Notifications", "");
+    snprintf(value, sizeof value, "%d", (int)count->valuedouble);
+    tube_row_fact(item.id, "unseen_count", value);
+    request_rows(r, &item, 1);
+}
 static void facts_result(Request *r, const cJSON *result) {
-    if (!strncmp(r->parent, "details:", 8)) details_result(r, result);
+    if (!strcmp(r->parent, "library:notification-count")) notification_count_result(r, result);
+    else if (!strncmp(r->parent, "details:", 8)) details_result(r, result);
     else if (!strncmp(r->parent, "reminder:", 9)) reminder_result(r, result);
     else if (!strncmp(r->parent, "playlist-order:", 15)) playlist_order_result(r, result);
     else if (!strncmp(r->parent, "search-first:", 13)) search_first_result(r, result);
@@ -4346,6 +4361,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
                 !strcmp(items[i].playback_playlist,items[n].playback_playlist) &&
                 items[i].playback_index == items[n].playback_index) duplicate = 1;
         if (duplicate) continue;
+        if (notifications) tube_row_fact(items[n].id, "unread", boolean(o, "unread") ? "1" : "0");
         if (r->kind == 7) {
             if (strncmp(items[n].id, "library:playlist:", 17)) continue;
             const char *video = strrchr(r->parent, ':');
@@ -6521,6 +6537,16 @@ static int suggestion_row(const char *value) {
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if (parent && !strcmp(parent, "library:notification-count")) {
+        if (page || !strcmp(g_library_profile, "guest")) { cb(0, NULL, 0, 0, ud); return 0; }
+        Request *r = request_new(17, ud); if (!r) return -1;
+        r->items_cb = cb; r->intent = g_playlist_scope;
+        copy(r->parent, sizeof r->parent, parent); copy(r->profile, sizeof r->profile, g_library_profile);
+        cJSON *operation = cJSON_CreateObject();
+        cJSON_AddStringToObject(operation, "action", "notification_count");
+        cJSON_AddStringToObject(operation, "profile", g_library_profile);
+        return library_job(r, operation);
+    }
     if (parent && !strcmp(parent, "settings:service-retry")) {   /* then the main menu again, with or without the row */
         if (g_embedded && !tube_embedded_start()) {
             char message[240];

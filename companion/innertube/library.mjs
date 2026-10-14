@@ -20,7 +20,7 @@ import { CommentPosts, commentHeader, commentState } from './comment_posts.mjs';
 import { threadReplies } from './comment_replies.mjs';
 import { channelMarks } from './channel_marks.mjs';
 import { accepted } from './intents.mjs';
-import { channelsFeed, notificationsFeed } from './account_sections.mjs';
+import { channelsFeed, notificationsFeed, notificationCount } from './account_sections.mjs';
 import { FeedbackActions } from './feedback_actions.mjs';
 import { requestLocale } from './locale.mjs';
 import { hideSet, hideSection, hides, isShort, shortsCard } from './content_filters.mjs';
@@ -377,7 +377,7 @@ export class Library {
     const privateActions = new Set(['subscriptions', 'history', 'library', 'playlists', 'watch_later',
       'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe', 'playlist_create', 'playlist_add',
       'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'comment_rate', 'history_remove', 'mark_watched',
-      'channels', 'notifications', 'feedback', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear',
+      'channels', 'notifications', 'notification_count', 'feedback', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear',
       'subscribe_notifications', 'playlist_order', 'comment_post', 'comment_reply']);
     // Reading a reminder is public; changing it belongs to an account.
     if (input.action === 'stream_reminder' && input.reminder !== 'status') privateActions.add('stream_reminder');
@@ -406,6 +406,7 @@ export class Library {
     const filters = input.action === 'search' ? searchFilters(input, LibraryError) : null;
     if (input.action === 'search_suggestions') searchQuery(input.query ?? '', LibraryError, true);
     const client = await this.client(owner, where);
+    if (input.action === 'notification_count') return notificationCount(client,LibraryError);
     if (input.action === 'feedback') return this.feedback.submit(owner, client, input);
     if (['playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear'].includes(input.action))
       return this.account.run(owner, client, input);

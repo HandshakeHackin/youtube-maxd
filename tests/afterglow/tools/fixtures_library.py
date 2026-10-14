@@ -399,6 +399,10 @@ for entry in NOTICES[:5]:
         row.pop(dropped, None)
     plain.append(row)
 write(T, "library:notifications", plain)
+for fixture, count in ((S, 13), (E, 0), (L, 1234), (T, 9)):
+    write(fixture, "library:notification-count", [{"id": "library:notification-count", "title": "Notifications", "is_folder": True, "unseen_count": str(count)}])
+write_error(O, "library:notification-count", "The YouTube service cannot be reached.", offline=True)
+write(F, "library:notification-count", [{"id": "library:notification-count", "is_folder": True, "unseen_count": "unknown"}])
 print("fixtures written")
 for i in (HISTORY[0], HISTORY[1], HISTORY[2], WATCH_LATER[0], LIKED[0], QUEUE[0], FAVORITES[0], FAVORITES[1], PLAYLIST[0], 7, 22, 4, 1):
     print(i, video_id(i), VIDEOS[i][0][:40])

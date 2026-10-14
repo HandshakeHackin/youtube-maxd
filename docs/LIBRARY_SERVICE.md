@@ -1027,12 +1027,39 @@ raw guide response instead.
 Account action, no fields besides `profile`. Returns a catalog page of video
 rows (`kind: "video"`), one per notification that opens a video: `id` is the
 video ID, `title` the notification message, `subtitle` the sent-time text,
-`art_url` the video thumbnail, and `unread` a boolean. Other notification types
+`art_url` the video thumbnail, and `unread` a boolean when YouTube provided its
+read state. Other notification types
 are omitted. Rows carry the usual retained-group `playback_context`; a video
 named by two notifications appears twice. Continue with `continue`.
 Notification identifiers, menus and click-tracking endpoints stay private. An
 unsupported menu fails with `upstream_format` (502). Hiding a notification is
 not implemented (the pinned menu exposes no feedback token).
+
+### `notification_count`
+
+An account-only read of YouTube's `notification/get_unseen_count`, independent
+of the filtered, paged notification video list:
+
+```json
+{"action":"notification_count","profile":"<configured account>"}
+```
+
+The response is `{"api_version":1,"kind":"notification_count","unseen_count":13}`.
+The service validates the endpoint's direct `unseenCount` or its
+`updateNotificationsUnseenCountAction`; missing, malformed, conflicting and
+failed responses are errors, never an invented zero. The count includes
+notifications that the video-only list cannot display. It is an unseen count,
+which is separate from each notification's read flag.
+
+Afterglow reads `library:notification-count` (its first row has `unseen_count`),
+refreshes every 60 seconds and after loading the notification menu, and shows
+no badge while the count is unknown. The query leaves the browsing list's
+pagination cursor and playback requests alone. Guest makes no count request.
+
+Read dots use only YouTube's boolean `read` field; an absent field does not
+invent an unread notification. ProsperoTube does not currently call a remote
+mark-read or mark-all endpoint. Opening a video/channel preserves the returned
+read state, and the former local-only "Mark all as read" action is removed.
 
 ### Recommendation feedback
 

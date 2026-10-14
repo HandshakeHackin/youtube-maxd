@@ -391,6 +391,7 @@ adds a line to this table in the same change that uses it:
 | `channel:<id>` and `channel-tab:<id>:<section>` | first row `channel:<id>` | `handle`, `subscribers`, `banner_url`, `subscribed`, `tabs` (comma separated), `tab`, `sorts`, `sort`, `videos` (the count as YouTube words it), `notify` (`all`, `personalized`, `none`), `search` (`0`: no search in this channel) |
 | `details:<video>` | first row | `views`, `published`, `likes`, `dislikes`, `channel`, `channel_id`, `channel_art_url`, `subscribers`, `subscribed`, `rating` (`like`, `dislike`, ""), `saved`, `chapters` (count), `duration`, `resume` (seconds), `segments`, `captions`, `fps`, `quality`, `live`, `upcoming` |
 | `discussion:top:<video>`, `discussion:newest:<video>`, `discussion:replies:<cursor>` | a comment | `author`, `published`, `likes`, `replies`, `pinned`, `owner`, `member`, `hearted`, `liked`, `disliked`, `author_art_url` |
+| `library:notification-count` | first row | `unseen_count`: validated account-wide unseen total, independent of the video list |
 | `library:notifications` | a notification | `published`, `channel`, `channel_art_url`, `unread`; the row's `channel_id` |
 | `library:playlist:<id>`, `playlist:<id>` | the first row when it is the list itself | `count`, `owner`, `updated` |
 | `settings` and everything under it | a preference | the contract is `requests/e.md`, section 6 (`kind`, `label`, `value`, `on`, `selected`, `index`, `count`, ...) |
@@ -1000,10 +1001,13 @@ lists.
 
 Validation: all 611 host boards pass in the four looks (26,960 checks);
 the Settings text board also checks the text before saving. Real account and
-phone actions still need owner acceptance on hardware. Notifications still
-remember read state only while their page lives: the provider does not yet
-expose the mark-read action. The remaining large screen-file splits and the
-package/console integration checks are separate work.
+phone actions still need owner acceptance on hardware. The bell reads the
+account-wide unseen count from `library:notification-count`,
+refreshes every 60 seconds and after opening its menu, and hides unknown counts.
+Notification rows preserve upstream read flags; opening them does not simulate
+a remote read. The former local-only mark-all action is removed until a
+confirmed upstream action is available. The remaining large screen-file splits
+and the package/console integration checks are separate work.
 
 **Every numbered request.** "done" names the piece above; "bridge" is the list
 of what the provider and the service have to produce (package G: section 5.5

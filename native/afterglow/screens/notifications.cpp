@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The provider's catalog "library:notifications" as a list: who, what happened
-// and when, the video it is about, and a dot while it is unread. Cross plays the
-// video, Triangle opens the channel, Square marks everything as read; opening a
-// row marks it read. Notifications belong to a YouTube account: a profile
+// and when, the video it is about, and a dot while YouTube reports it unread. Cross plays the
+// video and Triangle opens the channel. Notifications belong to a YouTube account: a profile
 // without one is invited to sign in.
 
 #include "afterglow/screen.hpp"
@@ -99,13 +98,14 @@ class Notifications final : public Screen
     void enter(const Route &route, UpdateContext &context, bool restored) override
     {
         data_ = &context.services.data;
+        count_refreshed_ = false;
         if (restored)
             return; // back from the channel or the video: the row in focus and the scroll stay
         route_ = route;
         age_ = 0.0f;
         feed_.start(kCatalog);
         rows_.clear();
-        read_.clear();
+
         notice_.clear();
         focus_ = 0;
         first_row_ = 0;
@@ -125,17 +125,23 @@ class Notifications final : public Screen
         data_ = &data;
         age_ += dt;
         nudge_.update(dt, 10.0f);
-        swept_.update(dt, 5.0f);
         const model::Profile browsing = data.profile();
         if (browsing.id != profile_.id || browsing.signed_in != profile_.signed_in)
         {
             rows_.clear(); // another profile is browsing: nothing of the one before stays while its list loads
-            read_.clear();
+
             feed_.restart();
         }
         profile_ = browsing;
         if (profile_.signed_in && feed_.read(data))
+        {
             rebuild();
+            if (!count_refreshed_ && feed_.load == model::Load::ready)
+            {
+                data.forget("library:notification-count");
+                count_refreshed_ = true;
+            }
+        }
 
         const State state = state_now();
         if (state != shown_state_)
@@ -335,7 +341,7 @@ class Notifications final : public Screen
 
     bool is_unread(const Notice &row) const
     {
-        return row.unread && std::find(read_.begin(), read_.end(), row.key) == read_.end();
+        return row.unread;
     }
 
     int unread() const
@@ -426,13 +432,6 @@ class Notifications final : public Screen
         }
     }
 
-    // shortcut: read state lasts for this page; use the provider when it exposes a mark-read action.
-    void mark_read(const Notice &row)
-    {
-        if (is_unread(row))
-            read_.push_back(row.key);
-    }
-
     void act(const InputFrame &input, UpdateContext &context, State state)
     {
         if (pressed(input, Action::back))
@@ -479,7 +478,7 @@ class Notifications final : public Screen
             const Notice &row = rows_[static_cast<std::size_t>(focus_)];
             if (pressed(input, Action::confirm))
             {
-                mark_read(row);
+
                 if (context.services.data.play(row.video))
                 {
                     context.feedback.play(audio::Cue::launch);
@@ -499,26 +498,8 @@ class Notifications final : public Screen
                 }
                 else
                 {
-                    mark_read(row);
+
                     context.nav.push(Route{ScreenId::channel, row.channel_id, row.channel}, Move::push);
-                }
-            }
-            else if (pressed(input, Action::west))
-            {
-                if (unread() == 0)
-                {
-                    context.feedback.play(audio::Cue::select, 1.0f, 0.0f, 0.6f);
-                    context.nav.toast(tr("Nothing is unread"), ToastKind::info);
-                }
-                else
-                {
-                    for (const Notice &each : rows_)
-                        mark_read(each);
-                    if (!context.reduced_motion)
-                        swept_.trigger(); // the dots leave together
-                    context.feedback.play(audio::Cue::toggle, 0.94f);
-                    context.feedback.rumble(0.3f, 0.06f);
-                    context.nav.toast(tr("All notifications marked as read"), ToastKind::success);
                 }
             }
             return;
@@ -580,7 +561,6 @@ class Notifications final : public Screen
         case State::ready:
             add(ui::Button::cross, tr("Play"));
             add(ui::Button::triangle, tr("Open channel"));
-            add(ui::Button::square, tr("Mark all as read"));
             return;
         case State::empty:
         case State::notice:
@@ -604,14 +584,8 @@ class Notifications final : public Screen
 
     // ---- words ---------------------------------------------------------------------------
 
-    // The line under the title: how many are unread.
-    std::string subtitle(State state) const
-    {
-        if (state != State::ready)
-            return {};
-        const int count = unread();
-        return count == 0 ? std::string(tr("Nothing unread")) : count == 1 ? std::string(tr("1 new")) : fill(tr("{0} new"), std::to_string(count));
-    }
+    // A filtered, paged list cannot provide the account's unread total.
+    std::string subtitle(State) const { return {}; }
 
     Message message_of(State state) const
     {
@@ -705,7 +679,7 @@ class Notifications final : public Screen
             Enter enter(g, tween::stagger(age_, 1 + i - first_row_, 0.05f, 0.45f) * row_alpha, 22.0f);
             // Unread is a dot beside the row, never the colour of its text alone; marking all as read lets the dots go together.
             const bool fresh = is_unread(row);
-            const float dot = fresh ? 1.0f : row.unread ? tween::clamp01(swept_.value) : 0.0f;
+            const float dot = fresh ? 1.0f : 0.0f;
             if (dot > 0.01f)
                 g.l.circle(r.x + 30.0f, r.cy(), 6.0f * dot, g.k.accent.with_alpha(dot));
             avatar(g, r.x + 86.0f, r.cy(), 32.0f, row.channel.empty() ? row.title : row.channel, row.channel_id.empty() ? row.channel : row.channel_id,
@@ -792,7 +766,7 @@ class Notifications final : public Screen
     Data *data_ = nullptr; // the frame's, which outlives every screen
     Feed feed_;
     std::vector<Notice> rows_;
-    std::vector<std::string> read_; // notifications read on this page (see mark_read)
+    bool count_refreshed_ = false;
     std::string notice_;            // the provider's words, when it answered with a notice
     int focus_ = 0;
     int first_row_ = 0;
@@ -801,7 +775,6 @@ class Notifications final : public Screen
     ui::SpringRect ring_; // the plate, where the list is at rest
     bool ring_snap_ = true;
     ui::Pulse nudge_;
-    ui::Pulse swept_; // the unread dots leaving after "Mark all as read"
     float nudge_x_ = 0.0f;
     float nudge_y_ = 0.0f;
     float age_ = 0.0f;

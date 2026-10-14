@@ -554,6 +554,56 @@ int main()
         assert(source.pending() == 0);
     }
     {
+        ProviderSource source;
+        Data data(source);
+        unsigned select = data.act("library:profile:bell-test");
+        for (int i = 0; i < 4; ++i) data.pump();
+        assert(data.action(select).load == model::Load::ready && source.profile().id == "bell-test");
+        const char *good = "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"notification_count\",\"unseen_count\":13}}";
+        const auto count_page = [&](const char *reply) -> const Page & {
+            data.forget("library:notification-count");
+            const Page *page = &data.catalog("library:notification-count");
+            for (int i = 0; i < 12 && page->load == model::Load::loading; ++i) { data.pump(); serve(reply); }
+            return *page;
+        };
+        const Page &count = count_page(good);
+        assert(count.load == model::Load::ready && count.rows.size() == 1 && count.rows[0].fact("unseen_count") == "13");
+        assert(g_jobs.back().find("\"action\":\"notification_count\"") != std::string::npos &&
+               g_jobs.back().find("\"profile\":\"bell-test\"") != std::string::npos);
+        for (const char *value : {"-1", "0.5", "2147483648", "null", "\"3\""}) {
+            const std::string malformed = std::string("{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"notification_count\",\"unseen_count\":") + value + "}}";
+            assert(count_page(malformed.c_str()).load == model::Load::failed);
+        }
+        const char *notices = "{\"state\":\"done\",\"result\":{\"api_version\":1,\"items\":["
+            "{\"id\":\"notified001\",\"title\":\"First notification\",\"unread\":true},"
+            "{\"id\":\"notified002\",\"title\":\"Second notification\",\"unread\":false}],"
+            "\"has_more\":true,\"cursor\":\"11111111-1111-4111-8111-111111111111\"}}";
+        const Page *list = &data.catalog("library:notifications");
+        for (int i = 0; i < 12 && list->load == model::Load::loading; ++i) { data.pump(); serve(notices); }
+        assert(list->load == model::Load::ready && list->rows.size() == 2 && list->more);
+        assert(list->rows[0].has("unread") && !list->rows[1].has("unread"));
+        assert(count_page(good).load == model::Load::ready);
+        // The background bell query leaves the notification continuation owner/cursor alone.
+        const Page *next = &data.catalog("library:notifications", 1);
+        for (int i = 0; i < 12 && next->load == model::Load::loading; ++i) { data.pump(); serve(notices); }
+        assert(next->load == model::Load::ready && g_jobs.back().find("\"action\":\"continue\"") != std::string::npos &&
+               g_jobs.back().find("11111111-1111-4111-8111-111111111111") != std::string::npos);
+        const std::size_t jobs = g_jobs.size();
+        const Page *extra = &data.catalog("library:notification-count", 1);
+        for (int i = 0; i < 4; ++i) data.pump();
+        assert(extra->load == model::Load::failed && g_jobs.size() == jobs);
+        data.forget("library:notification-count");
+        data.catalog("library:notification-count");
+        for (int i = 0; i < 12 && g_jobs.size() == jobs; ++i) { data.pump(); serve(""); }
+        assert(g_jobs.size() == jobs + 1);
+        // A profile change outside the frame cancels an outstanding account-owned count.
+        p->list_catalog("library:profile:guest", 0,
+            [](int ok, const evo_provider_item_t *, int, int, void *) { assert(ok); }, nullptr);
+        data.pump(); serve(good);
+        assert(source.profile().guest);
+        assert(count_page(good).load == model::Load::failed && g_jobs.size() == jobs + 1);
+    }
+    {
         // A chosen video until the player has the screen (app/play_start.hpp), from what the provider
         // screen tells: pending or not, whether Circle can still call it back, and its status line.
         using Start = Source::Start;

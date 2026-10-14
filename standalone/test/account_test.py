@@ -214,6 +214,7 @@ def fixtures(extra_index=None, files=None):
                 "contents": {"tvBrowseRenderer": {"content": {"tvSurfaceContentRenderer": {"content": {"gridRenderer": {
                     "items": [tile("uploaded001", "My upload")]}}}}}}})},
             *index["POST www.youtube.com/youtubei/v1/browse"]],
+        "POST www.youtube.com/youtubei/v1/notification/get_unseen_count": {"header_contains": signed, "file": write("a_notification_count.json", {"unseenCount": 13})},
         "POST www.youtube.com/youtubei/v1/notification/get_notification_menu": {"header_contains": signed, "file": write("a_notifications.json", notifications())},
         "POST www.youtube.com/youtubei/v1/player": [
             {"header_contains": signed, "body_contains": f'"videoId":"{VIDEO}"', "tag": "account player", "file": write("a_player.json", tracked(VIDEO))},
@@ -536,13 +537,16 @@ def lists_and_changes(binary):
         same("liked videos", ids(s.library(action="playlist", id="LL", profile=one)[1]), ["listed00000", "listed00001"])
         status, page = s.library(action="playlists", profile=one)
         same("playlists", (status, [(row["id"], row["title"], row["is_folder"]) for row in page["items"]]), (200, [(f"library:playlist:{MINE}", "My playlist", True)]))
+        same("notification count is the account total", s.library(action="notification_count", profile=one),
+             (200, {"api_version": 1, "kind": "notification_count", "unseen_count": 13}))
+        same("notification count needs an account", s.library(action="notification_count")[1]["error"]["code"], "account_required")
         status, page = s.library(action="notifications", profile=one)
         same("notifications", (status, [(row["id"], row["unread"]) for row in page["items"]]), (200, [("notified001", True), ("notified002", False)]))
         status, page = s.library(action="topics", section="my_videos", profile=one)
         same("my videos", (status, [(row["id"], row["title"]) for row in page["items"]]), (200, [("uploaded001", "My upload")]))
         log = s.upstream()
         same("every account list was asked once, with the account's token", [(r["tag"] or r["key"].split("/")[-1], r["bearer"]) for r in log],
-             [(name, True) for name in ("home", "subscriptions", "channels", "history", "watch_later", "liked", "playlists", "get_notification_menu", "my_videos")])
+             [(name, True) for name in ("home", "subscriptions", "channels", "history", "watch_later", "liked", "playlists", "get_unseen_count", "get_notification_menu", "my_videos")])
         same("my videos need an account", s.library(action="topics", section="my_videos")[1]["error"]["code"], "account_required")
         # Public pages of an account profile are read without it; a playlist with it.
         same("search job in an account profile", (s.job({"action": "search", "query": "canned", "profile": one})[0], [r["bearer"] for r in s.upstream()][-1:]), (200, [False]))

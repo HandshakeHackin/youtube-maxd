@@ -5,6 +5,7 @@
 #include "afterglow/frame.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 
@@ -533,6 +534,34 @@ void Frame::update(const InputFrame &input, float dt)
     stats_.worst_frame_ms = *std::max_element(frame_times_.begin(), frame_times_.end());
 
     data_.pump();
+    const model::Profile &notification_profile = data_.profile();
+    const std::string notification_owner = notification_profile.signed_in ? notification_profile.id : std::string();
+    if (notification_owner != notification_profile_)
+    {
+        notification_profile_ = notification_owner;
+        notification_unseen_ = -1;
+        notification_age_ = 60.0f;
+        data_.forget("library:notification-count");
+    }
+    if (!notification_owner.empty())
+    {
+        notification_age_ += dt;
+        if (notification_age_ >= 60.0f)
+        {
+            data_.forget("library:notification-count");
+            notification_age_ = 0.0f;
+        }
+        const Page &count = data_.catalog("library:notification-count");
+        notification_unseen_ = -1;
+        if (count.load == model::Load::ready && count.rows.size() == 1)
+        {
+            const std::string &value = count.rows[0].fact("unseen_count");
+            int total = -1;
+            const auto parsed = std::from_chars(value.data(), value.data() + value.size(), total);
+            if (parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size() && total >= 0)
+                notification_unseen_ = total;
+        }
+    }
     images_.pump(dt);
     change_.update(dt);
     if (!change_.running)
