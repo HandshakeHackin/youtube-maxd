@@ -65,10 +65,15 @@ README's **Roadmap**). The two recommended first:
    passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). Opus on the console,
    4K performance and HDR selection/output remain to validate or implement.
    The combined candidate 93b2e0c7 passed native VP9 1080p again, then faulted
-   on the GPU after the first valid 4K frame of a second video. Its teardown
-   restored state and left the console idle. Do not treat it as 4K acceptance.
-   Compare frame ownership and surface validation with the local hardware
-   decoding research before another hardware case.
+   on the GPU after the first valid 4K frame of a second video. Local hardware
+   decoding research exposed a frame-pool reuse race; explicit leases now hold
+   native surfaces through GPU retirement, with generated ownership and package
+   checks passing. The 8c8d7b15 retest passed 1080p and reached a valid
+   2880x2160 VP9 surface, then faulted before the first picture reached the
+   presenter. Its fault address is outside the new frame pool and near the
+   prior 1080p decoder allocation. Both cases restored state and left the
+   console idle. Decoder resource teardown order is the current investigation;
+   neither case establishes 2160p playback.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
@@ -81,10 +86,10 @@ README's **Roadmap**). The two recommended first:
    video quad and Player layout, with generated geometry and lifecycle checks;
    console calibration remains pending.
 
-Then: the Afterglow translations (all 21 catalogs are complete; remaining
-integer-count labels are in progress;
+Then: the Afterglow translations (all 21 catalogs and integer-count forms are
+complete; native-speaker and console review remain;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), live DVR,
-keep-playing-while-browsing, the interface's
+keep-playing-while-browsing (implemented and host-tested, console pending), the interface's
 own sound assets (`docs/afterglow/sound-design.md`), and the smaller items
 of the roadmap. The Live now shelf is implemented for Guest and account Home,
 loaded when reached and filtered to live videos. Provider checks and 62 Home
@@ -98,6 +103,11 @@ console acceptance remains pending.
 The interface now packages 34 original procedural WAVs covering all 28 cues,
 with reproducible source and provenance. Format, level, mixer and packaging
 checks pass. Human listening and console acceptance remain pending.
+The Afterglow controller map, verified Keep watching stop default, and Library
+queue Move up/down actions have generated input, native persistence and four-look
+board coverage. All still need console acceptance. Live DVR has calibrated
+window/owner/segment identity and controller work under host validation; its
+production SDK extension and console acceptance are still pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
@@ -120,7 +130,7 @@ checks pass. Human listening and console acceptance remain pending.
   overrides. Offline driver tests pass; the original stash is retained as
   a backup. The revised sound step was reached after the 4K stall and could
   establish no sound result. A regression now requires frame progress before
-  enabling sound; all 128 driver tests pass.
+  enabling sound; all 132 driver tests pass.
 - The six Afterglow screen packages now reuse the existing shared pieces
   (ARCHITECTURE.md section 12d). The migration passes 611 boards in four looks
   and targeted checks of the final cleanup. Typed Settings/comment/reply
