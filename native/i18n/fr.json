@@ -192,8 +192,10 @@
   "Captions on or off / suggestions": "Sous-titres activés ou non / suggestions",
   "Captions turned on or off while watching apply to that channel's next videos": "Les sous-titres activés ou désactivés pendant la lecture s'appliquent aux prochaines vidéos de cette chaîne",
   "Captions {0}": "Sous-titres {0}",
-  "Captions: {0} language": "Sous-titres : {0} langue",
-  "Captions: {0} languages": "Sous-titres : {0} langues",
+  "Captions: {0} languages": {
+   "one": "Sous-titres : {0} langue",
+   "other": "Sous-titres : {0} langues"
+  },
   "Card title lines": "Lignes du titre des cartes",
   "Carousel (fast)": "Carrousel (rapide)",
   "Carousel (slow)": "Carrousel (lent)",
@@ -2050,8 +2052,10 @@
    "one": "{0} chaîne marquée comme vue",
    "other": "{0} chaînes marquées comme vues"
   },
-  "{0} chapter": "{0} chapitre",
-  "{0} chapters": "{0} chapitres",
+  "{0} chapters": {
+   "one": "{0} chapitre",
+   "other": "{0} chapitres"
+  },
   "{0} further settings": "{0} autres paramètres",
   "{0} has nothing in this section.": "{0} n'a rien dans cette section.",
   "{0} is back at its defaults": "{0} a retrouvé ses paramètres par défaut",
@@ -2066,14 +2070,18 @@
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} sur {1} Mo ; l'annulation laisse l'application installée intacte",
   "{0} on this video": "{0} sur cette vidéo",
   "{0} playlists": "{0} playlists",
-  "{0} replies": "{0} réponses",
-  "{0} reply": "{0} réponse",
+  "{0} replies": {
+   "one": "{0} réponse",
+   "other": "{0} réponses"
+  },
   "{0} seconds": {
    "one": "{0} seconde",
    "other": "{0} secondes"
   },
-  "{0} segment skipped": "{0} segment passé",
-  "{0} segments skipped": "{0} segments passés",
+  "{0} segments skipped": {
+   "one": "{0} segment passé",
+   "other": "{0} segments passés"
+  },
   "{0} subscriptions": "{0} abonnements",
   "{0} videos": "{0} vidéos",
   "{0} videos, resume points kept": "{0} vidéos, positions de reprise conservées",

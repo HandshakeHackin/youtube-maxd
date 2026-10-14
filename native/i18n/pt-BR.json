@@ -192,8 +192,10 @@
   "Captions on or off / suggestions": "Ativar ou desativar legendas / sugestões",
   "Captions turned on or off while watching apply to that channel's next videos": "Legendas ativadas ou desativadas durante a exibição valem para os próximos vídeos desse canal",
   "Captions {0}": "Legendas {0}",
-  "Captions: {0} language": "Legendas: {0} idioma",
-  "Captions: {0} languages": "Legendas: {0} idiomas",
+  "Captions: {0} languages": {
+   "one": "Legendas: {0} idioma",
+   "other": "Legendas: {0} idiomas"
+  },
   "Card title lines": "Linhas do título do cartão",
   "Carousel (fast)": "Carrossel (rápido)",
   "Carousel (slow)": "Carrossel (lento)",
@@ -2050,8 +2052,10 @@
    "one": "{0} canal marcado como assistido",
    "other": "{0} canais marcados como assistidos"
   },
-  "{0} chapter": "{0} capítulo",
-  "{0} chapters": "{0} capítulos",
+  "{0} chapters": {
+   "one": "{0} capítulo",
+   "other": "{0} capítulos"
+  },
   "{0} further settings": "{0} configurações a mais",
   "{0} has nothing in this section.": "{0} não tem nada nesta seção.",
   "{0} is back at its defaults": "{0} voltou aos padrões",
@@ -2066,14 +2070,18 @@
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} de {1} MB; cancelar não altera o aplicativo instalado",
   "{0} on this video": "{0} neste vídeo",
   "{0} playlists": "{0} playlists",
-  "{0} replies": "{0} respostas",
-  "{0} reply": "{0} resposta",
+  "{0} replies": {
+   "one": "{0} resposta",
+   "other": "{0} respostas"
+  },
   "{0} seconds": {
    "one": "{0} segundo",
    "other": "{0} segundos"
   },
-  "{0} segment skipped": "{0} segmento pulado",
-  "{0} segments skipped": "{0} segmentos pulados",
+  "{0} segments skipped": {
+   "one": "{0} segmento pulado",
+   "other": "{0} segmentos pulados"
+  },
   "{0} subscriptions": "{0} inscrições",
   "{0} videos": "{0} vídeos",
   "{0} videos, resume points kept": "{0} vídeos, pontos de retomada salvos",

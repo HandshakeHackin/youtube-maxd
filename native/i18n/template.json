@@ -1148,20 +1148,13 @@
    "args": "s"
   },
   {
-   "source": "Captions: {0} language",
-   "context": [
-    "afterglow"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
    "source": "Captions: {0} languages",
    "context": [
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "Captions: {0} language"
   },
   {
    "source": "Card title lines",
@@ -12513,20 +12506,13 @@
    "one": "{0} channel marked as watched"
   },
   {
-   "source": "{0} chapter",
-   "context": [
-    "afterglow"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
    "source": "{0} chapters",
    "context": [
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} chapter"
   },
   {
    "source": "{0} further settings",
@@ -12623,15 +12609,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
-  },
-  {
-   "source": "{0} reply",
-   "context": [
-    "afterglow"
-   ],
-   "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} reply"
   },
   {
    "source": "{0} seconds",
@@ -12643,20 +12622,13 @@
    "one": "{0} second"
   },
   {
-   "source": "{0} segment skipped",
-   "context": [
-    "afterglow"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
    "source": "{0} segments skipped",
    "context": [
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} segment skipped"
   },
   {
    "source": "{0} subscriptions",
