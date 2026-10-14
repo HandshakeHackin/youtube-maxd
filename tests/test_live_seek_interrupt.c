@@ -10,7 +10,7 @@
 /* Compile the generated SIO source: the callback is otherwise private. */
 #include "evo_stream_io.c"
 
-static _Atomic int seek_pending;
+static volatile int seek_pending;
 static void *request_seek(void *unused) {
     (void)unused;
     usleep(1000000);

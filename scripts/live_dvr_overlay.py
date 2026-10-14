@@ -101,10 +101,10 @@ double PlaybackController::clampScrubTarget(double target) const {
     sio=player+'media/src/evo_stream_io.c'
     replace(sio_header,'void evo_stream_io_abort(evo_stream_io_ctx_t *ctx);', '''void evo_stream_io_abort(evo_stream_io_ctx_t *ctx);
 /* The demux owner registers its pending flag only for calibrated live DVR. */
-void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const void *pending);
+void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const volatile void *pending);
 int evo_stream_io_take_seek_interrupt(AVFormatContext *fmt);''')
     replace(sio,'    volatile int aborted;      /* evo_stream_io_abort: fail every blocking call */', '''    volatile int aborted;      /* evo_stream_io_abort: fail every blocking call */
-    const _Atomic int *seek_pending;
+    const volatile int *seek_pending;
     volatile int seek_interrupted;''')
     replace(sio,'    if (ctx && ctx->aborted)\n        return 1;', '''    if (ctx && ctx->aborted)
         return 1;
@@ -112,13 +112,13 @@ int evo_stream_io_take_seek_interrupt(AVFormatContext *fmt);''')
         __atomic_store_n(&ctx->seek_interrupted, 1, __ATOMIC_RELEASE);
         return 1;
     }''')
-    replace(sio,'void evo_stream_io_abort(evo_stream_io_ctx_t *ctx)\n{', '''void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const void *pending)
+    replace(sio,'void evo_stream_io_abort(evo_stream_io_ctx_t *ctx)\n{', '''void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const volatile void *pending)
 {
     if (!fmt || fmt->interrupt_callback.callback != sio_interrupt_cb) return;
     evo_stream_io_ctx_t *ctx = (evo_stream_io_ctx_t *)fmt->interrupt_callback.opaque;
     if (!ctx) return;
     __atomic_store_n(&ctx->seek_interrupted, 0, __ATOMIC_RELEASE);
-    ctx->seek_pending = (const _Atomic int *)pending;
+    ctx->seek_pending = (const volatile int *)pending;
 }
 
 int evo_stream_io_take_seek_interrupt(AVFormatContext *fmt)
@@ -147,6 +147,10 @@ void evo_stream_io_abort(evo_stream_io_ctx_t *ctx)
     return NULL;''')
     # The FFmpeg interrupt reads this flag off the demux thread. All accesses
     # must use the same atomic protocol, including the request and queue paths.
+    replace(demux,'static _Atomic int prospero_seek_pending = 0;',
+            'static volatile int prospero_seek_pending = 0;')
+    replace(demux,'const int busy = prospero_seek_pending || prospero_seek_in_progress;',
+            'const int busy = __atomic_load_n(&prospero_seek_pending, __ATOMIC_ACQUIRE) || prospero_seek_in_progress;')
     replace(demux,'    prospero_seek_pending = 1;',
             '    __atomic_store_n(&prospero_seek_pending, 1, __ATOMIC_RELEASE);')
     replace(demux,'    prospero_seek_pending = 0;',
