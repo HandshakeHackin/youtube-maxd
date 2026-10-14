@@ -24,7 +24,7 @@ SILENT = {
     "strcmp", "strncmp", "strcasecmp", "strncasecmp", "strstr", "strchr", "strrchr", "strpbrk", "strspn", "strcspn",
     "memcmp", "memcpy", "sscanf", "str", "num", "boolean", "fopen", "freopen", "fprintf", "printf", "puts", "fputs", "perror",
     "getenv", "remove", "rename", "evo_data_path", "evo_bt", "evo_boot_log", "evo_log", "evo_log_error", "evo_log_info",
-    "assert", "_Static_assert", "static_assert", "defined", "job_string", "job_number", "job_bool", "job_begin", "request",
+    "assert", "nwd_enter", "_Static_assert", "static_assert", "defined", "job_string", "job_number", "job_bool", "job_begin", "request",
     "evo_net_request_async", "evo_net_get_async", "evo_feedback", "FIELD", "valid_prefix", "prefix", "starts", "ends",
     "find", "rfind", "compare", "getElementById", "GetElementById", "SetClass", "SetAttribute", "GetAttribute", "SetProperty",
     "DirtyVariable", "Bind", "BindFunc", "BindEventCallback", "RegisterMember", "RegisterTransformFunc", "IsClassSet",
