@@ -1,5 +1,23 @@
 # Offline validation record — 0.1.0
 
+## Native frame ownership and combined package — 2026-10-14
+
+The generated native frame-lease regression first reproduced a pool-wrap reuse
+while the presenter still held a surface. With the fix, native decode, reorder,
+publication, GPU snapshot and successful-retirement references pass under
+ASan/UBSan, including concurrent producer/presenter activity, failed-present
+retention and bounded exhaustion. The generated native drain suite passes
+AVC/VP9 EOF, surface bounds, seek and reopen paths. Queue reorder provider
+tests pass stale-action, profile, persistence and boundary cases. Forty-seven
+Library boards pass in four looks (2,192 checks); the sound loader reads the
+original checked-in recordings. Catalog extraction reports 2,058 texts and
+113 patterns, with all 21 translations complete. The combined instrumented
+PS5 package builds with 185 verified files and the Lapy helper.
+
+The bounded 2160p console retest failed with a GPU fault outside the new frame
+pool before playback progress. This host and package evidence does not establish
+4K acceptance; see [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+
 ## Ranged WebM seeking: host checks — 2026-10-14
 
 Afterglow player continuation: the next-video offer and automatic SponsorBlock
@@ -45,7 +63,7 @@ source provenance pass. The combined application links and packages for PS5
 with its updater helper. Real signed update installation remains untested;
 shutdown/DNS and stale-sandbox limits are recorded in [Updates](UPDATES.md).
 
-The reviewed sound-last console driver passes 128 offline tests, including
+The reviewed sound-last console driver passes 132 offline tests, including
 partial override upload cleanup, restoration and simulated sound failures.
 A pre-existing frame stall keeps sound disabled until the interface is off;
 it cannot be reported as a sound-induced stall.
