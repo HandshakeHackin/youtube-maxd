@@ -26,8 +26,26 @@ static int slot_teardown(struct dec_slot *s)""")
         s->owned=1;s->ready=0;return -1;
     }
     uint32_t boot_w = s->boot_w;""")
+    replace(native,'    if (s->decoder) { sceVideodec2DeleteDecoder(s->decoder); s->decoder = NULL; }',r"""    note("EVO vdec native: retiring maps input=%p+%zu frame=%p+%zu gpu=%p+%zu cpu_gpu=%p+%zu compute=%p+%zu queue=%p",
+         s->input_mem,s->input_pool,s->frame_mem,s->frame_pool,s->gpu_mem,s->gpu_size,
+         s->cpu_gpu_mem,s->cpu_gpu_size,s->compute_mem,s->compute_size,s->compute_queue);
+    if (s->decoder) {
+        int rc=sceVideodec2DeleteDecoder(s->decoder);
+        if(rc!=0){note("EVO vdec native: DeleteDecoder failed rc=0x%08x; retaining mapped pools",(unsigned)rc);s->owned=1;s->ready=0;return -1;}
+        s->decoder=NULL;
+    }
+    /* The compute queue may still reference every mapping below. */
+    if (s->compute_queue) {
+        int rc=sceVideodec2ReleaseComputeQueue(s->compute_queue);
+        if(rc!=0){note("EVO vdec native: ReleaseComputeQueue failed rc=0x%08x; retaining mapped pools",(unsigned)rc);s->owned=1;s->ready=0;return -1;}
+        s->compute_queue=NULL;
+    }""")
+    replace(native,'    if (s->compute_queue) { sceVideodec2ReleaseComputeQueue(s->compute_queue); s->compute_queue = NULL; }\n','')
     replace(native,'    s->boot_h = boot_h;\n}', '    s->boot_h = boot_h;\n    return 0;\n}')
-    replace(native,'    STAGE("CreateDecoder");',r"""    if (!tube_frame_pool_register(s->frame_mem,s->frame_size,FRAME_POOL_SLOTS)) return -1;
+    replace(native,'    STAGE("CreateDecoder");',r"""    note("EVO vdec native: mapped pools input=%p+%zu frame=%p+%zu gpu=%p+%zu cpu_gpu=%p+%zu compute=%p+%zu queue=%p",
+         s->input_mem,s->input_pool,s->frame_mem,s->frame_pool,s->gpu_mem,s->gpu_size,
+         s->cpu_gpu_mem,s->cpu_gpu_size,s->compute_mem,s->compute_size,s->compute_queue);
+    if (!tube_frame_pool_register(s->frame_mem,s->frame_size,FRAME_POOL_SLOTS)) return -1;
     STAGE("CreateDecoder");""")
     replace(native,'    unsigned au_ring;','    unsigned au_ring;\n    const void *tube_received;')
     replace(native,'static void ro_reset(evo_vdec_native *n)',r"""static int tube_native_claim_frame(evo_vdec_native *n,unsigned first) {
@@ -66,6 +84,9 @@ static void ro_reset(evo_vdec_native *n)""")
     replace(native,'    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {', '    tube_frame_lease_release(v->tube_received);v->tube_received=NULL;\n    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {')
     replace(native,'    best->used = 0;', '    if(best->borrowed)v->tube_received=best->data;\n    best->used = 0;')
     replace(native,'    if (v->annexb_extradata) {','    ro_reset(v);\n    if (v->slot && !tube_native_pool_idle(v->slot)) return;\n    if (v->annexb_extradata) {')
+    replace(native,'        slot_teardown(s);\n        rc = slot_bringup(s, d, 1920, 1088, &stage);','        if(slot_teardown(s)!=0)return;\n        rc = slot_bringup(s, d, 1920, 1088, &stage);')
+    replace(native,'            slot_teardown(slot);\n            s_depth_override = 0;', '            if(slot_teardown(slot)!=0){s_depth_override=0;return NULL;}\n            s_depth_override = 0;')
+    replace(native,'            slot_teardown(slot);\n            stage = "?";', '            if(slot_teardown(slot)!=0)return NULL;\n            stage = "?";')
     replace(native,'        slot_teardown(slot);\n        const char *stage', '        if(slot_teardown(slot)!=0)return NULL;\n        const char *stage')
     replace(native,'            slot_teardown(slot);\n            const char *stage', '            if(slot_teardown(slot)!=0)return;\n            const char *stage')
     # Cheap once per open; raw addresses are diagnostic-local, never public telemetry.

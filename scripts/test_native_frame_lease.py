@@ -31,7 +31,17 @@ assert app.index(retirement)>app.index('            evo_agc_runtime_present();')
 assert 'if (!(swap && uiActive)) pp_playback_release_video_frame(&tube_present_source);' in app
 assert 'tube_present_source=f;f.tube_lease=nullptr;' in app
 assert 'tube_present_source=hiddenFrame;hiddenFrame.tube_lease=nullptr;' in app
-assert source.index('!tube_frame_pool_unregister(s->frame_mem)')<source.index('sceVideodec2DeleteDecoder(s->decoder)')
+teardown=function(source,'static int slot_teardown(')
+assert teardown.index('!tube_frame_pool_unregister(s->frame_mem)')<teardown.index('sceVideodec2DeleteDecoder(s->decoder)')
+assert teardown.index('sceVideodec2DeleteDecoder(s->decoder)')<teardown.index('sceVideodec2ReleaseComputeQueue(s->compute_queue)')
+assert teardown.index('sceVideodec2ReleaseComputeQueue(s->compute_queue)')<teardown.index('free_direct(s->frame_mem')
+assert teardown.index('free_direct(s->compute_mem')>teardown.index('sceVideodec2ReleaseComputeQueue(s->compute_queue)')
+assert teardown.count('retaining mapped pools')==2 and teardown.count('s->owned=1;s->ready=0;return -1;')==3
+assert 'if(slot_teardown(s)!=0)return;\n        rc = slot_bringup(s, d, 1920, 1088' in source
+assert 'if(slot_teardown(slot)!=0){s_depth_override=0;return NULL;}' in source
+assert 'if(slot_teardown(slot)!=0)return NULL;\n            stage = "?"' in source
+
+
 controller=(work/'core/src/services/PlaybackController.cpp').read_text()
 stop=function(controller,'void PlaybackController::stopPlayback()')
 assert stop.index('pthread_join(video_thread')<stop.index('pp_playback_on_file_close(')<stop.index('evo_vdec_close(')
