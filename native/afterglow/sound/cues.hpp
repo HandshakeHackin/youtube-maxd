@@ -4,11 +4,8 @@
 //
 // A screen asks for a cue (context.feedback.play(audio::Cue::focus, ...)) and
 // never for a file. This table says, for every cue the interface uses, which
-// recording serves it and how the rules of docs/afterglow/sound-design.md see
-// it. A cue names its recordings in order of preference: the first one the
-// package carries is played. The recordings still to be made (sound-design.md
-// section 3) are named first, so the day "<set>/<cue>_NN.wav" is shipped it is
-// played, and until then the next name is: no source changes with it.
+// asset serves it and how the rules of docs/afterglow/sound-design.md see
+// it. All files are original, reproducible procedural ProsperoTube tones.
 
 #pragma once
 

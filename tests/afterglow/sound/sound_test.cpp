@@ -9,7 +9,7 @@
 // video, quiet hours, off), vibration, and what happens when a device fails.
 // Nothing is played: scripts/test_afterglow_sound.sh builds and runs it.
 //
-// usage: sound_test <kit dir>            runs the checks
+// usage: sound_test <repo dir>            runs the checks
 //        sound_test --takes              the recordings the vocabulary names, one per line
 
 #include "afterglow/sound/recorder.hpp"
@@ -121,7 +121,7 @@ std::string made_recording()
     return wav;
 }
 
-Reader g_kit;       // the pinned kit's sound sets
+Reader g_assets;    // original procedural ProsperoTube assets
 Bank g_bank;        // ... decoded
 
 constexpr float kFrame = 1.0f / 60.0f;
@@ -197,58 +197,54 @@ void vocabulary()
     CHECK(spec_count() <= kMaxSpecs);
 }
 
-void bank_of_the_kit()
+void bank_of_the_app()
 {
-    g_test = "bank of the kit";
+    g_test = "original application sound bank";
     Bank bank;
-    const Bank::Report report = bank.load(g_kit);
+    const Bank::Report report = bank.load(g_assets);
     for (const std::string &error : report.errors)
         std::fprintf(stderr, "  %s\n", error.c_str());
     CHECK(report.errors.empty());
     CHECK(report.served == static_cast<int>(spec_count()));
     CHECK(report.silent == 0);
-    CHECK(report.files == 27); // the glass set's 20 and the 7 borrowed from paper
-    const auto take = [&](Cue cue) { return std::string(bank.entry(index_of(cue)).take->file); };
-    CHECK(take(Cue::focus) == "glass/focus" && bank.entry(index_of(Cue::focus)).count == 2);
-    CHECK(bank.entry(index_of(Cue::toggle)).count == 3 && bank.entry(index_of(Cue::slider)).count == 3);
-    // Borrowed from the paper set until the glass recordings exist.
-    CHECK(take(Cue::tick) == "paper/tick" && take(Cue::type) == "paper/type" && take(Cue::erase) == "paper/erase");
-    CHECK(take(Cue::favorite_on) == "paper/favorite_on" && take(Cue::favorite_off) == "paper/favorite_off");
-    // Stand-ins of the glass set, shaped as the cue sheet says.
-    CHECK(take(Cue::launch) == "glass/launch" && take(kPlayStart) == "glass/launch");
-    CHECK(take(kPause) == "glass/toggle" && near(bank.entry(index_of(kPause)).take->pitch, 0.92f));
-    CHECK(take(kSeekCommit) == "glass/select" && near(bank.entry(index_of(kSeekCommit)).take->pitch, 1.1f));
-    CHECK(take(kSkip) == "glass/notify" && near(bank.entry(index_of(kSkip)).take->gain, 0.7f));
-    CHECK(take(kSignedIn) == "glass/saved" && take(kGoodbye) == "glass/back");
-    CHECK(bank.bytes() > 3000000 && bank.bytes() < 4000000);
+    CHECK(report.files == 34);
+    for (std::size_t i=0;i<spec_count();++i) {
+        const auto &entry=bank.entry(static_cast<int>(i));
+        CHECK(std::string(entry.take->file).find("prosperotube/")==0);
+        CHECK(near(entry.take->pitch,1) && near(entry.take->gain,1));
+    }
+    CHECK(bank.entry(index_of(Cue::focus)).count==2);
+    for(auto cue:{Cue::toggle,Cue::slider,Cue::tick,Cue::type}) CHECK(bank.entry(index_of(cue)).count==3);
+    CHECK(bank.bytes()>1500000 && bank.bytes()<3000000);
+
 }
 
 void bank_takes_new_recordings()
 {
     g_test = "new recordings by file name";
-    // The day a recording of the sheet is shipped it is played: nothing but the file changes.
-    const std::set<std::string> added = {"glass/type_01.wav", "glass/type_02.wav", "glass/tick_01.wav", "glass/play_start_01.wav",
-                                         "glass/pause_01.wav",  "glass/favorite_on_01.wav", "glass/goodbye_01.wav"};
+    // Replacing an asset by file name changes its decoded samples without source edits.
+    const std::set<std::string> added = {"prosperotube/type_01.wav", "prosperotube/type_02.wav", "prosperotube/tick_01.wav", "prosperotube/play_start_01.wav",
+                                         "prosperotube/pause_01.wav",  "prosperotube/favorite_on_01.wav", "prosperotube/goodbye_01.wav"};
     const std::string recording = made_recording();
     Bank bank;
     const Bank::Report report = bank.load([&](const std::string &file, std::string *bytes)
                                           {
                                               if (added.count(file) == 0)
-                                                  return g_kit(file, bytes);
+                                                  return g_assets(file, bytes);
                                               *bytes = recording;
                                               return true;
                                           });
     CHECK(report.errors.empty() && report.silent == 0);
     const auto take = [&](Cue cue) { return std::string(bank.entry(index_of(cue)).take->file); };
-    CHECK(take(Cue::type) == "glass/type" && bank.entry(index_of(Cue::type)).count == 2);
-    CHECK(take(Cue::tick) == "glass/tick" && bank.entry(index_of(Cue::tick)).count == 1);
-    CHECK(take(Cue::launch) == "glass/play_start" && take(kPlayStart) == "glass/play_start");
-    CHECK(take(kPause) == "glass/pause" && near(bank.entry(index_of(kPause)).take->pitch, 1.0f));
-    CHECK(take(Cue::favorite_on) == "glass/favorite_on" && take(Cue::favorite_off) == "paper/favorite_off");
-    CHECK(take(kGoodbye) == "glass/goodbye");
+    CHECK(take(Cue::type) == "prosperotube/type" && bank.entry(index_of(Cue::type)).count == 3);
+    CHECK(take(Cue::tick) == "prosperotube/tick" && bank.entry(index_of(Cue::tick)).count == 3);
+    CHECK(take(Cue::launch) == "prosperotube/play_start" && take(kPlayStart) == "prosperotube/play_start");
+    CHECK(take(kPause) == "prosperotube/pause" && near(bank.entry(index_of(kPause)).take->pitch, 1.0f));
+    CHECK(take(Cue::favorite_on) == "prosperotube/favorite_on" && take(Cue::favorite_off) == "prosperotube/favorite_off");
+    CHECK(take(kGoodbye) == "prosperotube/goodbye");
     Rig rig(bank);
     rig.cue(Cue::type);
-    CHECK(rig.heard() == 1 && std::string(rig.last().sample) == "glass/type" && near(rig.last().seconds, 0.25f, 0.01f));
+    CHECK(rig.heard() == 1 && std::string(rig.last().sample) == "prosperotube/type" && near(rig.last().seconds, 0.25f, 0.01f));
 }
 
 void missing_recordings()
@@ -267,12 +263,12 @@ void missing_recordings()
     Bank broken;
     const Bank::Report told = broken.load([&](const std::string &file, std::string *bytes)
                                           {
-                                              if (file != "glass/select_01.wav")
-                                                  return g_kit(file, bytes);
+                                              if (file != "prosperotube/select_01.wav")
+                                                  return g_assets(file, bytes);
                                               *bytes = "this is not a RIFF file";
                                               return true;
                                           });
-    CHECK(told.errors.size() == 1 && told.errors[0].find("glass/select_01.wav") == 0);
+    CHECK(told.errors.size() == 1 && told.errors[0].find("prosperotube/select_01.wav") == 0);
     CHECK(broken.entry(index_of(Cue::select)).count == 0 && broken.entry(index_of(Cue::focus)).count == 2);
     Rig rig(broken);
     rig.cue(Cue::select);
@@ -289,10 +285,10 @@ void a_cue_is_a_voice()
     Rig rig;
     rig.cue(Cue::focus, 1.0f, 0.3f);
     CHECK(rig.heard() == 1);
-    CHECK(std::string(rig.last().name) == "focus" && std::string(rig.last().sample) == "glass/focus");
+    CHECK(std::string(rig.last().name) == "focus" && std::string(rig.last().sample) == "prosperotube/focus");
     CHECK(near(rig.last().pan, 0.3f) && near(rig.last().gain, 1.0f));
     CHECK(rig.last().pitch >= 0.97f && rig.last().pitch <= 1.03f); // the kit's detune
-    CHECK(near(rig.last().seconds, 0.05f, 0.003f));
+    CHECK(near(rig.last().seconds, 0.045f, 0.003f));
     CHECK(rig.sound.voices() == 1 && rig.sound.mixer().active_voices() == 1 && rig.tape.peak() > 0);
     rig.idle(0.1f);
     CHECK(rig.sound.voices() == 0 && rig.sound.mixer().active_voices() == 0);
@@ -504,7 +500,7 @@ void rare_moments()
     rig.sound.opened();
     CHECK(rig.heard() == 0); // it sounds with the first step, when the time of day is known
     rig.idle(0.1f);
-    CHECK(rig.record.names() == "welcome" && std::string(rig.last().sample) == "glass/welcome");
+    CHECK(rig.record.names() == "welcome" && std::string(rig.last().sample) == "prosperotube/welcome");
     rig.sound.opened(); // the interface came up again in the same run
     rig.cue(Cue::welcome);
     rig.idle(3.0f);
@@ -516,7 +512,7 @@ void rare_moments()
     rig.cue(Cue::launch);
     rig.idle(1.2f);
     rig.cue(Cue::launch);
-    CHECK(rig.record.names() == "welcome launch launch" && std::string(rig.last().sample) == "glass/launch");
+    CHECK(rig.record.names() == "welcome launch launch" && std::string(rig.last().sample) == "prosperotube/play_start");
     // The interface was away while that video played; time went on, and the next video has its start.
     rig.at.dt = 1800.0f;
     rig.idle(kFrame);
@@ -527,7 +523,7 @@ void rare_moments()
     rig.cue(kSignedIn);
     rig.idle(3.0f);
     rig.cue(kSignedIn);
-    CHECK(rig.record.names() == "welcome launch launch signed_in" && std::string(rig.last().sample) == "glass/saved");
+    CHECK(rig.record.names() == "welcome launch launch signed_in" && std::string(rig.last().sample) == "prosperotube/signed_in");
     // The parting sound, and nothing after it.
     rig.sound.closing();
     rig.sound.closing();
@@ -535,7 +531,7 @@ void rare_moments()
     ui::Feedback pulse;
     pulse.rumble(0.3f, 0.06f);
     rig.step(pulse);
-    CHECK(rig.record.names() == "welcome launch launch signed_in goodbye" && std::string(rig.last().sample) == "glass/back");
+    CHECK(rig.record.names() == "welcome launch launch signed_in goodbye" && std::string(rig.last().sample) == "prosperotube/goodbye");
     CHECK(rig.record.pulses.empty());
     // Closed from somewhere else (the player, a timer): no parting sound, and nothing after it either.
     Rig away;
@@ -569,13 +565,13 @@ void beside_the_video()
     std::vector<float> gains;
     // The default: notices only, 6 dB down.
     CHECK(run(Options::Playback::notices, Layer::page, all, &gains) == "skip countdown countdown_done");
-    CHECK(gains.size() == 3 && near(gains[0], 0.7f * 0.501f) && near(gains[1], 0.501f) && near(gains[2], 0.501f));
+    CHECK(gains.size() == 3 && near(gains[0], 0.501f) && near(gains[1], 0.501f) && near(gains[2], 0.501f));
     CHECK(run(Options::Playback::notices, Layer::sheet, {Cue::focus, Cue::select, Cue::modal_close}) == "");
     // Everything, 6 dB down; a toast still says nothing over a video.
     gains.clear();
     CHECK(run(Options::Playback::all, Layer::page, all, &gains) == "focus tick seek_commit modal_open modal_close skip countdown countdown_done pause");
     for (std::size_t i = 0; i < gains.size(); ++i)
-        CHECK(near(gains[i], i == 5 ? 0.7f * 0.501f : 0.501f));
+        CHECK(near(gains[i], 0.501f));
     CHECK(run(Options::Playback::all, Layer::sheet, {Cue::focus, Cue::toggle}) == "focus toggle");
     // A dialog that needs an answer is heard in full, unless sounds during playback are off.
     gains.clear();
@@ -928,14 +924,14 @@ void worker_port()
     console.run(0.02f);
     CHECK(console.port.opens == 1 && console.worker.audio() == Worker::Audio::open && console.port.writes >= 3);
     console.run(1.0f);
-    // 50 ms of sound are ten grains; one silent grain follows, then nothing is written at all.
-    CHECK(console.port.writes >= 10 && console.port.writes <= 13 && console.port.loudest > 0);
+    // 45 ms of focus plus a final grain, allowing the existing 3% detune.
+    CHECK(console.port.writes >= 8 && console.port.writes <= 11 && console.port.loudest > 0);
     const int written = console.port.writes;
     console.run(5.0f);
     CHECK(console.port.writes == written && console.port.opens == 1 && console.port.closes == 0);
     console.cue(Cue::select);
     console.run(0.5f);
-    CHECK(console.port.writes > written + 30 && console.port.opens == 1);
+    CHECK(console.port.writes >= written + 25 && console.port.writes <= written + 30 && console.port.opens == 1);
     CHECK(console.worker.grains() == static_cast<std::uint64_t>(console.port.writes) && console.worker.write_errors() == 0);
 
     g_test = "a port that does not open";
@@ -1074,12 +1070,12 @@ int main(int argc, char **argv)
     }
     if (argc < 2)
     {
-        std::fprintf(stderr, "usage: sound_test <kit dir> | --takes\n");
+        std::fprintf(stderr, "usage: sound_test <repo dir> | --takes\n");
         return 2;
     }
-    const std::string sets = std::string(argv[1]) + "/assets/audio/sfx/";
-    g_kit = [sets](const std::string &file, std::string *bytes) { return read_file(sets + file, bytes); };
-    const Bank::Report report = g_bank.load(g_kit);
+    const std::string sets = std::string(argv[1]) + "/native/afterglow/sound/recordings/";
+    g_assets = [sets](const std::string &file, std::string *bytes) { return read_file(sets + file, bytes); };
+    const Bank::Report report = g_bank.load(g_assets);
     if (report.files == 0)
     {
         std::fprintf(stderr, "no recordings under %s\n", sets.c_str());
@@ -1087,7 +1083,7 @@ int main(int argc, char **argv)
     }
 
     vocabulary();
-    bank_of_the_kit();
+    bank_of_the_app();
     bank_takes_new_recordings();
     missing_recordings();
     a_cue_is_a_voice();

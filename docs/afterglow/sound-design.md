@@ -3,8 +3,41 @@
 Part of the "Afterglow" interface proposal. This page says what every
 interaction sounds like, which of those sounds exist today, which have to be
 made, how interface sound lives beside video sound, and what the player can
-change. No audio was downloaded or generated for this proposal: the reel plays
-the kit's existing recordings.
+change. The historical proposal reel plays the kit's existing recordings. The
+application now uses its own original procedural sound set, described below.
+
+## Current application assets
+
+The application packages 34 original procedurally synthesized PCM16 mono
+48 kHz WAV files in `native/afterglow/sound/recordings/prosperotube`.
+No recorded instruments, sampled material, downloaded audio or external
+sound-generation service was used. `scripts/generate_afterglow_sounds.py`
+reproduces every file; `recordings/manifest.json` records hashes, durations
+and measured RMS/peak levels. Copyright (C) 2026 BlackBearReloaded,
+GPL-3.0-or-later. A soft D minor pentatonic voice, rounded fundamentals and
+quiet glass-like partials keep the set coherent. This is original audio,
+not a claim to have recorded glass instruments or matched another app by ear.
+
+All 28 application cue mappings resolve to these assets. `launch` aliases
+`play_start`, countdown uses `slider`, and countdown completion uses `notify`.
+Focus has two variations; toggle, slider, typing and seek ticks have three.
+The five previously borrowed cues and all six video-specific cues now have
+original assets. The bank no longer falls back to the kit's paper/glass files.
+Existing cue ranks, pitches, panning, volume, held-repeat thinning, quiet hours,
+accessibility and vibration preferences, limiter and playback's 6 dB reduction
+are unchanged. This asset change does not implement the future video fade-in
+or ducking described below.
+
+Frequent cues meet their -35/-36 dBFS RMS targets with peaks below -19 dBFS;
+all source peaks stay below -12 dBFS. The longest source is the 720 ms welcome;
+play start lasts 400 ms and signed-in lasts 600 ms. Tests check formats,
+durations, levels, complete cue coverage, packaging and mixer/preferences.
+`--sampler build/afterglow/sound-sampler.wav` generates a source-level sampler
+and a JSON cue timeline. Human listening, comfort, motion and console judgment
+remain pending; automated checks cannot establish them.
+
+The sections below preserve the proposal and historical reel's cue sheet;
+“ok”, “borrowed” and “stand-in” describe that reel, not current asset coverage.
 
 ## 1. What the kit gives
 

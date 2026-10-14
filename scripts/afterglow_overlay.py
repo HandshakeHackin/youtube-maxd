@@ -85,34 +85,20 @@ extern "C" void evo_rmlui_provider_offer_selection(const char *item_id, const ch
 '''
 
 
-# stage S: the recordings the interface's cues are served by (native/afterglow/sound/cues.cpp): the kit's glass set
-# whole, the five cues that set lacks from its paper set, and whatever native/afterglow/sound/recordings/<set>/ holds,
-# over the kit's file of the same name. No recording is kept in this repository today.
-SOUND_BORROWED = ("tick", "type", "erase", "favorite_on", "favorite_off")
-SOUND_NOTICE = """Interface sounds of the Afterglow interface (assets/hui/afterglow/sfx in the application).
-
-The recordings named "ps5-homebrew-ui" below are files of the UI kit's two sound sets
-(https://github.com/blackbearreloaded/ps5-homebrew-ui, assets/audio/sfx, at commit {commit}),
-unchanged. The kit's notices say of them: generated for ProsperoEden (glass) and ProsperoPuzzles (paper) with
-ElevenLabs Sound Effects v2, prepared with the kit's tools/process-sfx.py, Copyright (C) 2026 BlackBearReloaded,
-distributed under the kit's licence, GPL-3.0-or-later. Recordings named "ProsperoTube" are this project's own, under
-its licence.
+# Original, reproducible ProsperoTube assets; no UI-kit recordings are packaged.
+SOUND_NOTICE = """ProsperoTube Afterglow interface sounds.
+Original procedural synthesis using Python math/wave; no sampled or downloaded audio.
+Copyright (C) 2026 BlackBearReloaded. GPL-3.0-or-later.
+Source: scripts/generate_afterglow_sounds.py; metadata: native/afterglow/sound/recordings/manifest.json.
+Human listening and console acceptance remain separate from format/level checks.
 
 """
 
 
 def sound_files(root, kit):
-    """(name, file) of every recording the package carries for the interface; the name is its path under hui/afterglow/sfx."""
-    files = {}
-    sets = kit / "assets/audio/sfx"
-    for file in sorted((sets / "glass").glob("*.wav")):
-        files["glass/" + file.name] = file
-    for cue in SOUND_BORROWED:
-        for file in sorted((sets / "paper").glob(cue + "_[0-9][0-9].wav")):
-            files["paper/" + file.name] = file
-    for file in sorted((root / "native/afterglow/sound/recordings").glob("*/*.wav")):
-        files[file.parent.name + "/" + file.name] = file
-    return sorted(files.items())
+    """Original assets under hui/afterglow/sfx; kit is retained for caller compatibility."""
+    return [(file.parent.name + "/" + file.name, file)
+            for file in sorted((root / "native/afterglow/sound/recordings").glob("*/*.wav"))]
 
 
 SOUND_PARK = '''                if (m_soundEffectEngine)   m_soundEffectEngine->shutdown();
@@ -132,16 +118,16 @@ def apply_sound(root, work, replace, player, kit):
     evo = work / player
     sounds = evo / "assets/hui/afterglow/sfx"
     shutil.rmtree(sounds, ignore_errors=True)
-    listing = [SOUND_NOTICE.format(commit=ui_kit.COMMIT)]
+    listing = [SOUND_NOTICE]
     for name, file in sound_files(root, kit):
         (sounds / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(file, sounds / name)
-        kit_file = kit in file.parents
-        listing.append("%-28s %7d bytes  %s %s\n" % (name, file.stat().st_size, "ps5-homebrew-ui" if kit_file else "ProsperoTube",
-                                                      file.relative_to(kit if kit_file else root).as_posix()))
+        listing.append("%-28s %7d bytes  ProsperoTube %s\n" %
+                       (name, file.stat().st_size, file.relative_to(root).as_posix()))
     notices = evo / "assets/prosperotube-notices"
     notices.mkdir(exist_ok=True)
     (notices / "afterglow-sounds.txt").write_text("".join(listing), encoding="utf-8")
+    shutil.copyfile(root / "native/afterglow/sound/recordings/manifest.json", notices / "afterglow-sounds.json")
     shutil.copyfile(root / "native/afterglow/sound/app/tube_afterglow_sound.h", evo / "addons/include/tube_afterglow_sound.h")
     if "ui_kit/src/afterglow/sound" not in (evo / "Makefile").read_text(encoding="utf-8"):
         replace(player + "Makefile", "                   $(wildcard ui_kit/src/afterglow/app/*.cpp) $(wildcard ui_kit/src/text/*.cpp)\n",
