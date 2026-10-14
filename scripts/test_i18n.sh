@@ -13,15 +13,11 @@ import sys
 root = sys.argv[1]
 report = json.loads(subprocess.check_output([sys.executable, root + "/scripts/i18n_build.py", "--report", "--check"], text=True))
 assert len(report) >= 21, "catalogs are missing"
-# The texts only the Afterglow interface shows are translated in their own pass, after its screens: until
-# then a catalog is held to the classic interface's texts, and Afterglow shows what is missing in English.
-# Completed catalogs must also cover every Afterglow text. Add each language here when its pass is finished.
-AFTERGLOW_TRANSLATED = {"cs", "da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pl", "pt-BR", "pt-PT", "ro", "ru", "sv", "tr", "uk", "vi"}
+# Every catalog covers the Afterglow interface as well as the Classic interface.
 for row in report:
     print(f"{row['tag']:6} {row['name']:22} {row['coverage']:6.2f}%  missing {row['missing']}  (Afterglow: {row['missing_afterglow']} of {row['afterglow']})  stale {row['stale']}")
-    complete = row["tag"] in AFTERGLOW_TRANSLATED
-    held = row["coverage"] if complete else row["coverage_classic"]
-    assert not complete or not row["missing_afterglow"], f"{row['tag']}: Afterglow texts are missing"
+    held = row["coverage"]
+    assert not row["missing_afterglow"] and not row["forms"], f"{row['tag']}: Afterglow texts or plural forms are missing"
     assert held >= 99.0 and not row["stale"], f"{row['tag']}: the catalog does not cover the template"
 # The same rule marks and extracts the texts of the browser document.
 sys.path.insert(0, root + "/scripts")
