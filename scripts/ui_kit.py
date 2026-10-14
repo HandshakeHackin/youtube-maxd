@@ -3,8 +3,8 @@
 
 ProsperoTube never carries the kit in its own tree: this fetches the commit
 named below into .deps/ui-kit/<commit> and checks every file the build uses
-against the hashes recorded in scripts/ui_kit.lock.json. The kit repository is
-private, so the commit is taken from a clone that already has it:
+against the hashes recorded in scripts/ui_kit.lock.json. The commit is taken
+from the first of these that has it:
 
   PROSPEROTUBE_UI_KIT   a local clone or a git address (optional)
   ~/ps5-homebrew-ui     the owner's clone, when it exists
