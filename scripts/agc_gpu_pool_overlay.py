@@ -4,7 +4,7 @@
 def apply_agc_gpu_pool_overlay(replace, player):
     header = player + "media/include/evo_direct_mem.h"
     direct = player + "media/src/evo_direct_mem.c"
-    rml = player + "ui_rml/src/evo_rmlui_render_agc.cpp"
+    rml_agc = player + "ui_rml/src/evo_rmlui_render_agc.cpp"
     hui = player + "ui_kit/src/hui_agc_batch.cpp"
 
     replace(header, "void *evo_direct_mem_alloc(size_t bytes);",
@@ -35,13 +35,13 @@ void *evo_direct_mem_alloc_gpu(size_t bytes);""")
 }
 
 void *evo_direct_mem_calloc(size_t count, size_t size)""")
-    replace(rml, "evo_direct_mem_alloc(geom->vertex_bytes)",
-            "evo_direct_mem_alloc_gpu(geom->vertex_bytes)")
-    replace(rml, "evo_direct_mem_alloc(geom->index_bytes)",
-            "evo_direct_mem_alloc_gpu(geom->index_bytes)")
-    replace(rml, "evo_direct_mem_alloc(tex->alloc_bytes + 255u)",
-            "evo_direct_mem_alloc_gpu(tex->alloc_bytes + 255u)")
-    replace(hui, "evo_direct_mem_alloc(index_bytes + 255u)",
-            "evo_direct_mem_alloc_gpu(index_bytes + 255u)")
-    replace(hui, "evo_direct_mem_alloc(bytes + 255u)",
-            "evo_direct_mem_alloc_gpu(bytes + 255u)")
+    replace(rml_agc, 'evo_direct_mem_alloc(geom->vertex_bytes)',
+            'evo_direct_mem_alloc_gpu(geom->vertex_bytes)')
+    replace(rml_agc, 'evo_direct_mem_alloc(geom->index_bytes)',
+            'evo_direct_mem_alloc_gpu(geom->index_bytes)')
+    replace(rml_agc, 'evo_direct_mem_alloc(tex->alloc_bytes + 255u)',
+            'evo_direct_mem_alloc_gpu(tex->alloc_bytes + 255u)')
+    replace(hui, 'evo_direct_mem_alloc(index_bytes + 255u)',
+            'evo_direct_mem_alloc_gpu(index_bytes + 255u)')
+    replace(hui, 'evo_direct_mem_alloc(bytes + 255u)',
+            'evo_direct_mem_alloc_gpu(bytes + 255u)')
