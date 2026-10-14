@@ -70,6 +70,11 @@
   "file": "captions.vtt",
   "type": "text/vtt"
  },
+ "GET suggestqueries-clients6.youtube.com/complete/search": {
+  "url_contains": "q=canned",
+  "file": "suggest.txt",
+  "type": "text/javascript"
+ },
  "GET i.ytimg.com/sb/fixtureVID1/storyboard3_L1/M0.jpg": {
   "file": "sheet.jpg",
   "type": "image/jpeg"

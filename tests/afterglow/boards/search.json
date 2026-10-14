@@ -19,7 +19,18 @@
    "fixture": "signed-in",
    "route": {"screen": "search"},
    "steps": [{"press": "down", "wait": 0.08}, {"press": "down", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "up", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "left", "wait": 0.08}, {"press": "left", "wait": 0.08}, {"press": "left", "wait": 0.08}, {"press": "cross", "wait": 0.2}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "right", "wait": 0.08}, {"press": "cross", "wait": 0.6}],
-   "expect": {"screen": "search", "focus": "key/o", "state": {"text": "auro", "list": "suggestions", "rows": "5", "suggest": "ready", "matches_for": "auro"}, "asked": ["search-suggest:a", "search-suggest:au", "search-suggest:aur", "search-suggest:auro", "search-preview:auro"]}
+   "expect": {"screen": "search", "focus": "key/o", "state": {"text": "auro", "list": "suggestions", "rows": "5", "suggest": "ready", "matches_for": "auro"}, "asked": ["search-suggest:a", "search-suggest:au", "search-suggest:aur", "search-suggest:auro", "search-preview:auro"],
+              "unasked": ["search-preview:au"]}
+  },
+  {
+   "name": "search-typing-supersedes",
+   "about": "A slow service and a second letter typed before the first was answered: the request for the first text is called back, its matches are never asked for, and the page shows what the text that stands found.",
+   "fixture": "signed-in",
+   "source": {"delay": 90},
+   "route": {"screen": "search"},
+   "steps": [{"press": "down", "wait": 0.05}, {"press": "down", "wait": 0.05}, {"press": "cross", "wait": 0.2}, {"press": "up", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "right", "wait": 0.03}, {"press": "cross", "wait": 5.0}],
+   "expect": {"screen": "search", "focus": "key/u", "state": {"text": "au", "list": "suggestions", "suggest": "ready", "matches_for": "au", "matches_load": "ready"},
+              "asked": ["search-suggest:a", "search-suggest:au", "search-preview:au"], "dropped": ["search-suggest:a"], "unasked": ["search-preview:a"]}
   },
   {
    "name": "search-typing-first-letter",

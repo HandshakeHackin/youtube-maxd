@@ -213,6 +213,9 @@ def main():
     write("channel.json", channel())
     write("playlist.json", playlist())
     write("topics.json", topics())
+    # Completions as YouTube's suggestion address answers them: a call around the list, one of them twice.
+    write("suggest.txt", 'window.google.ac.h(["canned",[["canned heat",0,[512]],["canned music for a quiet room",0,[512]],'
+                         '["canned heat",0],["canned laughter",0]],{"k":1,"q":"fixture"}])')
     write("player.json", player())
     write("player_live.json", live_player())
     write("player_short.json", short_player())
@@ -266,6 +269,7 @@ def main():
         "GET rr1---sn-fixture.googlevideo.com/videoplayback": {"file": "sidx.bin", "status": 206, "type": "video/mp4"},
         "GET rr2---sn-fixture.googlevideo.com/videoplayback": {"status": 403, "type": "text/plain"},
         "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
+        "GET suggestqueries-clients6.youtube.com/complete/search": {"url_contains": "q=canned", "file": "suggest.txt", "type": "text/javascript"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},
         f"GET sb.example.org/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor_alt.json", "tag": "sponsor-alt"},

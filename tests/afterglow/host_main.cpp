@@ -1193,6 +1193,26 @@ int main(int argc, char **argv)
                                 fail(results, name, look_id, std::string("catalog '") + catalog->valuestring + "' was never asked for");
                         }
                     }
+                    else if (key == "unasked")
+                    {
+                        // Catalogs that must not have been asked for at all.
+                        const cJSON *catalog = nullptr;
+                        cJSON_ArrayForEach(catalog, wanted)
+                        {
+                            if (std::find(source.asked().begin(), source.asked().end(), catalog->valuestring) != source.asked().end())
+                                fail(results, name, look_id, std::string("catalog '") + catalog->valuestring + "' was asked for");
+                        }
+                    }
+                    else if (key == "dropped")
+                    {
+                        // Catalogs whose request must have been called back before its answer.
+                        const cJSON *catalog = nullptr;
+                        cJSON_ArrayForEach(catalog, wanted)
+                        {
+                            if (std::find(source.dropped().begin(), source.dropped().end(), catalog->valuestring) == source.dropped().end())
+                                fail(results, name, look_id, std::string("the request for '") + catalog->valuestring + "' was never called back");
+                        }
+                    }
                     // ---- stage S: what the board was heard and felt to do
                     else if (key == "cues")
                     {

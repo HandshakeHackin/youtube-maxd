@@ -50,7 +50,8 @@ inline std::string fill(const char *pattern, std::string_view value)
     return out;
 }
 
-// Completions for the text typed so far.
+// Completions for the text typed so far: YouTube's own, through the service.
+// A row's title is the completion; nothing is searched or kept by asking.
 inline std::string suggest_catalog(std::string_view text)
 {
     return "search-suggest:" + std::string(text);

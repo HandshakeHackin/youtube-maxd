@@ -1,0 +1,1 @@
+window.google.ac.h(["canned",[["canned heat",0,[512]],["canned music for a quiet room",0,[512]],["canned heat",0],["canned laughter",0]],{"k":1,"q":"fixture"}])

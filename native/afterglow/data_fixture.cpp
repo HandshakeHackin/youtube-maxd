@@ -74,6 +74,7 @@ void FixtureSource::cancel(unsigned ticket)
     {
         if (it->ticket == ticket)
         {
+            dropped_.push_back(it->id);
             waiting_.erase(it);
             return;
         }

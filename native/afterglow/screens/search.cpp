@@ -9,6 +9,11 @@
 // starts with. Everything the page shows is read through the data layer:
 // "search-history", "search-suggest:<text>" and "search-preview:<text>"
 // (screens/search.hpp); a submitted query opens the results screen.
+//
+// Typing never waits for an answer. The completions are asked for after a
+// short pause in the typing and the matches (a search of their own) after a
+// longer one; a key typed meanwhile calls back whatever was asked for the
+// text before, so only the text that stands is ever answered.
 
 #include "afterglow/screens/search.hpp"
 
@@ -37,7 +42,9 @@ constexpr float kStripTop = 740.0f;
 constexpr int kStripCards = 10;
 constexpr int kStripBones = 5;
 constexpr float kBoneTitle = 46.0f; // the room under a card's bone for its title
-constexpr float kDebounce = 0.12f; // seconds after the last key before anything is asked
+constexpr float kDebounce = 0.12f;   // seconds after the last key before the completions are asked for
+constexpr float kMatchPause = 0.5f;  // ... and before the matches are: a search costs YouTube more than a completion
+constexpr std::size_t kKeptTexts = 12; // typed texts whose answers are kept; older ones are let go
 constexpr int kRecentRows = 5;
 constexpr int kQueryLength = 120; // characters a query may have
 
@@ -155,6 +162,8 @@ class Search final : public Screen
         scroll_.position.snap(0.0f);
         shown_.clear();
         waiting_ = false;
+        suggest_dropped_ = false;
+        match_dropped_ = false;
         field_.set_text(trimmed(route.argument));
         field_.refresh(); // an opening text asks at once, without the typing pause
         since_edit_ = kDebounce;
@@ -433,6 +442,7 @@ class Search final : public Screen
     void provide(std::string_view query, std::vector<ui::Suggestion> &out)
     {
         asked_ = trimmed(query);
+        suggest_dropped_ = false;
         if (data_ == nullptr || asked_.empty())
         {
             waiting_ = false;
@@ -440,6 +450,7 @@ class Search final : public Screen
             suggest_load_ = model::Load::ready;
             return;
         }
+        keep(search::suggest_catalog(asked_));
         const Page &page = data_->catalog(search::suggest_catalog(asked_));
         if (page.load == model::Load::loading || page.load == model::Load::idle)
         {
@@ -466,17 +477,68 @@ class Search final : public Screen
     {
         // Only the answer to the text that is in the field now is ever read: one
         // that arrives for an earlier text is left in the data layer, unseen.
-        if (waiting_ && since_edit_ > kDebounce &&
+        // (One that was called back because the text moved on is not asked for again from here.)
+        if (waiting_ && !suggest_dropped_ && since_edit_ > kDebounce &&
             data.catalog(search::suggest_catalog(asked_)).load != model::Load::loading)
             field_.refresh();
         field_.set_busy(waiting_);
     }
 
+    // The answers of the last few typed texts are kept (deleting a letter shows them at once); older ones are let go.
+    void keep(const std::string &catalog)
+    {
+        const auto known = std::find(kept_.begin(), kept_.end(), catalog);
+        if (known != kept_.end())
+            kept_.erase(known);
+        kept_.push_back(catalog);
+        while (kept_.size() > 2 * kKeptTexts && data_ != nullptr)
+        {
+            data_->forget(kept_.front());
+            kept_.erase(kept_.begin());
+        }
+    }
+
+    // A key was typed: what was asked for the text before and has not answered is called back, so the
+    // provider is free for the text that stands; an answer that failed is asked again the next time.
+    void supersede()
+    {
+        if (data_ == nullptr)
+            return;
+        const std::string now = trimmed(field_.text());
+        const auto let_go = [&](const std::string &catalog)
+        {
+            const auto known = std::find(kept_.begin(), kept_.end(), catalog);
+            if (known == kept_.end())
+                return false; // never asked for: reading its state would ask
+            if (data_->catalog(catalog).load == model::Load::ready)
+                return false;
+            data_->forget(catalog);
+            kept_.erase(known);
+            return true;
+        };
+        if (!asked_.empty() && asked_ != now && let_go(search::suggest_catalog(asked_)))
+            suggest_dropped_ = true;
+        if (!match_text_.empty() && match_text_ != now && let_go(search::preview_catalog(match_text_)))
+            match_dropped_ = true;
+    }
+
     void read_matches(Data &data)
     {
         const std::string wanted = trimmed(field_.text());
-        if (wanted != match_text_ && since_edit_ >= kDebounce)
+        // With nothing typed the strip is what is popular now, at once; a text waits for a pause in the typing.
+        if (wanted != match_text_ && since_edit_ >= (wanted.empty() ? kDebounce : kMatchPause))
+        {
             match_text_ = wanted;
+            match_dropped_ = false;
+        }
+        else if (wanted == match_text_)
+        {
+            match_dropped_ = false; // typed back to the text that was called back: it is asked for again
+        }
+        if (match_dropped_)
+            return; // what the text before found stays until the pause is over
+        if (!match_text_.empty())
+            keep(search::preview_catalog(match_text_));
         const Page &page = data.catalog(search::preview_catalog(match_text_));
         if (page.load == model::Load::loading || page.load == model::Load::idle)
         {
@@ -598,6 +660,7 @@ class Search final : public Screen
     void edited()
     {
         since_edit_ = 0.0f;
+        supersede();
         if (field_.text().empty())
         {
             waiting_ = false;
@@ -1041,6 +1104,9 @@ class Search final : public Screen
     std::string asked_;                 // the text the list was last asked for
     std::vector<ui::Suggestion> shown_; // its answer, or the one before while it loads
     bool waiting_ = false;
+    bool suggest_dropped_ = false;      // the request for asked_ was called back: the text has moved on
+    bool match_dropped_ = false;        // ... and the one for match_text_
+    std::vector<std::string> kept_;     // the catalogs asked for typed texts, oldest first
     model::Load suggest_load_ = model::Load::ready;
 
     // Recent searches.

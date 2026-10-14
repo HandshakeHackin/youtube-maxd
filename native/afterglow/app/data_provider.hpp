@@ -5,7 +5,9 @@
 // Catalog pages come from evo_provider_youtube.list_catalog, exactly as the
 // classic browser gets them, so the profile's local state is already applied.
 // One request is in flight at a time and the rest wait in the order they were
-// asked: the provider's paging state belongs to one list at a time. Facts
+// asked: the provider's paging state belongs to one list at a time. A listing
+// that is cancelled while the provider works on it gives way to the next at
+// once. Facts
 // (tube_row_fact_*) are read in the provider's callback, while they are those
 // of the page that just arrived. App only; the tests of the provider link it
 // too (tests/afterglow/provider_test.cpp).
@@ -83,7 +85,7 @@ class ProviderSource final : public Source
         Done done;
         Page page;
     };
-    static void answered(int ok, const ::evo_provider_item *items, int count, int more, void *self);
+    static void answered(int ok, const ::evo_provider_item *items, int count, int more, void *asked);
     void start_next();
     void list(const std::string &id, int page);
     void hand_over_text();
@@ -92,7 +94,7 @@ class ProviderSource final : public Source
     std::deque<Request> waiting_;
     std::deque<Finished> finished_;
     unsigned flying_ = 0;      // the ticket of the request the provider is working on
-    bool flying_dropped_ = false; // ... and whether it was cancelled meanwhile
+    bool flying_dropped_ = false; // ... a typed answer that was cancelled meanwhile: followed to its end, not delivered
     Done flying_done_;
     // A typed answer on its way: 0 none, 1 the row that arms the prompt is being listed, 2 the prompt
     // is armed and waits for the text, 3 the catalog the provider named is being listed.

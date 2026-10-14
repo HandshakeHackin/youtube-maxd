@@ -5,6 +5,9 @@
  *
  *   start -> health -> search -> resolve -> the manifest and the captions
  *   fetched through the provider's HTTP path -> stop
+ * TUBE_E2E_LIVE=1 with TUBE_E2E_TYPING=<text> (never a test) asks YouTube, as
+ * Guest, only what Afterglow's search asks while that text is typed: its
+ * completions and its matches. Two requests, then the service stops.
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "tube_provider.h"
 #include "tube_remote.h"
@@ -91,6 +94,21 @@ int main(void) {
     snprintf(url, sizeof url, "http://127.0.0.1:%u/v1/search?q=canned", port);
     fetch(url, 0);
     assert(fetch_status == 401);
+
+    if (live && getenv("TUBE_E2E_TYPING")) {
+        for (int step = 0; step < 2; ++step) {
+            char catalog[200]; int before = item_calls, videos = 0; double asked = seconds();
+            snprintf(catalog, sizeof catalog, "%s:%.120s", step ? "search-preview" : "search-suggest", getenv("TUBE_E2E_TYPING"));
+            assert(p->list_catalog(catalog, 0, items_cb, NULL) == 0);
+            run_until(&item_calls, before + 1, 30, catalog);
+            for (int i = 0; i < last_count; ++i) videos += !last_items[i].is_folder && strlen(last_items[i].id) == 11;
+            printf("%s: %s, %d rows (%d videos) in %.0f ms", catalog, last_ok ? "ok" : "failed", last_count, videos, (seconds() - asked) * 1000);
+            for (int i = 0; last_ok && i < last_count && i < 4; ++i) printf("%s\"%.40s\"", i ? ", " : "; ", last_items[i].title);
+            puts("");
+        }
+        p->shutdown(); assert(!tube_service_running()); evo_net_shutdown();
+        return 0;
+    }
 
     /* Search: health first (the feature list), then the job, then rows. */
     int calls = item_calls;
@@ -259,6 +277,22 @@ int main(void) {
     for (int i = 0; i < last_count; ++i) assert(!last_items[i].is_folder && strlen(last_items[i].id) == 11 && *last_items[i].title);
     printf("home: a topic as a shelf of %d videos, first \"%s\"\n", last_count, last_items[0].title);
 
+    /* A search while it is typed (Afterglow): YouTube's completions of the text, as YouTube words them, and the first
+     * videos that match it as cards, without the two rows that lead a search a person ran. Neither is kept as a search. */
+    calls = item_calls;
+    assert(p->list_catalog("search-suggest:canned", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "completions");
+    assert(last_ok && last_count == 3 && !strcmp(last_items[0].title, "canned heat") && !strcmp(last_items[2].title, "canned laughter"));
+    for (int i = 0; i < last_count; ++i) assert(last_items[i].is_folder && !last_items[i].tube_interface);
+    calls = item_calls;
+    assert(p->list_catalog("search-preview:canned heat", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "matches");
+    assert(last_ok && last_count >= 2 && strcmp(last_items[0].id, "settings:search") && strlen(last_items[0].id) == 11);
+    printf("typing: 3 completions, %d matches, first \"%s\"\n", last_count, last_items[0].title);
+    p->list_catalog("search-history", 0, items_cb, NULL);
+    assert(last_ok);
+    for (int i = 0; i < last_count; ++i) assert(strcmp(last_items[i].title, "canned heat"));
+
     /* The saved state never names the service. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     FILE *state = fopen(evo_data_path("youtube.json"), "rb"); assert(state);
@@ -283,6 +317,6 @@ int main(void) {
     p->shutdown();
     assert(!tube_service_running());
     evo_net_shutdown();
-    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, alternative SponsorBlock server, dislikes, import, phone, a topic's shelf, stop and restart");
+    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, alternative SponsorBlock server, dislikes, import, phone, a topic's shelf, completions and matches while typing, stop and restart");
     return 0;
 }

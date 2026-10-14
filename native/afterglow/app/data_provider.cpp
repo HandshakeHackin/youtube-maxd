@@ -13,6 +13,7 @@ extern "C"
 #include "tube_provider.h"
 }
 
+#include <cstdint>
 #include <cstring>
 
 namespace afterglow
@@ -96,8 +97,18 @@ void ProviderSource::cancel(unsigned ticket)
             return;
         }
     }
-    if (flying_ == ticket)
-        flying_dropped_ = true; // the provider finishes it; the answer is thrown away
+    if (flying_ != ticket)
+        return;
+    if (typed_stage_ != 0)
+    {
+        flying_dropped_ = true; // a typed text is followed to its end; the answer is thrown away
+        return;
+    }
+    // A listing nobody waits for any more gives way at once (a text typed further asks for other
+    // completions): the next request is listed from the next pump(), which makes the provider call this
+    // one back, and whatever it still answers names a ticket that is gone.
+    flying_ = 0;
+    flying_done_ = nullptr;
 }
 
 model::Profile ProviderSource::profile()
@@ -140,10 +151,11 @@ bool ProviderSource::play(const model::Video &video)
     return player_ ? player_(video) : false;
 }
 
-void ProviderSource::answered(int ok, const evo_provider_item_t *items, int count, int more, void *self)
+void ProviderSource::answered(int ok, const evo_provider_item_t *items, int count, int more, void *asked)
 {
+    // The provider is told the ticket, not the source: an answer to a request that gave way is known by it.
     ProviderSource *source = g_waiting;
-    if (source == nullptr || self != source || source->flying_ == 0)
+    if (source == nullptr || source->flying_ == 0 || reinterpret_cast<std::uintptr_t>(asked) != source->flying_)
         return; // an answer nobody waits for any more
     if (ok && source->typed_stage_ == 1)
     {
@@ -228,9 +240,10 @@ void ProviderSource::list(const std::string &id, int page)
     const unsigned ticket = flying_;
     g_waiting = this;
     // The provider may answer before it returns (a local list) or later, from the network poll.
-    const int rc = evo_provider_youtube.list_catalog(id.c_str(), page, &ProviderSource::answered, this);
+    void *asked = reinterpret_cast<void *>(static_cast<std::uintptr_t>(ticket));
+    const int rc = evo_provider_youtube.list_catalog(id.c_str(), page, &ProviderSource::answered, asked);
     if (rc < 0 && flying_ == ticket)
-        answered(0, nullptr, 0, 0, this);
+        answered(0, nullptr, 0, 0, asked);
 }
 
 void ProviderSource::hand_over_text()

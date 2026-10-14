@@ -285,6 +285,10 @@ def library(s):
     same("continuation of nothing", s.library(action="continue", cursor="unknown")[1]["error"]["code"], "cursor_expired")
     status, direct = s.call("POST", "/v1/library", {"action": "search", "query": "canned"})[::2]
     same("direct library route", (status, direct["kind"], len(direct["items"])), (200, "catalog", 24))
+    status, typed = s.library(action="search_suggestions", query="canned")
+    same("completions of a typed text", (status, typed), (200, {"api_version": 1, "kind": "search_suggestions", "query": "canned",
+         "suggestions": ["canned heat", "canned music for a quiet room", "canned laughter"]}))
+    same("completions YouTube does not answer", s.library(action="search_suggestions", query="offline")[1]["error"]["code"], "upstream_format")
     status, shelf = s.library(action="topic_videos", section="music")
     same("a topic as one list of videos", (status, shelf["kind"], [r["id"] for r in shelf["items"]], shelf["has_more"], shelf["items"][0]["title"]),
          (200, "catalog", [f"fixture{200 + n:04d}" for n in range(6)], False, "Topic video 0"))

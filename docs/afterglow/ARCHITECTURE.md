@@ -240,6 +240,11 @@ the service itself.
 they were asked: the provider's paging state belongs to one list at a time, and
 its answers arrive on the main thread from `evo_net_poll()`. Home's shelves
 therefore fill one after the other; each shows its bones until its turn comes.
+A listing that is cancelled while the provider works on it (`Data::forget`,
+`Source::cancel`) gives way at once: the next request is listed from the next
+`pump()`, which makes the provider call the older job back, and the provider
+is told the ticket it answers, so whatever the older request still answers
+reaches nobody. A typed answer is the exception and is followed to its end.
 
 ### 5.3 A page and its rows
 
@@ -380,7 +385,8 @@ adds a line to this table in the same change that uses it:
 | `search:<query>`, `search-with:<options>:<query>` | the `settings:search` row (or any row of page 0) | `results` (the count as it is to be shown) |
 | `search:<query>`, `library:channels`, `subscriptions` | a channel | `subscribers`, `handle`, `subscribed`, `unseen`, `live` |
 | `search:<query>`, `library:playlists`, `channel-tab:<id>:playlists` | a playlist (a folder `playlist:<id>` or `library:playlist:<id>`) | `count`, `owner`, `updated` |
-| `search-suggest:<text>` | a completion | `detail` |
+| `search-suggest:<text>` | a completion (the row's title, in YouTube's words: not an interface text) | `detail` (none from YouTube; the fixtures name a channel) |
+| `search-preview:<text>` | the first videos of a search for the text, one page, without the two rows that lead a search a person ran | as any list of videos |
 | `search-history` | the `account:notice` row | `state` (`off`, `empty`) |
 | `channel:<id>` and `channel-tab:<id>:<section>` | first row `channel:<id>` | `handle`, `subscribers`, `banner_url`, `subscribed`, `tabs` (comma separated), `tab`, `sorts`, `sort`, `videos` (the count as YouTube words it), `notify` (`all`, `personalized`, `none`), `search` (`0`: no search in this channel) |
 | `details:<video>` | first row | `views`, `published`, `likes`, `dislikes`, `channel`, `channel_id`, `channel_art_url`, `subscribers`, `subscribed`, `rating` (`like`, `dislike`, ""), `saved`, `chapters` (count), `duration`, `resume` (seconds), `segments`, `captions`, `fps`, `quality`, `live`, `upcoming` |
@@ -672,7 +678,9 @@ One board:
 (`rail_open`, `moving`, `attract`, `dialog`, `sheet`, `typing`, `launching`),
 `state` (values of `Screen::snapshot`; the frame's sheets add `sheet`,
 `sheet_load`, `sheet_level`, `sheet_acting`, `typing`, `typed`), `asked`
-(catalogs that must have been requested), `answered` (typed texts handed
+(catalogs that must have been requested), `unasked` (catalogs that must not
+have been), `dropped` (catalogs whose request must have been called back
+before it was answered), `answered` (typed texts handed
 over, `"<row>=<text>"`), `played` (the last video handed to the player). A
 board may say who is browsing (`"profile": {"id", "name", "guest",
 "signed_in"}`) and for how long the harness's player plays before it closes
@@ -874,6 +882,27 @@ half is red and bottom half blue and reads the colours back from the output.
 | D | queue reorder | not in the design notes: out of Afterglow's first release; the classic interface keeps what it has |
 | A, D | the harness draws once; steps cannot hold a button; cost per board | done: the lists are built on every fourth simulated frame; `--only <text>` runs one screen's boards (`bash scripts/afterglow_host.sh out --only library`); `{"hold": ...}` keeps a button down; painted pictures are kept across boards |
 
+**Search while typing (2026-10-13).** `search-suggest:<text>` and
+`search-preview:<text>` are the provider's now (`native/tube_provider.c`,
+`catalog()`); before, both went to the service as an unknown catalog and
+failed, so the list said "Suggestions are not available" and the strip "The
+best matches could not be loaded" for every letter, each letter queued two
+requests behind the ones before it, and nothing was ever called back. The
+completions are the service's `search_suggestions` (YouTube's suggestion
+address through youtubei.js) for the text itself; the matches are a search for
+it through the library worker where the service has one (cards with views and
+age) and the plain video search where not. Neither touches the profile's
+recent searches, the last search or the search options, and neither has a
+second page. The screen asks for the completions 0.12 s after the last key and
+for the matches 0.5 s after it, and a key typed meanwhile calls back what was
+asked for the text before (`Search::supersede`), so only the text that stands
+is answered; answers of the last dozen texts are kept. A row
+`search-suggest:run:<scope>:<index>` is still the classic browser's (two
+numbers); any other text after `search-suggest:` is a typed one. Assertions:
+`provider_test.cpp` (canned service), `tests/test_embedded_e2e.c` (the real
+service with canned YouTube, and live with `TUBE_E2E_TYPING`), the boards
+`search-typing` and `search-typing-supersedes`.
+
 **Rules that came out of the packages.** In a list of preferences Left and
 Right never change a value: Left at the left edge opens the rail everywhere
 (section 8, rule 5); a value changes with Cross, and a slider is adjusted
@@ -955,7 +984,7 @@ the fixtures stand in).
 
 | Request | Ruling |
 | --- | --- |
-| A 1 (catalogs `search-suggest:<text>`, `search-preview:<text>`, `search-with:<options>:<query>`) | bridge |
+| A 1 (catalogs `search-suggest:<text>`, `search-preview:<text>`, `search-with:<options>:<query>`) | the first two are done (12c, "Search while typing"); `search-with` is the bridge's |
 | A 2 (facts `results`, `detail`, `state`, playlists among results) | in section 5.5; bridge |
 | A 3.1 to 3.5 (channel facts, the look, hand-over, `back_to`, actions) | done |
 | A 4.1 to 4.4 (boards and harness) | done |

@@ -115,7 +115,7 @@ typedef struct Request {
     ResolveQuality quality;
     PlaylistContext playlist;
     int page, music_origin, queue_origin, incognito;
-    int search_rows, library_search, aggregate;
+    int search_rows, library_search, aggregate, typed_suggest;
     int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content, startup, codec_fallback;
     unsigned intent, requires;
     char parent[160];
@@ -3731,6 +3731,7 @@ static void suggestions_result(Request *r, const cJSON *result) {
         if (duplicate) continue;
         char id[64]; snprintf(id, sizeof id, "search-suggest:run:%u:%d", g_playlist_scope, n);
         folder(&items[n], id, row->valuestring, "Cross searches for this");
+        if (r->typed_suggest) items[n].tube_interface = 0; /* a completion of what is being typed: YouTube's words, shown as they are */
         copy(g_suggestions.text[n++], sizeof g_suggestions.text[0], row->valuestring);
     }
     g_suggestions.count = n;
@@ -6501,6 +6502,12 @@ static int library_search(const char *parent, int page, evo_provider_items_cb cb
     return library_job(r, operation);
 }
 
+/* "<scope>:<index>", whole or cut short: the name of a listed completion (numbers and colons alone), as
+ * against a text that is being typed. */
+static int suggestion_row(const char *value) {
+    return strspn(value, "0123456789:") == strlen(value);
+}
+
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
     if (parent && !strcmp(parent, "settings:service-retry")) {   /* then the main menu again, with or without the row */
@@ -6522,7 +6529,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         snprintf(rerun,sizeof rerun,"search:%s",g_searches[index].query);
         if (!page) search_history_add(rerun+7);
         parent = rerun; typed = 1;
-    } else if (parent && (!strncmp(parent,"search-suggest:run:",19) || !strncmp(parent,"search-again:",13))) {
+    } else if (parent && ((!strncmp(parent,"search-suggest:run:",19) && suggestion_row(parent+19)) || !strncmp(parent,"search-again:",13))) {
         /* Both rows are named by the browsing scope: a stale or foreign row searches nothing. */
         const int again = parent[7] == 'a';
         char expected[64]; int index = -1;
@@ -6630,21 +6637,48 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
     }
     if (!tube_player_menu_calling()) tube_cancel(); /* an in-player listing leaves playback requests alone */
     if (local_catalog(parent, page, cb, ud)) return 0;
-    if (parent && (!strcmp(parent, "search-suggest") || !strncmp(parent, "description:", 12))) {
-        const int suggest = parent[0] == 's';
+    if (parent && (!strcmp(parent, "search-suggest") || !strncmp(parent, "search-suggest:", 15) || !strncmp(parent, "description:", 12))) {
+        /* "search-suggest:<text>" completes a text while it is typed: nothing is searched, kept in
+         * the history or made the last search by it. */
+        const int suggest = parent[0] == 's', typed_text = suggest && parent[14] == ':';
+        if (typed_text && !page && !tube_search_query_valid(parent + 15)) {
+            tube_set_error("Search again for the current profile."); cb(0, NULL, 0, 0, ud); return 0;
+        }
         if (page || (!suggest && !valid_id(parent + 12))) {
             tube_set_error(suggest ? "Suggestions do not have additional pages." : "Select a video to read its description.");
             cb(0, NULL, 0, 0, ud); return 0;
         }
         Request *r = request_new(suggest ? 16 : 15, ud); if (!r) return -1;
-        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent);
+        r->items_cb = cb; r->typed_suggest = typed_text; copy(r->parent, sizeof r->parent, parent);
         cJSON *operation = cJSON_CreateObject();
         cJSON_AddStringToObject(operation, "action", suggest ? "search_suggestions" : "description");
         cJSON_AddStringToObject(operation, "profile", g_library_profile);
         /* Without a search in this session the service lists its default completions. */
-        if (suggest) cJSON_AddStringToObject(operation, "query", last_search_current() ? g_last_search.query : "");
+        if (typed_text) cJSON_AddStringToObject(operation, "query", parent + 15);
+        else if (suggest) cJSON_AddStringToObject(operation, "query", last_search_current() ? g_last_search.query : "");
         else cJSON_AddStringToObject(operation, "id", parent + 12);
         return library_job(r, operation);
+    }
+    if (parent && !strncmp(parent, "search-preview:", 15)) {
+        /* The best matches for a text while it is typed: the first videos of a search for it. It is
+         * not a search the person ran: no history, no last search, no options, one page. */
+        if (page || !tube_search_query_valid(parent + 15)) {
+            tube_set_error(page ? "Search again to continue browsing these results." : "Search again for the current profile."); cb(0, NULL, 0, 0, ud); return 0;
+        }
+        /* With the library worker the rows are cards (views, age); without it the plain video search. */
+        const int cards = companion_known() ? companion_has(COMPANION_LIBRARY) : g_embedded;
+        Request *r = request_new(cards ? 3 : 1, ud); if (!r) return -1;
+        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent);
+        cJSON *operation = cJSON_CreateObject();
+        cJSON_AddStringToObject(operation, "action", "search");
+        cJSON_AddStringToObject(operation, "profile", g_library_profile);
+        cJSON_AddStringToObject(operation, "query", parent + 15);
+        if (cards) return library_job(r, operation);
+        cJSON_AddNumberToObject(operation, "page", 0);
+        char *body = cJSON_PrintUnformatted(operation); cJSON_Delete(operation);
+        if (!body || strlen(body) >= sizeof r->payload) { free(body); complete(r, 0); return -1; }
+        copy(r->payload, sizeof r->payload, body); free(body);
+        begin(r); return 0;
     }
     if (parent && (!strncmp(parent, "channel-tab:", 12) || !strncmp(parent, "channel-search:run:", 19) ||
         (page && valid_channel_group(parent) && (!strcmp(parent, g_library_parent) || companion_has(COMPANION_CHANNELS))))) {

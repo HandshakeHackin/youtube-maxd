@@ -8,7 +8,9 @@
 // Home assembles from the provider's catalogs, one request at a time and a
 // row further down only when the page reaches it; a service row's facts reach
 // the view model; a failed job and a cancelled request; the browsing profile
-// and the revision.
+// and the revision; a search while it is typed (completions and matches for
+// the text, a newer text taking the place of an older request, nothing kept
+// as a search).
 
 #include "afterglow/app/data_provider.hpp"
 #include "afterglow/app/play_start.hpp"
@@ -20,6 +22,7 @@ extern "C"
 #include "tube_provider.h"
 }
 
+#include <algorithm>
 #include <cassert>
 #include <cstdarg>
 #include <cstdio>
@@ -42,8 +45,9 @@ std::vector<Pending> g_pending;
 std::string g_error;
 int g_jobs_posted = 0;
 int g_most_jobs_at_once = 0;
-std::string g_last_job;            // the body of the job posted last
-std::vector<std::string> g_jobs;   // ... and of every job
+std::vector<std::string> g_jobs;   // the body of every job posted; job n is named fixture_job_<n>
+int g_jobs_deleted = 0;            // jobs the provider called back
+std::string g_health;              // the feature list a health request is answered with; "" for none
 // When set, the document a finished job returns is chosen by what the job asked.
 const char *(*g_route)(const std::string &job) = nullptr;
 
@@ -95,27 +99,42 @@ void serve(const char *job)
         if (p.url.find("/v1/pair") != std::string::npos)
             reply(0, 1, 200, "{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");
         else if (p.url.find("/v1/health") != std::string::npos)
-            reply(0, 1, 404, "{}");
+            reply(0, 1, g_health.empty() ? 404 : 200, g_health.empty() ? "{}" : g_health);
         else if (p.method == "POST" && p.url.find("/v1/jobs") != std::string::npos)
         {
             ++g_jobs_posted;
-            g_last_job = p.body;
             g_jobs.push_back(p.body);
-            reply(0, 1, 200, "{\"job\":\"fixture_job\",\"state\":\"pending\"}");
+            reply(0, 1, 200, "{\"job\":\"fixture_job_" + std::to_string(g_jobs.size() - 1) + "\",\"state\":\"pending\"}");
             usleep(300000);
             tube_poll();
         }
-        else if (p.url.find("/v1/jobs/fixture_job") != std::string::npos)
+        else if (p.url.find("/v1/jobs/fixture_job_") != std::string::npos)
         {
             if (p.method == "DELETE")
             {
+                ++g_jobs_deleted;
                 reply(0, 1, 200, "{}"); // a job called back
                 continue;
             }
-            const char *document = g_route != nullptr ? g_route(g_last_job) : job;
-            if (*document == '\0')
+            // A job whose document is "" is left unanswered: what was asked after it is served all the same.
+            std::size_t held = 0;
+            const char *document = "";
+            for (; held < g_pending.size(); ++held)
+            {
+                const std::size_t at = g_pending[held].url.find("/v1/jobs/fixture_job_");
+                if (g_pending[held].method != "GET" || at == std::string::npos)
+                    break;
+                const std::string &asked = g_jobs[static_cast<std::size_t>(std::atoi(g_pending[held].url.c_str() + at + 21))];
+                document = g_route != nullptr ? g_route(asked) : job;
+                if (*document != '\0')
+                    break;
+            }
+            if (held == g_pending.size())
                 return;
-            reply(0, 1, 200, document);
+            if (*document != '\0')
+                reply(held, 1, 200, document);
+            else
+                std::rotate(g_pending.begin(), g_pending.begin() + static_cast<std::ptrdiff_t>(held), g_pending.end());
         }
         else
         {
@@ -145,6 +164,34 @@ const char *guest_home(const std::string &job)
         return kRefused;
     return kTrending;
 }
+// A search while it is typed. The completions as the service's library action answers them, and the
+// matches twice: the plain video search (a companion that did not say what it offers) and the library's
+// cards (the built-in service: views and age beside the row, a channel and a playlist among the videos).
+const char *kCompletions = "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"search_suggestions\",\"query\":\"lofi be\","
+                           "\"suggestions\":[\"lofi beats\",\"lofi beats to study to\",\"Lofi Beats\",\"lofi beach\"]}}";
+const char *kStale = "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"search_suggestions\",\"query\":\"lofi\",\"suggestions\":[\"lofi girl\"]}}";
+const char *kCards =
+    "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"catalog\",\"items\":["
+    "{\"kind\":\"channel\",\"id\":\"channel:UCcccccccccccccccccccccc\",\"title\":\"Orbitwell\",\"subtitle\":\"3.9M subscribers\",\"is_folder\":true},"
+    "{\"kind\":\"video\",\"id\":\"bbbbbbbbbb1\",\"title\":\"How Tides Work\",\"subtitle\":\"Orbitwell\",\"channel_id\":\"UCcccccccccccccccccccccc\","
+    "\"duration_sec\":611,\"views\":\"58M views\",\"published\":\"4 years ago\",\"art_url\":\"https://i.ytimg.com/vi/bbbbbbbbbb1/hq720.jpg\"},"
+    "{\"kind\":\"playlist\",\"id\":\"library:playlist:PLaaaaaaaaaaaaaaaa\",\"title\":\"Tides, a series\",\"subtitle\":\"Orbitwell\",\"is_folder\":true},"
+    "{\"kind\":\"video\",\"id\":\"bbbbbbbbbb2\",\"title\":\"The Deep Field\",\"subtitle\":\"Northlight Atlas\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\","
+    "\"duration_sec\":1290,\"views\":\"14M views\",\"published\":\"1 month ago\"}"
+    "],\"has_more\":true,\"cursor\":\"cursor0123456789\"}}";
+bool g_stale_answers = false;
+const char *typing(const std::string &job)
+{
+    const auto asks = [&](const char *text) { return job.find(text) != std::string::npos; };
+    if (asks("\"action\":\"search_suggestions\""))
+        return asks("\"query\":\"lofi be\"") ? kCompletions : g_stale_answers ? kStale : ""; // "lofi" is not answered until later
+    if (asks("\"action\":\"library\"") && asks("\"action\":\"search\""))
+        return kCards;
+    if (asks("\"action\":\"search\""))
+        return kSearch;
+    return kTrending;
+}
+
 bool job_asked(const char *text)
 {
     for (const std::string &job : g_jobs)
@@ -404,6 +451,95 @@ int main()
             serve(kTrending);
         }
         assert(after && source.pending() == 0);
+
+        // A search while it is typed. "search-suggest:<text>" asks YouTube's completions of the text
+        // through the service; the rows are YouTube's words (not interface texts). A key typed
+        // meanwhile lets the older request go: its job is called back, the newer text is asked at
+        // once, and the older answer, when it comes after all, reaches nobody.
+        g_route = typing;
+        const std::size_t jobs_before = g_jobs.size();
+        const int deleted_before = g_jobs_deleted;
+        const Page *older = &data.catalog("search-suggest:lofi");
+        for (int i = 0; i < 4; ++i)
+        {
+            data.pump();
+            serve("");
+        }
+        assert(older->load == model::Load::loading && source.pending() == 1 && g_jobs.size() == jobs_before + 1);
+        assert(g_jobs.back().find("\"action\":\"search_suggestions\"") != std::string::npos && g_jobs.back().find("\"query\":\"lofi\"") != std::string::npos);
+        data.forget("search-suggest:lofi"); // the text moved on
+        assert(source.pending() == 0);
+        const Page *completions = &data.catalog("search-suggest:lofi be");
+        const Page *matches = &data.catalog("search-preview:lofi be");
+        for (int i = 0; i < 40 && (completions->load == model::Load::loading || matches->load == model::Load::loading); ++i)
+        {
+            data.pump();
+            serve("");
+        }
+        if (completions->load != model::Load::ready || matches->load != model::Load::ready)
+            std::fprintf(stderr, "typing: completions %d (%s), matches %d (%s)\n", static_cast<int>(completions->load), completions->error.c_str(),
+                         static_cast<int>(matches->load), matches->error.c_str());
+        assert(g_jobs_deleted > deleted_before && g_most_jobs_at_once <= 1); // the older job was called back
+        assert(completions->load == model::Load::ready && completions->rows.size() == 3 && completions->videos.empty());
+        assert(completions->rows[0].title == "lofi beats" && completions->rows[1].title == "lofi beats to study to" && completions->rows[2].title == "lofi beach");
+        for (const model::Row &row : completions->rows)
+            assert(row.folder && !row.interface_text);
+        // The matches: the first videos of a search for the text, without the two rows that lead a search a person ran.
+        assert(matches->load == model::Load::ready && matches->videos.size() == 2 && matches->rows.size() == 2 && !matches->more);
+        assert(matches->videos[0].title == "How Tides Work" && matches->videos[0].channel == "Orbitwell" && matches->videos[1].duration_s == 1290);
+        assert(g_jobs.back().find("\"query\":\"lofi be\"") != std::string::npos && g_jobs.back().find("\"action\":\"search\"") != std::string::npos);
+        // The answer to the older text arrives now: nothing changes, nothing is delivered.
+        g_stale_answers = true;
+        for (int i = 0; i < 4; ++i)
+        {
+            serve("");
+            data.pump();
+        }
+        assert(g_pending.empty() && source.pending() == 0 && completions->rows.size() == 3 && completions->rows[0].title == "lofi beats");
+        // No text, a second page and a text that is no query are refused in words, without a request.
+        const std::size_t jobs_typed = g_jobs.size();
+        for (const char *refused : {"search-suggest:", "search-preview:", "search-preview:   "})
+        {
+            const Page *page = &data.catalog(refused);
+            for (int i = 0; i < 4 && page->load == model::Load::loading; ++i)
+                data.pump();
+            assert(page->load == model::Load::failed && !page->error.empty());
+        }
+        const Page *second_page = &data.catalog("search-preview:lofi be", 1);
+        for (int i = 0; i < 4 && second_page->load == model::Load::loading; ++i)
+            data.pump();
+        assert(second_page->load == model::Load::failed && g_jobs.size() == jobs_typed);
+        // Typing is not searching: the profile's recent searches hold none of it.
+        const Page *recent = &data.catalog("search-history");
+        for (int i = 0; i < 4 && recent->load == model::Load::loading; ++i)
+            data.pump();
+        assert(recent->load == model::Load::ready);
+        for (const model::Row &row : recent->rows)
+            assert(row.title.find("lofi") == std::string::npos);
+        // A service that lists the library (the built-in one does) is asked for cards: the matches then
+        // carry views and age, and a channel or a playlist among them stays out of the strip's videos.
+        g_health = "{\"api_version\":1,\"mode\":\"youtube\",\"features\":[\"search\",\"library\"]}";
+        const Page *kids = &data.catalog("section:kids"); // a list that reads what the service offers first
+        for (int i = 0; i < 12 && kids->load == model::Load::loading; ++i)
+        {
+            data.pump();
+            serve("");
+        }
+        assert(kids->load == model::Load::failed); // this service has no Kids; its feature list is known now
+        const Page *cards = &data.catalog("search-preview:tides");
+        for (int i = 0; i < 12 && cards->load == model::Load::loading; ++i)
+        {
+            data.pump();
+            serve("");
+        }
+        if (cards->load != model::Load::ready || cards->videos.size() != 2)
+            std::fprintf(stderr, "cards: load %d, %zu videos, %zu rows, error %s\n", static_cast<int>(cards->load), cards->videos.size(), cards->rows.size(), cards->error.c_str());
+        assert(g_jobs.back().find("\"action\":\"library\"") != std::string::npos && g_jobs.back().find("\"query\":\"tides\"") != std::string::npos);
+        assert(cards->load == model::Load::ready && cards->videos.size() == 2 && cards->channels.size() == 1 && cards->rows.size() == 4);
+        assert(cards->videos[0].views == "58M views" && cards->videos[0].age == "4 years ago" && cards->videos[1].age == "1 month ago");
+        g_route = nullptr;
+        g_health.clear();
+        assert(source.pending() == 0);
     }
     {
         // A chosen video until the player has the screen (app/play_start.hpp), from what the provider
@@ -459,6 +595,7 @@ int main()
     }
     p->shutdown();
     std::puts("PASS: Afterglow data on the provider: Guest Home with videos first, one request at a time and no further than the page reaches, row facts in the view "
-              "models, a failed job, a cancelled request, a typed text with no prompt armed, the browsing profile");
+              "models, a failed job, a cancelled request, a typed text with no prompt armed, the browsing profile, completions and matches while a search is "
+              "typed with a newer text taking the place of an older request");
     return 0;
 }
