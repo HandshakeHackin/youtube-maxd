@@ -31,7 +31,7 @@ none selected), other codecs and resolutions, expiry recovery, accounts.
 
 - 2026-10-13 | same build, first attempt | 6b3b1c41 | PS5 | no functional result: the app started, drew the main menu, started the service and closed cleanly, but the driver's readiness check expected another interface layer and ended the session after 90 s | same evidence root, run of 12:46Z | driver corrected from the captured snapshot
 
-Console scheduling: `192.168.4.40` is shared with another agent. Before every
+Console scheduling: the test console is shared with another agent. Before every
 console test session, check the shared local lock and the console's running
 applications through the established idle-check protocol. Do not interrupt a
 busy console or assume an earlier idle check reserves it. Complete remaining

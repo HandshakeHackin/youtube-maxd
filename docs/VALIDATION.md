@@ -3392,7 +3392,7 @@ Sony module/decoder behavior remains mocked in these host tests.
 
 Frozen `prosperotube-58390ef6_1010-0550` passed the initial idle check,
 126-file stored-byte upload/readback, 130-second settling, a second complete
-readback, registration and final idle check on `192.168.4.40`. One launch reached
+readback, registration and final idle check on the test console. One launch reached
 the matching build's `main()`. Lapy returned `apply_failed` (7), startup stopped
 at the required `/data/prosperotube` gate, and the system recorded user-process
 SIGSYS. The adapter stopped without input, close or relaunch and released its

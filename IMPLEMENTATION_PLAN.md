@@ -20,7 +20,7 @@ metadata is absent; do not generalize that into arbitrary autoplay substitution.
 Current work is offline only, at the user's request. Complete all remaining
 offline implementation, validation and final-candidate packaging before connecting
 to either console; intermediate builds do not satisfy this gate. See GOAL.md.
-Console `192.168.4.40` is shared with another agent. Once the final candidate is
+The test console is shared with another agent. Once the final candidate is
 ready, inspect the shared lock and running titles before testing, and leave a
 busy console untouched; earlier availability is not a continuing reservation.
 
