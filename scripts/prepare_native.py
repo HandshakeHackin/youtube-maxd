@@ -503,6 +503,8 @@ static void run_command(const char *line)
     apply_close_pending_start_overlay(replace, player, WORK)
     from evo_net_lanes_overlay import apply as apply_evo_net_lanes_overlay
     apply_evo_net_lanes_overlay(replace, player, WORK)
+    from video_read_ahead_floor_overlay import apply as apply_video_read_ahead_floor_overlay
+    apply_video_read_ahead_floor_overlay(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)

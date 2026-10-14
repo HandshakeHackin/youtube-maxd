@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <cstring>
 
-struct AVCodecParameters { long long bit_rate; };
+struct AVCodecParameters { long long bit_rate; int width, height; };
 struct AVStream { AVCodecParameters *codecpar; };
 struct AVFormatContext { unsigned nb_streams; AVStream **streams; long long bit_rate; };
 struct PacketQueue { size_t ring; };
@@ -32,8 +32,9 @@ struct Caps { int video, audio; long long video_bytes, audio_bytes; };
 static bool operator==(const Caps &a, const Caps &b) {
     return a.video == b.video && a.audio == b.audio && a.video_bytes == b.video_bytes && a.audio_bytes == b.audio_bytes;
 }
-static Caps sized(int buffer, bool network, bool ring, long long bits_per_second, double fps) {
-    AVCodecParameters parameters = {bits_per_second}; AVStream stream = {&parameters}; AVStream *streams[] = {&stream};
+static Caps sized(int buffer, bool network, bool ring, long long bits_per_second, double fps,
+                  int width = 1920, int height = 1080) {
+    AVCodecParameters parameters = {bits_per_second, width, height}; AVStream stream = {&parameters}; AVStream *streams[] = {&stream};
     AVFormatContext format = {1, streams, 0};
     TubePlayerExtra prefs; tube_player_extra_defaults(&prefs); prefs.video_buffer = buffer; tube_player_extra_select(&prefs);
     assert(tube_extra_buffer() == buffer);
@@ -100,6 +101,17 @@ int main() {
         assert(sized(buffer, true, false, 17174000, 30.0) == original(false, 17174000, 30.0));
         assert(strstr(logged, "read-ahead 10s ->"));
     }
+    /* Public 4K DASH/WebM reported 2 kbit/s: the old 8 MiB byte cap bound
+     * at ~120 packets with audio empty after seek, slowing the video drain.
+     * This fixture keeps a 48 MiB cushion under both ring and pool ceilings. */
+    const Caps broken_metadata_ring = sized(TUBE_BUFFER_MEDIUM, true, true, 2000, 25.0, 3840, 2160);
+    assert(broken_metadata_ring.video == 750 && broken_metadata_ring.video_bytes == 48 * megabyte);
+    assert(10 * megabyte < broken_metadata_ring.video_bytes);
+    assert(sized(TUBE_BUFFER_MEDIUM, true, false, 2000, 25.0, 3840, 2160).video_bytes == 48 * megabyte);
+    assert(sized(TUBE_BUFFER_MEDIUM, true, true, 2000, 25.0, 2560, 1440).video_bytes == 8 * megabyte);
+    assert(sized(TUBE_BUFFER_LOW, true, true, 2000, 25.0, 3840, 2160).video_bytes == 8 * megabyte);
+    assert(sized(TUBE_BUFFER_LOW, true, false, 2000, 25.0, 3840, 2160).video_bytes == 8 * megabyte);
+    assert(sized(TUBE_BUFFER_MEDIUM, true, true, 17174000, 25.0, 3840, 2160).video_bytes == 64402500);
     tube_player_extra_select(nullptr);
     puts("PASS: video buffer choices in the shipping read-ahead sizing, Medium unchanged, ring and pool ceilings kept");
     return 0;
