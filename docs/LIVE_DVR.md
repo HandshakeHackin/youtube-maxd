@@ -19,7 +19,7 @@ PROSPEROTUBE_DVR_FFMPEG_SOURCE=/absolute/path/to/isolated/ffmpeg-7.1.1 \
   bash scripts/test_live_dvr.sh --diagnose-current-limitations
 ```
 
-The runner generates twelve seconds of small H.264 media, exposes four segments
+The runner generates twenty seconds of small H.264/AAC media, exposes four segments
 through a loopback-only, random session path, and limits the origin to 200
 requests. It retains no media after the run. It exercises the real demuxer's
 finite control, an unfinished rolling playlist, an EVENT playlist, a moved
@@ -83,3 +83,51 @@ session, A/V timeline calibration, discontinuity/PTS-wrap refusal, concurrent
 window snapshots/seek requests, expired-target rejection before clock mutation,
 profile/session ownership, meaningful reopen/restore and console decode/seek/audio
 proof. No PS5 FFmpeg rebuild or SDK modification was performed for this diagnostic.
+
+## Isolated host candidate
+
+`scripts/patch_ffmpeg_hls_dvr.py` now supplies a checked, opt-in host candidate.
+It is not connected to the PS5 build or native controls. Apply it to a pristine,
+isolated pinned `libavformat/hls.c`, then rebuild that copy's `libavformat.a`:
+
+```sh
+python3 scripts/patch_ffmpeg_hls_dvr.py /isolated/ffmpeg/libavformat/hls.c
+make -C /isolated/ffmpeg -j4 libavformat/libavformat.a
+PROSPEROTUBE_DVR_CANDIDATE=1 \
+  PROSPEROTUBE_DVR_FFMPEG_SOURCE=/isolated/ffmpeg \
+  bash scripts/test_live_dvr.sh --candidate-window
+```
+
+The patch is default-off (`prosperotube_dvr=1` enables it). Its digest makes
+reapplication idempotent; changed overlays require a fresh pinned source file.
+It supports only a single unencrypted continuous playlist with explicit UTC
+program-date-time, positive bounded durations, a 12-hour maximum window and an
+initial key packet with matching PTS/DTS. Missing/invalid identity, multiple
+playlists/renditions, gaps, discontinuities, transport reset/reordering, sequence
+rollback, changed overlapping timestamps/durations, no-overlap window jumps and
+PTS-wrap boundaries leave DVR unsupported or retire its calibration. This is a
+conservative first stage; split YouTube audio/video playlists remain unsupported.
+
+The demux thread calibrates the packet/program timeline and refreshes the
+upstream playlist before accepting each live seek. Snapshot copies use a mutex;
+readers must finish before their owner closes the format context. Snapshots age
+out after three target durations (at least five seconds). No media cache or
+additional background fetch loop is added. The API in `native/tube_hls_dvr.h`
+returns exclusive PTS/UTC bounds and checked conversions between a point in those
+timelines. It deliberately carries no profile/video authority: native code must
+bind every snapshot and saved point to its active source/session/profile/video.
+
+The candidate acceptance includes real H.264/AAC packets, the earlier live-window
+seek, active rollover with concurrent snapshot reads, stale-deadline refusal,
+upstream expiry, unsupported playlists, transport reset and reopened-window
+mapping. Reopening restores the same UTC point while its lag increases by four
+seconds; a different program timeline and a point evicted from the window are
+refused. The run makes 138 loopback requests. The modified `hls.c` itself and test
+probe pass ASan/UBSan instrumentation. Its PS5 object compiles in an isolated
+copied configuration/source tree using read-only SDK headers; only existing
+upstream pointer-sign warnings remain. No PS5 archive was rebuilt or installed.
+
+Native seek gates, moving lower/upper timeline bounds, initial clock anchoring,
+account-scoped saved-point persistence and source/session ownership tests remain
+pending. This host stage does not establish console DVR or remote split-stream
+calibration, and must not be advertised as completed DVR support.

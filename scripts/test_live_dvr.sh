@@ -8,8 +8,10 @@ mkdir -p "${destination}"
 for archive in libavformat/libavformat.a libavcodec/libavcodec.a libswresample/libswresample.a libavutil/libavutil.a; do
     [[ -f "${source}/${archive}" ]] || { echo "Missing candidate archive: ${source}/${archive}" >&2; exit 2; }
 done
-cc -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
-    -I"${source}" "${root}/tests/test_live_dvr.c" \
+candidate=()
+[[ "${PROSPEROTUBE_DVR_CANDIDATE:-0}" == 1 ]] && candidate=(-DTUBE_DVR_CANDIDATE=1)
+cc "${candidate[@]}" -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
+    -I"${source}" -I"${root}/native" "${root}/tests/test_live_dvr.c" \
     "${source}/libavformat/libavformat.a" "${source}/libavcodec/libavcodec.a" \
     "${source}/libswresample/libswresample.a" "${source}/libavutil/libavutil.a" \
     -lm -pthread -lxml2 -lssl -lcrypto -latomic -lz -lbz2 -llzma -o "${destination}/probe"
