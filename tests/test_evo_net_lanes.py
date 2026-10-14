@@ -34,6 +34,8 @@ static void control_cb(int ok, int status, const char *body, size_t len, void *c
 { (void)body; (void)len; (void)ctx; control_done = 1; control_ok = ok && status == 200; }
 static double now(void)
 { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }
+static void sleep_ms(long ms)
+{ struct timespec t = {ms / 1000, (ms % 1000) * 1000000}; nanosleep(&t, NULL); }
 int main(int argc, char **argv)
 {
     if (argc != 3 || evo_net_init() != 0) return 2;
@@ -46,11 +48,11 @@ int main(int argc, char **argv)
         snprintf(image, sizeof image, "http://127.0.0.1:%s/fast.png?i=33", argv[1]);
         if (evo_net_request_async("GET", image, NULL, NULL, 0, image_cb, NULL) != EVO_NET_ASYNC_ERR_FULL) return 7;
         double start = now();
-        while (image_done < 32 && now() - start < 3.0) { evo_net_poll(); usleep(10000); }
+        while (image_done < 32 && now() - start < 3.0) { evo_net_poll(); sleep_ms(10); }
         if (image_done != 32) return 8;
         if (evo_net_request_async("GET", image, NULL, NULL, 0, image_cb, NULL) != 0) return 9;
         start = now();
-        while (image_done < 33 && now() - start < 1.0) { evo_net_poll(); usleep(10000); }
+        while (image_done < 33 && now() - start < 1.0) { evo_net_poll(); sleep_ms(10); }
         printf("accepted=32 rejected=1 callbacks=%d reaccepted=%d\\n", image_done, image_done == 33);
         evo_net_shutdown();
         return image_done == 33 ? 0 : 10;
@@ -58,10 +60,10 @@ int main(int argc, char **argv)
     snprintf(image, sizeof image, "http://127.0.0.1:%s/%s", argv[1], argv[2]);
     snprintf(control, sizeof control, "http://127.0.0.1:%s/control", argv[1]);
     if (evo_net_request_async("GET", image, NULL, NULL, 0, image_cb, NULL) != 0) return 3;
-    usleep(100000);
+    sleep_ms(100);
     double start = now();
     if (evo_net_request_async("GET", control, NULL, NULL, 0, control_cb, NULL) != 0) return 4;
-    while (!control_done && now() - start < 1.0) { evo_net_poll(); usleep(10000); }
+    while (!control_done && now() - start < 1.0) { evo_net_poll(); sleep_ms(10); }
     int pass = control_done && control_ok && !image_done;
     printf("control_done=%d control_ok=%d image_done=%d elapsed=%.3f\\n",
            control_done, control_ok, image_done, now() - start);
@@ -104,7 +106,7 @@ class NetLanesTest(unittest.TestCase):
                 binary = Path(tmp) / "lanes"
                 source.write_text(HARNESS)
                 subprocess.run([
-                    "cc", "-std=c11", "-DNO_OPENSSL", "-pthread", "-Wno-implicit-function-declaration",
+                    "cc", "-std=c11", "-DNO_OPENSSL", "-pthread", "-Wall", "-Wextra", "-Werror",
                     "-I", str(EVO / "addons/include"), "-I", str(EVO / "include"),
                     str(source), str(EVO / "addons/src/evo_net.c"), "-o", str(binary),
                 ], check=True, capture_output=True, text=True)
