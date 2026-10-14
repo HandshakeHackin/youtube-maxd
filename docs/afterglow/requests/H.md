@@ -10,13 +10,17 @@ the code they are marked `// REQUEST:`.
 
 ## What the player has to say or do (PlayerScreen, the provider, overlays)
 
-1. **The proposal's controller map in the player.** Today: Triangle changes the
-   aspect, Square opens the media details, Options the playback details, R2 the
-   options, Down the caption picker (or the related videos). The design notes
-   ask for Triangle: Up next, Square: Captions, Options: playback options. The
-   pad is not this package's. Stand-in: the hint row and the seek hints say
-   what the buttons do today (`fill_controls()`); the fixtures carry the
-   proposal's map.
+1. **The proposal's controller map in the player.** Implemented for Afterglow
+   through `scripts/afterglow_controls_overlay.py`: Triangle opens the existing
+   Up next / related-video list, Square opens Captions, and Options opens
+   grouped playback options. Down and R2 remain aliases. Classic retains its
+   bindings. Scrubbing, phone ownership, SponsorBlock asks/Undo and the next
+   video offer keep ownership ahead of these shortcuts. Media Details and
+   Playback details (codec statistics) remain reachable from playback options.
+   Mounted hints match the actual map; host fixtures carry the same proposal.
+   `scripts/test_afterglow_controls.py` executes the generated map and detail
+   actions, ownership guards and aliases. The 85 player boards pass in four
+   looks; console acceptance remains pending.
 2. **Facts of the playing video**: channel name, channel id, channel picture,
    views and age. Proposed: `const char *tube_playing_fact(const char *name)`
    with the names of section 5.5 (`channel`, `channel_id`, `channel_art_url`,

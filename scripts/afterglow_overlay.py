@@ -244,6 +244,8 @@ def apply(root, work, replace, player):
     afterglow_picker_overlay.apply(root, work, replace, player)
     import background_play_overlay
     background_play_overlay.apply(root, work, replace, player)
+    import afterglow_controls_overlay
+    afterglow_controls_overlay.apply(work, replace, player)
     import video_destination_overlay
     video_destination_overlay.apply(root, work, replace, player)
 

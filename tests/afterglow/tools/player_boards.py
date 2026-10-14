@@ -133,7 +133,7 @@ def states():
         {"author": "quietpixel", "text": "the light coming over the ridge. Rewound it four times."},
         {"author": "Mirela K.", "text": "no voice-over, no music, just wind and boots"},
         {"author": "Northlight Atlas", "text": "Route notes and the gear list are in the description.", "badge": 3}],
-        "hints": [hint("cross", "Pause"), hint("triangle", "Hide chat"), hint("options", "Options")]}
+        "hints": [hint("cross", "Pause"), hint("triangle", "Up next"), hint("options", "Options")]}
     return [
         board("player-paused", "ridge", view={"paused": True},
               expect={"focus": "osd-paused", "state": {"playback": "paused"}}),

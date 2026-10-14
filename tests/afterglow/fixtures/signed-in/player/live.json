@@ -14,7 +14,7 @@
  "duration": 0,
  "controls": ["play_pause", "captions", "quality", "chat", "more"],
  "hints": [
-  {"button": "triangle", "label": "Show chat"},
+  {"button": "triangle", "label": "Up next"},
   {"button": "square", "label": "Captions"},
   {"button": "options", "label": "Options"}
  ],
@@ -40,7 +40,7 @@
   "hints": [
    {"button": "cross", "label": "Pause"},
    {"button": "l2", "second": "r2", "label": "Scroll chat"},
-   {"button": "triangle", "label": "Hide chat"},
+   {"button": "triangle", "label": "Up next"},
    {"button": "options", "label": "Options"}
   ]
  }

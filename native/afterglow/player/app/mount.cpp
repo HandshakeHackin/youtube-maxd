@@ -350,8 +350,9 @@ void fill_controls(Mount &m)
         v.hints.push_back({ui::Button::dpad, ui::Button::none, tr("Seek")});
     if (chapters > 1)
         v.hints.push_back({ui::Button::l1, ui::Button::r1, tr("Chapter")});
-    v.hints.push_back({ui::Button::r2, ui::Button::none, tr("Options")});
-    v.hints.push_back({ui::Button::square, ui::Button::none, tr("Details")});
+    v.hints.push_back({ui::Button::triangle, ui::Button::none, tr("Up next")});
+    v.hints.push_back({ui::Button::square, ui::Button::none, tr("Captions")});
+    v.hints.push_back({ui::Button::options, ui::Button::none, tr("Options")});
     v.hints.push_back({ui::Button::circle, ui::Button::none, tr("Back")});
     v.seek_hints.clear();
     v.seek_hints.push_back({ui::Button::dpad, ui::Button::none, tr("Hold to scrub")});
