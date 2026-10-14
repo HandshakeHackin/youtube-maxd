@@ -53,8 +53,8 @@ fi
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi
-ffmpeg_patch=$(sha256sum "${root}/scripts/patch_ffmpeg_dash_seek.py" | cut -d ' ' -f 1)
-ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-atempo-v1-dash-${ffmpeg_patch}"
+ffmpeg_patch=$(cat "${root}/scripts/patch_ffmpeg_dash_seek.py" "${root}/scripts/patch_ffmpeg_hls_dvr.py" "${root}/scripts/ffmpeg_hls_dvr.inc" | sha256sum | cut -d ' ' -f 1)
+ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-atempo-v1-dash-hls-dvr-${ffmpeg_patch}"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
    [[ "$(cat "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG")" != "${ffmpeg_identity}" ]]; then
     bash "${work}/scripts/build-ffmpeg.sh" --install --jobs 8
@@ -62,6 +62,13 @@ if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
     grep -q '^#define CONFIG_ATEMPO_FILTER 1$' "${work}/build/ffmpeg/7.1.1-minimal/config_components.h"
     printf '%s\n' "${ffmpeg_identity}" > "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG"
 fi
+# A stamped SDK must expose the checked window contract, not just HLS decoding.
+"${PS5_PAYLOAD_SDK}/bin/prospero-nm" --defined-only "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libavformat.a" > "${root}/.deps/ps5-format-symbols.txt"
+for symbol in av_hls_get_dvr_window av_hls_dvr_prepare_seek av_hls_dvr_point_identity av_hls_dvr_pts_to_wall av_hls_dvr_wall_to_pts; do
+    grep -Eq "[[:space:]][Tt][[:space:]]+${symbol}$" "${root}/.deps/ps5-format-symbols.txt" || {
+        echo "The PS5 FFmpeg archive lacks required checked HLS DVR entry point ${symbol}." >&2; exit 2;
+    }
+done
 "${PS5_PAYLOAD_SDK}/bin/prospero-nm" --defined-only "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libavcodec.a" > "${root}/.deps/ps5-codec-symbols.txt"
 grep -Eq '[[:space:]][Dd][[:space:]]+ff_libdav1d_decoder$' "${root}/.deps/ps5-codec-symbols.txt" || {
     echo 'The PS5 FFmpeg archive lacks the required libdav1d AV1 decoder.' >&2; exit 2;

@@ -439,11 +439,13 @@ static void run_command(const char *line)
     # Own build trees live on Linux; leave the installed SDK untouched.
     replace("scripts/build-ffmpeg.sh", 'BUILD_DIR="/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"', 'BUILD_DIR="${REPO_ROOT}/build/ffmpeg/${FFMPEG_VERSION}-${PROFILE}"')
     replace("scripts/build-ffmpeg.sh", 'STAGE_DIR="/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"', 'STAGE_DIR="${REPO_ROOT}/build/ffmpeg/stage-${FFMPEG_VERSION}-${PROFILE}"')
-    shutil.copyfile(ROOT / "scripts/patch_ffmpeg_dash_seek.py", WORK / "scripts/patch_ffmpeg_dash_seek.py")
+    for name in ("patch_ffmpeg_dash_seek.py", "patch_ffmpeg_hls_dvr.py", "ffmpeg_hls_dvr.inc"):
+        shutil.copyfile(ROOT / "scripts" / name, WORK / "scripts" / name)
     replace("scripts/build-ffmpeg.sh",
             'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."',
             'need_file "${SRC_DIR}/configure" "FFmpeg source tree looks wrong."\n'
-            'python3 "${REPO_ROOT}/scripts/patch_ffmpeg_dash_seek.py" "${SRC_DIR}/libavformat/dashdec.c"')
+            'python3 "${REPO_ROOT}/scripts/patch_ffmpeg_dash_seek.py" "${SRC_DIR}/libavformat/dashdec.c"\n'
+            'python3 "${REPO_ROOT}/scripts/patch_ffmpeg_hls_dvr.py" "${SRC_DIR}/libavformat/hls.c"')
     replace(player + "Makefile", "    addons/src/tube_provider.c", "    addons/src/tube_provider.c \\\n    addons/src/tube_audio_tempo.c")
     replace(player + "Makefile", "    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavformat.a", "    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavfilter.a \\\n    $(PS5_PAYLOAD_SDK)/target/user/homebrew/lib/libavformat.a")
     replace("scripts/package-app.sh", "             libavformat libavcodec", "             libavfilter libavformat libavcodec")

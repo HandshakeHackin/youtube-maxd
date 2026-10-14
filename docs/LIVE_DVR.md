@@ -234,3 +234,25 @@ the dedicated generated tree with read-only SDK inputs. The stock weak-import
 fallback still passes. This establishes host integration, not console DVR:
 PS5 FFmpeg archive rebuilding, packaging and real live A/V seek/restore remain
 coordinated work after the playback hardware investigation.
+
+## Reproducible PS5 recipe, rebuild still coordinated
+
+`prepare_native.py` copies the HLS patcher and helper into the generated build
+scripts and applies it beside the existing DASH patch before FFmpeg configure.
+The patcher accepts only the exact pristine FFmpeg 7.1.1 HLS source, preserves a
+SHA-256-checked original, and regenerates future overlay revisions from that
+original. A damaged backup, unknown source or edited current overlay stops the
+build. The regression accepts a pristine HLS source path:
+
+```sh
+python3 tests/test_hls_dvr_patch.py /isolated/ffmpeg-7.1.1/libavformat/hls.c
+```
+
+The SDK identity now hashes both patchers and the HLS helper; the application
+build checks all five public HLS DVR symbols in the resulting avformat archive.
+This recipe change deliberately requires a coordinated FFmpeg SDK rebuild when
+`build_ps5.sh` next runs. No build/install was invoked against the shared SDK in
+this stage. Generated script syntax and pinned-source regeneration tests pass;
+the regenerated isolated host HLS archive still passes instrumented live-window,
+identity/runtime and stock-fallback acceptance. Hardware DVR validation remains
+pending, and unsupported/multi-playlist/uncalibrated streams remain non-seekable.

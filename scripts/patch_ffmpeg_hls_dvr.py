@@ -98,14 +98,41 @@ static struct segment *current_segment'''),
     return stamp + '\n' + source
 
 
+PRISTINE_SHA256 = '9636cb28c92441211a01bacf3950e9fbda287499a0aee51f0d5b67b029d23199'
+
+
+def apply_file(path):
+    source = path.read_text()
+    backup = path.with_name(path.name + '.prosperotube-original')
+    pristine = backup.read_bytes() if backup.exists() else None
+    if pristine is not None and hashlib.sha256(pristine).hexdigest() != PRISTINE_SHA256:
+        raise RuntimeError('Pinned HLS original backup does not match FFmpeg 7.1.1')
+    if '/* ProsperoTube HLS DVR overlay:' not in source:
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != PRISTINE_SHA256:
+            raise RuntimeError('HLS source does not match pristine pinned FFmpeg 7.1.1')
+        if pristine is None:
+            backup.write_bytes(raw)
+            pristine = raw
+    if pristine is not None:
+        result = patch(pristine.decode())
+        # Regenerate a changed overlay from the checked original, never layer
+        # edits onto an older private structure/layout or an unverified file.
+        if '/* ProsperoTube HLS DVR overlay:' in source and source.splitlines()[0] == result.splitlines()[0] and result != source:
+            raise RuntimeError('Current HLS overlay was modified outside its patcher')
+    else:
+        # Copies patched before backups were introduced remain idempotent;
+        # updating one requires restoring the pristine pinned source first.
+        result = patch(source)
+    path.with_name('prosperotube_hls_dvr.inc').write_text(Path(__file__).with_name('ffmpeg_hls_dvr.inc').read_text())
+    if result != source: path.write_text(result)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     args = parser.parse_args()
-    source = args.source.read_text()
-    result = patch(source)
-    args.source.with_name('prosperotube_hls_dvr.inc').write_text(Path(__file__).with_name('ffmpeg_hls_dvr.inc').read_text())
-    if result != source: args.source.write_text(result)
+    apply_file(args.source)
 
 
 if __name__ == '__main__': main()
