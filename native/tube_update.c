@@ -15,7 +15,7 @@ struct tube_update {
     pthread_mutex_t lock;
     pthread_t checker;
     int checking, joined, announced, development;
-    char settings[512];
+    char settings[512], notes[sizeof(((self_update_offer *)0)->notes)];
 };
 
 static void save_settings(tube_update *u) {
@@ -65,6 +65,7 @@ tube_update *tube_update_new(const tube_update_config *config) {
 
 void tube_update_free(tube_update *u) {
     if (!u) return;
+    /* shortcut: catalog shutdown joins up to 120 s of GET budgets plus synchronous DNS; add cancellable transport if console acceptance requires it. */
     if (u->joined) pthread_join(u->checker, NULL);
     self_update_cancel(&u->job);
     self_update_finish(&u->job);
@@ -145,8 +146,20 @@ void tube_update_get(tube_update *u, tube_update_status *status) {
     *status = u->status;
     pthread_mutex_unlock(&u->lock);
 }
-const char *tube_update_notes(tube_update *u) { return u->offer.notes; }
-int tube_update_notes_truncated(tube_update *u) { return u->offer.notes_truncated; }
+const char *tube_update_notes(tube_update *u) {
+    pthread_mutex_lock(&u->lock);
+    /* Only the main thread changes this snapshot; a completing check cannot invalidate it. */
+    if (u->checking) u->notes[0] = 0;
+    else memcpy(u->notes, u->offer.notes, sizeof u->notes);
+    pthread_mutex_unlock(&u->lock);
+    return u->notes;
+}
+int tube_update_notes_truncated(tube_update *u) {
+    pthread_mutex_lock(&u->lock);
+    const int truncated = !u->checking && u->offer.notes_truncated;
+    pthread_mutex_unlock(&u->lock);
+    return truncated;
+}
 void tube_update_set_notify(tube_update *u, int enabled) {
     pthread_mutex_lock(&u->lock);
     u->status.notify = !!enabled; save_settings(u);

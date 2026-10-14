@@ -36,6 +36,7 @@ void tube_update_cancel(tube_update *update);
 int tube_update_apply(tube_update *update);
 void tube_update_discard(tube_update *update);
 void tube_update_get(tube_update *update, tube_update_status *status);
+/* Main thread: snapshot valid until the next notes getter or free; empty during a check. */
 const char *tube_update_notes(tube_update *update);
 int tube_update_notes_truncated(tube_update *update);
 void tube_update_set_notify(tube_update *update, int enabled);

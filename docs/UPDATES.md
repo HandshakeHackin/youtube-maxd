@@ -81,6 +81,16 @@ rows and persisted preferences. `python3 scripts/test_update_host.py` checks
 the generated shipping host and source integration after preparation;
 `python3 scripts/test_release.py` checks release naming and ZIP permissions.
 
+Shutdown joins an active catalog worker. There are at most three small GETs
+per origin and two origins, each with a 20-second total curl timeout (the
+10-second connection timeout is included): a configured transfer budget of
+120 seconds. This is not a hard wall-clock bound: curl uses `NOSIGNAL`, while
+EVO's synchronous system DNS resolver uses console-default timeout/retries
+and cannot be interrupted by that curl timeout. Slow DNS can therefore extend
+shutdown. The helper also identifies a running title from sandbox directories;
+a stale directory can delay or refuse replacement. Both remain console
+acceptance concerns; the shared kit has not been modified to work around them.
+
 A full end-to-end update on a console remains necessary: verified catalog
 check, helper launch with the payload loader available, a newer signed release,
 app exit, file replacement, home-screen refresh and relaunch. Offline helper
