@@ -31,6 +31,10 @@ Home's Live now shelf reuses the existing Live topic, loads only when reached
 and filters archived videos out. Provider checks and 62 Home boards in four
 looks pass. The shared-screen migration also passes its host boards and fixes
 typed Settings/comment/reply delivery. These changes await console acceptance.
+The notification bell reads YouTube's account-wide unseen count rather than
+counting a cached page. Unknown counts hide the badge, and unsupported remote
+mark-read actions are unavailable. Service, provider and board checks pass;
+real-account console acceptance remains pending.
 
 Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states

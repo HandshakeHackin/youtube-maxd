@@ -262,8 +262,9 @@ What is planned, roughly in order. Nothing here has a date.
       tabs are implemented and host-tested; console acceptance is pending.
 - [x] Home: a "Live now" shelf, read when reached and showing live videos only
       (host-tested; console acceptance pending).
-- [ ] Home: a service count on the notifications bell that stays correct when
-      notifications are read; the current badge counts cached unread rows.
+- [x] Home: the account's service count on the notifications bell, refreshed
+      periodically and after opening notifications (host-tested; real-account
+      console acceptance pending).
 - [ ] Translations of the Afterglow interface's texts into the 21 languages.
 - [ ] The interface's own sound recordings in place of the UI kit's sounds.
 - [ ] Afterglow as the default interface, once every screen is validated on a

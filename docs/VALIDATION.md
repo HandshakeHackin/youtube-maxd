@@ -36,6 +36,14 @@ shutdown/DNS and stale-sandbox limits are recorded in [Updates](UPDATES.md).
 The reviewed sound-last console driver passes 127 offline tests, including
 partial override upload cleanup, restoration and simulated sound failures.
 
+Account-wide notification count: 200 worker tests, provider/picture checks
+under sanitizers and the embedded HTTP suite plain and sanitized pass
+(203 account checks each). They cover malformed count refusal, Guest refusal,
+profile retirement, continuation ownership and request frequency. Thirty-two
+notification/count boards in four looks pass 1,412 checks; seven frame boards
+pass 376 checks. The inspected contrast capture shows 9+ for a service count
+of 13 while only three unread rows are loaded. No real account was used.
+
 Afterglow profile-password integration: the existing account board now checks
 the typed `q` reaches the provider's answer API. It fails in all four looks
 before replacing the discarded-text placeholder with `Data::answer(text)`.

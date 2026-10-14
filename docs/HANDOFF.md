@@ -75,12 +75,17 @@ README's **Roadmap**). The two recommended first:
    and board checks. Chat beside the picture remains in progress.
 
 Then: the Afterglow translations (many texts still fall back to English;
-`python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), the bell count
-and accurate read-state updates, live DVR, keep-playing-while-browsing, the interface's
+`python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), live DVR,
+keep-playing-while-browsing, the interface's
 own sound recordings (`docs/afterglow/sound-design.md`), and the smaller items
 of the roadmap. The Live now shelf is implemented for Guest and account Home,
 loaded when reached and filtered to live videos. Provider checks and 62 Home
 boards in four looks pass; console acceptance remains pending.
+The bell now uses the validated account-wide unseen count, refreshed every
+minute and after loading notifications; unknown counts hide the badge.
+Notification rows preserve upstream read flags. Unsupported remote mark-read
+actions are unavailable. Host service/provider/board checks pass; real-account
+console acceptance remains pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
