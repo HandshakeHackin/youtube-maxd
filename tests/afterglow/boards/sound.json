@@ -29,7 +29,7 @@
  {"name": "sound-reader-end-of-text",
   "fixture": "guest", "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
   "steps": [{"press": "down"}, {"press": "r2"}, {"press": "r2"}, {"press": "r2"}, {"press": "down"}],
-  "expect": {"screen": "reader", "focus": "text", "cues": "tick tick error", "pulses": 0}},
+  "expect": {"screen": "reader", "focus": "text", "cues": "tick tick tick tick error", "pulses": 0}},
 
  {"name": "sound-home-opening",
   "fixture": "signed-in", "opening": true, "source": {"hold": true}, "settle": 1.5,

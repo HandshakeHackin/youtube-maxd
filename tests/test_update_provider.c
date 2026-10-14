@@ -93,24 +93,24 @@ int main(int argc, char **argv) {
     /* Without an updater (a companion-only package) About is what it was. */
     p = &evo_provider_youtube; assert(!p->init());
     tube_about_title(title, sizeof title);
-    show("settings:about"); assert(last_count == 5 && !tube_update_app_take_notice());
-    show("settings:update:check"); assert(last_count == 5);   /* an old row id lists About and does nothing */
+    show("settings:about"); assert(last_count == 6 && !tube_update_app_take_notice());
+    show("settings:update:check"); assert(last_count == 6);   /* an old row id lists About and does nothing */
     show("settings:section:0"); assert(find("settings:refresh") >= 0 && find("settings:update:check") < 0);
 
     /* With one: the installed version, the check and the switch. Nothing was asked yet. */
     tube_update *update = engine(0);
     tube_update_app_use(update);
     show("settings:about");
-    assert(last_count == 7 && !strcmp(last_items[0].title, title) && !strcmp(last_items[4].id, "settings:about:changelog"));
-    assert(!strcmp(last_items[5].id, "settings:update:check") && !strcmp(last_items[5].title, "Check for updates") &&
-           !strcmp(last_items[5].subtitle, "Installed 01.000.000; the latest version is not known yet"));
-    assert(!strcmp(last_items[6].id, "settings:update:notify") && !strcmp(last_items[6].title, "Notify about updates: on"));
-    assert(last_items[5].is_folder && last_items[6].is_folder && !g_fetches);
+    assert(last_count == 8 && !strcmp(last_items[0].title, title) && !strcmp(last_items[5].id, "settings:about:changelog"));
+    assert(!strcmp(last_items[6].id, "settings:update:check") && !strcmp(last_items[6].title, "Check for updates") &&
+           !strcmp(last_items[6].subtitle, "Installed 01.000.000; the latest version is not known yet"));
+    assert(!strcmp(last_items[7].id, "settings:update:notify") && !strcmp(last_items[7].title, "Notify about updates: on"));
+    assert(last_items[6].is_folder && last_items[7].is_folder && !g_fetches);
     /* A section's menu (Touchpad on a main-menu row) offers the check too. */
     show("settings:section:0");
     assert(find("settings:update:check") == last_count - 1 && !strcmp(last_items[last_count - 1].title, "Check for updates") && !g_fetches);
     /* The switch acts in place and is kept. */
-    show("settings:update:notify"); assert(last_count == 7 && !strcmp(last_items[6].title, "Notify about updates: off"));
+    show("settings:update:notify"); assert(last_count == 8 && !strcmp(last_items[7].title, "Notify about updates: off"));
     snprintf(path, sizeof path, "%s/update/check.json", g_dir);
     char *stored = tube_update_read(path, 1 << 16, NULL); assert(stored && strstr(stored, "\"notify\":false")); free(stored);
     /* Off: the check at start still runs, and says nothing. */
@@ -125,10 +125,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 50; ++i) { tube_poll(); assert(!tube_update_app_take_notice()); }
     assert(g_fetches == 1);
     show("settings:about");
-    assert(last_count == 10 && !strcmp(last_items[5].subtitle, "Installed 01.000.000; latest 01.000.010 (ProsperoTube 0.2.0)"));
-    assert(!strcmp(last_items[7].id, "description:update") && !strcmp(last_items[7].title, "What is new in ProsperoTube 0.2.0"));
-    assert(!strcmp(last_items[8].id, "settings:update:install") && !strcmp(last_items[8].title, "Update to 01.000.010 now") && strstr(last_items[8].subtitle, "Downloads 1 MB"));
-    assert(!strcmp(last_items[9].id, "settings:update:skip") && !strcmp(last_items[9].title, "Skip version 01.000.010"));
+    assert(last_count == 11 && !strcmp(last_items[6].subtitle, "Installed 01.000.000; latest 01.000.010 (ProsperoTube 0.2.0)"));
+    assert(!strcmp(last_items[8].id, "description:update") && !strcmp(last_items[8].title, "What is new in ProsperoTube 0.2.0"));
+    assert(!strcmp(last_items[9].id, "settings:update:install") && !strcmp(last_items[9].title, "Update to 01.000.010 now") && strstr(last_items[9].subtitle, "Downloads 1 MB"));
+    assert(!strcmp(last_items[10].id, "settings:update:skip") && !strcmp(last_items[10].title, "Skip version 01.000.010"));
     /* The notes open in the reader. */
     show("description:update");
     assert(last_count == 1 && !strcmp(last_items[0].id, "description:text:update") && !strcmp(last_items[0].title, "What is new in ProsperoTube 0.2.0"));
@@ -139,19 +139,19 @@ int main(int argc, char **argv) {
     assert(g_fetches == 2 && !tube_update_app_take_notice());   /* still the same newer version: About says it */
     snprintf(g_manifest, sizeof g_manifest, "[]");
     show("settings:update:check"); frames("ProsperoTube is up to date", NULL);
-    show("settings:about"); assert(last_count == 7 && g_fetches == 3);
+    show("settings:about"); assert(last_count == 8 && g_fetches == 3);
     snprintf(g_manifest, sizeof g_manifest, "{");
     show("settings:update:check"); frames("could not be read", NULL);
-    show("settings:about"); assert(strstr(last_items[5].subtitle, "could not be read"));
+    show("settings:about"); assert(strstr(last_items[6].subtitle, "could not be read"));
     snprintf(g_manifest, sizeof g_manifest,
         "[{\"tag_name\":\"v01.000.010\",\"draft\":false,\"name\":\"ProsperoTube 0.2.0\",\"body\":\"\","
         "\"assets\":[{\"name\":\"PPSA99142.zip\",\"state\":\"uploaded\",\"size\":%zu,\"browser_download_url\":\"http://fixture/v01.000.010/PPSA99142.zip\",\"digest\":\"sha256:%s\"}]}]",
         g_zip_size, sha);
     show("settings:update:check"); settle(update); show("settings:about");
-    assert(last_count == 9 && find("description:update") < 0 && find("settings:update:install") == 7);   /* a release without notes has no notes row */
+    assert(last_count == 10 && find("description:update") < 0 && find("settings:update:install") == 8);   /* a release without notes has no notes row */
     /* Skip, and unskip. */
-    show("settings:update:skip"); assert(!strcmp(last_items[8].title, "Version 01.000.010 is skipped - select to be told again"));
-    show("settings:update:skip"); assert(!strcmp(last_items[8].title, "Skip version 01.000.010"));
+    show("settings:update:skip"); assert(!strcmp(last_items[9].title, "Version 01.000.010 is skipped - select to be told again"));
+    show("settings:update:skip"); assert(!strcmp(last_items[9].title, "Skip version 01.000.010"));
     /* Update now: progress rows while it runs, then the restart row and a notice. */
     int redraws = 0;
     show("settings:update:install");
@@ -164,14 +164,14 @@ int main(int argc, char **argv) {
     }
     assert(redraws >= 1 && !tube_update_app_take_refresh("link:about") && !tube_update_app_take_refresh("settings:update:apply"));
     show("settings:about");
-    assert(last_count == 9 && !strcmp(last_items[7].id, "settings:update:apply") && !strcmp(last_items[7].title, "Restart to finish updating to 01.000.010"));
-    assert(!strcmp(last_items[8].id, "settings:update:discard") && !tube_update_app_take_restart());
+    assert(last_count == 10 && !strcmp(last_items[8].id, "settings:update:apply") && !strcmp(last_items[8].title, "Restart to finish updating to 01.000.010"));
+    assert(!strcmp(last_items[9].id, "settings:update:discard") && !tube_update_app_take_restart());
     snprintf(path, sizeof path, "%s/eboot.bin", g_install);
     stored = tube_update_read(path, 64, NULL); assert(stored && !strcmp(stored, "old program")); free(stored);
     /* Restart: the files are replaced and the host is asked to close the app. */
     show("settings:update:apply");
     assert(tube_update_app_take_restart() && !tube_update_app_take_restart() && strstr(tube_update_app_take_notice(), "closes now"));
-    assert(!strcmp(last_items[7].title, "Close ProsperoTube to finish the update"));
+    assert(!strcmp(last_items[8].title, "Close ProsperoTube to finish the update"));
     snprintf(path, sizeof path, "%s/sce_sys/param.json", g_install);
     stored = tube_update_read(path, 4096, NULL); assert(stored && strstr(stored, "01.000.010")); free(stored);
     p->shutdown(); tube_update_free(update);
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     assert(tube_update_kind(path) == 1);
     g_clock += 11; frames("ProsperoTube was updated to version 01.000.010", NULL);
     assert(!tube_update_kind(path));
-    show("settings:about"); assert(last_count == 7 && !strcmp(last_items[5].subtitle, "Installed 01.000.010 is the latest version"));
+    show("settings:about"); assert(last_count == 8 && !strcmp(last_items[6].subtitle, "Installed 01.000.010 is the latest version"));
     tube_update_app_use(NULL); tube_update_free(update);
 
     /* A development build lists the newer version and says why it stays as it is. */

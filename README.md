@@ -158,7 +158,10 @@ next section lists the part that also ran on a PS5.
 - **Backup and restore** in `/data/prosperotube/backup` with an optional
   automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
   GrayJay export placed in `/data/prosperotube/import`, and **About** with the
-  version, project links as QR codes, credits and changes.
+  version, "Brought to you by BlackBearReloaded", project links as QR codes,
+  credits by name with their licences (SmartTube and FreeTube, whose approach
+  it follows; EVO Player, which it is built on; and the libraries it carries)
+  and changes.
 
 **Languages**
 

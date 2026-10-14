@@ -1,7 +1,9 @@
 # Third-party notices and corresponding source
 
 ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
-(C) 2026 BlackBearReloaded. Complete GPL text: LICENSE.
+(C) 2026 BlackBearReloaded. Complete GPL text: LICENSE. ProsperoTube is an
+independent client: it is not affiliated with or endorsed by YouTube or Google.
+YouTube is a trademark of Google LLC.
 
 * EVO `9715f6ee9bf9b53461d6fdf9a2e11b4c48357783` derives from GPL-3.0-or-later
   ProsperoPlayer. Full source/notices are preserved in `third_party/evo`, including
@@ -35,7 +37,10 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
   (GPL-3.0-or-later). ProsperoTube's overlay adds media retirement, checked GPU
   fence drain and a single self-exit attempt for the explicit disconnect choice.
 * FFmpeg 7.1.1 minimal software profile, dav1d 1.5.1, RmlUi 6.2, SDL2,
-  FreeType, OpenSSL, zlib and Pacbrew libraries retain upstream licenses.
+  FreeType, OpenSSL, zlib and Pacbrew libraries retain upstream licenses
+  (FFmpeg: LGPL-2.1-or-later, with GPL parts as configured, as EVO's
+  COPYRIGHT.md records; dav1d: BSD-2-Clause; RmlUi: MIT; SDL2 and zlib: zlib
+  license; OpenSSL: Apache-2.0; the PS5 Payload SDK: GPL-3.0-or-later).
   Source recipes/checksums are in EVO scripts and Pacbrew v0.39 source.
   FFmpeg emits its configuration/license text. The ProsperoTube DASH overlay
   enables indexed byte seeking only for complete single-file VOD representations;
@@ -85,8 +90,11 @@ ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
 Matching source consists of this repository, recursive submodules, pinned
 dependencies and build overlay. Keep these notices with binary distributions
 and make the matching source revision available. Launcher art/fixtures are
-original code-drawn/synthetic assets. SmartTube/MediaServiceCore are architectural
-references only; their code/assets are not distributed here.
+original code-drawn/synthetic assets. SmartTube (MIT at the inspected revision
+`2c60453007dfc3775ff525c3837c2d1d4e95aab9`) and MediaServiceCore are behaviour and
+architectural references only, and FreeTube (AGPL-3.0-or-later) is the reference
+for reading YouTube without an account through YouTube.js; their code/assets
+are not distributed here.
 
 Native microphone AudioIn ABI and routing are based on the GPL-3.0-or-later
 [ps5-audio-decoding-research microphone proof of concept](https://github.com/blackbearreloaded/ps5-audio-decoding-research/tree/26be5a12f92b2cdc67f8a9e082fd69ae0e9a35a2/examples/native-audio-poc/microphone).

@@ -5,7 +5,7 @@
    "name": "reader-credits",
    "fixture": "guest",
    "route": {"screen": "reader", "argument": "settings:about:credits", "title": "Credits"},
-   "expect": {"screen": "reader", "focus": "text", "state": {"load": "ready", "paragraphs": "10", "scroll": "0"}, "asked": ["settings:about:credits"]}
+   "expect": {"screen": "reader", "focus": "text", "state": {"load": "ready", "paragraphs": "23", "scroll": "0"}, "asked": ["settings:about:credits"]}
   },
   {
    "name": "reader-scrolled",

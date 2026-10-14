@@ -5797,6 +5797,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             /* An update row acts in place: About is listed again with its new state. */
             char title[96]; tube_about_title(title, sizeof title);
             CATALOG_FOLDER( "account:notice:version", title, TUBE_ABOUT_TAGLINE "; " TUBE_ABOUT_LICENSE);
+            /* Written out, not TUBE_ABOUT_BROUGHT and TUBE_ABOUT_UNOFFICIAL: the texts of a row are found by the catalogs' extraction as literals. */
+            CATALOG_FOLDER( "account:notice:author", "Brought to you by BlackBearReloaded", "Not affiliated with or endorsed by YouTube or Google");
             CATALOG_FOLDER( "link:about", "Releases and source code", "Project links, each with a QR code to open on another device");
             CATALOG_FOLDER( "link:feedback", "Feedback", "Report a problem or ask for a feature");
             CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");

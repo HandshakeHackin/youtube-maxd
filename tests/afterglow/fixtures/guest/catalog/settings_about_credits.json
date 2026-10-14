@@ -1,15 +1,28 @@
 {
  "items": [
-  {"id": "account:notice:credit:0", "is_folder": true, "interface": true, "title": "EVO Player", "overview": "The native player this application is built on: decoding, the audio clock, queues, seeking and the application's life on the console."},
-  {"id": "account:notice:credit:1", "is_folder": true, "interface": true, "title": "ps5-homebrew-ui", "overview": "The interface kit that draws this page: shapes, text, motion and the standard controls."},
-  {"id": "account:notice:credit:2", "is_folder": true, "interface": true, "title": "YouTube.js", "overview": "The library the built-in service uses to talk to YouTube. It runs inside the application, behind a loopback address."},
-  {"id": "account:notice:credit:3", "is_folder": true, "interface": true, "title": "SponsorBlock and DeArrow", "overview": "Community data for skipping segments and for calmer titles and thumbnails. Each can be switched off in the preferences."},
-  {"id": "account:notice:credit:4", "is_folder": true, "interface": true, "title": "Fonts", "overview": "Inter, Montserrat and DejaVu Sans Mono, each under its own open licence. The full notices ship with the package."},
-  {"id": "account:notice:credit:5", "is_folder": true, "interface": true, "title": "cJSON", "overview": "A small JSON reader and writer, used wherever the application reads an answer of its service."},
-  {"id": "account:notice:credit:6", "is_folder": true, "interface": true, "title": "QuickJS", "overview": "The JavaScript engine that runs the built-in service on the console."},
-  {"id": "account:notice:credit:7", "is_folder": true, "interface": true, "title": "FFmpeg", "overview": "Demuxing and software decoding for the formats the hardware decoders do not take."},
-  {"id": "account:notice:credit:8", "is_folder": true, "interface": true, "title": "mbedTLS", "overview": "Verified HTTPS to YouTube's servers."},
-  {"id": "account:notice:credit:9", "is_folder": true, "interface": true, "title": "Everyone who tested", "overview": "Thank you for the reports, the logs and the patience. Feedback is one row away, under About."}
+  {"id": "account:notice:credit:0", "is_folder": true, "interface": true, "title": "ProsperoTube", "subtitle": "Brought to you by BlackBearReloaded. Free software under GPL-3.0-or-later."},
+  {"id": "account:notice:credit:1", "is_folder": true, "interface": true, "title": "An unofficial client", "subtitle": "Not affiliated with or endorsed by YouTube or Google. YouTube is a trademark of Google LLC."},
+  {"id": "account:notice:credit:2", "is_folder": true, "interface": true, "title": "SmartTube", "subtitle": "The Android TV client whose behaviour ProsperoTube follows. MIT. None of its code or assets is included."},
+  {"id": "account:notice:credit:3", "is_folder": true, "interface": true, "title": "FreeTube", "subtitle": "The desktop client whose way of reading YouTube without an account the built-in service follows. AGPL-3.0-or-later. No code included."},
+  {"id": "account:notice:credit:4", "is_folder": true, "interface": true, "title": "EVO Player", "subtitle": "The player ProsperoTube is built on, by sainsaji; derived from ProsperoPlayer by KINGDKAK. GPL-3.0-or-later."},
+  {"id": "account:notice:credit:5", "is_folder": true, "interface": true, "title": "YouTube.js (youtubei.js) 18.1.0", "subtitle": "YouTube access of the built-in service. MIT."},
+  {"id": "account:notice:credit:6", "is_folder": true, "interface": true, "title": "QuickJS-NG 0.17.0", "subtitle": "JavaScript engine of the built-in service. MIT."},
+  {"id": "account:notice:credit:7", "is_folder": true, "interface": true, "title": "FFmpeg 7.1.1", "subtitle": "Demuxing and software decoding. LGPL-2.1-or-later, with GPL parts as configured."},
+  {"id": "account:notice:credit:8", "is_folder": true, "interface": true, "title": "dav1d 1.5.1", "subtitle": "AV1 software decoding. BSD-2-Clause."},
+  {"id": "account:notice:credit:9", "is_folder": true, "interface": true, "title": "curl 8.18.0, libpsl 0.21.5 and Mozilla's root certificates", "subtitle": "HTTPS of the built-in service and its trusted roots. curl license, MIT and MPL-2.0."},
+  {"id": "account:notice:credit:10", "is_folder": true, "interface": true, "title": "OpenSSL 3.5.2", "subtitle": "TLS. Apache-2.0."},
+  {"id": "account:notice:credit:11", "is_folder": true, "interface": true, "title": "SponsorBlock and DeArrow", "subtitle": "Community segment data, titles and thumbnails by Ajay Ramachandran and contributors. CC BY-NC-SA 4.0."},
+  {"id": "account:notice:credit:12", "is_folder": true, "interface": true, "title": "RmlUi 6.2, SDL2 and zlib", "subtitle": "The classic interface, the platform layer and compression. MIT and zlib license."},
+  {"id": "account:notice:credit:13", "is_folder": true, "interface": true, "title": "ps5-homebrew-ui", "subtitle": "The interface kit Afterglow and the player's controls are drawn with, by the same author. GPL-3.0-or-later."},
+  {"id": "account:notice:credit:14", "is_folder": true, "interface": true, "title": "HarfBuzz 9.0.0, FreeType 2.13.2 and GNU FriBidi 1.0.15", "subtitle": "Text shaping, glyphs and text direction. Old MIT, FreeType Project License and LGPL-2.1-or-later."},
+  {"id": "account:notice:credit:15", "is_folder": true, "interface": true, "title": "Inter, Montserrat and DejaVu Sans Mono", "subtitle": "The typefaces. SIL Open Font License 1.1; Bitstream Vera and DejaVu licences."},
+  {"id": "account:notice:credit:16", "is_folder": true, "interface": true, "title": "Interface sounds", "subtitle": "From ps5-homebrew-ui's sound sets, generated with ElevenLabs Sound Effects. GPL-3.0-or-later."},
+  {"id": "account:notice:credit:17", "is_folder": true, "interface": true, "title": "cJSON 1.7.19 and PS5-Lapy-JB-Daemon", "subtitle": "JSON reading and writing; the packaged one-shot storage helper. MIT."},
+  {"id": "account:notice:credit:18", "is_folder": true, "interface": true, "title": "PS5 Payload SDK 0.42, Pacbrew 0.39 and MkPFS", "subtitle": "Toolchain, runtime libraries and package image. The SDK is GPL-3.0-or-later; the others keep their upstream licenses."},
+  {"id": "account:notice:credit:19", "is_folder": true, "interface": true, "title": "ProsperoTV, ProsperoLight and ps5-native-app-boilerplate", "subtitle": "Elevation client, entropy reader, self-exit and the update kit, by the same author. GPL-3.0-or-later."},
+  {"id": "account:notice:credit:20", "is_folder": true, "interface": true, "title": "Unicode Character Database 15.0.0", "subtitle": "Case mapping for channel names. Unicode License V3."},
+  {"id": "account:notice:credit:21", "is_folder": true, "interface": true, "title": "yt-dlp, FastAPI, Uvicorn, HTTPX and whisper.cpp", "subtitle": "The optional development tool on a computer; not part of the app."},
+  {"id": "account:notice:credit:22", "is_folder": true, "interface": true, "title": "Full notices", "subtitle": "THIRD_PARTY_NOTICES.md in the package and in the source repository."}
  ],
  "has_more": false
 }

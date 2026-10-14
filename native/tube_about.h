@@ -18,6 +18,9 @@
 #define TUBE_ABOUT_NAME "ProsperoTube"
 #define TUBE_ABOUT_TAGLINE "A native YouTube client for PS5 homebrew"
 #define TUBE_ABOUT_LICENSE "GPL-3.0-or-later"
+#define TUBE_ABOUT_AUTHOR "BlackBearReloaded"
+#define TUBE_ABOUT_BROUGHT "Brought to you by " TUBE_ABOUT_AUTHOR
+#define TUBE_ABOUT_UNOFFICIAL "Not affiliated with or endorsed by YouTube or Google"
 #define TUBE_ABOUT_PROJECT_URL "https://github.com/blackbearreloaded/ProsperoTube"
 #ifdef EVO_PLAYER_VERSION
 #define TUBE_ABOUT_VERSION EVO_PLAYER_VERSION
@@ -79,27 +82,33 @@ static inline const tube_about_link *tube_about_link_find(const char *id) {
     return NULL;
 }
 
-/* Short credit lines; THIRD_PARTY_NOTICES.md (shipped in the package under
- * assets/prosperotube-notices) stays the complete and binding text. */
+/* Who made it, what it is not, whose approach it follows, what it is built on and what it carries, each
+ * with its licence; THIRD_PARTY_NOTICES.md (shipped in the package under assets/prosperotube-notices) stays
+ * the complete and binding text. At most one page of rows (24): the Afterglow reader shows one page. */
 static inline const tube_about_credit *tube_about_credit_at(int index) {
     static const tube_about_credit credits[] = {
-        {"EVO player", "Playback, decoding and interface base, derived from ProsperoPlayer. GPL-3.0-or-later.", "ProsperoPlayer"},
-        {"ProsperoTV and ProsperoLight", "Elevation client, entropy reader and self-exit usage. GPL-3.0-or-later.", "ProsperoLight"},
-        {"PS5-Lapy-JB-Daemon", "Packaged one-shot storage helper. MIT.", "PS5-Lapy-JB-Daemon"},
-        {"cJSON 1.7.19", "JSON reading and writing. MIT.", "cJSON 1.7.19"},
-        {"FFmpeg 7.1.1 and dav1d 1.5.1", "Demuxing and software decoding, under their upstream licenses.", "FFmpeg 7.1.1"},
-        {"RmlUi 6.2, SDL2, FreeType, OpenSSL and zlib", "Interface, fonts, TLS and compression, under their upstream licenses.", "RmlUi 6.2"},
-        {"PS5 Payload SDK, Pacbrew and MkPFS", "Toolchain, runtime libraries and package image.", "PS5 Payload SDK"},
-        {"YouTube.js 18.1.0", "YouTube access of the built-in service. MIT.", "YouTube.js 18.1.0"},
+        {TUBE_ABOUT_NAME, TUBE_ABOUT_BROUGHT ". Free software under " TUBE_ABOUT_LICENSE ".", "(C) 2026 BlackBearReloaded"},
+        {"An unofficial client", TUBE_ABOUT_UNOFFICIAL ". YouTube is a trademark of Google LLC.", "not affiliated with or endorsed by YouTube or Google"},
+        {"SmartTube", "The Android TV client whose behaviour ProsperoTube follows. MIT. None of its code or assets is included.", "SmartTube (MIT"},
+        {"FreeTube", "The desktop client whose way of reading YouTube without an account the built-in service follows. AGPL-3.0-or-later. No code included.", "FreeTube (AGPL-3.0-or-later"},
+        {"EVO Player", "The player ProsperoTube is built on, by sainsaji; derived from ProsperoPlayer by KINGDKAK. GPL-3.0-or-later.", "ProsperoPlayer"},
+        {"YouTube.js (youtubei.js) 18.1.0", "YouTube access of the built-in service. MIT.", "YouTube.js 18.1.0"},
         {"QuickJS-NG 0.17.0", "JavaScript engine of the built-in service. MIT.", "QuickJS-NG v0.17.0"},
-        {"curl 8.18.0 and libpsl 0.21.5", "HTTPS client of the built-in service. curl license and MIT.", "libcurl 8.18.0"},
-        {"Mozilla root certificates", "Trusted roots for HTTPS, as extracted by curl.se. MPL-2.0.", "Mozilla root certificates"},
-        {"yt-dlp, FastAPI, Uvicorn and HTTPX", "The optional development tool on a computer; not needed to use the app.", "yt-dlp"},
-        {"SponsorBlock", "Segment data by Ajay Ramachandran and contributors. CC BY-NC-SA 4.0.", "SponsorBlock community database"},
-        {"DeArrow", "Community titles and thumbnails by Ajay Ramachandran and contributors. CC BY-NC-SA 4.0.", "DeArrow title/thumbnail metadata"},
-        {"whisper.cpp", "Speech recognition of the development tool; not part of the app. MIT.", "whisper.cpp (MIT)"},
+        {"FFmpeg 7.1.1", "Demuxing and software decoding. LGPL-2.1-or-later, with GPL parts as configured.", "FFmpeg: LGPL-2.1-or-later"},
+        {"dav1d 1.5.1", "AV1 software decoding. BSD-2-Clause.", "dav1d: BSD-2-Clause"},
+        {"curl 8.18.0, libpsl 0.21.5 and Mozilla's root certificates", "HTTPS of the built-in service and its trusted roots. curl license, MIT and MPL-2.0.", "libcurl 8.18.0"},
+        {"OpenSSL 3.5.2", "TLS. Apache-2.0.", "OpenSSL: Apache-2.0"},
+        {"SponsorBlock and DeArrow", "Community segment data, titles and thumbnails by Ajay Ramachandran and contributors. CC BY-NC-SA 4.0.", "DeArrow title/thumbnail metadata"},
+        {"RmlUi 6.2, SDL2 and zlib", "The classic interface, the platform layer and compression. MIT and zlib license.", "RmlUi: MIT"},
+        {"ps5-homebrew-ui", "The interface kit Afterglow and the player's controls are drawn with, by the same author. GPL-3.0-or-later.", "ps5-homebrew-ui"},
+        {"HarfBuzz 9.0.0, FreeType 2.13.2 and GNU FriBidi 1.0.15", "Text shaping, glyphs and text direction. Old MIT, FreeType Project License and LGPL-2.1-or-later.", "HarfBuzz 9.0.0"},
+        {"Inter, Montserrat and DejaVu Sans Mono", "The typefaces. SIL Open Font License 1.1; Bitstream Vera and DejaVu licences.", "Montserrat Medium (SIL Open Font License 1.1)"},
+        {"Interface sounds", "From ps5-homebrew-ui's sound sets, generated with ElevenLabs Sound Effects. GPL-3.0-or-later.", "ElevenLabs Sound Effects v2"},
+        {"cJSON 1.7.19 and PS5-Lapy-JB-Daemon", "JSON reading and writing; the packaged one-shot storage helper. MIT.", "PS5-Lapy-JB-Daemon"},
+        {"PS5 Payload SDK 0.42, Pacbrew 0.39 and MkPFS", "Toolchain, runtime libraries and package image. The SDK is GPL-3.0-or-later; the others keep their upstream licenses.", "PS5 Payload SDK v0.42"},
+        {"ProsperoTV, ProsperoLight and ps5-native-app-boilerplate", "Elevation client, entropy reader, self-exit and the update kit, by the same author. GPL-3.0-or-later.", "ProsperoLight"},
         {"Unicode Character Database 15.0.0", "Case mapping for channel names. Unicode License V3.", "UnicodeData 15.0.0"},
-        {"SmartTube", "Behaviour reference only; none of its code or assets is included.", "SmartTube/MediaServiceCore"},
+        {"yt-dlp, FastAPI, Uvicorn, HTTPX and whisper.cpp", "The optional development tool on a computer; not part of the app.", "yt-dlp"},
         {"Full notices", "THIRD_PARTY_NOTICES.md in the package and in the source repository.", "Third-party notices and corresponding source"},
     };
     return index >= 0 && (size_t)index < sizeof credits / sizeof *credits ? &credits[index] : NULL;

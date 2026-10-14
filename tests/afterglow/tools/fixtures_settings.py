@@ -300,9 +300,47 @@ def backup_rows(notice=False):
     return rows
 
 
+def credits():
+    """The credit rows of native/tube_about.h, with its string macros resolved."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "..", "..", "..", "native", "tube_about.h"), encoding="utf-8") as source:
+        header = source.read()
+    token = re.compile(r'"((?:[^"\\]|\\.)*)"|([A-Z][A-Z0-9_]*)')
+    macros = {}
+
+    def value(expression):
+        return "".join(macros[name] if name else literal.replace('\\"', '"') for literal, name in token.findall(expression))
+    for name, expression in re.findall(r'^#define (TUBE_ABOUT_[A-Z_]+) ((?:"[^"\n]*"|[A-Z_]+| )+)$', header, re.M):
+        try:
+            macros[name] = value(expression)
+        except KeyError:
+            pass  # a macro of the build (the packaged version), not a text
+    table = header[header.index("tube_about_credit credits[] = {"):]
+    rows = []
+    for line in table[:table.index("};")].splitlines()[1:]:
+        # Three fields, each string literals and macro names side by side; commas inside a literal are not separators.
+        if not line.strip().startswith("{"):
+            continue
+        fields, field, quoted, escaped = [], "", False, False
+        for c in line.strip()[1:].rsplit("}", 1)[0]:
+            if c == "," and not quoted:
+                fields.append(field)
+                field = ""
+                continue
+            field += c
+            quoted = quoted != (c == '"' and not escaped)
+            escaped = c == "\\" and not escaped
+        fields.append(field)
+        assert len(fields) == 3, line
+        rows.append({"id": "account:notice:credit:%d" % len(rows), "is_folder": True, "interface": True,
+                     "title": value(fields[0]), "subtitle": value(fields[1])})
+    return rows
+
+
 def about_rows():
     return [
-        row("account:notice:version", "ProsperoTube 0.1.0", "info", "A YouTube client for the PS5; GPL-3.0-or-later"),
+        row("account:notice:version", "ProsperoTube 0.1.0", "info", "A native YouTube client for PS5 homebrew; GPL-3.0-or-later"),
+        row("account:notice:author", "Brought to you by BlackBearReloaded", "info", "Not affiliated with or endorsed by YouTube or Google"),
         row("link:about", "Releases and source code", "link", "Project links, each with a QR code to open on another device", screen="reader"),
         row("link:feedback", "Feedback", "link", "Report a problem or ask for a feature", screen="reader"),
         row("settings:about:credits", "Credits", "link", "What ProsperoTube builds on; the full notices ship with the package", screen="reader"),
@@ -462,12 +500,9 @@ def signed_in():
     write(f, "settings:sb:action:intro", sb_rows({"settings:sb:action:intro": {"value": "Skip silently"}}))
     write(f, "settings:clear-history", main_list())
     write_error(f, "settings:backup:import", "The import folder on this PS5 could not be opened.")
-    write(f, "settings:about:credits", [
-        {"id": "account:notice:credit:0", "is_folder": True, "interface": True, "title": "EVO Player",
-         "overview": "The native player this application is built on: decoding, the audio clock, queues, seeking and the application's life on the console."},
-        {"id": "account:notice:credit:1", "is_folder": True, "interface": True, "title": "ps5-homebrew-ui",
-         "overview": "The interface kit that draws this page: shapes, text, motion and the standard controls."},
-    ])
+    # The credits as the provider lists them: the rows of native/tube_about.h. The frame's boards read them in "guest".
+    write(f, "settings:about:credits", credits())
+    write("guest", "settings:about:credits", credits())
 
 
 def guest():

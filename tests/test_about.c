@@ -35,6 +35,10 @@ int main(int argc, char **argv) {
     assert(tube_about_title(title, sizeof title) == 0 && !strncmp(title, "ProsperoTube ", 13) && !strcmp(title + 13, tube_about_version()));
     assert(tube_about_title(tiny, sizeof tiny) == -1 && !*tiny && tube_about_title(NULL, 0) == -1);
 
+    /* Who it is brought to you by, and what it is not: the words About shows. */
+    assert(!strcmp(TUBE_ABOUT_BROUGHT, "Brought to you by BlackBearReloaded"));
+    assert(!strcmp(TUBE_ABOUT_UNOFFICIAL, "Not affiliated with or endorsed by YouTube or Google"));
+
     /* Links: the project's own pages, unique ids, row-sized text, QR-sized URLs. */
     int links = tube_about_link_count(), feedback = 0;
     assert(links >= 4 && !tube_about_link_at(-1) && !tube_about_link_at(links));
@@ -70,6 +74,15 @@ int main(int argc, char **argv) {
         for (int j = 0; j < i; j++) assert(strcmp(credit->name, tube_about_credit_at(j)->name));
     }
     assert(strstr(tube_about_credit_at(credits - 1)->detail, "THIRD_PARTY_NOTICES.md"));
+    /* The first line says who made it; the clients it follows, the player it is built on and what it carries are named, and one page holds them all. */
+    assert(credits <= 24 && strstr(tube_about_credit_at(0)->detail, TUBE_ABOUT_BROUGHT) && strstr(tube_about_credit_at(1)->detail, TUBE_ABOUT_UNOFFICIAL));
+    const char *named[] = {"SmartTube", "FreeTube", "EVO Player", "youtubei.js", "QuickJS-NG", "FFmpeg", "dav1d", "curl", "OpenSSL", "SponsorBlock", "DeArrow",
+                           "RmlUi", "ps5-homebrew-ui", "HarfBuzz", "FreeType", "FriBidi", "Inter", "PS5 Payload SDK"};
+    for (size_t n = 0; n < sizeof named / sizeof *named; n++) {
+        int found = 0;
+        for (int i = 0; i < credits; i++) found |= strstr(tube_about_credit_at(i)->name, named[n]) != NULL;
+        if (!found) { fprintf(stderr, "Not credited: %s\n", named[n]); abort(); }
+    }
     free(notices);
 
     /* Changelog: bounded rows, newest version first, one row per bullet. */

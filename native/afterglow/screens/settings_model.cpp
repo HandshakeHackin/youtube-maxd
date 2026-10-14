@@ -187,6 +187,7 @@ constexpr Rule kRules[] = {
     {"description:update", "updates", "Updates"},
     // ---- About ----
     {"account:notice:version", "about", "About"},
+    {"account:notice:author", "about", "About"},
     {"link:about", "about", "About"},
     {"link:feedback", "about", "About"},
     {"settings:about:credits", "about", "About"},
