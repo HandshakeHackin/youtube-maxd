@@ -1,382 +1,590 @@
-# ProsperoTube 0.1.0
+<p align="center">
+  <img src="native/branding/icon0.png" width="128" alt="ProsperoTube icon">
+</p>
 
-A native PS5 homebrew YouTube client inspired by
-[SmartTube](https://github.com/yuliskov/SmartTube), with its own TV interface
-and service provider built on [EVO Player](https://github.com/sainsaji/EVO-PLAYER-PS5).
-It is a native implementation of the SmartTube experience, not a port of the
-Android application: no SmartTube or MediaServiceCore source is incorporated.
+<h1 align="center">ProsperoTube</h1>
 
-ProsperoTube **runs on the console by itself**: no computer, no pairing. The
-application carries its own YouTube service (a small JavaScript engine running
-[YouTube.js](https://github.com/LuanRT/YouTube.js) inside the app) and plays
-video straight from YouTube's servers. It browses and plays as **Guest**, and
-YouTube accounts can be signed in on the console itself with a device code.
-The account features were tested offline only: **no real account has signed in
-with this build yet** (see [Accounts](#accounts-on-the-console)). The YouTube
-app on a phone can cast to it with a TV code (experimental, tested offline
-only: **no real phone has been linked yet**), and subscriptions can be imported
-from an export file. The one thing that still needs a computer is voice search,
-which this release does not have.
+> **In testing: 0.1.0 (content version `01.000.000`) has not been released yet.**
+> The self-sufficient build has passed bounded Guest sessions on a PS5; accounts,
+> phone casting, updates and the new Afterglow interface have not run on a
+> console. The owner decided that no version is published until every Afterglow
+> screen is built and validated on a console ([decision](docs/DECISIONS.md)).
+> [Status](docs/STATUS.md) records what was tested and where.
 
-Release 0.1.0 is being prepared. [docs/STATUS.md](docs/STATUS.md) states what is
-implemented, what was tested and where, and what is still open before release.
-Throughout this page, **host-tested** means covered by the offline test suite on
-a PC, and **checked on a console** means it ran on a PS5; most of 0.1.0 is
-host-tested only (see [What was checked on a console](#what-was-checked-on-a-console)),
-and **the self-sufficient build has had one bounded console session, on its
-Guest core path** (2026-10-13).
+<p align="center">
+  <strong>A native YouTube client for PlayStation 5 homebrew</strong><br>
+  Browse, search and watch YouTube on the console with no computer involved:
+  the YouTube service runs inside the app, and video plays straight from
+  YouTube's servers on the PS5 decoders.
+</p>
 
-## What you need
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-PlayStation%205-003791?logo=playstation&amp;logoColor=white" alt="PlayStation 5">
+  <img src="https://img.shields.io/badge/video-AVC%20%7C%20VP9%20%7C%20HEVC%20%7C%20AV1-70E1DC" alt="AVC, VP9, HEVC and AV1">
+  <img src="https://img.shields.io/badge/service-built%20in-5BBEFF" alt="Built-in YouTube service">
+  <img src="https://img.shields.io/badge/UI-Afterglow%20%7C%20Classic-7DD3FC" alt="Afterglow and Classic interfaces">
+  <img src="https://img.shields.io/badge/languages-22-5DDFA4" alt="22 interface languages">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
+</p>
 
-- A PS5 that runs homebrew, with [Lapy](native/elevation/README.md) available:
-  ProsperoTube keeps its data under `/data/prosperotube` and stops at startup
-  when it cannot get access to that folder.
-- An internet connection on the PS5. Nothing else: no computer is involved.
-- The package from the release: `PPSA99142.zip`, the `PPSA99142` folder title
-  (a local build can also make a `.ffpfsc` image). Nothing in this repository
-  deploys to a console.
+![Afterglow's Home for a signed-in profile: a continue-watching hero above a shelf of video cards, with the navigation rail on the left](docs/images/afterglow-home.png)
 
-## How it works
+The picture shows the Afterglow interface's Home as drawn on a PC by the
+interface's test harness, with invented sample videos and channels. It is not
+a console capture: Afterglow has not run on a PS5 yet.
 
-At start the app elevates through Lapy for its data folder, then starts its
-service: a QuickJS engine thread that runs the bundled service script, and a
-listener on `127.0.0.1`. The browser part of the app talks to that address
-exactly as it used to talk to a companion on a PC. A video is played from a
-small DASH manifest the service writes; the manifest names YouTube's media
-servers, and the player (FFmpeg) reads them directly. Closing ProsperoTube from
-its menu stops the service before the app parks.
+## Highlights
 
-If the service cannot start, the app still opens: the first row of the main
-menu says why, and selecting it (or pressing **Options**) tries again.
+- Self-sufficient on the console: a built-in YouTube service (QuickJS-NG
+  running YouTube.js) behind a loopback address, HTTPS through libcurl and
+  OpenSSL with a built-in root-certificate list, and no Google API key.
+- Playback through YouTube's `VISIONOS` client with direct media links, played
+  by a patched EVO Player: FFmpeg demuxing, PS5 hardware decoding for AVC, VP9
+  and HEVC, and AV1 in software.
+- Two interfaces: the complete Classic browser, and Afterglow, a new interface
+  drawn with the UI kit [ps5-homebrew-ui](https://github.com/blackbearreloaded/ps5-homebrew-ui),
+  in four looks (Afterglow, Onyx, Daybreak, High contrast).
+- Guest browsing with search, Home, Discover, channels, playlists, comments and
+  live chat, or YouTube accounts signed in on the console with a device code.
+- Phone casting from the YouTube app with a TV code (experimental), with the
+  receiver running inside the app.
+- SponsorBlock segment skipping with review, and DeArrow titles and thumbnails.
+- 21 interface languages besides English, local profiles with history, resume,
+  favorites and queue, backups, an update check and an in-place self-update.
 
-### For developers: an external companion
+ProsperoTube is a native PS5 application, not a port of an Android or desktop
+client. At start it gets access to its data folder through Lapy, then starts
+its YouTube service: a JavaScript engine thread running a bundled YouTube.js
+service and a listener on `127.0.0.1`. The interface asks that service for
+pages and videos. A video is played from a small DASH manifest the service
+writes; the manifest names YouTube's media servers, and the player reads them
+directly.
 
-The PC companion (`companion/`, Python with yt-dlp and a Node worker) is now a
-development tool. A file named `external-companion` in `/data/prosperotube`
-makes the same package use a companion again (address and pairing code on
-**Options**, as before); [docs/BUILD.md](docs/BUILD.md) and
-[docs/LIBRARY_SERVICE.md](docs/LIBRARY_SERVICE.md) describe running one.
+> [!IMPORTANT]
+> ProsperoTube does not run on an unmodified retail console. It is intended
+> for consoles you own with an already configured, compatible homebrew loader.
+> This repository does not include an exploit, proprietary Sony SDK, system
+> module, encryption key, firmware file, or game asset.
 
-## What works
+## Project foundation
 
-The first release is limited to the following. All of it is host-tested; the
-next section lists the part that also ran on a PS5.
+> [!IMPORTANT]
+> **Follows the approach of [SmartTube](https://github.com/yuliskov/SmartTube).**
+> SmartTube's TV-first browsing and its settings are the behaviour reference:
+> [parity](docs/PARITY.md) compares every audited SmartTube surface. No
+> SmartTube or MediaServiceCore source is incorporated; the one thing taken
+> over is SmartTube's list of blocked live-chat author names
+> (`companion/innertube/live_chat.mjs`).
 
-**Browsing as Guest**
+> [!IMPORTANT]
+> **Follows the approach of [FreeTube](https://github.com/FreeTubeApp/FreeTube).**
+> Like FreeTube, ProsperoTube reads YouTube without an account and without a
+> Google API key through YouTube.js. FreeTube is a reference only; none of its
+> code or assets is in this repository.
 
-- Search with suggestions, per-profile search history and options (upload date,
-  duration, type, features, order; channels and playlists in results). Search
-  also accepts YouTube video/playlist URLs, `video:VIDEO_ID`,
-  `channel:CHANNEL_ID` and `playlist:PLAYLIST_ID`. YouTube's "last hour" date
-  and its date and rating orders are not available.
-- Home recommendations with their filters, and the Discover sections: topics,
-  Gaming, News, Music, Sports, Live, Movies, Trending, Shorts and Kids.
-- Channels (Home, Videos, Shorts, Live, Playlists, sort orders, search in
+> [!IMPORTANT]
+> **Built on [EVO Player](https://github.com/sainsaji/EVO-PLAYER-PS5).**
+> The PS5 media player, pinned as the submodule `third_party/evo` (v0.11.0),
+> supplies playback, PS5 hardware decoding, audio, the keyboard and packaging.
+> The EVO layer, `scripts/prepare_native.py` and its 47 `scripts/*_overlay.py`
+> patches, applies ProsperoTube's provider, interface and player changes to a
+> generated copy at build time and never edits the submodule.
+
+> [!IMPORTANT]
+> **The YouTube service is [YouTube.js](https://github.com/LuanRT/YouTube.js) on [QuickJS-NG](https://github.com/quickjs-ng/quickjs).**
+> YouTube.js 18.1.0 (`youtubei.js`) talks to YouTube; QuickJS-NG 0.17.0 runs it
+> inside `eboot.bin`, with Pacbrew's libcurl and OpenSSL for HTTPS. The service
+> lives in [`standalone/`](standalone/README.md).
+
+> [!IMPORTANT]
+> **Afterglow is drawn with [ps5-homebrew-ui](https://github.com/blackbearreloaded/ps5-homebrew-ui).**
+> The UI kit is a pinned build input (`scripts/ui_kit.py`), never copied into
+> this repository; Afterglow also uses its fonts and its two sound sets.
+
+> [!IMPORTANT]
+> **Native foundations from [PS5 Native App Boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
+> and the PS5 [video](https://github.com/blackbearreloaded/ps5-hardware-video-decoding-research)
+> and [audio](https://github.com/blackbearreloaded/ps5-audio-decoding-research) research.**
+> The update check and self-update follow the boilerplate's update kit, and its
+> console libcurl support is adapted for the service. The research repositories
+> were the decoder references; the inactive microphone path comes from the
+> audio research.
+
+> [!IMPORTANT]
+> **Uses [SponsorBlock](https://sponsor.ajay.app/) and [DeArrow](https://dearrow.ajay.app/).**
+> When turned on, the console asks these community services by Ajay
+> Ramachandran and contributors for segments, titles and thumbnails. No
+> database snapshot is bundled and nothing is submitted.
+
+The elevation client is adapted from
+[ProsperoTV](https://github.com/blackbearreloaded/ProsperoTV), and the entropy
+reader and self-exit from [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight).
+Every source, version and licence is listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+| Identity | Value |
+| --- | --- |
+| Shell title | `ProsperoTube` |
+| Title ID | `PPSA99142` |
+| Category | Game |
+| Version / content version | `0.1.0` / `01.000.000` (not released) |
+| Version source | [`scripts/prepare_native.py`](scripts/prepare_native.py), written into `sce_sys/param.json` |
+| Writable data | `/data/prosperotube` (Lapy access is required; there is no sandbox fallback) |
+
+## Features
+
+**Browsing**
+
+- Search with suggestions as you type, per-profile search history and
+  options (upload date, duration, type, features, order). Search also accepts
+  YouTube video and playlist URLs, `video:VIDEO_ID`, `channel:CHANNEL_ID` and
+  `playlist:PLAYLIST_ID`.
+- Home with its filters, and Discover: topics, Gaming, News, Music, Sports,
+  Live, Movies, Trending, Shorts and Kids.
+- Channels (Home, Videos, Shorts, Live, Playlists, sort orders, search in the
   channel), playlists and related videos.
-- Comments with replies, live chat and chat replay, read-only as Guest.
+- Comments with replies, live chat and chat replay.
 
 **Playback**
 
-- AVC, VP9, HEVC and AV1 in SDR with AAC or Opus sound, adaptive and
-  progressive streams and HLS; AV1 is decoded in software. This is not a claim
-  that every current YouTube video or resolution plays on a PS5.
+- AVC, VP9, HEVC and AV1 in SDR with AAC or Opus sound; adaptive, progressive
+  and HLS streams. This is not a claim that every YouTube video or resolution
+  plays on a PS5.
 - Captions with a second language at the same time, a caption picker during
   playback, caption style, size and position.
 - Maximum resolution (144p to 2160p), frame-rate limit, codec and audio
-  language per profile; speed from 0.25x to 4x remembered for all videos, a
-  channel, a video or one playback.
-- Seeking with three confirmation modes and ten intervals, chapters, video
-  sizing, zoom, aspect, rotation and mirror, three time displays, a sleep timer,
-  volume up to 300%, auto volume and audio delay.
-- **Preview while seeking** (off by default; single frame or a carousel of five):
-  the thumbnail of the seek target above the seek bar with its time, from
-  YouTube's storyboard sheets. A sheet is fetched once the target rests on it,
-  and at most four are kept in memory. Host-tested only.
+  language per profile; speed from 0.25x to 4x.
+- Seeking with three confirmation modes and ten intervals, chapters, a preview
+  of the seek target from YouTube's storyboards (off by default), zoom, aspect,
+  rotation and mirror, a sleep timer, volume up to 300%, auto volume and audio
+  delay.
 - Local history with resume positions, favorites, followed channels and an
-  ordered play queue, all per profile; seven end-of-video modes; **Next** and
-  **Previous** keep the playlist position; unavailable videos in a queue are
-  skipped after a cancellable five seconds.
-- Recovery after stream failures: up to three fresh resolutions per selected
-  video, keeping profile, format, position and captions.
-- Video actions, a suggestions list, chapter notification, screen dimming and
-  screen off from the player.
+  ordered play queue per profile; seven end-of-video modes.
+- Recovery after stream failures: up to three fresh resolutions per video,
+  keeping profile, format, position and captions.
+
+**Accounts**
+
+- Sign-in with a device code on the console, up to eight account profiles next
+  to Guest, and removal of an account.
+- Subscriptions, subscribed channels, notifications, YouTube history, Watch
+  later, playlists and own videos.
+- Like, dislike, subscribe and unsubscribe, Watch later, and playlist add,
+  remove, create, rename, delete, order and save. Every change is reviewed on a
+  confirmation screen and sent once.
 
 **Integrations**
 
-- SponsorBlock: actions per category, minimum segment length, channel
-  exclusions, timeline colours and review of a skip.
-- DeArrow titles and thumbnails, each with its own switch; originals are kept.
+- SponsorBlock: an action per category, minimum segment length, channel
+  exclusions, timeline colours, review of a skip and an optional alternative
+  server.
+- DeArrow titles and thumbnails, each with its own switch.
+- Dislike counts from Return YouTube Dislike for a profile that turns **Show
+  dislikes** on (off by default).
+- Phone casting (experimental): start a video or a queue from the YouTube app,
+  play, pause, seek, next, previous, volume, captions and stop.
 
-**YouTube accounts** (signed in on the console by the built-in service; see
-[Accounts](#accounts-on-the-console) for what is unverified)
+**Interface and maintenance**
 
-- Sign-in with a device code, removal of a signed-in account, up to eight
-  account profiles next to Guest.
-- Subscriptions, subscribed channels, notifications, YouTube history, Watch
-  later, playlists and own videos.
-- Like, dislike, subscribe and unsubscribe, Watch later, playlist add, remove,
-  create, rename, delete, order and save. Every change is reviewed on a
-  confirmation screen and sent once.
+- Two interfaces, Classic and Afterglow (preview), four themes and nine classic
+  colour schemes, interface and grid scale, card text and the order of the
+  video actions menu, per profile.
+- The interface in 21 languages besides English, following the PS5 system
+  language or **Interface language**. The player and its notices stay English.
+- Backup and restore in `/data/prosperotube/backup`, with an optional automatic
+  backup, and subscriptions import from a NewPipe, PocketTube or GrayJay export.
+- A daily update check with a notice, and an in-place self-update that keeps
+  the previous version until the new one has run.
+- About with the version, project links as QR codes, credits with their
+  licences and the changelog.
 
-**Phone casting** (experimental; the receiver runs inside the app, see
-[docs/REMOTE_SERVICE.md](docs/REMOTE_SERVICE.md))
+![Afterglow's Search: the field with typed text, suggestions below it, the on-screen keyboard on the right and best matches underneath](docs/images/afterglow-search.png)
 
-- **Phone pairing** in the player preferences: **Link a phone** shows a TV
-  code; enter it in the YouTube app under *Watch on TV > Enter TV code*. Off
-  until a phone is linked; **Reset phone pairing** forgets this TV's identity.
-- From the phone: start a video or a queue, play, pause, seek, next, previous,
-  volume, captions and stop; the phone shows what plays and where. A choice of
-  what happens when the phone disconnects (keep playing, stop, close the app),
-  and whether phone playback enters the history.
-- Host-tested against a stand-in for YouTube's phone service. Whether a real
-  phone links, and how the connection behaves over an evening, is unknown.
+![Afterglow's player controls over a paused video: title, chaptered timeline with SponsorBlock marks, and the control row](docs/images/afterglow-player.png)
 
-**Settings** (YouTube preferences)
+Both pictures are Afterglow screens drawn by the same PC test harness with
+invented sample data, not console captures.
 
-- Player and caption choices above, per profile or shared (**Separate settings
-  per account**), **Start in** section, **Choose account at startup**, menu
-  sections and pins, content language and country, sixteen hide-content
-  switches, thumbnail source, channel blocks by ID or name.
-- **Interface**, per profile: interface scale and video grid scale with
-  SmartTube's values (the page holds more or fewer cards accordingly), one to
-  four title lines, the selected card's long title scrolling at a chosen speed,
-  two-line subtitles, rounded or square cards, a **Theme** (Afterglow by
-  default, Onyx on true black, the light Daybreak, or High contrast; the nine
-  earlier colour schemes, three of them true black, are listed under **Classic
-  colours**), which rows the video actions menu shows and in what order
-  (in the browser and in the player), and what Circle does on the main menu:
-  nothing, close after a second press, or close at once. **Search options**
-  can ask for two presses of Circle to leave typed results.
-- The theme colours the browser and lends its accent to the player controls.
-  **Player settings > Theme** (EVO's own, shared by every profile) colours the
-  keyboard, dialogs and player settings, and the player controls while the
-  theme is **Classic ProsperoTube**. A profile saved before the themes existed
-  opens in Afterglow unless it had chosen one of the classic schemes.
-- **Interface: Afterglow (preview)** (YouTube preferences > Interface) shows
-  the interface that is being built on the UI kit: Home is there, and pages
-  that are not built yet say so. **Classic**, the default, is complete.
-- **Backup and restore** in `/data/prosperotube/backup` with an optional
-  automatic backup, **Import subscriptions** from a NewPipe, PocketTube or
-  GrayJay export placed in `/data/prosperotube/import`, and **About** with the
-  version, "Brought to you by BlackBearReloaded", project links as QR codes,
-  credits by name with their licences (SmartTube and FreeTube, whose approach
-  it follows; EVO Player, which it is built on; and the libraries it carries)
-  and changes.
+## Current status
 
-**Languages**
+Three bounded sessions on 2026-10-13 ran the self-sufficient build on a PS5,
+as Guest and with no computer involved
+([hardware acceptance](docs/HARDWARE_ACCEPTANCE.md)). The built-in service
+started; Discover and one topic listed their videos through it; a public video
+resolved on the console and played from YouTube directly in hardware-decoded
+AVC 1080p with AAC sound; a ten-second seek, pause, the caption picker and the
+playback options worked; Stop, the saved Guest history and a clean close
+followed. These sessions were judged from the app's instrumentation: nobody
+assessed sound or motion, and no caption was on screen.
 
-- The browser, the preferences and messages in 21 languages besides
-  English: Čeština, Dansk, Deutsch, Ελληνικά, Español, Suomi, Français, Magyar,
-  Bahasa Indonesia, Italiano, Norsk bokmål, Nederlands, Polski, Português
-  (Brasil), Português (Portugal), Română, Русский, Svenska, Türkçe, Українська
-  and Tiếng Việt. The app follows the language of the PS5 system settings;
-  **YouTube preferences > Interface language** chooses another one or English.
-- The player (controls, in-player menus, pickers, the keyboard) and toasts
-  stay English: their fonts hold no accented letters yet. Languages that need other fonts,
-  shaping or right-to-left layout (Chinese, Japanese, Korean, Thai, Hindi,
-  Arabic, Hebrew) are not included.
-  [docs/LOCALIZATION.md](docs/LOCALIZATION.md) has the details and the plan.
+Earlier development builds, which used a companion on a PC, ran on a PS5 for
+bounded cases: startup with storage access, search, public AVC playback with
+captions, more than two minutes of 1080p60 AVC/AAC with smooth picture and
+synchronized sound confirmed by the owner, and, with generated media and a
+fixture service, resume, speed changes, the SponsorBlock review, the queue,
+two caption languages at once and the chat reader.
 
-### Accounts on the console
+Everything else is tested on a PC only (the offline suite,
+`bash scripts/test_all.sh`) and has not run on a console: the Afterglow
+interface, accounts (no real account has signed in), phone casting (no real
+phone has been linked), the update check and self-update, the interface
+languages, VP9, HEVC, AV1 and 4K playback, recovery when a media link expires,
+backups and the seek preview. [Status](docs/STATUS.md) lists each part and its
+evidence.
 
-**Discover > Accounts & library > Sign in to YouTube** shows a code and the
-address to enter it at (also as a QR code). The app checks by itself until the
-sign-in is authorized, denied, cancelled or the code expires. The new account
-is a profile; **Remove selected account** signs it out of this console.
+Not included yet: playback of videos that need the account (age-restricted,
+private, members-only, purchased), voice search, a translated player,
+languages that need other fonts or right-to-left layout, auto frame rate, HDR
+and background playback.
 
-- **Unverified until a real sign-in.** Everything about accounts was tested on
-  a PC against canned answers: the sign-in exchange, the stored sign-in and its
-  renewal, every account list and every change. Whether Google accepts the
-  sign-in from the console, and whether each list and change works against the
-  live service, is not known yet. A list or change that fails does not affect
-  Guest browsing or playback.
-- **Playback.** A signed-in profile plays videos the way Guest does: the
-  account is not part of the player request. Watch history is reported to the
-  account separately (unless **History** is off or the video is played
-  incognito). Videos that need the account itself (age-restricted, private,
-  members-only, purchased) are refused as they are for Guest; the path that
-  would use the account for them is in the code, switched off.
-- **Where the sign-in is kept.** In
-  `/data/prosperotube/accounts/oauth-profiles.json`, as plain text: the PS5
-  offers no encrypted storage. Whoever can read the app's data directory can
-  use those accounts on YouTube. The file is not part of the app's backups.
-  Removing the account in the app deletes its sign-in from the console; to
-  revoke it at Google as well, remove "YouTube on TV" under
-  <https://myaccount.google.com/permissions>.
+> [!IMPORTANT]
+> ProsperoTube asks YouTube as one client identity, `VISIONOS`, with no
+> fallback but HLS. When YouTube changes its service, playback can stop until
+> an update of the app arrives.
 
-### What was checked on a console
+## Requirements
 
-The self-sufficient build ran on a PS5 in one bounded session on 2026-10-13,
-as Guest with no computer involved
-([hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) has the records):
+On the console: a PS5 that runs homebrew, with Lapy available (ProsperoTube
+stops at startup when it cannot get access to `/data/prosperotube`), and an
+internet connection.
 
-- The built-in service started, and Discover and one of its topics listed
-  their videos through it.
-- A public video resolved on the console and played from YouTube directly, in
-  hardware-decoded AVC at 1080p with AAC sound: a ten-second seek, pause, the
-  caption picker and the playback options, Stop, the saved Guest history and a
-  clean close. Nobody judged sound or motion, and no caption was on screen.
+To build, Linux or WSL. On Ubuntu or Debian:
 
-Earlier development builds ran on a PS5 for these bounded cases only:
+```bash
+sudo apt-get install clang-18 lld-18 llvm-18 cmake ninja-build make git \
+  python3 python3-venv pkg-config ccache wget curl unzip zip nasm yasm \
+  libssl-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev ffmpeg
+export PATH=/usr/lib/llvm-18/bin:$PATH
+git submodule update --init --recursive
+bash scripts/bootstrap_sdk.sh
+```
 
-- Startup with storage access, companion pairing and search.
-- A public YouTube video through the companion in hardware-decoded AVC with
-  English captions and saved Guest history; pause, resume and a ten-second seek.
-- More than two minutes of public 1080p60 AVC/AAC with smooth picture and
-  synchronized sound, and a clean close.
-- With generated test media and a fixture service instead of YouTube: resume
-  and seeking, speed changes, the SponsorBlock skip review, advancing past an
-  unavailable video in the queue, two caption languages at once while paused,
-  the chat reader, thumbnail decoding, and phone commands sent by a test
-  receiver (not a real phone).
+The bootstrap fetches the PS5 Payload SDK and Pacbrew release assets into a
+user prefix under `~/.cache/prosperotube`. The first build of the PS5 shader
+compiler needs further packages; [Build](docs/BUILD.md) lists them and the
+pins. The offline checks also need Node (the workflow uses 24.10.0) and a
+Python virtual environment with `companion/requirements.lock`.
 
-Those runs used the companion on a PC, before the service moved into the app.
-Everything else on this page is host-tested only and not yet verified on a
-console: VP9/HEVC/AV1 and 4K playback, recovery when a media link expires
-during playback, accounts, phone casting, updates, the interface languages,
-real live chat, the in-player actions, backups, the seek preview and every
-settings screen added since those runs, the interface preferences among them.
-**The built-in service, its HTTPS client and the direct playback from YouTube
-have run on a console in that one session only**; on the host they pass the
-offline suite and a live Guest check (search, sections, channels, playlists,
-comments, resolve, captions, playback and seeking with the console's FFmpeg
-patch; see [docs/VALIDATION.md](docs/VALIDATION.md)).
+## Build
 
-## Experimental features
+```bash
+# Once: the PS5 shader compiler for the display transforms.
+bash scripts/build_ps5_shader_compiler.sh
 
-These are in 0.1.0's code and were tested offline only. All but the profile
-password need a signed-in account. Their rows end in
-**(experimental)**, each acts only when you select it or turn it on, and
-**YouTube preferences > Experimental features** repeats this explanation.
+# The application, with the built-in YouTube service.
+bash scripts/build_ps5.sh
 
-| Feature | Where | Default |
-| --- | --- | --- |
-| Sending a live-chat message | **L3** in an open live chat | Typed, reviewed, sent once |
-| Writing a comment or a reply | Comments of a video | Typed, reviewed, posted once |
-| Pause, resume and clear the account watch history | Touchpad on **YouTube history** | Confirmed, sent once |
-| Not interested, Don't recommend channel, Hide from this list | Video menu on cards that carry them | Confirmed, sent once |
-| Profile password | YouTube preferences > Account settings | No password; typed on the visible PS5 keyboard, stored as a salted hash |
+# The same, plus a .ffpfsc image.
+bash scripts/build_ps5.sh --ffpfsc
+```
 
-## Not included yet
+Outputs are written to:
 
-- Translations of the player interface, and languages outside the Latin,
-  Greek and Cyrillic scripts ([docs/LOCALIZATION.md](docs/LOCALIZATION.md)).
-- The remaining SmartTube interface options (buttons at the top of the main
-  window, card previews, playlists as rows); [docs/PARITY.md](docs/PARITY.md)
-  tracks each.
-- Playing videos that need the account itself (age-restricted, private,
-  members-only, purchased): a signed-in profile resolves videos as Guest does.
-- Voice search: there is no speech recogniser on the console, so the L3
-  shortcut is hidden ([docs/VOICE_SEARCH.md](docs/VOICE_SEARCH.md) weighs the
-  ways to add one). With a phone linked, the YouTube app's own voice search
-  works from the phone. The voice code remains in the tree for the
-  development companion.
-- Trending and Shorts as sections: YouTube does not offer them to a Guest; the
-  app shows one explanatory row.
-- Automatic frame-rate switching, HDR and background playback.
+```text
+dist/PPSA99142/        complete title folder
+dist/PPSA99142.zip     the folder as a ZIP
+dist/PPSA99142.ffpfsc  compressed image (with --ffpfsc)
+```
 
-## Updates
+The offline checks:
 
-Host-tested only; the check has not met GitHub yet (the repository is private)
-and nothing here has run on a console. [docs/UPDATES.md](docs/UPDATES.md) has
-the whole mechanism.
+```bash
+bash scripts/test_all.sh        # every host check: service, provider, player overlays, interface
+bash scripts/test_afterglow.sh  # Afterglow's boards in the four looks
+```
 
-- Once a day, some seconds after start, the app asks this project's GitHub
-  releases whether a newer version exists and says so in a notice. **Settings >
-  About** has **Check for updates** (installed and latest version), **Notify
-  about updates** (on by default), the release notes, and **Skip version**.
-- **Update to ... now** downloads the release ZIP in pieces (it can be paused
-  and continues where it stopped), requires the size and SHA-256 the release
-  lists, unpacks it beside the app's data and checks every file. **Restart to
-  finish updating** then replaces the app's files and closes ProsperoTube.
-- The previous version is kept until the new one has run for ten seconds. A
-  power loss during the replacement is undone at the next start; a new version
-  that fails to start twice is replaced by the previous one.
-- Only a copy installed in `/data/homebrew/PPSA99142` updates itself. A copy
-  on a USB drive, an image install and a development build list the newer
-  version and say why they stay as they are.
-- The request carries nothing about the console, the user or the installed
-  version: a generic `User-Agent` and nothing else.
+## GitHub Actions and releases
+
+The [Build workflow](.github/workflows/build.yml) runs for version tags and
+when started by hand; pushes and pull requests build nothing. It:
+
+1. checks out the source with its submodules;
+2. installs the Linux toolchain and Node;
+3. checks that a tag is `v` + the content version and that release notes exist;
+4. restores or builds the PS5 SDK, dav1d, FFmpeg and the shader compiler
+   (the first run takes hours; later runs use the Actions cache);
+5. runs `bash scripts/test_all.sh` and builds the app;
+6. checks the ZIP (one app folder, `eboot.bin`, every entry stored 0777, the
+   version) and writes `SHA256SUMS`; and
+7. for a tag, publishes a pre-release with `PPSA99142.zip` and `SHA256SUMS`.
+
+The workflow needs no secret and never replaces a ZIP a release already has.
+
+## Update an installed copy
+
+A copy installed in `/data/homebrew/PPSA99142` updates itself: once a day the
+app asks this project's GitHub releases whether a newer version exists, and
+**Settings > About** offers **Update to ... now** and then **Restart to finish
+updating**. The download is checked against the size and SHA-256 the release
+lists, and the previous version is kept until the new one has run. This is
+tested on a PC only; [Updates](docs/UPDATES.md) has the whole mechanism.
+
+By hand:
+
+1. Download `PPSA99142.zip` from the release and check it with `SHA256SUMS`.
+2. Fully close ProsperoTube.
+3. Extract the ZIP and upload its complete `PPSA99142` folder to
+   `/data/homebrew/`, so that `/data/homebrew/PPSA99142/eboot.bin` exists. Do
+   not upload the ZIP itself.
+4. Start ProsperoTube.
+
+Settings, profiles and accounts are kept in `/data/prosperotube` and are not
+touched by an update.
+
+## Deploy
+
+Nothing in this repository deploys to a console. Copy the complete
+`dist/PPSA99142` folder to `/data/homebrew/PPSA99142` with your usual tool,
+with ProsperoTube closed; `eboot.bin` alone is not a valid deployment. A copy
+on a USB drive, an image install and a development build run, but list newer
+versions without updating themselves.
+
+[`tools/console`](tools/console/README.md) is the bounded session driver that
+produced the hardware records; it is a development tool.
+
+## Watching as Guest or signing in
+
+ProsperoTube opens as **Guest**: search, Home, Discover, channels, playlists,
+comments and playback work without an account, and history, favorites and the
+queue are kept on the console.
+
+To sign in, open **Discover > Accounts & library > Sign in to YouTube**. The
+app shows a code and the address to enter it at, also as a QR code, and checks
+by itself until the sign-in is authorized, denied, cancelled or expired. The
+account becomes a profile next to Guest.
+
+- **Unverified until a real sign-in.** Sign-in and every account list and
+  change were tested on a PC against canned answers. A list or change that
+  fails does not affect Guest browsing or playback.
+- **Playback stays Guest's.** A signed-in profile resolves videos as Guest
+  does and reports watch history to the account, unless **History** is off or
+  the video is played incognito.
+- **The sign-in is kept as plain text** in
+  `/data/prosperotube/accounts/oauth-profiles.json`: the PS5 offers no
+  encrypted storage, and the file is not part of backups. **Remove selected
+  account** deletes it from the console; to revoke it at Google as well, remove
+  "YouTube on TV" under <https://myaccount.google.com/permissions>.
+
+## Casting from a phone
+
+Phone casting is experimental and has not been tried with a real phone.
+
+1. In the player preferences, choose **Link a phone**. ProsperoTube shows a TV
+   code.
+2. In the YouTube app on the phone, open *Watch on TV > Enter TV code* and type
+   it.
+3. Start a video or a queue from the phone; play, pause, seek, next, previous,
+   volume, captions and stop work from there.
+
+The preferences also choose what happens when the phone disconnects (keep
+playing, stop, close the app) and whether phone playback enters the history.
+**Reset phone pairing** forgets this console's identity. Details are in
+[the remote service](docs/REMOTE_SERVICE.md).
+
+## Choosing the interface and theme
+
+- **YouTube preferences > Interface > Interface** chooses **Classic**, the
+  default and complete browser, or **Afterglow (preview)**. Afterglow's
+  screens are in the tree and drawn by its PC harness, but it has never run on
+  a console; a page it does not have yet says so.
+- **Theme**, per profile: Afterglow (the default), Onyx on true black, the
+  light Daybreak, or High contrast; the nine earlier colour schemes are under
+  **Classic colours**.
+- **Player settings > Theme** is EVO's own and shared by every profile: it
+  colours the keyboard, dialogs and player settings.
+- **YouTube preferences > Interface language** chooses one of the 21
+  languages or English instead of the PS5 system language.
 
 ## Controls
 
-| Browser | Action |
-| --- | --- |
-| D-pad / Cross | Focus / open or watch |
-| Square | Search |
-| Circle | Back; cancel a pending request |
-| Triangle | Toggle favorite |
-| R2 / L2 | Toggle queue / follow the video's channel |
-| L1 / R1 | Previous / next page |
-| R3 | Comments, or live chat on a live video |
-| Touchpad | Video actions; section and pin actions on a folder; playlist edits; ratings for a displayed comment |
-| Options | Retry the built-in service if it did not start |
+The icons are the controller's buttons. ![Touchpad][touchpad] is the touchpad button: press the
+touchpad down until it clicks. The tables are for the Classic interface;
+Afterglow shows its buttons at the foot of every screen, and its full map is in
+the [design notes](docs/afterglow/design-notes.md#10-controller-map).
 
-In comments, Cross opens replies, L2/R2 scroll the full text, L1/R1 page, R3
-switches top/newest and Triangle opens the chat replay. In chat, R3 switches
-top/live, Triangle loads more replay messages and L1/R1 move the replay by one
+### Browser
+
+| Input | Action |
+| --- | --- |
+| ![D-pad][dpad] / ![Cross][cross] | Move focus / open or watch |
+| ![Square][square] | Search |
+| ![Circle][circle] | Back; cancel a pending request |
+| ![Triangle][triangle] | Toggle favorite |
+| R2 / L2 | Toggle queue / follow the video's channel |
+| ![L1][l1] / ![R1][r1] | Previous / next page |
+| R3 | Comments, or live chat on a live video |
+| ![Touchpad][touchpad] | Video actions; section and pin actions on a folder; playlist edits; ratings for a displayed comment |
+| ![Options][options] | Retry the built-in service if it did not start |
+
+In comments, ![Cross][cross] opens replies, L2 / R2 scroll the full text,
+![L1][l1] / ![R1][r1] page, R3 switches top and newest and ![Triangle][triangle]
+opens the chat replay. In chat, R3 switches top and live, ![Triangle][triangle]
+loads more replay messages and ![L1][l1] / ![R1][r1] move the replay by one
 minute.
 
-| Player | Action |
-| --- | --- |
-| Cross | Pause or resume (four behaviours selectable while controls are hidden) |
-| Left / Right | Seek |
-| L1 / R1 | Previous / next chapter |
-| Up / Down | Toggle captions / caption picker |
-| R2 | Playback options: quality, audio, speed and the video actions |
-| L2 / Touchpad halves | Caption timing |
-| Triangle | Video sizing |
-| R3 | Jump to the next SponsorBlock highlight |
-| Square / Options | Media information / statistics |
-| Circle | Stop (confirmed) |
+### Player
 
-Left/Right and Up/Down can be reassigned under **Player controls, keys and
+| Input | Action |
+| --- | --- |
+| ![Cross][cross] | Pause or resume (four behaviours selectable while the controls are hidden) |
+| ![D-pad][dpad] left / right | Seek |
+| ![L1][l1] / ![R1][r1] | Previous / next chapter |
+| ![D-pad][dpad] up / down | Toggle captions / caption picker |
+| R2 | Playback options: quality, audio, speed and the video actions |
+| L2 / ![Touchpad][touchpad] halves | Caption timing |
+| ![Triangle][triangle] | Video sizing |
+| R3 | Jump to the next SponsorBlock highlight |
+| ![Square][square] / ![Options][options] | Media information / statistics |
+| ![Circle][circle] | Stop (confirmed) |
+
+The D-pad directions can be reassigned under **Player controls, keys and
 Shorts**. Live streams have no seekable timeline. Closing ProsperoTube from its
 menu releases its resources and parks the application; close it from the PS5
 switcher afterward.
 
-## Storage and privacy
+[cross]: docs/images/buttons/cross.svg "Cross"
+[circle]: docs/images/buttons/circle.svg "Circle"
+[square]: docs/images/buttons/square.svg "Square"
+[triangle]: docs/images/buttons/triangle.svg "Triangle"
+[options]: docs/images/buttons/options.svg "Options"
+[l1]: docs/images/buttons/l1.svg "L1"
+[r1]: docs/images/buttons/r1.svg "R1"
+[dpad]: docs/images/buttons/dpad.svg "D-pad"
+[stick]: docs/images/buttons/stick.svg "Analog stick"
+[touchpad]: docs/images/buttons/touchpad.svg "Touchpad button"
 
-- Settings, profiles, history, favorites and queues are in one file under
-  `/data/prosperotube`, replaced atomically; local lists keep at most 384
-  videos. PS5 storage encryption is not provided. Backups stay in
-  `/data/prosperotube/backup`.
-- The built-in service listens on `127.0.0.1` only, on a port chosen at each
-  start, behind a random token that exists in memory only. It keeps a small
-  cache under `/data/prosperotube/cache` and writes no log.
-- The console talks to YouTube directly and without cookies: YouTube sees the
-  console's address, as it would for any player. HTTPS to YouTube's API is
-  verified against a root-certificate list built into the app. Video, sound
-  and thumbnails are fetched by the player without certificate verification
-  (as EVO Player does); they carry no credentials.
-- A signed-in account's tokens go to Google's and YouTube's API over verified
-  HTTPS and nowhere else; the app's interface never receives them. They are
-  stored as plain text under `/data/prosperotube/accounts`
-  ([Accounts](#accounts-on-the-console)).
-- SponsorBlock and DeArrow, when turned on, are asked directly by the console.
-  With **Use alternative server** on, segments are asked from the https
-  address typed under **Alternative server** instead.
-- The update check asks `api.github.com` at most once a day over verified
-  HTTPS, with a generic `User-Agent` and no identifier; a download comes from
-  GitHub's release hosts. **Notify about updates** off silences the notice,
-  not the check.
-- Local history is independent of Google. With an account profile, playback
-  reports go to that account unless **History** is disabled or the video is
-  played incognito.
-- **Show dislikes** is off by default. A profile that turns it on has the
-  console ask Return YouTube Dislike (`returnyoutubedislikeapi.com`) once for
-  each video whose details or description it opens: that service then learns
-  which videos those are. Tested offline only.
-- The PS5 diagnostics redact media session addresses. See the
-  [protocol and security notes](docs/PROTOCOL.md).
+## Files on the console
 
-## Build
+When it starts, ProsperoTube asks for filesystem access through Lapy: a
+separately loaded resident service gets the first chance, then the packaged
+one-shot helper, which serves `PPSA99142` only (see
+[`native/elevation`](native/elevation/README.md)). Everything the app writes is
+in one folder that an update or a reinstall does not touch:
 
-[docs/BUILD.md](docs/BUILD.md) covers dependencies, the PS5 package build, the
-offline checks (`bash scripts/test_all.sh`) and the release procedure.
-[docs/VALIDATION.md](docs/VALIDATION.md) is the dated validation record,
-[docs/DECISIONS.md](docs/DECISIONS.md) and the [goal](GOAL.md) explain the
-direction.
+| Path | Contents |
+| --- | --- |
+| `/data/prosperotube/youtube.json` | Settings, profiles, history, favorites, queues and the phone receiver's identity, replaced atomically |
+| `/data/prosperotube/accounts/oauth-profiles.json` | Signed-in accounts, as plain text |
+| `/data/prosperotube/backup/` | Backups, manual and automatic |
+| `/data/prosperotube/import/` | Place a subscriptions export file here to import it |
+| `/data/prosperotube/cache/` | The built-in service's small cache; safe to delete |
+| `/data/prosperotube/providers/youtube/art/` | Thumbnails kept between launches |
+| `/data/prosperotube/update/` | The update check's answer, downloads and the previous version |
+| `/data/prosperotube/interface-language` | The chosen interface language, for all profiles |
 
-GPL-3.0-or-later. See [LICENSE](LICENSE) and
+There is no fallback: when Lapy access is refused or the app cannot write and
+read back a file in `/data/prosperotube`, startup stops before any service
+starts, rather than keeping state somewhere temporary. To start over, delete
+`/data/prosperotube` while the app is closed. Whoever can read that folder can
+use the signed-in accounts on YouTube.
+
+The built-in service listens on `127.0.0.1` only, on a port chosen at each
+start, behind a random token kept in memory, and writes no log. The update
+check sends a generic `User-Agent` and no identifier. More in
+[the protocol and security notes](docs/PROTOCOL.md).
+
+## Source layout
+
+```text
+native/tube_provider.c        the YouTube provider: pages, playback, profiles, state
+native/youtube.rml, .rcss     the Classic browser (RmlUi)
+native/afterglow/             the Afterglow interface: frame, screens, player controls, sound
+native/text/                  the text engine behind Afterglow (HarfBuzz, FriBidi, FreeType)
+native/tube_update*.c         update check and self-update
+native/elevation/             the Lapy client and its packaged helper
+native/i18n/                  the interface catalogs, 21 languages
+native/branding/              home-screen icon, 4K backgrounds, selection music
+native/licenses/              licence texts shipped with the app
+standalone/                   the built-in service: QuickJS-NG bindings, HTTPS client, JS service
+companion/                    the PC companion and YouTube.js library modules (development)
+scripts/prepare_native.py     the EVO layer: applies scripts/*_overlay.py to a copy of EVO
+scripts/build_ps5.sh          the PS5 package build
+scripts/test_*.sh, *.py       offline checks
+tests/                        native, Python and Afterglow harness tests
+tools/console/                bounded console session driver (development)
+third_party/evo/              EVO Player, pinned submodule
+docs/                         status, validation, build, design and decisions
+```
+
+## Versioning
+
+The content version (`contentVersion="01.000.000"`) and the version shown to
+people (`0.1.0`) are set in [`scripts/prepare_native.py`](scripts/prepare_native.py),
+which writes them into `sce_sys/param.json`. `python3 scripts/release_version.py`
+prints the title, content version and version; `--tag` prints the tag, which is
+`v` + the content version.
+
+```bash
+# After raising the version and passing the offline checks:
+git tag v01.000.000
+git push origin v01.000.000
+```
+
+Keep `PPSA99142`, `conceptId` and `contentId` stable for updates to this
+title. A new version shown to people also needs its `CHANGELOG.md` section and
+`python3 scripts/generate_about.py`; [Build](docs/BUILD.md#releasing) has the
+steps.
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [Changelog](CHANGELOG.md) | User-visible changes in each version |
+| [Status](docs/STATUS.md) | What is implemented, what was tested and where |
+| [Hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) | Every console session and its result |
+| [Validation](docs/VALIDATION.md) | Dated host and package validation record |
+| [Build](docs/BUILD.md) | Dependencies, pins, the PS5 build, checks and releasing |
+| [Updates](docs/UPDATES.md) | Update check and self-update |
+| [Localization](docs/LOCALIZATION.md) | Interface languages and what stays English |
+| [Decisions](docs/DECISIONS.md) | Built-in service, accounts, phone receiver, Afterglow |
+| [Parity](docs/PARITY.md) | Comparison with every audited SmartTube surface |
+| [Protocol](docs/PROTOCOL.md) | Service API and security notes |
+| [Library service](docs/LIBRARY_SERVICE.md) | Account and library contracts |
+| [Remote service](docs/REMOTE_SERVICE.md) | The phone receiver |
+| [Voice search](docs/VOICE_SEARCH.md) | Why voice search is not in the release |
+| [Reference candidates](docs/REFERENCE_CANDIDATES.md) | Playback and service references |
+| [Afterglow design notes](docs/afterglow/design-notes.md) | The interface proposal and controller map |
+| [Afterglow architecture](docs/afterglow/ARCHITECTURE.md) | How Afterglow is built and tested |
+| [Built-in service](standalone/README.md) | The service as a host program and on the console |
+| [Notices](THIRD_PARTY_NOTICES.md) | Dependency, asset and licence attribution |
+
+### Elevation credits
+
+Filesystem elevation uses the cooperative Lapy design from
+[ArkSama's PS5-Lapy-JB-Daemon](https://github.com/ArkSama/PS5-Lapy-JB-Daemon) and
+[mpereiraesaa's PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon),
+whose helper (MIT) is built from a pinned revision and ships with the app.
+
+<!-- bbr-footer:start -->
+<!-- Generated by ps5-homebrew-dev-protocol/scripts/readme-footer. Edit the template there, not here. -->
+
+## Credits
+
+Built with the [PS5 Payload SDK](https://github.com/ps5-payload-dev/sdk) by John Törnblom (ps5-payload-dev).
+Third-party components, authors and licenses are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+Copyright © 2026 BlackBearReloaded. Licensed under GPL-3.0-or-later; see [LICENSE](LICENSE). Third-party components keep their own licenses. Binary releases are built from the tagged source in this repository.
+
+## Disclaimer
+
+- **No affiliation.** This is an independent homebrew project. It is not
+  affiliated with, endorsed by, or sponsored by Sony Interactive Entertainment.
+  "PlayStation", "PS5" and related marks are trademarks of Sony Interactive
+  Entertainment Inc. This project is not affiliated with or endorsed by YouTube, Google or the EVO Player project. YouTube is a trademark of Google LLC.
+- **No proprietary material.** No Sony SDK, firmware, encryption keys or
+  decrypted system modules are included.
+- **No warranty.** This project is provided "as is", without warranty of any
+  kind, to the extent permitted by law. See sections 15 and 16 of the GPL.
+- **Use at your own risk.** Running homebrew requires a modified console, which
+  may void its warranty, breach the platform's terms of service, or cause data
+  loss.
+- **Legal use only.** Use it only with hardware, accounts and content you own.
+  This project does not support or enable piracy.
+
+## AI assistance
+
+This project was developed with AI assistance from OpenAI and/or Anthropic tools.
+<!-- bbr-footer:end -->
