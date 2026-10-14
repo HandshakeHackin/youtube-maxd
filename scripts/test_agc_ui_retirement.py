@@ -27,6 +27,8 @@ helper_start = rml.index("static std::vector<void *> s_agc_pending_frees;")
 helper_end = rml.index("EvoRenderInterfaceAGC::EvoRenderInterfaceAGC", helper_start)
 helpers = rml[helper_start:helper_end]
 hui_end = function(hui, "void AgcBatch::end_frame()")
+hui_release = function(hui, "void AgcBatch::release()")
+assert "if (!evo_agc_runtime_gpu_data_idle()) return;" in hui_release
 assert rml.count("agc_alloc_gpu(") == 4
 assert rml.count("agc_release_buffer(") == 6  # helper plus five release sites
 assert "agc_collect_released_buffers();" in function(rml, "void EvoRenderInterfaceAGC::FrameEnd()")
