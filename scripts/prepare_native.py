@@ -60,7 +60,7 @@ def main():
     transform_stamp.unlink(missing_ok=True)  # Only successful preparation can publish this stamp.
     player = "projects/evoplayer/"
     overlay_files = [player + name for name in (
-        "Makefile", "addons/src/evo_provider_mgr.c", "addons/include/evo_provider.h", "src/evo_data_path.c", "include/evo_data_path.h",
+        "Makefile", "addons/src/evo_provider_mgr.c", "addons/src/evo_net.c", "addons/include/evo_provider.h", "src/evo_data_path.c", "include/evo_data_path.h",
         "core/src/Application.cpp", "core/include/evo/Application.hpp", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/src/screens/ModalDialogScreen.cpp",
@@ -245,6 +245,8 @@ def main():
     apply_auto_frame_rate_overlay(replace, player)
     from hdr_post_flip_overlay import apply_hdr_post_flip_overlay
     apply_hdr_post_flip_overlay(replace, player)
+    from refresh_readback_overlay import apply_refresh_readback_overlay
+    apply_refresh_readback_overlay(replace, player)
     from speed_controls_overlay import apply_speed_controls_overlay
     apply_speed_controls_overlay(replace, player)
     from player_chat_overlay import apply_player_chat_overlay
@@ -499,6 +501,8 @@ static void run_command(const char *line)
     apply_agc_frame_boundary_overlay(replace, player)
     from close_pending_start_overlay import apply as apply_close_pending_start_overlay
     apply_close_pending_start_overlay(replace, player, WORK)
+    from evo_net_lanes_overlay import apply as apply_evo_net_lanes_overlay
+    apply_evo_net_lanes_overlay(replace, player, WORK)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
