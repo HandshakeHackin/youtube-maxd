@@ -150,7 +150,7 @@ int main(void) {
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* The shared screens provide counts, so both English forms select the language's own plural. */
-    static const char *const afterglow[] = {"da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pt-BR", "pt-PT", "sv"};
+    static const char *const afterglow[] = {"da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pt-BR", "pt-PT", "sv", "tr"};
     for (size_t i = 0; i < sizeof afterglow / sizeof *afterglow; ++i) {
         use(afterglow[i]);
         assert(tr("Who is watching?", 0));
