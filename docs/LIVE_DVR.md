@@ -131,3 +131,29 @@ Native seek gates, moving lower/upper timeline bounds, initial clock anchoring,
 account-scoped saved-point persistence and source/session ownership tests remain
 pending. This host stage does not establish console DVR or remote split-stream
 calibration, and must not be advertised as completed DVR support.
+
+## Native ownership and persistence prerequisite
+
+The provider now supplies `tube_live_capture`, `tube_live_owner_current`,
+`tube_live_restore` and `tube_live_remember`. Capture runs on the UI launch path
+before the worker starts and binds an immutable owner to the selected profile,
+video, exact playback URL, service origin and format. Background readers use an
+atomic token and a mutex-protected copy of that binding, without reading mutable
+provider account globals. Source/profile/selection/shutdown, history-policy
+changes and history clearing revoke old tokens. Re-pairing clears saved live
+points rather than assuming the newly paired service is the same source.
+
+Only validated UTC points inside a fresh bounded window enter the existing
+profile/video Record. Session URLs/tokens are never persisted. Saving follows the
+existing ten-second progress/stop flush policy. Incognito, disabled history and
+opted-out phone history suppress saving/restoration. Reopen requires matching
+source/format plus the current window containing the actual saved UTC point;
+other profiles, selections, formats, expired windows and forged owner fields
+cannot consume it. The loader rejects malformed and out-of-range microseconds.
+
+`bash scripts/test_native.sh live_owner history_modes playback_recovery remote_history`
+passes under ASan/UBSan, including concurrent restore versus selection revocation,
+source/profile isolation, persistence across shutdown/reopen, moved windows,
+history clearing and privacy-policy changes. The touched provider object compiles
+with read-only PS5 SDK headers. These APIs are prerequisites only: the player does
+not call them yet, and production live seek gates are still unchanged.

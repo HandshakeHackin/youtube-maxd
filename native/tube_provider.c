@@ -16,8 +16,10 @@
 #include <errno.h>
 #include <math.h>
 #include <stdatomic.h>
+#include <pthread.h>
 #include <stdint.h>
 #include "tube_video_geometry.h"
+#include "tube_hls_dvr.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,6 +75,8 @@ typedef struct {
     char dearrow_title[256], dearrow_art[EVO_PROVIDER_MAX_URL];
     int favorite, queued, subscribed, queued_music;
     long long updated, queue_order;
+    int64_t live_utc;
+    char live_origin[512], live_format[128];
     char history_remove_cursor[65];
     unsigned history_scope;
     long long history_deadline;
@@ -155,6 +159,12 @@ static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int auto
 static int g_caption_track_count;
 static unsigned g_caption_revision, g_caption_serial;
 static unsigned g_selection_serial;
+static _Atomic unsigned g_live_token;
+static unsigned g_live_epoch;
+static pthread_mutex_t g_live_mutex = PTHREAD_MUTEX_INITIALIZER;
+static tube_live_owner g_live_binding;
+static void live_retire(void) { atomic_store(&g_live_token, 0); }
+int tube_live_owner_current(unsigned token) { return token && token == atomic_load(&g_live_token); }
 static char g_caption_video[12], g_caption_profile[33], g_caption_source[512], g_caption_token[128];
 static struct { int phase, sequence; unsigned owner, serial, selection; long long deadline;
     char language[33], media[512]; int secondary; } g_caption_switch;
@@ -429,6 +439,7 @@ static void watch_reset(int clear_resolution) {
     if (!++g_watch_serial) ++g_watch_serial;
     g_watch.serial = g_watch_serial;
     if (clear_resolution) {
+        live_retire();
         if (!++g_playlist_scope) ++g_playlist_scope;
         memset(&g_selected_playlist,0,sizeof g_selected_playlist);
         memset(&g_resolved_playlist,0,sizeof g_resolved_playlist);
@@ -1867,6 +1878,7 @@ static void companion_read(const cJSON *root) {
 /* A changed locale, filter or thumbnail choice must not continue pages that
  * were opened with the earlier one: lists, cursors and retained rows retire. */
 static void catalog_retire(void) {
+    live_retire();
     if (!++g_playlist_scope) ++g_playlist_scope;
     memset(&g_selected_playlist, 0, sizeof g_selected_playlist);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
@@ -2152,6 +2164,9 @@ static void save(void) {
         cJSON_AddStringToObject(o, "overview", r->item.overview);
         cJSON_AddStringToObject(o, "art_url", r->item.art_url);
         cJSON_AddStringToObject(o, "channel_id", r->item.parent_id);
+        cJSON_AddNumberToObject(o, "live_utc", (double)r->live_utc);
+        cJSON_AddStringToObject(o, "live_origin", r->live_origin);
+        cJSON_AddStringToObject(o, "live_format", r->live_format);
         cJSON_AddNumberToObject(o, "position", (double)r->item.resume_pos_sec);
         cJSON_AddNumberToObject(o, "duration", (double)r->item.duration_sec);
         cJSON_AddNumberToObject(o, "updated", (double)r->updated);
@@ -2513,6 +2528,14 @@ static int init_store(void) {
         parse_item(&r->item, o);
         copy(r->dearrow_title, sizeof r->dearrow_title, str(o, "dearrow_title"));
         r->dearrow_art[0] = 0; /* Expiring thumbnail capabilities are never persisted. */
+        const cJSON *live_value = cJSON_GetObjectItemCaseSensitive(o,"live_utc");
+        double live_utc = cJSON_IsNumber(live_value) ? live_value->valuedouble : 0;
+        if (isfinite(live_utc) && live_utc >= 946684800000000.0 && live_utc <= 4102444800000000.0 && floor(live_utc) == live_utc &&
+            strlen(str(o,"live_origin")) < sizeof r->live_origin && strlen(str(o,"live_format")) < sizeof r->live_format) {
+            r->live_utc = (int64_t)live_utc;
+            copy(r->live_origin,sizeof r->live_origin,str(o,"live_origin"));
+            copy(r->live_format,sizeof r->live_format,str(o,"live_format"));
+        }
         r->item.resume_pos_sec = (int64_t)num(o, "position");
         r->item.duration_sec = (int64_t)num(o, "duration");
         r->item.played = boolean(o, "played");
@@ -2578,7 +2601,10 @@ static int set_source(const char *value) {
     memset(g_comments, 0, sizeof g_comments);
     g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
     if (strcmp(normalized, g_source)) { profile_settings_select("guest"); search_options_reset(); }
-    if (strcmp(normalized, g_source) || *pin) { g_token[0] = 0; companion_forget(); }
+    if (strcmp(normalized, g_source) || *pin) {
+        for (int i = 0; i < g_count; ++i) g_records[i].live_utc = 0;
+        g_token[0] = 0; companion_forget();
+    }
     memset(&g_unlock, 0, sizeof g_unlock); tube_extra_video_end();
     copy(g_source, sizeof g_source, normalized); copy(g_pin, sizeof g_pin, pin);
     tube_queue_retry_cancel();
@@ -5666,7 +5692,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             else g_remote_stop_on_disconnect = 1;
             save();
         }
-        else if (!strcmp(parent, "settings:remote:history")) { g_remote_no_history = !g_remote_no_history; save(); }
+        else if (!strcmp(parent, "settings:remote:history")) { live_retire(); g_remote_no_history = !g_remote_no_history; save(); }
         else if (!strcmp(parent, "settings:remote:reset")) {
             tube_remote_shutdown(); g_remote_enabled = g_remote_entropy_failed = 0;
             g_remote_device[0] = g_remote_screen[0] = 0; g_remote_identity_saved = 0;
@@ -5676,6 +5702,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         else if (!strncmp(parent, "settings:history:", 17)) {
             const char *value = parent + 17; char *end = NULL; long state = strtol(value,&end,10);
             if (!isdigit((unsigned char)*value) || *end || state > TUBE_HISTORY_DISABLED) { cb(0,NULL,0,0,ud); return 1; }
+            live_retire();
             g_history_state = (int)state;
             if (g_history_state == TUBE_HISTORY_DISABLED) g_watch.dirty = 0;
             save();
@@ -5726,8 +5753,9 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         else if (!strncmp(parent, "settings:update:", 16)) { if (tube_update_app_action) tube_update_app_action(parent + 16); }
         else if (!strcmp(parent, "settings:clear-history")) {
+            live_retire();
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) {
-                g_records[i].updated = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0;
+                g_records[i].updated = 0; g_records[i].live_utc = 0; g_records[i].item.resume_pos_sec = 0; g_records[i].item.played = 0;
             } save();
         } else if (!strcmp(parent, "settings:clear-queue")) {
             for (int i = 0; i < g_count; ++i) if (current_record(&g_records[i])) {
@@ -7102,7 +7130,70 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     if (state == EVO_PROVIDER_PLAY_STOP || now_ms() - g_last_save >= 10000) save();
 }
 
+static int live_window_valid(const int64_t window[7]) {
+    const int64_t now = now_ms() * 1000;
+    return window && window[0] == 1 && window[1] >= 0 && window[2] > window[1] && window[2] - window[1] <= 4096 &&
+        window[3] >= 0 && window[4] > window[3] && window[4] - window[3] <= 12LL * 3600 * 1000000 &&
+        window[5] >= 946684800000000LL && window[5] <= 4102444800000000LL &&
+        window[6] > now && window[6] <= now + 180000000LL;
+}
+static int live_point_inside(const int64_t window[7], int64_t utc) {
+    return utc <= 4102444800000000LL && live_window_valid(window) && utc >= window[5] && utc - window[5] < window[4] - window[3];
+}
+static void live_format(char out[128]) {
+    const evo_stream_choice_t *c = &g_recovery.choice;
+    snprintf(out, 128, "%s:%s:%s:%d:%d:%.3f:%d:%s", c->container, c->video_codec, c->audio_codec,
+        c->width, c->height, c->fps, c->audio_channels, c->video_range);
+}
+int tube_live_capture(const char *video, const char *url, tube_live_owner *owner) {
+    if (!owner) return 0;
+    memset(owner, 0, sizeof *owner);
+    if (!video || !url || !valid_id(video) || !companion_url(url) || !recovery_scope() || strcmp(video,g_active_id) ||
+        strcmp(url,g_recovery.choice.url) || !g_recovery.choice.is_live || strcmp(g_recovery.choice.container,"hls") ||
+        g_recovery.choice.width <= 0 || g_recovery.choice.width > 16384 || g_recovery.choice.height <= 0 || g_recovery.choice.height > 16384 ||
+        !isfinite(g_recovery.choice.fps) || g_recovery.choice.fps <= 0 || g_recovery.choice.fps > 240) return 0;
+    live_retire();
+    copy(owner->profile,sizeof owner->profile,g_active_profile); copy(owner->video,sizeof owner->video,video);
+    copy(owner->url,sizeof owner->url,url); copy(owner->origin,sizeof owner->origin,g_embedded ? "embedded" : g_source);
+    live_format(owner->format);
+    const Record *r = record_for(video,owner->profile,0);
+    if (!history_suppressed() && r && !strcmp(r->live_origin,owner->origin) && !strcmp(r->live_format,owner->format)) owner->saved_utc = r->live_utc;
+    if (!++g_live_epoch) ++g_live_epoch;
+    owner->token = g_live_epoch;
+    pthread_mutex_lock(&g_live_mutex);
+    g_live_binding = *owner;
+    atomic_store(&g_live_token, owner->token);
+    pthread_mutex_unlock(&g_live_mutex);
+    return 1;
+}
+int64_t tube_live_restore(const tube_live_owner *owner, const int64_t window[7]) {
+    int64_t result = 0;
+    if (!owner) return 0;
+    pthread_mutex_lock(&g_live_mutex);
+    if (tube_live_owner_current(owner->token) && owner->saved_utc == g_live_binding.saved_utc &&
+        !strcmp(owner->profile,g_live_binding.profile) && !strcmp(owner->video,g_live_binding.video) &&
+        !strcmp(owner->url,g_live_binding.url) && !strcmp(owner->origin,g_live_binding.origin) &&
+        !strcmp(owner->format,g_live_binding.format) && live_point_inside(window,owner->saved_utc)) result = owner->saved_utc;
+    pthread_mutex_unlock(&g_live_mutex);
+    return result;
+}
+int tube_live_remember(const tube_live_owner *owner, const int64_t window[7], int64_t utc) {
+    char format[128];
+    if (!owner || !tube_live_owner_current(owner->token) || !recovery_scope() || history_suppressed() ||
+        strcmp(owner->video,g_active_id) || strcmp(owner->profile,g_active_profile) ||
+        strcmp(owner->url,g_recovery.choice.url) || strcmp(owner->origin,g_embedded ? "embedded" : g_source) || !live_point_inside(window,utc)) return 0;
+    live_format(format);
+    if (strcmp(owner->format,format)) return 0;
+    Record *r = record_for(owner->video,owner->profile,1);
+    if (!r) return 0;
+    r->live_utc = utc; copy(r->live_origin,sizeof r->live_origin,owner->origin); copy(r->live_format,sizeof r->live_format,format);
+    r->item.is_live = 1; r->item.resume_pos_sec = 0; r->updated = (long long)time(NULL);
+    if (now_ms() - g_last_save >= 10000) save();
+    return 1;
+}
+
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
+    live_retire();
     memset(&g_sb_skip, 0, sizeof g_sb_skip); g_sb_undo_from = -1;
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
     if (!recovering) { tube_sleep_activity(); tube_playlist_eof_cancel(); }
@@ -7189,8 +7280,9 @@ int tube_mark_watched(const char *id) {
     r->item.played=1;r->item.resume_pos_sec=0;r->updated=time(NULL);save();return 1;
 }
 int tube_remove_history(const char *id) {
+    if (id && !strcmp(id,g_active_id)) live_retire();
     Record *r=record(id,0);if(!r || !valid_id(id))return -1;
-    r->item.played=0;r->item.resume_pos_sec=0;r->updated=0;save();return 1;
+    r->item.played=0;r->item.resume_pos_sec=0;r->live_utc=0;r->updated=0;save();return 1;
 }
 
 int tube_toggle_subscription(const char *id) {
@@ -7938,7 +8030,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     return found;
 }
 
-static void tube_shutdown(void) { if (tube_update_app_shutdown) tube_update_app_shutdown(); tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
+static void tube_shutdown(void) { live_retire(); if (tube_update_app_shutdown) tube_update_app_shutdown(); tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
     tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end(); cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL; }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
