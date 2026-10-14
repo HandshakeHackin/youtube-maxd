@@ -13,6 +13,13 @@ for name in ("EVO_VDEC_REORDER_DEPTH", "FRAME_POOL_SLOTS", "RO_SLOTS", "NWD_DECO
     definitions.append(f"#define {name} {matches[0]}")
 destination.joinpath("tube_native_drain_constants.inc").write_text("\n".join(definitions) + "\n")
 functions = []
+begin = "static int tube_native_surface_valid("
+end = "static void ro_harvest("
+assert source.count(begin) == 1 and source.count(end) == 1
+destination.joinpath("tube_native_surface.inc").write_text(begin + source.split(begin, 1)[1].split(end, 1)[0])
+harvest = source.split(end, 1)[1].split("/*\n * HEVC NAL", 1)[0]
+assert harvest.index("tube_native_surface_valid") < harvest.index("blend_fields") < harvest.index("memcpy")
+assert "n->fatal = 1;" in harvest
 for begin, end in (
     ("static void drain_decoder(evo_vdec_native *n)", "/* (Re)create the Annex-B"),
     ("int evo_vdec_native_is_drained(const evo_vdec_native *v)\n{", "void evo_vdec_native_flush(evo_vdec_native *v)   /* seek */"),

@@ -6,6 +6,49 @@ def apply_video_drain_overlay(replace, player):
     native = player + "media/src/evo_vdec_native.c"
     playback = player + "media/src/evo_playback.c"
     pp = player + "pp/src/pp_playback.c"
+    replace(native, "static void ro_harvest(evo_vdec_native *n, const SceVideodec2OutputInfo *out)", '''static int tube_native_surface_valid(const evo_vdec_native *n,
+                                     const SceVideodec2OutputInfo *out,
+                                     uint32_t pitch, int ten_bit)
+{
+    if (!n || !n->slot || !n->desc || !out || !out->valid || out->error || !out->buffer ||
+        !out->width || !out->height || !pitch || !n->frame_mem || !n->frame_size ||
+        !out->picture_count || out->picture_count > (n->desc->is_vp9 ? 1u : 2u) ||
+        out->width > n->slot->max_w || out->height > n->slot->max_h)
+        return 0;
+    const uint32_t bpp = ten_bit ? 2u : 1u;
+    if ((uint64_t)out->width * bpp > pitch || pitch % bpp ||
+        (uint64_t)out->pitch * bpp > UINT32_MAX ||
+        (out->pitch && out->pitch_bytes && (uint64_t)out->pitch * bpp != out->pitch_bytes))
+        return 0;
+    const uint64_t bytes = (uint64_t)pitch * ((uint64_t)out->height + (out->height + 1ULL) / 2u);
+    if (bytes > n->frame_size || n->frame_size > SIZE_MAX / FRAME_POOL_SLOTS)
+        return 0;
+    const uintptr_t base = (uintptr_t)n->frame_mem, address = (uintptr_t)out->buffer;
+    return address >= base && address - base < n->frame_size * FRAME_POOL_SLOTS &&
+           (address - base) % n->frame_size == 0;
+}
+
+static void ro_harvest(evo_vdec_native *n, const SceVideodec2OutputInfo *out)''')
+    replace(native, '''    int is_10bit = 0;
+    if (out->pitch_bytes)
+        is_10bit = (out->pitch_bytes >= out->pitch * 2u);
+    else
+        is_10bit = (n->desc->idx == NAT_HEVC10 || n->desc->idx == NAT_VP92);''',
+        '''    int is_10bit = (n->desc->idx == NAT_HEVC10 || n->desc->idx == NAT_VP92);''')
+    replace(native, '''    if (out->picture_count == 2 && !is_10bit)
+        blend_fields(out, out->pitch_bytes ? out->pitch_bytes : out->pitch);
+
+''', '')
+    replace(native, '''    const uint32_t codeh = out->height;''', '''    if (!tube_native_surface_valid(n, out, cw, is_10bit)) {
+        note("EVO vdec native: rejected output outside surface contract: ptr=%p pool=%p slot=%zu %ux%u pitch=%u bytes=%u pictures=%u error=%u",
+             out->buffer, n->frame_mem, n->frame_size, out->width, out->height,
+             out->pitch, out->pitch_bytes, out->picture_count, out->error);
+        n->fatal = 1;
+        return;
+    }
+    if (out->picture_count == 2 && !is_10bit)
+        blend_fields(out, cw);
+    const uint32_t codeh = out->height;''')
     replace(ff, "    int              frame_idx;", "    int              frame_idx;\n    int tube_drained, tube_failed;")
     replace(ff, "    if (ret == 0)\n        return 0;\n    if (ret == AVERROR(EAGAIN))", "    if (ret == 0 || (flush && ret == AVERROR_EOF))\n        return 0;\n    if (ret == AVERROR(EAGAIN))")
     replace(ff, "    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)\n        return 0;", "    if (ret == AVERROR_EOF) { v->tube_drained = 1; return 0; }\n    if (ret == AVERROR(EAGAIN))\n        return 0;")

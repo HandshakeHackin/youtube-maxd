@@ -10,6 +10,10 @@ cc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"${root}/build/tests" -I"${evo}/media/include" \
     "${root}/tests/test_native_video_drain.c" -o "${root}/build/tests/test_native_video_drain"
 ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_native_video_drain"
+cc -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
+    -I"${root}/build/tests" -I"${evo}/media/include" \
+    "${root}/tests/test_native_surface.c" -o "${root}/build/tests/test_native_surface"
+ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_native_surface"
 cc -std=c11 -D_DEFAULT_SOURCE -O1 -g -ffunction-sections -fdata-sections \
     -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"${root}/build/tests" -I"${evo}/addons/include" -I"${evo}/include" -I"${evo}/media/include" -I"${evo}/media/src" -I"${evo}/pp/include" \
