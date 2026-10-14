@@ -11,14 +11,35 @@ YouTube is a trademark of Google LLC.
   `4bd942579dd981b3df9c740438489ca6a614ddc0`. Initialize recursive submodules.
 * cJSON 1.7.19: MIT, complete vendored source/license/provenance in
   `native/vendor/cJSON`. Replaces EVO's unsafe slim JSON printer in the build.
-* Lapy exact-title helper: PS5-Lapy-JB-Daemon
-  `57fcc19b7f57e46c823d6f2a6c6233ebf3288079` (MIT), the inspected head of
-  [upstream PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50), built from verified pinned
-  source by `scripts/build_lapy_helper.py`; the helper's manifest and complete
-  MIT license ship with the app. Its GPL-3.0-or-later cooperative client and
-  build recipe are adapted from ProsperoTV
-  `a33031e9e50b4942ca0e2287cc757271345d874f`; existing/resident/helper regression
-  coverage derives from ProsperoLight. Source: `native/elevation`.
+* Lapy exact-title helper:
+  [PS5-Lapy-JB-Daemon](https://github.com/ArkSama/PS5-Lapy-JB-Daemon) by
+  ArkSama, with the cooperative owned-root design from
+  [mpereiraesaa's fork](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon) and
+  contributors, pinned at
+  [`57fcc19b7f57e46c823d6f2a6c6233ebf3288079`](https://github.com/blackbearreloaded/PS5-Lapy-JB-Daemon/tree/57fcc19b7f57e46c823d6f2a6c6233ebf3288079)
+  of the [BlackBearReloaded fork](https://github.com/blackbearreloaded/PS5-Lapy-JB-Daemon)
+  (upstream PR #48, #49 and
+  [#50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50)). Lapy is MIT
+  licensed; its shared protocol header `source/lapy_elevation_protocol.h`
+  (SHA-256 `bb02c4aa814eaba7a7a423a31b29ff41f786212c2953678cf29434e85fa0f869`)
+  is LGPL-2.1-or-later. `scripts/build_lapy_helper.py` fetches that commit,
+  invokes upstream's unmodified `owned-helper` build for `PPSA99142`, verifies
+  the generated manifest and ships `lapy.elf`, `lapy-manifest.json` and the MIT
+  licence (`Lapy-MIT.txt`) with the app, as
+  [ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) does. The
+  helper is built with the official
+  [PS5 Payload SDK v0.42](https://github.com/ps5-payload-dev/sdk/releases/tag/v0.42)
+  (archive SHA-256 `8cfbc7cd5811e719eb4f0c47eea668d3dc7b40bc8ab11c4a5031d40c23ec02da`)
+  and includes the single-header
+  [ps5log](https://github.com/mpereiraesaa/ps5-agc-gears/tree/1ae1f9182abd2770c131b97419034fb85173c2dc/native/ps5log)
+  logging client, GPL-3.0-or-later (SHA-256
+  `394af67d0f8b60b3335deb53396e52855ea2daa50ca914a456ea7663f48900c6`).
+  The GPL-3.0-or-later cooperative client in `native/elevation` is the same as
+  ProsperoEden's `headless/elevation` (compared at
+  `971ad0a095b178cd00f4e751a0a1d46998d61d70`), first adapted here from
+  [ProsperoTV](https://github.com/blackbearreloaded/ProsperoTV)
+  `a33031e9e50b4942ca0e2287cc757271345d874f`; its regression tests follow
+  ProsperoEden's and ProsperoLight's.
 * The update check and self-update (`native/tube_update*`) follow the design of
   the update kit in
   [ps5-native-app-boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
