@@ -150,7 +150,7 @@ int main(void) {
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* The shared screens provide counts, so both English forms select the language's own plural. */
-    static const char *const afterglow[] = {"da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pt-BR", "pt-PT", "sv", "tr"};
+    static const char *const afterglow[] = {"da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pt-BR", "pt-PT", "ro", "sv", "tr"};
     for (size_t i = 0; i < sizeof afterglow / sizeof *afterglow; ++i) {
         use(afterglow[i]);
         assert(tr("Who is watching?", 0));
@@ -170,6 +170,13 @@ int main(void) {
     assert(!strcmp(tr("Chapter 2 of 17", 0), "Kapittel 2 av 17"));
     assert(!strcmp(tr("5 min left", 0), "5 min igjen"));
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
+
+    use("ro");
+    assert(!strcmp(tr("1 reply", 0), "1 răspuns"));
+    assert(!strcmp(tr("2 replies", 0), "2 răspunsuri"));
+    assert(!strcmp(tr("20 replies", 0), "20 de răspunsuri"));
+    assert(!strcmp(tr("1 min left", 0), "1 min rămas"));
+    assert(!strcmp(tr("5 min left", 0), "5 min rămase"));
 
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");
