@@ -1,0 +1,26 @@
+{
+ "about": "Queue actions are reachable from Library; native provider tests verify persisted ordering and stale-action refusal.",
+ "boards": [
+  {
+   "name": "library-queue-reorder-menu",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}],
+   "expect": {"screen": "library", "focus": "sheet/0", "state": {"sheet": "1", "sheet_load": "ready"}, "asked": ["menu:tonights022"]}
+  },
+  {
+   "name": "library-queue-move-up",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "library", "toast": "Moved up in queue", "asked": ["local:queue-move:7:99:up:tonights022"]}
+  },
+  {
+   "name": "library-queue-move-down",
+   "fixture": "d-signed-in",
+   "route": {"screen": "library", "argument": "queue"},
+   "steps": [{"press": "touchpad"}, {"wait": 0.8}, {"press": "cross"}, {"wait": 0.7}],
+   "expect": {"screen": "library", "toast": "Moved down in queue", "asked": ["local:queue-move:7:99:down:everygoa007"]}
+  }
+ ]
+}

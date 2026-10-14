@@ -157,9 +157,11 @@ def acting(row, title, subtitle=""):
 
 # The actions menu of a video as the provider lists it, cut down to what the pages of package D use.
 # acts: the acting rows that have an answer in this set; refused: the one the provider refuses.
-def menu(fixture, index, acts, scope=7, account=True, refused=None):
+def menu(fixture, index, acts, scope=7, account=True, refused=None, moves=()):
     vid = video_id(index)
-    rows = []
+    rows = [acting("local:queue-move:%d:99:%s:%s" % (scope, direction, vid),
+                   "Move up" if direction == "up" else "Move down", "Saved for the selected profile on this PS5")
+            for direction in moves]
     if account:
         rows += [acting("account:confirm:like:" + vid, "Like video", "YouTube profile: mara"),
                  acting("account:confirm:unrate:" + vid, "Remove video rating", "YouTube profile: mara"),
@@ -169,6 +171,9 @@ def menu(fixture, index, acts, scope=7, account=True, refused=None):
              acting("local:video:%d:queue:%s" % (scope, vid), "Remove from the play queue", "Saved for the selected profile on this PS5"),
              acting("local:video:%d:favorite:%s" % (scope, vid), "Remove from favorites", "Saved for the selected profile on this PS5")]
     write(fixture, "menu:" + vid, rows)
+    for direction in moves:
+        write(fixture, "local:queue-move:%d:99:%s:%s" % (scope, direction, vid),
+              [notice("Moved up in queue" if direction == "up" else "Moved down in queue", "Circle returns to video actions")])
     said = {"forget": "Removed from local history", "queue": "Removed from the play queue", "favorite": "Removed from favorites"}
     titles = {"watch_later_remove": "Remove from YouTube Watch later", "unrate": "Remove video rating"}
     for act in acts:
@@ -256,7 +261,9 @@ menu(S, HISTORY[0], ["forget"])
 menu(S, HISTORY[1], [], refused="forget")
 menu(S, WATCH_LATER[0], ["watch_later_remove"])
 menu(S, LIKED[0], ["unrate"])
-menu(S, QUEUE[0], ["queue"])
+menu(S, QUEUE[0], ["queue"], moves=("down",))
+menu(S, QUEUE[1], [], moves=("up", "down"))
+menu(S, QUEUE[2], [], moves=("up",))
 menu(S, FAVORITES[1], ["favorite"])
 # A playlist: the list itself first, then its videos in order, eight to a page.
 head = playlist_row(PLAYLISTS[0])
