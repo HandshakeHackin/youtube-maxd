@@ -78,7 +78,8 @@ def main():
         "media/src/evo_playback.c", "media/include/evo_playback.h",
         "media/src/evo_vdec_ffmpeg.c", "media/src/evo_vdec_native.c", "media/src/evo_vdec_native.h", "media/include/evo_vdec.h",
         "pp/src/pp_playback.c", "pp/include/pp_playback.h", "media/src/evo_agc_runtime.c", "media/include/evo_agc_runtime.h",
-        "pp/src/pp_clock.c", "pp/include/pp_clock.h",
+        "pp/src/pp_clock.c", "pp/include/pp_clock.h", "media/src/evo_direct_mem.c",
+        "ui_rml/src/evo_rmlui_render_agc.cpp",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh", player+"shaders/agc"]
     # Restore all shader headers too: disabling a transform build must never
@@ -480,6 +481,8 @@ static void run_command(const char *line)
     apply_i18n_overlay(replace, player, WORK, ROOT)
     # The Afterglow interface: sources, fonts and its three hooks in EVO (scripts/afterglow_overlay.py).
     afterglow_overlay.apply(ROOT, WORK, replace, player)
+    from gpu_addr_diag_overlay import apply_gpu_addr_diag_overlay
+    apply_gpu_addr_diag_overlay(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
