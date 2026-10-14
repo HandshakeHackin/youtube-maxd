@@ -5,7 +5,7 @@ FFmpeg's zero-byte range-boundary read. A bounded PS5 Guest session passed
 native VP9 1080p with AAC, seeking, pause/resume, history and Afterglow Home,
 search and playback; [hardware acceptance](HARDWARE_ACCEPTANCE.md) records its
 scope. Opus fixtures pass on the host; the offline VP9/Opus console result is
-described below. Live 4K, HDR and physical sound remain open.
+described below. Long live 4K, HDR and physical sound remain open.
 The combined 93b2e0c7 candidate repeated the 1080p pass, but a second video
 opened native 4K VP9 and hit a GPU unmapped-read page fault after its first
 valid frame. Console state was restored and the title closed; 4K was unaccepted
@@ -31,9 +31,23 @@ fatal or GPU faults. It reached 15/30/45/55-second checkpoints and the final
 63.99/64-second terminal pause with natural EOF, audio drain, video decode and
 display retirement gates true. Stage 6 parked and closed the app, restored
 saved state, left services healthy and released the .40 lock. This proves one
-bounded offline 4K/30 path, not live YouTube 4K, HDR, physical audio, 4K
-seek/repeat or very long sessions. The earlier network first-frame faults remain
-part of the hardware history; their exact address owner was not isolated.
+bounded offline 4K/30 path, not HDR, physical audio, 4K seek/repeat or very
+long sessions. A later bounded .30 Guest run opened the public BBC Earth item
+through the built-in service and native `sceVideodec2` at 3840x2160 VP9/25,
+advanced playback position by 11 seconds and published 315 frames with four
+late drops (1.3%). The first Classic 1080p VP9 video and its +10-second seek
+also passed. Afterglow returned after Stop; stage 6 parked and closed the app,
+restored saved state byte for byte, found unchanged error records and healthy
+services, and released the .30 lock. No 4K playback scanout image was captured;
+the Home capture does not show playback, and presenter counters are the only
+frame-display evidence. FFmpeg logged premature-end and earliest-resync
+warnings on a media segment and recovered. Transport and demux robustness
+remain to validate. The 4K file discarded 253 frames as seek preroll while
+settling at its saved 600-second position; these were not late presentation
+drops. This single 24.3-second live session does not prove long live playback,
+audible output, HDR or 4K seeking. The earlier
+network first-frame faults remain part of the hardware history; their exact
+address owner was not isolated.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's

@@ -40,8 +40,8 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
   read from its index (`native/tube_provider.c`, `standalone/js/resolve.js`).
   The continuation now also indexes WebM and fixes FFmpeg's range-boundary
   EOF handling. VP9 1080p with AAC passed on PS5; VP9/Opus generated fixtures
-  pass on the host. One bounded offline 4K/30 VP9/Opus console run now passes;
-  live 4K and HDR acceptance remain pending.
+  pass on the host. Bounded offline 4K/30 and live YouTube 4K/25 VP9 console
+  runs now pass; long live 4K, audible Opus and HDR acceptance remain pending.
 - **Lapy elevation follows ProsperoEden's current method** (helper built with
   upstream's `make owned-helper`, manifest shipped unchanged, packaged copy
   checked, every outcome logged). ProsperoTube deliberately differs in two
@@ -59,13 +59,14 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
 In the owner's order of interest (he asked what is missing; the list is the
 README's **Roadmap**). The two recommended first:
 
-1. **VP9 and Opus again**: ranged manifests for WebM tracks (Cues give the
-   byte ranges), so 4K VP9 and HDR come back. Implementation now enables WebM
+1. **Complete VP9 and Opus validation**: ranged manifests for WebM tracks
+   (Cues give the byte ranges), so 4K VP9 and HDR come back. Implementation now enables WebM
    indexing and fixes FFmpeg's zero-byte range-boundary read, which caused
    the seek hang. Generated MP4/WebM seeks pass on the host and VP9 1080p
    passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). The offline 4K/30
-   VP9/Opus path now passes on .40; live 4K, audible Opus and HDR
-   selection/output remain to validate or implement.
+   VP9/Opus path now passes on .40; a bounded live 4K/25 path passes on .30.
+   Long live playback, audible Opus and HDR selection/output remain to
+   validate or implement.
    The combined candidate 93b2e0c7 passed native VP9 1080p again, then faulted
    on the GPU after the first valid 4K frame of a second video. Local hardware
    decoding research exposed a frame-pool reuse race; explicit leases now hold
@@ -86,9 +87,10 @@ README's **Roadmap**). The two recommended first:
    AGC fence retirement and with VP9 close/open Reset omitted. The latest
    fault occurred before a valid 4K output frame and outside every logged
    decoder pool. The driver restored saved state but retained the .30 lock
-   after a new console error record; do not reuse .30 until the owner clears
-   that lock. A strict GPU-pool guard and a fix for an AGC UI frame left open
-   on no-swap loops now pass host checks. On .40, the frame fix eliminated
+   after a new console error record. The owner subsequently authorized
+   clearing it for another bounded test. A strict GPU-pool guard and a fix
+   for an AGC UI frame left open on no-swap loops now pass host checks. On .40,
+   the frame fix eliminated
    command-buffer and ring exhaustion, but live-video testing stopped at
    DNS failure for YouTube and homebrew.page. An offline generated 8-second
    3840x2160 VP9 fixture on .40 then opened the native decoder, presented
@@ -105,9 +107,23 @@ README's **Roadmap**). The two recommended first:
    decode fatal or GPU fault. Stage 6 parked and closed the app, restored state,
    left services healthy and released the .40 lock. This accepts one bounded
    offline 4K/30 path, but does not isolate the strict GPU-pool guard or prove
-   live YouTube 4K, HDR, physical audio, 4K seek/repeat, very long sessions or
-   a directly sampled completion transition. The earlier network first-frame
-   faults remain unexplained. See HARDWARE_ACCEPTANCE.md for the exact cases.
+   HDR, physical audio, 4K seek/repeat, very long sessions or a directly
+   sampled completion transition. The same frozen 57efd5b2 candidate then
+   ran a bounded live YouTube 4K/25 case on .30: Classic native VP9 1080p and
+   a +10 s seek passed, followed by the public BBC Earth item at native
+   3840x2160. Position advanced by 11 s; 315 frames were published with four
+   late drops (1.3%), no decode fatal or GPU fault. It stopped through the
+   confirmation and returned to Afterglow. Stage 6 parked and closed the app,
+   restored state byte for byte, found services healthy and error records
+   unchanged, and released the .30 lock. The 4K file discarded 253 frames
+   as seek preroll at the saved 600 s position, separate from the four late
+   presentation drops. FFmpeg logged premature-end and earliest-resync
+   warnings on a media segment; playback recovered, but transport and demux
+   robustness remain to validate. No playback scanout image was captured, so
+   visual output rests on presenter counters, not a picture review. This is
+   one bounded live 4K result, not long playback, audible output, HDR or 4K
+   seeking. The earlier network first-frame faults remain unexplained. See
+   HARDWARE_ACCEPTANCE.md for the exact cases.
 
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.

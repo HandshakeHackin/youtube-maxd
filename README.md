@@ -235,11 +235,13 @@ Further acceptance is still needed for real account use, phone casting, a
 published update, interface languages, AV1, HDR, backups and long playback.
 An offline generated 3840x2160 VP9/Opus stream played through the native PS5
 decoder for 64 seconds at 30 fps: all 1,920 frames were published with no late
-drops, decode fatal or GPU fault. The .40 console closed cleanly and restored
-its saved state. Earlier live 4K candidates did fault during first display;
-this bounded fixture pass does not establish live YouTube 4K, HDR, physical
-audio, 4K seeking/repeat or very long sessions. [Status](docs/STATUS.md)
-lists the evidence.
+drops, decode fatal or GPU fault. A separate bounded live YouTube test on .30
+opened native 3840x2160 VP9 at 25 fps, advanced the position by 11 seconds,
+and published 315 frames with four late drops (1.3%). Both sessions closed
+cleanly and restored saved state. The live test did not capture a playback
+image, and FFmpeg reported premature-end and resync warnings; earlier live 4K
+candidates had GPU faults. Long live 4K playback, HDR, audible sound and 4K
+seeking remain to be tested. [Status](docs/STATUS.md) lists the evidence.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player,
@@ -250,7 +252,8 @@ languages that need other fonts or right-to-left layout, auto frame rate and HDR
 > fallback but HLS. When YouTube changes its service, playback can stop until
 > an update of the app arrives. On 2026-10-14 YouTube began refusing requests
 > for whole media files; the player now reads MP4 and WebM streams in small byte
-> ranges. Native VP9 1080p has passed on the console; 2160p is under investigation.
+> ranges. Native VP9 1080p and bounded 2160p have passed on the console;
+> longer live 2160p playback remains under investigation.
 
 ## Roadmap
 
@@ -278,8 +281,9 @@ What is planned, roughly in order. Nothing here has a date.
       console.
 
 **Playback**
-- [ ] Validate live VP9/Opus and 4K streams, plus HDR selection/output. Ranged
-      WebM reading is implemented; one offline 4K/30 VP9/Opus run passed on PS5.
+- [ ] Validate long live VP9/Opus and 4K streams, plus HDR selection/output.
+      Ranged WebM reading is implemented; bounded offline 4K/30 and live 4K/25
+      VP9 runs passed on PS5. Audible Opus remains unverified.
 - [ ] Rewinding live streams, and remembering the position in a live stream.
 - [x] Keep the current video playing as audio while browsing in Afterglow:
       choose “Keep playing while browsing” in playback options, then press L3
