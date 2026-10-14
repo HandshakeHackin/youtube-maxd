@@ -1,11 +1,33 @@
 # Current implementation status
 
-Latest continuation, 2026-10-14: indexed WebM is enabled again after fixing
-FFmpeg's zero-byte range-boundary read. A bounded PS5 Guest session passed
+Playback update, 2026-10-14: source commit `33d91f2` is pushed to GitHub. A
+synthetic split-HLS feed passed live DVR rewind, UTC position restore across a
+sliding window, and stale-point rejection on .30. A held 4K HTTP 403 startup
+passed the provider cancellation/join close fix without the earlier CPU crash.
+Automatic frame-rate switching now uses the actual VideoOut output state: on
+.40, first 30 fps HDR10 playback changed actual refresh from 60 to 120 Hz and
+Stop returned it to 60 Hz. PQ, HLG and SDR selection each produced native
+frames and nonflat scanout captures in bounded .40 runs. A direct-LAN
+3840x2160 VP9/Opus fixture ran 304 seconds to natural EOF on .40 with two
+successful 4K seeks, 9,416 published frames and no new GPU fault. A held
+artwork request on .30 no longer blocked playback control: the job request
+returned in 51 ms and playback began before artwork release. Both consoles
+were restored, healthy and unlocked after their final tests. See
+[hardware acceptance](HARDWARE_ACCEPTANCE.md) for candidate hashes and exact limits.
+
+Historical unmapped GPU read addresses remain unattributed. The bounded runs
+do not establish reliability across every public CDN/timing condition, public
+live DVR, TV-reported HDMI HDR metadata, or audible output. Production and
+instrumented PS5 packages build and verify from the pushed source; the
+production package itself has not been installed on a console in this round.
+
+Earlier 2026-10-14 investigation (superseded by the update above):
+indexed WebM is enabled again after fixing FFmpeg's zero-byte
+range-boundary read. A bounded PS5 Guest session passed
 native VP9 1080p with AAC, seeking, pause/resume, history and Afterglow Home,
 search and playback; [hardware acceptance](HARDWARE_ACCEPTANCE.md) records its
 scope. Opus fixtures pass on the host; the offline VP9/Opus console result is
-described below. Long live 4K, HDR and physical sound remain open.
+described below. Longer live 4K and physical sound remained open at that point.
 The combined 93b2e0c7 candidate repeated the 1080p pass, but a second video
 opened native 4K VP9 and hit a GPU unmapped-read page fault after its first
 valid frame. Console state was restored and the title closed; 4K was unaccepted
@@ -301,9 +323,10 @@ dislikes** on; the dislike counts stay partial for where they are shown. The
 web proxy stays partial: the built-in service has none, and nothing in its
 menus offers one.
 
-The tracker's files were brought up to date on 2026-10-13 for the built-in
-service, accounts on the console, the update rows, the interface languages,
-the interface preferences and the seek preview. Of the 20 missing items, ten
+The following tracker counts are a 2026-10-13 snapshot and were not re-scored
+after the 2026-10-14 playback work. The tracker's files were brought up to date
+on 2026-10-13 for the built-in service, accounts on the console, the update rows,
+the interface languages, the interface preferences and the seek preview. Of the 20 missing items, ten
 need hardware work (auto frame rate, background playback, a remembered live
 position, card previews), six need a Google sign-in with Drive access (cloud
 backup) and four are not built: the player's interface switches, the network
@@ -438,11 +461,12 @@ Before the first public release the repository has to be public, or the
 update check gets no answer ([updates](UPDATES.md)).
 
 Known limits that stay after the release: accounts unverified against the
-live service and no playback of videos that need the account, phone casting
-unverified with a real phone, no voice search, one YouTube client identity
-(`VISIONOS`) with no fallback but HLS, an English player and no language
-outside the Latin, Greek and Cyrillic scripts, no auto frame rate, HDR or
-background playback.
+live service and no playback of videos that need the account; phone casting
+unverified with a real phone; no voice search; one YouTube client identity
+(`VISIONOS`) with no fallback but HLS; an English player and no language
+outside the Latin, Greek and Cyrillic scripts; and background playback without
+console acceptance. Automatic frame-rate switching and HDR have bounded console
+evidence above, while TV-reported HDMI mode is unverified.
 
 See [validation](VALIDATION.md), [hardware acceptance](HARDWARE_ACCEPTANCE.md),
 [parity](PARITY.md) and [goal](../GOAL.md).
