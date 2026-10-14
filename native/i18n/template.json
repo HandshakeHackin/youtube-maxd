@@ -673,6 +673,12 @@
    ]
   },
   {
+   "source": "Aspect ratio",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "At the live edge",
    "context": [
     "afterglow"
@@ -685,6 +691,12 @@
    ],
    "pattern": true,
    "args": "s"
+  },
+  {
+   "source": "Audio",
+   "context": [
+    "afterglow"
+   ]
   },
   {
    "source": "Audio decoding or output failed. Select the video to retry.",
@@ -1334,6 +1346,7 @@
   {
    "source": "Chapters",
    "context": [
+    "afterglow",
     "kit"
    ]
   },
@@ -2266,6 +2279,12 @@
    ]
   },
   {
+   "source": "Cross button",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Cross commits, Circle cancels; retain the previous pause state",
    "context": [
     "kit"
@@ -2603,6 +2622,12 @@
    "source": "Dislike video",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Display correction",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -3531,6 +3556,7 @@
   {
    "source": "Hide controls",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -4174,6 +4200,12 @@
    "context": [
     "afterglow",
     "document"
+   ]
+  },
+  {
+   "source": "Language",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -6133,6 +6165,7 @@
   {
    "source": "Playback mode",
    "context": [
+    "afterglow",
     "browser"
    ]
   },
@@ -6575,6 +6608,12 @@
    "source": "QUEUE",
    "context": [
     "kit"
+   ]
+  },
+  {
+   "source": "Quality",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -7531,6 +7570,12 @@
    "args": "n"
   },
   {
+   "source": "Rotation",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Round or square corners for cards and thumbnails",
    "context": [
     "browser"
@@ -7890,6 +7935,12 @@
    ]
   },
   {
+   "source": "Second language",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Section",
    "context": [
     "afterglow"
@@ -7923,6 +7974,7 @@
   {
    "source": "Seek interval",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -7945,6 +7997,7 @@
   {
    "source": "Seeking",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -8167,6 +8220,12 @@
   },
   {
    "source": "Select quality, audio or playback speed",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "Select quality, audio, playback speed or live chat",
    "context": [
     "kit"
    ]
@@ -8798,6 +8857,7 @@
   {
    "source": "Sleep timer",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -8905,6 +8965,12 @@
    "source": "Speak while holding L3; release to search. Circle cancels.",
    "context": [
     "toast"
+   ]
+  },
+  {
+   "source": "Speed",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -10588,6 +10654,7 @@
   {
    "source": "Time display",
    "context": [
+    "afterglow",
     "browser",
     "kit"
    ]
@@ -11324,9 +11391,22 @@
    ]
   },
   {
+   "source": "Video presets",
+   "context": [
+    "afterglow",
+    "kit"
+   ]
+  },
+  {
    "source": "Video rotation",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Video size",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -12088,6 +12168,12 @@
    "source": "Zimbabwe",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Zoom",
+   "context": [
+    "afterglow"
    ]
   },
   {
