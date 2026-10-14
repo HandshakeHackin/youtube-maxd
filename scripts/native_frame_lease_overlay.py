@@ -47,6 +47,9 @@ static int slot_teardown(struct dec_slot *s)""")
          s->cpu_gpu_mem,s->cpu_gpu_size,s->compute_mem,s->compute_size,s->compute_queue);
     if (!tube_frame_pool_register(s->frame_mem,s->frame_size,FRAME_POOL_SLOTS)) return -1;
     STAGE("CreateDecoder");""")
+    replace(native,'    probe_slot(NAT_VP9,  EVO_VDEC_NATIVE_BOOT_W, EVO_VDEC_NATIVE_BOOT_H, 0, sm);',r"""    /* Keep one 4K-capable VP9 slot across 1080p and 2160p sessions. */
+    probe_slot(NAT_VP9, EVO_VDEC_NATIVE_VP9_MAX_W, EVO_VDEC_NATIVE_VP9_MAX_H, 0, sm);""")
+    replace(native,'if (rc != 0 && (w > 1920 || h > 1088)) {','if (rc != 0 && d->idx != NAT_VP9 && (w > 1920 || h > 1088)) {')
     replace(native,'    unsigned au_ring;','    unsigned au_ring;\n    const void *tube_received;')
     replace(native,'static void ro_reset(evo_vdec_native *n)',r"""static int tube_native_claim_frame(evo_vdec_native *n,unsigned first) {
     const int64_t start=nwd_now_ms();

@@ -10,6 +10,8 @@ def function(source,signature):
         depth+=(source[i]=='{')-(source[i]=='}');i+=1
     return source[a:i]
 # The original cyclic selection fails the retained baseline pool-wrap reproduction.
+assert 'probe_slot(NAT_VP9, EVO_VDEC_NATIVE_VP9_MAX_W, EVO_VDEC_NATIVE_VP9_MAX_H, 0, sm);' in source
+assert 'if (rc != 0 && d->idx != NAT_VP9 && (w > 1920 || h > 1088))' in source
 assert 'int fslot = tube_native_claim_frame(' in source
 with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     temp=Path(temp)
