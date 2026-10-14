@@ -44,9 +44,18 @@ a -60-second seek landed within 0.5 seconds of target. The second 150-second
 interval advanced only 24.07 seconds, with output falling to about 3.5
 frames/s. Video packets stayed queued while audio packets ran dry. FFmpeg's
 premature-file-end notices also occurred during the healthy interval, and
-there was no GPU fault. Audio starvation is plausible but unproven; a focused
-.30 diagnostic is pending. Stage 6 restored all nine saved-state files,
-verified services and error records, and released the console lock.
+there was no GPU fault. Audio starvation is plausible but unproven. A focused
+.30 diagnostic retest advanced 149.93 seconds in the first 150-second interval,
+landed a -60-second seek, then advanced 53.38 seconds in the next 60 seconds.
+Token-safe counters showed about 6–7 seconds of seek preroll before audio
+packets and PCM output resumed; thereafter audio and video clocks tracked
+closely and PCM underruns stayed flat. The earlier sustained 3–4 frames/s
+collapse did not reproduce in this one run. There was no HTTP 403, GPU fault
+or new error. Stage 6 restored all nine saved-state files, verified idle and
+services, and released the console lock. Evidence is at
+`/home/denis/pt-console/seek-audio-diag-30-run`. Temporary diagnostic
+instrumentation was removed from product source. A demux/audio-clock fix and
+repeat public-network endurance test remain pending.
 
 ## Where things stand
 

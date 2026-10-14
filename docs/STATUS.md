@@ -30,7 +30,15 @@ premature-file-end notices appeared during healthy playback too, and neither
 HTTP 403 nor a GPU fault appeared in this run. Audio starvation is a plausible
 explanation, but its cause is unproven. Stage 6 restored the nine saved-state
 files exactly, found healthy services and unchanged error records, and released
-the .30 lock. A focused diagnostic retest is pending.
+the .30 lock. A focused diagnostic retest on .30 advanced 149.93 seconds in its
+first 150 seconds, then landed a -60-second seek and advanced 53.38 seconds
+over the next 60 seconds. Its token-safe counters showed about 6–7 seconds
+of seek preroll before audio packets and PCM output resumed, the audio and
+video clocks tracked closely, and underruns stopped increasing. The earlier
+sustained 3–4 frames/s collapse did not recur in this single run. No HTTP 403,
+GPU fault or new error appeared. Exact nine-file restoration, idle services
+and lock release passed. The temporary instrumentation was removed; a demux/
+audio-clock fix and repeat public-network endurance check remain pending.
 
 Historical unmapped GPU read addresses remain unattributed. The old 64 MB UI
 direct-memory allocator could fall back to ordinary malloc for GPU descriptors
