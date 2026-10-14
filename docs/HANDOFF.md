@@ -92,8 +92,11 @@ of the roadmap.
 
 ### Loose ends
 
-- `git stash` holds unverified edits to the console session driver
-  (`tools/console`: try sound last in a session). Review or drop.
+- The saved sound-last console-driver edits are reviewed and integrated:
+  earlier Afterglow checks silence sound/vibration, the last step checks
+  audio-port initialization and frame progress, and teardown restores all
+  overrides. Offline driver tests pass; the original stash is retained as
+  a backup. The revised sound step has not yet run on a console.
 - Six packages of Afterglow screens were being switched from private stand-ins
   to the shared pieces when work stopped on 2026-10-13; the shared pieces exist
   (ARCHITECTURE.md section 12d), some screens may still carry `// REQUEST:`

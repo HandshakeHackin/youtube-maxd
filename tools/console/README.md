@@ -147,6 +147,14 @@ new interface cannot cost the core path its result. The stage
 second, and removes that file again at its end. It never writes
 `afterglow.off` and never touches the Interface preference.
 
+Before enabling Afterglow, the stage writes `afterglow-sound.off` and
+`afterglow-vibration.off`. The interface's audio port stays closed during
+the earlier checks. The last functional step removes the sound override,
+moves focus on Home and records the port's log and frame-counter progress.
+This verifies port initialization and liveness, not audible quality. Sound
+results are PASS or NOTE. All three overrides and temporary upload names
+are removed by the stage or teardown; pre-existing files are restored.
+
 ```bash
 PS5_HOST=<console address> \
 PS5_LOCK=/mnt/c/Users/<you>/Documents/PS5-Claude/lock-<NN>.txt \

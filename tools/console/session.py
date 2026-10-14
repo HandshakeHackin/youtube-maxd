@@ -67,7 +67,7 @@ class Session:
         self.log_pos, self.log_text = 0, ""
         self.last_ui_seq = None
         self.functional_deadline = None
-        self.afterglow_touched = False  # the Afterglow stage wrote its override file: the teardown removes it
+        self.afterglow_touched = False  # the Afterglow stage wrote its override files: the teardown removes what is left of them
 
     # --- logging -----------------------------------------------------------------
     def log(self, message):
@@ -324,7 +324,9 @@ class Session:
             if name in listing:  # left by an earlier development run: it would be read as this one's
                 self.console.delete(f"{ob.DATA}/{name}")
         for name in ob.AFTERGLOW_FILES if self.args.afterglow else ():
-            if name in listing:  # the app would start in Afterglow and the classic core path could not run
+            # The app would start in Afterglow and the classic core path could not run; the sound
+            # module's two files are the stage's to write and to remove.
+            if name in listing:
                 self.console.delete(f"{ob.DATA}/{name}")
                 self.note(f"{name} was already in the data folder: removed for this launch"
                           + (", put back with the saved state at the end" if name in self.snapshot else ""))
@@ -746,7 +748,7 @@ class Session:
         listing = self.console.listdir(ob.DATA) or {}
         for name in sorted(listing):
             created_shot = ob.SHOT.match(name) and name not in self.shots_before
-            # The Afterglow stage removes its own override file; this is for a stage that could not.
+            # The Afterglow stage removes its own override files; this is for a stage that could not.
             own_switch = self.afterglow_touched and name in ob.AFTERGLOW_FILES
             if name in ob.DEV_FILES or created_shot or own_switch:
                 self.console.delete(f"{ob.DATA}/{name}")

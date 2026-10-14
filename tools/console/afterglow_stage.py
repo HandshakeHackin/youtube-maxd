@@ -5,13 +5,20 @@ it found it: the interface is switched on with the override file, its frame is
 read, Home is captured from the scanout, one video is played from Home through
 the existing player, and the interface is switched off again.
 
+The interface's sound module opens an audio port of its own at its first
+voice. So two more override files are written before the switch and keep the
+module silent, and its port shut, while everything else is judged. Only as the
+last step is the sound let go, and what the port does is recorded; then every
+file the stage wrote is removed.
+
 Every step records PASS, FAIL or NOTE with its numbers. Only facts of the
 engine and of the console's files are hard (they fail the session): the
-interface appearing at all, playback after Cross on a video, the override file
-gone and the classic browser back. Everything read from the interface's own
-snapshot is soft. A step that cannot be judged becomes a NOTE and the bytes of
-the snapshot it was looking at are saved; nothing in here ends the session
-before its teardown except a console that stops answering.
+interface appearing at all, playback after Cross on a video, the override
+files gone and the classic browser back. Everything read from the interface's
+own snapshot is soft, and the sound step is a PASS or a NOTE whatever it finds.
+A step that cannot be judged becomes a NOTE and the bytes of the snapshot it
+was looking at are saved; nothing in here ends the session before its teardown
+except a console that stops answering.
 
 Like session.py, this file never opens a connection: every console operation
 goes through the session's transport object.
@@ -24,8 +31,19 @@ import observe as ob
 
 # Seconds. Every wait of the stage is one of these: none is open-ended.
 T = {"ready": 10, "on": 40, "home": 45, "pictures": 30, "rest": 6, "move": 6, "settle": 1.5, "screen": 12, "capture": 40,
-     "open": 90, "playing": 30, "dialog": 8, "stopped": 20, "back": 20, "off": 20, "idle": 25, "budget": 12 * 60}
+     "open": 90, "playing": 30, "dialog": 8, "stopped": 20, "back": 20, "off": 20, "idle": 25, "budget": 12 * 60,
+     # The sound step: the app looks at its sound files every two seconds; how long the port's line may
+     # take; the time between the two reads of the frame's counter; what the step may add to the budget.
+     "sound_look": 5, "sound_line": 10, "beat": 1, "sound": 90}
 SWITCH_TEXT = b"ProsperoTube console session\n"
+# What the stage writes, in the order it writes it. The two files that silence the interface's sound
+# module come before the switch: its own audio port, opened by the first voice, stays shut while the
+# picture, the stats and playback are judged, and the pad gets no pulse.
+SILENCERS = ((ob.AFTERGLOW_SOUND_OFF, "Afterglow override: no sound"),
+             (ob.AFTERGLOW_VIBRATION_OFF, "Afterglow override: no vibration"))
+SWITCH = (ob.AFTERGLOW_ON, "Afterglow override: on")
+SOUND_STEP = "(s) sound: the port opens at the first cue"
+REMOVED_STEP = "(g) every file the stage wrote is removed"
 WAKE_KEY = "l1"  # a button Home does nothing with: it ends attract mode, or restarts the 45 s that lead to it
 STEPS_TO_RAIL = 6
 
@@ -42,7 +60,9 @@ class AfterglowStage:
     def __init__(self, session, stop):
         self.s, self.Stop = session, stop
         self.report = session.obs.setdefault("afterglow", {"result": "not-run"})
-        self.on = False          # the override file was written by this stage
+        self.on = False          # the switch was written by this stage: the interface is asked for
+        self.written = []        # every override file the stage put on the console, in the order it did
+        self.gone = set()        # those of them the data folder no longer lists
         self.alive = True        # the app still takes commands
         self.lost = ""           # why the interface is no longer known to be on Home
         self.raw = self.snapshot = self.frame = self.classic = None
@@ -134,6 +154,29 @@ class AfterglowStage:
         self.s.command(line)  # raises Stop when the app does not take it
         if line.startswith("key "):
             self.last_key = self.s.clock.now()
+
+    # --- the stage's own files -----------------------------------------------------------
+    def write(self, path, note):
+        """One override file, put as every file of the session is (temporary
+        name, readback, rename). It is on the stage's list from the attempt on:
+        what a put that failed left behind is removed with the rest. Returns
+        what went wrong, or nothing."""
+        self.written.append(path)
+        code, output = self.s.console.put(path, SWITCH_TEXT, note=note)
+        return "" if code == 0 else (output[-200:] or f"the upload ended with status {code}")
+
+    def remove(self, paths):
+        """Delete these files of the stage and read the data folder back.
+        Returns every name of the stage's the folder still lists: a file, or
+        the temporary copy of a put that failed."""
+        s = self.s
+        for path in paths:
+            for name in ob.override_names(path):
+                s.console.delete(f"{ob.DATA}/{name}")
+        listing = s.console.listdir(ob.DATA) or {}
+        left = {path: [name for name in ob.override_names(path) if name in listing] for path in self.written}
+        self.gone = {path for path, names in left.items() if not names}
+        return [name for names in left.values() for name in names]
 
     def need_app(self):
         if not self.alive:
@@ -235,6 +278,8 @@ class AfterglowStage:
         self.judge("(d) another screen opens and Circle returns", self.other_screen)
         self.judge("(b) frame statistics while moving", self.stats_moving)
         self.judge("(f) Cross on a video starts playback", self.play)
+        # Last of all, when nothing is left that it could cost: the sound module's own audio port.
+        self.judge(SOUND_STEP, self.sound)
 
     def precondition(self, label):
         s = self.s
@@ -261,10 +306,14 @@ class AfterglowStage:
     # (a) ---------------------------------------------------------------------------------
     def switch_on(self, label):
         s = self.s
-        s.afterglow_touched = True  # from here the teardown removes the file whatever happens
-        code, output = s.console.put(ob.AFTERGLOW_ON, SWITCH_TEXT, note="Afterglow override: on")
-        if code != 0:
-            return self.record(label, "FAIL", f"afterglow.on was not written: {output[-200:]}", hard=True)
+        s.afterglow_touched = True  # from here the teardown removes the stage's files whatever happens
+        # The sound module's files first: they are there when the interface takes its first step, so not
+        # even the welcome under the opening is played. Without them the switch is not written at all.
+        for path, note in SILENCERS + (SWITCH,):
+            problem = self.write(path, note)
+            if problem:
+                unguarded = "" if path == ob.AFTERGLOW_ON else "; the interface is not switched on without it"
+                return self.record(label, "FAIL", f"{ob.override_names(path)[0]} was not written: {problem}{unguarded}", hard=True)
         self.on = True
 
         def shown():
@@ -699,28 +748,138 @@ class AfterglowStage:
             self.s.save("afterglow/after-playback.json", self.snapshot)
         return self.record(label, "PASS" if ok else "FAIL", detail)
 
+    # (s) ---------------------------------------------------------------------------------
+    def stroll(self, frame):
+        """Presses that only move the focus on Home and bring it back: along
+        the shelf and back, to the next shelf and back. None of them can play,
+        open or change anything. [(key, the probe for what it must show)]"""
+        shelf, index = ob.ag_place(frame)
+        rows = [name for name, titles in ob.ag_lists(frame) if titles]
+        cards = len(dict(ob.ag_lists(frame)).get(shelf, []))
+        plan = []
+        if cards > 1:  # Left is never pressed on the first card: past it is the rail
+            there, back, beside = ("right", "left", index + 1) if index + 1 < cards else ("left", "right", index - 1)
+            plan += [(there, lambda: self.focus_is(shelf, beside)), (back, lambda: self.focus_is(shelf, index))]
+        if len(rows) > 1 and shelf in rows:
+            there, back = ("down", "up") if rows.index(shelf) + 1 < len(rows) else ("up", "down")
+            other = rows[rows.index(shelf) + (1 if there == "down" else -1)]
+            plan += [(there, lambda: self.row_is(other)), (back, lambda: self.focus_is(shelf, index))]
+        return plan
+
+    def sound(self, label):
+        """The sound module's own audio port, which it opens on a thread of
+        its own at its first voice, beside the player's. The file that kept
+        the module silent is removed, the app is given time to notice, and the
+        focus is moved on Home: each move is a cue. Recorded from the app's
+        log: the recordings found, the port open or the line of its failure;
+        from two reads of the snapshot: that the frame goes on.
+
+        A PASS or a NOTE, never a FAIL: nothing here is a gate. An interface
+        that is lost says so and gets no further key; switching off and the
+        removal of the files follow as after any step."""
+        s = self.s
+        name = ob.override_names(ob.AFTERGLOW_SOUND_OFF)[0]
+        if ob.AFTERGLOW_SOUND_OFF not in self.written or ob.AFTERGLOW_SOUND_OFF in self.gone:
+            raise ob.Unjudged(f"{name} is not in place: the sound module was not kept silent by this stage")
+        try:
+            plan = self.stroll(self.at_home())
+            if not plan:
+                raise ob.Unjudged("Home has a single card: no press only moves the focus")
+        except ob.Unjudged as why:  # an interface not known to be on Home keeps its silence
+            raise ob.Unjudged(f"{why}; {name} stays in place until the interface is switched off: the port is not asked for") from None
+        self.deadline = max(self.deadline, s.clock.now() + T["sound"])
+        before = ob.ag_sound(s.read_log()[self.mark:])
+        left = self.remove([ob.AFTERGLOW_SOUND_OFF])
+        if any(part in left for part in ob.override_names(ob.AFTERGLOW_SOUND_OFF)):
+            raise ob.Unjudged(f"{name} is still listed after its removal: the sound module stays silent")
+        s.log(f"   {name} removed: the interface's next cue asks for its own audio port")
+        pressed, stuck, refused = [], "", ""
+        try:
+            s.clock.sleep(T["sound_look"])  # the app looks at the file every two seconds
+            for key, probe in plan:
+                ok, detail = self.press(key, probe)
+                pressed.append(key)
+                if not ok:  # no further key to an interface that did not follow this one
+                    stuck = f"{key}: {detail}"
+                    break
+            if not stuck:
+                self.wait(lambda: (ob.ag_sound(s.read_log()[self.mark:])["port"] is not None, "no line of the port yet"),
+                          T["sound_line"])
+        except self.Stop as stop:  # a command the app did not take
+            self.alive, refused = False, stop.reason
+        earlier = self.read()
+        s.clock.sleep(T["beat"])
+        beats, counted = ob.pc_ag_beat(earlier, self.read())
+        said = ob.ag_sound(s.read_log()[self.mark:])
+        port, bank = said["port"], said["recordings"]
+        facts = [f"{name} removed, {T['sound_look']} s for the app to notice"]
+        if refused:
+            facts.append(f"after {', '.join(pressed) or 'no press'}: {refused}")
+        elif stuck:
+            facts.append(f"the focus did not follow {stuck}")
+        else:
+            facts.append(f"{', '.join(pressed)}: the focus followed each press")
+        facts.append({"open": "the port opened", "failed": "THE PORT DID NOT OPEN, the interface stays silent"}.get(
+            port, "no line of the port in the app's log") + (f" (\"{said['line']}\")" if said["line"] else ""))
+        if not bank:
+            facts.append("no line of the recordings in the stage's part of the log")
+        else:
+            facts.append(f"{bank['files']} recordings, {bank['served']} cues served, {bank['silent']} silent"
+                         + ("" if bank["served"] else ": no cue has a recording, so no voice is posted and no port is asked for"))
+        facts.append(f"the port's line was already there while {name} was in place" if before["port"]
+                     else "no line of the port while the file was in place")
+        if said["vibration"]:
+            facts.append(f"the pad was asked for a pulse although afterglow-vibration.off is in place (\"{said['vibration'][-1]}\")")
+        if refused or beats is False:
+            self.lost = f"lost in the sound step: {refused or counted}"
+            facts.append(f"THE INTERFACE IS LOST after the sound was let go: {counted}")
+        else:
+            facts.append(f"the frame goes on: {counted}" if beats else f"whether the frame goes on is not known: {counted}")
+            s.save("afterglow/after-sound.json", self.snapshot or {})
+        ok = port == "open" and bank is not None and beats is True and not (stuck or refused or before["port"] or said["vibration"])
+        counter = [ob.ag_frames(earlier), ob.ag_frames(self.frame)]
+        self.report["sound"] = {"port": port, "line": said["line"], "handle": said["handle"], "recordings": bank,
+                                "silent_while_off": before["port"] is None, "keys": pressed, "frames": counter,
+                                "advancing": beats, "lost": bool(self.lost), "vibration": said["vibration"],
+                                "other": said["other"]}
+        numbers = {"port": port or "none", "presses": len(pressed), "frames_before": counter[0], "frames_after": counter[1]}
+        if bank:
+            numbers.update(recordings=bank["files"], cues_served=bank["served"], cues_silent=bank["silent"])
+        return self.record(label, "PASS" if ok else "NOTE", "; ".join(facts), **numbers)
+
     # (g) ---------------------------------------------------------------------------------
     def switch_off(self, label):
-        """Remove the override file and write nothing: the classic browser
-        draws again and the console is as the stage found it."""
+        """Remove the switch and write nothing: the classic browser draws
+        again. Then remove whatever else the stage wrote, so that the console
+        is as the stage found it. The switch goes first: a file that keeps the
+        sound module silent is taken away only when the interface no longer
+        draws, unless the sound step has already let it go."""
         s = self.s
-        if not self.on:
+        if not self.written:
             return None
-        status = s.status()
-        if status and status["active"] == 1 and self.alive:  # a video would hide the browser: the engine's own stop
-            try:
-                self.send("stop")
-                self.wait(s.inactive, T["stopped"])
-            except self.Stop as stop:
-                self.alive = False
-                s.note(f"Afterglow: {stop.reason}")
-        s.console.delete(ob.AFTERGLOW_ON)
-        gone = ob.AFTERGLOW_FILES[0] not in (s.console.listdir(ob.DATA) or {})
-        self.record("(g) afterglow.on removed, nothing else written", "PASS" if gone else "FAIL",
-                    "the file is gone from the data folder" if gone else "the file is still listed", hard=True)
+        back = True
+        if self.on:
+            status = s.status()
+            if status and status["active"] == 1 and self.alive:  # a video would hide the browser: the engine's own stop
+                try:
+                    self.send("stop")
+                    self.wait(s.inactive, T["stopped"])
+                except self.Stop as stop:
+                    self.alive = False
+                    s.note(f"Afterglow: {stop.reason}")
+            gone = ob.override_names(ob.AFTERGLOW_ON)[0] not in self.remove([ob.AFTERGLOW_ON])
+            self.record("(g) afterglow.on removed, nothing else written", "PASS" if gone else "FAIL",
+                        "the file is gone from the data folder" if gone else "the file is still listed", hard=True)
 
-        ok, detail = self.wait(lambda: ob.pc_classic_again(s.ui(), self.classic), T["off"])
-        return self.record("(g) the classic browser draws again", "PASS" if ok else "FAIL", detail, hard=True)
+            back, detail = self.wait(lambda: ob.pc_classic_again(s.ui(), self.classic), T["off"])
+            self.record("(g) the classic browser draws again", "PASS" if back else "FAIL", detail, hard=True)
+        # The switch first here too, for a stage that could not write it whole.
+        left = self.remove(sorted((path for path in self.written if path not in self.gone), key=lambda path: path != ob.AFTERGLOW_ON))
+        names = ", ".join(ob.override_names(path)[0] for path in self.written)
+        clean = self.record(REMOVED_STEP, "PASS" if not left else "FAIL",
+                            f"{names}: none is listed in the data folder any more" if not left else f"still listed: {', '.join(left)}",
+                            hard=True)
+        return back and clean
 
     def summarize(self):
         steps = [entry for entry in self.s.steps if entry.get("stage") == "afterglow"]

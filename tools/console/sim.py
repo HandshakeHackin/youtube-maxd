@@ -54,6 +54,16 @@ AG_FONTS = ("afterglow-inter-regular.ttf", "afterglow-inter-semibold.ttf", "afte
             "afterglow-dejavu-sans-mono.ttf")
 AG_LOOK_SECONDS, AG_OPENING_SECONDS, AG_LOAD_SECONDS, AG_PICTURE_SECONDS, AG_ATTRACT_SECONDS = 1.0, 2.0, 1.5, 0.4, 45.0
 AG_OUTPUT = (3840, 2160)
+# The interface's sound module (native/afterglow/sound/app/sound_app.cpp): how often it looks at its
+# two files, the button Home answers with no cue, and its lines in the app's log. The counts, the
+# handle and the code are invented.
+AG_SOUND_LOOK_SECONDS = 2.0
+AG_MUTE_KEYS = ("l1",)
+AG_SOUND_BANK = "afterglow: sound: 47 recordings, 28 cues served, 0 silent, 3184 KiB"
+AG_SOUND_NO_BANK = "afterglow: sound: 0 recordings, 0 cues served, 28 silent, 0 KiB"
+AG_SOUND_OPEN = "afterglow: sound: port open, handle 3"
+AG_SOUND_FAILED = "afterglow: sound: the port failed (0x80260005); the interface stays silent"
+AG_PULSE = "afterglow: vibration: mode 0x00000000, first pulse 0x00000000"
 
 
 def clip(text, cap):
@@ -111,6 +121,11 @@ class SimConsole:
                          "ag_back": True, "ag_attract_at_start": False, "capture": "ok", "ag_hang_on": None,
                          # ag_asked: the snapshot also carries what docs/afterglow/requests/drv.md asks for.
                          "ag_asked": False,
+                         # ag_sound: what comes of the sound module's own audio port at its first voice:
+                         # "ok" (it opens), "fails" (it does not: the interface stays silent and works on),
+                         # "dies" (the app is gone with it) or "mute" (the package has no recordings, so
+                         # there never is a voice); unwritable: files the console refuses to take.
+                         "ag_sound": "ok", "unwritable": (),
                          "files": {}, **scenario}
         self.files = dict(self.scenario["files"])  # what the data folder held before the session
         if self.scenario["state"] is not None:
@@ -176,6 +191,8 @@ class SimConsole:
             f"parked={int(app['parked'])}\n").encode()
         app["status_frozen"] = app["parked"]
         self._ag_tick(now)
+        if self.app is None:  # gone with the sound module's port: what it last wrote is what stays
+            return
         body = self._ui()
         if body != self.last_body:  # the app writes the file only when the document changed
             self.last_body, self.seq = body, self.seq + 1
@@ -213,11 +230,27 @@ class SimConsole:
             frame = ag["frame"] = {"born": now, "home_at": None, "stack": [["opening", ""]], "rail": False, "rail_focus": 0,
                                    "row": 0, "cols": {}, "idle": now, "attract": False, "toasts": [], "moved_at": now,
                                    "key_at": -10.0}
+            # The sound module is made with the frame. Its recordings are read whatever its switches
+            # say; its first look at the two files comes with the frame's first step, and with sounds
+            # on that step plays the welcome of a cold start: the module's first voice.
+            self._log(AG_SOUND_NO_BANK if self.scenario["ag_sound"] == "mute" else AG_SOUND_BANK)
             self._log(f"afterglow: interface up, look afterglow, {AG_OUTPUT[0]}x{AG_OUTPUT[1]}")
             if not self.scenario["ag_text_engine"]:
                 self._log("afterglow: the text engine did not start (no font file could be opened); the kit's baked fonts draw")
             for name in AG_FONTS:  # the faces of the asset bundle, written once for the text engine
                 self.files.setdefault(f"{ob.DATA}/{name}", bytes(1024))
+            switches = self._ag_switches()
+            ag["sound"] = {"files": switches, "look_at": None, "sounds": switches[0], "pulses": switches[1],
+                           "port": "closed", "pulsed": False}
+            self._ag_voice()
+            if self.app is None:
+                return
+        sound = ag["sound"]
+        switches = self._ag_switches()
+        if switches != sound["files"]:  # looked at every two seconds, and only while the interface is stepped
+            sound["files"], sound["look_at"] = switches, now + AG_SOUND_LOOK_SECONDS
+        if sound["look_at"] is not None and now >= sound["look_at"]:
+            sound.update(sounds=sound["files"][0], pulses=sound["files"][1], look_at=None)
         if not ag["was_shown"]:  # back on screen after the player or the classic browser had it
             ag["was_shown"], frame["idle"] = True, now
         if frame["stack"][-1][0] == "opening" and now - frame["born"] >= AG_OPENING_SECONDS:
@@ -228,6 +261,35 @@ class SimConsole:
         if frame["stack"][-1][0] == "home" and not frame["rail"] and rows and rows[frame["row"]][2] == "videos" and \
                 now - frame["idle"] >= AG_ATTRACT_SECONDS:
             frame["attract"] = True
+
+    def _ag_switches(self):
+        """(sounds, pulses) as the sound module's two files in the data folder say."""
+        return ob.AFTERGLOW_SOUND_OFF not in self.files, ob.AFTERGLOW_VIBRATION_OFF not in self.files
+
+    def _ag_voice(self):
+        """A cue of the interface. With afterglow-sound.off seen in the data folder no voice is
+        posted and no port is ever opened. Without it the first voice makes the module open its
+        own audio port, and the app's log says what came of that."""
+        sound = self.app["ag"]["sound"]
+        mode = self.scenario["ag_sound"]
+        if not sound["sounds"] or sound["port"] != "closed" or mode == "mute":  # a cue without a recording is silent
+            return
+        if mode == "dies":  # the process is gone: no status, no snapshot and no command after this
+            self.app, self.running = None, [title for title in self.running if title != ob.TITLE]
+        elif mode == "fails":
+            sound["port"] = "failed"
+            self._log(AG_SOUND_FAILED)
+        else:
+            sound["port"] = "open"
+            self._log(AG_SOUND_OPEN)
+
+    def _ag_pulse(self):
+        """A move Home refuses asks the pad for a pulse; the first one is said in the log.
+        With afterglow-vibration.off seen in the data folder none reaches the pad."""
+        sound = self.app["ag"]["sound"]
+        if sound["pulses"] and not sound["pulsed"]:
+            sound["pulsed"] = True
+            self._log(AG_PULSE)
 
     def _ag_plan(self):
         return AG_HOME[self.scenario["ag_profile"]]
@@ -295,6 +357,7 @@ class SimConsole:
                 "stats": {"frame_ms": 16.7 + round((now * 7) % 1, 1) * 0.1, "worst_frame_ms": 24.9 if busy else 17.1,
                           "update_ms": 0.42, "draw_ms": 1.63, "instances": drawn[0], "runs": drawn[1], "fill": drawn[2],
                           "pictures_ready": ready, "pictures_pending": cards - ready, "picture_bytes": ready * 98304,
+                          "frames": int((now - frame["born"]) * 60),  # the frame's steps since it was built
                           "data_pending": 0 if loaded and load != "loading" else 2, **asked}}
 
     def _ag_key(self, key):
@@ -348,6 +411,8 @@ class SimConsole:
                 frame["row"] += 1
             elif key == "up" and frame["row"] > 0:
                 frame["row"] -= 1
+            elif key in ("right", "down", "up"):
+                self._ag_pulse()  # past the last card or shelf: refused, with the error cue and a pulse
             elif key == "triangle" and kind == "videos" and self.scenario["ag_other_opens"]:
                 frame["stack"].append(["video", items[column][0]])
                 frame["moved_at"] = now
@@ -439,8 +504,11 @@ class SimConsole:
         if line == "shot":
             self._capture()
         elif line.startswith("key ") and not app["keyboard"] and self._ag_shown() and app["ag"]["frame"] is not None:
+            woke = app["ag"]["frame"]["attract"]
             self._ag_key(line[4:])
             app["hung"] = line[4:] == self.scenario["ag_hang_on"]
+            if woke or line[4:] not in AG_MUTE_KEYS:  # a press the interface answers has its cue; so has the end of attract mode
+                self._ag_voice()
         elif line.startswith("type ") and app["keyboard"]:
             app["typed"] = line[5:]
         elif line == "kbdone" and app["keyboard"]:
@@ -567,7 +635,7 @@ class SimConsole:
 
     def put(self, remote, data, note=None):
         self._op("ftp-put", f"{remote} ({note or str(len(data)) + ' bytes'}; temp name, readback, rename)", True)
-        if remote == ob.AFTERGLOW_ON and self.scenario["afterglow"] == "unwritable":
+        if (remote == ob.AFTERGLOW_ON and self.scenario["afterglow"] == "unwritable") or remote in self.scenario["unwritable"]:
             return 1, f"put {remote}: the readback differs (simulated)"
         if remote == ob.CMD_FILE:
             if not self._command(data.decode().strip()):

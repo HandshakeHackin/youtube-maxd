@@ -3,9 +3,11 @@ candidate check and the session's control flow against the in-memory console.
 Nothing here may open a socket: the fixture below makes that an error."""
 import hashlib
 import json
+import re
 import socket
 import subprocess
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
@@ -15,11 +17,22 @@ sys.path.insert(0, str(ROOT / "tools/console"))
 import observe as ob  # noqa: E402
 import session as se  # noqa: E402
 import sim  # noqa: E402
+from afterglow_stage import AfterglowStage  # noqa: E402
 from transport import ConsoleDown  # noqa: E402
 
 BUILD = "prosperotube-0123abcd_1011-2201"
 STATUS = (f"build={BUILD} t=12 scr=2 be=1 pos=3.50 dur=19.0 fps=15.0 fatal=0 eof=0 complete=0 "
           "active=1 parked=0\n")
+
+
+def test_afterglow_cleanup_removes_partial_override_uploads():
+    path = ob.AFTERGLOW_SOUND_OFF
+    files = {f"{ob.DATA}/{name}" for name in ob.override_names(path)}
+    console = SimpleNamespace(delete=files.discard,
+                              listdir=lambda _: {name.rsplit("/", 1)[-1]: {} for name in files})
+    stage = AfterglowStage.__new__(AfterglowStage)
+    stage.s, stage.written = SimpleNamespace(console=console), [path]
+    assert stage.remove([path]) == [] and path in stage.gone and not files
 
 
 @pytest.fixture(autouse=True)
@@ -744,8 +757,13 @@ ORIGINAL = json.dumps({"source": "http://old.example:8765", "token": "o" * 43, "
 # What today's build cannot be judged on: the frame's snapshot carries no numbers of its text engine yet
 # (docs/afterglow/requests/drv.md). With them, a stage without failures is a "pass"; until then it is "partial".
 ASKED = ["(c) glyphs and fonts of the text engine"]
+# The sound step comes last and only moves the focus: along the shelf and back, to the other shelf and back.
+SOUND_KEYS = ["key right", "key left", "key up", "key down"]
 AG_KEYS = ["shot", "key right", "key down", "key up", "key left", "key left", "key right", "key square", "key circle",
-           "key down", "shot", "key cross", "key circle", "key cross"]
+           "key down", "shot", "key cross", "key circle", "key cross", *SOUND_KEYS]
+SOUND_STEP, REMOVED_STEP = "(s) sound: the port opens at the first cue", "(g) every file the stage wrote is removed"
+# Every file the stage writes, in the order it writes them: the sound module's two silencers before the switch.
+OVERRIDES = [ob.AFTERGLOW_SOUND_OFF, ob.AFTERGLOW_VIBRATION_OFF, ob.AFTERGLOW_ON]
 
 
 def ag_run(tmp_path, monkeypatch, extra=(), **scenario):
@@ -770,10 +788,11 @@ def left_as_found(current, console, ops, lock):
     assert console.files[ob.STATE_FILE] == ORIGINAL and current.obs["restore"]["failed"] == []
     names = {Path(path).name for path in console.files if path.startswith(ob.DATA + "/")}
     assert not names & (set(ob.DEV_FILES) | set(ob.AFTERGLOW_FILES)) and not [name for name in names if ob.SHOT.match(name)]
-    switch = [op for op in ops if ob.AFTERGLOW_ON in op["detail"] and op["writes"]]
-    assert [op["kind"] for op in switch] in (["ftp-put", "ftp-delete"], [])  # written once, removed once, by the stage itself
+    for override in OVERRIDES:
+        switch = [op for op in ops if override in op["detail"] and op["writes"]]
+        assert [op["kind"] for op in switch] in (["ftp-put", "ftp-delete"], [])  # written once, removed once, by the stage itself
     written = {op["detail"].split()[0] for op in ops if op["kind"] == "ftp-put"}
-    assert written <= {ob.CMD_FILE, ob.AFTERGLOW_ON, ob.STATE_FILE}  # nothing else is ever written to the console
+    assert written <= {ob.CMD_FILE, ob.STATE_FILE, *OVERRIDES}  # nothing else is ever written to the console
 
 
 def test_afterglow_stage_follows_the_core_path_in_the_same_launch(tmp_path, monkeypatch):
@@ -795,8 +814,8 @@ def test_afterglow_stage_follows_the_core_path_in_the_same_launch(tmp_path, monk
         "(d) another screen opens and Circle returns", "(b) frame statistics while moving",
         "(e) scanout capture of Home, a video in focus",
         "(f) Cross on a video starts playback", "(f) position advancing", "(f) stopped through the confirmation",
-        "(f) engine statistics for the playback", "(f) the interface shown again is Afterglow",
-        "(g) afterglow.on removed, nothing else written", "(g) the classic browser draws again"]
+        "(f) engine statistics for the playback", "(f) the interface shown again is Afterglow", SOUND_STEP,
+        "(g) afterglow.on removed, nothing else written", "(g) the classic browser draws again", REMOVED_STEP]
     assert [label for label, result in steps.items() if result != "PASS"] == ASKED
     # the classic core path came first and is what it was
     sent = commands(ops)
@@ -874,7 +893,9 @@ def test_interface_that_never_appears_fails_the_session_and_leaves_the_console_a
 def test_switch_that_cannot_be_written_fails_the_stage_before_it_sends_anything(tmp_path, monkeypatch):
     verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, afterglow="unwritable")
     steps = ag_steps(current)
-    assert verdict == "fail" and list(steps.values()) == ["PASS", "FAIL"] and steps["(a) switched on: the frame draws"] == "FAIL"
+    # the two files written before the switch are the stage's to take away again: its third step
+    assert verdict == "fail" and list(steps.values()) == ["PASS", "FAIL", "PASS"] and steps["(a) switched on: the frame draws"] == "FAIL"
+    assert list(steps)[2] == REMOVED_STEP and not [path for path in OVERRIDES if path in console.files]
     assert current.obs["afterglow"]["result"] == "fail" and ag_sent(ops) == [] and ob.AFTERGLOW_ON not in console.files
     assert payloads(ops) == ["launch", "close"] and current.teardown_clean is True and not lock.exists()
     assert console.files[ob.STATE_FILE] == ORIGINAL
@@ -886,8 +907,8 @@ def test_snapshot_that_is_not_json_costs_the_judgements_not_the_picture(tmp_path
     assert verdict == "pass" and current.obs["afterglow"]["result"] == "partial", steps
     assert steps["(a) switched on: the frame draws"] == "PASS" and steps["(e) scanout capture of Home"] == "PASS"
     assert steps.pop("(b) output resolution") == "PASS"  # read from the app's log, not from the snapshot
-    judged = [label for label in steps if label.startswith(("(b)", "(c)", "(d)", "(f)"))]
-    assert len(judged) == 12 and all(steps[label] == "NOTE" for label in judged) and "FAIL" not in steps.values()
+    judged = [label for label in steps if label.startswith(("(b)", "(c)", "(d)", "(f)", "(s)"))]
+    assert len(judged) == 13 and all(steps[label] == "NOTE" for label in judged) and "FAIL" not in steps.values()
     assert ag_sent(ops) == ["shot"]  # no key goes to a screen that cannot be read
     saved = sorted((out / "afterglow").glob("unjudged-*.json"))
     assert len(saved) == len(judged) and all(ob.ag_raw_shown(path.read_bytes()) for path in saved)
@@ -1083,7 +1104,8 @@ def test_stage_is_not_run_when_the_app_is_not_on_its_browser(tmp_path, monkeypat
     assert not [op for op in ops if "afterglow" in op["detail"]] and not lock.exists()
 
 
-def test_dry_run_walks_the_stage_and_prints_its_console_operations(tmp_path, monkeypatch, capsys):
+def dry_run(tmp_path, monkeypatch, capsys):
+    """session.py --dry-run --afterglow as a person starts it: (exit status, what it printed)."""
     candidate = make_candidate(tmp_path / "candidate")
     protocol = tmp_path / "protocol/scripts"
     protocol.mkdir(parents=True)
@@ -1093,10 +1115,293 @@ def test_dry_run_walks_the_stage_and_prints_its_console_operations(tmp_path, mon
     monkeypatch.setattr(se.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "built.elf\n", ""))
     code = se.main(["--i-have-owner-approval", "--dry-run", "--afterglow", "--lock-file", str(tmp_path / "lock.txt"),
                     "--candidate", str(candidate), "--protocol", str(tmp_path / "protocol"), "--out", str(tmp_path / "out")])
-    printed = capsys.readouterr().out
+    return code, capsys.readouterr().out
+
+
+def test_dry_run_walks_the_stage_and_prints_its_console_operations(tmp_path, monkeypatch, capsys):
+    code, printed = dry_run(tmp_path, monkeypatch, capsys)
     assert code == 0 and "RESULT: PASS (DRY RUN, simulated console)" in printed and "Afterglow PARTIAL" in printed
     assert f"ftp-put {ob.AFTERGLOW_ON} (Afterglow override: on" in printed and f"ftp-delete {ob.AFTERGLOW_ON}" in printed
     assert "command: shot" in printed and not (tmp_path / "lock.txt").exists()
+
+
+# --- the sound module's own audio port: silenced before the switch, let go as the last step ------
+
+def sound_step(current):
+    return next(step for step in current.steps if step["step"] == SOUND_STEP)
+
+
+def file_moves(ops):
+    """Every write and removal of the stage's override files, in the order the console saw them."""
+    return [(op["kind"], Path(op["detail"].split()[0]).name) for op in ops
+            if op["kind"] in ("ftp-put", "ftp-delete") and op["detail"].split()[0] in OVERRIDES]
+
+
+def test_sound_module_lines_and_the_frame_counter_are_read_as_the_app_writes_them():
+    up = ("[1.0] INFO  afterglow: sound: 47 recordings, 28 cues served, 0 silent, 3184 KiB\n"
+          "[1.1] INFO  afterglow: interface up, look afterglow, 3840x2160\n")
+    said = ob.ag_sound(up)
+    assert said["recordings"] == {"files": 47, "served": 28, "silent": 0} and said["port"] is None and said["line"] is None
+    opened = ob.ag_sound(up + "[9.0] INFO  afterglow: sound: port open, handle 3\n")
+    assert (opened["port"], opened["handle"], opened["line"]) == ("open", 3, "afterglow: sound: port open, handle 3")
+    failed = ob.ag_sound(up + "[9.0] INFO  afterglow: sound: the port failed (0x80260005); the interface stays silent\n")
+    assert failed["port"] == "failed" and failed["handle"] is None and "0x80260005" in failed["line"]
+    assert ob.ag_sound("[9.0] INFO  afterglow: sound: no thread for the port; the interface stays silent\n")["port"] == "failed"
+    # a port that opened and refused its grains later is a failed one
+    later = ob.ag_sound("[9.0] INFO  afterglow: sound: port open, handle 3\n"
+                        "[20.0] INFO  afterglow: sound: the port failed (0x80260001); the interface stays silent\n")
+    assert later["port"] == "failed" and later["handle"] == 3 and "0x80260001" in later["line"]
+    rest = ob.ag_sound("[1] INFO  afterglow: sound: glass/focus_01.wav: not a recording\n[2] INFO  afterglow: sound: parked\n"
+                       "[3] INFO  afterglow: sound: closed, 412 grains written, 0 refused\n"
+                       "[4] INFO  afterglow: vibration: mode 0x00000000, first pulse 0x00000000\n")
+    assert rest["recordings"] is None and rest["port"] is None and len(rest["other"]) == 3
+    assert rest["vibration"] == ["afterglow: vibration: mode 0x00000000, first pulse 0x00000000"]
+    assert ob.ag_sound("") == {"recordings": None, "port": None, "handle": None, "line": None, "vibration": [], "other": []}
+    # the frame's own counter: alive is a counter that rises between two reads
+    counted = [ag(stats={"frame_ms": 16.7, "frames": frames}) for frames in (4520.0, 4581.0)]
+    assert ob.ag_frames(counted[0]) == 4520.0 and ob.ag_frames(ag()) is None and ob.ag_frames(ag(stats={"frames": True})) is None
+    assert ob.pc_ag_beat(*counted) == (True, "frames 4520 -> 4581")
+    assert ob.pc_ag_beat(counted[1], counted[1]) == (False, "the frame's counter stands at 4581")
+    assert ob.pc_ag_beat(counted[0], None)[0] is False and ob.pc_ag_beat(None, None)[0] is False
+    assert ob.pc_ag_beat(ag(), counted[1])[0] is None  # a build that does not count: not known, and said so
+    # the files, and what a put that failed can leave of each
+    assert ob.override_names(ob.AFTERGLOW_SOUND_OFF) == ("afterglow-sound.off", ".afterglow-sound.off.upload")
+    assert set(ob.AFTERGLOW_FILES) == {name for path in OVERRIDES for name in ob.override_names(path)} and len(ob.AFTERGLOW_FILES) == 6
+    assert "afterglow.off" not in ob.AFTERGLOW_FILES  # the file that keeps the classic browser is never the session's
+
+
+def test_simulated_sound_lines_are_lines_the_app_can_write():
+    source = ROOT / "native/afterglow/sound/app/sound_app.cpp"
+    if not source.is_file():
+        pytest.skip("the sound module is not in this tree")
+    formats = re.findall(r'evo_boot_log\("((?:[^"\\]|\\.)*)"', source.read_text())
+
+    def shape(text):
+        """A printf format of the module as a pattern for the line it writes."""
+        pattern = re.escape(text)
+        for conversion, written in (("0x%08x", "0x[0-9a-f]{8}"), ("%zu", r"\d+"), ("%llu", r"\d+"), ("%d", r"-?\d+"), ("%s", ".*")):
+            pattern = pattern.replace(re.escape(conversion), written)
+        return pattern
+    for line in (sim.AG_SOUND_BANK, sim.AG_SOUND_NO_BANK, sim.AG_SOUND_OPEN, sim.AG_SOUND_FAILED, sim.AG_PULSE):
+        assert [text for text in formats if re.fullmatch(shape(text), line)], line
+    # and each is read back as what it says
+    assert ob.ag_sound(sim.AG_SOUND_BANK)["recordings"] == {"files": 47, "served": 28, "silent": 0}
+    assert ob.ag_sound(sim.AG_SOUND_OPEN)["port"] == "open" and ob.ag_sound(sim.AG_SOUND_FAILED)["port"] == "failed"
+    assert ob.ag_sound(sim.AG_PULSE)["vibration"] == [sim.AG_PULSE]
+
+
+def test_simulator_models_the_sound_files_and_the_two_second_look():
+    def started(files=(), **scenario):
+        """A launched app with the interface on Home; the given files were there before the switch."""
+        clock = sim.SimClock()
+        console = sim.SimConsole(clock, echo=lambda line: None, **scenario)
+        console.controller("launch", ob.TITLE)
+        for path in (*files, ob.AFTERGLOW_ON):
+            console.put(path, b"x")
+        wait(console, clock, 8)
+        return console, clock
+
+    def wait(console, clock, seconds):
+        for _ in range(int(seconds * 2)):  # the app takes a step with every console operation
+            clock.sleep(0.5)
+            console.size(ob.STATUS_FILE)
+
+    def key(console, clock, name):
+        console.put(ob.CMD_FILE, f"key {name}\n".encode())
+        wait(console, clock, 0.5)
+        return console.files[ob.LOG_FILE].decode()
+
+    silencers = (ob.AFTERGLOW_SOUND_OFF, ob.AFTERGLOW_VIBRATION_OFF)
+    console, clock = started(silencers)
+    log = key(console, clock, "right")
+    assert sim.AG_SOUND_BANK in log and log.index(sim.AG_SOUND_BANK) < log.index("afterglow: interface up")  # read whatever the files say
+    assert "afterglow: sound: port" not in log and "afterglow: vibration" not in key(console, clock, "up")  # silent; a refused move, no pulse
+    console.delete(ob.AFTERGLOW_SOUND_OFF)
+    console.size(ob.STATUS_FILE)
+    assert "afterglow: sound: port" not in key(console, clock, "left")  # the app has not looked yet
+    wait(console, clock, sim.AG_SOUND_LOOK_SECONDS)
+    assert key(console, clock, "l1").count(sim.AG_SOUND_OPEN) == 0  # the button Home ignores has no cue
+    assert key(console, clock, "right").count(sim.AG_SOUND_OPEN) == 1  # the first cue after the look opens the port
+    assert key(console, clock, "left").count(sim.AG_SOUND_OPEN) == 1 and sim.AG_PULSE not in key(console, clock, "up")
+    console.delete(ob.AFTERGLOW_VIBRATION_OFF)
+    wait(console, clock, sim.AG_SOUND_LOOK_SECONDS + 1)
+    assert key(console, clock, "up").count(sim.AG_PULSE) == 1 and key(console, clock, "up").count(sim.AG_PULSE) == 1
+    # with no file before the switch the welcome under the opening is the first voice: what the stage's order prevents
+    console, clock = started()
+    assert sim.AG_SOUND_OPEN in console.files[ob.LOG_FILE].decode()
+    console, clock = started(ag_sound="fails")
+    assert sim.AG_SOUND_FAILED in console.files[ob.LOG_FILE].decode() and sim.AG_SOUND_OPEN not in console.files[ob.LOG_FILE].decode()
+    assert ob.ag_place(ob.ag_frame(ob.parse_ui(console.files[ob.UI_FILE]))) == ("topics", 0)  # silent, and it works on
+    # the app that is gone with the port: no title, a status and a snapshot that stand still, a command nobody takes
+    console, clock = started(silencers, ag_sound="dies")
+    before = ob.ag_frames(ob.ag_frame(ob.parse_ui(console.files[ob.UI_FILE])))
+    console.delete(ob.AFTERGLOW_SOUND_OFF)
+    wait(console, clock, sim.AG_SOUND_LOOK_SECONDS + 1)
+    rising = ob.ag_frames(ob.ag_frame(ob.parse_ui(console.files[ob.UI_FILE])))
+    assert rising > before and console.running == [ob.TITLE]
+    key(console, clock, "right")
+    status_then = console.files[ob.STATUS_FILE]
+    wait(console, clock, 3)
+    assert console.running == [] and console.files[ob.STATUS_FILE] == status_then
+    assert ob.ag_frames(ob.ag_frame(ob.parse_ui(console.files[ob.UI_FILE]))) == rising and "afterglow: sound: port" not in console.files[ob.LOG_FILE].decode()
+    console.put(ob.CMD_FILE, b"key left\n")
+    assert console.size(ob.CMD_FILE) is not None
+
+
+def test_sound_is_silenced_before_the_switch_and_let_go_only_as_the_last_step(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, out = ag_run(tmp_path, monkeypatch)
+    assert verdict == "pass", (out / "session.log").read_text()
+    # both files of the sound module before the switch, with nothing in between; the sound file is the first to go
+    # again, by the sound step; the switch and the last file by the switching off
+    assert file_moves(ops) == [("ftp-put", "afterglow-sound.off"), ("ftp-put", "afterglow-vibration.off"), ("ftp-put", "afterglow.on"),
+                               ("ftp-delete", "afterglow-sound.off"), ("ftp-delete", "afterglow.on"),
+                               ("ftp-delete", "afterglow-vibration.off")]
+    first = next(index for index, op in enumerate(ops) if op["kind"] == "ftp-put" and ob.AFTERGLOW_SOUND_OFF in op["detail"])
+    assert [op["kind"] for op in ops[first:first + 3]] == ["ftp-put"] * 3
+    # every other step of the stage has sent what it sends before the sound is let go; after it only the focus moves
+    released = next(index for index, op in enumerate(ops) if op["kind"] == "ftp-delete" and ob.AFTERGLOW_SOUND_OFF in op["detail"])
+    assert ag_sent(ops[:released]) == AG_KEYS[:-len(SOUND_KEYS)]
+    assert [line for line in commands(ops[released:]) if line not in ("key l1", "quit")] == SOUND_KEYS
+    steps = list(ag_steps(current))
+    assert steps[-4:] == [SOUND_STEP, "(g) afterglow.on removed, nothing else written", "(g) the classic browser draws again", REMOVED_STEP]
+    assert steps.index("(f) the interface shown again is Afterglow") == len(steps) - 5
+    # the app's log: the recordings with the interface, the port only after the last key of the playback
+    log = console.files[ob.LOG_FILE].decode()
+    assert log.count(sim.AG_SOUND_BANK) == 1 and log.count(sim.AG_SOUND_OPEN) == 1 and "afterglow: vibration" not in log
+    assert log.index(sim.AG_SOUND_BANK) < log.index("afterglow: interface up") < log.rindex("bc REMOTE_CMD key cross") < log.index(sim.AG_SOUND_OPEN)
+    # the record
+    step, report = sound_step(current), current.obs["afterglow"]["sound"]
+    assert step["result"] == "PASS" and step["gate"] == "soft" and "the port opened" in step["detail"] and sim.AG_SOUND_OPEN in step["detail"]
+    assert "47 recordings, 28 cues served, 0 silent" in step["detail"] and "the frame goes on: frames" in step["detail"]
+    assert "no line of the port while the file was in place" in step["detail"]
+    numbers = step["numbers"]
+    assert (numbers["port"], numbers["presses"], numbers["recordings"], numbers["cues_served"], numbers["cues_silent"]) == ("open", 4, 47, 28, 0)
+    assert numbers["frames_after"] > numbers["frames_before"] > 0
+    assert report["port"] == "open" and report["handle"] == 3 and report["silent_while_off"] and report["advancing"] is True
+    assert report["keys"] == ["right", "left", "up", "down"] and not report["lost"] and report["vibration"] == [] and report["other"] == []
+    assert sim.AG_SOUND_OPEN in " ".join(current.obs["afterglow"]["log"]) and (out / "afterglow/after-sound.json").is_file()
+    assert not [path for path in OVERRIDES if path in console.files]
+    left_as_found(current, console, ops, lock)
+
+
+def test_port_that_does_not_open_is_a_note_and_the_interface_works_on(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, out = ag_run(tmp_path, monkeypatch, ag_sound="fails")
+    steps, step, report = ag_steps(current), sound_step(current), current.obs["afterglow"]
+    assert verdict == "pass", (out / "session.log").read_text()  # the sound step is never a gate
+    assert step["result"] == "NOTE" and step["gate"] == "soft" and step["numbers"]["port"] == "failed"
+    assert "THE PORT DID NOT OPEN" in step["detail"] and sim.AG_SOUND_FAILED in step["detail"] and "the frame goes on: frames" in step["detail"]
+    assert report["result"] == "partial" and report["failed"] == [] and report["hard_failed"] == [] and report["notes"] == ASKED + [SOUND_STEP]
+    assert report["sound"]["port"] == "failed" and report["sound"]["advancing"] is True and not report["sound"]["lost"]
+    assert ag_sent(ops) == AG_KEYS  # every press of the step was sent and followed: silent, and it works
+    assert steps["(g) the classic browser draws again"] == "PASS" and steps[REMOVED_STEP] == "PASS"
+    assert current.stages[6]["result"] == "PASS" and "Afterglow PARTIAL" in (out / "session.log").read_text().splitlines()[-1]
+    left_as_found(current, console, ops, lock)
+
+
+def test_package_without_recordings_never_asks_for_the_port_and_the_note_says_why(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, ag_sound="mute")
+    step, report = sound_step(current), current.obs["afterglow"]
+    assert verdict == "pass" and step["result"] == "NOTE" and report["notes"] == ASKED + [SOUND_STEP] and report["failed"] == []
+    assert "no line of the port in the app's log" in step["detail"] and "0 recordings, 0 cues served, 28 silent: no cue has a recording" in step["detail"]
+    assert report["sound"]["port"] is None and report["sound"]["advancing"] is True and not report["sound"]["lost"]
+    assert report["sound"]["recordings"] == {"files": 0, "served": 0, "silent": 28} and ag_sent(ops) == AG_KEYS
+    left_as_found(current, console, ops, lock)
+
+
+def test_app_that_dies_with_the_port_is_said_lost_and_every_file_is_still_removed(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, out = ag_run(tmp_path, monkeypatch, ag_sound="dies")
+    steps, step, report = ag_steps(current), sound_step(current), current.obs["afterglow"]
+    assert step["result"] == "NOTE" and step["gate"] == "soft" and "THE INTERFACE IS LOST after the sound was let go" in step["detail"]
+    assert "the focus did not follow right" in step["detail"] and "the frame's counter stands at" in step["detail"]
+    assert "no line of the port in the app's log" in step["detail"] and "47 recordings" in step["detail"]
+    assert report["sound"]["lost"] and report["sound"]["advancing"] is False and report["sound"]["port"] is None
+    assert report["sound"]["frames"][0] == report["sound"]["frames"][1] and not (out / "afterglow/after-sound.json").exists()
+    # one press and no more: nothing is sent to an app that is gone, by the stage or by the teardown
+    assert ag_sent(ops) == AG_KEYS[:-len(SOUND_KEYS)] + ["key right"] and payloads(ops) == ["launch"] and "quit" not in commands(ops)
+    # the sound step is a NOTE; what fails the session is the gate that was always there: the classic browser is not back
+    assert SOUND_STEP in report["notes"] and SOUND_STEP not in report["failed"]
+    assert report["hard_failed"] == ["(g) the classic browser draws again"] and verdict == "fail"
+    assert steps["(g) afterglow.on removed, nothing else written"] == "PASS" and steps[REMOVED_STEP] == "PASS"
+    assert file_moves(ops)[3:] == [("ftp-delete", "afterglow-sound.off"), ("ftp-delete", "afterglow.on"), ("ftp-delete", "afterglow-vibration.off")]
+    assert not [path for path in OVERRIDES if path in console.files]
+    assert current.teardown_clean is True and not lock.exists() and console.files[ob.STATE_FILE] == ORIGINAL and console.exit_asked == 0
+    assert not {Path(path).name for path in console.files} & set(ob.DEV_FILES)
+
+
+@pytest.mark.parametrize("scenario, verdict, sound", [
+    ({"afterglow": "never"}, "fail", None),             # the interface never appears: there is no sound step
+    ({"afterglow": "unwritable"}, "fail", None),        # the switch is refused after both of the module's files were taken
+    ({"ag_rail_closes": False}, "pass", "NOTE"),        # the interface is not known to be on Home any more
+    ({"ag_back": False}, "pass", "NOTE"),               # the interface does not come back after the player
+    ({"ag_home": "offline"}, "pass", "NOTE"),           # Home has nothing to move the focus on
+    ({"ag_hang_on": "square"}, "unresolved", "NOTE"),   # the app takes no more commands and is left running
+])
+def test_every_file_the_stage_wrote_is_removed_on_each_way_out_and_the_sound_stays_off(tmp_path, monkeypatch, scenario, verdict, sound):
+    said, current, console, ops, lock, out = ag_run(tmp_path, monkeypatch, **scenario)
+    steps, moves = ag_steps(current), file_moves(ops)
+    assert said == verdict and steps.get(SOUND_STEP) == sound and steps[REMOVED_STEP] == "PASS", (out / "session.log").read_text()
+    assert not [path for path in OVERRIDES if path in console.files]
+    assert moves[:3] == [("ftp-put", "afterglow-sound.off"), ("ftp-put", "afterglow-vibration.off"), ("ftp-put", "afterglow.on")]
+    # a sound its own step did not let go stays off as long as the interface may draw: the switch is removed first
+    assert moves[3:] == [("ftp-delete", "afterglow.on"), ("ftp-delete", "afterglow-sound.off"), ("ftp-delete", "afterglow-vibration.off")]
+    log = console.files[ob.LOG_FILE].decode()
+    assert "afterglow: sound: port" not in log and "afterglow: vibration" not in log
+    assert "sound" not in current.obs["afterglow"] and SOUND_STEP not in current.obs["afterglow"]["failed"]
+    if sound:  # said in the record, with the bytes it was looking at
+        detail = sound_step(current)["detail"]
+        assert "afterglow-sound.off stays in place until the interface is switched off" in detail and "unjudged-" in detail
+    if verdict != "unresolved":
+        left_as_found(current, console, ops, lock)
+
+
+def test_hard_failure_before_it_does_not_cost_the_sound_step_while_home_is_still_there(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, ag_play="refused")
+    steps, report = ag_steps(current), current.obs["afterglow"]
+    assert verdict == "fail" and report["hard_failed"] == ["(f) Cross on a video starts playback"]
+    assert steps[SOUND_STEP] == "PASS" and report["sound"]["port"] == "open" and steps[REMOVED_STEP] == "PASS"
+    assert ag_sent(ops)[-len(SOUND_KEYS):] == SOUND_KEYS and file_moves(ops)[3][1] == "afterglow-sound.off"
+    left_as_found(current, console, ops, lock)
+
+
+def test_switch_is_not_written_when_the_sound_cannot_be_silenced(tmp_path, monkeypatch):
+    verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, unwritable=(ob.AFTERGLOW_SOUND_OFF,))
+    steps = ag_steps(current)
+    assert verdict == "fail" and list(steps.values()) == ["PASS", "FAIL", "PASS"] and list(steps)[2] == REMOVED_STEP
+    said = next(step["detail"] for step in current.steps if step["step"] == "(a) switched on: the frame draws")
+    assert "afterglow-sound.off was not written" in said and "the interface is not switched on without it" in said
+    # neither the other file nor the switch follows a silencer the console did not take
+    assert file_moves(ops) == [("ftp-put", "afterglow-sound.off"), ("ftp-delete", "afterglow-sound.off")]
+    assert b"afterglow: " not in console.files[ob.LOG_FILE] and ag_sent(ops) == []  # the interface was never built
+    assert current.obs["afterglow"]["hard_failed"] == ["(a) switched on: the frame draws"]
+    assert payloads(ops) == ["launch", "close"] and current.teardown_clean is True and not lock.exists()
+    assert console.files[ob.STATE_FILE] == ORIGINAL and not [path for path in OVERRIDES if path in console.files]
+
+
+def test_sound_files_left_by_an_earlier_run_are_set_aside_and_put_back(tmp_path, monkeypatch):
+    mine = {ob.AFTERGLOW_SOUND_OFF: b"mine\n", ob.AFTERGLOW_VIBRATION_OFF: b"mine too\n"}
+    verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, files=dict(mine))
+    assert verdict == "pass" and sound_step(current)["result"] == "PASS" and not lock.exists()
+    assert {path: console.files[path] for path in mine} == mine and ob.AFTERGLOW_ON not in console.files
+    assert {"afterglow-sound.off", "afterglow-vibration.off"} <= set(current.obs["restore"]["restored"])
+    assert len([note for note in current.notes if "was already in the data folder" in note]) == 2
+
+
+def test_dry_run_shows_the_sound_files_in_the_order_a_real_run_uses(tmp_path, monkeypatch, capsys):
+    code, printed = dry_run(tmp_path, monkeypatch, capsys)
+    assert code == 0 and f"PASS {SOUND_STEP}" in printed and f"PASS {REMOVED_STEP}" in printed
+    plan = (tmp_path / "out/console-operations.txt").read_text().splitlines()
+    wanted = [f"ftp-put {ob.AFTERGLOW_SOUND_OFF} (Afterglow override: no sound", f"ftp-put {ob.AFTERGLOW_VIBRATION_OFF} (Afterglow override: no vibration",
+              f"ftp-put {ob.AFTERGLOW_ON} (Afterglow override: on", f"ftp-delete {ob.AFTERGLOW_SOUND_OFF}", f"ftp-delete {ob.AFTERGLOW_ON}",
+              f"ftp-delete {ob.AFTERGLOW_VIBRATION_OFF}"]
+    places = [[index for index, line in enumerate(plan) if line.startswith(text)] for text in wanted]
+    assert all(len(found) == 1 for found in places) and places == sorted(places)  # each once, in this order
+    assert places[1][0] == places[0][0] + 1 and places[2][0] == places[1][0] + 1  # nothing between the silencers and the switch
+    last = max(index for index, line in enumerate(plan) if "command: key cross" in line or "command: shot" in line)
+    assert last < places[3][0]  # the sound is let go after the last capture and the last press of the playback
+    between = [line for line in plan[places[3][0]:places[4][0]] if "command: " in line]
+    assert between and all(line.split("command: ")[1].split(";")[0] in SOUND_KEYS + ["key l1"] for line in between)
+    listed = printed[printed.index("DRY RUN - console operations a real run performs"):]
+    assert [listed.index(text) for text in wanted] == sorted(listed.index(text) for text in wanted)  # and that is what is printed
 
 
 # --- the development capture command of the instrumented build (scripts/prepare_native.py) ------

@@ -447,8 +447,25 @@ def redact_state(data):
 AFTERGLOW_DOC = "afterglow"
 AFTERGLOW_ON = f"{DATA}/afterglow.on"     # the session's switch: looked at once a second by the app
 AFTERGLOW_OFF = f"{DATA}/afterglow.off"   # keeps the classic browser; never written by the session
-AFTERGLOW_FILES = ("afterglow.on", ".afterglow.on.upload")
-AG_STATS = ("frame_ms", "worst_frame_ms", "update_ms", "draw_ms", "instances", "runs", "fill",
+# The two switches of the interface's sound module (native/afterglow/sound/app/sound_app.cpp), looked
+# at every two seconds while the interface is stepped. With the first in place no voice is posted and
+# the module's own audio port is never opened; with the second no pulse reaches the pad.
+AFTERGLOW_SOUND_OFF = f"{DATA}/afterglow-sound.off"
+AFTERGLOW_VIBRATION_OFF = f"{DATA}/afterglow-vibration.off"
+
+
+def override_names(path):
+    """The names an override file of the session can have in the data folder:
+    its own, and the temporary one a verified upload gives it."""
+    name = path.rsplit("/", 1)[-1]
+    return name, f".{name}.upload"
+
+
+# Every name the Afterglow stage can leave in the data folder: set aside for the launch, removed by the
+# stage at its end and, should the stage not get that far, by the teardown.
+AFTERGLOW_FILES = tuple(name for path in (AFTERGLOW_ON, AFTERGLOW_SOUND_OFF, AFTERGLOW_VIBRATION_OFF)
+                        for name in override_names(path))
+AG_STATS =("frame_ms", "worst_frame_ms", "update_ms", "draw_ms", "instances", "runs", "fill",
             "pictures_ready", "pictures_pending", "picture_bytes", "data_pending")
 # Asked of the frame owner (docs/afterglow/requests/drv.md) and read as soon as a build reports them.
 AG_TEXT_STATS = ("text_engine", "glyph_pages", "glyphs", "fonts", "missing_glyphs")
@@ -569,6 +586,28 @@ def ag_stats(frame):
     values = {name: stats[name] for name in AG_STATS
               if isinstance(stats.get(name), (int, float)) and not isinstance(stats.get(name), bool)}
     return values, [name for name in AG_STATS if name not in values]
+
+
+def ag_frames(frame):
+    """stats.frames: the steps the frame has taken since it was built, or None
+    when the snapshot does not say. It rises with every frame the interface draws."""
+    stats = (frame or {}).get("stats")
+    value = stats.get("frames") if isinstance(stats, dict) else None
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def pc_ag_beat(earlier, later):
+    """The app is alive and the interface still draws: between two reads of its
+    snapshot the frame's own counter rose. (True, False, or None when the
+    snapshots do not carry the counter; what was read)."""
+    if earlier is None or later is None:
+        return False, "no Afterglow snapshot to read the frame's counter from"
+    first, second = ag_frames(earlier), ag_frames(later)
+    if first is None or second is None:
+        return None, "the snapshot's stats carry no frames counter"
+    if second > first:
+        return True, f"frames {first:.0f} -> {second:.0f}"
+    return False, f"the frame's counter stands at {second:.0f}"
 
 
 def ag_summary(samples):
@@ -730,6 +769,41 @@ def ag_text_engine_failed(log_text):
 def ag_log_lines(log_text, limit=40):
     """Every line the interface wrote to the app's log, newest last."""
     return [line.strip()[-200:] for line in log_text.splitlines() if "afterglow: " in line][-limit:]
+
+
+# The lines of the interface's sound module, as native/afterglow/sound/app/sound_app.cpp writes them.
+_AG_SOUND, _AG_PULSE = "afterglow: sound: ", "afterglow: vibration: "
+_AG_SOUND_BANK = re.compile(r"(\d+) recordings, (\d+) cues served, (\d+) silent")
+_AG_SOUND_OPEN = re.compile(r"port open, handle (-?\d+)")
+_AG_SOUND_DOWN = re.compile(r"(the port failed \((0x[0-9a-fA-F]+)\)|no thread for the port); the interface stays silent")
+
+
+def ag_sound(log_text):
+    """What the sound module said in a piece of the app's log. "recordings":
+    the numbers of the line it writes when the interface is built (files, cues
+    served, cues silent), or None; "port": "open", "failed" (it could not be
+    opened, there was no thread for it, or it refused its grains later) or None
+    while the module has not asked for one; "handle": what it was opened with;
+    "line": the port's last line; "vibration": the pad's lines; "other":
+    anything else the module said."""
+    found = {"recordings": None, "port": None, "handle": None, "line": None, "vibration": [], "other": []}
+    for line in log_text.splitlines():
+        if _AG_PULSE in line:
+            found["vibration"].append(line[line.index(_AG_PULSE):].strip()[:200])
+        if _AG_SOUND not in line:
+            continue
+        said = line[line.index(_AG_SOUND):].strip()[:200]
+        text = said[len(_AG_SOUND):]
+        bank, opened, down = _AG_SOUND_BANK.match(text), _AG_SOUND_OPEN.match(text), _AG_SOUND_DOWN.match(text)
+        if bank:
+            found["recordings"] = {"files": int(bank.group(1)), "served": int(bank.group(2)), "silent": int(bank.group(3))}
+        elif opened:
+            found.update(port="open", handle=int(opened.group(1)), line=said)
+        elif down:
+            found.update(port="failed", line=said)
+        else:
+            found["other"].append(said)
+    return found
 
 
 def capture_verdict(log_text):
