@@ -96,6 +96,8 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
                     additional[key] = value
                 additional['active_rollover'] = probe('rolling.m3u8', target, mode='rollover')
                 state['start'] = 0
+                additional['prepare'] = probe('rolling.m3u8', target, mode='prepare')
+                state['start'] = 0
                 additional['deadline'] = probe('rolling.m3u8', target, mode='deadline')
                 additional['transport_reset'] = probe('transport-reset.m3u8', target, mode='transport-reset')
                 additional['reopen'] = probe('rolling.m3u8', target, mode='reopen')

@@ -157,3 +157,11 @@ source/profile isolation, persistence across shutdown/reopen, moved windows,
 history clearing and privacy-policy changes. The touched provider object compiles
 with read-only PS5 SDK headers. These APIs are prerequisites only: the player does
 not call them yet, and production live seek gates are still unchanged.
+
+The demux-owner-only `av_hls_dvr_prepare_seek` entry point now refreshes and
+validates an absolute PTS target before the native caller pauses or flushes its
+queues. Invalid numeric targets issue no playlist request. A rolling-window
+advance rejects the expired target at this preparation phase and accepts a fresh
+one; `hls_read_seek` still revalidates if the window moves again meanwhile. The
+instrumented H.264/AAC acceptance now makes 147 loopback requests. The updated HLS
+object also compiles with the isolated PS5 configuration and read-only headers.

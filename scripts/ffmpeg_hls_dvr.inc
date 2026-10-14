@@ -1,6 +1,7 @@
 /* ProsperoTube opt-in HLS DVR. The demux thread owns calibration/mutation;
  * readers copy only the published snapshot while holding dvr_mutex. */
 static AVRational get_timebase(struct playlist *p);
+static int parse_playlist(HLSContext *, const char *, struct playlist *, AVIOContext *);
 int av_hls_get_dvr_window(AVFormatContext *s, int64_t out[7]);
 
 static void tube_dvr_publish(HLSContext *c)
@@ -115,4 +116,23 @@ static void tube_dvr_observe(HLSContext *c, struct playlist *p)
         tube_dvr_publish(c);
     }
     c->dvr_last_pts[stream] = pts;
+}
+
+int av_hls_dvr_prepare_seek(AVFormatContext *s, int64_t pts_us);
+/* Demux-owner only: perform this before the native decoder/queue flush.
+ * hls_read_seek still revalidates, since a window can move again meanwhile. */
+int av_hls_dvr_prepare_seek(AVFormatContext *s, int64_t pts_us)
+{
+    HLSContext *c;
+    int64_t window[7];
+    if (!s || !s->iformat || strcmp(s->iformat->name, "hls") ||
+        pts_us < 0 || pts_us >= (1LL << 33) * AV_TIME_BASE / 90000) return 0;
+    c = s->priv_data;
+    if (!c || !c->tube_dvr || !c->dvr_anchored || c->dvr_disabled || c->n_playlists != 1 || c->playlists[0]->finished) return 0;
+    if (parse_playlist(c, c->playlists[0]->url, c->playlists[0], NULL) < 0) {
+        c->dvr_disabled = 1;
+        tube_dvr_publish(c);
+        return 0;
+    }
+    return av_hls_get_dvr_window(s, window) && pts_us >= window[3] && pts_us < window[4];
 }

@@ -98,6 +98,23 @@ int main(int argc, char **argv) {
         assert(!av_hls_get_dvr_window(format, window));
         printf("\n{\"invalidated\":true}");
     }
+    if (!strcmp(argv[3], "prepare")) {
+        int64_t window[7];
+        assert(!av_hls_dvr_prepare_seek(NULL, 0));
+        assert(!av_hls_dvr_prepare_seek(format, -1));
+        assert(!av_hls_dvr_prepare_seek(format, INT64_MAX));
+        assert(av_hls_dvr_prepare_seek(format, llround(target * AV_TIME_BASE)));
+        char control[1024];
+        snprintf(control, sizeof(control), "%.*s/advance", (int)(strrchr(argv[1], '/') - argv[1]), argv[1]);
+        AVIOContext *io = NULL;
+        assert(avio_open2(&io, control, AVIO_FLAG_READ, NULL, NULL) >= 0);
+        unsigned char byte;
+        assert(avio_read(io, &byte, 1) == 1);avio_closep(&io);
+        assert(!av_hls_dvr_prepare_seek(format, llround(target * AV_TIME_BASE)));
+        assert(av_hls_get_dvr_window(format, window));
+        assert(av_hls_dvr_prepare_seek(format, window[3] + AV_TIME_BASE / 4));
+        printf("\n{\"prepare_rejects_expired_target\":true,\"fresh_target_accepted\":true}");
+    }
     if (!strcmp(argv[3], "deadline")) {
         int64_t window[7], unchanged = -1;
         assert(av_hls_get_dvr_window(format, window));

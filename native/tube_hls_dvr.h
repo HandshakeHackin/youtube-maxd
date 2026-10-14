@@ -21,6 +21,8 @@ enum tube_hls_dvr_field {
  * A saved UTC point belongs to its video/profile, which the caller must verify;
  * a timestamp by itself grants no authority to restore into another source. */
 int av_hls_get_dvr_window(struct AVFormatContext *context, int64_t out[TUBE_HLS_DVR_FIELDS]);
+/* Demux owner only: refresh and validate before pausing/flushing. */
+int av_hls_dvr_prepare_seek(struct AVFormatContext *context, int64_t pts_us);
 int av_hls_dvr_pts_to_wall(struct AVFormatContext *context, int64_t pts_us, int64_t *utc_us);
 int av_hls_dvr_wall_to_pts(struct AVFormatContext *context, int64_t utc_us, int64_t *pts_us);
 #ifdef __cplusplus
