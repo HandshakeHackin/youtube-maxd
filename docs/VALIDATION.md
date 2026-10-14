@@ -2,6 +2,21 @@
 
 ## Ranged WebM seeking: host checks — 2026-10-14
 
+Afterglow profile-password integration: the existing account board now checks
+the typed `q` reaches the provider's answer API. It fails in all four looks
+before replacing the discarded-text placeholder with `Data::answer(text)`.
+After the fix, `scripts/test_afterglow.sh --only accounts` passes 45 boards
+per look, 2,036 checks total. `scripts/test_afterglow_data.sh` passes under
+sanitizers with host FFmpeg development headers matching the installed runtime
+supplied through pkg-config. The actual profile-password flow is not yet
+console-tested; no Google account was used.
+
+The PS5 package of ec4660ac compiles, links and packs; its bounded hardware
+case is in [hardware acceptance](HARDWARE_ACCEPTANCE.md). The storage-failure
+notification in a9c6de0 passes package preparation, the existing query-only
+startup checks and a complete instrumented PS5 package build. No failed Lapy
+request was induced on hardware.
+
 `standalone/test/ranged_seek_test.py` passes 12 cases using generated ten-minute
 AVC/AAC MP4 and VP9/Opus WebM files: seeks at 0, 300 and 580 seconds, with
 twelve seconds copied after each seek, using individual fragments and

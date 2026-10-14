@@ -38,8 +38,9 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
   whole media file (`Range: bytes=0-`) returns 403. The provider now asks the
   service for ranged manifests: each MP4 track's fragments as small byte ranges
   read from its index (`native/tube_provider.c`, `standalone/js/resolve.js`).
-  Consequence: only MP4 tracks are offered (AVC or AV1 with AAC); VP9/Opus and
-  with them 4K VP9 and HDR are gone until WebM tracks are read in ranges too.
+  The continuation now also indexes WebM and fixes FFmpeg's range-boundary
+  EOF handling. VP9 1080p with AAC passed on PS5; VP9/Opus generated fixtures
+  pass on the host. 4K and HDR acceptance remain pending.
 - **Lapy elevation follows ProsperoEden's current method** (helper built with
   upstream's `make owned-helper`, manifest shipped unchanged, packaged copy
   checked, every outcome logged). ProsperoTube deliberately differs in two
@@ -60,8 +61,9 @@ README's **Roadmap**). The two recommended first:
 1. **VP9 and Opus again**: ranged manifests for WebM tracks (Cues give the
    byte ranges), so 4K VP9 and HDR come back. Implementation now enables WebM
    indexing and fixes FFmpeg's zero-byte range-boundary read, which caused
-   the seek hang. Generated MP4/WebM seeks pass on the host; a PS5 candidate
-   and console acceptance remain pending. HDR selection/output is separate.
+   the seek hang. Generated MP4/WebM seeks pass on the host and VP9 1080p
+   passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). Opus on the console,
+   4K performance and HDR selection/output remain to validate or implement.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
@@ -92,8 +94,8 @@ of the roadmap.
   to the shared pieces when work stopped on 2026-10-13; the shared pieces exist
   (ARCHITECTURE.md section 12d), some screens may still carry `// REQUEST:`
   stand-ins. `grep -rn "REQUEST:" native/afterglow` lists them.
-- Draft pull request 1 (`codex/first-version`) is fully contained in `main`
-  and can be closed.
+- Pull request 1 (`codex/first-version`) is already merged; verified on GitHub
+  during the 2026-10-14 continuation. No closure is needed.
 
 ## How to work on it
 

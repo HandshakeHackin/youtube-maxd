@@ -1,5 +1,20 @@
 # Current implementation status
 
+Latest continuation, 2026-10-14: indexed WebM is enabled again after fixing
+FFmpeg's zero-byte range-boundary read. A bounded PS5 Guest session passed
+native VP9 1080p with AAC, seeking, pause/resume, history and Afterglow Home,
+search and playback; [hardware acceptance](HARDWARE_ACCEPTANCE.md) records its
+scope. Opus fixtures pass on the host; console Opus, 4K and HDR remain open.
+Missing storage access now posts an explanatory system notification before
+startup stops (package and startup checks passed; PS5 build passed; failure
+notification not exercised on hardware). The owner selected homebrew.page's
+signed catalog and helper for updates; replacing the current updater remains
+pending. The dated snapshot below has not been revalidated in full.
+
+Afterglow's profile-password sheet now uses the shared typed-answer API rather
+than discarding the input and calling a placeholder. All account boards pass
+in the four looks; real profile-password use on the console remains pending.
+
 Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states
 what the first release contains, how far each part was checked, and what is
