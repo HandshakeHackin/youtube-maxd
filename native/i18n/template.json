@@ -44,12 +44,6 @@
    ]
   },
   {
-   "source": "1 new",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
    "source": "1 playlist",
    "context": [
     "afterglow"
@@ -480,12 +474,6 @@
    "source": "All notifications",
    "context": [
     "browser"
-   ]
-  },
-  {
-   "source": "All notifications marked as read",
-   "context": [
-    "afterglow"
    ]
   },
   {
@@ -4627,12 +4615,6 @@
    ]
   },
   {
-   "source": "Mark all as read",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
    "source": "Mark all as watched",
    "context": [
     "afterglow"
@@ -5380,12 +5362,6 @@
    ]
   },
   {
-   "source": "Nothing is unread",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
    "source": "Nothing is waiting for a text here.",
    "context": [
     "afterglow"
@@ -5423,12 +5399,6 @@
   },
   {
    "source": "Nothing to set here",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
-   "source": "Nothing unread",
    "context": [
     "afterglow"
    ]
