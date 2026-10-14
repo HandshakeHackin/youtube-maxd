@@ -13,7 +13,7 @@ rml = (player / "ui_rml/src/evo_rmlui_render_agc.cpp").read_text()
 hui = (player / "ui_kit/src/hui_agc_batch.cpp").read_text()
 assert "void *evo_direct_mem_alloc_gpu(size_t bytes);" in header
 assert direct.count("void *evo_direct_mem_alloc_gpu(size_t bytes)") == 1
-assert rml.count("evo_direct_mem_alloc_gpu(") == 3
+assert rml.count("agc_alloc_gpu(") == 4  # helper and three GPU consumers
 assert hui.count("evo_direct_mem_alloc_gpu(") == 2
 assert "evo_direct_mem_alloc(need)" in (player / "media/src/evo_playback.c").read_text()
 
