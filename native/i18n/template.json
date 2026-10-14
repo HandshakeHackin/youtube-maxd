@@ -6609,6 +6609,12 @@
    ]
   },
   {
+   "source": "ProsperoTube could not access its data folder. Start your jailbreak's ELF loader or Lapy service, then reopen ProsperoTube.",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "ProsperoTube is installed as an image, which cannot be updated in place. Replace the image with the new version's.",
    "context": [
     "browser"

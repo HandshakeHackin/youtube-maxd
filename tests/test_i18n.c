@@ -100,6 +100,19 @@ int main(void) {
     use("ru");
     assert(!strcmp(tr("Subscriptions", 0), "Подписки"));
 
+    /* Afterglow uses the same catalog without the baked-atlas restriction. */
+    use("fr");
+    assert(!strcmp(tr("Who is watching?", 0), "Qui regarde ?"));
+    assert(!strcmp(tr("Chapter 2 of 17", 0), "Chapitre 2 sur 17"));
+    assert(!strcmp(tr("1 min left", 0), "1 min restante"));
+    assert(!strcmp(tr("5 min left", 0), "5 min restantes"));
+    assert(tr("Write your reply", 0) && !strstr(out, "Write"));
+    use("de");
+    assert(!strcmp(tr("Who is watching?", 0), "Wer sieht zu?"));
+    assert(!strcmp(tr("Chapter 2 of 17", 0), "Kapitel 2 von 17"));
+    assert(!strcmp(tr("5 min left", 0), "Noch 5 Min."));
+    assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
+
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");
     char label[512], value[512], joined[1100];

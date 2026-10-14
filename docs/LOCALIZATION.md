@@ -17,8 +17,16 @@ yet.
 | `fi` | Suomi | `pl` | Polski | `uk` | Українська |
 | `fr` | Français | `pt-BR` | Português (Brasil) | `vi` | Tiếng Việt |
 
-Every catalog covers the whole template; `bash scripts/test_i18n.sh` prints the
-coverage of each and fails below 99%.
+The classic interface is covered by every catalog. French and German also
+cover all Afterglow texts; the other 19 languages still fall back to English
+for Afterglow-only texts. `bash scripts/test_i18n.sh` reports both totals and
+requires 99% coverage of the classic texts for every language. Completed
+Afterglow catalogs additionally require every Afterglow text and 99% overall.
+
+Afterglow uses `tube_i18n_translate` through its platform text hook and draws
+with its dynamic font engine. It can use these translations independently of
+the old player's baked-atlas restriction below. Content such as video titles,
+channel names, comments and captions is kept as YouTube supplied it.
 
 Russian, Ukrainian, Greek and Vietnamese write the four face buttons as their
 symbols (✕ ○ □ △), as the key line of the browser does in every language: no
@@ -114,7 +122,7 @@ python3 scripts/i18n_build.py       # lists what each catalog now misses
 
 Add the new texts to every `native/i18n/<tag>.json`, run `i18n_build.py` again
 and `bash scripts/test_i18n.sh`. A text nobody translated yet is shown in
-English; `test_i18n.sh` fails when a catalog falls below 99% of the template or
+English; `test_i18n.sh` fails when a catalog falls below its coverage requirement or
 keeps a text the template no longer has, so `scripts/test_all.sh` catches a
 forgotten step.
 
