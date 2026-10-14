@@ -1298,6 +1298,28 @@ def test_port_that_does_not_open_is_a_note_and_the_interface_works_on(tmp_path, 
     left_as_found(current, console, ops, lock)
 
 
+def test_stalled_frame_before_sound_keeps_it_silent_until_switch_off(tmp_path, monkeypatch):
+    original = AfterglowStage.sound
+
+    def stalled(self, label):
+        with monkeypatch.context() as patch:
+            patch.setattr(ob, "pc_ag_beat", lambda before, after: (False, "the frame's counter stands at 855"))
+            return original(self, label)
+
+    monkeypatch.setattr(AfterglowStage, "sound", stalled)
+    _, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch)
+    step = sound_step(current)
+    assert step["result"] == "NOTE" and "before enabling sound" in step["detail"]
+    assert "stays in place until the interface is switched off" in step["detail"]
+    assert "THE INTERFACE IS LOST after the sound was let go" not in step["detail"]
+    assert ag_sent(ops) == AG_KEYS[:-len(SOUND_KEYS)]
+    assert sim.AG_SOUND_OPEN not in console.files[ob.LOG_FILE].decode()
+    moves = file_moves(ops)
+    off = moves.index(("ftp-delete", "afterglow.on"))
+    assert moves.index(("ftp-delete", "afterglow-sound.off")) > off
+    left_as_found(current, console, ops, lock)
+
+
 def test_package_without_recordings_never_asks_for_the_port_and_the_note_says_why(tmp_path, monkeypatch):
     verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, ag_sound="mute")
     step, report = sound_step(current), current.obs["afterglow"]

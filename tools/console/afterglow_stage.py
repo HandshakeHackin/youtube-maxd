@@ -785,6 +785,14 @@ class AfterglowStage:
             plan = self.stroll(self.at_home())
             if not plan:
                 raise ob.Unjudged("Home has a single card: no press only moves the focus")
+            earlier = self.read()
+            s.clock.sleep(T["beat"])
+            beats, counted = ob.pc_ag_beat(earlier, self.read())
+            if beats is not True:
+                if beats is False:
+                    self.alive = False
+                    self.lost = f"lost before the sound step: {counted}"
+                raise ob.Unjudged(f"frame progress was not established before enabling sound: {counted}")
         except ob.Unjudged as why:  # an interface not known to be on Home keeps its silence
             raise ob.Unjudged(f"{why}; {name} stays in place until the interface is switched off: the port is not asked for") from None
         self.deadline = max(self.deadline, s.clock.now() + T["sound"])
