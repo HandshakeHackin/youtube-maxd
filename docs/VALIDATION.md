@@ -45,8 +45,10 @@ source provenance pass. The combined application links and packages for PS5
 with its updater helper. Real signed update installation remains untested;
 shutdown/DNS and stale-sandbox limits are recorded in [Updates](UPDATES.md).
 
-The reviewed sound-last console driver passes 127 offline tests, including
+The reviewed sound-last console driver passes 128 offline tests, including
 partial override upload cleanup, restoration and simulated sound failures.
+A pre-existing frame stall keeps sound disabled until the interface is off;
+it cannot be reported as a sound-induced stall.
 
 Account-wide notification count: 200 worker tests, provider/picture checks
 under sanitizers and the embedded HTTP suite plain and sanitized pass

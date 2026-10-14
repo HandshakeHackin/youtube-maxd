@@ -64,6 +64,11 @@ README's **Roadmap**). The two recommended first:
    the seek hang. Generated MP4/WebM seeks pass on the host and VP9 1080p
    passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). Opus on the console,
    4K performance and HDR selection/output remain to validate or implement.
+   The combined candidate 93b2e0c7 passed native VP9 1080p again, then faulted
+   on the GPU after the first valid 4K frame of a second video. Its teardown
+   restored state and left the console idle. Do not treat it as 4K acceptance.
+   Compare frame ownership and surface validation with the local hardware
+   decoding research before another hardware case.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
@@ -76,8 +81,8 @@ README's **Roadmap**). The two recommended first:
    video quad and Player layout, with generated geometry and lifecycle checks;
    console calibration remains pending.
 
-Then: the Afterglow translations (the last catalog and remaining integer-count
-labels are in progress;
+Then: the Afterglow translations (all 21 catalogs are complete; remaining
+integer-count labels are in progress;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), live DVR,
 keep-playing-while-browsing, the interface's
 own sound assets (`docs/afterglow/sound-design.md`), and the smaller items
@@ -113,7 +118,9 @@ checks pass. Human listening and console acceptance remain pending.
   earlier Afterglow checks silence sound/vibration, the last step checks
   audio-port initialization and frame progress, and teardown restores all
   overrides. Offline driver tests pass; the original stash is retained as
-  a backup. The revised sound step has not yet run on a console.
+  a backup. The revised sound step was reached after the 4K stall and could
+  establish no sound result. A regression now requires frame progress before
+  enabling sound; all 128 driver tests pass.
 - The six Afterglow screen packages now reuse the existing shared pieces
   (ARCHITECTURE.md section 12d). The migration passes 611 boards in four looks
   and targeted checks of the final cleanup. Typed Settings/comment/reply

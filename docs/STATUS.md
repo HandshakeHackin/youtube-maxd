@@ -5,6 +5,10 @@ FFmpeg's zero-byte range-boundary read. A bounded PS5 Guest session passed
 native VP9 1080p with AAC, seeking, pause/resume, history and Afterglow Home,
 search and playback; [hardware acceptance](HARDWARE_ACCEPTANCE.md) records its
 scope. Opus fixtures pass on the host; console Opus, 4K and HDR remain open.
+The combined 93b2e0c7 candidate repeated the 1080p pass, but a second video
+opened native 4K VP9 and hit a GPU unmapped-read page fault after its first
+valid frame. Console state was restored and the title closed; 4K remains
+unaccepted, and theatre/picker calibration was not reached in that case.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's
@@ -33,6 +37,9 @@ lifecycle checks pass; console calibration remains pending.
 All 28 interface sound cues now use 34 original procedural WAVs. Reproducible
 source, provenance, format, headroom, mixer and packaging checks pass; human
 listening and console acceptance remain pending.
+All 21 catalogs now cover every interface text and required plural form;
+remaining integer-count label migration, native-speaker review and console
+language layouts remain to check.
 
 Home's Live now shelf reuses the existing Live topic, loads only when reached
 and filters archived videos out. Provider checks and 62 Home boards in four
