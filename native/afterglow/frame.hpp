@@ -92,6 +92,17 @@ class Frame final : private Nav
 
     // The Theme preference changed.
     void set_scheme(int scheme);
+    // The app's existing player continues behind the browser; no separate player lives here.
+    bool background_return_allowed() const
+    {
+        return !dialog_.is_open() && !sheet_.open() && !text_sheet_.open() && !launch_.active;
+    }
+    void set_background_playback(std::string_view title, bool paused)
+    {
+        background_title_ = title;
+        background_paused_ = paused;
+    }
+
     void set_reduced_motion(bool reduced)
     {
         options_.reduced_motion = reduced;
@@ -200,6 +211,8 @@ class Frame final : private Nav
     Platform &platform_;
     const ui::Fonts &fonts_;
     FrameOptions options_;
+    std::string background_title_;
+    bool background_paused_ = false;
     const Look *look_;
     Data data_;
     ImageCache images_;

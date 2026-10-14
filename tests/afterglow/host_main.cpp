@@ -944,6 +944,9 @@ int main(int argc, char **argv)
                 frame_options.attract_after = static_cast<float>(number_of(board, "attract_after", kAttractAfter));
                 Frame frame(platform, source, fonts, frame_options);
                 frame.set_output(options.width, options.height);
+                const cJSON *background = cJSON_GetObjectItemCaseSensitive(board,"background");
+                if (cJSON_IsObject(background)) frame.set_background_playback(text_of(background,"title"),
+                    cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(background,"paused")));
                 const cJSON *route = cJSON_GetObjectItemCaseSensitive(board, "route");
                 ScreenId screen = ScreenId::home;
                 if (cJSON_IsObject(route) && screen_from_name(text_of(route, "screen", "home"), &screen))

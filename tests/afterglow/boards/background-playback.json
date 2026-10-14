@@ -1,0 +1,98 @@
+{
+  "about": "Audio continues behind browsing; explicit return status replaces the clock.",
+  "boards": [
+    {
+      "name": "background-playing",
+      "fixture": "signed-in",
+      "background": {
+        "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+        "paused": false
+      },
+      "settle": 2,
+      "expect": {
+        "screen": "home",
+        "focus": "continue/0",
+        "state": {
+          "background_playback": "playing",
+          "background_return": "ready"
+        }
+      }
+    },
+    {
+      "name": "background-paused",
+      "fixture": "signed-in",
+      "background": {
+        "title": "Late Night Synth Session — Live from the Boathouse",
+        "paused": true
+      },
+      "settle": 2,
+      "expect": {
+        "screen": "home",
+        "focus": "continue/0",
+        "state": {
+          "background_playback": "paused",
+          "background_return": "ready"
+        }
+      }
+    },
+    {
+      "name": "background-long",
+      "fixture": "signed-in",
+      "background": {
+        "title": "A very long video title with difficult words and far more text than this compact return-to-video panel can show at once",
+        "paused": false
+      },
+      "settle": 2,
+      "expect": {
+        "screen": "home",
+        "focus": "continue/0",
+        "state": {
+          "background_playback": "playing",
+          "background_return": "ready"
+        }
+      }
+    },
+    {
+      "name": "background-actions",
+      "fixture": "signed-in",
+      "background": {
+        "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+        "paused": false
+      },
+      "settle": 2,
+      "expect": {
+        "screen": "home",
+        "sheet": 1,
+        "state": {
+          "background_playback": "playing",
+          "background_return": "blocked"
+        }
+      },
+      "steps": [
+        {
+          "press": "touchpad",
+          "wait": 0.8
+        }
+      ]
+    },
+    {
+      "name": "background-idle",
+      "fixture": "signed-in",
+      "background": {
+        "title": "Seven Days Alone on the Ridge Line — A Silent Hiking Film",
+        "paused": false
+      },
+      "settle": 3,
+      "expect": {
+        "screen": "home",
+        "focus": "continue/0",
+        "state": {
+          "background_playback": "playing",
+          "background_return": "ready"
+        },
+        "attract": 0
+      },
+      "attract_after": 0.2
+    }
+  ]
+}

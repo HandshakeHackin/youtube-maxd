@@ -45,6 +45,8 @@ int tube_afterglow_play_failed_recently(void);
 /* 1 = Circle was pressed on the last screen: the profile's rule for Circle on
  * the main menu applies. */
 int tube_afterglow_take_exit(void);
+/* Background return must not bypass an open question, text field or launch. */
+int tube_afterglow_background_return_allowed(void);
 /* Milliseconds of a monotonic clock, for that rule. */
 uint64_t tube_afterglow_now_ms(void);
 /* The interface's state as one JSON object (Frame::snapshot_json), "" while it

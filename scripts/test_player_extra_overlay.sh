@@ -67,7 +67,8 @@ PY
 flags=(-O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer
        -I"${root}/native" -I"${root}/native/vendor/cJSON" -I"${work}/projects/evoplayer/addons/include")
 cc -std=c11 -D_DEFAULT_SOURCE "${flags[@]}" -c "${root}/native/tube_player_extra.c" -o "$destination/tube_player_extra.o"
+cc -std=c11 "${flags[@]}" -c "${root}/native/tube_background_play.c" -o "$destination/tube_background_play.o"
 cc -std=c11 "${flags[@]}" -c "${root}/native/vendor/cJSON/cJSON.c" -o "$destination/cJSON.o"
 g++ -std=c++17 "${flags[@]}" -I"$destination" "${root}/tests/test_player_extra_overlay.cpp" \
-    "$destination/tube_player_extra.o" "$destination/cJSON.o" -lm -o "$destination/test"
+    "$destination/tube_player_extra.o" "$destination/tube_background_play.o" "$destination/cJSON.o" -lm -o "$destination/test"
 ASAN_OPTIONS=detect_leaks=1 "$destination/test"

@@ -17,6 +17,7 @@
 // call had any effect on the firmware it was tried on: whether a pulse is felt
 // at all is the first thing to check with a console in hand.
 
+#include "tube_background_play.h"
 #include "afterglow/sound/app/sound_app.hpp"
 
 #include "afterglow/frame.hpp"
@@ -329,6 +330,7 @@ void app_step(const Frame &frame, Platform &platform, float dt)
     step.dt = away > kAwayAfter ? static_cast<float>(static_cast<double>(away) * 1.0e-6) : dt;
     step.minute = app.minute;
     step.situation.attract = frame.attracting();
+    step.situation.playing = tube_background_play_active() && !tube_background_play_paused();
     app.sound.step(frame.feedback(), step);
     app.report();
 }

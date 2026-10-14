@@ -277,7 +277,13 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] VP9 and Opus streams again, and with them 4K VP9 and HDR, by reading
       WebM streams in ranges as MP4 is read today.
 - [ ] Rewinding live streams, and remembering the position in a live stream.
-- [ ] Keep playing while browsing.
+- [x] Keep the current video playing as audio while browsing in Afterglow:
+      choose “Keep playing while browsing” in playback options, then press L3
+      to return to the video. The now-playing panel shows its title and pause
+      state. Interface sounds keep their playback volume/preferences. At the drained end it pauses until returning to the player, where
+      the usual next-video offer/completion mode continues. Classic and phone
+      ownership keep their existing behavior. Host-tested; console acceptance
+      pending.
 - [ ] Automatic frame-rate switching to match the video.
 
 **Validation on a console**

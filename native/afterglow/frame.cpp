@@ -619,7 +619,7 @@ void Frame::update(const InputFrame &input, float dt)
     else
     {
         idle_ += dt;
-        if (!attract_ && idle_ >= options_.attract_after && !dialog_.is_open() && !rail_open_ && !change_.running && !sheet_.open() &&
+        if (background_title_.empty() && !attract_ && idle_ >= options_.attract_after && !dialog_.is_open() && !rail_open_ && !change_.running && !sheet_.open() &&
             !text_sheet_.open() && !launch_.active)
             attract_ = stack_.back()->screen->attract(true);
     }

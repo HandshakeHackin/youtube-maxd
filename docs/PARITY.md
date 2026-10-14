@@ -53,7 +53,7 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Auto frame rate: supported display modes (`AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory`) | No display-mode enumeration screen | no | S |
 | Auto frame rate behaviour (`behavior.AutoFrameRateController`) | No display mode switching by video frame rate | no | L |
 | Remember live stream position (`extra.Misc.RememberLivePosition`) | Live always starts at the live point; no DVR seek | no | L |
-| Keep playing while searching/browsing a channel (`extra.Misc.BackgroundPlayWhileSearching`) | Leaving the player stops playback; no in-app mini player | no | L |
+| Keep playing while searching/browsing a channel (`extra.Misc.BackgroundPlayWhileSearching`) | Afterglow playback-options action keeps the same player audio running while browsing; L3 returns. Drained EOF pauses until return; no video PiP. Host-tested; console acceptance pending | partial | L |
 | Tooltips, long-press hint, channel icon, row focus sync, UI animations, UI on next video, old speed button (`extra.Misc.UiChromeSwitches`) | None of the seven switches exists: 'show UI on next video' and 'UI animations' are not built; tooltips, the long-press hint, the real channel icon, row focus sync and the old speed-button behaviour tune button rows the PS5 player does not have (its actions are rows of the R2 options list) | yes | M |
 | Button: Auto frame rate (`extra.Button.AutoFrameRate`) | See behavior.AutoFrameRateController | no | L |
 

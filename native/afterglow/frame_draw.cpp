@@ -166,6 +166,17 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
         if (!subtitle.empty())
             text(g, g.f.regular, fit(g.f.regular, subtitle, kTypeSub, 1200.0f), kLeft, 166.0f, kTypeSub, k.ink2);
     }
+    if (!background_title_.empty())
+    {
+        // Occupies the clock's corner, above content; the browser keeps its entire controller map.
+        const Rect panel{kRight-488.0f,56.0f,488.0f,104.0f};
+        glass_panel(g,panel,18.0f);
+        text(g,g.f.semibold,background_paused_ ? tr("Paused") : tr("Now playing"),panel.x+20.0f,82.0f,19.0f,k.ink2);
+        text(g,g.f.regular,fit(g.f.regular,background_title_,22.0f,448.0f),panel.x+20.0f,113.0f,22.0f,k.ink);
+        text(g,g.f.regular,fit(g.f.regular,tr("L3: return to video"),19.0f,448.0f),panel.x+20.0f,143.0f,19.0f,k.ink2);
+        g.l.pop_opacity();
+        return;
+    }
     int hour = 0;
     int minute = 0;
     platform_.wall_clock(&hour, &minute);
@@ -512,6 +523,8 @@ std::string Frame::snapshot_json() const
     }
     out += "],\"state\":{";
     Snapshot snapshot;
+    snapshot.values.emplace_back("background_playback",background_title_.empty() ? "off" : background_paused_ ? "paused" : "playing");
+    snapshot.values.emplace_back("background_return",background_title_.empty() ? "off" : background_return_allowed() ? "ready" : "blocked");
     if (!stack_.empty())
         stack_.back()->screen->snapshot(snapshot);
     // The frame's sheets report beside the screen they were opened from.

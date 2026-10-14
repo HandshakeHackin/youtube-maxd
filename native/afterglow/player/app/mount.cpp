@@ -565,6 +565,8 @@ void fill_list(Mount &m)
             row.label = sentence(from.title);
         }
         row.detail = from.detail;
+        if (row.label == "Keep playing while browsing") row.label = tr("Keep playing while browsing");
+        if (row.detail == "L3: return to video") row.detail = tr("L3: return to video");
         row.current = from.badge == "SELECTED" || from.badge == "PLAYING";
         if (!row.current && from.badge != "VIDEO")
             row.tag = sentence(from.badge);

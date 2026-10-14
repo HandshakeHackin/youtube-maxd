@@ -2,6 +2,7 @@
  * picker, the in-player video actions, the chapter notification and the error
  * fixer, linked with the real preference module. */
 #include "tube_player_extra.h"
+#include "tube_background_play.h"
 #include "tube_provider.h"
 #include <algorithm>
 #include <cassert>

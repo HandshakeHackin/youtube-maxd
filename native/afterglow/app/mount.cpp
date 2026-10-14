@@ -26,6 +26,7 @@ extern "C"
 #include "evo_net.h"
 #include "tube_i18n.h"
 #include "tube_provider.h"
+#include "tube_background_play.h"
 #include "tube_ui_style.h"
 }
 
@@ -308,7 +309,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     }
     // Back on screen after the player or another screen of the app had it.
     const double now = monotonic_seconds();
-    if (m.last_render != 0.0 && now - m.last_render > 1.0)
+    if (tube_background_play_take_browser_resume() || (m.last_render != 0.0 && now - m.last_render > 1.0))
     {
         m.start.reset(); // the player had the screen
         m.frame->resume();
@@ -329,6 +330,9 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
         m.frame->set_text_stats(true, static_cast<int>(text.pages), static_cast<int>(text.glyphs), static_cast<int>(text.faces_open),
                                 static_cast<int>(m.text->missing()));
     }
+    m.frame->set_background_playback(tube_background_play_active()
+        ? (std::strlen(tube_background_play_title()) ? tube_background_play_title() : tr("Now playing")) : "",
+        tube_background_play_paused()!=0);
     m.frame->update(m.input, dt);
     // stage S: what this step asked for is played and felt (the app's park and exit reach the sound through
     // tube_afterglow_sound.h, from EVO's application).
@@ -481,4 +485,9 @@ extern "C" void tube_afterglow_close(void)
     g_mount->text.reset();
     g_mount->shown = false;
     g_mount->last_render = 0.0;
+}
+
+extern "C" int tube_afterglow_background_return_allowed(void)
+{
+    return g_mount && g_mount->frame && g_mount->frame->background_return_allowed();
 }
