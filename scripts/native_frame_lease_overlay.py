@@ -179,6 +179,9 @@ void pp_playback_release_video_frame(pp_video_frame *f) {
     if (g_vdec) {
         evo_vdec_close(g_vdec);""")
     app=player+'core/src/Application.cpp'
+    # A native backend alone does not prove that pp handed us a GPU-mapped frame.
+    replace(app,'int is_direct = (evo_pb_active_backend() == EVO_VDEC_BACKEND_NATIVE && !f.held && f.uv != nullptr) ? 1 : 0;',
+        'int is_direct = (evo_pb_active_backend() == EVO_VDEC_BACKEND_NATIVE && !f.held && f.uv != nullptr && f.tube_lease) ? 1 : 0;')
     replace(app,'        uint64_t tube_hidden_epoch=0,tube_hidden_serial=0;',
         '        pp_video_frame tube_present_source{};\n        uint64_t tube_hidden_epoch=0,tube_hidden_serial=0;')
     replace(app,'                    tube_hidden_epoch=hiddenFrame.tube_epoch;tube_hidden_serial=hiddenFrame.tube_serial;',r"""                    tube_hidden_epoch=hiddenFrame.tube_epoch;tube_hidden_serial=hiddenFrame.tube_serial;

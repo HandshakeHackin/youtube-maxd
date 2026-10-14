@@ -31,6 +31,8 @@ with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     subprocess.run([str(temp/'test_close')],check=True)
 
 app=(work/'core/src/Application.cpp').read_text()
+lease_overlay=(root/'scripts/native_frame_lease_overlay.py').read_text()
+assert '&& f.uv != nullptr && f.tube_lease) ? 1 : 0;' in lease_overlay
 retirement=function(app,'            if (tube_present_source.tube_lease)')
 assert app.index(retirement)>app.index('            evo_agc_runtime_present();')
 assert 'if (!(swap && uiActive)) pp_playback_release_video_frame(&tube_present_source);' in app

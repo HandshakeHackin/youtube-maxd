@@ -80,6 +80,11 @@ int main(void){
  assert(tube_native_pool_idle(&slot));
  /* The real pp path: publication and GPU snapshot own independent references. */
  pp_playback pb;pp_playback_init(&pb);int64_t clock=1000000;pp_playback_set_clock_source(&pb,media_clock,&clock);pp_playback_on_file_open(&pb);
+ /* A heap-backed publication has no pool lease and must take the staged GPU path. */
+ uint8_t heap_frame[1536]={0};pp_frame soft=frame(heap_frame,0);assert(pp_playback_push_frame(&pb,&soft)==0);
+ pp_video_frame heap_snapshot={0};assert(pp_playback_get_video_frame(&pb,&heap_snapshot));
+ assert(heap_snapshot.y==heap_frame&&!heap_snapshot.tube_lease);pp_playback_release_video_frame(&heap_snapshot);
+ pp_playback_on_file_open(&pb);
  assert(tube_native_claim_frame(&native,0)==0);pp_frame first=frame(memory,0);assert(pp_playback_push_frame(&pb,&first)==0);tube_frame_lease_release(memory);
  pp_video_frame gpu={0};assert(pp_playback_get_video_frame(&pb,&gpu)&&gpu.tube_lease==memory);
  assert(tube_native_claim_frame(&native,1)==1);pp_frame second=frame(memory,1);assert(pp_playback_push_frame(&pb,&second)==0);tube_frame_lease_release(memory+16384);
