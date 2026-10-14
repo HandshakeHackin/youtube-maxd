@@ -88,8 +88,14 @@ README's **Roadmap**). The two recommended first:
    that lock. A strict GPU-pool guard and a fix for an AGC UI frame left open
    on no-swap loops now pass host checks. On .40, the frame fix eliminated
    command-buffer and ring exhaustion, but live-video testing stopped at
-   DNS failure for YouTube and homebrew.page; the GPU-pool guard remains
-   unjudged on hardware. See HARDWARE_ACCEPTANCE.md for the exact cases.
+   DNS failure for YouTube and homebrew.page. An offline generated 8-second
+   3840x2160 VP9 fixture on .40 then opened the native decoder and published
+   all 240 frames with zero late drops or GPU faults. It stalled at 7.99/8.0 s:
+   demux EOF was set, but playback did not complete within 45 seconds. Its
+   clean teardown restored state and released the .40 lock. This short case
+   exercises the integrated display path but does not isolate the GPU-pool
+   guard or accept natural EOF, long/network 4K, HDR, audio or seeking. See
+   HARDWARE_ACCEPTANCE.md for the exact cases.
 
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
