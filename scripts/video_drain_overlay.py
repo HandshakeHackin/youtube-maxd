@@ -143,6 +143,23 @@ void evo_vdec_native_flush(evo_vdec_native *v)   /* seek */""")
                 memory_order_release);
             return 0;""")
     replace(playback, "int evo_pb_audio_drained(void) { return audio_stream_index < 0 || evo_audio_is_drained(); }", """int evo_pb_audio_drained(void) { return audio_stream_index < 0 || evo_audio_is_drained(); }
+void evo_pb_get_completion_gates(evo_pb_completion_gates *out)
+{
+    if (!out) return;
+    out->natural_eof = evo_demux_natural_eof();
+    out->input_failed = evo_demux_input_failed();
+    out->audio_drained = evo_pb_audio_drained();
+    out->video_decoded = video_stream_index < 0 ||
+        atomic_load_explicit(&tube_video_decoded, memory_order_acquire);
+    out->video_failed = atomic_load_explicit(&tube_video_failed, memory_order_acquire);
+    out->paused = player_paused;
+    out->scrub = pb_scrub_hold;
+    out->seeking = evo_demux_is_seeking();
+    int64_t dwell = video_fps >= 0.1 && video_fps <= 240.0
+        ? (int64_t)(1000000.0 / video_fps) : 40000;
+    out->display_retired = video_stream_index < 0 ||
+        pp_playback_display_retired(&g_pp_pb, dwell);
+}
 int evo_pb_is_complete(void)
 {
     if (player_paused || pb_scrub_hold || evo_demux_is_seeking() ||
@@ -154,7 +171,15 @@ int evo_pb_is_complete(void)
         ? (int64_t)(1000000.0 / video_fps) : 40000;
     return pp_playback_display_retired(&g_pp_pb, dwell);
 }""")
-    replace(player + "media/include/evo_playback.h", "int    evo_pb_input_complete(void);", "void evo_pb_reset_video_drain(void);\nint evo_pb_is_complete(void); /* natural input EOF + audio + final rendered video */\nint    evo_pb_input_complete(void);")
+    replace(player + "media/include/evo_playback.h", "int    evo_pb_input_complete(void);", """void evo_pb_reset_video_drain(void);
+int evo_pb_is_complete(void); /* natural input EOF + audio + final rendered video */
+/* Read-only diagnostic view of the independent completion gates. */
+typedef struct evo_pb_completion_gates {
+    int natural_eof, input_failed, audio_drained, video_decoded;
+    int display_retired, video_failed, paused, scrub, seeking;
+} evo_pb_completion_gates;
+void evo_pb_get_completion_gates(evo_pb_completion_gates *out);
+int    evo_pb_input_complete(void);""")
     replace(player + "media/src/evo_demux.c", "        evo_audio_drain_reset();", "        evo_audio_drain_reset();\n        evo_pb_reset_video_drain();")
     replace(player + "media/src/evo_demux.c", '#include "evo_demux.h"', '#include "evo_demux.h"\n#include "evo_playback.h"')
     # Tokens travel in the same locked snapshot as the actual decoder planes.
@@ -233,3 +258,9 @@ void pp_playback_on_file_open(pp_playback *pb)""")
     remote = player + "src/evo_usb_remote.c"
     replace(remote, '"fatal=%d eof=%d active=%d parked=%d\\n",', '"fatal=%d eof=%d complete=%d active=%d parked=%d\\n",')
     replace(remote, "evo_pb_decode_fatal(), evo_pb_is_eof(), evo_pb_is_active(), parked);", "evo_pb_decode_fatal(), evo_pb_is_eof(), evo_pb_is_complete(), evo_pb_is_active(), parked);")
+    replace(remote, "    fprintf(sf,", "    evo_pb_completion_gates gates;\n    evo_pb_get_completion_gates(&gates);\n    fprintf(sf,")
+    replace(remote, '"fatal=%d eof=%d complete=%d active=%d parked=%d\\n",', '"fatal=%d eof=%d complete=%d active=%d parked=%d nat=%d ifail=%d aud=%d vdec=%d disp=%d vfail=%d pause=%d scrub=%d seek=%d\\n",')
+    replace(remote, "evo_pb_decode_fatal(), evo_pb_is_eof(), evo_pb_is_complete(), evo_pb_is_active(), parked);", """evo_pb_decode_fatal(), evo_pb_is_eof(), evo_pb_is_complete(), evo_pb_is_active(), parked,
+            gates.natural_eof, gates.input_failed, gates.audio_drained,
+            gates.video_decoded, gates.display_retired, gates.video_failed,
+            gates.paused, gates.scrub, gates.seeking);""")

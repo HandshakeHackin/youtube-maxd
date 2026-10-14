@@ -81,6 +81,11 @@ static void load(const char *path) {
 
 static void run(const char *path) {
     load(path);
+    evo_pb_completion_gates gates;
+    evo_pb_get_completion_gates(&gates);
+    assert(gates.natural_eof && !gates.input_failed && gates.audio_drained);
+    assert(!gates.video_decoded && !gates.display_retired && !gates.video_failed);
+    assert(!gates.paused && !gates.scrub && !gates.seeking);
     assert(!evo_vdec_is_drained(g_vdec) && !evo_pb_is_complete());
     /* Empty non-EOF input is starvation, never completion. */
     unsigned saved_count = packet_count; packet_count = 0;
@@ -102,10 +107,14 @@ static void run(const char *path) {
     }
     assert(packet_read == packet_count && emitted > 2 && evo_vdec_is_drained(g_vdec));
     assert(atomic_load(&tube_video_decoded));
+    evo_pb_get_completion_gates(&gates);
+    assert(gates.video_decoded && !gates.display_retired);
     assert(!evo_pb_is_complete()); // Last frame has not reached the injected renderer boundary.
     pp_playback_note_retired(&g_pp_pb, last.tube_epoch, last.tube_serial);
     assert(!evo_pb_is_complete()); // Retired final frame still needs its display interval.
     usleep((useconds_t)(1000000.0 / video_fps) + 10000);
+    evo_pb_get_completion_gates(&gates);
+    assert(gates.display_retired);
     assert(evo_pb_is_complete()); // media_duration_sec remains 0: unknown duration works.
     /* Actual demux classification feeds the actual decoder/render completion
      * gate: even fully drained/retired media cannot complete on failed input. */
@@ -116,6 +125,8 @@ static void run(const char *path) {
         assert(!demux_read_is_final(AVERROR_EOF));
     assert(demux_read_is_final(AVERROR_EOF));
     tube_demux_terminal_input(AVERROR_EOF, AVERROR_EOF, demux_recover_tries >= DEMUX_RECOVER_TRIES);
+    evo_pb_get_completion_gates(&gates);
+    assert(!gates.natural_eof && gates.input_failed);
     assert(evo_demux_input_failed() && !evo_demux_natural_eof() && !evo_pb_is_complete());
     tube_demux_terminal_input(AVERROR_EOF, 0, 1);
     assert(evo_demux_input_failed() && !evo_pb_is_complete());
@@ -146,17 +157,21 @@ static void run(const char *path) {
     media_duration_sec = 0;
     demux_recover_tries = 0;
     audio_stream_index = 0; audio_drained = 0; assert(!evo_pb_is_complete());
+    evo_pb_get_completion_gates(&gates); assert(!gates.audio_drained);
     audio_drained = 1; assert(evo_pb_is_complete()); audio_stream_index = -1;
-    player_paused = 1; assert(!evo_pb_is_complete()); player_paused = 0;
+    player_paused = 1; evo_pb_get_completion_gates(&gates);
+    assert(gates.paused && !evo_pb_is_complete()); player_paused = 0;
     pp_playback_pause(&g_pp_pb);
     pp_video_frame held;
     assert(pp_playback_get_video_frame(&g_pp_pb, &held) && held.held);
     assert(held.pts_us == last.pts_us && held.tube_serial == 0);
     pp_playback_resume(&g_pp_pb);
-    seeking = 1; assert(!evo_pb_is_complete()); seeking = 0;
+    seeking = 1; evo_pb_get_completion_gates(&gates);
+    assert(gates.seeking && !evo_pb_is_complete()); seeking = 0;
     g_pb_decode_fatal = 1; assert(!evo_pb_is_complete()); g_pb_decode_fatal = 0;
     pp_frame unpublishable = {.pts_us = last.pts_us, .format = PP_FRAME_YUV420P, .width = 2, .height = 2};
     present_pp_frame(&unpublishable); // Real pp path rejects missing pixel planes.
+    evo_pb_get_completion_gates(&gates); assert(gates.video_failed);
     assert(atomic_load(&tube_video_failed) && !evo_pb_is_complete());
     evo_pb_reset_video_drain();
     assert(decode_next_video_frame() == 0 && evo_pb_is_complete()); // Re-send NULL and collect EOF.

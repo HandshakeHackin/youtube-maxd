@@ -3,6 +3,7 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 work="$(python3 "${root}/scripts/prepare_native.py")"
 evo="${work}/projects/evoplayer"
+python3 "${root}/tests/test_completion_status.py" "${evo}/src/evo_usb_remote.c"
 mkdir -p "${root}/build/tests"
 python3 "${root}/scripts/extract_native_drain_test.py" "${evo}/media/src/evo_vdec_native.c" "${root}/build/tests"
 python3 "${root}/scripts/extract_demux_input_test.py" "${evo}/media/src/evo_demux.c" "${root}/build/tests/tube_demux_input.inc"
