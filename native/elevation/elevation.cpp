@@ -1,7 +1,10 @@
 /*
- * ProsperoTV - PS5-Lapy-JB-Daemon elevation client.
+ * ProsperoTube - PS5-Lapy-JB-Daemon elevation client.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * The same client as ProsperoEden's headless/elevation (requests, order,
+ * timings and wire exchange), plus one stricter proof: /data must also list.
  */
 #include "elevation.hpp"
 #include "protocol.hpp"
@@ -138,8 +141,10 @@ bool verify_data(pid_t pid, int &open_error) noexcept
     if (!passed)
         return false;
     // ShadowMountPlus 1.7 mounts /data into a sandboxed app: files open and write, but
-    // listing a folder or lstat is refused (EPERM). That is not elevation, so the
-    // request goes on to Lapy, and waits for /data to list once Lapy is done.
+    // listing a folder or lstat may be refused (EPERM). ProsperoTube lists its folders
+    // (backups, imports, updates, fonts), so such a mount is not enough: the request
+    // goes on to Lapy and waits for /data to list once Lapy is done. Where the mount
+    // also lists, this is ProsperoEden's "existing" path and no Lapy is needed.
     DIR *folder = opendir("/data");
     if (!folder)
     {

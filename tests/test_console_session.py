@@ -79,6 +79,12 @@ def test_log_statistics_and_storage_verdict():
     assert ob.storage_verdict("Lapy: path=/x status=0 storage=failed\n") == "failed"
     assert ob.storage_verdict("Lapy: path=/x status=3; durable storage unavailable\n") == "failed"
     assert ob.storage_verdict("frame 1\n") is None
+    # The lines as native/elevation/tube_jailbreak.cpp writes them now: request, then outcome with ids.
+    assert ob.storage_verdict("Lapy: requesting filesystem access\n") is None
+    assert ob.storage_verdict("Lapy: requesting filesystem access\n"
+                              "Lapy: path=helper status=0 storage=ready error=0 uid 0/0 gid 0/1\n") == "ready"
+    assert ob.storage_verdict("Lapy: path=existing status=0 storage=failed error=0xd uid 1000/1000 gid 1000/1000\n") == "failed"
+    assert ob.storage_verdict("Lapy: path=resident status=11; durable storage unavailable; uid 1000/1000 gid 1000/1000\n") == "failed"
 
 
 # --- postconditions -----------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include "evo_jailbreak.h"
 #include "evo_data_path.h"
 #include "evo_boot_trace.h"
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
@@ -13,33 +14,57 @@
 #ifdef EVO_APP_MODULE
 static bool attempted, ready;
 
-extern "C" int evo_jailbreak_self(void)
+/* Write, read back, close and delete a file in the app's own folder. `error` is the
+ * kernel's code when the folder cannot be made, otherwise errno. */
+static bool prove_storage(int &error)
 {
-    if (attempted) return ready;
-    attempted = true;
-    const auto status = elevation::request(elevation::Capability::filesystem);
-    if (status != elevation::Status::ok) {
-        evo_bt("Lapy: path=%s status=%u; durable storage unavailable",
-               elevation::path(), static_cast<unsigned>(status));
-        return 0;
+    error = 0;
+    const int made = evo_mkdir("/data/prosperotube");
+    if (made != 0) {
+        error = made;
+        return false;
     }
-    if (evo_mkdir("/data/prosperotube") != 0) return 0;
     char path[128];
     std::snprintf(path, sizeof path, "/data/prosperotube/.storage-probe-%ld",
                   static_cast<long>(getpid()));
     const char token[] = "ProsperoTube storage\n";
     char actual[sizeof token] = {};
     const int fd = open(path, O_RDWR | O_CREAT | O_EXCL, 0600);
-    if (fd < 0) return 0;
-    ready = write(fd, token, sizeof token) == sizeof token &&
-            lseek(fd, 0, SEEK_SET) == 0 &&
-            read(fd, actual, sizeof actual) == sizeof actual &&
-            std::memcmp(token, actual, sizeof token) == 0;
+    if (fd < 0) {
+        error = errno;
+        return false;
+    }
+    bool passed = write(fd, token, sizeof token) == sizeof token &&
+                  lseek(fd, 0, SEEK_SET) == 0 &&
+                  read(fd, actual, sizeof actual) == sizeof actual &&
+                  std::memcmp(token, actual, sizeof token) == 0;
     const int closed = close(fd);
     const int removed = unlink(path);
-    ready = ready && closed == 0 && removed == 0;
-    evo_bt("Lapy: path=%s status=%u storage=%s", elevation::path(),
-           static_cast<unsigned>(status), ready ? "ready" : "failed");
+    passed = passed && closed == 0 && removed == 0;
+    if (!passed) error = errno != 0 ? errno : EIO;
+    return passed;
+}
+
+extern "C" int evo_jailbreak_self(void)
+{
+    if (attempted) return ready;
+    attempted = true;
+    /* As ProsperoEden logs it: the request first, then one line with the route, the
+     * status and the ids the process was left with. Every outcome is logged. */
+    evo_bt("Lapy: requesting filesystem access");
+    const auto status = elevation::request(elevation::Capability::filesystem);
+    const int uid = static_cast<int>(getuid()), euid = static_cast<int>(geteuid());
+    const int gid = static_cast<int>(getgid()), egid = static_cast<int>(getegid());
+    if (status != elevation::Status::ok) {
+        evo_bt("Lapy: path=%s status=%u; durable storage unavailable; uid %d/%d gid %d/%d",
+               elevation::path(), static_cast<unsigned>(status), uid, euid, gid, egid);
+        return 0;
+    }
+    int error = 0;
+    ready = prove_storage(error);
+    evo_bt("Lapy: path=%s status=%u storage=%s error=%#x uid %d/%d gid %d/%d", elevation::path(),
+           static_cast<unsigned>(status), ready ? "ready" : "failed",
+           static_cast<unsigned>(ready ? 0 : error), uid, euid, gid, egid);
     return ready;
 }
 

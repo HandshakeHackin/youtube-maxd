@@ -22,6 +22,14 @@ assert hardware.index("evo_keyboard_ime_probe();") < hardware.index("evo_jailbre
 assert hardware.index("evo_webui_preload();") < hardware.index("evo_jailbreak_self()")
 assert hardware.index("evo_jailbreak_self()") < hardware.index("evo_agc_runtime_init(") < hardware.index("evo_vdec_probe();")
 assert "startup stopped" in hardware
+# ProsperoEden's tools/check-elevation-startup.py: upstream Lapy accepts only a
+# single-threaded target, so nothing ahead of the request may start a thread.
+before_lapy = hardware[:hardware.index("evo_jailbreak_self()")]
+call = initialize.find("initHardware()")
+if call >= 0:
+    before_lapy = initialize[:call] + before_lapy
+for forbidden in ("std::thread", "std::jthread", "pthread_create", "scePthreadCreate", "std::async"):
+    assert forbidden not in before_lapy, f"{forbidden} starts before Lapy elevation"
 
 scaffold = r'''
 #include <assert.h>
