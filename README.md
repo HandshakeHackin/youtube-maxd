@@ -258,8 +258,8 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] The player as on its boards: the next-video card, Undo after a skipped
       segment, grouped playback options, captions in tabs, and the live chat
       beside the video rather than over it.
-      The next-video offer and automatic-skip Undo are implemented and
-      host-tested; their console acceptance is pending.
+      The next-video offer, automatic-skip Undo, grouped options and caption
+      tabs are implemented and host-tested; console acceptance is pending.
 - [x] Home: a "Live now" shelf, read when reached and showing live videos only
       (host-tested; console acceptance pending).
 - [ ] Home: a service count on the notifications bell that stays correct when

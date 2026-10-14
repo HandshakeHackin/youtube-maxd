@@ -11,6 +11,31 @@ PS5 tick/pad-path harness passes, as do player and seek control regressions
 and package preparation. Existing player boards pass 75 boards in four looks
 (2,944 checks); the new mounted behavior is not yet console-tested.
 
+Grouped playback options and caption tabs: generated actual picker input
+passes under ASan/UBSan, including choosing real speed entries, restoring
+group focus, unavailable groups, secondary selection/Off, active-language
+sync and Classic fallback. Player boards pass in four looks, followed by
+targeted picker checks after final label/count changes. Six generated PS5
+objects compile against the existing SDK.
+
+Shared-screen migration: the main change passes 611 boards in four looks
+(26,960 checks). Final cleanup passes 227 affected boards in four looks
+(8,708 checks) and a fresh 110-board D rerun (4,172 checks). Text delivery
+boards assert the actual Settings/comment/reply payloads. Home Live now
+passes provider/picture sanitizer checks and 62 Home boards in four looks
+(2,800 checks); its Daybreak capture was inspected.
+
+Signed catalog integration: shared kit/helper and adapter tests pass under
+ASan/UBSan, including signature/hash/sequence refusal, archive handling,
+staging/cancellation, previous-copy recovery and stable notes during a
+manual re-check. Generated host integration, release checks and imported
+source provenance pass. The combined application links and packages for PS5
+with its updater helper. Real signed update installation remains untested;
+shutdown/DNS and stale-sandbox limits are recorded in [Updates](UPDATES.md).
+
+The reviewed sound-last console driver passes 127 offline tests, including
+partial override upload cleanup, restoration and simulated sound failures.
+
 Afterglow profile-password integration: the existing account board now checks
 the typed `q` reaches the provider's answer API. It fails in all four looks
 before replacing the discarded-text placeholder with `Data::answer(text)`.

@@ -70,8 +70,9 @@ README's **Roadmap**). The two recommended first:
    `docs/afterglow/requests/H.md`.
    The continuation wires the next-video card's five-second Play now/Cancel
    offer, automatic-skip Undo and category colours. Host provider/controller
-   checks pass; console acceptance remains pending. Grouped options, caption
-   tabs and chat beside the picture remain to implement.
+   checks pass; console acceptance remains pending. Grouped options and
+   caption tabs now use the real picker actions and pass generated controller
+   and board checks. Chat beside the picture remains in progress.
 
 Then: the Afterglow translations (many texts still fall back to English;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), the bell count
@@ -85,7 +86,7 @@ boards in four looks pass; console acceptance remains pending.
 
 - Update decision resolved on 2026-10-14: use the homebrew.page catalog and
   helper, like the owner's other apps. Integration and host checks are done;
-  full app linking and console acceptance remain pending. A published signed
+  a complete PS5 package also builds. Console acceptance and a published signed
   catalog entry and release are required for an end-to-end update.
 - The README footer entry for ProsperoTube in the protocol repository's
   `scripts/readme-footer/repos.toml` (prepared, not committed).
