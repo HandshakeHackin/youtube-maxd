@@ -8758,6 +8758,12 @@
    "args": "s"
   },
   {
+   "source": "Skipped",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Skipped an optional segment",
    "context": [
     "toast"
@@ -10920,6 +10926,12 @@
    ]
   },
   {
+   "source": "Unable to undo the skip",
+   "context": [
+    "toast"
+   ]
+  },
+  {
    "source": "Unblock channel",
    "context": [
     "browser"
@@ -10930,6 +10942,12 @@
    "context": [
     "afterglow",
     "browser"
+   ]
+  },
+  {
+   "source": "Undo",
+   "context": [
+    "afterglow"
    ]
   },
   {

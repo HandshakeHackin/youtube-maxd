@@ -54,6 +54,7 @@ int main(void) {
         assert(tr("YouTube preferences", 0) && strstr(out, "YouTube"));
         assert(tr("SponsorBlock actions", 0) && strstr(out, "SponsorBlock"));
         assert(!tr("ProsperoTube", 0) && !tr("YouTube", 0));
+        assert(tr("Skipped", 0) && tr("Undo", 0) && tr("Unable to undo the skip", 0));
         /* Numbers and units pass through patterns. */
         assert(tr("Up to 1440p", 0) && strstr(out, "1440"));
         assert(tr("Zoom 150%", 0) && strstr(out, "150"));
