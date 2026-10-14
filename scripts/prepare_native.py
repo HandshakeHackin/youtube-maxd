@@ -108,6 +108,10 @@ def main():
         (WORK / player / "sce_sys" / name).unlink(missing_ok=True)
     for name in ("icon0.png", "pic0.dds", "pic1.dds", "snd0.at9"):
         shutil.copyfile(ROOT / "native/branding" / name, WORK / player / "sce_sys" / name)
+    # EVO's packager copies a fixed list of sce_sys pictures: let it take the DDS backgrounds too.
+    if "pic0.dds" not in (WORK / "scripts/package-app.sh").read_text(encoding="utf-8"):
+        replace("scripts/package-app.sh", "for asset in icon0.png pic0.png pic1.png snd0.at9; do\n",
+                "for asset in icon0.png pic0.png pic1.png pic0.dds pic1.dds snd0.at9; do\n")
     notices = WORK / player / "assets/prosperotube-notices"
     notices.mkdir(exist_ok=True)
     for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
