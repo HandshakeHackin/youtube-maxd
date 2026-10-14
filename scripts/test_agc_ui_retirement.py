@@ -102,30 +102,55 @@ int main() {
 '''
 
 hui_cpp_harness = r'''#include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <vector>
 static bool idle;
-static int freed;
+static int freed, freed_index;
 static int evo_agc_runtime_gpu_data_idle() { return idle; }
+static void evo_direct_mem_free(void *p) { free(p); ++freed_index; }
 namespace evo::hui_agc {
 struct AgcBatch {
-    struct Pending { void *texture; int frames_left; };
+    struct Texture {};
+    struct Pending { Texture *texture; int frames_left; };
     std::vector<Pending> pending_free_;
-    void destroy(void *p) { free(p); ++freed; }
+    std::vector<Texture *> textures_;
+    Texture *fonts_[2] = {};
+    unsigned font_count_ = 0;
+    Texture *white_ = nullptr;
+    void *indices_base_ = nullptr;
+    std::uint16_t *indices_ = nullptr;
+    bool ok_ = true;
+    void destroy(Texture *p) { if (p) { delete p; ++freed; } }
     void end_frame();
+    void release();
 };
-''' + hui_end + r'''
+''' + hui_end + '\n' + hui_release + r'''
 }
 int main() {
-    evo::hui_agc::AgcBatch batch;
-    batch.pending_free_.push_back({malloc(8), 4});
+    using evo::hui_agc::AgcBatch;
+    AgcBatch batch;
+    batch.pending_free_.push_back({new AgcBatch::Texture, 4});
     for (int i = 0; i < 100; ++i) batch.end_frame(); // unswapped loops, fence pending
     assert(freed == 0 && batch.pending_free_[0].frames_left == 4);
     idle = true;
     for (int i = 0; i < 4; ++i) batch.end_frame();
     assert(freed == 1 && batch.pending_free_.empty());
-    batch.end_frame(); // no double free
+    batch.end_frame();
     assert(freed == 1);
+
+    AgcBatch init_failed;
+    init_failed.indices_base_ = malloc(8);
+    init_failed.white_ = new AgcBatch::Texture;
+    init_failed.fonts_[0] = new AgcBatch::Texture;
+    init_failed.font_count_ = 1;
+    init_failed.textures_.push_back(new AgcBatch::Texture);
+    init_failed.pending_free_.push_back({new AgcBatch::Texture, 4});
+    idle = false; // initialization runs inside an active AGC frame
+    init_failed.release();
+    assert(freed == 5 && freed_index == 1);
+    assert(!init_failed.ok_ && !init_failed.white_ && !init_failed.indices_base_);
+    assert(init_failed.pending_free_.empty() && init_failed.textures_.empty());
 }
 '''
 
@@ -142,4 +167,4 @@ with tempfile.TemporaryDirectory(prefix="agc-ui-retirement-") as directory:
         subprocess.run([compiler, *flags, "-Wall", "-Wextra", "-Werror",
                         "-fsanitize=address,undefined", str(source_path), "-o", str(binary)], check=True)
         subprocess.run([str(binary)], check=True)
-print("generated RmlUi and HUI releases wait for GPU retirement: PASS")
+print("generated HUI init cleanup and GPU-gated release: PASS")
