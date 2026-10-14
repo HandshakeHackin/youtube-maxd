@@ -716,15 +716,33 @@ class AfterglowStage:
         return ("playing" if ok else outcome[0]), detail
 
     def stop(self, label):
-        """Circle, the confirmation, Cross (STOP has the cursor there). By
-        keys it is soft; that the player retired is the engine's fact."""
+        """Select Stop only from the mounted dialog's verified focus.
+        Unknown or unresponsive focus uses the explicit development stop."""
         s = self.s
         self.send("key circle")
         ok, detail = self.wait(lambda: s.on_screen(ob.SCREEN_STOP_DIALOG), T["dialog"])
         if ok:
+            focus = [None]
+            def stop_focus(wanted=None):
+                snapshot = s.ui()
+                player = ob.ui_focus(snapshot)
+                at = player.get("focus") or {}
+                index = at.get("index")
+                valid = (ob.ui_screen(snapshot) == ob.SCREEN_STOP_DIALOG and
+                         "afterglow_player" in ob.ui_docs(snapshot) and
+                         player.get("interface") == "afterglow" and player.get("screen") == "player" and
+                         player.get("dialog") == 1 and index in (0, 1) and at.get("total") == 2 and
+                         at.get("id") == f"dialog/{index}")
+                focus[0] = index if valid else None
+                return valid and (wanted is None or index == wanted), f"mounted stop focus={focus[0]}"
+            ok, detail = self.wait(stop_focus, T["dialog"])
             s.save("afterglow/stop-dialog-ui.json", s.ui())
-            self.send("key cross")
-            ok, detail = self.wait(s.inactive, T["stopped"])
+            if ok and focus[0] == 0:
+                self.send("key right")
+                ok, detail = self.wait(lambda: stop_focus(1), T["dialog"])
+            if ok and focus[0] == 1:
+                self.send("key cross")
+                ok, detail = self.wait(s.inactive, T["stopped"])
         self.record(label, "PASS" if ok else "FAIL", detail)
         if not ok:
             if not s.inactive()[0]:

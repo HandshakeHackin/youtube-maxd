@@ -760,7 +760,7 @@ ASKED = ["(c) glyphs and fonts of the text engine"]
 # The sound step comes last and only moves the focus: along the shelf and back, to the other shelf and back.
 SOUND_KEYS = ["key right", "key left", "key up", "key down"]
 AG_KEYS = ["shot", "key right", "key down", "key up", "key left", "key left", "key right", "key square", "key circle",
-           "key down", "shot", "key cross", "key circle", "key cross", *SOUND_KEYS]
+           "key down", "shot", "key cross", "key circle", "key right", "key cross", *SOUND_KEYS]
 SOUND_STEP, REMOVED_STEP = "(s) sound: the port opens at the first cue", "(g) every file the stage wrote is removed"
 # Every file the stage writes, in the order it writes them: the sound module's two silencers before the switch.
 OVERRIDES = [ob.AFTERGLOW_SOUND_OFF, ob.AFTERGLOW_VIBRATION_OFF, ob.AFTERGLOW_ON]
@@ -1528,3 +1528,20 @@ int main(int argc, char **argv)
     assert ob.capture_verdict(said.split("bc REMOTE_CMD shot\n")[3])[0] == "failed" and "no render size" in said
     assert ob.capture_verdict(said.split("bc REMOTE_CMD shot\n")[4]) == ("failed", "cannot write /nonexistent-folder/evo_shot_000.bmp.part")
     assert "REMOTE_CMD unknown" not in said  # the command is known
+
+
+@pytest.mark.parametrize("focus, moves, selected", [(0, True, True), (1, True, True), (None, True, False), (0, False, False)])
+def test_afterglow_stop_selects_only_verified_mounted_dialog_focus(tmp_path, monkeypatch, focus, moves, selected):
+    verdict, current, console, ops, lock, _ = ag_run(tmp_path, monkeypatch, ag_dialog_focus=focus, ag_dialog_moves=moves)
+    assert verdict == "pass"
+    sent = ag_sent(ops)
+    stop_at = sent.index("key circle", sent.index("shot", 1) + 1)
+    dialog_keys = sent[stop_at + 1:-len(SOUND_KEYS)]
+    if selected:
+        assert dialog_keys == (["key right", "key cross"] if focus == 0 else ["key cross"])
+        assert ag_steps(current)["(f) stopped through the confirmation"] == "PASS"
+    else:
+        assert dialog_keys == (["key right", "stop"] if focus == 0 else ["stop"])
+        assert ag_steps(current)["(f) stopped through the confirmation"] == "FAIL"
+        assert ag_steps(current)["(f) player retired after the stop command"] == "PASS"
+    left_as_found(current, console, ops, lock)

@@ -83,8 +83,12 @@ the code they are marked `// REQUEST:`.
     keeps watching; directions can select Stop, and Circle keeps watching.
     Classic retains its Stop default and ResumePrompt retains Resume.
     `scripts/test_stop_confirmation.py` executes the generated entry and input
-    paths with and without the console build flag. Host-tested; console
-    acceptance remains pending.
+    paths with and without the console build flag. The Afterglow console
+    driver reads the mounted dialog focus, moves from Keep watching to Stop
+    and verifies that selection before Cross; unknown or unresponsive focus
+    falls back to the explicit development stop command. The simulator and
+    console driver regressions cover both focus positions and refusal cases.
+    Host-tested; console acceptance remains pending.
 12. **Related videos with their facts**: picture address (the profile's
     thumbnail source and DeArrow applied), length and badges in
     `tube_player_menu_row_t`. Stand-in: the mount builds

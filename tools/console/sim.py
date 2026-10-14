@@ -120,7 +120,7 @@ class SimConsole:
                          "ag_other_opens": True, "ag_other_returns": True, "ag_play": "ok", "ag_unresolved": 0,
                          "ag_back": True, "ag_attract_at_start": False, "capture": "ok", "ag_hang_on": None,
                          # ag_asked: the snapshot also carries what docs/afterglow/requests/drv.md asks for.
-                         "ag_asked": False,
+                         "ag_asked": False, "ag_dialog_focus": 0, "ag_dialog_moves": True,
                          # ag_sound: what comes of the sound module's own audio port at its first voice:
                          # "ok" (it opens), "fails" (it does not: the interface stays silent and works on),
                          # "dies" (the app is gone with it) or "mute" (the package has no recordings, so
@@ -473,7 +473,12 @@ class SimConsole:
             if app["paused"] or app["controls"]:
                 focus = {"id": "osd-paused" if app["paused"] else "osd-playing", "tag": "hui", "class": "focused",
                          "text": app["video"][1], "doc": "hui_osd", "index": 1, "total": 1, "focusable": []}
-        # dialog and closed screens: an overlay over a screen the snapshot cannot name
+        elif screen == "dialog" and app["ag"]["enabled"]:
+            docs = ["afterglow_player"]
+            at = app.get("dialog_focus")
+            focus = {"interface": "afterglow", "screen": "player", "dialog": 1,
+                     "focus": {"id": f"dialog/{at}", "index": at, "total": 2}}
+        # Classic dialog and closed screens have no mounted Afterglow snapshot.
         if app["keyboard"] and self.scenario["keyboard_visible"]:
             docs = docs + ["keyboard"]
             focus = {"id": "k0", "tag": "div", "class": "kb-key focused", "text": "q", "doc": "keyboard",
@@ -579,6 +584,7 @@ class SimConsole:
                 app.update(screen="options", menu=0)
             elif key == "circle" and self.scenario["exit_dialog"]:
                 app["screen"] = "dialog"
+                app["dialog_focus"] = self.scenario["ag_dialog_focus"] if app["ag"]["enabled"] else 1
             elif key == "l3":
                 name = f"{ob.DATA}/evo_shot_000.bmp"
                 self.files[name] = b"BM" + bytes(4094)
@@ -589,8 +595,14 @@ class SimConsole:
             elif key == "circle" and self.scenario["picker_closes"]:
                 app["screen"] = "player"
         elif screen == "dialog":
-            if key == "cross":
-                self._stop_playback(False)
+            if key in ("left", "right", "up", "down") and self.scenario["ag_dialog_moves"]:
+                if app.get("dialog_focus") in (0, 1):
+                    app["dialog_focus"] = 1 - app["dialog_focus"]
+            elif key == "cross":
+                if app.get("dialog_focus", 1) == 1:
+                    self._stop_playback(False)
+                else:
+                    app["screen"] = "player"
             elif key == "circle":
                 app["screen"] = "player"
 
