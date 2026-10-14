@@ -408,6 +408,7 @@ static unsigned g_dismissed_cursor;
 /* Play from start and Play incognito start their video from the action itself:
  * the host takes it once; reloading the action screen afterwards only offers it. */
 static struct { char id[12], profile[33], offered[12]; unsigned scope; int offered_action; } g_menu_launch;
+static struct { char rows[2][112], video[12], peers[2][12], profile[33]; unsigned scope, serial; } g_queue_move;
 /* One-shot private playback: armed by its video action, bound by the next
  * resolve of that video, retired by any other navigation or scope change. */
 static struct { char id[12], profile[33]; unsigned scope; } g_incognito;
@@ -2354,6 +2355,7 @@ static int init_store(void) {
     g_source[0] = g_token[0] = 0; g_count = 0; g_queue_order = 0;g_blocked_count=0;
     g_search_count = 0; memset(g_occurrences,0,sizeof g_occurrences); memset(&g_restart,0,sizeof g_restart);
     g_pin_count = 0; memset(&g_menu_target,0,sizeof g_menu_target); memset(&g_menu_launch,0,sizeof g_menu_launch);
+    g_queue_move.rows[0][0] = g_queue_move.rows[1][0] = 0;
     memset(&g_search_options,0,sizeof g_search_options); memset(&g_last_search,0,sizeof g_last_search);
     memset(&g_suggestions,0,sizeof g_suggestions); memset(&g_search_feed,0,sizeof g_search_feed);
     memset(&g_channel_list,0,sizeof g_channel_list); memset(&g_description,0,sizeof g_description);
@@ -4632,6 +4634,29 @@ static int ui_menu_parent(const char *parent, const char **verb) {
 }
 /* The video actions menu as the profile arranged it: hidden rows leave, the
  * rest follow its order. Returns the new count. */
+static int queue_compact(Record *ordered[RECORDS]) {
+    int count = 0;
+    for (int i = 0; i < g_count; ++i) if (g_records[i].queue_order > 0 || g_records[i].queued) {
+        Record *r = &g_records[i]; int at = count;
+        while (at > 0 && ordered[at-1]->queue_order > r->queue_order) { ordered[at] = ordered[at-1]; --at; }
+        ordered[at] = r; ++count;
+    }
+    for (int i = 0; i < count; ++i) ordered[i]->queue_order = i + 1;
+    g_queue_order = count;
+    return count;
+}
+static Record *queue_neighbor(Record *target, int direction) {
+    Record *neighbor = NULL;
+    for (int i = 0; target && i < g_count; ++i) {
+        Record *r = &g_records[i];
+        if (r == target || !r->queued || !current_record(r) || blocked_identity(r->item.parent_id,r->item.subtitle) >= 0) continue;
+        const int earlier = r->queue_order < target->queue_order || (r->queue_order == target->queue_order && r < target);
+        if (earlier != (direction < 0)) continue;
+        if (!neighbor || (direction < 0 ? r->queue_order > neighbor->queue_order || (r->queue_order == neighbor->queue_order && r > neighbor)
+                                      : r->queue_order < neighbor->queue_order || (r->queue_order == neighbor->queue_order && r < neighbor))) neighbor = r;
+    }
+    return neighbor;
+}
 static int ui_menu_arrange(evo_provider_item_t *rows, int count) {
     static evo_provider_item_t arranged[64];
     int keys[64], index[64];
@@ -4913,6 +4938,22 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         int offset=page*LOCAL_PAGE,count=offset<n?n-offset:0;
         if(count>LOCAL_PAGE)count=LOCAL_PAGE;
         cb(1,count?out+offset:NULL,count,offset+count<n,ud);return 1;
+    }
+    if(parent && !strncmp(parent,"local:queue-move:",17)) {
+        int direction = !strcmp(parent,g_queue_move.rows[0]) ? -1 : !strcmp(parent,g_queue_move.rows[1]) ? 1 : 0;
+        Record *target = record(g_queue_move.video,0);
+        Record *peer = direction ? queue_neighbor(target,direction) : NULL;
+        if (page || !direction || g_queue_move.scope != g_playlist_scope || strcmp(g_queue_move.profile,g_library_profile) ||
+            !target || !target->queued || blocked_identity(target->item.parent_id,target->item.subtitle) >= 0 ||
+            !peer || strcmp(peer->item.id,g_queue_move.peers[direction > 0])) {
+            tube_set_error("Reopen video actions for the current profile."); cb(0,NULL,0,0,ud); return 1;
+        }
+        g_queue_move.rows[0][0] = g_queue_move.rows[1][0] = 0; /* A completed action cannot move twice when reloaded. */
+        Record *ordered[RECORDS]; queue_compact(ordered);
+        long long order = target->queue_order; target->queue_order = peer->queue_order; peer->queue_order = order;
+        tube_playlist_eof_cancel(); tube_queue_retry_cancel(); save();
+        CATALOG_FOLDER("account:notice",direction < 0 ? "Moved up in queue" : "Moved down in queue","Circle returns to video actions");
+        cb(1,out,n,0,ud); return 1;
     }
     if(parent && !strncmp(parent,"local:video:",12)) {
         const char *id=strrchr(parent,':');id=id?id+1:"";
@@ -5203,6 +5244,20 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             char related[64];snprintf(related,sizeof related,"library:suggestions:%s",parent+13);
             CATALOG_FOLDER(related,"Related videos","Suggestions for this video and the selected profile");
             Record *video=record(parent+13,0);
+            g_queue_move.rows[0][0] = g_queue_move.rows[1][0] = 0;
+            if (video && video->queued) {
+                if (!++g_queue_move.serial) ++g_queue_move.serial;
+                g_queue_move.scope = g_playlist_scope;
+                copy(g_queue_move.video,sizeof g_queue_move.video,parent+13);
+                copy(g_queue_move.profile,sizeof g_queue_move.profile,g_library_profile);
+                for (int i = 0; i < 2; ++i) {
+                    Record *peer = queue_neighbor(video,i ? 1 : -1);
+                    if (!peer) continue;
+                    copy(g_queue_move.peers[i],sizeof g_queue_move.peers[i],peer->item.id);
+                    snprintf(g_queue_move.rows[i],sizeof g_queue_move.rows[i],"local:queue-move:%u:%u:%s:%s",g_playlist_scope,g_queue_move.serial,i ? "down" : "up",parent+13);
+                    CATALOG_FOLDER(g_queue_move.rows[i],i ? "Move down" : "Move up","Saved for the selected profile on this PS5");
+                }
+            }
             if(video && ((strlen(video->item.parent_id)==24 && !strncmp(video->item.parent_id,"UC",2)) ||
                          (!*video->item.parent_id && tube_channel_name_equal(video->item.subtitle,video->item.subtitle)))) {
                 char id[100];snprintf(id,sizeof id,"local:video:%u:%s:%s",g_playlist_scope,
@@ -6484,7 +6539,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
             Record *a = &g_records[indexes[i]], *b = &g_records[indexes[j]];
-            if ((!strcmp(parent, "queue") && b->queue_order < a->queue_order) ||
+            if ((!strcmp(parent, "queue") && (b->queue_order < a->queue_order ||
+                    (b->queue_order == a->queue_order && indexes[j] < indexes[i]))) ||
                 (strcmp(parent, "queue") && b->updated > a->updated)) {
                 int tmp = indexes[i]; indexes[i] = indexes[j]; indexes[j] = tmp;
             }
@@ -7259,17 +7315,11 @@ int tube_queue_play_next(const char *id) {
     if(target==active)return 0;
     /* Compact retained order before insertion to keep persisted numeric ranks
      * bounded. Preserve history and the relative order of all other entries. */
-    Record *ordered[RECORDS],*pending[RECORDS];int count=0,queued=0;
-    for(int i=0;i<g_count;++i)if(g_records[i].queue_order>0 || g_records[i].queued) {
-        Record *r=&g_records[i];int at=count;
-        while(at>0 && ordered[at-1]->queue_order>r->queue_order) {ordered[at]=ordered[at-1];--at;}
-        ordered[at]=r;++count;
-    }
+    Record *ordered[RECORDS],*pending[RECORDS];int count=queue_compact(ordered),queued=0;
     for(int i=0;i<count;++i) {
-        Record *r=ordered[i];r->queue_order=i+1;
+        Record *r=ordered[i];
         if(current_record(r) && r->queued && r!=target && r!=active)pending[queued++]=r;
     }
-    g_queue_order=count;
     if(!target->queued)target->queued_music=g_browse_music;
     target->queued=1;target->queue_order=++g_queue_order;
     for(int i=0;i<queued;++i)pending[i]->queue_order=++g_queue_order;
