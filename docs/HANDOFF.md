@@ -17,17 +17,36 @@ scanout and first-playback 60-to-120-to-60 Hz switching on .40; direct
 request completing in 51 ms on .30. See [Status](STATUS.md) and
 [Hardware acceptance](HARDWARE_ACCEPTANCE.md) for the exact build and limits.
 
-The three earlier GPU unmapped texture reads occurred before the strict
-GPU-pool guard. Their addresses lie outside logged scanout and decoder direct
-mappings. The old allocator could fall back to ordinary malloc for HUI/RmlUi
-GPU descriptors when its 64 MB slab had no fitting chunk; its usage counters
-did not include fallback allocations. That is an address-compatible hypothesis,
-not an identified owner. Current source also retains HUI textures until GPU
-fences retire, including at shutdown. Generated host checks and a signed PS5
-build pass. The revised build completed 304-second 4K playback with rewind,
-forward seek and natural EOF, followed by 4K Afterglow texture/navigation churn
-and 12 seconds of idle, on .30 without a new fault. This validates the bounded
-path, but the historical fault address owner is still not identified.
+Three later GPU unmapped texture reads at 0x2a5248000, 0x2a50fb000 and
+0x2a5256000 occurred before the strict GPU-pool guard. They lie outside
+logged scanout and decoder direct mappings; the diagnostic generic direct
+pool occupied 0x272c00000 through 0x276c00000. The old allocator could
+fall back to ordinary malloc for HUI/RmlUi GPU descriptors when its 64 MB slab had no
+fitting chunk; its usage counters did not include fallback allocations.
+That is an address-compatible hypothesis, not an identified owner.
+Decoder-internal mapping ownership remains possible. If a fault recurs, log
+each bound AGC texture/vertex address and allocator origin at submission to
+correlate it with the reported fault address. Current source also retains HUI
+textures until GPU fences retire, including at shutdown. Generated host checks
+and a signed PS5 build pass. The revised build completed 304-second 4K
+playback with rewind, forward seek and natural EOF, followed by 4K Afterglow
+texture/navigation churn and 12 seconds of idle, on .30 without a new fault.
+
+One later public BBC 4K/25 attempt on .30 got HTTP 403 at DASH segment 85
+before any frame; exact state restoration passed. Host probes reproduced
+intermittent signed links that returned 206 for the first 64 KiB but 403 for
+the midpoint and segment 85, alongside links that returned 206 for all three.
+Current source probes the selected video's midpoint in the existing bounded
+same-client retry loop. It does not strip signed query parameters. A .30
+retest of this link-selection fix reached native 3840x2160 VP9/25 playback
+without an HTTP 403. The first 150-second interval advanced 150.14 seconds;
+a -60-second seek landed within 0.5 seconds of target. The second 150-second
+interval advanced only 24.07 seconds, with output falling to about 3.5
+frames/s. Video packets stayed queued while audio packets ran dry. FFmpeg's
+premature-file-end notices also occurred during the healthy interval, and
+there was no GPU fault. Audio starvation is plausible but unproven; a focused
+.30 diagnostic is pending. Stage 6 restored all nine saved-state files,
+verified services and error records, and released the console lock.
 
 ## Where things stand
 

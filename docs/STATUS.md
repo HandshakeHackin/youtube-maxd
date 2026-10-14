@@ -21,6 +21,17 @@ artwork release. Both consoles were restored, healthy and unlocked after their
 final tests. See [hardware acceptance](HARDWARE_ACCEPTANCE.md) for candidate
 hashes and exact limits.
 
+The later public BBC Earth 4K/25 test on .30 advanced 150.14 seconds during
+its first 150-second interval and landed a -60-second seek within 0.5 seconds
+of the requested position. In the next 150-second interval it advanced only
+24.07 seconds, with presentation falling to about 3.5 frames/s. The video
+packet queue stayed near 120 while audio packets ran dry. FFmpeg's
+premature-file-end notices appeared during healthy playback too, and neither
+HTTP 403 nor a GPU fault appeared in this run. Audio starvation is a plausible
+explanation, but its cause is unproven. Stage 6 restored the nine saved-state
+files exactly, found healthy services and unchanged error records, and released
+the .30 lock. A focused diagnostic retest is pending.
+
 Historical unmapped GPU read addresses remain unattributed. The old 64 MB UI
 direct-memory allocator could fall back to ordinary malloc for GPU descriptors
 when fragmented, outside its usage counters. That fits the later fault address
