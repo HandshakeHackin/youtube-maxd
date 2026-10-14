@@ -578,6 +578,7 @@ steps.
 | --- | --- |
 | [Changelog](CHANGELOG.md) | User-visible changes in each version |
 | [Status](docs/STATUS.md) | What is implemented, what was tested and where |
+| [Handoff notes](docs/HANDOFF.md) | Where the work stands, what comes next, and how to build, test and install |
 | [Hardware acceptance](docs/HARDWARE_ACCEPTANCE.md) | Every console session and its result |
 | [Validation](docs/VALIDATION.md) | Dated host and package validation record |
 | [Build](docs/BUILD.md) | Dependencies, pins, the PS5 build, checks and releasing |
