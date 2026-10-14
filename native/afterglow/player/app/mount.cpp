@@ -566,7 +566,7 @@ void fill_list(Mount &m)
         }
         row.detail = from.detail;
         if (row.label == "Keep playing while browsing") row.label = tr("Keep playing while browsing");
-        if (row.detail == "L3: return to video") row.detail = tr("L3: return to video");
+        if (row.detail == "L3: return to video") row.detail = std::string("L3: ") + tr("return to video");
         row.current = from.badge == "SELECTED" || from.badge == "PLAYING";
         if (!row.current && from.badge != "VIDEO")
             row.tag = sentence(from.badge);

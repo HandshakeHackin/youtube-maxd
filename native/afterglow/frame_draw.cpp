@@ -173,7 +173,7 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
         glass_panel(g,panel,18.0f);
         text(g,g.f.semibold,background_paused_ ? tr("Paused") : tr("Now playing"),panel.x+20.0f,82.0f,19.0f,k.ink2);
         text(g,g.f.regular,fit(g.f.regular,background_title_,22.0f,448.0f),panel.x+20.0f,113.0f,22.0f,k.ink);
-        text(g,g.f.regular,fit(g.f.regular,tr("L3: return to video"),19.0f,448.0f),panel.x+20.0f,143.0f,19.0f,k.ink2);
+        text(g,g.f.regular,fit(g.f.regular,std::string("L3: ") + tr("return to video"),19.0f,448.0f),panel.x+20.0f,143.0f,19.0f,k.ink2);
         g.l.pop_opacity();
         return;
     }
