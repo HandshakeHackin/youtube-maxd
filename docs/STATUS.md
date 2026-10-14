@@ -17,8 +17,12 @@ drain fixes. A VP9-only resident 4K-capable decoder then reused one frame pool
 for 1080p and full 3840x2160, eliminating that teardown path. Its first full
 width frame reached the presenter, then a different GPU unmapped read outside
 the decoder pools stopped playback. Every run restored saved state and left
-the console idle; sound was not enabled after stalled frames. The AGC display
-path is under investigation.
+the console idle; sound was not enabled after stalled frames. A subsequent
+address-tracing build with unchanged playback logic opened full 3840x2160 VP9,
+advanced position, and published 52 frames with no late drops or GPU fault.
+It did not show a direct-pool fallback. The altered timing leaves the earlier
+first-display fault unexplained; sustained 4K, sound and the Afterglow stop
+flow remain unaccepted. The AGC display path is under investigation.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's

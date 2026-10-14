@@ -74,9 +74,12 @@ README's **Roadmap**). The two recommended first:
    candidate instead kept one VP9 decoder at a 4K-capable maximum: 1080p and
    full 3840x2160 shared its frame pool with no resize. The full-width frame
    reached the presenter, then a different GPU unmapped read outside the
-   decoder pools stopped playback. Every case restored state and left the
-   console idle. The AGC display path is the current investigation; no case
-   establishes 2160p playback.
+   decoder pools stopped playback. A later diagnostic build with address logs
+   but unchanged playback logic opened full 3840x2160 and published 52 frames
+   with zero late drops and no GPU fault. That short observation does not
+   explain the earlier first-display fault or accept sustained 4K; sound was
+   unjudged and Afterglow stop/return checks failed. Every case restored state
+   and left the console idle. The AGC display path is the current investigation.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
