@@ -1,4 +1,4 @@
-﻿"""Execute generated modal entry/actions/input for Afterglow and Classic."""
+"""Execute generated modal entry/actions/input for Afterglow and Classic."""
 from pathlib import Path
 import os
 import subprocess

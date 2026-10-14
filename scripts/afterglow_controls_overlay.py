@@ -1,4 +1,4 @@
-﻿"""Afterglow's player button map; Classic and legacy aliases stay intact."""
+"""Afterglow's player button map; Classic and legacy aliases stay intact."""
 
 PLAYER_INPUT = r'''
 #if defined(EVO_AGC_DEVICE)

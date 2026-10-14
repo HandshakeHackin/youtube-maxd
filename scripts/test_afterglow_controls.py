@@ -1,4 +1,4 @@
-﻿"""Run generated Afterglow shortcut blocks, aliases and displaced detail actions."""
+"""Run generated Afterglow shortcut blocks, aliases and displaced detail actions."""
 from pathlib import Path
 import json, os, subprocess, tempfile
 root=Path(__file__).resolve().parents[1]
