@@ -101,6 +101,8 @@ static void agc_release_buffer(void *ptr)
             'agc_release_buffer(geom->index_data)')
     replace(rml_agc, 'evo_direct_mem_free(tex->alloc_base)',
             'agc_release_buffer(tex->alloc_base)', count=2)
+    replace(hui, 'void AgcBatch::end_frame()\n{',
+            'void AgcBatch::end_frame()\n{\n    if (!evo_agc_runtime_gpu_data_idle()) return;')
     replace(hui, 'evo_direct_mem_alloc(index_bytes + 255u)',
             'evo_direct_mem_alloc_gpu(index_bytes + 255u)')
     replace(hui, 'evo_direct_mem_alloc(bytes + 255u)',

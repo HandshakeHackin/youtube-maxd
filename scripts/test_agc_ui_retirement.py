@@ -9,6 +9,7 @@ work = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache
 player = work / "projects/evoplayer"
 runtime = (player / "media/src/evo_agc_runtime.c").read_text()
 rml = (player / "ui_rml/src/evo_rmlui_render_agc.cpp").read_text()
+hui = (player / "ui_kit/src/hui_agc_batch.cpp").read_text()
 
 
 def function(source, signature):
@@ -25,6 +26,7 @@ idle = function(runtime, "int evo_agc_runtime_gpu_data_idle(void)")
 helper_start = rml.index("static std::vector<void *> s_agc_pending_frees;")
 helper_end = rml.index("EvoRenderInterfaceAGC::EvoRenderInterfaceAGC", helper_start)
 helpers = rml[helper_start:helper_end]
+hui_end = function(hui, "void AgcBatch::end_frame()")
 assert rml.count("agc_alloc_gpu(") == 4
 assert rml.count("agc_release_buffer(") == 6  # helper plus five release sites
 assert "agc_collect_released_buffers();" in function(rml, "void EvoRenderInterfaceAGC::FrameEnd()")
@@ -94,11 +96,40 @@ int main() {
 }
 '''
 
+hui_cpp_harness = r'''#include <cassert>
+#include <cstdlib>
+#include <vector>
+static bool idle;
+static int freed;
+static int evo_agc_runtime_gpu_data_idle() { return idle; }
+namespace evo::hui_agc {
+struct AgcBatch {
+    struct Pending { void *texture; int frames_left; };
+    std::vector<Pending> pending_free_;
+    void destroy(void *p) { free(p); ++freed; }
+    void end_frame();
+};
+''' + hui_end + r'''
+}
+int main() {
+    evo::hui_agc::AgcBatch batch;
+    batch.pending_free_.push_back({malloc(8), 4});
+    for (int i = 0; i < 100; ++i) batch.end_frame(); // unswapped loops, fence pending
+    assert(freed == 0 && batch.pending_free_[0].frames_left == 4);
+    idle = true;
+    for (int i = 0; i < 4; ++i) batch.end_frame();
+    assert(freed == 1 && batch.pending_free_.empty());
+    batch.end_frame(); // no double free
+    assert(freed == 1);
+}
+'''
+
 with tempfile.TemporaryDirectory(prefix="agc-ui-retirement-") as directory:
     directory = Path(directory)
     for name, source, compiler, flags in (
         ("idle", c_harness, "cc", ["-std=c11"]),
         ("ui", cpp_harness, "c++", ["-std=c++17"]),
+        ("hui", hui_cpp_harness, "c++", ["-std=c++17"]),
     ):
         source_path = directory / (name + (".c" if name == "idle" else ".cpp"))
         binary = directory / name
@@ -106,4 +137,4 @@ with tempfile.TemporaryDirectory(prefix="agc-ui-retirement-") as directory:
         subprocess.run([compiler, *flags, "-Wall", "-Wextra", "-Werror",
                         "-fsanitize=address,undefined", str(source_path), "-o", str(binary)], check=True)
         subprocess.run([str(binary)], check=True)
-print("generated AGC UI release waits for idle GPU; later allocation collects exactly once: PASS")
+print("generated RmlUi and HUI releases wait for GPU retirement: PASS")
