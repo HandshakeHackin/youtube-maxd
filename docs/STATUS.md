@@ -1,25 +1,35 @@
 # Current implementation status
 
-Playback update, 2026-10-14: source commit `33d91f2` is pushed to GitHub. A
-synthetic split-HLS feed passed live DVR rewind, UTC position restore across a
-sliding window, and stale-point rejection on .30. A held 4K HTTP 403 startup
-passed the provider cancellation/join close fix without the earlier CPU crash.
-Automatic frame-rate switching now uses the actual VideoOut output state: on
-.40, first 30 fps HDR10 playback changed actual refresh from 60 to 120 Hz and
-Stop returned it to 60 Hz. PQ, HLG and SDR selection each produced native
-frames and nonflat scanout captures in bounded .40 runs. A direct-LAN
-3840x2160 VP9/Opus fixture ran 304 seconds to natural EOF on .40 with two
-successful 4K seeks, 9,416 published frames and no new GPU fault. A held
-artwork request on .30 no longer blocked playback control: the job request
-returned in 51 ms and playback began before artwork release. Both consoles
-were restored, healthy and unlocked after their final tests. See
-[hardware acceptance](HARDWARE_ACCEPTANCE.md) for candidate hashes and exact limits.
+Playback update, 2026-10-14: a synthetic split-HLS feed passed live DVR
+rewind, UTC position restore across a sliding window, and stale-point
+rejection on .30. A held 4K HTTP 403 startup passed the provider
+cancellation/join close fix without the earlier CPU crash. Automatic
+frame-rate switching uses actual VideoOut state: first 30 fps HDR10 playback
+changed the output from 60 to 120 Hz, Stop returned it to 60 Hz, and a direct
+switch from active 30 fps playback to active 25 fps playback returned it to
+60 Hz on .40. PQ, HLG and SDR selection each produced native frames and
+nonflat scanout captures in bounded .40 runs.
 
-Historical unmapped GPU read addresses remain unattributed. The bounded runs
-do not establish reliability across every public CDN/timing condition, public
-live DVR, TV-reported HDMI HDR metadata, or audible output. Production and
-instrumented PS5 packages build and verify from the pushed source; the
-production package itself has not been installed on a console in this round.
+A direct-LAN 3840x2160 VP9/Opus fixture ran 304 seconds to natural EOF with
+4K seeks and no new GPU fault on .40. The revised HUI fence candidate repeated
+304 seconds on .30 with rewind, forward seek, 9,421 published frames and one
+late drop, then passed 26 Afterglow checks at 4K including artwork/navigation
+churn and 12 seconds of idle. The full app and kernel logs showed no GPU page
+fault, fence timeout or AGC error. A held artwork request on .30 no longer
+blocked playback control: the job returned in 51 ms and playback began before
+artwork release. Both consoles were restored, healthy and unlocked after their
+final tests. See [hardware acceptance](HARDWARE_ACCEPTANCE.md) for candidate
+hashes and exact limits.
+
+Historical unmapped GPU read addresses remain unattributed. The old 64 MB UI
+direct-memory allocator could fall back to ordinary malloc for GPU descriptors
+when fragmented, outside its usage counters. That fits the later fault address
+range but is not proof of ownership; decoder-internal mappings also remain
+possible. Current source rejects the UI GPU fallback and retains HUI textures
+until GPU fences retire. The bounded runs do not establish reliability across
+every public CDN/timing condition, public live DVR, TV-reported HDMI HDR
+metadata, or audible output. The production package itself has not been
+installed on a console in this round.
 
 Earlier 2026-10-14 investigation (superseded by the update above):
 indexed WebM is enabled again after fixing FFmpeg's zero-byte

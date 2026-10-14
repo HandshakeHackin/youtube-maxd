@@ -232,20 +232,25 @@ typing, About, and playback of several videos with seeking, through the ranged
 manifests described below.
 
 Further acceptance is still needed for real account use, phone casting, a
-published update, interface languages, AV1, HDR, backups and long playback.
-An offline generated 3840x2160 VP9/Opus stream played through the native PS5
-decoder for 64 seconds at 30 fps: all 1,920 frames were published with no late
-drops, decode fatal or GPU fault. A separate bounded live YouTube test on .30
-opened native 3840x2160 VP9 at 25 fps, advanced the position by 11 seconds,
-and published 315 frames with four late drops (1.3%). Both sessions closed
-cleanly and restored saved state. The live test did not capture a playback
-image, and FFmpeg reported premature-end and resync warnings; earlier live 4K
-candidates had GPU faults. Long live 4K playback, HDR, audible sound and 4K
-seeking remain to be tested. [Status](docs/STATUS.md) lists the evidence.
+published update, interface languages, AV1, backups, physical HDR indication,
+audible Opus and long public-network playback. A direct-LAN 3840x2160 VP9/Opus
+stream played through the native PS5 decoder for 304 seconds to natural EOF
+with 9,416 published frames, five late drops, two successful 4K seeks and no
+GPU fault on .40. A revised build repeated the 304-second path on .30 with
+9,421 published frames, one late drop, rewind and forward seek, then passed
+4K Afterglow artwork and navigation checks without a GPU fault. A separate
+bounded live YouTube test on .30 opened native 3840x2160 VP9 at 25 fps,
+advanced the position by 11 seconds, and published 315 frames with four late
+drops. Synthetic live DVR rewind and UTC restore
+passed on .30. Synthetic PQ, HLG and SDR clips produced distinct nonflat
+scanout captures on .40, and active 30-to-25 fps playback changed the actual
+output refresh from 120 to 60 Hz. Earlier live 4K candidates had GPU faults;
+their unmapped-read addresses remain unattributed. [Status](docs/STATUS.md)
+lists the evidence and limits.
 
 Not included yet: playback of videos that need the account (age-restricted,
-private, members-only, purchased), voice search, a translated player,
-languages that need other fonts or right-to-left layout, auto frame rate and HDR.
+private, members-only, purchased), voice search, a translated player, and
+languages that need other fonts or right-to-left layout.
 
 > [!IMPORTANT]
 > ProsperoTube asks YouTube as one client identity, `VISIONOS`, with no
@@ -281,10 +286,13 @@ What is planned, roughly in order. Nothing here has a date.
       console.
 
 **Playback**
-- [ ] Validate long live VP9/Opus and 4K streams, plus HDR selection/output.
-      Ranged WebM reading is implemented; bounded offline 4K/30 and live 4K/25
-      VP9 runs passed on PS5. Audible Opus remains unverified.
-- [ ] Rewinding live streams, and remembering the position in a live stream.
+- [ ] Validate long public live VP9/Opus and 4K playback. Bounded direct-LAN
+      4K/30 with seeking and public live 4K/25 passed on PS5; longer public live
+      playback and audible Opus remain unverified.
+- [x] HDR selection and output for PQ, HLG and SDR (synthetic PS5 scanouts and
+      format readback passed; TV-reported HDMI HDR indication remains unverified).
+- [x] Rewind and remember live position, including a sliding DVR window
+      (synthetic split-HLS console test passed; public live feed remains untested).
 - [x] Keep the current video playing as audio while browsing in Afterglow:
       choose “Keep playing while browsing” in playback options, then press L3
       to return to the video. The now-playing panel shows its title and pause
@@ -292,7 +300,8 @@ What is planned, roughly in order. Nothing here has a date.
       the usual next-video offer/completion mode continues. Classic and phone
       ownership keep their existing behavior. Host-tested; console acceptance
       pending.
-- [ ] Automatic frame-rate switching to match the video.
+- [x] Automatic frame-rate switching to match the video (30 fps changed actual
+      output to 120 Hz; direct active switch to 25 fps returned it to 60 Hz on .40).
 
 **Validation on a console**
 - [ ] Accounts in daily use, phone casting with a real phone, and the update

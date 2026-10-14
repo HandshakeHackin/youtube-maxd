@@ -4,6 +4,31 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Playback continuation on 2026-10-14
+
+The detailed 4K fault chronology below is historical. The current source adds
+DVR read interruption and UTC restore, automatic frame-rate switching from
+actual VideoOut state, PQ/HLG/SDR selection, pending-start cancellation, strict
+GPU-mapped UI allocations and separate image/control HTTP lanes. Bounded console
+evidence now includes synthetic live DVR rewind/restore on .30; PQ/HLG/SDR
+scanout and first-playback 60-to-120-to-60 Hz switching on .40; direct
+30-to-25 fps active switching from 120 to 60 Hz on .40; a 304-second direct-LAN
+4K VP9/Opus run with seeks on both consoles; and a held-artwork control
+request completing in 51 ms on .30. See [Status](STATUS.md) and
+[Hardware acceptance](HARDWARE_ACCEPTANCE.md) for the exact build and limits.
+
+The three earlier GPU unmapped texture reads occurred before the strict
+GPU-pool guard. Their addresses lie outside logged scanout and decoder direct
+mappings. The old allocator could fall back to ordinary malloc for HUI/RmlUi
+GPU descriptors when its 64 MB slab had no fitting chunk; its usage counters
+did not include fallback allocations. That is an address-compatible hypothesis,
+not an identified owner. Current source also retains HUI textures until GPU
+fences retire, including at shutdown. Generated host checks and a signed PS5
+build pass. The revised build completed 304-second 4K playback with rewind,
+forward seek and natural EOF, followed by 4K Afterglow texture/navigation churn
+and 12 seconds of idle, on .30 without a new fault. This validates the bounded
+path, but the historical fault address owner is still not identified.
+
 ## Where things stand
 
 - `main` holds everything. The repository is **private**; it goes public only
@@ -41,7 +66,8 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
   The continuation now also indexes WebM and fixes FFmpeg's range-boundary
   EOF handling. VP9 1080p with AAC passed on PS5; VP9/Opus generated fixtures
   pass on the host. Bounded offline 4K/30 and live YouTube 4K/25 VP9 console
-  runs now pass; long live 4K, audible Opus and HDR acceptance remain pending.
+  runs now pass; long public-network 4K, audible Opus and physical HDR
+  indication remain pending.
 - **Lapy elevation follows ProsperoEden's current method** (helper built with
   upstream's `make owned-helper`, manifest shipped unchanged, packaged copy
   checked, every outcome logged). ProsperoTube deliberately differs in two
@@ -65,8 +91,8 @@ README's **Roadmap**). The two recommended first:
    the seek hang. Generated MP4/WebM seeks pass on the host and VP9 1080p
    passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). The offline 4K/30
    VP9/Opus path now passes on .40; a bounded live 4K/25 path passes on .30.
-   Long live playback, audible Opus and HDR selection/output remain to
-   validate or implement.
+   Long public live playback, audible Opus and physical HDR indication remain
+   to validate; synthetic PQ/HLG/SDR selection is recorded in hardware acceptance.
    The combined candidate 93b2e0c7 passed native VP9 1080p again, then faulted
    on the GPU after the first valid 4K frame of a second video. Local hardware
    decoding research exposed a frame-pool reuse race; explicit leases now hold
@@ -156,9 +182,11 @@ with reproducible source and provenance. Format, level, mixer and packaging
 checks pass. Human listening and console acceptance remain pending.
 The Afterglow controller map, verified Keep watching stop default, and Library
 queue Move up/down actions have generated input, native persistence and four-look
-board coverage. All still need console acceptance. Live DVR has calibrated
-window/owner/segment identity and controller work under host validation; its
-production SDK extension and console acceptance are still pending.
+board coverage. All still need console acceptance.
+
+Live DVR includes the production SDK extension and passed bounded .30
+synthetic split-HLS rewind/UTC restore; public live-feed and longer-window
+console validation remain pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
