@@ -697,7 +697,7 @@ int main(int argc, char **argv)
     sound::Bank recordings;
     {
         const sound::Bank::Report loaded = recordings.load([&](const std::string &file, std::string *bytes)
-                                                           { return read_file(options.kit + "/assets/audio/sfx/" + file, bytes); });
+                                                           { return read_file(options.catalogs + "/../afterglow/sound/recordings/" + file, bytes); });
         for (const std::string &error : loaded.errors)
             std::fprintf(stderr, "sound: %s\n", error.c_str());
         ++results.checks;
