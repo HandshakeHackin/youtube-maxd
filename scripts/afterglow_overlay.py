@@ -287,7 +287,9 @@ def start_hooks(work, replace, player):
         replace(screen, '#include "evo_hui.h"\n', '#include "evo_hui.h"\n#include "tube_afterglow.h"\n')
         replace(screen, "void evo_rmlui_provider_set_status(const char *status, int error)\n{\n",
                 "void evo_rmlui_provider_set_status(const char *status, int error)\n{\n"
-                "    tube_afterglow_status(status, error); /* ProsperoTube Afterglow: the reason a chosen video did not start */\n")
+                "#if defined(EVO_AGC_DEVICE) /* the header above is included for the console only */\n"
+                "    tube_afterglow_status(status, error); /* ProsperoTube Afterglow: the reason a chosen video did not start */\n"
+                "#endif\n")
 
 
 # ---- package H: the player (docs/afterglow/ARCHITECTURE.md, section 12b) ----------------------------
