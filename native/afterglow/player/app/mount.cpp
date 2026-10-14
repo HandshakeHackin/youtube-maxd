@@ -180,6 +180,7 @@ struct Mount
     unsigned picked = 0x80000000u;
     unsigned listed = 0x80000000u;
     unsigned asked = 0x80000000u;
+    unsigned asked_player = 0x80000000u;
     unsigned toasted = 0x80000000u;
     bool text_begun = false;
     bool video_eligible = false;
@@ -890,6 +891,7 @@ bool player_draw_dialog(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, f
     if (!m.dialog.shown)
         return false;
     m.asked = frame;
+    m.asked_player = page ? 0x80000000u : frame;
     player::Player &player = step(m, fonts, dt, frame, !page);
     player.draw(list, list, 0, player::Player::kDialog);
     finish(m);
@@ -914,7 +916,8 @@ bool player_draw_toast(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, fl
 const char *player_snapshot(unsigned frame)
 {
     Mount &m = mount();
-    if (!m.player || !(recent(m.controls, frame) || recent(m.listed, frame) || recent(m.picked, frame)))
+    if (!m.player || !(recent(m.controls, frame) || recent(m.listed, frame) || recent(m.picked, frame) ||
+                       recent(m.asked_player, frame)))
         return "";
     m.snapshot = m.player->snapshot_json();
     return m.snapshot.c_str();
