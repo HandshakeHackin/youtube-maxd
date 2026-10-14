@@ -94,11 +94,12 @@ the code they are marked `// REQUEST:`.
     falls back to the explicit development stop command. The simulator and
     console driver regressions cover both focus positions and refusal cases.
     Host-tested; console acceptance remains pending.
-12. **Related videos with their facts**: picture address (the profile's
-    thumbnail source and DeArrow applied), length and badges in
-    `tube_player_menu_row_t`. Stand-in: the mount builds
-    `https://i.ytimg.com/vi/<id>/mqdefault.jpg` from a row's id; no length, no
-    tags.
+12. **Related videos with their facts**: implemented through
+    `tube_player_menu_row_t`. The provider keeps each suggestion's selected
+    picture address (including DeArrow), duration, live state and badges for
+    the mounted card. The picture passes the provider artwork allowlist;
+    a valid video id supplies the YouTube thumbnail when none is usable.
+    Provider and mounted-card host checks pass; console acceptance pending.
 13. **Reduced motion and the sounds of the player.** `PlayerView::reduced_motion`
     has no preference to read; `Player::feedback()` collects the cues of
     sound-design.md's "Playing" column (6 dB down) and nobody plays them, as

@@ -294,7 +294,10 @@ void tube_set_error(const char *message);
  * while it keeps playing. Rows stay valid until the next call. */
 typedef struct {
     char id[EVO_PROVIDER_MAX_ITEM_ID], title[160], detail[160], playlist[101];
+    char art_url[EVO_PROVIDER_MAX_ART_URL], badges[96];
+    int64_t duration_sec;
     int folder, index;
+    int is_live;
     unsigned scope;
 } tube_player_menu_row_t;
 enum { TUBE_PLAYER_ACTIONS = 0, TUBE_PLAYER_LIKE, TUBE_PLAYER_DISLIKE, TUBE_PLAYER_SUBSCRIBE, TUBE_PLAYER_PLAYLIST_ADD,

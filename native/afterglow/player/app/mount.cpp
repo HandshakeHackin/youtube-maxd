@@ -16,6 +16,7 @@
 
 #include "afterglow/app/afterglow.h"
 #include "afterglow/player/player.hpp"
+#include "afterglow/models.hpp"
 #include "afterglow/text_engine.hpp"
 
 #include "evo_hui_screens.hpp"
@@ -505,6 +506,28 @@ bool plain_video_id(const char *id)
     return std::strspn(id, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == 11;
 }
 
+unsigned card_badges(const char *csv, bool live)
+{
+    unsigned bits = live ? model::kBadgeLive : 0u;
+    const std::string names = csv != nullptr ? csv : "";
+    std::size_t start = 0;
+    while (start < names.size())
+    {
+        const std::size_t end = names.find(',', start);
+        const std::string name = names.substr(start, end == std::string::npos ? end : end - start);
+        if (name == "new") bits |= model::kBadgeNew;
+        else if (name == "4k") bits |= model::kBadge4K;
+        else if (name == "hdr") bits |= model::kBadgeHdr;
+        else if (name == "cc") bits |= model::kBadgeCaptions;
+        else if (name == "members") bits |= model::kBadgeMembers;
+        else if (name == "upcoming") bits |= model::kBadgeUpcoming;
+        else if (name == "short") bits |= model::kBadgeShort;
+        if (end == std::string::npos) break;
+        start = end + 1;
+    }
+    return bits;
+}
+
 // The player's own list: the videos that are related become the shelf, every
 // other list a sheet.
 void fill_list(Mount &m)
@@ -544,7 +567,10 @@ void fill_list(Mount &m)
             if (row != nullptr && card.title == row->title && plain_video_id(row->id))
             {
                 card.id = row->id;
-                card.thumb = std::string("https://i.ytimg.com/vi/") + row->id + "/mqdefault.jpg";
+                card.thumb = tube_art_url_allowed(row->art_url) ? row->art_url :
+                    std::string("https://i.ytimg.com/vi/") + row->id + "/mqdefault.jpg";
+                card.duration_s = row->is_live ? 0 : static_cast<int>(std::clamp<int64_t>(row->duration_sec, 0, 360000));
+                card.badges = card_badges(row->badges, row->is_live != 0);
             }
             shelf.cards.push_back(std::move(card));
         }

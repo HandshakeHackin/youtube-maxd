@@ -102,13 +102,16 @@ int main(void) {
     tube_recovery_finish();
     assert(pending_count == 1 && strstr(pending[0].body, "\"action\":\"suggestions\"") && strstr(pending[0].body, "\"id\":\"abcdefghijk\""));
     poll_job("{\"state\":\"done\",\"result\":{\"items\":["
-        "{\"id\":\"bcdefghijkl\",\"title\":\"Second\",\"subtitle\":\"Other channel\",\"playback_context\":{\"group\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"index\":0}},"
+        "{\"id\":\"bcdefghijkl\",\"title\":\"Second\",\"subtitle\":\"Other channel\",\"art_url\":\"https://i.ytimg.com/vi/bcdefghijkl/hqdefault.jpg\",\"duration_sec\":123,\"badges\":[\"4k\",\"hdr\",\"cc\"],\"playback_context\":{\"group\":\"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"index\":0}},"
         "{\"id\":\"library:filter:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\",\"title\":\"From this channel\",\"is_folder\":true}],"
         "\"has_more\":true,\"cursor\":\"related-next\"}}");
     assert(tube_player_menu_status() == 1 && tube_player_menu_count() == 3 && !strcmp(tube_player_menu_title(), "Related videos"));
     const tube_player_menu_row_t *row = tube_player_menu_row(0);
     assert(!row->folder && !strcmp(row->id, "bcdefghijkl") && !strcmp(row->detail, "Other channel") && row->scope);
+    assert(!strcmp(row->art_url, "https://i.ytimg.com/vi/bcdefghijkl/hqdefault.jpg") && row->duration_sec == 123 &&
+           !strcmp(row->badges, "4k,hdr,cc") && !row->is_live);
     assert(!strcmp(row->playlist, "group:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee") && tube_player_menu_row(1)->folder);
+    assert(!*tube_player_menu_row(1)->art_url && !tube_player_menu_row(1)->duration_sec && !*tube_player_menu_row(1)->badges);
     assert(!strcmp(tube_player_menu_row(2)->title, "More results"));
     /* The next page joins the list in place of its row. */
     assert(tube_player_menu_open(2) == TUBE_MENU_OPENED && tube_player_menu_status() == 0);

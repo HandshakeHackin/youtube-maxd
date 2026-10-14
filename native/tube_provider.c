@@ -8275,6 +8275,12 @@ static void player_menu_items(int ok, const evo_provider_item_t *items, int coun
         if (!row) break;
         copy(row->playlist, sizeof row->playlist, items[i].playback_playlist);
         row->index = items[i].playback_index; row->scope = items[i].playback_scope;
+        if (!row->folder) {
+            copy(row->art_url, sizeof row->art_url, items[i].art_url);
+            copy(row->badges, sizeof row->badges, tube_row_fact_get(items[i].id, "badges"));
+            row->duration_sec = items[i].duration_sec;
+            row->is_live = items[i].is_live;
+        }
     }
     while (text && *text && g_player_menu.count < PLAYER_MENU_ROWS - 1) {
         char line[PLAYER_MENU_TEXT];
