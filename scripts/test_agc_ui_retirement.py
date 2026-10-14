@@ -10,6 +10,7 @@ player = work / "projects/evoplayer"
 runtime = (player / "media/src/evo_agc_runtime.c").read_text()
 rml = (player / "ui_rml/src/evo_rmlui_render_agc.cpp").read_text()
 hui = (player / "ui_kit/src/hui_agc_batch.cpp").read_text()
+hui_app = (player / "ui_kit/src/evo_hui_app.cpp").read_text()
 
 
 def function(source, signature):
@@ -28,7 +29,9 @@ helper_end = rml.index("EvoRenderInterfaceAGC::EvoRenderInterfaceAGC", helper_st
 helpers = rml[helper_start:helper_end]
 hui_end = function(hui, "void AgcBatch::end_frame()")
 hui_release = function(hui, "void AgcBatch::release()")
-assert "if (!evo_agc_runtime_gpu_data_idle()) return;" in hui_release
+hui_shutdown = function(hui_app, "void evo_hui_shutdown(void)")
+assert "evo_agc_runtime_gpu_data_idle" not in hui_release  # init failure can clean up
+assert "if (evo_agc_runtime_gpu_data_idle()) k.batch.release();" in hui_shutdown
 assert rml.count("agc_alloc_gpu(") == 4
 assert rml.count("agc_release_buffer(") == 6  # helper plus five release sites
 assert "agc_collect_released_buffers();" in function(rml, "void EvoRenderInterfaceAGC::FrameEnd()")

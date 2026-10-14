@@ -6,6 +6,7 @@ def apply_agc_gpu_pool_overlay(replace, player):
     direct = player + "media/src/evo_direct_mem.c"
     rml_agc = player + "ui_rml/src/evo_rmlui_render_agc.cpp"
     hui = player + "ui_kit/src/hui_agc_batch.cpp"
+    hui_app = player + "ui_kit/src/evo_hui_app.cpp"
     agc = player + "media/src/evo_agc_runtime.c"
     agc_header = player + "media/include/evo_agc_runtime.h"
 
@@ -101,9 +102,8 @@ static void agc_release_buffer(void *ptr)
             'agc_release_buffer(geom->index_data)')
     replace(rml_agc, 'evo_direct_mem_free(tex->alloc_base)',
             'agc_release_buffer(tex->alloc_base)', count=2)
-    replace(hui,
-            'void AgcBatch::release()\n{\n    /* Only ever called with the GPU idle (shutdown), so frees are immediate. */',
-            'void AgcBatch::release()\n{\n    /* Retain mapped textures when a timed-out GPU submit is still using them. */\n    if (!evo_agc_runtime_gpu_data_idle()) return;')
+    replace(hui_app, '    k.batch.release();\n    k.state = Kit::failed;',
+            "    /* A timed-out GPU submit still owns the batch's mapped buffers. */\n    if (evo_agc_runtime_gpu_data_idle()) k.batch.release();\n    k.state = Kit::failed;")
     replace(hui, 'void AgcBatch::end_frame()\n{',
             'void AgcBatch::end_frame()\n{\n    if (!evo_agc_runtime_gpu_data_idle()) return;')
     replace(hui, 'evo_direct_mem_alloc(index_bytes + 255u)',
