@@ -322,37 +322,40 @@ void Player::draw_chat(G &g, const Motion &m) const
     if (p <= 0.01f)
         return;
     const Look &k = *look_;
+    const Rect theatre = theatre_rect();
     g.l.push_opacity(p);
     if (m.theatre > 0.01f)
     {
         // What is on, above the picture; under it the timeline, in the page's own ink.
         g.l.push_opacity(m.theatre);
-        float x = kTheatre.x;
+        float x = theatre.x;
         if (view_.live)
-            x += live_tag(g, kTheatre.x, 91.0f) + 18.0f;
-        text(g, g.f.display, fit(g.f.display, view_.title, kTypeTitle, kTheatre.x + kTheatre.w - x), x, 102.0f, kTypeTitle, k.ink);
+            x += live_tag(g, theatre.x, 91.0f) + 18.0f;
+        text(g, g.f.display, fit(g.f.display, view_.title, kTypeTitle, theatre.x + theatre.w - x), x, 102.0f, kTypeTitle, k.ink);
         const std::string &second = view_.live && !view_.live_status.empty() ? view_.live_status : view_.meta;
-        float line_x = kTheatre.x;
+        float line_x = theatre.x;
         if (!view_.channel.empty())
         {
-            avatar(g, kTheatre.x + 16.0f, 134.0f, 14.0f, view_.channel, view_.channel_id, picture(view_.avatar, PictureSize::avatar));
-            line_x = kTheatre.x + 40.0f + text(g, g.f.semibold, fit(g.f.semibold, view_.channel, kTypeMeta, 460.0f), kTheatre.x + 40.0f, 141.0f, kTypeMeta, k.ink) + 16.0f;
+            avatar(g, theatre.x + 16.0f, 134.0f, 14.0f, view_.channel, view_.channel_id, picture(view_.avatar, PictureSize::avatar));
+            line_x = theatre.x + 40.0f + text(g, g.f.semibold, fit(g.f.semibold, view_.channel, kTypeMeta, 460.0f), theatre.x + 40.0f, 141.0f, kTypeMeta, k.ink) + 16.0f;
         }
         if (!second.empty())
-            text(g, g.f.regular, fit(g.f.regular, second, kTypeMeta, kTheatre.x + kTheatre.w - line_x), line_x, 141.0f, kTypeMeta, k.ink2);
-        const Rect lane{kTheatre.x, kTheatre.y + kTheatre.h + 44.0f, kTheatre.w, 0.0f};
+            text(g, g.f.regular, fit(g.f.regular, second, kTypeMeta, theatre.x + theatre.w - line_x), line_x, 141.0f, kTypeMeta, k.ink2);
+        const Rect lane{theatre.x, theatre.y + theatre.h + 44.0f, theatre.w, 0.0f};
         if (view_.live)
             draw_live_bar(g, lane, 1.0f, true);
         else
             draw_timeline(g, lane, 1.0f, true);
-        hint_row(g, chat_.hints, kTheatre.x, kHintY, false, false, kTheatre.w, 34.0f, kTypeHint, 36.0f);
+        hint_row(g, chat_.hints, theatre.x, kHintY, false, false, theatre.w, 34.0f, kTypeHint, 36.0f);
         g.l.pop_opacity();
     }
 
     // The column: beside the video in the theatre layout, over it otherwise.
-    const bool on_left = chat_.side == 1 && !chat_.theatre;
+    const bool on_left = chat_.side == 1;
     const Rect over{on_left ? 48.0f : 1408.0f, 184.0f, 464.0f, 604.0f};
-    const Rect side = lerp_rect(over, kChatColumn, m.theatre);
+    Rect column=kChatColumn;
+    if(on_left) column.x=gfx::kVirtualWidth-column.x-column.w;
+    const Rect side = lerp_rect(over, column, m.theatre);
     const float travel = g.reduced ? 0.0f : (1.0f - p) * (on_left ? -120.0f : 120.0f);
     g.l.push_transform(1.0f, 0.0f, 0.0f, travel, 0.0f);
     lift(g, side, kRadiusPanel, 0.8f);

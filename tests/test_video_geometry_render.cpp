@@ -1,3 +1,4 @@
+#include "tube_video_destination.h"
 #include "tube_video_geometry.h"
 #include "tube_video_transform.h"
 #include <cassert>

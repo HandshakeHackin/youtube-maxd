@@ -27,6 +27,7 @@ extern "C"
 #include "tube_seek_sheets.h"
 #include "tube_time_display.h"
 #include "tube_ui_style.h"
+#include "tube_video_destination.h"
 // media/include/evo_audio_out.h, without the decoder's headers it brings along.
 double evo_audio_rate(void);
 }
@@ -180,6 +181,7 @@ struct Mount
     unsigned asked = 0x80000000u;
     unsigned toasted = 0x80000000u;
     bool text_begun = false;
+    bool video_eligible = false;
     std::string snapshot;
 };
 
@@ -384,7 +386,7 @@ void fill_controls(Mount &m)
     chat.side = plain ? tube_player_chat_mode() : 0;
     if (chat.side != 0)
     {
-        chat.theatre = false; // REQUEST: the video cannot step aside yet (requests/H.md)
+        chat.theatre = m.video_eligible;
         const std::string title = str(tube_player_chat_title());
         chat.title = same(title, "TOP CHAT") ? tr("Top chat") : same(title, "CHAT REPLAY") ? tr("Chat replay") : sentence(title);
         const tube_player_chat_row_t *rows = nullptr;
@@ -608,6 +610,7 @@ player::Player &step(Mount &m, const ui::Fonts &fonts, float dt, unsigned frame,
         if (platform() != nullptr)
             m.images = std::make_unique<ImageCache>(*platform());
         m.player = std::make_unique<player::Player>(fonts, m.images.get());
+        m.player->prepare_video(0,0); // no earlier quad could have used a newly-created layout
     }
     if (m.stepped == frame)
         return *m.player;
@@ -918,4 +921,17 @@ extern "C" void tube_afterglow_caption_tab(int tab, int first, int total) {
     auto &mount = afterglow::mount();
     mount.caption_tab = tab == 1 ? 1 : 0;
     mount.caption_first = std::max(0,first); mount.caption_total = std::max(0,total);
+}
+
+extern "C" void tube_afterglow_video_prepare(int eligible,float dt) {
+    auto &mount=afterglow::mount();
+    tube_video_destination_reset();
+    mount.video_eligible = eligible && tube_afterglow_enabled();
+    if (!mount.player) return;
+    const int side=mount.video_eligible?tube_player_chat_mode():0;
+    mount.player->prepare_video(side,dt);
+    if (side) {
+        const auto frame=mount.player->video_rect();
+        tube_video_destination_set(frame.x,frame.y,frame.w,frame.h);
+    }
 }

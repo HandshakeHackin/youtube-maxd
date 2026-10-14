@@ -1,0 +1,183 @@
+{
+  "about": "Chat beside the actual theatre video frame in both supported profiles.",
+  "boards": [
+    {
+      "name": "player-theatre-player-live-chat-over-1",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "chat": {
+          "side": 1,
+          "theatre": true,
+          "compose": "",
+          "filter": ""
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre",
+          "chat_lines": "11"
+        }
+      }
+    },
+    {
+      "name": "player-theatre-player-live-chat-over-2",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "chat": {
+          "side": 2,
+          "theatre": true,
+          "compose": "",
+          "filter": ""
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre",
+          "chat_lines": "11"
+        }
+      }
+    },
+    {
+      "name": "player-theatre-player-live-chat-left-1",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "chat": {
+          "side": 1,
+          "theatre": true,
+          "compose": "",
+          "filter": "",
+          "title": "Top chat"
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre"
+        }
+      }
+    },
+    {
+      "name": "player-theatre-player-live-chat-left-2",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "chat": {
+          "side": 2,
+          "theatre": true,
+          "compose": "",
+          "filter": "",
+          "title": "Top chat"
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre"
+        }
+      }
+    },
+    {
+      "name": "player-theatre-player-chat-replay-1",
+      "fixture": "signed-in",
+      "player": "ridge",
+      "view": {
+        "chat": {
+          "side": 1,
+          "theatre": true,
+          "title": "Chat replay",
+          "lines": [
+            {
+              "author": "quietpixel",
+              "text": "the light coming over the ridge. Rewound it four times."
+            },
+            {
+              "author": "Mirela K.",
+              "text": "no voice-over, no music, just wind and boots"
+            },
+            {
+              "author": "Northlight Atlas",
+              "text": "Route notes and the gear list are in the description.",
+              "badge": 3
+            }
+          ],
+          "hints": [
+            {
+              "button": "cross",
+              "label": "Pause"
+            },
+            {
+              "button": "triangle",
+              "label": "Hide chat"
+            },
+            {
+              "button": "options",
+              "label": "Options"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre",
+          "live": "0",
+          "chat_lines": "3"
+        }
+      }
+    },
+    {
+      "name": "player-theatre-player-chat-replay-2",
+      "fixture": "signed-in",
+      "player": "ridge",
+      "view": {
+        "chat": {
+          "side": 2,
+          "theatre": true,
+          "title": "Chat replay",
+          "lines": [
+            {
+              "author": "quietpixel",
+              "text": "the light coming over the ridge. Rewound it four times."
+            },
+            {
+              "author": "Mirela K.",
+              "text": "no voice-over, no music, just wind and boots"
+            },
+            {
+              "author": "Northlight Atlas",
+              "text": "Route notes and the gear list are in the description.",
+              "badge": 3
+            }
+          ],
+          "hints": [
+            {
+              "button": "cross",
+              "label": "Pause"
+            },
+            {
+              "button": "triangle",
+              "label": "Hide chat"
+            },
+            {
+              "button": "options",
+              "label": "Options"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "chat": "theatre",
+          "live": "0",
+          "chat_lines": "3"
+        }
+      }
+    }
+  ]
+}

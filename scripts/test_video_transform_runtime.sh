@@ -19,7 +19,7 @@ def replace(path,old,new,count=1):
     assert text.count(old)==count,(path,old)
     target.write_text(text.replace(old,new))
 if 'g_tube_frame_geometry' not in (work/relative).read_text():
-    apply_video_transform_overlay(replace,'')
+    apply_video_transform_overlay(replace,'',destination='g_tube_frame_destination' in (work/relative).read_text())
 PY
 sdk="${PS5_PAYLOAD_SDK:-${HOME}/.cache/prosperotube/sdk}"
 export PS5_PAYLOAD_SDK="$sdk"

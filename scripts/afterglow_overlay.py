@@ -255,6 +255,8 @@ def apply(root, work, replace, player):
     player_mount(work, replace, player)  # package H
     import afterglow_picker_overlay
     afterglow_picker_overlay.apply(root, work, replace, player)
+    import video_destination_overlay
+    video_destination_overlay.apply(root, work, replace, player)
 
 
 # ---- a chosen video until the player has the screen ---------------------------------------------------

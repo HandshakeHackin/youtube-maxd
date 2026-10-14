@@ -58,6 +58,7 @@ class Player
 
     // Where the video belongs: the whole screen, or the frame it steps into
     // beside the live chat.
+    void prepare_video(int chat_side,float dt);
     Rect video_rect() const;
     float video_radius() const;
 
@@ -86,6 +87,7 @@ class Player
     int chapter_at(double seconds) const;
     float share(double seconds) const;
     Picture picture(const std::string &url, PictureSize size) const;
+    Rect theatre_rect() const;
     Rect sheet_rect() const;
     Rect notice_rect(const Motion &m) const;
     Rect card_rect(int index, float focus) const;
@@ -146,6 +148,8 @@ class Player
     UpNext up_next_;
     tween::Spring chat_amount_;
     tween::Spring theatre_;
+    bool video_prepared_ = false;
+    int theatre_side_ = 2;
     Chat chat_;
     std::string chat_newest_;
     float chat_fresh_ = 10.0f; // seconds since the newest line arrived

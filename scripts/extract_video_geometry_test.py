@@ -10,7 +10,7 @@ if len(sys.argv)>3 and sys.argv[3]=="staged" and "g_tube_frame_geometry" not in 
         assert path=="media/src/evo_agc_runtime.c"
         assert source.count(old)==count,old
         source=source.replace(old,new)
-    apply_video_transform_overlay(replace,"")
+    apply_video_transform_overlay(replace,"",destination="g_tube_frame_destination" in source)
 active="g_tube_frame_geometry" in source
 state="#define TUBE_TEST_TRANSFORM_ACTIVE "+str(int(active))+"\n"
 snapshot=""
@@ -18,8 +18,12 @@ if active:
     begin=source.index("static unsigned g_tube_frame_geometry")
     end=source.index(";",source.index("static int g_tube_canvas_w",begin))+1
     state+=source[begin:end]+"\n"
+    if "g_tube_frame_destination" in source:
+        state+='static tube_video_destination g_tube_frame_destination;\n'
     begin=source.index("    g_tube_frame_geometry=tube_player_video_geometry();")
     end=source.index("    float sx, sy;",begin)
+    if "g_tube_frame_destination" in source:
+        begin=source.rfind("    tube_video_destination_get(",0,begin)
     snapshot=source[begin:end]
 output.joinpath("snapshot-state.inc").write_text(state)
 output.joinpath("snapshot.inc").write_text(snapshot)

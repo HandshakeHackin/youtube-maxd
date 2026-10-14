@@ -39,12 +39,18 @@ the code they are marked `// REQUEST:`.
    skips stay silent. Host-tested; console acceptance pending.
 6. **The category colour of a segment that asks**: implemented by
    `tube_sponsor_prompt_rgb()` and used in the mounted notice.
-7. **The video's rectangle** (board 21, the theatre layout): EVO's video quad
-   drawn into `Player::video_rect()` with `Player::video_radius()` while
-   `Chat::theatre` is set. `tube_video_geometry` has resize, zoom and aspect,
-   but no destination rectangle. Stand-in: `theatre` stays false in the app and
-   the chat column lies over the picture, on the side the profile chose (the
-   boards `player-live-chat-over`, `-left`, `-waiting`).
+7. **The video's rectangle** (board 21, the theatre layout): implemented with
+   a per-frame destination prepared before EVO blits video. Direct YUV and
+   final upscaling/interpolation passes use `Player::video_rect()`; scratch
+   passes stay local. Existing aspect, zoom, rotation and mirror compose inside
+   that rectangle. The existing rounded mat follows `Player::video_radius()`;
+   no shader or driver change is needed. Mounted chat enables theatre on the
+   profile's chosen side, including a mirrored left-side layout. Closing chat,
+   Classic, stopping, another screen, scrubbing, stats, comparison, music and
+   phone ownership restore the full rectangle before the next video draw.
+   Generated application/render mapping checks and the real Player's spring
+   lifecycle pass; six theatre boards pass in four looks. Console acceptance
+   of the video/mat alignment and moving-frame rendering remains pending.
 8. **Chat facts**: a line's badge (member, moderator, the channel), the
    author's picture, the filter in use ("Top chat"), how many are watching and
    since when (`PlayerView::live_status`), and the prompt of the field to write

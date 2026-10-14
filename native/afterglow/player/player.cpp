@@ -516,7 +516,10 @@ void Player::update(const PlayerView &view, float dt)
     // ---- the chat ----
     const bool chat_on = view_.chat.side != 0;
     chat_amount_.target = chat_on ? 1.0f : 0.0f;
-    theatre_.target = chat_on && view_.chat.theatre ? 1.0f : 0.0f;
+    if (!video_prepared_) {
+        theatre_side_ = view_.chat.side;
+        theatre_.target = chat_on && view_.chat.theatre ? 1.0f : 0.0f;
+    }
     if (chat_on)
     {
         const std::string newest = view_.chat.lines.empty() ? std::string() : view_.chat.lines.back().author + '\n' + view_.chat.lines.back().text;
@@ -529,12 +532,13 @@ void Player::update(const PlayerView &view, float dt)
         if (fresh)
         {
             chat_amount_.snap(1.0f);
-            theatre_.snap(theatre_.target);
+            if (!video_prepared_) theatre_.snap(theatre_.target);
         }
     }
     chat_fresh_ += dt;
     chat_amount_.update(dt, w(13.0f));
-    theatre_.update(dt, w(13.0f));
+    if (!video_prepared_) theatre_.update(dt, w(13.0f));
+    video_prepared_ = false;
 
     // ---- the next video ----
     next_amount_.target = view_.next.shown ? 1.0f : 0.0f;
@@ -633,9 +637,23 @@ Player::Motion Player::motion() const
     return m;
 }
 
+void Player::prepare_video(int chat_side,float dt) {
+    video_prepared_ = true;
+    theatre_side_ = chat_side;
+    theatre_.target = chat_side ? 1.0f : 0.0f;
+    if (!chat_side) theatre_.snap(0.0f); // ownership changes restore the full picture before the next blit
+    else theatre_.update(std::clamp(dt,0.0f,0.1f),reduced_?60.0f:13.0f);
+}
+
+Rect Player::theatre_rect() const {
+    Rect frame = kTheatre;
+    if (theatre_side_ == 1) frame.x = gfx::kVirtualWidth-frame.x-frame.w;
+    return frame;
+}
+
 Rect Player::video_rect() const
 {
-    return lerp_rect(kFull, kTheatre, tween::smoothstep(tween::clamp01(theatre_.value)));
+    return lerp_rect(kFull, theatre_rect(), tween::smoothstep(tween::clamp01(theatre_.value)));
 }
 
 float Player::video_radius() const
@@ -727,7 +745,7 @@ FocusInfo Player::focus() const
     // The player has no cursor: Cross acts on the lit mark.
     info.id = view_.scrubbing ? "osd-scrub" : view_.paused ? "osd-paused" : "osd-playing";
     info.text = view_.title;
-    info.rect = view_.chat.side != 0 && view_.chat.theatre ? kTheatre : view_.chrome > 0.5f && !view_.chrome_hidden && !view_.live ? lit_control() : kFull;
+    info.rect = view_.chat.side != 0 && view_.chat.theatre ? video_rect() : view_.chrome > 0.5f && !view_.chrome_hidden && !view_.live ? lit_control() : kFull;
     info.index = 0;
     info.total = 1;
     return info;
