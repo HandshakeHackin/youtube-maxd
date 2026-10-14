@@ -7,6 +7,8 @@ int av_hls_get_dvr_window(AVFormatContext *s, int64_t out[7]);
 static void tube_dvr_publish(HLSContext *c)
 {
     int64_t value[7] = {0};
+    int64_t (*points)[3] = NULL;
+    int count = 0;
     struct playlist *p = c->n_playlists == 1 ? c->playlists[0] : NULL;
     if (c->tube_dvr && c->dvr_anchored && !c->dvr_disabled && p &&
         !p->finished && !p->dvr_bad && p->n_segments >= 2 && p->n_segments <= 4096 &&
@@ -34,11 +36,25 @@ static void tube_dvr_publish(HLSContext *c)
             c->first_timestamp = value[3];
         }
     }
+    if (value[0]) {
+        points = av_malloc_array(p->n_segments, sizeof(*points));
+        if (!points) memset(value, 0, sizeof(value));
+        else {
+            count = p->n_segments;
+            for (int i = 0; i < count; ++i) {
+                points[i][0] = p->start_seq_no + i;
+                points[i][1] = p->segments[i]->dvr_utc;
+                points[i][2] = p->segments[i]->duration;
+            }
+        }
+    }
     if (c->dvr_mutex_ready) {
         ff_mutex_lock(&c->dvr_mutex);
+        av_freep(&c->dvr_points);
+        c->dvr_points = points; c->dvr_point_count = count;
         memcpy(c->dvr_snapshot, value, sizeof(value));
         ff_mutex_unlock(&c->dvr_mutex);
-    }
+    } else av_free(points);
     if (c->tube_dvr && c->dvr_anchored) {
         if (value[0]) c->ctx->ctx_flags &= ~(unsigned)AVFMTCTX_UNSEEKABLE;
         else if (p && !p->finished) c->ctx->ctx_flags |= AVFMTCTX_UNSEEKABLE;
@@ -84,7 +100,7 @@ static void tube_dvr_anchor(HLSContext *c, struct playlist *p)
 {
     int64_t offset, utc, pts;
     if (!c->tube_dvr || c->dvr_anchored || c->dvr_disabled || c->n_playlists != 1 ||
-        p->finished || p->dvr_bad || p->pkt->dts == AV_NOPTS_VALUE ||
+        p->finished || p->dvr_bad || p->cur_seq_no != p->dvr_selected_seq || p->pkt->dts == AV_NOPTS_VALUE ||
         p->pkt->pts != p->pkt->dts || !(p->pkt->flags & AV_PKT_FLAG_KEY) ||
         p->n_segments < 2 || p->n_segments > 4096 || p->start_seq_no < 0 ||
         p->start_seq_no > INT64_MAX - p->n_segments) return;
@@ -135,4 +151,32 @@ int av_hls_dvr_prepare_seek(AVFormatContext *s, int64_t pts_us)
         return 0;
     }
     return av_hls_get_dvr_window(s, window) && pts_us >= window[3] && pts_us < window[4];
+}
+
+int av_hls_dvr_point_identity(AVFormatContext *s, int64_t utc, int64_t out[3]);
+int av_hls_dvr_point_identity(AVFormatContext *s, int64_t utc, int64_t out[3])
+{
+    HLSContext *c;
+    int lo = 0, hi, ok = 0;
+    if (!out) return 0;
+    memset(out, 0, 3 * sizeof(*out));
+    if (!s || !s->iformat || strcmp(s->iformat->name, "hls")) return 0;
+    c = s->priv_data;
+    if (!c || !c->dvr_mutex_ready) return 0;
+    ff_mutex_lock(&c->dvr_mutex);
+    hi = c->dvr_point_count;
+    if (c->dvr_snapshot[0] && av_gettime_relative() < c->dvr_snapshot[6]) {
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            const int64_t *point = c->dvr_points[mid];
+            if (utc >= point[1] + point[2]) lo = mid + 1;
+            else hi = mid;
+        }
+        if (lo < c->dvr_point_count && utc >= c->dvr_points[lo][1] &&
+            utc - c->dvr_points[lo][1] < c->dvr_points[lo][2]) {
+            memcpy(out, c->dvr_points[lo], 3 * sizeof(*out)); ok = 1;
+        }
+    }
+    ff_mutex_unlock(&c->dvr_mutex);
+    return ok;
 }

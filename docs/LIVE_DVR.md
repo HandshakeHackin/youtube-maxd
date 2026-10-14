@@ -165,3 +165,38 @@ advance rejects the expired target at this preparation phase and accepts a fresh
 one; `hls_read_seek` still revalidates if the window moves again meanwhile. The
 instrumented H.264/AAC acceptance now makes 147 loopback requests. The updated HLS
 object also compiles with the isolated PS5 configuration and read-only headers.
+
+## Context binding and exact remembered segment identity
+
+The tested `tube_live_runtime` prerequisite binds the active format context to
+its immutable launch owner, enables the HLS extension before stream probing,
+fixes the session UI origin once, and exposes moving lower/upper bounds. It
+refreshes/revalidates targets on the demux owner and checks authority again after
+the bounded network request. Snapshot readers hold a short lifetime mutex;
+network preparation holds no UI mutex. Releasing the context waits for readers
+before the caller closes FFmpeg. A stock-library weak-import test keeps live
+streams non-seekable when the extension is absent.
+
+UTC containment by itself does not prove a remembered point belongs to the same
+playlist timeline. The extension now publishes a bounded segment identity table
+(maximum 4096 entries / 96 KiB, no media bytes) with its window under the same
+mutex. `av_hls_dvr_point_identity` returns the point's exact media sequence,
+program UTC start and duration. Records persist this tuple alongside the checked
+UTC point; reopen requires an exact tuple match, as well as the existing
+profile/video/source/format authority. Legacy receipts without identity do not
+restore. An otherwise contained point with a one-second program-time shift is
+refused, while an unchanged point remains restorable after window movement.
+
+Initial calibration also requires the first packet to remain in the explicitly
+selected initial segment. An inner probe that has advanced past it cannot supply
+a trustworthy origin and leaves DVR unsupported. The exact helper has a host
+regression for advanced/expired initial sequence, reordered/invalid timestamps
+and PTS wrap; an empty selected segment has a bounded probe deadline.
+
+The full instrumented H.264/AAC runtime acceptance makes 168 loopback requests,
+including concurrent identity/window readers, preflight expiry, fixed UI origin,
+owner revocation, changed-contained-timeline refusal and stock-library fallback.
+The provider owner/history/recovery tests pass with the stronger identity schema.
+HLS, runtime and provider PS5 objects compile using isolated/read-only inputs.
+These remain pre-activation pieces: controller launch/input and Afterglow fields
+are not wired yet, the shared SDK is unchanged, and console DVR remains untested.

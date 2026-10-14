@@ -17,13 +17,13 @@ typedef struct {
     unsigned token;
     char profile[33], video[12], url[EVO_PROVIDER_MAX_URL];
     char origin[512], format[128];
-    int64_t saved_utc;
+    int64_t saved_utc, saved_sequence, saved_segment_utc, saved_duration_us;
 } tube_live_owner;
 int tube_live_capture(const char *video, const char *url, tube_live_owner *owner);
 int tube_live_owner_current(unsigned token);
-int64_t tube_live_restore(const tube_live_owner *owner, const int64_t window[7]);
+int64_t tube_live_restore(const tube_live_owner *owner, const int64_t window[7], const int64_t identity[3]);
 /* Updates the bounded existing Record; progress/stop flushes the store. */
-int tube_live_remember(const tube_live_owner *owner, const int64_t window[7], int64_t utc);
+int tube_live_remember(const tube_live_owner *owner, const int64_t window[7], int64_t utc, const int64_t identity[3]);
 
 /* The built-in YouTube service (TUBE_EMBEDDED_SERVICE builds). Mode: 1 while
  * it is this run's source instead of a LAN companion; decided at provider

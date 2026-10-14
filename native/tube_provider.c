@@ -75,7 +75,7 @@ typedef struct {
     char dearrow_title[256], dearrow_art[EVO_PROVIDER_MAX_URL];
     int favorite, queued, subscribed, queued_music;
     long long updated, queue_order;
-    int64_t live_utc;
+    int64_t live_utc, live_sequence, live_segment_utc, live_duration_us;
     char live_origin[512], live_format[128];
     char history_remove_cursor[65];
     unsigned history_scope;
@@ -2166,6 +2166,9 @@ static void save(void) {
         cJSON_AddStringToObject(o, "art_url", r->item.art_url);
         cJSON_AddStringToObject(o, "channel_id", r->item.parent_id);
         cJSON_AddNumberToObject(o, "live_utc", (double)r->live_utc);
+        cJSON_AddNumberToObject(o, "live_sequence", (double)r->live_sequence);
+        cJSON_AddNumberToObject(o, "live_segment_utc", (double)r->live_segment_utc);
+        cJSON_AddNumberToObject(o, "live_duration_us", (double)r->live_duration_us);
         cJSON_AddStringToObject(o, "live_origin", r->live_origin);
         cJSON_AddStringToObject(o, "live_format", r->live_format);
         cJSON_AddNumberToObject(o, "position", (double)r->item.resume_pos_sec);
@@ -2534,7 +2537,13 @@ static int init_store(void) {
         double live_utc = cJSON_IsNumber(live_value) ? live_value->valuedouble : 0;
         if (isfinite(live_utc) && live_utc >= 946684800000000.0 && live_utc <= 4102444800000000.0 && floor(live_utc) == live_utc &&
             strlen(str(o,"live_origin")) < sizeof r->live_origin && strlen(str(o,"live_format")) < sizeof r->live_format) {
-            r->live_utc = (int64_t)live_utc;
+            const cJSON *seq=cJSON_GetObjectItemCaseSensitive(o,"live_sequence"), *segment=cJSON_GetObjectItemCaseSensitive(o,"live_segment_utc"), *duration=cJSON_GetObjectItemCaseSensitive(o,"live_duration_us");
+            if (cJSON_IsNumber(seq) && isfinite(seq->valuedouble) && seq->valuedouble>=0 && seq->valuedouble<=9007199254740991.0 && floor(seq->valuedouble)==seq->valuedouble &&
+                cJSON_IsNumber(segment) && isfinite(segment->valuedouble) && segment->valuedouble>=946684800000000.0 && segment->valuedouble<=live_utc && floor(segment->valuedouble)==segment->valuedouble &&
+                cJSON_IsNumber(duration) && isfinite(duration->valuedouble) && duration->valuedouble>0 && duration->valuedouble<=60000000 && floor(duration->valuedouble)==duration->valuedouble && live_utc-segment->valuedouble<duration->valuedouble) {
+                r->live_utc=(int64_t)live_utc; r->live_sequence=(int64_t)seq->valuedouble;
+                r->live_segment_utc=(int64_t)segment->valuedouble; r->live_duration_us=(int64_t)duration->valuedouble;
+            }
             copy(r->live_origin,sizeof r->live_origin,str(o,"live_origin"));
             copy(r->live_format,sizeof r->live_format,str(o,"live_format"));
         }
@@ -7213,7 +7222,10 @@ int tube_live_capture(const char *video, const char *url, tube_live_owner *owner
     copy(owner->url,sizeof owner->url,url); copy(owner->origin,sizeof owner->origin,g_embedded ? "embedded" : g_source);
     live_format(owner->format);
     const Record *r = record_for(video,owner->profile,0);
-    if (!history_suppressed() && r && !strcmp(r->live_origin,owner->origin) && !strcmp(r->live_format,owner->format)) owner->saved_utc = r->live_utc;
+    if (!history_suppressed() && r && !strcmp(r->live_origin,owner->origin) && !strcmp(r->live_format,owner->format)) {
+        owner->saved_utc=r->live_utc;owner->saved_sequence=r->live_sequence;
+        owner->saved_segment_utc=r->live_segment_utc;owner->saved_duration_us=r->live_duration_us;
+    }
     if (!++g_live_epoch) ++g_live_epoch;
     owner->token = g_live_epoch;
     pthread_mutex_lock(&g_live_mutex);
@@ -7222,27 +7234,32 @@ int tube_live_capture(const char *video, const char *url, tube_live_owner *owner
     pthread_mutex_unlock(&g_live_mutex);
     return 1;
 }
-int64_t tube_live_restore(const tube_live_owner *owner, const int64_t window[7]) {
+int64_t tube_live_restore(const tube_live_owner *owner, const int64_t window[7], const int64_t identity[3]) {
     int64_t result = 0;
-    if (!owner) return 0;
+    if (!owner || !identity) return 0;
     pthread_mutex_lock(&g_live_mutex);
     if (tube_live_owner_current(owner->token) && owner->saved_utc == g_live_binding.saved_utc &&
+        owner->saved_sequence==g_live_binding.saved_sequence && owner->saved_segment_utc==g_live_binding.saved_segment_utc && owner->saved_duration_us==g_live_binding.saved_duration_us &&
+        identity[0]==owner->saved_sequence && identity[1]==owner->saved_segment_utc && identity[2]==owner->saved_duration_us &&
         !strcmp(owner->profile,g_live_binding.profile) && !strcmp(owner->video,g_live_binding.video) &&
         !strcmp(owner->url,g_live_binding.url) && !strcmp(owner->origin,g_live_binding.origin) &&
         !strcmp(owner->format,g_live_binding.format) && live_point_inside(window,owner->saved_utc)) result = owner->saved_utc;
     pthread_mutex_unlock(&g_live_mutex);
     return result;
 }
-int tube_live_remember(const tube_live_owner *owner, const int64_t window[7], int64_t utc) {
+int tube_live_remember(const tube_live_owner *owner, const int64_t window[7], int64_t utc, const int64_t identity[3]) {
     char format[128];
     if (!owner || !tube_live_owner_current(owner->token) || !recovery_scope() || history_suppressed() ||
         strcmp(owner->video,g_active_id) || strcmp(owner->profile,g_active_profile) ||
-        strcmp(owner->url,g_recovery.choice.url) || strcmp(owner->origin,g_embedded ? "embedded" : g_source) || !live_point_inside(window,utc)) return 0;
+        strcmp(owner->url,g_recovery.choice.url) || strcmp(owner->origin,g_embedded ? "embedded" : g_source) || !live_point_inside(window,utc) ||
+        !identity || identity[0]<window[1] || identity[0]>=window[2] || identity[0]>9007199254740991LL ||
+        identity[1]<window[5] || identity[1]>utc || identity[2]<=0 || identity[2]>60000000 ||
+        utc-identity[1]>=identity[2] || identity[1]-window[5]+identity[2]>window[4]-window[3]) return 0;
     live_format(format);
     if (strcmp(owner->format,format)) return 0;
     Record *r = record_for(owner->video,owner->profile,1);
     if (!r) return 0;
-    r->live_utc = utc; copy(r->live_origin,sizeof r->live_origin,owner->origin); copy(r->live_format,sizeof r->live_format,format);
+    r->live_utc=utc;r->live_sequence=identity[0];r->live_segment_utc=identity[1];r->live_duration_us=identity[2];copy(r->live_origin,sizeof r->live_origin,owner->origin); copy(r->live_format,sizeof r->live_format,format);
     r->item.is_live = 1; r->item.resume_pos_sec = 0; r->updated = (long long)time(NULL);
     if (now_ms() - g_last_save >= 10000) save();
     return 1;

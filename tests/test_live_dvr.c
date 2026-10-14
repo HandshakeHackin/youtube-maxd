@@ -6,6 +6,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libavformat/avformat.h>
+#include <libavutil/time.h>
+static int64_t probe_deadline;
+static int interrupted(void *unused) {(void)unused;return av_gettime_relative()>=probe_deadline;}
+#ifdef TUBE_DVR_RUNTIME
+#include "tube_live_runtime.h"
+static unsigned owner_token=77;
+static int64_t remembered;
+int tube_live_owner_current(unsigned token) { return token && token==owner_token; }
+int64_t tube_live_restore(const tube_live_owner *owner,const int64_t window[7],const int64_t identity[3]) {
+    return identity && identity[0]==owner->saved_sequence && identity[1]==owner->saved_segment_utc && identity[2]==owner->saved_duration_us &&
+        tube_live_owner_current(owner->token) && owner->saved_utc>=window[5] &&
+        owner->saved_utc-window[5]<window[4]-window[3] ? owner->saved_utc : 0;
+}
+int tube_live_remember(const tube_live_owner *owner,const int64_t window[7],int64_t utc,const int64_t identity[3]) {
+    assert(tube_live_owner_current(owner->token) && !strcmp(owner->profile,"guest") && !strcmp(owner->video,"abcdefghijk"));
+    assert(identity && identity[0]==3 && identity[1]==1760000006000000LL && identity[2]==2000000);
+    assert(utc>=window[5] && utc-window[5]<window[4]-window[3]);remembered=utc;return 1;
+}
+#endif
 #ifdef TUBE_DVR_CANDIDATE
 #include <pthread.h>
 #include <stdatomic.h>
@@ -21,6 +40,9 @@ static void *read_snapshots(void *opaque) {
             assert(window[2] - window[1] == 4);
             assert(window[4] - window[3] == 8 * AV_TIME_BASE);
             assert(window[5] - window[3] == expected_wall_offset);
+            int64_t identity[3];
+            if (av_hls_dvr_point_identity(opaque,window[5]+2000000,identity))
+                assert(identity[0]==window[1]+1 && identity[1]==window[5]+2000000 && identity[2]==2000000);
             ++snapshots;
         }
     }
@@ -48,13 +70,15 @@ int main(int argc, char **argv) {
     assert(argc == 4);
     assert(avformat_version() == AV_VERSION_INT(61, 7, 100));
     av_log_set_level(AV_LOG_ERROR);
-    AVFormatContext *format = NULL;
+    AVFormatContext *format = avformat_alloc_context();assert(format);
+    probe_deadline=av_gettime_relative()+3000000;
+    format->interrupt_callback=(AVIOInterruptCB){interrupted,NULL};
     AVDictionary *options = NULL;
     /* Fix the initial live segment so a seek-before-open-origin has a known,
      * independently generated earlier segment in the same upstream window. */
     av_dict_set(&options, "live_start_index", "-2", 0);
 #ifdef TUBE_DVR_CANDIDATE
-    av_dict_set(&options, "prosperotube_dvr", "1", 0);
+    if (strcmp(argv[3],"runtime") && strcmp(argv[3],"runtime-shifted")) av_dict_set(&options, "prosperotube_dvr", "1", 0);
 #endif
     av_dict_set(&options, "rw_timeout", "3000000", 0);
     int opened = avformat_open_input(&format, argv[1], NULL, &options);
@@ -63,7 +87,25 @@ int main(int argc, char **argv) {
         printf("{\"opened\":false,\"error\":%d}\n", opened);
         return 0;
     }
-    assert(avformat_find_stream_info(format, NULL) >= 0);
+#ifdef TUBE_DVR_RUNTIME
+    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted")) {
+        tube_live_owner owner={0};owner.token=owner_token;owner.saved_utc=1760000006000000LL;owner.saved_sequence=3;owner.saved_segment_utc=1760000006000000LL;owner.saved_duration_us=2000000;
+        snprintf(owner.profile,sizeof owner.profile,"guest");snprintf(owner.video,sizeof owner.video,"abcdefghijk");
+        snprintf(owner.url,sizeof owner.url,"%s",argv[1]);tube_live_context_open(format,&owner,argv[1]);
+    }
+#endif
+    int stream_info=avformat_find_stream_info(format,NULL);
+    if (stream_info<0) {
+        printf("{\"opened\":false,\"stage\":\"stream_info\",\"error\":%d}\n",stream_info);
+        avformat_close_input(&format);return 0;
+    }
+#ifdef TUBE_DVR_RUNTIME
+    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted")) {
+        double base,restore;
+        assert(tube_live_context_calibrate(format,&base,&restore));
+        assert(base>3.9 && base<4.1 && fabs(restore-6.0)<.001);
+    }
+#endif
     int video = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     assert(video >= 0 && !strcmp(format->iformat->name, "hls"));
     double origin = format->start_time == AV_NOPTS_VALUE ? NAN : format->start_time / (double)AV_TIME_BASE;
@@ -81,6 +123,46 @@ int main(int argc, char **argv) {
            avformat_version(), unseekable ? "true" : "false", origin, first, target, sought);
     if (isfinite(landed)) printf("%.6f", landed); else fputs("null", stdout);
     fputs("}", stdout);
+#ifdef TUBE_DVR_RUNTIME
+    if (!strcmp(argv[3],"runtime-shifted")) {
+        char control[1024];
+        snprintf(control,sizeof(control),"%.*s/invalidate-small-time",(int)(strrchr(argv[1],'/')-argv[1]),argv[1]);
+        AVIOContext *io=NULL;unsigned char byte;
+        assert(avio_open2(&io,control,AVIO_FLAG_READ,NULL,NULL)>=0 && avio_read(io,&byte,1)==1);avio_closep(&io);
+        tube_live_context_release(format);avformat_close_input(&format);
+        av_dict_set(&options,"live_start_index","-2",0);
+        assert(avformat_open_input(&format,argv[1],NULL,&options)>=0);av_dict_free(&options);
+        tube_live_owner owner={0};owner.token=owner_token;owner.saved_utc=1760000006000000LL;
+        owner.saved_sequence=3;owner.saved_segment_utc=1760000006000000LL;owner.saved_duration_us=2000000;
+        snprintf(owner.profile,sizeof owner.profile,"guest");snprintf(owner.video,sizeof owner.video,"abcdefghijk");snprintf(owner.url,sizeof owner.url,"%s",argv[1]);
+        tube_live_context_open(format,&owner,argv[1]);assert(avformat_find_stream_info(format,NULL)>=0);
+        double base,restore;
+        assert(tube_live_context_calibrate(format,&base,&restore) && restore==-1 && base>3.9 && base<4.1);
+        tube_live_context_release(format);
+        printf("\n{\"contained_UTC_with_changed_segment_identity_refused\":true}");
+    }
+    if (!strcmp(argv[3],"runtime")) {
+        double start,end;
+        assert(tube_live_context_matches(format) && tube_live_range(format,&start,&end));
+        assert(start==0 && end==8);
+        assert(!tube_live_seek_admit(format,-1) && !tube_live_seek_admit(format,end));
+        assert(tube_live_seek_admit(format,6) && tube_live_seek_prepare(format,6));
+        tube_live_remember_position(format,6);assert(remembered==1760000006000000LL);
+        char control[1024];
+        snprintf(control, sizeof(control), "%.*s/advance", (int)(strrchr(argv[1], '/') - argv[1]), argv[1]);
+        AVIOContext *io=NULL;unsigned char byte;
+        assert(avio_open2(&io,control,AVIO_FLAG_READ,NULL,NULL)>=0 && avio_read(io,&byte,1)==1);avio_closep(&io);
+        assert(!tube_live_seek_prepare(format,.25));
+        assert(tube_live_range(format,&start,&end) && start==4 && end==12);
+        assert(!tube_live_seek_admit(format,.25) && tube_live_seek_admit(format,6));
+        owner_token=78;
+        assert(!tube_live_range(format,&start,&end) && !tube_live_seek_admit(format,6) && !tube_live_seek_prepare(format,6));
+        remembered=0;tube_live_remember_position(format,6);assert(!remembered);
+        tube_live_context_release(format);assert(!tube_live_context_matches(format));
+        owner_token=77;
+        printf("\n{\"runtime_owner_and_fixed_origin\":true,\"preflight_expiry\":true,\"revoked_owner_refused\":true}");
+    }
+#endif
 #ifdef TUBE_DVR_CANDIDATE
     if (!strcmp(argv[3], "invalidate-gap") || !strcmp(argv[3], "invalidate-time") ||
         !strcmp(argv[3], "invalidate-sequence") || !strcmp(argv[3], "invalidate-jump") ||
@@ -135,9 +217,10 @@ int main(int argc, char **argv) {
         printf("\n{\"transport_reset_refused\":true}");
     }
     if (!strcmp(argv[3], "reopen") || !strcmp(argv[3], "reopen-other-timeline")) {
-        int64_t before[7], after[7], saved, restored = -1;
+        int64_t before[7], after[7], saved, restored = -1, before_identity[3], after_identity[3];
         assert(av_hls_get_dvr_window(format, before));
         assert(av_hls_dvr_pts_to_wall(format, before[3] + 6 * AV_TIME_BASE, &saved));
+        assert(av_hls_dvr_point_identity(format,saved,before_identity));
         assert(!av_hls_dvr_pts_to_wall(format, before[3] - 1, &restored) && restored == -1);
         char control[1024];
         snprintf(control, sizeof(control), "%.*s/%s", (int)(strrchr(argv[1], '/') - argv[1]), argv[1], !strcmp(argv[3], "reopen") ? "advance" : "invalidate-time");
@@ -157,6 +240,7 @@ int main(int argc, char **argv) {
             assert(!av_hls_dvr_wall_to_pts(format, saved, &restored) && restored == -1);
             printf("\n{\"different_timeline_refused\":true}");
         } else {
+        assert(av_hls_dvr_point_identity(format,saved,after_identity) && !memcmp(before_identity,after_identity,sizeof before_identity));
         assert(av_hls_dvr_wall_to_pts(format, saved, &restored));
         assert(restored == before[3] + 6 * AV_TIME_BASE);
         assert(after[4] - restored == before[4] - restored + 4 * AV_TIME_BASE);

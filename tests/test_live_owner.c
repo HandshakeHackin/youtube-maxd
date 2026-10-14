@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <sched.h>
+static const int64_t point_identity[3]={3,1760000006000000LL,2000000};
 static tube_live_owner read_owner;
 static int64_t read_window[7];
 static _Atomic unsigned read_count, retired_count;
@@ -14,7 +15,7 @@ static void *restore_reader(void *unused) {
     (void)unused;
     while (!atomic_load(&stop_reader)) {
         int revoked=atomic_load(&retired);
-        int64_t point=tube_live_restore(&read_owner,read_window);
+        int64_t point=tube_live_restore(&read_owner,read_window,point_identity);
         if (revoked) { assert(!point); atomic_fetch_add(&retired_count,1); }
         atomic_fetch_add(&read_count,1);
     }
@@ -49,23 +50,28 @@ int main(void) {
     assert(tube_live_capture(A,live.url,&first) && tube_live_owner_current(first.token) && !first.saved_utc);
     int64_t bounds[7];window(bounds,0);
     const int64_t point=1760000006000000LL;
-    assert(tube_live_remember(&first,bounds,point));
+    assert(tube_live_remember(&first,bounds,point,point_identity));
     p->report_progress(A,0,0,EVO_PROVIDER_PLAY_STOP);
     root=read_store();char *stored=cJSON_PrintUnformatted(root);assert(stored && !strstr(stored,"capability"));free(stored);cJSON_Delete(root);
     assert(tube_live_capture(A,live.url,&again) && again.saved_utc==point && !tube_live_owner_current(first.token));
-    window(bounds,2);assert(tube_live_restore(&again,bounds)==point);
-    forged=again;snprintf(forged.profile,sizeof forged.profile,"fixture");assert(!tube_live_restore(&forged,bounds));assert(!tube_live_remember(&forged,bounds,point));
-    forged=again;snprintf(forged.video,sizeof forged.video,"bcdefghijkl");assert(!tube_live_restore(&forged,bounds));
-    forged=again;strcat(forged.url,"x");assert(!tube_live_restore(&forged,bounds));
-    forged=again;strcat(forged.origin,"x");assert(!tube_live_restore(&forged,bounds));
-    forged=again;strcat(forged.format,"x");assert(!tube_live_restore(&forged,bounds));
-    forged=again;++forged.saved_utc;assert(!tube_live_restore(&forged,bounds));
-    bounds[6]=0;assert(!tube_live_restore(&again,bounds) && !tube_live_remember(&again,bounds,point));
-    window(bounds,4);assert(!tube_live_restore(&again,bounds));
-    window(bounds,0);assert(!tube_live_remember(&again,bounds,INT64_MAX));
+    window(bounds,2);assert(tube_live_restore(&again,bounds,point_identity)==point);
+    int64_t wrong_identity[3];memcpy(wrong_identity,point_identity,sizeof wrong_identity);
+    ++wrong_identity[0];assert(!tube_live_restore(&again,bounds,wrong_identity));
+    memcpy(wrong_identity,point_identity,sizeof wrong_identity);++wrong_identity[1];assert(!tube_live_restore(&again,bounds,wrong_identity));
+    memcpy(wrong_identity,point_identity,sizeof wrong_identity);++wrong_identity[2];assert(!tube_live_restore(&again,bounds,wrong_identity));
+    assert(!tube_live_restore(&again,bounds,NULL) && !tube_live_remember(&again,bounds,point,NULL));
+    forged=again;snprintf(forged.profile,sizeof forged.profile,"fixture");assert(!tube_live_restore(&forged,bounds,point_identity));assert(!tube_live_remember(&forged,bounds,point,point_identity));
+    forged=again;snprintf(forged.video,sizeof forged.video,"bcdefghijkl");assert(!tube_live_restore(&forged,bounds,point_identity));
+    forged=again;strcat(forged.url,"x");assert(!tube_live_restore(&forged,bounds,point_identity));
+    forged=again;strcat(forged.origin,"x");assert(!tube_live_restore(&forged,bounds,point_identity));
+    forged=again;strcat(forged.format,"x");assert(!tube_live_restore(&forged,bounds,point_identity));
+    forged=again;++forged.saved_utc;assert(!tube_live_restore(&forged,bounds,point_identity));
+    bounds[6]=0;assert(!tube_live_restore(&again,bounds,point_identity) && !tube_live_remember(&again,bounds,point,point_identity));
+    window(bounds,4);assert(!tube_live_restore(&again,bounds,point_identity));
+    window(bounds,0);assert(!tube_live_remember(&again,bounds,INT64_MAX,point_identity));
     /* Shutdown/reopen keeps only the checked UTC/format/source record. */
     p->shutdown();assert(!tube_live_owner_current(again.token));assert(!p->init());play();
-    assert(tube_live_capture(A,live.url,&again) && again.saved_utc==point && tube_live_restore(&again,bounds)==point);
+    assert(tube_live_capture(A,live.url,&again) && again.saved_utc==point && tube_live_restore(&again,bounds,point_identity)==point);
     read_owner=again;memcpy(read_window,bounds,sizeof bounds);
     pthread_t reader;assert(!pthread_create(&reader,NULL,restore_reader,NULL));
     while(atomic_load(&read_count)<1000)sched_yield();
@@ -94,12 +100,12 @@ int main(void) {
         write_store(root);cJSON_Delete(root);assert(!p->init());play();
         assert(tube_live_capture(A,live.url,&first) && !first.saved_utc);
     }
-    assert(tube_live_remember(&first,bounds,point));p->report_progress(A,0,0,EVO_PROVIDER_PLAY_STOP);
+    assert(tube_live_remember(&first,bounds,point,point_identity));p->report_progress(A,0,0,EVO_PROVIDER_PLAY_STOP);
     assert(tube_live_capture(A,live.url,&first) && first.saved_utc==point);
     p->list_catalog("settings:clear-history",0,items_cb,NULL);assert(last_ok && !tube_live_owner_current(first.token));
     assert(tube_live_capture(A,live.url,&first) && !first.saved_utc);
     p->list_catalog("settings:history:2",0,items_cb,NULL);assert(last_ok && !tube_live_owner_current(first.token));
-    assert(tube_live_capture(A,live.url,&first) && !first.saved_utc && !tube_live_remember(&first,bounds,point));
+    assert(tube_live_capture(A,live.url,&first) && !first.saved_utc && !tube_live_remember(&first,bounds,point,point_identity));
     p->shutdown();assert(!tube_live_owner_current(first.token));
     puts("PASS: live source/session/profile/video/format ownership, expiry, UTC persistence and privacy");
     return 0;

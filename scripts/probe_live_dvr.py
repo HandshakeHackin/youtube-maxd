@@ -14,7 +14,7 @@ import tempfile
 from threading import Thread
 
 
-def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
+def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=False):
     with tempfile.TemporaryDirectory(prefix='tube-live-dvr-') as directory:
         root = Path(directory)
         subprocess.run([ffmpeg, '-hide_banner', '-v', 'error', '-y', '-f', 'lavfi', '-i',
@@ -37,6 +37,7 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
                 if key.startswith('invalidate-'):
                     if key == 'invalidate-gap': state['gap'] = True
                     elif key == 'invalidate-time': state['time'] = 100
+                    elif key == 'invalidate-small-time': state['time'] = 1
                     elif key == 'invalidate-sequence': state['start'] = -1
                     elif key == 'invalidate-jump': state['start'] = 4
                     elif key == 'invalidate-expiry': state['active'] = False
@@ -50,6 +51,7 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
                     body += f'#EXT-X-MEDIA-SEQUENCE:{start}\n'
                     if key == 'event.m3u8': body += '#EXT-X-PLAYLIST-TYPE:EVENT\n'
                     body += ''.join('#EXT-X-PROGRAM-DATE-TIME:' + datetime.fromtimestamp(1760000000 + i * 2 + state['time'], timezone.utc).isoformat().replace('+00:00', 'Z') + f'\n#EXTINF:2.000000,\nsource{i}.ts\n' for i in range(start, start + 4))
+                    if key == 'empty-selected.m3u8': body = body.replace('source2.ts', 'empty2.ts')
                     if key == 'transport-reset.m3u8': body = body.replace('source', 'reset')
                     if key == 'missing-time.m3u8': body = '\n'.join(line for line in body.splitlines() if not line.startswith('#EXT-X-PROGRAM-DATE-TIME:')) + '\n'
                     if key == 'discontinuity.m3u8' or state['gap']: body = body.replace('#EXTINF:', '#EXT-X-DISCONTINUITY\n#EXTINF:', 1)
@@ -57,6 +59,8 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
                     if key == 'finite.m3u8': body += '#EXT-X-ENDLIST\n'
                     if key == 'variants.m3u8': body = '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100000,CODECS="avc1.42c00a"\nrolling.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=90000,CODECS="avc1.42c00a"\nevent.m3u8\n'
                     data = body.encode(); mime = 'application/vnd.apple.mpegurl'
+                elif key == 'empty2.ts':
+                    data = b''; mime = 'video/mp2t'
                 elif key.endswith('.ts') and ((key.startswith('source') and key[6:-3].isdigit()) or (key.startswith('reset') and key[5:-3].isdigit())):
                     index = int(key[6:-3] if key.startswith('source') else key[5:-3])
                     if not state['start'] <= index < state['start'] + 4:
@@ -90,12 +94,17 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False):
             event = probe('event.m3u8', target)
             additional = {}
             if candidate:
-                for key in ('missing-time.m3u8', 'discontinuity.m3u8', 'gap.m3u8', 'variants.m3u8'):
+                for key in ('missing-time.m3u8', 'discontinuity.m3u8', 'gap.m3u8', 'variants.m3u8', 'empty-selected.m3u8'):
                     value = probe(key, target)
-                    assert value['unseekable'] and value['seek_result'] < 0, value
+                    assert (key == 'empty-selected.m3u8' and not value['opened']) or (value['unseekable'] and value['seek_result'] < 0), value
                     additional[key] = value
                 additional['active_rollover'] = probe('rolling.m3u8', target, mode='rollover')
                 state['start'] = 0
+                if runtime:
+                    additional['runtime'] = probe('rolling.m3u8', target, mode='runtime')
+                    state['start'] = 0
+                    additional['runtime_shifted'] = probe('rolling.m3u8', target, mode='runtime-shifted')
+                    state['time'] = 0
                 additional['prepare'] = probe('rolling.m3u8', target, mode='prepare')
                 state['start'] = 0
                 additional['deadline'] = probe('rolling.m3u8', target, mode='deadline')
@@ -139,9 +148,10 @@ def main():
     parser.add_argument('--ffmpeg', default='ffmpeg')
     parser.add_argument('--diagnose-current-limitations', action='store_true')
     parser.add_argument('--candidate-window', action='store_true')
+    parser.add_argument('--runtime-window', action='store_true')
     parser.add_argument('--result', type=Path)
     args = parser.parse_args()
-    report = run(args.binary.resolve(), ffmpeg=args.ffmpeg, diagnose=args.diagnose_current_limitations, candidate=args.candidate_window)
+    report = run(args.binary.resolve(), ffmpeg=args.ffmpeg, diagnose=args.diagnose_current_limitations, candidate=args.candidate_window, runtime=args.runtime_window)
     text = json.dumps(report, indent=2) + '\n'
     if args.result: args.result.parent.mkdir(parents=True, exist_ok=True); args.result.write_text(text)
     print(text, end='')
