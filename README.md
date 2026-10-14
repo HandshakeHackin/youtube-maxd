@@ -231,24 +231,23 @@ real video shelves for a Guest, opening a topic, search with suggestions while
 typing, About, and playback of several videos with seeking, through the ranged
 manifests described below.
 
-Everything else is tested on a PC only (the offline suite,
-`bash scripts/test_all.sh`) and has not run on a console: accounts beyond a
-first sign-in, phone casting (no real phone has been linked), the update check
-and self-update, the interface languages, AV1 and 4K playback, recovery when a
-media link expires, backups and the seek preview. [Status](docs/STATUS.md)
-lists each part and its evidence.
+Further acceptance is still needed for real account use, phone casting, a
+published update, interface languages, AV1, HDR, backups and long playback.
+Two bounded 2160p VP9 cases decoded a valid first frame but ended in a GPU
+page fault before playback advanced; 4K is not accepted. The native frame-pool
+lease fix passes offline checks, but the second case shows another faulting
+address outside that pool. [Status](docs/STATUS.md) lists the evidence.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player,
-languages that need other fonts or right-to-left layout, auto frame rate, HDR
-and background playback.
+languages that need other fonts or right-to-left layout, auto frame rate and HDR.
 
 > [!IMPORTANT]
 > ProsperoTube asks YouTube as one client identity, `VISIONOS`, with no
 > fallback but HLS. When YouTube changes its service, playback can stop until
 > an update of the app arrives. On 2026-10-14 YouTube began refusing requests
-> for whole media files; since then the player reads each stream in small byte
-> ranges, which for now limits playback to MP4 streams (AVC or AV1 with AAC).
+> for whole media files; the player now reads MP4 and WebM streams in small byte
+> ranges. Native VP9 1080p has passed on the console; 2160p is under investigation.
 
 ## Roadmap
 
@@ -266,7 +265,9 @@ What is planned, roughly in order. Nothing here has a date.
 - [x] Home: the account's service count on the notifications bell, refreshed
       periodically and after opening notifications (host-tested; real-account
       console acceptance pending).
-- [ ] Translations of the Afterglow interface's texts into the 21 languages.
+- [x] Translations of the Afterglow interface's texts into the 21 languages
+      (all catalog texts and integer-count forms covered; console language and
+      native-speaker review pending).
 - [x] The interface's own procedural sound assets in place of the UI kit's
       sounds (format, level and package checks pass; listening and console
       acceptance pending).
@@ -292,7 +293,9 @@ What is planned, roughly in order. Nothing here has a date.
 
 **Smaller items**
 - [ ] Posting comments and live-chat messages beyond the current experimental
-      rows; queue reordering in the Library.
+      rows.
+- [x] Queue reordering in the Library through scoped Move up/down actions
+      (provider and four-look board checks pass; console acceptance pending).
 - [ ] Voice search without a computer.
 - [ ] A web proxy setting.
 - [ ] Backup to Google Drive.
@@ -446,9 +449,9 @@ playing, stop, close the app) and whether phone playback enters the history.
 ## Choosing the interface and theme
 
 - **YouTube preferences > Interface > Interface** chooses **Classic**, the
-  default and complete browser, or **Afterglow (preview)**. Afterglow's
-  screens are in the tree and drawn by its PC harness, but it has never run on
-  a console; a page it does not have yet says so.
+  default browser, or **Afterglow (preview)**. Afterglow's screens run in its
+  PC harness and have been exercised on a console; remaining hardware checks
+  are tracked in [Status](docs/STATUS.md).
 - **Theme**, per profile: Afterglow (the default), Onyx on true black, the
   light Daybreak, or High contrast; the nine earlier colour schemes are under
   **Classic colours**.
