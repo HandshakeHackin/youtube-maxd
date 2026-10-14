@@ -94,6 +94,67 @@ double PlaybackController::clampScrubTarget(double target) const {
     replace(demux,'    if (!tube_seek_times(play_fmt, seek_stream, target_seconds,', '    if (!tube_live_seek_prepare(play_fmt,target_seconds) ||\n        !tube_seek_times(play_fmt, seek_stream, target_seconds,')
     replace(demux,'        prebuffer_check(prebuffer_deadline_ms, 0);', '        if (player_paused || pb_scrub_hold) tube_live_refresh_paused(play_fmt);\n        prebuffer_check(prebuffer_deadline_ms, 0);',count=2)
     replace(demux,'        int read_result =', '        if (player_paused || pb_scrub_hold) tube_live_refresh_paused(play_fmt);\n        int read_result =')
+    # A live HLS read can wait inside av_read_frame for the next segment while
+    # the current window is static. Wake that read only for a checked DVR
+    # context with an admitted seek, then let the demux owner process it.
+    sio_header=player+'media/include/evo_stream_io.h'
+    sio=player+'media/src/evo_stream_io.c'
+    replace(sio_header,'void evo_stream_io_abort(evo_stream_io_ctx_t *ctx);', '''void evo_stream_io_abort(evo_stream_io_ctx_t *ctx);
+/* The demux owner registers its pending flag only for calibrated live DVR. */
+void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const void *pending);
+int evo_stream_io_take_seek_interrupt(AVFormatContext *fmt);''')
+    replace(sio,'    volatile int aborted;      /* evo_stream_io_abort: fail every blocking call */', '''    volatile int aborted;      /* evo_stream_io_abort: fail every blocking call */
+    const _Atomic int *seek_pending;
+    volatile int seek_interrupted;''')
+    replace(sio,'    if (ctx && ctx->aborted)\n        return 1;', '''    if (ctx && ctx->aborted)
+        return 1;
+    if (ctx && ctx->seek_pending && __atomic_load_n(ctx->seek_pending, __ATOMIC_ACQUIRE)) {
+        __atomic_store_n(&ctx->seek_interrupted, 1, __ATOMIC_RELEASE);
+        return 1;
+    }''')
+    replace(sio,'void evo_stream_io_abort(evo_stream_io_ctx_t *ctx)\n{', '''void evo_stream_io_interrupt_on_seek(AVFormatContext *fmt, const void *pending)
+{
+    if (!fmt || fmt->interrupt_callback.callback != sio_interrupt_cb) return;
+    evo_stream_io_ctx_t *ctx = (evo_stream_io_ctx_t *)fmt->interrupt_callback.opaque;
+    if (!ctx) return;
+    __atomic_store_n(&ctx->seek_interrupted, 0, __ATOMIC_RELEASE);
+    ctx->seek_pending = (const _Atomic int *)pending;
+}
+
+int evo_stream_io_take_seek_interrupt(AVFormatContext *fmt)
+{
+    if (!fmt || fmt->interrupt_callback.callback != sio_interrupt_cb) return 0;
+    evo_stream_io_ctx_t *ctx = (evo_stream_io_ctx_t *)fmt->interrupt_callback.opaque;
+    return ctx && !ctx->aborted && !evo_stream_io_start_cancelled() ?
+        __atomic_exchange_n(&ctx->seek_interrupted, 0, __ATOMIC_ACQ_REL) : 0;
+}
+
+void evo_stream_io_abort(evo_stream_io_ctx_t *ctx)
+{''')
+    replace(demux,'#include "evo_parallel_io.h"','#include "evo_parallel_io.h"\n#include "evo_stream_io.h"')
+    replace(demux,'    long long prebuffer_deadline_ms = now_ms() + (long long)pb_prebuffer_max_ms;', '''    long long prebuffer_deadline_ms = now_ms() + (long long)pb_prebuffer_max_ms;
+    if (tube_live_range(play_fmt, NULL, NULL))
+        evo_stream_io_interrupt_on_seek(play_fmt, &prospero_seek_pending);''')
+    replace(demux,'        if (read_result < 0) {', '''        int woke_for_seek = evo_stream_io_take_seek_interrupt(play_fmt);
+        if (read_result < 0) {
+            if (woke_for_seek && demux_thread_running &&
+                __atomic_load_n(&prospero_seek_pending, __ATOMIC_ACQUIRE)) {
+                av_packet_unref(pkt);
+                continue;
+            }''')
+    replace(demux,'    av_packet_free(&pkt);\n    return NULL;', '''    evo_stream_io_interrupt_on_seek(play_fmt, NULL);
+    av_packet_free(&pkt);
+    return NULL;''')
+    # The FFmpeg interrupt reads this flag off the demux thread. All accesses
+    # must use the same atomic protocol, including the request and queue paths.
+    replace(demux,'    prospero_seek_pending = 1;',
+            '    __atomic_store_n(&prospero_seek_pending, 1, __ATOMIC_RELEASE);')
+    replace(demux,'    prospero_seek_pending = 0;',
+            '    __atomic_store_n(&prospero_seek_pending, 0, __ATOMIC_RELEASE);')
+    replace(demux,'!prospero_seek_pending',
+            '!__atomic_load_n(&prospero_seek_pending, __ATOMIC_ACQUIRE)',count=4)
+    replace(demux,'player_paused || prospero_seek_pending || pb_scrub_hold',
+            'player_paused || __atomic_load_n(&prospero_seek_pending, __ATOMIC_ACQUIRE) || pb_scrub_hold')
     replace(demux,'    /* An audio-only source has no video frame to release a presentation hold. */', '    player_paused = 1;\n    /* An audio-only source has no video frame to release a presentation hold. */')
     screen=player+'core/src/screens/PlayerScreen.cpp'
     replace(screen,'    if (playback->isLiveSource() &&\n        (pressed & (PadButtons::L1', '    if (!playback->isSeekable() &&\n        (pressed & (PadButtons::L1')

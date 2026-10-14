@@ -14,7 +14,7 @@ import tempfile
 from threading import Thread
 
 
-def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=False):
+def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=False, interrupt_binary=None):
     with tempfile.TemporaryDirectory(prefix='tube-live-dvr-') as directory:
         root = Path(directory)
         subprocess.run([ffmpeg, '-hide_banner', '-v', 'error', '-y', '-f', 'lavfi', '-i',
@@ -35,7 +35,7 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
             def log_message(self, *_): pass
             def do_GET(self):
                 state['requests'] += 1
-                if state['requests'] > 240: self.send_error(429); return
+                if state['requests'] > 400: self.send_error(429); return
                 parts = self.path.strip('/').split('/')
                 if len(parts) != 2 or parts[0] != lease or not state['active']:
                     self.send_error(410); return
@@ -131,6 +131,12 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
                     assert additional['split_restore'][-1]['same_point_restored']
                     assert additional['split_restore'][-1]['evicted_point_refused']
                 state['start'] = 0
+                if interrupt_binary:
+                    result = subprocess.run([str(interrupt_binary), f'{base}/master.m3u8'],
+                                            capture_output=True, text=True, timeout=7)
+                    if result.returncode:
+                        raise RuntimeError(f'Live read interrupt failed: {result.stdout} {result.stderr}')
+                    additional['live_read_interrupt'] = result.stdout.strip()
                 if runtime:
                     additional['runtime'] = probe('rolling.m3u8', target, mode='runtime')
                     state['start'] = 0
@@ -181,9 +187,12 @@ def main():
     parser.add_argument('--diagnose-current-limitations', action='store_true')
     parser.add_argument('--candidate-window', action='store_true')
     parser.add_argument('--runtime-window', action='store_true')
+    parser.add_argument('--interrupt-binary', type=Path)
     parser.add_argument('--result', type=Path)
     args = parser.parse_args()
-    report = run(args.binary.resolve(), ffmpeg=args.ffmpeg, diagnose=args.diagnose_current_limitations, candidate=args.candidate_window, runtime=args.runtime_window)
+    report = run(args.binary.resolve(), ffmpeg=args.ffmpeg, diagnose=args.diagnose_current_limitations,
+                 candidate=args.candidate_window, runtime=args.runtime_window,
+                 interrupt_binary=args.interrupt_binary.resolve() if args.interrupt_binary else None)
     text = json.dumps(report, indent=2) + '\n'
     if args.result: args.result.parent.mkdir(parents=True, exist_ok=True); args.result.write_text(text)
     print(text, end='')
