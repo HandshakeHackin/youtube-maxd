@@ -490,6 +490,8 @@ static void run_command(const char *line)
     apply_agc_fence_overlay(replace, player)
     from agc_gpu_pool_overlay import apply_agc_gpu_pool_overlay
     apply_agc_gpu_pool_overlay(replace, player)
+    from agc_frame_boundary_overlay import apply as apply_agc_frame_boundary_overlay
+    apply_agc_frame_boundary_overlay(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
