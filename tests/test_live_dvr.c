@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     assert(avformat_version() == AV_VERSION_INT(61, 7, 100));
     av_log_set_level(AV_LOG_ERROR);
     AVFormatContext *format = avformat_alloc_context();assert(format);
-    probe_deadline=av_gettime_relative()+3000000;
+    probe_deadline=av_gettime_relative()+(!strcmp(argv[3],"split-runtime")?10000000:3000000);
     format->interrupt_callback=(AVIOInterruptCB){interrupted,NULL};
     AVDictionary *options = NULL;
     /* Fix the initial live segment so a seek-before-open-origin has a known,
@@ -88,8 +88,9 @@ int main(int argc, char **argv) {
         return 0;
     }
 #ifdef TUBE_DVR_RUNTIME
-    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted")) {
-        tube_live_owner owner={0};owner.token=owner_token;owner.saved_utc=1760000006000000LL;owner.saved_sequence=3;owner.saved_segment_utc=1760000006000000LL;owner.saved_duration_us=2000000;
+    tube_live_owner owner={0};
+    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted") || !strcmp(argv[3],"split-runtime")) {
+        owner.token=owner_token;owner.saved_utc=1760000006000000LL;owner.saved_sequence=3;owner.saved_segment_utc=1760000006000000LL;owner.saved_duration_us=2000000;
         snprintf(owner.profile,sizeof owner.profile,"guest");snprintf(owner.video,sizeof owner.video,"abcdefghijk");
         snprintf(owner.url,sizeof owner.url,"%s",argv[1]);tube_live_context_open(format,&owner,argv[1]);
     }
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
         avformat_close_input(&format);return 0;
     }
 #ifdef TUBE_DVR_RUNTIME
-    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted")) {
+    if (!strcmp(argv[3],"runtime") || !strcmp(argv[3],"runtime-shifted") || !strcmp(argv[3],"split-runtime")) {
         double base,restore;
         assert(tube_live_context_calibrate(format,&base,&restore));
         assert(base>3.9 && base<4.1 && fabs(restore-6.0)<.001);
@@ -116,6 +117,13 @@ int main(int argc, char **argv) {
      * insufficient. Shipping code must never clear this flag speculatively. */
     if (!strcmp(argv[3], "diagnose-clear-gate")) format->ctx_flags &= ~AVFMTCTX_UNSEEKABLE;
     double target = strtod(argv[2], NULL);
+#ifdef TUBE_DVR_CANDIDATE
+    if (!strncmp(argv[3], "split", 5)) {
+        int64_t split_window[7];
+        assert(av_hls_get_dvr_window(format, split_window));
+        target = (split_window[3] + AV_TIME_BASE / 4) / (double)AV_TIME_BASE;
+    }
+#endif
     int64_t timestamp = llround(target / av_q2d(format->streams[video]->time_base));
     int sought = av_seek_frame(format, video, timestamp, AVSEEK_FLAG_BACKWARD);
     double landed = sought < 0 ? NAN : packet_position(format, video);
@@ -123,7 +131,74 @@ int main(int argc, char **argv) {
            avformat_version(), unseekable ? "true" : "false", origin, first, target, sought);
     if (isfinite(landed)) printf("%.6f", landed); else fputs("null", stdout);
     fputs("}", stdout);
+#ifdef TUBE_DVR_CANDIDATE
+    if (!strcmp(argv[3], "split") || !strcmp(argv[3], "split-invalidate-audio") || !strcmp(argv[3], "split-runtime")) {
+        int64_t window[7];
+        int audio = av_find_best_stream(format, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+        assert(audio >= 0 && !unseekable && sought >= 0 && av_hls_get_dvr_window(format, window));
+        assert(window[4] - window[3] == 8 * AV_TIME_BASE);
+        assert(av_seek_frame(format, video, timestamp, AVSEEK_FLAG_BACKWARD) >= 0);
+        AVPacket *packet = av_packet_alloc();
+        double video_pts = NAN, audio_pts = NAN;
+        for (int i = 0; i < 500 && (!isfinite(video_pts) || !isfinite(audio_pts)); ++i) {
+            assert(av_read_frame(format, packet) >= 0);
+            if (packet->pts != AV_NOPTS_VALUE) {
+                double pts = packet->pts * av_q2d(format->streams[packet->stream_index]->time_base);
+                if (packet->stream_index == video && !isfinite(video_pts)) video_pts = pts;
+                if (packet->stream_index == audio && !isfinite(audio_pts)) audio_pts = pts;
+            }
+            av_packet_unref(packet);
+        }
+        av_packet_free(&packet);
+        assert(isfinite(video_pts) && isfinite(audio_pts) && fabs(video_pts - audio_pts) < .5);
+        if (!strcmp(argv[3], "split-invalidate-audio")) {
+            char control[1024];
+            snprintf(control, sizeof(control), "%.*s/invalidate-audio-time",
+                     (int)(strrchr(argv[1], '/') - argv[1]), argv[1]);
+            AVIOContext *io = NULL; unsigned char byte;
+            assert(avio_open2(&io, control, AVIO_FLAG_READ, NULL, NULL) >= 0);
+            assert(avio_read(io, &byte, 1) == 1); avio_closep(&io);
+            assert(!av_hls_dvr_prepare_seek(format, llround(target * AV_TIME_BASE)));
+            assert(!av_hls_get_dvr_window(format, window));
+        }
+        printf("\n{\"split_audio_video_calibrated\":true,\"audio_shift_refused\":%s}",
+               !strcmp(argv[3], "split-invalidate-audio") ? "true" : "false");
+    }
+#endif
 #ifdef TUBE_DVR_RUNTIME
+    if (!strcmp(argv[3],"split-runtime")) {
+        int64_t window[7];
+        assert(av_hls_get_dvr_window(format,window));
+        int64_t played=window[3]+6*AV_TIME_BASE;
+        int stream=av_find_best_stream(format,AVMEDIA_TYPE_VIDEO,-1,-1,NULL,0);
+        assert(tube_live_seek_prepare(format,6.0));
+        assert(av_seek_frame(format,stream,av_rescale_q(played,AV_TIME_BASE_Q,format->streams[stream]->time_base),AVSEEK_FLAG_BACKWARD)>=0);
+        assert(fabs(packet_position(format,stream)-played/(double)AV_TIME_BASE)<.2);
+        tube_live_remember_position(format,6.0);assert(remembered==1760000006000000LL);
+        char control[1024];AVIOContext *io=NULL;unsigned char byte;
+        snprintf(control,sizeof(control),"%.*s/advance",(int)(strrchr(argv[1],'/')-argv[1]),argv[1]);
+        assert(avio_open2(&io,control,AVIO_FLAG_READ,NULL,NULL)>=0 && avio_read(io,&byte,1)==1);avio_closep(&io);
+        tube_live_context_release(format);avformat_close_input(&format);
+        av_dict_set(&options,"live_start_index","-2",0);av_dict_set(&options,"prosperotube_dvr","1",0);
+        assert(avformat_open_input(&format,argv[1],NULL,&options)>=0);av_dict_free(&options);
+        tube_live_context_open(format,&owner,argv[1]);assert(avformat_find_stream_info(format,NULL)>=0);
+        double base,restore;
+        assert(tube_live_context_calibrate(format,&base,&restore) && base>3.9 && base<4.1 && fabs(restore-2.0)<.001);
+        assert(tube_live_range(format,NULL,NULL));
+        stream=av_find_best_stream(format,AVMEDIA_TYPE_VIDEO,-1,-1,NULL,0);
+        played=format->start_time+2*AV_TIME_BASE;
+        assert(av_seek_frame(format,stream,av_rescale_q(played,AV_TIME_BASE_Q,format->streams[stream]->time_base),AVSEEK_FLAG_BACKWARD)>=0);
+        assert(fabs(packet_position(format,stream)-played/(double)AV_TIME_BASE)<.2);
+        snprintf(control,sizeof(control),"%.*s/evict",(int)(strrchr(argv[1],'/')-argv[1]),argv[1]);
+        assert(avio_open2(&io,control,AVIO_FLAG_READ,NULL,NULL)>=0 && avio_read(io,&byte,1)==1);avio_closep(&io);
+        tube_live_context_release(format);avformat_close_input(&format);
+        av_dict_set(&options,"live_start_index","-2",0);av_dict_set(&options,"prosperotube_dvr","1",0);
+        assert(avformat_open_input(&format,argv[1],NULL,&options)>=0);av_dict_free(&options);
+        tube_live_context_open(format,&owner,argv[1]);assert(avformat_find_stream_info(format,NULL)>=0);
+        assert(tube_live_context_calibrate(format,&base,&restore) && restore<0);
+        tube_live_context_release(format);
+        printf("\n{\"same_point_restored\":true,\"evicted_point_refused\":true}");
+    }
     if (!strcmp(argv[3],"runtime-shifted")) {
         char control[1024];
         snprintf(control,sizeof(control),"%.*s/invalidate-small-time",(int)(strrchr(argv[1],'/')-argv[1]),argv[1]);

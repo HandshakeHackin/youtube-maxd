@@ -6,7 +6,7 @@ from yt_dlp.extractor.youtube import YoutubeIE
 
 from .models import ServiceError, safe_remote
 from .paid_content import PaidContentMixin
-from .player_metadata import LoudnessMixin
+from .player_metadata import PlayerMetadataMixin
 
 
 def attributes(line):
@@ -48,9 +48,17 @@ def apply_master(info, master, content):
                     audio['acodec'] = audio_codec
                     paired.append(audio_url)
         for video in formats:
-            if (paired and video.get('url') == url and video.get('manifest_url') == master
-                    and video.get('vcodec') == video_codec and video.get('acodec') == 'none'):
-                video['hls_audio_urls'] = list(dict.fromkeys([*video.get('hls_audio_urls', []), *paired]))
+            if (video.get('url') == url and video.get('manifest_url') == master
+                    and video.get('vcodec') == video_codec):
+                if attrs.get('VIDEO-RANGE') in ('PQ', 'HLG'):
+                    video['_tube_hls_video_range'] = video['dynamic_range'] = (
+                        'HDR10' if attrs['VIDEO-RANGE'] == 'PQ' else 'HLG')
+                else:
+                    video.pop('_tube_hls_video_range', None)
+                    if video.get('dynamic_range') == 'HDR10':
+                        video['dynamic_range'] = 'UNKNOWN'
+                if paired and video.get('acodec') == 'none':
+                    video['hls_audio_urls'] = list(dict.fromkeys([*video.get('hls_audio_urls', []), *paired]))
 
 
 class LiveHLSMixin:
@@ -65,7 +73,7 @@ class LiveHLSMixin:
         return formats, subtitles
 
 
-class LiveHLSYoutubeIE(LoudnessMixin, PaidContentMixin, LiveHLSMixin, YoutubeIE):
+class LiveHLSYoutubeIE(PlayerMetadataMixin, PaidContentMixin, LiveHLSMixin, YoutubeIE):
     @classmethod
     def ie_key(cls):
         return 'Youtube'

@@ -147,6 +147,7 @@ def player():
                 picture(399, 'video/mp4; codecs="av01.0.09M.08"', 1920, 1080, 60, 1568000, "1080p60"),
                 picture(136, 'video/mp4; codecs="avc1.4d401f"', 1280, 720, 30, 1100000, "720p"),
                 picture(315, 'video/webm; codecs="vp9"', 3840, 2160, 60, 17174000, "2160p60"),
+                picture(337, 'video/webm; codecs="vp09.02.51.10"', 3840, 2160, 30, 18500000, "2160p30 HDR"),
                 sound(140, 'audio/mp4; codecs="mp4a.40.2"', 129500, 44100),
                 sound(140, 'audio/mp4; codecs="mp4a.40.2"', 129600, 44100, {"isDrc": True}),
                 sound(251, 'audio/webm; codecs="opus"', 135000, 48000)]},

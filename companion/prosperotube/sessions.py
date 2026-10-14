@@ -131,12 +131,12 @@ class Sessions:
                     and (request.codec == "auto" or codec == {"avc": "h264", "vp9": "vp9", "av1": "av1", "hevc": "hevc"}.get(request.codec))
                     and 0 < number(fmt.get("height")) <= request.max_height
                     and (not request.max_fps or 0 < number(fmt.get("fps")) <= request.max_fps)
-                    and fmt.get("dynamic_range", "SDR") in (None, "SDR")
+                    and fmt.get("dynamic_range", "SDR") in (None, "SDR", "HDR10", "HLG")
                     and not fmt.get("has_drm"))
 
         videos = sorted((f for f in formats if eligible(f)),
                         key=lambda f: (number(f.get("height")), {"h264": 3, "vp9": 2, "hevc": 1, "av1": 0}.get(codec_name(str(f.get("vcodec", ""))), -1),
-                                       number(f.get("fps")), number(f.get("tbr"))), reverse=True)
+                                       number(f.get("fps")), f.get("dynamic_range") in ("HDR10", "HLG"), number(f.get("tbr"))), reverse=True)
         audios = [f for f in formats if f.get("url") and f.get("vcodec") == "none"
                   and codec_name(str(f.get("acodec", ""))) in {"aac", "opus"}
                   and f.get("protocol") in ("http", "https") and not f.get("has_drm")]
@@ -153,7 +153,8 @@ class Sessions:
             acodec = codec_name(str(fmt.get("acodec", "")))
             height = int(number(fmt.get("height")))
             protocol = fmt.get("protocol")
-            key = (height, vcodec, bool(acodec), protocol)
+            video_range = fmt.get('dynamic_range') or 'SDR'
+            key = (height, vcodec, bool(acodec), protocol, video_range)
             if key in seen or len(choices) >= 8:
                 continue
             if protocol in ("m3u8", "m3u8_native") and live and acodec:
@@ -191,13 +192,14 @@ class Sessions:
             seen.add(key)
             fps = max(0, number(fmt.get("fps")))
             rate_label = f" {fps:g} fps" if fps else ""
-            choices.append(Choice(url=url, label=f"{height}p{rate_label} {vcodec.upper()} / {acodec.upper()}",
+            choices.append(Choice(url=url, label=f"{height}p{rate_label} {vcodec.upper()} / {acodec.upper()}" +
+                                  (f" {video_range}" if video_range != 'SDR' else ''),
                                   container=container, video_codec=vcodec, audio_codec=acodec,
                                   width=int(number(fmt.get("width"))), height=height, fps=fps,
                                   bitrate_bps=int(number(fmt.get("tbr")) * 1000), is_live=live,
-                                  audio_channels=2))
+                                  audio_channels=2, video_range=video_range))
         if not choices:
-            raise ServiceError("unsupported_media", "No compatible AVC/VP9/HEVC/AV1 SDR stream was returned. This video may require a different runtime, token, transport, or quality setting.", 422)
+            raise ServiceError("unsupported_media", "No compatible AVC/VP9/HEVC/AV1 stream was returned. This video may require a different runtime, token, transport, or quality setting.", 422)
         captions = []
         subtitles = dict(info.get("subtitles") or {})
         automatic = info.get("automatic_captions") or {}

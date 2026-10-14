@@ -9,7 +9,7 @@ from yt_dlp.extractor.youtube import YoutubeIE
 from prosperotube.live_hls import LiveHLSYoutubeIE
 from prosperotube.models import ResolveRequest
 from prosperotube.oauth_video import TVOAuthYoutubeIE
-from prosperotube.player_metadata import loudness, player_loudness
+from prosperotube.player_metadata import codec_range, loudness, player_loudness, player_ranges
 from prosperotube.sessions import Sessions
 from test_companion import AUTH, BASE, ID, Chunks, FakeExtractor, info, app
 
@@ -39,6 +39,37 @@ def test_loudness_is_a_bounded_number_from_the_matching_player_response(value, e
     {"videoDetails": {"videoId": ID}, "playerConfig": []}, {"videoDetails": {"videoId": ID}, "playerConfig": {"audioConfig": 3}}])
 def test_missing_or_malformed_loudness_is_unknown(value):
     assert player_loudness(value, ID) is None
+
+
+def test_explicit_youtube_transfer_overrides_profile_based_hdr_guess(monkeypatch):
+    captured = [response(None) | {"streamingData": {"adaptiveFormats": [
+        {"itag": 337, "colorInfo": {"transferCharacteristics": "COLOR_TRANSFER_CHARACTERISTICS_ARIB_STD_B67"}},
+        {"itag": 701, "colorInfo": {"transferCharacteristics": "COLOR_TRANSFER_CHARACTERISTICS_SMPTEST2084"}},
+        {"itag": 313, "colorInfo": {"transferCharacteristics": "COLOR_TRANSFER_CHARACTERISTICS_BT709"}},
+    ]}}]
+    assert player_ranges(captured[0], ID) == {"337": "HLG", "701": "HDR10", "313": "SDR"}
+    assert player_ranges(captured[0], "other-video") == {}
+    assert player_ranges({"videoDetails": {"videoId": ID}, "streamingData": {"adaptiveFormats": [
+        {"itag": 337, "colorInfo": {"transferCharacteristics": []}}]}}, ID) == {}
+    assert codec_range("vp09.02.51.10.01.09.18.09.00") == "HLG"
+    assert codec_range("av01.0.12M.10.0.110.09.16.09.0") == "HDR10"
+    assert codec_range("vp9.2") is None
+    monkeypatch.setattr(YoutubeIE, "_extract_player_responses", lambda *a, **k: (captured, "player-url"))
+    def extraction(self, url):
+        self._extract_player_responses([], ID, None)
+        return {"id": ID, "formats": [
+            {"format_id": "337", "vcodec": "vp9.2", "dynamic_range": "HDR10"},
+            {"format_id": "701", "vcodec": "av01.0.12M.10", "dynamic_range": "HDR10"},
+            {"format_id": "642", "vcodec": "vp09.02.51.10.01.09.18.09.00", "dynamic_range": "HDR10"},
+            {"format_id": "313", "vcodec": "vp9", "dynamic_range": "HDR10"},
+            {"format_id": "999", "vcodec": "vp9.2", "protocol": "https", "dynamic_range": "HDR10"},
+            {"format_id": "998", "vcodec": "vp9.2", "protocol": "m3u8_native", "dynamic_range": "HDR10"},
+            {"format_id": "997", "vcodec": "vp9.2", "protocol": "m3u8_native", "dynamic_range": "HDR10",
+             "_tube_hls_video_range": "HLG"}]}
+    monkeypatch.setattr(YoutubeIE, "_real_extract", extraction)
+    for extractor in (LiveHLSYoutubeIE(), TVOAuthYoutubeIE("test-token")):
+        ranges = [fmt["dynamic_range"] for fmt in extractor._real_extract("fixture")["formats"]]
+        assert ranges == ["HLG", "HDR10", "HLG", "SDR", "UNKNOWN", "UNKNOWN", "HLG"]
 
 
 @pytest.mark.parametrize("account", [False, True])

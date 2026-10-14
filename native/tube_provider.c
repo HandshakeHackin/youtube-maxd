@@ -3596,7 +3596,9 @@ static void resolved(Request *r, const cJSON *root) {
         copy(out->container, sizeof out->container, str(c, "container"));
         copy(out->video_codec, sizeof out->video_codec, str(c, "video_codec"));
         copy(out->audio_codec, sizeof out->audio_codec, str(c, "audio_codec"));
-        copy(out->video_range, sizeof out->video_range, "SDR");
+        const char *range = str(c, "video_range");
+        copy(out->video_range, sizeof out->video_range,
+             !strcmp(range, "HDR10") || !strcmp(range, "HLG") ? range : "SDR");
         out->width = (int)num(c, "width"); out->height = (int)num(c, "height");
         out->bitrate_bps = (int64_t)num(c, "bitrate_bps"); out->is_live = boolean(c, "is_live");
         out->audio_channels = (int)num(c, "audio_channels");
@@ -6452,7 +6454,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             snprintf(label, sizeof label, "Remember speed: %s", speed_modes[g_speed_mode]);
             CATALOG_FOLDER( "settings:speed-mode", label, "Video and channel memories are separate for each profile");
             snprintf(label, sizeof label, "Video codec: %s", g_codec == 1 ? "AVC" : g_codec == 2 ? "VP9" : g_codec == 3 ? "AV1" : g_codec == 4 ? "HEVC" : "Automatic");
-            CATALOG_FOLDER( "settings:codec", label, "SDR tracks; AV1 uses software decoding. HDR remains deferred");
+            CATALOG_FOLDER( "settings:codec", label, "Video codec");
             CATALOG_FOLDER( "settings:captions", g_captions ? "Captions: on" : "Captions: off", "Apply when opening the next video");
             snprintf(label, sizeof label, "Caption language: %s", g_language);
             CATALOG_FOLDER( "settings:languages", label, "Choose a caption language");

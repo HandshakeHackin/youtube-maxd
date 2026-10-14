@@ -3,7 +3,7 @@
 set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 source="${PROSPEROTUBE_DVR_FFMPEG_SOURCE:?Set PROSPEROTUBE_DVR_FFMPEG_SOURCE to an isolated configured FFmpeg 7.1.1 build}"
-destination="${root}/build/tests/live-dvr"
+destination="${PROSPEROTUBE_DVR_TEST_WORK:-${root}/build/tests/live-dvr}"
 mkdir -p "${destination}"
 for archive in libavformat/libavformat.a libavcodec/libavcodec.a libswresample/libswresample.a libavutil/libavutil.a; do
     [[ -f "${source}/${archive}" ]] || { echo "Missing candidate archive: ${source}/${archive}" >&2; exit 2; }

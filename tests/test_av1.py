@@ -24,7 +24,7 @@ def test_av1_dash_retains_codec_container_and_private_refresh_binding(raw, conta
     assert 'signature' not in result.model_dump_json()
 
 
-@pytest.mark.parametrize('change', [{'has_drm': True}, {'dynamic_range': 'HDR10'}, {'dynamic_range': 'HLG'},
+@pytest.mark.parametrize('change', [{'has_drm': True}, {'dynamic_range': 'Dolby Vision'},
                                    {'height': 2160}, {'protocol': 'sabr'}])
 def test_av1_does_not_bypass_existing_media_restrictions(change):
     source = info()
@@ -56,6 +56,7 @@ def test_av1_progressive_and_split_live_hls_mapping():
                  url='https://r1.googlevideo.com/a.m3u8', manifest_url=master)
     source.update(is_live=True, formats=[video, audio])
     apply_master(source, master, '#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="a",URI="a.m3u8"\n'
-                 '#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="a",CODECS="av01.0.08M.08,mp4a.40.2"\nv.m3u8\n')
+                 '#EXT-X-STREAM-INF:BANDWIDTH=1000000,AUDIO="a",VIDEO-RANGE=PQ,CODECS="av01.0.08M.08,mp4a.40.2"\nv.m3u8\n')
     choice = Sessions().create(source, ResolveRequest(id=ID, codec='av1'), BASE).choices[0]
     assert choice.container == 'hls' and choice.video_codec == 'av1' and choice.audio_codec == 'aac'
+    assert choice.video_range == 'HDR10' and choice.label.endswith(' HDR10')

@@ -62,6 +62,19 @@ double PlaybackController::clampScrubTarget(double target) const {
     }''')
     replace(controller,'!isActive() || isLiveSource() || isScrubbing()', '!isActive() || !isSeekable() || isScrubbing()')
     replace(controller,'!std::isfinite(deltaSeconds) || !isActive() || isLiveSource() ||', '!std::isfinite(deltaSeconds) || !isActive() || !isSeekable() ||')
+    app=player+'core/src/Application.cpp'
+    replace(app, '''                if (!pb || !pb->isActive() || pb->isLiveSource() || pb->isScrubbing()) return 0;
+                double duration = pb->getDurationSeconds();
+                if (duration > 0 && position >= duration) position = std::max(0.0, duration - 0.05);''', '''                if (!pb || !pb->isActive() || !pb->isSeekable() || pb->isScrubbing() ||
+                    !std::isfinite(position)) return 0;
+                if (pb->isLiveSource()) {
+                    double first, last;
+                    if (!pb->getSeekRange(&first, &last)) return 0;
+                    position = std::clamp(position, first, std::max(first, last - 0.25));
+                } else {
+                    double duration = pb->getDurationSeconds();
+                    if (duration > 0 && position >= duration) position = std::max(0.0, duration - 0.05);
+                }''')
     replace(controller,'void PlaybackController::jumpChapter(int direction) {', '''void PlaybackController::jumpChapter(int direction) {
     if (isLiveSource()) {
         if (isSeekable()) seekTo(clampScrubTarget(getPlaybackPositionSeconds()+(direction>0?30.0:-30.0)),isPaused());

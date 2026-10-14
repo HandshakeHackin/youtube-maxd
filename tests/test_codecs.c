@@ -2,6 +2,11 @@
 #define main existing_provider_regression
 #include "test_native.c"
 #undef main
+static const char *expected_range;
+static void range_cb(int ok, const evo_stream_choice_t *choices, int count, void *ud) {
+    (void)ud;
+    assert(ok && count == 1 && !strcmp(choices[0].video_range, expected_range));
+}
 int main(void) {
     char dir[]="/tmp/tube-codecs-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
@@ -21,6 +26,15 @@ int main(void) {
         poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"container\":\"dash\",\"video_codec\":\"hevc\",\"audio_codec\":\"aac\"}]}}");
         assert(last_ok && !pending_count);
     }
+    expected_range="HDR10";
+    assert(!p->resolve("abcdefghijk",range_cb,NULL));
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/hdr.mpd\",\"video_range\":\"HDR10\"}]}}");
+    expected_range="HLG";
+    assert(!p->resolve("abcdefghijk",range_cb,NULL));
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/hlg.mpd\",\"video_range\":\"HLG\"}]}}");
+    expected_range="SDR";
+    assert(!p->resolve("abcdefghijk",range_cb,NULL));
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/other.mpd\",\"video_range\":\"invalid\"}]}}");
     /* The codec is a preference: a video without it is asked for once more in any codec and plays; the setting stays. */
     for(int i=0;i<4;++i) {p->list_catalog("settings:codec",0,items_cb,NULL);assert(last_ok);}
     const char *refused="{\"state\":\"failed\",\"error\":{\"code\":\"unsupported_media\",\"message\":\"No compatible stream was returned.\"}}";

@@ -11,10 +11,10 @@ def patch(source):
         if stamp in source: return source
         raise RuntimeError('DVR overlay changed; restore pristine pinned hls.c before applying')
     changes = [
-        ('#include "libavutil/time.h"', '#include "libavutil/time.h"\n#include "libavutil/parseutils.h"\n#include "libavutil/thread.h"'),
+        ('#include "libavutil/time.h"', '#include "libavutil/time.h"\n#include "libavutil/parseutils.h"\n#include "libavutil/thread.h"\n#include <stdlib.h>'),
         ('struct segment {\n', 'struct segment {\n    int64_t dvr_utc;\n'),
-        ('    int finished;\n', '    int dvr_bad;\n    int64_t dvr_selected_seq;\n    int finished;\n'),
-        ('    int live_start_index;\n', '    int live_start_index;\n    int tube_dvr, dvr_anchored, dvr_disabled, dvr_mutex_ready;\n    int64_t dvr_offset, dvr_first_utc, dvr_last_pts[16], dvr_snapshot[7];\n    AVMutex dvr_mutex;\n    int64_t (*dvr_points)[3];\n    int dvr_point_count;\n'),
+        ('    int finished;\n', '    int dvr_bad;\n    int64_t dvr_selected_seq;\n    int dvr_kind, dvr_seen;\n    int64_t dvr_first_pts, dvr_first_utc;\n    int finished;\n'),
+        ('    int live_start_index;\n', '    int live_start_index;\n    int tube_dvr, dvr_anchored, dvr_disabled, dvr_mutex_ready, dvr_refreshing, dvr_video_playlist;\n    int64_t dvr_offset, dvr_first_utc, dvr_last_pts[2][16], dvr_snapshot[7];\n    AVMutex dvr_mutex;\n    int64_t (*dvr_points)[3];\n    int dvr_point_count;\n'),
         ('    int64_t duration = 0;\n    enum KeyType', '    int64_t duration = 0;\n    int64_t dvr_utc = AV_NOPTS_VALUE;\n    enum KeyType'),
         ('        pls->finished = 0;\n', '        pls->finished = 0;\n        pls->dvr_bad = 0;\n'),
         ('        } else if (av_strstart(line, "#EXTINF:", &ptr)) {', '''        } else if (av_strstart(line, "#EXT-X-PROGRAM-DATE-TIME:", &ptr)) {
@@ -72,19 +72,18 @@ static struct segment *current_segment'''),
     c->dvr_mutex_ready = 1;
     c->ctx                = s;'''),
         ('                seg = current_segment(pls);\n', '                tube_dvr_observe(c, pls);\n                seg = current_segment(pls);\n'),
-        ('    if ((flags & AVSEEK_FLAG_BYTE) || (c->ctx->ctx_flags & AVFMTCTX_UNSEEKABLE))', '''    /* Refresh/revalidate on the demux owner before any flush or clock change. */
-    if (c->tube_dvr && c->dvr_anchored && c->n_playlists == 1 && !c->playlists[0]->finished) {
-        if (parse_playlist(c, c->playlists[0]->url, c->playlists[0], NULL) < 0) {
-            c->dvr_disabled = 1;
-            tube_dvr_publish(c);
-            return AVERROR(EIO);
-        }
-        if (!c->dvr_snapshot[0]) return AVERROR(ENOSYS);
-    }
+        ('    if ((flags & AVSEEK_FLAG_BYTE) || (c->ctx->ctx_flags & AVFMTCTX_UNSEEKABLE))', '''    /* Revalidate both tracks before the subdemuxers are reset. */
+    if (c->tube_dvr && c->dvr_anchored &&
+        !av_hls_dvr_prepare_seek(s, av_rescale_q(timestamp,
+            s->streams[stream_index]->time_base, AV_TIME_BASE_Q))) return AVERROR(EIO);
     if ((flags & AVSEEK_FLAG_BYTE) || (c->ctx->ctx_flags & AVFMTCTX_UNSEEKABLE))'''),
         ('        pls->cur_seq_no = select_cur_seq_no(c, pls);\n        highest_cur_seq_no', '        pls->cur_seq_no = select_cur_seq_no(c, pls);\n        pls->dvr_selected_seq = pls->cur_seq_no;\n        highest_cur_seq_no'),
+        ('        pls->read_buffer = av_malloc(INITIAL_BUFFER_SIZE);', '        pls->dvr_selected_seq = pls->cur_seq_no;\n        pls->read_buffer = av_malloc(INITIAL_BUFFER_SIZE);'),
         ('    /* set segment now so we do not need to search again below */', '    memset(c->dvr_last_pts, 0, sizeof(c->dvr_last_pts));\n    /* set segment now so we do not need to search again below */'),
-        ('    {"live_start_index",', '''    {"prosperotube_dvr", "enable checked program-date-time DVR for a continuous single playlist",
+        ('    int64_t pos = c->first_timestamp == AV_NOPTS_VALUE ?\n                  0 : c->first_timestamp;', '''    int64_t pos = c->tube_dvr && c->dvr_anchored && !c->dvr_disabled ?
+                  pls->segments[0]->dvr_utc + c->dvr_offset :
+                  c->first_timestamp == AV_NOPTS_VALUE ? 0 : c->first_timestamp;'''),
+        ('    {"live_start_index",', '''    {"prosperotube_dvr", "enable checked program-date-time DVR for one continuous A/V playlist or a video/audio pair",
         OFFSET(tube_dvr), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, FLAGS},
     {"live_start_index",'''),
     ]

@@ -9,30 +9,43 @@ static void tube_dvr_publish(HLSContext *c)
     int64_t value[7] = {0};
     int64_t (*points)[3] = NULL;
     int count = 0;
-    struct playlist *p = c->n_playlists == 1 ? c->playlists[0] : NULL;
+    struct playlist *p = c->dvr_anchored && c->dvr_video_playlist < c->n_playlists ?
+                         c->playlists[c->dvr_video_playlist] : NULL;
+    int64_t lower = 0, upper = INT64_MAX, target_duration = 0;
+    if (c->dvr_refreshing) return;
     if (c->tube_dvr && c->dvr_anchored && !c->dvr_disabled && p &&
-        !p->finished && !p->dvr_bad && p->n_segments >= 2 && p->n_segments <= 4096 &&
-        p->start_seq_no >= 0 && p->start_seq_no <= INT64_MAX - p->n_segments &&
-        p->target_duration > 0 && p->target_duration <= 60 * AV_TIME_BASE) {
-        int64_t utc = p->segments[0]->dvr_utc;
-        int64_t end = utc;
-        for (int i = 0; i < p->n_segments; ++i) {
-            const struct segment *segment = p->segments[i];
-            if (segment->duration <= 0 || segment->duration > 60 * AV_TIME_BASE ||
-                segment->dvr_utc != end || segment->key_type != KEY_NONE ||
-                end > INT64_MAX - segment->duration) { c->dvr_disabled = 1; break; }
-            end += segment->duration;
-        }
-        if (!c->dvr_disabled && utc > 0 && end > utc && end - utc <= 12LL * 3600 * AV_TIME_BASE &&
-            utc >= c->dvr_first_utc && utc + c->dvr_offset >= 0 &&
-            end + c->dvr_offset < (1LL << 33) * AV_TIME_BASE / 90000) {
+        (c->n_playlists == 1 || c->n_playlists == 2)) {
+        for (int j = 0; j < c->n_playlists; ++j) {
+            struct playlist *track = c->playlists[j];
+            int64_t first, end;
+            if (track->finished || track->dvr_bad || track->n_segments < 2 ||
+                track->n_segments > 4096 || track->start_seq_no < 0 ||
+                track->start_seq_no > INT64_MAX - track->n_segments ||
+                track->target_duration <= 0 || track->target_duration > 60 * AV_TIME_BASE) break;
+            first = end = track->segments[0]->dvr_utc;
+            for (int i = 0; i < track->n_segments; ++i) {
+                const struct segment *segment = track->segments[i];
+                if (segment->duration <= 0 || segment->duration > 60 * AV_TIME_BASE ||
+                    segment->dvr_utc != end || segment->key_type != KEY_NONE ||
+                    end > INT64_MAX - segment->duration) { c->dvr_disabled = 1; break; }
+                end += segment->duration;
+            }
+            if (c->dvr_disabled || first <= 0 || end <= first ||
+                end - first > 12LL * 3600 * AV_TIME_BASE) break;
+            lower = FFMAX(lower, first);
+            upper = FFMIN(upper, end);
+            target_duration = FFMAX(target_duration, track->target_duration);
+            if (j != c->n_playlists - 1) continue;
+            if (lower >= upper || lower < c->dvr_first_utc ||
+                lower + c->dvr_offset < 0 ||
+                upper + c->dvr_offset >= (1LL << 33) * AV_TIME_BASE / 90000) break;
             value[0] = 1;
             value[1] = p->start_seq_no;
             value[2] = p->start_seq_no + p->n_segments;
-            value[3] = utc + c->dvr_offset;
-            value[4] = end + c->dvr_offset;
-            value[5] = utc;
-            value[6] = av_gettime_relative() + FFMAX(3 * p->target_duration, 5 * AV_TIME_BASE);
+            value[3] = lower + c->dvr_offset;
+            value[4] = upper + c->dvr_offset;
+            value[5] = lower;
+            value[6] = av_gettime_relative() + FFMAX(3 * target_duration, 5 * AV_TIME_BASE);
             c->first_timestamp = value[3];
         }
     }
@@ -98,20 +111,48 @@ int av_hls_dvr_wall_to_pts(AVFormatContext *s, int64_t utc, int64_t *pts)
 
 static void tube_dvr_anchor(HLSContext *c, struct playlist *p)
 {
-    int64_t offset, utc, pts;
-    if (!c->tube_dvr || c->dvr_anchored || c->dvr_disabled || c->n_playlists != 1 ||
-        p->finished || p->dvr_bad || p->cur_seq_no != p->dvr_selected_seq || p->pkt->dts == AV_NOPTS_VALUE ||
-        p->pkt->pts != p->pkt->dts || !(p->pkt->flags & AV_PKT_FLAG_KEY) ||
-        p->n_segments < 2 || p->n_segments > 4096 || p->start_seq_no < 0 ||
-        p->start_seq_no > INT64_MAX - p->n_segments) return;
-    offset = p->cur_seq_no - p->start_seq_no;
-    if (offset < 0 || offset >= p->n_segments) return;
-    utc = p->segments[offset]->dvr_utc;
-    if (utc <= 0) return;
-    pts = av_rescale_q(p->pkt->dts, get_timebase(p), AV_TIME_BASE_Q);
-    if (pts < 0 || pts >= (1LL << 33) * AV_TIME_BASE / 90000) return;
-    c->dvr_offset = pts - utc;
-    c->dvr_first_utc = p->segments[0]->dvr_utc;
+    struct playlist *video = p;
+    if (!c->tube_dvr || c->dvr_anchored || c->dvr_disabled ||
+        (c->n_playlists != 1 && c->n_playlists != 2) || !p->pkt->data) return;
+    if (!p->dvr_seen) {
+        int stream = p->pkt->stream_index;
+        int kind;
+        int64_t index, utc, pts;
+        if (p->finished || p->dvr_bad || p->cur_seq_no != p->dvr_selected_seq ||
+            p->pkt->dts == AV_NOPTS_VALUE || p->pkt->pts != p->pkt->dts ||
+            p->n_segments < 2 || p->n_segments > 4096 || p->start_seq_no < 0 ||
+            p->start_seq_no > INT64_MAX - p->n_segments || stream < 0 ||
+            (unsigned)stream >= p->ctx->nb_streams) return;
+        kind = p->ctx->streams[stream]->codecpar->codec_type;
+        if (kind != AVMEDIA_TYPE_VIDEO && !(c->n_playlists == 2 && kind == AVMEDIA_TYPE_AUDIO)) return;
+        if (kind == AVMEDIA_TYPE_VIDEO && !(p->pkt->flags & AV_PKT_FLAG_KEY)) return;
+        index = p->cur_seq_no - p->start_seq_no;
+        if (index < 0 || index >= p->n_segments) return;
+        utc = p->segments[index]->dvr_utc;
+        pts = av_rescale_q(p->pkt->dts, get_timebase(p), AV_TIME_BASE_Q);
+        if (utc <= 0 || pts < 0 || pts >= (1LL << 33) * AV_TIME_BASE / 90000) return;
+        p->dvr_first_utc = utc;
+        p->dvr_first_pts = pts;
+        p->dvr_kind = kind;
+        p->dvr_seen = 1;
+    }
+    if (c->n_playlists == 2) {
+        struct playlist *other = c->playlists[1 - p->index];
+        int64_t audio_offset, video_offset;
+        if (!other->dvr_seen || other->dvr_kind == p->dvr_kind) return;
+        video = p->dvr_kind == AVMEDIA_TYPE_VIDEO ? p : other;
+        audio_offset = (p->dvr_kind == AVMEDIA_TYPE_AUDIO ? p : other)->dvr_first_pts -
+                       (p->dvr_kind == AVMEDIA_TYPE_AUDIO ? p : other)->dvr_first_utc;
+        video_offset = video->dvr_first_pts - video->dvr_first_utc;
+        if (llabs(audio_offset - video_offset) > AV_TIME_BASE / 2) {
+            c->dvr_disabled = 1;
+            tube_dvr_publish(c);
+            return;
+        }
+    }
+    c->dvr_video_playlist = video->index;
+    c->dvr_offset = video->dvr_first_pts - video->dvr_first_utc;
+    c->dvr_first_utc = video->segments[0]->dvr_utc;
     c->dvr_anchored = 1;
     tube_dvr_publish(c);
 }
@@ -124,14 +165,17 @@ static void tube_dvr_observe(HLSContext *c, struct playlist *p)
     int stream = p->pkt->stream_index;
     tube_dvr_anchor(c, p);
     if (!c->dvr_anchored || c->dvr_disabled || p->pkt->dts == AV_NOPTS_VALUE) return;
-    if (stream < 0 || stream >= 16) { c->dvr_disabled = 1; tube_dvr_publish(c); return; }
+    if (p->index < 0 || p->index >= 2 || stream < 0 || stream >= 16) {
+        c->dvr_disabled = 1; tube_dvr_publish(c); return;
+    }
     pts = av_rescale_q(p->pkt->dts, get_timebase(p), AV_TIME_BASE_Q);
     if (p->pkt->pts != p->pkt->dts || pts < 0 || pts >= (1LL << 33) * AV_TIME_BASE / 90000 ||
-        (p->seek_timestamp == AV_NOPTS_VALUE && c->dvr_last_pts[stream] > 0 && pts < c->dvr_last_pts[stream] - AV_TIME_BASE / 10)) {
+        (p->seek_timestamp == AV_NOPTS_VALUE && c->dvr_last_pts[p->index][stream] > 0 &&
+         pts < c->dvr_last_pts[p->index][stream] - AV_TIME_BASE / 10)) {
         c->dvr_disabled = 1;
         tube_dvr_publish(c);
     }
-    c->dvr_last_pts[stream] = pts;
+    c->dvr_last_pts[p->index][stream] = pts;
 }
 
 int av_hls_dvr_prepare_seek(AVFormatContext *s, int64_t pts_us);
@@ -144,12 +188,18 @@ int av_hls_dvr_prepare_seek(AVFormatContext *s, int64_t pts_us)
     if (!s || !s->iformat || strcmp(s->iformat->name, "hls") ||
         pts_us < 0 || pts_us >= (1LL << 33) * AV_TIME_BASE / 90000) return 0;
     c = s->priv_data;
-    if (!c || !c->tube_dvr || !c->dvr_anchored || c->dvr_disabled || c->n_playlists != 1 || c->playlists[0]->finished) return 0;
-    if (parse_playlist(c, c->playlists[0]->url, c->playlists[0], NULL) < 0) {
-        c->dvr_disabled = 1;
-        tube_dvr_publish(c);
-        return 0;
+    if (!c || !c->tube_dvr || !c->dvr_anchored || c->dvr_disabled ||
+        (c->n_playlists != 1 && c->n_playlists != 2)) return 0;
+    c->dvr_refreshing = 1;
+    for (int i = 0; i < c->n_playlists; ++i) {
+        struct playlist *track = c->playlists[i];
+        if (track->finished || parse_playlist(c, track->url, track, NULL) < 0) {
+            c->dvr_disabled = 1;
+            break;
+        }
     }
+    c->dvr_refreshing = 0;
+    tube_dvr_publish(c);
     return av_hls_get_dvr_window(s, window) && pts_us >= window[3] && pts_us < window[4];
 }
 
@@ -165,7 +215,9 @@ int av_hls_dvr_point_identity(AVFormatContext *s, int64_t utc, int64_t out[3])
     if (!c || !c->dvr_mutex_ready) return 0;
     ff_mutex_lock(&c->dvr_mutex);
     hi = c->dvr_point_count;
-    if (c->dvr_snapshot[0] && av_gettime_relative() < c->dvr_snapshot[6]) {
+    if (c->dvr_snapshot[0] && av_gettime_relative() < c->dvr_snapshot[6] &&
+        utc >= c->dvr_snapshot[5] &&
+        utc - c->dvr_snapshot[5] < c->dvr_snapshot[4] - c->dvr_snapshot[3]) {
         while (lo < hi) {
             int mid = lo + (hi - lo) / 2;
             const int64_t *point = c->dvr_points[mid];

@@ -141,6 +141,29 @@
     "quality": "hd"
    },
    {
+    "itag": 337,
+    "url": "https://rr2---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b&itag=337",
+    "mimeType": "video/webm; codecs=\"vp09.02.51.10\"",
+    "bitrate": 37000000,
+    "averageBitrate": 18500000,
+    "lastModified": "1700000000000000",
+    "contentLength": "1000000",
+    "approxDurationMs": "635200",
+    "initRange": {
+     "start": "0",
+     "end": "740"
+    },
+    "indexRange": {
+     "start": "741",
+     "end": "2000"
+    },
+    "width": 3840,
+    "height": 2160,
+    "fps": 30,
+    "qualityLabel": "2160p30 HDR",
+    "quality": "hd"
+   },
+   {
     "itag": 140,
     "url": "https://rr2---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b&itag=140",
     "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",

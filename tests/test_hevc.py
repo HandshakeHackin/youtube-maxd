@@ -24,13 +24,20 @@ def test_hevc_dash_retains_codec_container_and_private_refresh_binding(raw, cont
     assert 'signature' not in result.model_dump_json()
 
 
-@pytest.mark.parametrize('change', [{'has_drm': True}, {'dynamic_range': 'HDR10'}, {'dynamic_range': 'HLG'},
-                                   {'height': 2160}, {'protocol': 'sabr'}])
+@pytest.mark.parametrize('change', [{'has_drm': True}, {'height': 2160}, {'protocol': 'sabr'}])
 def test_hevc_does_not_bypass_existing_media_restrictions(change):
     source = info()
     source['formats'][0].update(vcodec='hvc1.1.6.L93.B0', **change)
     with pytest.raises(ServiceError, match='No compatible'):
         Sessions().create(source, ResolveRequest(id=ID, codec='hevc', max_height=1080), BASE)
+
+
+@pytest.mark.parametrize('range_name', ['HDR10', 'HLG'])
+def test_hevc_offers_supported_hdr_range(range_name):
+    source = info()
+    source['formats'][0].update(vcodec='hvc1.1.6.L93.B0', dynamic_range=range_name)
+    choice = Sessions().create(source, ResolveRequest(id=ID, codec='hevc'), BASE).choices[0]
+    assert choice.video_range == range_name and range_name in choice.label
 
 
 def test_auto_prefers_existing_codecs_at_equal_quality_and_explicit_hevc_is_honored():

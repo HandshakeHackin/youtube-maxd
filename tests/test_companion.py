@@ -177,6 +177,19 @@ def test_quality_and_hdr_av1_filtering():
     assert all(c.height <= 720 and c.video_codec == "h264" for c in playback.choices)
 
 
+def test_hdr_and_sdr_remain_distinct_choices_with_range_identity():
+    source = info()
+    video = source["formats"][0]
+    source["formats"] += [dict(video, format_id="pq", vcodec="vp09.02.51.10", ext="webm",
+                               dynamic_range="HDR10", tbr=3000),
+                          dict(video, format_id="hlg", vcodec="vp09.02.51.10", ext="webm",
+                               dynamic_range="HLG", tbr=2900)]
+    choices = Sessions().create(source, ResolveRequest(id=ID, codec="vp9"), BASE).choices
+    assert [(choice.video_range, choice.label) for choice in choices] == [
+        ("HDR10", "1080p 30 fps VP9 / AAC HDR10"),
+        ("HLG", "1080p 30 fps VP9 / AAC HLG")]
+
+
 def test_vp9_opus_mapping_and_audio_language_preference():
     source = info()
     source["formats"][0].update(vcodec="vp09.00.31.08", ext="webm")

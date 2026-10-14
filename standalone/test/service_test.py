@@ -382,8 +382,10 @@ def playback(s):
          (410, {"api_version": 1, "error": {"code": "expired_session", "message": "Playback information expired. Select the video again to refresh it."}}))
 
     status, _, direct = s.call("POST", "/v1/resolve", {"id": VIDEO, "codec": "vp9", "max_height": 2160, "automatic_captions": True, "caption_language": "de"})
-    same("direct resolve, VP9 to 2160p", (status, [(c["label"], c["container"], c["bitrate_bps"]) for c in direct["choices"]]),
-         (200, [("2160p 60 fps VP9 / AAC", "dash", 17174000), ("1080p 60 fps VP9 / AAC", "dash", 2127000)]))
+    same("direct resolve, VP9 to 2160p", (status, [(c["label"], c["container"], c["bitrate_bps"], c["video_range"]) for c in direct["choices"]]),
+         (200, [("2160p 60 fps VP9 / AAC", "dash", 17174000, "SDR"),
+                ("2160p 30 fps VP9 / AAC HDR10", "dash", 18500000, "HDR10"),
+                ("1080p 60 fps VP9 / AAC", "dash", 2127000, "SDR")]))
     same("automatic captions, wanted language first", [(c["language"], c["name"], c["automatic"], c["translated"]) for c in direct["captions"]],
          [("de", "German (auto-generated)", True, False), ("en", "English", False, False), ("es", "Spanish", True, True), ("fr", "French", True, True)])
     webm = s.call("GET", direct["choices"][0]["url"], token=None, raw=True)[2].decode()

@@ -68,8 +68,9 @@ def main():
         "core/src/screens/AudioTrackPickerScreen.cpp", "core/include/evo/screens/AudioTrackPickerScreen.hpp",
         "core/src/screens/SubtitlePickerScreen.cpp", "core/include/evo/screens/SubtitlePickerScreen.hpp",
         "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
+        "core/include/evo/services/SettingsService.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_kit/src/evo_hui_modals.cpp", "ui_rml/src/evo_rmlui_app.cpp",
-        "ui_rml/src/evo_rmlui_render_agc.cpp", "media/src/evo_direct_mem.c",
+        "ui_rml/src/evo_rmlui_render_agc.cpp", "media/src/evo_stream_io.c", "media/include/evo_stream_io.h", "media/src/evo_direct_mem.c",
         "media/include/evo_direct_mem.h", "ui_kit/src/hui_agc_batch.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
@@ -240,6 +241,8 @@ def main():
     from playback_rate_overlay import apply_playback_rate_overlay, apply_audio_rate_overlay
     apply_playback_rate_overlay(replace, player)
     apply_audio_rate_overlay(replace, player, WORK)
+    from auto_frame_rate_overlay import apply_auto_frame_rate_overlay
+    apply_auto_frame_rate_overlay(replace, player)
     from speed_controls_overlay import apply_speed_controls_overlay
     apply_speed_controls_overlay(replace, player)
     from player_chat_overlay import apply_player_chat_overlay
@@ -492,6 +495,8 @@ static void run_command(const char *line)
     apply_agc_gpu_pool_overlay(replace, player)
     from agc_frame_boundary_overlay import apply as apply_agc_frame_boundary_overlay
     apply_agc_frame_boundary_overlay(replace, player)
+    from close_pending_start_overlay import apply as apply_close_pending_start_overlay
+    apply_close_pending_start_overlay(replace, player, WORK)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)

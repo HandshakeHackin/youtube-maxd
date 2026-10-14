@@ -88,7 +88,7 @@ export async function selfTest() {
       format(251, 'audio/webm; codecs="opus"', 0, 0, 160e3), format(999, 'audio/mp4; codecs="mp4a.40.2"', 0, 0, 96e3, { language: 'fr', is_original: false })];
     same(selectVideo(list, { max_height: 1080 }).map(row => row.itag), [299, 137, 248, 399]);
     same(selectVideo(list, { max_height: 1080, max_fps: 30 }).map(row => row.itag), [137, 248, 399]);
-    same(selectVideo(list, { max_height: 2160, codec: 'vp9' }).map(row => row.itag), [313, 248]);
+    same(selectVideo(list, { max_height: 2160, codec: 'vp9' }).map(row => row.itag), [337, 313, 248]);
     same(selectVideo(list, { max_height: 2160, codec: 'hevc' }), []);
     same(selectAudio(list).map(row => row.itag), [140, 251, 141, 999]);
     same(selectAudio(list, { audio_language: 'fr' })[0].itag, 999);
@@ -105,10 +105,10 @@ export async function selfTest() {
     same(chaptersOf('Intro text\n0:00 Start\n1:30 - Middle\n[1:02:03] End\n99:99:99 nothing', 4000),
       [{ start_time: 0, title: 'Start', end_time: 90 }, { start_time: 90, title: 'Middle', end_time: 3723 }, { start_time: 3723, title: 'End', end_time: 4000 }]);
     same(chaptersOf('1:00 not from zero\n2:00 two', 300), []);
-    const variants = hlsVariants('#EXTM3U\n#EXT-X-MEDIA:URI="a/audio.m3u8",TYPE=AUDIO,GROUP-ID="g"\n#EXT-X-STREAM-INF:BANDWIDTH=5,CODECS="avc1.640028,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=60,AUDIO="g"\nv/video.m3u8\n',
+    const variants = hlsVariants('#EXTM3U\n#EXT-X-MEDIA:URI="a/audio.m3u8",TYPE=AUDIO,GROUP-ID="g"\n#EXT-X-STREAM-INF:BANDWIDTH=5,CODECS="avc1.640028,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=60,VIDEO-RANGE=PQ,AUDIO="g"\nv/video.m3u8\n',
       'https://manifest.googlevideo.com/api/master.m3u8');
-    same([variants.length, variants[0].height, variants[0].fps, variants[0].video_codec, variants[0].audio_codec, variants[0].url],
-      [1, 1080, 60, 'h264', 'aac', 'https://manifest.googlevideo.com/api/v/video.m3u8']);
+    same([variants.length, variants[0].height, variants[0].fps, variants[0].video_codec, variants[0].audio_codec, variants[0].video_range, variants[0].url],
+      [1, 1080, 60, 'h264', 'aac', 'HDR10', 'https://manifest.googlevideo.com/api/v/video.m3u8']);
     if (!variants[0].master.includes('URI="https://manifest.googlevideo.com/api/a/audio.m3u8"')) return false;
     return !redact('https://rr1---sn-a.googlevideo.com/videoplayback?expire=99&sig=SECRET').includes('SECRET');
   });

@@ -39,7 +39,46 @@ def patch(source):
     if (!ret)
         ret = AVERROR_EOF;
     if (ret > 0)'''
-    for old,new in ((before,after),(old_seek,new_seek),(old_read,new_read)):
+    old_field = """    int is_restart_needed;
+};"""
+    new_field = """    int is_restart_needed;
+    int prosperotube_forbidden_logged;
+};"""
+    old_warning = """            av_log(v->parent, AV_LOG_WARNING, "Failed to open fragment of playlist\\n");"""
+    new_warning = """            /* Log one URL-free diagnostic per representation on HTTP 403.
+             * The media URL contains a signed token and must never reach logs. */
+            if (ret == AVERROR_HTTP_FORBIDDEN) {
+                if (!v->prosperotube_forbidden_logged) {
+                    const char *kind = "other";
+                    const char *expiry = strstr(v->cur_seg->url, "expire=");
+                    int64_t expiry_delta = -1;
+                    int i;
+                    for (i = 0; i < c->n_videos; i++)
+                        if (c->videos[i] == v) kind = "video";
+                    for (i = 0; i < c->n_audios; i++)
+                        if (c->audios[i] == v) kind = "audio";
+                    if (expiry && (expiry == v->cur_seg->url ||
+                                   expiry[-1] == '?' || expiry[-1] == '&')) {
+                        char *end;
+                        int64_t expiry_time = strtoll(expiry + 7, &end, 10);
+                        if (end > expiry + 7 && end - (expiry + 7) <= 12 &&
+                            (*end == '&' || *end == '\\0'))
+                            expiry_delta = expiry_time - time(NULL);
+                    }
+                    av_log(v->parent, AV_LOG_WARNING,
+                           "ProsperoTube DASH HTTP 403 track=%s segment=%"PRId64
+                           " range=%"PRId64"-%"PRId64" expiry_delta_s=%"PRId64"\\n",
+                           kind, v->cur_seq_no - v->first_seq_no,
+                           v->cur_seg->url_offset,
+                           v->cur_seg->size < 0 ? -1 :
+                           v->cur_seg->url_offset + v->cur_seg->size - 1,
+                           expiry_delta);
+                    v->prosperotube_forbidden_logged = 1;
+                }
+            } else {
+                av_log(v->parent, AV_LOG_WARNING, "Failed to open fragment of playlist\\n");
+            }"""
+    for old,new in ((before,after),(old_seek,new_seek),(old_read,new_read),(old_field,new_field),(old_warning,new_warning)):
         if new in source: continue
         if source.count(old)!=1: raise RuntimeError('FFmpeg DASH source does not match the pinned overlay')
         source=source.replace(old,new,1)

@@ -14,7 +14,7 @@ from prosperotube.live_hls import apply_master, LiveHLSYoutubeIE
 
 def split_live_info():
     master = 'https://r1.googlevideo.com/master.m3u8'
-    info = {'is_live': True, 'formats': [
+    info = {'id': 'abcdefghijk', 'is_live': True, 'formats': [
         {'url': 'https://r1.googlevideo.com/video.m3u8', 'manifest_url': master,
          'vcodec': 'avc1.4D4015', 'acodec': 'none', 'height': 240, 'width': 426, 'protocol': 'm3u8_native'},
         {'url': 'https://r1.googlevideo.com/audio.m3u8', 'manifest_url': master,
@@ -67,6 +67,22 @@ def test_pinned_youtube_parser_retains_original_master_audio_pairing_without_ext
         ie = LiveHLSYoutubeIE(); ydl.add_info_extractor(ie)
         formats, _ = ie._parse_m3u8_formats_and_subtitles(content, 'http://127.0.0.1/master.m3u8', ext='mp4')
         assert not any(f.get('hls_audio_urls') for f in formats)
+
+
+def test_hdr_master_range_marks_muxed_variant_without_separate_audio():
+    master = 'https://r1.googlevideo.com/master.m3u8'
+    video = {'url': 'https://r1.googlevideo.com/video.m3u8', 'manifest_url': master,
+             'vcodec': 'vp09.02.51.10', 'acodec': 'mp4a.40.2', 'protocol': 'm3u8_native',
+             'dynamic_range': 'HDR10'}
+    apply_master({'formats': [video]}, master,
+                 '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000000,VIDEO-RANGE=HLG,'
+                 'CODECS="vp09.02.51.10,mp4a.40.2"\nvideo.m3u8\n')
+    assert video['_tube_hls_video_range'] == video['dynamic_range'] == 'HLG'
+    video['dynamic_range'] = 'HDR10'
+    apply_master({'formats': [video]}, master,
+                 '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000000,'
+                 'CODECS="vp09.02.51.10,mp4a.40.2"\nvideo.m3u8\n')
+    assert video['dynamic_range'] == 'UNKNOWN' and '_tube_hls_video_range' not in video
 
 def test_rolling_hls_retains_current_graph_and_retires_old_windows_atomically():
     root = Remote("https://r1.googlevideo.com/root.m3u8", {"Cookie": "root-private", "User-Agent": "test"}, "hls")

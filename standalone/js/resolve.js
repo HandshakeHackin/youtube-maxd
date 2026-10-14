@@ -35,8 +35,16 @@ export function codecName(raw) {
 }
 const formatCodec = format => codecName(codecs(format.mime_type));
 const container = mime => /^[a-z]+\/([a-z0-9]+)/.exec(mime ?? '')?.[1] ?? '';
-const isHdr = format => /HDR/.test(format.quality_label ?? '') || /^(vp09\.02|av01\.\d\.\d\d[A-Z]\.1[02])/.test(codecs(format.mime_type)) ||
-  ['SMPTEST2084', 'ARIB_STD_B67'].includes(format.color_info?.transfer_characteristics);
+const videoRange = format => {
+  if (format.video_range === 'HDR10' || format.video_range === 'HLG') return format.video_range;
+  const transfer = format.color_info?.transfer_characteristics;
+  if (transfer === 'ARIB_STD_B67') return 'HLG';
+  if (transfer === 'SMPTEST2084' || transfer === 'SMPTE2084') return 'HDR10';
+  if (/HLG/i.test(format.quality_label ?? '')) return 'HLG';
+  if (/HDR/i.test(format.quality_label ?? '')) return 'HDR10';
+  return 'SDR';
+};
+const isHdr = format => videoRange(format) !== 'SDR';
 const linkKind = format => format.url ? 'direct' : format.signature_cipher || format.cipher ? 'ciphered' : 'none';
 const rate = format => number(format.average_bitrate || format.bitrate);
 
@@ -71,9 +79,9 @@ export function selectVideo(list, request = {}) {
   const wanted = WANTED[request.codec ?? 'auto'], maxHeight = request.max_height ?? 1080, maxFps = request.max_fps ?? 0;
   return list.filter(format => format.has_video && linkKind(format) !== 'none' && formatCodec(format) in RANK &&
       (!wanted || formatCodec(format) === wanted) && number(format.height) > 0 && number(format.height) <= maxHeight &&
-      (!maxFps || (number(format.fps) > 0 && number(format.fps) <= maxFps)) && !isHdr(format) && !format.drm_families && !format.is_type_otf)
+      (!maxFps || (number(format.fps) > 0 && number(format.fps) <= maxFps)) && !format.drm_families && !format.is_type_otf)
     .sort((a, b) => number(b.height) - number(a.height) || RANK[formatCodec(b)] - RANK[formatCodec(a)] ||
-      number(b.fps) - number(a.fps) || rate(b) - rate(a));
+      number(b.fps) - number(a.fps) || Number(isHdr(b)) - Number(isHdr(a)) || rate(b) - rate(a));
 }
 // Audio-only rows, best first: requested language, then the original mix
 // without dynamic-range compression, then AAC, then bitrate.
@@ -225,8 +233,10 @@ export function hlsVariants(master, base) {
     const address = lines.slice(i + 1).find(next => next && !next.startsWith('#'));
     if (!address) continue;
     const [width, height] = attribute(line, 'RESOLUTION').split('x').map(Number), list = attribute(line, 'CODECS').split(',').map(codecName);
+    const range = attribute(line, 'VIDEO-RANGE');
     variants.push({ line, url: safeRemote(absolute(address)), width: width || 0, height: height || 0, fps: Number(attribute(line, 'FRAME-RATE')) || 0,
       bitrate: Number(attribute(line, 'BANDWIDTH')) || 0, video_codec: list.find(name => name in RANK) ?? '',
+      video_range: range === 'PQ' ? 'HDR10' : range === 'HLG' ? 'HLG' : 'SDR',
       audio_codec: list.find(name => ['aac', 'opus'].includes(name)) ?? '', audio_group: attribute(line, 'AUDIO') });
   }
   const text = variant => ['#EXTM3U', '#EXT-X-INDEPENDENT-SEGMENTS',
@@ -307,18 +317,18 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
   session.duration = duration; session.is_live = live;
   const choices = [], seen = new Set();
   const address = async format => safeRemote(await format.decipher(source.player));
-  const label = (height, fps, video, audio) => `${height}p${fps ? ` ${fps} fps` : ''} ${video.toUpperCase()} / ${audio.toUpperCase()}`;
-  const push = (fields, format, video, audio, fps) => choices.push({ url: fields.url, label: label(Math.trunc(number(format.height)), fps, video, audio),
+  const label = (height, fps, video, audio, range) => `${height}p${fps ? ` ${fps} fps` : ''} ${video.toUpperCase()} / ${audio.toUpperCase()}${range === 'SDR' ? '' : ` ${range}`}`;
+  const push = (fields, format, video, audio, fps) => choices.push({ url: fields.url, label: label(Math.trunc(number(format.height)), fps, video, audio, videoRange(format)),
     container: fields.container, video_codec: video, audio_codec: audio, width: Math.trunc(number(format.width)), height: Math.trunc(number(format.height)),
-    fps, bitrate_bps: Math.trunc(rate(format) || number(format.bitrate)), is_live: live, video_range: 'SDR', audio_channels: 2 });
+    fps, bitrate_bps: Math.trunc(rate(format) || number(format.bitrate)), is_live: live, video_range: videoRange(format), audio_channels: 2 });
 
   if (source.hls.length) {
     const wanted = WANTED[request.codec];
     const variants = source.hls.filter(variant => variant.video_codec && (!wanted || variant.video_codec === wanted) &&
         variant.height > 0 && variant.height <= request.max_height && (!request.max_fps || (variant.fps > 0 && variant.fps <= request.max_fps)))
-      .sort((a, b) => b.height - a.height || RANK[b.video_codec] - RANK[a.video_codec] || b.fps - a.fps || b.bitrate - a.bitrate);
+      .sort((a, b) => b.height - a.height || RANK[b.video_codec] - RANK[a.video_codec] || b.fps - a.fps || Number(isHdr(b)) - Number(isHdr(a)) || b.bitrate - a.bitrate);
     for (const variant of variants) {
-      const key = `${variant.height}/${variant.video_codec}`;
+      const key = `${variant.height}/${variant.video_codec}/${videoRange(variant)}`;
       if (seen.has(key) || choices.length >= 8 || !variant.audio_codec) continue;
       seen.add(key);
       const name = `h${choices.length}.m3u8`;
@@ -336,7 +346,7 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     const usable = ranged && selectVideo(indexed, request).some(format => !format.has_audio) && selectAudio(indexed, request).length ? indexed : list;
     const audios = selectAudio(usable, request);
     for (const video of selectVideo(usable, request)) {
-      const vcodec = formatCodec(video), key = `${video.height}/${vcodec}/${video.has_audio}`;
+      const vcodec = formatCodec(video), key = `${video.height}/${vcodec}/${video.has_audio}/${videoRange(video)}`;
       if (seen.has(key) || choices.length >= 8) continue;
       const fps = Math.max(0, number(video.fps));
       if (video.has_audio) {
@@ -360,7 +370,7 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
       }
     }
   }
-  if (!choices.length) throw new ServiceError('unsupported_media', 'No compatible AVC/VP9/HEVC/AV1 SDR stream was returned. This video may require a different runtime, token, transport, or quality setting.', 422);
+  if (!choices.length) throw new ServiceError('unsupported_media', 'No compatible AVC/VP9/HEVC/AV1 stream was returned. This video may require a different runtime, token, transport, or quality setting.', 422);
 
   const { subtitles, automatic } = captionMaps(info, request.translated_captions);
   const human = new Set(subtitles.keys()), wanted = request.caption_language;
