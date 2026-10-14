@@ -18,6 +18,18 @@ sync and Classic fallback. Player boards pass in four looks, followed by
 targeted picker checks after final label/count changes. Six generated PS5
 objects compile against the existing SDK.
 
+Theatre chat: generated pre-blit and video-quad tests pass under sanitizers
+for both sides, two resolutions, all eight transforms, crops, aspect and zoom.
+Player spring/radius and immediate reset tests pass. Geometry checks cover
+2,640 combinations; six touched PS5 objects compile and 85 player boards in
+four looks pass 3,320 checks. The combined application builds and packages.
+
+Original interface sounds: all 34 PCM16 mono 48 kHz assets reproduce exactly
+from their checked-in generator and match their manifest hashes. Duration,
+RMS, peak headroom, endpoints and exact package/provenance checks pass.
+Mixer sanitizer and allocation checks pass 870 assertions. Human listening
+and console acceptance remain pending.
+
 Shared-screen migration: the main change passes 611 boards in four looks
 (26,960 checks). Final cleanup passes 227 affected boards in four looks
 (8,708 checks) and a fresh 110-board D rerun (4,172 checks). Text delivery

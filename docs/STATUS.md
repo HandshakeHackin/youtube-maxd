@@ -26,6 +26,13 @@ player checks pass under sanitizers; console acceptance remains pending.
 The options now group available choices and show their current values;
 captions use primary/secondary tabs with selection, sync and size controls.
 Generated picker input tests, boards and touched PS5 objects pass.
+Chat now sits beside the picture in theatre mode; the existing video quad
+follows the Player layout and resets when leaving it. Geometry, spring and
+lifecycle checks pass; console calibration remains pending.
+
+All 28 interface sound cues now use 34 original procedural WAVs. Reproducible
+source, provenance, format, headroom, mixer and packaging checks pass; human
+listening and console acceptance remain pending.
 
 Home's Live now shelf reuses the existing Live topic, loads only when reached
 and filters archived videos out. Provider checks and 62 Home boards in four

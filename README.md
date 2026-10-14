@@ -259,14 +259,17 @@ What is planned, roughly in order. Nothing here has a date.
       segment, grouped playback options, captions in tabs, and the live chat
       beside the video rather than over it.
       The next-video offer, automatic-skip Undo, grouped options and caption
-      tabs are implemented and host-tested; console acceptance is pending.
+      tabs and chat beside the picture are implemented and host-tested;
+      console acceptance is pending.
 - [x] Home: a "Live now" shelf, read when reached and showing live videos only
       (host-tested; console acceptance pending).
 - [x] Home: the account's service count on the notifications bell, refreshed
       periodically and after opening notifications (host-tested; real-account
       console acceptance pending).
 - [ ] Translations of the Afterglow interface's texts into the 21 languages.
-- [ ] The interface's own sound recordings in place of the UI kit's sounds.
+- [x] The interface's own procedural sound assets in place of the UI kit's
+      sounds (format, level and package checks pass; listening and console
+      acceptance pending).
 - [ ] Afterglow as the default interface, once every screen is validated on a
       console.
 

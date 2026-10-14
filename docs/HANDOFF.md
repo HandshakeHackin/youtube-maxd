@@ -72,12 +72,15 @@ README's **Roadmap**). The two recommended first:
    offer, automatic-skip Undo and category colours. Host provider/controller
    checks pass; console acceptance remains pending. Grouped options and
    caption tabs now use the real picker actions and pass generated controller
-   and board checks. Chat beside the picture remains in progress.
+   and board checks. Chat beside the picture is implemented using the existing
+   video quad and Player layout, with generated geometry and lifecycle checks;
+   console calibration remains pending.
 
-Then: the Afterglow translations (many texts still fall back to English;
+Then: the Afterglow translations (the last catalog and remaining integer-count
+labels are in progress;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), live DVR,
 keep-playing-while-browsing, the interface's
-own sound recordings (`docs/afterglow/sound-design.md`), and the smaller items
+own sound assets (`docs/afterglow/sound-design.md`), and the smaller items
 of the roadmap. The Live now shelf is implemented for Guest and account Home,
 loaded when reached and filtered to live videos. Provider checks and 62 Home
 boards in four looks pass; console acceptance remains pending.
@@ -86,6 +89,10 @@ minute and after loading notifications; unknown counts hide the badge.
 Notification rows preserve upstream read flags. Unsupported remote mark-read
 actions are unavailable. Host service/provider/board checks pass; real-account
 console acceptance remains pending.
+
+The interface now packages 34 original procedural WAVs covering all 28 cues,
+with reproducible source and provenance. Format, level, mixer and packaging
+checks pass. Human listening and console acceptance remain pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
