@@ -137,6 +137,13 @@ def main():
     replace(player + "core/src/Application.cpp", '#include "evo/screens/ProviderHostScreen.hpp"', '#include "evo/screens/ProviderHostScreen.hpp"\n#include "tube_provider.h"')
     replace(player + "core/src/Application.cpp", "    evo_jailbreak_self();", '''    if (!evo_jailbreak_self()) {
         evo_bt("ProsperoTube requires writable /data/prosperotube; startup stopped");
+#if defined(EVO_APP_MODULE)
+        evo_bt_req notice{};
+        std::snprintf(notice.msg, sizeof notice.msg,
+                      "ProsperoTube could not access its data folder. Start your jailbreak's ELF loader or Lapy service, then reopen ProsperoTube.");
+        const int notified = sceKernelSendNotificationRequest(0, &notice, sizeof notice, 0);
+        evo_bt("Storage access notice: rc=%#x", static_cast<unsigned>(notified));
+#endif
         return false;
     }''')
     from startup_overlay import apply as apply_startup_overlay

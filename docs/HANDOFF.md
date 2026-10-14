@@ -75,13 +75,14 @@ of the roadmap.
 
 ### Open decisions for the owner (do not decide them yourself)
 
-- The update mechanism: the app updates itself from GitHub Releases, while the
-  owner's other apps use his homebrew.page catalog and a helper.
+- Update decision resolved on 2026-10-14: use the homebrew.page catalog and
+  helper, like the owner's other apps. Integration remains pending.
 - The README footer entry for ProsperoTube in the protocol repository's
   `scripts/readme-footer/repos.toml` (prepared, not committed).
 - Making the repository public, and the first release.
-- Whether ProsperoTube should show a notice before closing when Lapy access is
-  missing.
+- Storage notice decision resolved on 2026-10-14: show an explanation before
+  closing when Lapy access is missing. The startup overlay now sends a system
+  notification; console acceptance remains pending.
 
 ### Loose ends
 

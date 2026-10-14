@@ -10,6 +10,12 @@ based on [mpereiraesaa's cooperative helper](https://github.com/mpereiraesaa/PS5
 
 ## The helper
 
+If access or the app's write/readback proof fails, startup posts a system
+notification explaining how to enable the ELF loader or Lapy service, then
+stops before starting the player or YouTube service. The notification uses the
+existing kernel notification path, so it does not require the app's renderer
+or writable storage.
+
 `scripts/build_lapy_helper.py` builds commit
 `57fcc19b7f57e46c823d6f2a6c6233ebf3288079` (the donor-release and firmware
 13.60 fixes of upstream PR #48 and #49, and the guarded target-lifetime and

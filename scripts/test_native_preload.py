@@ -22,6 +22,9 @@ assert hardware.index("evo_keyboard_ime_probe();") < hardware.index("evo_jailbre
 assert hardware.index("evo_webui_preload();") < hardware.index("evo_jailbreak_self()")
 assert hardware.index("evo_jailbreak_self()") < hardware.index("evo_agc_runtime_init(") < hardware.index("evo_vdec_probe();")
 assert "startup stopped" in hardware
+storage_failure = hardware[hardware.index("    if (!evo_jailbreak_self()) {"):hardware.index("    evo_boot_log_flush();", hardware.index("    if (!evo_jailbreak_self()) {"))]
+assert storage_failure.index("sceKernelSendNotificationRequest") < storage_failure.index("return false;")
+assert "Start your jailbreak's ELF loader or Lapy service" in storage_failure
 # ProsperoEden's tools/check-elevation-startup.py: upstream Lapy accepts only a
 # single-threaded target, so nothing ahead of the request may start a thread.
 before_lapy = hardware[:hardware.index("evo_jailbreak_self()")]

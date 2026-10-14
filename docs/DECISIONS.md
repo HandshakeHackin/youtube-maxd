@@ -241,6 +241,16 @@ time that nobody has measured there; YouTube.js has no speech endpoint and
 YouTube's own recogniser is a cloud service. With a phone linked, the YouTube
 app's voice search does the job from the phone. [Assessment](VOICE_SEARCH.md).
 
+## 2026-10-14: updates and missing storage access
+
+The owner selected the homebrew.page signed catalog and loader-started helper,
+as used by the other applications, to replace the GitHub Releases self-update
+path. Integration and its console acceptance remain pending.
+
+When Lapy access or the durable-storage proof fails, show an explanation before
+closing. A system notification works before graphics or writable storage is
+available; startup still stops before starting services.
+
 ## 2026-10-13: the Afterglow interface
 
 The owner approved the Afterglow proposal on 2026-10-13
