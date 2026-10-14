@@ -103,7 +103,10 @@ def main():
         for folder in ("assets/rml", "assets/icons"):
             (WORK / player / folder).mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / "native/art" / name, WORK / player / folder / name)
-    for name in ("icon0.png", "pic0.png", "pic1.png"):
+    # The owner's artwork and selection music; the backgrounds are DDS, so no PNG of the same name stays beside them.
+    for name in ("pic0.png", "pic1.png"):
+        (WORK / player / "sce_sys" / name).unlink(missing_ok=True)
+    for name in ("icon0.png", "pic0.dds", "pic1.dds", "snd0.at9"):
         shutil.copyfile(ROOT / "native/branding" / name, WORK / player / "sce_sys" / name)
     notices = WORK / player / "assets/prosperotube-notices"
     notices.mkdir(exist_ok=True)
