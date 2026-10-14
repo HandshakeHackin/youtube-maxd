@@ -47,6 +47,9 @@ fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
 # The exact-title upstream Lapy helper, built and verified as ProsperoEden does it.
 python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy"
+if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
+    make -C "${root}/native/update/helper" OUTPUT="${work}/prosperotube-update/self-updater.elf"
+fi
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi

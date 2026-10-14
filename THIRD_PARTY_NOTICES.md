@@ -40,16 +40,16 @@ YouTube is a trademark of Google LLC.
   [ProsperoTV](https://github.com/blackbearreloaded/ProsperoTV)
   `a33031e9e50b4942ca0e2287cc757271345d874f`; its regression tests follow
   ProsperoEden's and ProsperoLight's.
-* The update check and self-update (`native/tube_update*`) follow the design of
-  the update kit in
+* The update check and self-update helper (`native/update/`) are copied from
   [ps5-native-app-boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
-  (GPL-3.0-or-later, same author): content-version comparison, the archive
-  rules, mode 0777 for unpacked files, replacing top-level entries in place,
-  the home-screen copies of `sce_sys` and ShadowMountPlus's mount records.
-  The code is written for this project; `scripts/zip_open_modes.py` is adapted
-  from that repository's `tools/zip-open-modes.py`, and
-  `.github/workflows/build.yml` follows its release workflow. ZIP data is
-  inflated by zlib, which the package already carries.
+  at `b8dc4a3fe2e05e826b037bd68824751c7468a6d7`, GPL-3.0-or-later,
+  Copyright (C) 2026 BlackBearReloaded. Original source notices are retained;
+  `native/update/SOURCE.json` records the pin and exact imported file hashes.
+  The helper uses miniz 3.0.2 under the MIT license; its original license and
+  source provenance are in `native/update/third_party/miniz/`.
+  `scripts/zip_open_modes.py` is adapted from that repository's
+  `tools/zip-open-modes.py`; the release workflow follows its release workflow.
+
 * PS5 UUID entropy adapts the checked `kern.rng_pseudo` reader from
   [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight/blob/b0149a941617c9e92a3be475b78304052c718d7c/platform/ps5/ps5_entropy.c)
   (GPL-3.0-or-later). Adapted source is in `native/tube_random.h`.

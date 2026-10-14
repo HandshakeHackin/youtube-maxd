@@ -106,7 +106,7 @@ directly.
 > **Native foundations from [PS5 Native App Boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
 > and the PS5 [video](https://github.com/blackbearreloaded/ps5-hardware-video-decoding-research)
 > and [audio](https://github.com/blackbearreloaded/ps5-audio-decoding-research) research.**
-> The update check and self-update follow the boilerplate's update kit, and its
+> The signed catalog check and loader-started update helper use the boilerplate's kit, and its
 > console libcurl support is adapted for the service. The research repositories
 > were the decoder references; the inactive microphone path comes from the
 > audio research.
@@ -195,8 +195,8 @@ Every source, version and licence is listed in
   language or **Interface language**. The player and its notices stay English.
 - Backup and restore in `/data/prosperotube/backup`, with an optional automatic
   backup, and subscriptions import from a NewPipe, PocketTube or GrayJay export.
-- A daily update check with a notice, and an in-place self-update that keeps
-  the previous version until the new one has run.
+- A signed homebrew.page update check once per launch, release notes and skip
+  preferences, with a loader-started helper to replace the app after it closes.
 - About with the version, project links as QR codes, credits with their
   licences and the changelog.
 
@@ -359,12 +359,14 @@ The workflow needs no secret and never replaces a ZIP a release already has.
 
 ## Update an installed copy
 
-A copy installed in `/data/homebrew/PPSA99142` updates itself: once a day the
-app asks this project's GitHub releases whether a newer version exists, and
-**Settings > About** offers **Update to ... now** and then **Restart to finish
-updating**. The download is checked against the size and SHA-256 the release
-lists, and the previous version is kept until the new one has run. This is
-tested on a PC only; [Updates](docs/UPDATES.md) has the whole mechanism.
+The app checks homebrew.page's signed catalog once per launch. Once a public
+release is listed there, **Settings > About** offers **Update to ... now**
+and **Restart to finish updating**. The packaged helper requires the console's
+payload loader on port 9021; it verifies and stages the release, then replaces
+the files after ProsperoTube closes. Wait for its completion notification
+before reopening the app. Integration is host-tested; a complete console update
+from a published signed release remains pending. [Updates](docs/UPDATES.md)
+describes the mechanism and its recovery behavior.
 
 By hand:
 
@@ -383,8 +385,8 @@ touched by an update.
 Nothing in this repository deploys to a console. Copy the complete
 `dist/PPSA99142` folder to `/data/homebrew/PPSA99142` with your usual tool,
 with ProsperoTube closed; `eboot.bin` alone is not a valid deployment. A copy
-on a USB drive, an image install and a development build run, but list newer
-versions without updating themselves.
+installed as an image or built for development runs, but lists newer
+versions without updating itself.
 
 [`tools/console`](tools/console/README.md) is the bounded session driver that
 produced the hardware records; it is a development tool.
@@ -518,7 +520,8 @@ in one folder that an update or a reinstall does not touch:
 | `/data/prosperotube/import/` | Place a subscriptions export file here to import it |
 | `/data/prosperotube/cache/` | The built-in service's small cache; safe to delete |
 | `/data/prosperotube/providers/youtube/art/` | Thumbnails kept between launches |
-| `/data/prosperotube/update/` | The update check's answer, downloads and the previous version |
+| `/data/prosperotube/update-sequence` | Highest accepted signed catalog sequence |
+| `/data/prosperotube/update-preferences` | Notification switch and skipped version |
 | `/data/prosperotube/interface-language` | The chosen interface language, for all profiles |
 
 There is no fallback: when Lapy access is refused or the app cannot write and

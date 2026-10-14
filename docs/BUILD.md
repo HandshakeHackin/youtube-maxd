@@ -94,9 +94,9 @@ A release is a tag. `.github/workflows/build.yml` builds tags `vNN.NNN.NNN`
 push to a branch builds nothing, and neither does a pull request: those builds
 stay off until a first manual run has filled the toolchain caches. A
 tag's build is published as a **pre-release** with `PPSA99142.zip` (every entry
-stored 0777) and `SHA256SUMS`; installed copies find it through the update
-check ([updates](UPDATES.md)), which compares the tag with their content
-version.
+stored 0777) and `SHA256SUMS`. Installed copies find it after homebrew.page
+publishes its signed catalog entry ([updates](UPDATES.md)), which compares
+the listed content version with the running version.
 
 1. Raise the content version: `contentVersion="NN.NNN.NNN"` in
    `scripts/prepare_native.py` (it is written into `sce_sys/param.json`). An
@@ -115,13 +115,16 @@ version.
    a tag that is not the tree's content version, runs the offline checks,
    builds, verifies the ZIP (one app folder, `eboot.bin`, 0777, the version)
    and creates the pre-release. It never replaces a ZIP a release already has.
+6. Have the public release listed in homebrew.page's signed catalog for
+   `PPSA99142`, with the ZIP's size, SHA-256 and content version. A GitHub
+   release alone is not accepted by the application as an update.
 
 The workflow needs no secret. Its first run, and any run after a pin changes,
 compiles the PS5 shader compiler, dav1d and FFmpeg (hours); they are then
 restored from the Actions cache, keyed by the EVO pin and the scripts that
 build them. Only the compiler and its library are cached, not its build tree.
-While the repository is private the ZIP is not attested and the app's update
-check gets no answer.
+Until a public release and its signed catalog entry exist, the app reports
+that it cannot check the catalog or that ProsperoTube is not listed.
 
 ## The built-in service
 

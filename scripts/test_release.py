@@ -27,13 +27,12 @@ if written.is_file():
 else:
     assert "- " in notes and "## " not in notes and notes.strip() in (ROOT / "CHANGELOG.md").read_text()
 
-# The tag the workflow builds is the tag the app understands, and the address it asks is the one constant.
+# Releases stay on GitHub; update authority is exclusively the signed catalog.
 header = (ROOT / "native/tube_update.h").read_text()
-assert header.count("api.github.com") == 1
-assert '#define TUBE_UPDATE_MANIFEST_URL "https://api.github.com/repos/blackbearreloaded/ProsperoTube/releases?per_page=10"' in header
 assert f'#define TUBE_UPDATE_TITLE "{title}"' in header
-for source in ("tube_update.c", "tube_update_app.c", "tube_update_http.c", "tube_update_zip.c", "tube_provider.c"):
+for source in ("tube_update.c", "tube_update_app.c", "tube_provider.c"):
     assert "api.github.com/repos" not in (ROOT / "native" / source).read_text(), source
+assert 'https://homebrew.page/api/v1/' in (ROOT / "native/update/kit/self_update.h").read_text()
 
 with tempfile.TemporaryDirectory(prefix="tube-release-") as directory:
     archive = Path(directory) / (title + ".zip")

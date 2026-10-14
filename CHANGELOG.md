@@ -27,7 +27,7 @@ pause, stop, history and a clean close;
 - Comments with replies and comment rating, live chat and chat replay.
 - Video actions, a suggestions list, chapter notification and screen dimming in the player.
 - Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links.
-- Updates: a daily check of the project's releases with a notice, Check for updates and Notify about updates in About, release notes, and a verified in-place update that keeps the previous version until the new one has run. Tested offline only.
+- Updates: a signed homebrew.page catalog check, notification and skip preferences, release notes, and a loader-started helper that verifies and installs the release after the app closes. Tested offline; a complete console update from a published release remains pending.
 - Import subscriptions from a NewPipe, PocketTube or GrayJay export file placed in /data/prosperotube/import; the file is read inside the app.
 - Phone casting (experimental): link the YouTube app with a TV code; play, pause, seek, queue, volume and captions from the phone. The receiver runs inside the app. Tested offline only; no real phone has been linked yet.
 - Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has.

@@ -2,6 +2,7 @@
  * shows; see tube_update.h.
  * Copyright (C) 2026 BlackBearReloaded. SPDX-License-Identifier: GPL-3.0-or-later */
 #include "tube_update.h"
+#include "update_check.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -10,18 +11,14 @@
 #if defined(TUBE_EMBEDDED_SERVICE) && defined(EVO_APP_MODULE)
 #include <sys/stat.h>
 #include "evo_data_path.h"
-#include "tube_js_console.h"
-#include "tube_js_http.h"
-extern const unsigned char tube_js_ca_pem[];
-extern const size_t tube_js_ca_pem_length;
+#include "tube_update_paths.h"
 #endif
 
-#define CONFIRM_AFTER_S 10      /* a new version that has run this long has started properly */
-#define CHECK_AFTER_S 20        /* the daily check does not wait for the service longer than this */
+#define CHECK_AFTER_S 20        /* the startup check does not wait for the service longer than this */
 
 static tube_update *g_update;
-static tube_update_http *g_http;
-static int g_tried, g_checked, g_confirmed, g_manual, g_restart, g_have_notice, g_watching;
+static int g_owned;
+static int g_tried, g_checked, g_manual, g_restart, g_have_notice, g_watching;
 static long long g_started, g_refreshed;
 static unsigned g_listed;
 static int g_phase;
@@ -35,81 +32,43 @@ static void notice(const char *message) { snprintf(g_notice, sizeof g_notice, "%
 static void adopt(tube_update *update) {
     tube_update_status status;
     g_update = update;
-    g_checked = g_confirmed = g_manual = g_restart = g_have_notice = g_watching = 0;
+    g_checked = g_manual = g_restart = g_have_notice = g_watching = 0;
     g_started = clock_now(); g_refreshed = 0;
     if (!update) return;
-    switch (tube_update_boot(update)) {
-    case TUBE_UPDATE_BOOT_ROLLED_BACK:
-        notice("The new version did not start properly. The previous version was put back: close ProsperoTube and open it again.");
-        g_confirmed = 1; break;
-    case TUBE_UPDATE_BOOT_RECOVERED:
-        notice("An interrupted update was undone. The installed version is unchanged.");
-        g_confirmed = 1; break;
-    case TUBE_UPDATE_BOOT_STAGED:
-        notice("An update is ready. Open Settings, About to finish it.");
-        g_confirmed = 1; break;
-    case TUBE_UPDATE_BOOT_PENDING: break;
-    default: g_confirmed = 1;
-    }
     tube_update_get(update, &status);
     g_phase = status.phase; g_listed = status.revision;
 }
 
-void tube_update_app_use(tube_update *update) { adopt(update); g_tried = 1; }
+void tube_update_app_use(tube_update *update) { adopt(update); g_tried = 1; g_owned = 0; }
 void tube_update_app_set_clock(long long (*clock)(void)) { g_clock = clock; }
 
 void tube_update_app_init(void) {
     if (g_tried) return;
     g_tried = 1;
 #if defined(TUBE_EMBEDDED_SERVICE) && defined(EVO_APP_MODULE)
-    /* The folder the console started the app from: /app0 while it is mounted,
-     * else the console's own mount of the running title, else the install folder. */
-    static const char *const folders[] = {"/app0", "/system_ex/app/" TUBE_UPDATE_TITLE, TUBE_UPDATE_INSTALL_DIR};
     static char data[512];
-    const char *running = TUBE_UPDATE_INSTALL_DIR;
-    for (unsigned i = 0; i < sizeof folders / sizeof *folders; ++i) {
-        char path[160];
-        struct stat info;
-        snprintf(path, sizeof path, "%s/sce_sys/param.json", folders[i]);
-        if (stat(path, &info) == 0) { running = folders[i]; break; }
-    }
+    char title[10], installed[12];
+    const char *param = tube_update_param_path();
     snprintf(data, sizeof data, "%s", evo_data_dir());
-    tube_js_http_config http = {.ca_data = tube_js_ca_pem, .ca_length = tube_js_ca_pem_length, .connect_timeout_ms = 15000,
-                                .timeout_ms = 120000, .max_connections = 2, .max_requests = 2, .ipv4_only = 1,
-                                .socket_setup = tube_js_console_socket_setup, .poll_slice_ms = 10};
-    g_http = tube_update_http_new(&http);
-    tube_update_config config = {.data_dir = data, .running_dir = running, .registered_dir = "/user"};
+    if (!update_check_read_param(param, title, installed) || strcmp(title, TUBE_UPDATE_TITLE)) return;
+    tube_update_config config = {.data_dir = data, .installed = installed, .platform = self_update_console()};
 #ifdef EVO_USB_REMOTE
-    config.development = 1;   /* the instrumented build */
+    config.development = 1;
 #endif
-    if (g_http) {
-        config.transport = tube_update_http_transport(g_http);
-        adopt(tube_update_new(&config));
-    }
+    adopt(tube_update_new(&config));
+    g_owned = g_update != NULL;
 #endif
 }
 
 void tube_update_app_shutdown(void) {
-#if defined(TUBE_EMBEDDED_SERVICE) && defined(EVO_APP_MODULE)
-    if (g_http) {   /* the console's own updater; a test's stays the test's */
-        tube_update_free(g_update);
-        tube_update_http_free(g_http);
-    }
-#endif
-    g_update = NULL; g_http = NULL; g_tried = 0;
+    if (g_owned) tube_update_free(g_update);
+    g_update = NULL; g_owned = 0; g_tried = 0;
 }
 
 void tube_update_app_tick(int service_ready) {
     tube_update_status status;
     if (!g_update) return;
     const long long elapsed = clock_now() - g_started;
-    if (!g_confirmed && elapsed >= CONFIRM_AFTER_S) {
-        g_confirmed = 1;
-        if (tube_update_confirm_start(g_update)) {
-            tube_update_get(g_update, &status);
-            snprintf(g_notice, sizeof g_notice, "ProsperoTube was updated to version %s.", status.installed); g_have_notice = 1;
-        }
-    }
     if (!g_checked && (service_ready || elapsed >= CHECK_AFTER_S)) g_checked = tube_update_check(g_update, 0);
     tube_update_get(g_update, &status);
     if (g_manual && !status.busy) {   /* only a check the user asked for reports its outcome */
@@ -160,7 +119,7 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
     else snprintf(detail, sizeof detail, "Installed %s; the latest version is not known yet", *s.installed ? s.installed : "version unknown");
     row(rows, &n, capacity, "check", "Check for updates", detail);
     row(rows, &n, capacity, "notify", s.notify ? "Notify about updates: on" : "Notify about updates: off",
-        "A notice once per start when a newer version exists; the check itself runs at most once a day");
+        "A notice once per start when a newer version exists; the check itself runs once per launch");
     if (!newer && s.phase != TUBE_UPDATE_STAGED && s.phase != TUBE_UPDATE_APPLIED) return n;
     if (*tube_update_notes(g_update)) {
         snprintf(title, sizeof title, "What is new in %.80s", *s.latest_name ? s.latest_name : s.latest);
@@ -170,8 +129,8 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
     }
     switch (s.phase) {
     case TUBE_UPDATE_DOWNLOADING:
-        snprintf(title, sizeof title, "Downloading: %u%% - select to pause", percent(s.done, s.total));
-        snprintf(detail, sizeof detail, "%u of %u MB; a paused download continues where it stopped", megabytes(s.done), megabytes(s.total));
+        snprintf(title, sizeof title, "Downloading: %u%% - select to cancel", percent(s.done, s.total));
+        snprintf(detail, sizeof detail, "%u of %u MB; cancelling leaves the installed app untouched", megabytes(s.done), megabytes(s.total));
         row(rows, &n, capacity, "cancel", title, detail); break;
     case TUBE_UPDATE_VERIFYING:
     case TUBE_UPDATE_UNPACKING:
@@ -179,7 +138,7 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
         row(rows, &n, capacity, "cancel", title, "The installed version is not touched yet"); break;
     case TUBE_UPDATE_STAGED:
         snprintf(title, sizeof title, "Restart to finish updating to %s", s.staged);
-        row(rows, &n, capacity, "apply", title, "Replaces the app's files and closes ProsperoTube; open it again. The previous version is kept until the new one has started");
+        row(rows, &n, capacity, "apply", title, "Closes ProsperoTube so the helper can replace its files; open it again after the notification");
         row(rows, &n, capacity, "discard", "Discard the prepared update", "Removes the downloaded version; the installed one stays"); break;
     case TUBE_UPDATE_APPLIED:
         row(rows, &n, capacity, "apply", "Close ProsperoTube to finish the update", "The new version starts when you open the app again"); break;
@@ -190,7 +149,7 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
         else {
             snprintf(title, sizeof title, "Update to %s now", s.latest);
             if (s.phase == TUBE_UPDATE_FAILED && *s.error) snprintf(detail, sizeof detail, "%.199s", s.error);
-            else snprintf(detail, sizeof detail, "Downloads %u MB, checks it against the release and prepares the new version", megabytes(s.size));
+            else snprintf(detail, sizeof detail, "Downloads %u MB, checks it against the signed catalog and prepares the new version", megabytes(s.size));
             row(rows, &n, capacity, "install", title, detail);
         }
     }
@@ -214,7 +173,7 @@ int tube_update_app_action(const char *action) {
     else if (!strcmp(action, "skip")) tube_update_skip(g_update, strcmp(s.skipped, s.latest) ? s.latest : "");
     else if (!strcmp(action, "apply")) {
         if (s.phase == TUBE_UPDATE_APPLIED || tube_update_apply(g_update)) {
-            notice("The new version is in place. ProsperoTube closes now: open it again.");
+            notice("ProsperoTube closes now. Wait for the update notification before opening it again.");
             g_restart = 1;
         } else {
             tube_update_get(g_update, &s);
@@ -257,3 +216,23 @@ int tube_update_app_take_restart(void) {
     g_restart = 0;
     return restart;
 }
+
+#if defined(TUBE_EMBEDDED_SERVICE) && defined(EVO_APP_MODULE)
+const char *tube_update_param_path(void) {
+    static char path[512];
+    const char *folders[] = {"/app0", "/system_ex/app/" TUBE_UPDATE_TITLE, TUBE_UPDATE_INSTALL_DIR};
+    struct stat info;
+    for (unsigned i = 0; i < sizeof folders / sizeof *folders; ++i) {
+        snprintf(path, sizeof path, "%s/sce_sys/param.json", folders[i]);
+        if (!stat(path, &info)) return path;
+    }
+    return path;
+}
+const char *tube_update_helper_path(void) {
+    static char path[512];
+    snprintf(path, sizeof path, "%s", tube_update_param_path());
+    char *suffix = strstr(path, "/sce_sys/param.json");
+    if (suffix) snprintf(suffix, sizeof path - (size_t)(suffix - path), "/self-updater.elf");
+    return path;
+}
+#endif

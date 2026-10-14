@@ -16,13 +16,17 @@ assert "requestAutoClose()" in body and "void Application::requestAutoClose()" i
 # Runs before the selection of the frame is taken, in the browser's per-frame function.
 assert source.index("void ProviderHostScreen::startSelected()") < a < source.index("    evo_provider_selection_t sel;", a)
 makefile = (player/"Makefile").read_text()
-for name in ("tube_update.c", "tube_update_zip.c", "tube_update_app.c"):
+assert (player / "assets/prosperotube-notices/miniz-MIT.txt").is_file()
+for name in ("tube_update.c", "tube_update_app.c", "self_update.c", "self_update_sha256.c", "update_check.c"):
     assert "    addons/src/" + name in makefile and (player/"addons/src"/name).is_file(), name
-for name in ("tube_update.h", "tube_update_fs.h", "tube_update_sha256.h", "tube_update_zip.h"):
+for name in ("tube_update.h", "self_update.h", "self_update_protocol.h", "update_check.h"):
     assert (player/"addons/include"/name).is_file(), name
 # The transport and the console's updater belong to the package that carries the built-in service.
 embedded = "addons/src/tube_js_net.o" in makefile
-assert ("    addons/src/tube_update_http.c" in makefile) == embedded
+assert ("    addons/src/self_update_ps5.c" in makefile) == embedded
+if embedded:
+    assert "--keep-global-symbol='curl_*'" in makefile
+    assert "prosperotube-update/self-updater.elf" in (work / "scripts/package-app.sh").read_text()
 assert ("addons/src/tube_update_app.o: CFLAGS += -DTUBE_EMBEDDED_SERVICE=1" in makefile) == embedded
 scaffold = r'''#include <cassert>
 #include <string>
