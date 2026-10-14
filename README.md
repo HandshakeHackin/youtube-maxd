@@ -226,13 +226,17 @@ synchronized sound confirmed by the owner, and, with generated media and a
 fixture service, resume, speed changes, the SponsorBlock review, the queue,
 two caption languages at once and the chat reader.
 
+On 2026-10-14 the Afterglow interface was tried by hand on a PS5: Home with
+real video shelves for a Guest, opening a topic, search with suggestions while
+typing, About, and playback of several videos with seeking, through the ranged
+manifests described below.
+
 Everything else is tested on a PC only (the offline suite,
-`bash scripts/test_all.sh`) and has not run on a console: the Afterglow
-interface, accounts (no real account has signed in), phone casting (no real
-phone has been linked), the update check and self-update, the interface
-languages, VP9, HEVC, AV1 and 4K playback, recovery when a media link expires,
-backups and the seek preview. [Status](docs/STATUS.md) lists each part and its
-evidence.
+`bash scripts/test_all.sh`) and has not run on a console: accounts beyond a
+first sign-in, phone casting (no real phone has been linked), the update check
+and self-update, the interface languages, AV1 and 4K playback, recovery when a
+media link expires, backups and the seek preview. [Status](docs/STATUS.md)
+lists each part and its evidence.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player,
@@ -242,7 +246,45 @@ and background playback.
 > [!IMPORTANT]
 > ProsperoTube asks YouTube as one client identity, `VISIONOS`, with no
 > fallback but HLS. When YouTube changes its service, playback can stop until
-> an update of the app arrives.
+> an update of the app arrives. On 2026-10-14 YouTube began refusing requests
+> for whole media files; since then the player reads each stream in small byte
+> ranges, which for now limits playback to MP4 streams (AVC or AV1 with AAC).
+
+## Roadmap
+
+What is planned, roughly in order. Nothing here has a date.
+
+**Afterglow, as designed**
+- [ ] The player as on its boards: the next-video card, Undo after a skipped
+      segment, grouped playback options, captions in tabs, and the live chat
+      beside the video rather than over it.
+- [ ] Home: an unread count on the notifications bell and a "Live now" shelf.
+- [ ] Translations of the Afterglow interface's texts into the 21 languages.
+- [ ] The interface's own sound recordings in place of the UI kit's sounds.
+- [ ] Afterglow as the default interface, once every screen is validated on a
+      console.
+
+**Playback**
+- [ ] VP9 and Opus streams again, and with them 4K VP9 and HDR, by reading
+      WebM streams in ranges as MP4 is read today.
+- [ ] Rewinding live streams, and remembering the position in a live stream.
+- [ ] Keep playing while browsing.
+- [ ] Automatic frame-rate switching to match the video.
+
+**Validation on a console**
+- [ ] Accounts in daily use, phone casting with a real phone, and the update
+      check with self-update from a published release.
+
+**Smaller items**
+- [ ] Posting comments and live-chat messages beyond the current experimental
+      rows; queue reordering in the Library.
+- [ ] Voice search without a computer.
+- [ ] A web proxy setting.
+- [ ] Backup to Google Drive.
+- [ ] Video previews on focused cards.
+
+The [parity table](docs/PARITY.md) tracks every SmartTube feature and how far
+ProsperoTube has come with it.
 
 ## Requirements
 
