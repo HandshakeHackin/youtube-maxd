@@ -4059,6 +4059,12 @@
    ]
   },
   {
+   "source": "Keep playing while browsing",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Keep skipped segments when rewinding this video",
    "context": [
     "browser"
@@ -5413,6 +5419,12 @@
    ]
   },
   {
+   "source": "Now playing",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "OPTIONS",
    "context": [
     "document"
@@ -5899,6 +5911,12 @@
    "source": "Pause watch history (experimental)",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Paused",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -12333,6 +12351,12 @@
    "context": [
     "browser",
     "kit"
+   ]
+  },
+  {
+   "source": "return to video",
+   "context": [
+    "afterglow"
    ]
   },
   {
