@@ -243,6 +243,8 @@ def main():
     apply_audio_rate_overlay(replace, player, WORK)
     from auto_frame_rate_overlay import apply_auto_frame_rate_overlay
     apply_auto_frame_rate_overlay(replace, player)
+    from hdr_post_flip_overlay import apply_hdr_post_flip_overlay
+    apply_hdr_post_flip_overlay(replace, player)
     from speed_controls_overlay import apply_speed_controls_overlay
     apply_speed_controls_overlay(replace, player)
     from player_chat_overlay import apply_player_chat_overlay
