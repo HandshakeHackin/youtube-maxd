@@ -68,12 +68,15 @@ README's **Roadmap**). The two recommended first:
    on the GPU after the first valid 4K frame of a second video. Local hardware
    decoding research exposed a frame-pool reuse race; explicit leases now hold
    native surfaces through GPU retirement, with generated ownership and package
-   checks passing. The 8c8d7b15 retest passed 1080p and reached a valid
-   2880x2160 VP9 surface, then faulted before the first picture reached the
-   presenter. Its fault address is outside the new frame pool and near the
-   prior 1080p decoder allocation. Both cases restored state and left the
-   console idle. Decoder resource teardown order is the current investigation;
-   neither case establishes 2160p playback.
+   checks passing. The 8c8d7b15, 0184b32d and 88c154a6 retests passed 1080p,
+   then faulted on retired 1080p decoder allocations after a first 2160p
+   surface; bounded close draining alone was insufficient. The ca173808
+   candidate instead kept one VP9 decoder at a 4K-capable maximum: 1080p and
+   full 3840x2160 shared its frame pool with no resize. The full-width frame
+   reached the presenter, then a different GPU unmapped read outside the
+   decoder pools stopped playback. Every case restored state and left the
+   console idle. The AGC display path is the current investigation; no case
+   establishes 2160p playback.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in

@@ -9,12 +9,16 @@ The combined 93b2e0c7 candidate repeated the 1080p pass, but a second video
 opened native 4K VP9 and hit a GPU unmapped-read page fault after its first
 valid frame. Console state was restored and the title closed; 4K remains
 unaccepted, and theatre/picker calibration was not reached in that case.
-An 8c8d7b15 retest included the native frame-pool lease fix and strict output
-surface checks. Native VP9 1080p and seeking passed again. A 2880x2160 VP9
-video produced a valid first decoder surface, then the GPU faulted at an
-address outside the new frame pool before playback advanced. The driver kept
-sound disabled, restored saved state and confirmed an idle console. Decoder
-resource teardown order is being investigated; there has been no blind relaunch.
+The native frame-pool lease fix and strict output checks pass offline. Three
+subsequent bounded 2160p retests each passed native VP9 1080p and seeking, but
+faulted before 2160p playback advanced. Diagnostic maps placed two faults in
+retired 1080p decoder allocations even after queue-order and bounded close
+drain fixes. A VP9-only resident 4K-capable decoder then reused one frame pool
+for 1080p and full 3840x2160, eliminating that teardown path. Its first full
+width frame reached the presenter, then a different GPU unmapped read outside
+the decoder pools stopped playback. Every run restored saved state and left
+the console idle; sound was not enabled after stalled frames. The AGC display
+path is under investigation.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's

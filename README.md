@@ -233,10 +233,11 @@ manifests described below.
 
 Further acceptance is still needed for real account use, phone casting, a
 published update, interface languages, AV1, HDR, backups and long playback.
-Two bounded 2160p VP9 cases decoded a valid first frame but ended in a GPU
-page fault before playback advanced; 4K is not accepted. The native frame-pool
-lease fix passes offline checks, but the second case shows another faulting
-address outside that pool. [Status](docs/STATUS.md) lists the evidence.
+Bounded 2160p VP9 cases still end in GPU page faults before playback advances;
+4K is not accepted. A resident 4K-capable decoder eliminated the prior fault
+in retired 1080p allocations, but a full 3840x2160 frame then reached the
+presenter and faulted at a different address. [Status](docs/STATUS.md) lists
+the evidence.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player,
