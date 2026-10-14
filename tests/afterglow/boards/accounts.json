@@ -94,7 +94,7 @@
    "fixture": "signed-in",
    "route": {"screen": "accounts"},
    "steps": [{"press": "right"}, {"press": "cross"}, {"wait": 0.8}, {"press": "cross"}, {"press": "options"}, {"wait": 1.0}],
-   "expect": {"screen": "home", "asked": ["prompt:answer"]}
+   "expect": {"screen": "home", "asked": ["prompt:answer"], "answered": ["prompt:answer=q"]}
   },
   {
    "name": "accounts-password-empty",

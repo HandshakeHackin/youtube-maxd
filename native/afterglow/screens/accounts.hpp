@@ -27,12 +27,6 @@ namespace afterglow::acct
 
 // ---- data ------------------------------------------------------------------------
 
-// REQUEST: Data::answer(text): hand a typed text to the provider's armed
-// prompt (a profile's password) and list the catalog it names, as an action;
-// a refusal is Load::failed with the provider's reason. Until then the
-// stand-in acts on this row, which carries no text (requests/F.md, 1).
-inline constexpr const char *kPromptAnswer = "prompt:answer";
-
 // True while an action has not been answered. A ticket that is gone counts as
 // answered: its Page has Load::idle, which the screens treat as a failure.
 inline bool pending(const Page &action)

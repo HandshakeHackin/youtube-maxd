@@ -115,11 +115,10 @@ void Accounts::update(const InputFrame &input, UpdateContext &context)
     const int typed = sheet_.update(input, context);
     if (typed == 1)
     {
-        // REQUEST: Data::answer(text) (requests/F.md, 1). The text is not kept here in either case.
         std::string text = sheet_.take();
+        work_.ticket = data.answer(text);
         std::fill(text.begin(), text.end(), '\0');
         sheet_.set_busy(true);
-        wait(data, kPromptAnswer);
         return;
     }
     if (typed == -1)

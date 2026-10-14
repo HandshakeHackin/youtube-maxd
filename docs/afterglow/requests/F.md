@@ -29,10 +29,11 @@ unsigned answer(std::string_view text);
 // Source: virtual unsigned answer(std::string_view text, Done done) = 0;
 ```
 
-**Stand-in.** `acct::kPromptAnswer` (`accounts.hpp`): the screen wipes the
-typed text and calls `data.act("prompt:answer")`. The fixture file
-`prompt_answer.json` plays the provider's reply; in the app the row means
-nothing, so the password flows do not work on the console until this exists.
+**Implemented 2026-10-14.** The account screen calls `data.answer(text)` and
+then wipes its temporary copy. This uses the shared typed-answer path and
+follows the provider's armed prompt. The account board now verifies the typed
+answer was actually delivered; the previous placeholder passed its fixture
+without sending the password. Console acceptance remains pending.
 
 ## 2. `Nav::confirm` for a destructive answer, and for three answers
 
