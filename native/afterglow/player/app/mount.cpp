@@ -12,6 +12,7 @@
 // Console only: nothing here is compiled for the host.
 
 #include "afterglow/player/app/mount.hpp"
+#include "afterglow/player/app/picker.h"
 
 #include "afterglow/app/afterglow.h"
 #include "afterglow/player/player.hpp"
@@ -97,6 +98,32 @@ std::string sentence(const std::string &text)
     return out;
 }
 
+// Native picker identities stay in English; the mounted group labels follow the interface language.
+std::string picker_label(const std::string& source) {
+    const struct { const char *source, *translated; } labels[] = {
+        {"Quality",tr("Quality")},
+        {"Audio",tr("Audio")},
+        {"Speed",tr("Speed")},
+        {"Live chat",tr("Live chat")},
+        {"Playback mode",tr("Playback mode")},
+        {"Video size",tr("Video size")},
+        {"Zoom",tr("Zoom")},
+        {"Aspect ratio",tr("Aspect ratio")},
+        {"Display correction",tr("Display correction")},
+        {"Rotation",tr("Rotation")},
+        {"Time display",tr("Time display")},
+        {"Seeking",tr("Seeking")},
+        {"Seek interval",tr("Seek interval")},
+        {"Cross button",tr("Cross button")},
+        {"Hide controls",tr("Hide controls")},
+        {"Sleep timer",tr("Sleep timer")},
+        {"Video presets",tr("Video presets")},
+        {"Chapters",tr("Chapters")},
+    };
+    for (const auto& label : labels) if (source==label.source) return label.translated;
+    return source;
+}
+
 // What EVO said last, with its strings copied.
 struct Playback
 {
@@ -115,6 +142,7 @@ struct ListRow
 {
     std::string title, detail, badge;
     bool focused = false;
+    bool chevron = false;
 };
 
 struct List
@@ -125,6 +153,8 @@ struct List
     int total = 0;
     int cursor = -1;
     bool empty = false;
+    std::string choices_title;
+    std::vector<player::Choice> choices;
 };
 
 struct Mount
@@ -137,6 +167,7 @@ struct Mount
     Details details;
     player::Sheet picker; // the caption picker, as EVO last described it
     List list;
+    int caption_tab = 0, caption_first = 0, caption_total = 0;
     player::Dialog dialog;
     player::Toast toast;
     std::string toast_key;
@@ -507,9 +538,16 @@ void fill_list(Mount &m)
     player::Sheet &sheet = v.sheet;
     sheet.open = true;
     sheet.kind = "options";
-    sheet.title = same(list.title, "PLAYBACK OPTIONS") ? tr("Playback") : sentence(list.title);
+    sheet.title = same(list.title, "PLAYBACK OPTIONS") ? tr("Playback") : picker_label(sentence(list.title));
     sheet.first = first;
     sheet.total = list.total;
+    sheet.choices_title = picker_label(list.choices_title);
+    sheet.choices_total = static_cast<int>(list.choices.size());
+    int current = 0;
+    for (int i=0; i<sheet.choices_total; ++i) if (list.choices[i].current) current=i;
+    sheet.choices_first = std::clamp(current-4,0,std::max(0,sheet.choices_total-9));
+    for (int i=sheet.choices_first; i<sheet.choices_total && i<sheet.choices_first+9; ++i)
+        sheet.choices.push_back(list.choices[i]);
     for (const ListRow &from : list.rows)
     {
         player::Row row;
@@ -529,6 +567,8 @@ void fill_list(Mount &m)
         if (!row.current && from.badge != "VIDEO")
             row.tag = sentence(from.badge);
         row.focused = from.focused;
+        row.chevron = from.chevron;
+        if (row.chevron) row.label = picker_label(row.label);
         sheet.rows.push_back(std::move(row));
     }
     if (list.empty || sheet.rows.empty())
@@ -678,20 +718,22 @@ void player_set_captions_picker(const evo_rmlui_subtitles_params_t &params)
     sheet.open = true;
     sheet.kind = "captions";
     sheet.title = tr("Captions");
+    sheet.tabs = {tr("Captions"),tr("Second language")};
+    sheet.tab = mount().caption_tab;
+    sheet.first = mount().caption_first;
+    sheet.total = mount().caption_total;
     if (params.size_str != nullptr && params.size_str[0] != '\0')
         sheet.pills.push_back(fill(tr("Size: {0}"), sentence(params.size_str)));
-    for (const char *pill : {params.sync_str, params.sync2_str})
-    {
-        if (pill != nullptr && pill[0] != '\0')
-            sheet.pills.push_back(sentence(pill));
-    }
+    const char *sync = sheet.tab == 1 ? params.sync2_str : params.sync_str;
+    if (sync != nullptr && sync[0] != '\0') sheet.pills.push_back(sentence(sync));
     for (int i = 0; i < params.track_count && i < 8; ++i)
     {
         const evo_rmlui_subtitles_track_t &track = params.tracks[i];
         player::Row row;
         row.label = str(track.label);
         row.detail = str(track.detail);
-        row.tag = sentence(str(track.tag));
+        const std::string tag = str(track.tag);
+        if (tag != "PRIMARY" && tag != "SECONDARY") row.tag = sentence(tag);
         row.current = track.is_current != 0;
         row.focused = track.is_focused != 0;
         row.action = track.is_action != 0;
@@ -701,9 +743,10 @@ void player_set_captions_picker(const evo_rmlui_subtitles_params_t &params)
     sheet.preview = str(params.preview_text);
     sheet.preview_size = (params.preview_face == 0 ? 40.0f : params.preview_face == 2 ? 60.0f : 50.0f) * static_cast<float>(tube_extra_subtitle_scale()) / 100.0f;
     sheet.hints = {{ui::Button::cross, ui::Button::none, tr("Choose")},
+                   {ui::Button::circle, ui::Button::none, tr("Back")},
+                   {ui::Button::l1, ui::Button::r1, tr("Language")},
                    {ui::Button::square, ui::Button::none, tr("Size")},
-                   {ui::Button::dpad, ui::Button::none, tr("Sync")},
-                   {ui::Button::circle, ui::Button::none, tr("Back")}};
+                   {ui::Button::dpad, ui::Button::none, tr("Sync")}};
 }
 
 void player_set_list(const evo_rmlui_list_params_t &params)
@@ -718,7 +761,7 @@ void player_set_list(const evo_rmlui_list_params_t &params)
     list.empty_hint = str(params.empty_hint);
     list.rows.clear();
     for (int i = 0; i < params.row_count && i < EVO_RMLUI_LIST_ROWS; ++i)
-        list.rows.push_back({str(params.rows[i].title), str(params.rows[i].detail), str(params.rows[i].badge), params.rows[i].is_focused != 0});
+        list.rows.push_back({str(params.rows[i].title), str(params.rows[i].detail), str(params.rows[i].badge), params.rows[i].is_focused != 0, params.rows[i].has_chevron != 0});
 }
 
 void player_set_dialog(const evo_rmlui_dialog_params_t &params)
@@ -860,3 +903,19 @@ const char *player_snapshot(unsigned frame)
 }
 
 } // namespace afterglow
+
+extern "C" void tube_afterglow_options_begin(const char *title) {
+    auto &list = afterglow::mount().list;
+    list.choices_title = title ? title : "";
+    list.choices.clear();
+}
+extern "C" void tube_afterglow_options_choice(const char *label, int current) {
+    afterglow::player::Choice choice;
+    choice.label = label ? label : ""; choice.current = current != 0;
+    afterglow::mount().list.choices.push_back(std::move(choice));
+}
+extern "C" void tube_afterglow_caption_tab(int tab, int first, int total) {
+    auto &mount = afterglow::mount();
+    mount.caption_tab = tab == 1 ? 1 : 0;
+    mount.caption_first = std::max(0,first); mount.caption_total = std::max(0,total);
+}

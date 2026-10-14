@@ -1,0 +1,275 @@
+{
+ "about": "Grouped playback and caption language tabs, using the same available rows as the generated-input regression.",
+ "boards": [
+  {
+   "name": "player-picker-grouped",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Playback",
+     "rows": [
+      {
+       "label": "Quality",
+       "value": "Auto",
+       "chevron": true
+      },
+      {
+       "label": "Audio",
+       "value": "English",
+       "chevron": true
+      },
+      {
+       "label": "Speed",
+       "value": "1x",
+       "chevron": true,
+       "focused": true
+      },
+      {
+       "label": "Video actions",
+       "detail": "Actions for this video"
+      }
+     ],
+     "total": 4,
+     "choices_title": "Speed",
+     "choices": [
+      {
+       "label": "1x",
+       "current": true
+      },
+      {
+       "label": "1.25x"
+      },
+      {
+       "label": "2x"
+      }
+     ],
+     "choices_total": 3,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/2",
+    "state": {
+     "option_choices": "3",
+     "sheet": "options",
+     "rows": "4"
+    }
+   }
+  },
+  {
+   "name": "player-picker-speed",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "options",
+     "title": "Speed",
+     "rows": [
+      {
+       "label": "1x",
+       "current": true
+      },
+      {
+       "label": "1.25x",
+       "focused": true
+      },
+      {
+       "label": "2x"
+      }
+     ],
+     "total": 3,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/1",
+    "state": {
+     "option_choices": "0",
+     "sheet": "options",
+     "rows": "3"
+    }
+   }
+  },
+  {
+   "name": "player-picker-caption-primary",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "tabs": [
+      "Captions",
+      "Second language"
+     ],
+     "tab": 0,
+     "pills": [
+      "Size: Medium",
+      "Sync: +100 ms"
+     ],
+     "total": 5,
+     "rows": [
+      {
+       "label": "Off"
+      },
+      {
+       "label": "Auto-sync",
+       "action": true,
+       "disabled": true
+      },
+      {
+       "label": "English",
+       "current": true
+      },
+      {
+       "label": "Spanish",
+       "focused": true,
+       "current": false
+      },
+      {
+       "label": "German",
+       "tag": "Translated"
+      }
+     ],
+     "preview": "The quick brown fox jumps over the lazy dog",
+     "preview_size": 50,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      },
+      {
+       "button": "l1",
+       "second": "r1",
+       "label": "Language"
+      },
+      {
+       "button": "square",
+       "label": "Size"
+      },
+      {
+       "button": "dpad",
+       "label": "Sync"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/3",
+    "state": {
+     "caption_tab": "0",
+     "sheet": "captions",
+     "rows": "5"
+    }
+   }
+  },
+  {
+   "name": "player-picker-caption-secondary",
+   "fixture": "empty",
+   "player": "plain",
+   "view": {
+    "chrome": 0,
+    "sheet": {
+     "open": true,
+     "kind": "captions",
+     "title": "Captions",
+     "tabs": [
+      "Captions",
+      "Second language"
+     ],
+     "tab": 1,
+     "pills": [
+      "Size: Medium",
+      "Sync: +100 ms"
+     ],
+     "total": 4,
+     "rows": [
+      {
+       "label": "Off"
+      },
+      {
+       "label": "English",
+       "current": false
+      },
+      {
+       "label": "Spanish",
+       "focused": true,
+       "current": true
+      },
+      {
+       "label": "German",
+       "tag": "Translated"
+      }
+     ],
+     "preview": "The quick brown fox jumps over the lazy dog",
+     "preview_size": 50,
+     "hints": [
+      {
+       "button": "cross",
+       "label": "Choose"
+      },
+      {
+       "button": "circle",
+       "label": "Back"
+      },
+      {
+       "button": "l1",
+       "second": "r1",
+       "label": "Language"
+      },
+      {
+       "button": "square",
+       "label": "Size"
+      },
+      {
+       "button": "dpad",
+       "label": "Sync"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "screen": "player",
+    "focus": "sheet/2",
+    "state": {
+     "caption_tab": "1",
+     "sheet": "captions",
+     "rows": "4"
+    }
+   }
+  }
+ ]
+}

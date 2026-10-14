@@ -188,6 +188,12 @@ void Player::draw_sheet(G &g, const Motion &m) const
     if (captions && !sheet_.tabs.empty())
     {
         tabs_.draw(canvas);
+        std::string settings;
+        for (const std::string& pill : sheet_.pills) {
+            if (!settings.empty()) settings += "   ";
+            settings += pill;
+        }
+        text(g,g.f.regular,fit(g.f.regular,settings,kTypeSmall,508.0f),left,234.0f,kTypeSmall,k.ink2);
     }
     else if (captions && !sheet_.pills.empty())
     {
@@ -237,10 +243,19 @@ void Player::draw_sheet(G &g, const Motion &m) const
     const Row *row = focus >= 0 ? &sheet_.rows[static_cast<std::size_t>(focus)] : nullptr;
     if (captions)
     {
+        const int total = sheet_.total > 0 ? sheet_.total : static_cast<int>(sheet_.rows.size());
+        if (total > 0 && focus >= 0)
+            text(g,g.f.mono,fill(tr("{0} of {1}"),std::to_string(sheet_.first+focus+1),std::to_string(total)),
+                 left+508.0f,880.0f,kTypeSmall,k.ink3,gfx::Align::right);
         const std::string &note = sheet_.note.empty() && row != nullptr ? row->detail : sheet_.note;
         if (!note.empty())
             paragraph(g, g.f.regular, note, left + 4.0f, 908.0f, kTypeMeta, 500.0f, 28.0f, k.ink2, 2);
-        hint_row(g, sheet_.hints, left + 2.0f, 1000.0f, false, false, 508.0f, 32.0f, kTypeNote, 30.0f);
+        if (sheet_.hints.size() > 4) {
+            const std::vector<Hint> main(sheet_.hints.begin(),sheet_.hints.begin()+3);
+            const std::vector<Hint> adjust(sheet_.hints.begin()+3,sheet_.hints.end());
+            hint_row(g, main, left + 2.0f, 976.0f, false, false, 508.0f, 32.0f, kTypeNote, 30.0f);
+            hint_row(g, adjust, left + 2.0f, 1024.0f, false, false, 508.0f, 32.0f, kTypeNote, 30.0f);
+        } else hint_row(g, sheet_.hints, left + 2.0f, 1000.0f, false, false, 508.0f, 32.0f, kTypeNote, 30.0f);
     }
     else
     {
@@ -278,8 +293,11 @@ void Player::draw_sheet(G &g, const Motion &m) const
             if (!detail.empty())
                 paragraph(g, g.f.regular, detail, cx + 12.0f, y, kTypeNote, 300.0f, 30.0f, k.ink2, 8);
         }
+        if (sheet_.choices_total > static_cast<int>(sheet_.choices.size()))
+            text(g, g.f.mono, fill(tr("{0} of {1}"), std::to_string(sheet_.choices_first + 1) + "-" + std::to_string(sheet_.choices_first + sheet_.choices.size()),
+                 std::to_string(sheet_.choices_total)), cx + 12.0f, 790.0f, kTypeSmall, k.ink3);
         const int total = sheet_.total > 0 ? sheet_.total : static_cast<int>(sheet_.rows.size());
-        if (total > static_cast<int>(sheet_.rows.size()) && focus >= 0)
+        if (sheet_.choices_total <= static_cast<int>(sheet_.choices.size()) && total > static_cast<int>(sheet_.rows.size()) && focus >= 0)
             text(g, g.f.mono, fill(tr("{0} of {1}"), std::to_string(sheet_.first + focus + 1), std::to_string(total)), cx + 12.0f, 790.0f, kTypeSmall, k.ink3);
         hint_row(g, sheet_.hints, left + 26.0f, 1000.0f, false, false, 760.0f, 32.0f, kTypeNote, 30.0f);
     }

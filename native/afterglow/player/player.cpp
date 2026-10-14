@@ -335,7 +335,7 @@ void Player::build_sheet()
                 tabs_.set_active(sheet_.tab, true);
             }
             tabs_.set_bounds({left, 150.0f, 508.0f, 54.0f});
-            top = 224.0f;
+            top = sheet_.pills.empty() ? 224.0f : 252.0f;
         }
         else if (!sheet_.pills.empty())
             top = 204.0f;
@@ -786,6 +786,8 @@ std::string Player::snapshot_json() const
     number("captions", static_cast<long>(view_.captions.lines.size() + view_.captions.second.size()));
     json_field(out, "sheet", view_.sheet.open ? view_.sheet.kind : "");
     number("rows", view_.sheet.open ? static_cast<long>(view_.sheet.rows.size()) : 0);
+    number("caption_tab", view_.sheet.open && view_.sheet.kind=="captions" ? view_.sheet.tab : -1);
+    number("option_choices", view_.sheet.open ? (view_.sheet.choices_total > 0 ? view_.sheet.choices_total : static_cast<int>(view_.sheet.choices.size())) : 0);
     number("up_next", view_.up_next.open ? 1 : 0);
     number("cards", view_.up_next.open ? static_cast<long>(view_.up_next.cards.size()) : 0);
     json_field(out, "chat", view_.chat.side == 0 ? "off" : view_.chat.theatre ? "theatre" : view_.chat.side == 1 ? "left" : "right");

@@ -56,14 +56,20 @@ the code they are marked `// REQUEST:`.
    `evo_rmlui_update_playback_params()` while one of its pickers or
    ExitConfirm is the top screen. Stand-in: the mount shows the sheet or the
    dialog over the bare picture.
-10. **Lists as the boards have them.** Captions: two tabs (first and second
-    language) instead of the PRIMARY and SECONDARY tags, and the list's length.
-    Options: groups with their value and the choices of the focused group
-    (the value column of board 20) instead of one flat list of about sixty
-    rows. Stand-in: the caption picker without tabs, with its size and sync as
-    pills; the options as one list whose rows are split at ": " into a name and
-    a value, with the focused row's description in the second column and
-    "4 of 62" under it.
+10. **Lists as the boards have them.** Implemented for Afterglow through
+    `scripts/afterglow_picker_overlay.py`: repeated playback choices become
+    groups with their current values; the focused group's real choices appear
+    beside it. Cross opens that choice list and Circle restores the group
+    focus. Existing preference, preset and chapter groups expose their actual
+    choices too. Long previews show their window and full count; all choices
+    remain selectable in the opened list. Captions use primary/second-language
+    tabs selected with L1/R1, Cross selects in the active language, Square
+    changes the shared caption size and Left/Right adjusts the active
+    language's sync. Off in the second tab clears only the second language;
+    Auto-sync stays in the primary tab. The list reports its actual length.
+    Classic retains its original picker behavior. Generated-input sanitizer
+    checks and four-look player boards pass; console acceptance remains pending.
+
 11. **The stop confirmation opens on Keep watching** (design notes, section
     14: "the safe choice is the primary one"): `ModalDialogScreen`,
     `m_focusedButton = 0` for ExitConfirm. Stand-in: Keep watching is drawn as

@@ -253,6 +253,8 @@ def apply(root, work, replace, player):
     start_hooks(work, replace, player)
     apply_sound(root, work, replace, player, kit)  # stage S
     player_mount(work, replace, player)  # package H
+    import afterglow_picker_overlay
+    afterglow_picker_overlay.apply(root, work, replace, player)
 
 
 # ---- a chosen video until the player has the screen ---------------------------------------------------

@@ -266,6 +266,8 @@ void read(const cJSON *object, Sheet *sheet)
     get(object, "total", &sheet->total);
     get(object, "choices_title", &sheet->choices_title);
     get_list(object, "choices", &sheet->choices);
+    get(object, "choices_first", &sheet->choices_first);
+    get(object, "choices_total", &sheet->choices_total);
     get(object, "note", &sheet->note);
     get(object, "preview", &sheet->preview);
     get(object, "preview_size", &sheet->preview_size);

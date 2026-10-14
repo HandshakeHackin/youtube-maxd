@@ -114,7 +114,7 @@ struct Row
     bool chevron = false;  // opens a further list
 };
 
-// One value of the focused option, in the column beside the list (fixture).
+// One real value of the focused option, in the column beside the list.
 struct Choice
 {
     std::string label;
@@ -130,14 +130,15 @@ struct Sheet
     bool open = false;
     std::string kind = "options"; // "captions", "options"
     std::string title;
-    std::vector<std::string> tabs; // fixture: "Captions", "Second language"
+    std::vector<std::string> tabs; // "Captions", "Second language"
     int tab = 0;
     std::vector<std::string> pills; // size and sync of the captions
     std::vector<Row> rows;          // the rows on show
     int first = 0;                  // rows[0] is this row of the whole list
     int total = 0;                  // rows of the whole list; 0 = rows.size()
-    std::string choices_title;      // fixture
-    std::vector<Choice> choices;    // fixture
+    std::string choices_title;      // the focused group
+    std::vector<Choice> choices;    // the focused group's real choices
+    int choices_first = 0, choices_total = 0;
     std::string note;               // a line of help under the list
     std::string preview;            // captions: a line in the size that is chosen
     float preview_size = 50.0f;
