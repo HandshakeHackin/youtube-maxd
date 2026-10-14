@@ -349,4 +349,4 @@ outside the Latin, Greek and Cyrillic scripts, no auto frame rate, HDR or
 background playback.
 
 See [validation](VALIDATION.md), [hardware acceptance](HARDWARE_ACCEPTANCE.md),
-[parity](PARITY.md), [goal](../GOAL.md) and [plan](../IMPLEMENTATION_PLAN.md).
+[parity](PARITY.md) and [goal](../GOAL.md).
