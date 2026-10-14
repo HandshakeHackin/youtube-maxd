@@ -8,6 +8,7 @@
 #include <string.h>
 #include "sce/sce_videodec2.h"
 #include "tube_native_drain_constants.inc"
+#include "tube_frame_lease.h"
 typedef struct evo_vdec_native {
     int fatal, tube_drain_finished, ro_count, flushing;
     unsigned tube_drain_calls, au_ring;
@@ -16,6 +17,7 @@ typedef struct evo_vdec_native {
     void *dec;
 } evo_vdec_native;
 static unsigned remaining, calls, fail_call;
+static int tube_native_claim_frame(evo_vdec_native*n,unsigned first){int slot=tube_frame_pool_claim(n->frame_mem,first);assert(slot>=0);return slot;}
 static void nwd_enter(const char *stage, unsigned deadline) {
     assert(!strcmp(stage, "Flush") && deadline == NWD_DECODE_MS);
 }
@@ -35,6 +37,8 @@ int sceVideodec2Flush(void *decoder, SceVideodec2FrameBuffer *frame, SceVideodec
 static evo_vdec_native fresh(void) {
     static uint8_t memory[FRAME_POOL_SLOTS * 16];
     remaining = calls = fail_call = 0;
+    assert(tube_frame_pool_unregister(memory));
+    assert(tube_frame_pool_register(memory,16,FRAME_POOL_SLOTS));
     return (evo_vdec_native){.flushing = 1, .frame_mem = memory, .frame_size = 16, .dec = memory};
 }
 int main(void) {

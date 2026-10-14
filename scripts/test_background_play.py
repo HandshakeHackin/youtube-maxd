@@ -8,7 +8,7 @@ screen=(work/'core/src/screens/PlayerScreen.cpp').read_text()
 host=(work/'core/src/screens/ProviderHostScreen.cpp').read_text()
 picker=(work/'core/src/screens/AudioTrackPickerScreen.cpp').read_text()
 def part(s,a,b):return s[s.index(a):s.index(b,s.index(a))]
-appcode=part(app,'        uint64_t tube_hidden_epoch=0','        // End ProsperoTube background ownership.')
+appcode=part(app,'        pp_video_frame tube_present_source{}','        // End ProsperoTube background ownership.')
 retirement=part(app,'            if (tube_hidden_serial && evo_agc_runtime_last_present_retired())','            // End ProsperoTube hidden discard.')
 assert app.index(retirement)>app.index('            evo_agc_runtime_present();')
 eof=part(screen,'    if (tube_background_play_active() && ended','    // End ProsperoTube background completion.')
@@ -62,7 +62,7 @@ struct Manager{ScreenId current=ScreenId::Browser;int returns=0,foreground=0,upd
  void navigateTo(ScreenId s){++foreground;current=s;}} manager;
 static Manager*m_screenManager=&manager;
 namespace Application{struct App{Manager*getScreenManager(){return &manager;}};static App&getInstance(){static App a;return a;}}
-struct pp_video_frame{int ready=1;unsigned tube_epoch=2,tube_serial=3;};static int g_pp_pb,fetches,retired;
+struct pp_video_frame{const void*tube_lease=nullptr;int ready=1;unsigned tube_epoch=2,tube_serial=3;};static int g_pp_pb,fetches,retired;
 static int pp_playback_get_video_frame(int*,pp_video_frame*f){++fetches;f->ready=1;return 1;}
 static void pp_playback_note_retired(int*,unsigned e,unsigned s){assert(e==2&&s==3);++retired;}
 static bool m_softClose=false;static double frameDeltaMs=16;

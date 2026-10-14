@@ -248,6 +248,8 @@ def apply(root, work, replace, player):
     afterglow_controls_overlay.apply(work, replace, player)
     import video_destination_overlay
     video_destination_overlay.apply(root, work, replace, player)
+    import native_frame_lease_overlay
+    native_frame_lease_overlay.apply(root, work, replace, player)
 
 
 # ---- a chosen video until the player has the screen ---------------------------------------------------

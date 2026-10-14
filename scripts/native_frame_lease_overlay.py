@@ -1,0 +1,164 @@
+"""Protect native output pools through pp publication and completed GPU presentation."""
+import shutil
+
+def apply(root,work,replace,player):
+    for name in ('tube_frame_lease.c','tube_frame_lease.h'):
+        shutil.copyfile(root/'native'/name,work/player/('addons/src' if name.endswith('.c') else 'addons/include')/name)
+    replace(player+'Makefile','    addons/src/tube_backup.c','    addons/src/tube_backup.c \\\n    addons/src/tube_frame_lease.c')
+    native=player+'media/src/evo_vdec_native.c'
+    replace(native,'#include "evo_dovi.h"','#include "evo_dovi.h"\n#include "tube_frame_lease.h"')
+    replace(native,'#define FRAME_POOL_SLOTS            8','#define FRAME_POOL_SLOTS            8\n_Static_assert(FRAME_POOL_SLOTS==TUBE_FRAME_POOL_SLOTS,"native lease pool size");')
+    replace(native,'static void slot_teardown(struct dec_slot *s)',r"""static int tube_native_pool_idle(struct dec_slot *s) {
+    const int64_t start=nwd_now_ms();
+    while (tube_frame_pool_busy(s->frame_mem)) {
+        if (nwd_now_ms()-start>=NWD_DECODE_MS) {
+            note("EVO vdec native: unsafe pool teardown blocked by outstanding presenter lease; restart required pool=%p",s->frame_mem);
+            s->owned=1;s->ready=0;return 0;
+        }
+        usleep(1000);
+    }
+    return 1;
+}
+static int slot_teardown(struct dec_slot *s)""")
+    replace(native,'    uint32_t boot_w = s->boot_w;',r"""    if (!tube_native_pool_idle(s)) return -1;
+    if (!tube_frame_pool_unregister(s->frame_mem)) {
+        note("EVO vdec native: unsafe concurrent frame lease at teardown; restart required pool=%p",s->frame_mem);
+        s->owned=1;s->ready=0;return -1;
+    }
+    uint32_t boot_w = s->boot_w;""")
+    replace(native,'    s->boot_h = boot_h;\n}', '    s->boot_h = boot_h;\n    return 0;\n}')
+    replace(native,'    STAGE("CreateDecoder");',r"""    if (!tube_frame_pool_register(s->frame_mem,s->frame_size,FRAME_POOL_SLOTS)) return -1;
+    STAGE("CreateDecoder");""")
+    replace(native,'    unsigned au_ring;','    unsigned au_ring;\n    const void *tube_received;')
+    replace(native,'static void ro_reset(evo_vdec_native *n)',r"""static int tube_native_claim_frame(evo_vdec_native *n,unsigned first) {
+    const int64_t start=nwd_now_ms();
+    for (;;) {
+        int slot=tube_frame_pool_claim(n->frame_mem,first);
+        if (slot>=0) return slot;
+        if (slot==-2 || nwd_now_ms()-start>=NWD_DECODE_MS) {
+            note("EVO vdec native: no free caller frame while presenter owns pool; restart may be required pool=%p",n->frame_mem);
+            n->fatal=1;return -1;
+        }
+        usleep(1000); /* Outside pp/pool mutex; the presenter can retire independently. */
+    }
+}
+static void ro_reset(evo_vdec_native *n)""")
+    replace(native,'    for (int i = 0; i < RO_SLOTS; i++)\n        n->ro[i].used = 0;',r"""    tube_frame_lease_release(n->tube_received);n->tube_received=NULL;
+    for (int i = 0; i < RO_SLOTS; i++) {
+        if (n->ro[i].used && n->ro[i].borrowed) tube_frame_lease_release(n->ro[i].data);
+        n->ro[i].used = 0;
+    }""")
+    replace(native,'        s->data     = (uint8_t *)out->buffer;',r"""        if (tube_frame_lease_hold(out->buffer)!=1) { n->fatal=1;return; }
+        s->data     = (uint8_t *)out->buffer;""")
+    replace(native,'    unsigned fslot = n->au_ring % FRAME_POOL_SLOTS;','    int fslot = tube_native_claim_frame(n,(n->au_ring-1u) % FRAME_POOL_SLOTS);\n    if (fslot<0) return -1;')
+    # Acquire after AU cleanup/IRAP guards so discarded encoded input never owns a frame slot.
+    source=(work/native).read_text();a=source.index('    int fslot = tube_native_claim_frame');b=source.index('    n->au_ring++;',a)
+    claim=source[a:b];replace(native,claim,'')
+    replace(native,'    SceVideodec2InputData  in;',claim+'    SceVideodec2InputData  in;')
+    # The temporary decode-write claim survives until harvest owns the returned output.
+    source=(work/native).read_text();a=source.index('    n->dec_calls++;');b=source.index('\nstatic void drain_decoder',a)
+    chunk=source[a:b];chunk=chunk.replace('            return 0;','            tube_frame_lease_release(fb.buffer);\n            return 0;').replace('        return -1;','        tube_frame_lease_release(fb.buffer);\n        return -1;').replace('    return 0;\n}', '    tube_frame_lease_release(fb.buffer);\n    return 0;\n}')
+    replace(native,source[a:b],chunk)
+    replace(native,'        unsigned slot = n->au_ring % FRAME_POOL_SLOTS;', '        int slot=tube_native_claim_frame(n,n->au_ring % FRAME_POOL_SLOTS);\n        if(slot<0)return;')
+    replace(native,'        if (frc != 0) { n->fatal = 1; return; }','        if (frc != 0) { tube_frame_lease_release(fb.buffer);n->fatal = 1; return; }')
+    replace(native,'            n->tube_drain_finished = 1;\n            return;', '            tube_frame_lease_release(fb.buffer);\n            n->tube_drain_finished = 1;\n            return;')
+    replace(native,'        ro_harvest(n, &out);\n        if (n->ro_count', '        ro_harvest(n, &out);\n        tube_frame_lease_release(fb.buffer);\n        if (n->ro_count')
+    replace(native,'    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {', '    tube_frame_lease_release(v->tube_received);v->tube_received=NULL;\n    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {')
+    replace(native,'    best->used = 0;', '    if(best->borrowed)v->tube_received=best->data;\n    best->used = 0;')
+    replace(native,'    if (v->annexb_extradata) {','    ro_reset(v);\n    if (v->slot && !tube_native_pool_idle(v->slot)) return;\n    if (v->annexb_extradata) {')
+    replace(native,'        slot_teardown(slot);\n        const char *stage', '        if(slot_teardown(slot)!=0)return NULL;\n        const char *stage')
+    replace(native,'            slot_teardown(slot);\n            const char *stage', '            if(slot_teardown(slot)!=0)return;\n            const char *stage')
+    # Cheap once per open; raw addresses are diagnostic-local, never public telemetry.
+    replace(native,'            n->first_valid_logged = 1;',r"""            n->first_valid_logged = 1;
+            const uintptr_t surface=(uintptr_t)out.buffer,base=(uintptr_t)n->frame_mem;
+            const size_t index=surface>=base && n->frame_size ? (size_t)((surface-base)/n->frame_size) : SIZE_MAX;
+            note("EVO vdec native: first surface ptr=%p pool=%p slot=%zu slot_bytes=%zu coded=%ux%u visible=%ux%u pitch=%u pitch_bytes=%u profile=%u accepted=%u pictures=%u error=%u",
+                 out.buffer,n->frame_mem,index,n->frame_size,out.width,out.height,n->disp_w,n->disp_h,
+                 out.pitch,out.pitch_bytes,n->slot->cfg.profile,fb.accepted,out.picture_count,out.error);""")
+
+    pp=player+'pp/src/pp_playback.c';header=player+'pp/include/pp_playback.h'
+    replace(pp,'#include <unistd.h>','#include <unistd.h>\n#include "tube_frame_lease.h"')
+    replace(header,'typedef struct pp_video_frame {','typedef struct pp_video_frame {\n    const void *tube_lease;')
+    replace(header,'int pp_playback_get_video_frame(pp_playback *pb, pp_video_frame *f);',
+        'int pp_playback_get_video_frame(pp_playback *pb, pp_video_frame *f);\nvoid pp_playback_release_video_frame(pp_video_frame *f);')
+    replace(pp,'    pb->gl_src_y  = src->planes[0];',r"""    if (tube_frame_lease_hold(src->planes[0])<0) {
+        if (pb->lock) pthread_mutex_unlock(mtx(pb));
+        return -1;
+    }
+    tube_frame_lease_release(pb->gl_src_y);
+    pb->gl_src_y  = src->planes[0];""")
+    replace(pp,'    /* Don\'t show the previous file\'s last frame, or hold it through its seek. */',r"""    if (pb->lock) pthread_mutex_lock(mtx(pb));
+    tube_frame_lease_release(pb->gl_src_y);pb->gl_src_y=NULL;
+    if (pb->lock) pthread_mutex_unlock(mtx(pb));
+    /* Don't show the previous file's last frame, or hold it through its seek. */""")
+    replace(pp,'    pb->gl_src_y = pb->gl_src_uv = pb->gl_src_u = pb->gl_src_v = NULL;',
+        '    tube_frame_lease_release(pb->gl_src_y);\n    pb->gl_src_y = pb->gl_src_uv = pb->gl_src_u = pb->gl_src_v = NULL;',count=2)
+    source=(work/pp).read_text();a=source.index('int pp_playback_get_video_frame(');b=source.index('\nint pp_playback_get_interp_phase',a)
+    chunk=source[a:b];anchor='    if (pb->lock)\n        pthread_mutex_unlock(mtx(pb));'
+    assert chunk.count(anchor)==1
+    chunk=chunk.replace(anchor,r"""    if (got && !f->held) {
+        int lease=tube_frame_lease_hold(f->y);
+        if (lease<0) { memset(f,0,sizeof *f);got=0; }
+        else if(lease) f->tube_lease=f->y;
+    }
+"""+anchor)
+    chunk += r"""
+void pp_playback_release_video_frame(pp_video_frame *f) {
+    if (!f) return;
+    tube_frame_lease_release(f->tube_lease);f->tube_lease=NULL;
+}
+"""
+    replace(pp,source[a:b],chunk)
+    controller=player+'core/src/services/PlaybackController.cpp'
+    replace(controller,'    pp_playback_on_file_close(&g_pp_pb);','')
+    replace(controller,'    if (g_vdec) {\n        evo_vdec_close(g_vdec);',r"""    // Retire pp publication after the decode thread joins, before its native pool can close.
+    pp_playback_on_file_close(&g_pp_pb);
+    if (g_vdec) {
+        evo_vdec_close(g_vdec);""")
+    app=player+'core/src/Application.cpp'
+    replace(app,'        uint64_t tube_hidden_epoch=0,tube_hidden_serial=0;',
+        '        pp_video_frame tube_present_source{};\n        uint64_t tube_hidden_epoch=0,tube_hidden_serial=0;')
+    replace(app,'                    tube_hidden_epoch=hiddenFrame.tube_epoch;tube_hidden_serial=hiddenFrame.tube_serial;',r"""                    tube_hidden_epoch=hiddenFrame.tube_epoch;tube_hidden_serial=hiddenFrame.tube_serial;
+                    tube_present_source=hiddenFrame;hiddenFrame.tube_lease=nullptr;""")
+    replace(app,'                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;',r"""                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;
+                    tube_present_source=f;f.tube_lease=nullptr;""")
+    source=(work/app).read_text();a=source.index('        if (isPlayer) {',source.index('// 4. Video Quad blit'));brace=source.index('{',a);end=brace+1;depth=1
+    while depth:
+        depth+=(source[end]=='{')-(source[end]=='}');end+=1
+    # f remains in this exact block; a snapshot that was not used by a draw is immediately released.
+    chunk=source[a:end];chunk=chunk[:-1]+'    pp_playback_release_video_frame(&f);\n        }'
+    replace(app,source[a:end],chunk)
+    replace(app,'        // 5. Present if swap requested',r"""        if (!(swap && uiActive)) pp_playback_release_video_frame(&tube_present_source);
+        // 5. Present if swap requested""")
+    replace(app,'            // End ProsperoTube hidden discard.',r"""            // End ProsperoTube hidden discard.
+            if (tube_present_source.tube_lease) {
+                if (evo_agc_runtime_last_present_retired()) pp_playback_release_video_frame(&tube_present_source);
+                else {
+                    // A timeout never authorizes decoder reuse or pool teardown.
+                    evo_boot_log("native source lease retained after failed present; restart required");
+                }
+            }""")
+
+    replace(native,'''         * that pointer instead of copying it into an owned buffer - the reorder
+         * window (<= RO_SLOTS frames) is far shorter than the FRAME_POOL_SLOTS
+         * cycle before the decoder reuses the slot, so it stays valid until the
+         * present consumes it. Saves ~62 MiB of heap (RO_SLOTS owned frames)''','''         * that pointer instead of copying it into an owned buffer. Explicit
+         * references cover reorder, pp publication and GPU presentation until
+         * successful retirement; a cyclic slot number or pacing is not proof
+         * that the caller frame is free. Saves ~62 MiB of heap (RO_SLOTS owned frames)''')
+    replace(pp,'''     * Stash the borrowed decoder planes — no copy anywhere. push_frame is on
+     * the decode thread and has just pace-slept to this frame's PTS, so the
+     * decoder won't recycle the pool slot before the render loop's
+     * pp_playback_get_video_frame() + upload runs (~1 frame; the pool is 12 slots).
+     * The one case that breaks is a seek's discard window, which has no pacing
+     * — hold_snapshot() covers it.''','''     * Publish borrowed planes without a pixel copy. Native output owns a pool
+     * reference here; get_video_frame takes an independent snapshot reference
+     * before unlocking, and presentation releases it only after completion.
+     * Non-native buffers keep their existing pacing/held-copy behavior.''')
+    replace(header,'''     * pool (or FFmpeg's AVFrame) — valid because push_frame pace-sleeps on this
+     * frame's PTS before returning, so the decoder can't recycle the slot until
+     * the render thread has had its turn. pp_playback_get_video_frame() hands these
+     * straight out (under the lock, no pixel copy); the GL uploader reads them.''','''     * pool (or FFmpeg's AVFrame). Native pools carry publication and GPU snapshot
+     * references through completed presentation. FFmpeg keeps its existing pacing.
+     * get_video_frame hands the planes out under the lock without a pixel copy;
+     * every native snapshot must be released after its actual GPU use completes.''')

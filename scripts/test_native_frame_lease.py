@@ -1,0 +1,58 @@
+"""Compile actual generated native claim/idle and pp handoff with real lease metadata."""
+from pathlib import Path
+import os,subprocess,tempfile
+root=Path(__file__).resolve().parents[1]
+work=Path(os.environ['PROSPEROTUBE_NATIVE_WORK'])/'projects/evoplayer'
+source=(work/'media/src/evo_vdec_native.c').read_text()
+def function(source,signature):
+    a=source.index(signature);b=source.index('{',a)+1;depth=1;i=b
+    while depth:
+        depth+=(source[i]=='{')-(source[i]=='}');i+=1
+    return source[a:i]
+# The original cyclic selection fails the retained baseline pool-wrap reproduction.
+assert 'int fslot = tube_native_claim_frame(' in source
+with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
+    temp=Path(temp)
+    (temp/'native_claim.inc').write_text(function(source,'static int tube_native_claim_frame('))
+    (temp/'native_idle.inc').write_text(function(source,'static int tube_native_pool_idle('))
+    for name,signature in [('surface','static int tube_native_surface_valid('),('harvest','static void ro_harvest('),('receive','int evo_vdec_native_receive('),('reset','static void ro_reset(')]:
+        (temp/f'native_{name}.inc').write_text(function(source,signature))
+    import re
+    (temp/'native_constants.inc').write_text('\n'.join(re.findall(r'^#define (?:RO_SLOTS|EVO_VDEC_REORDER_DEPTH)\s+[^\n]+',source,re.M))+'\n')
+
+    flags=['-std=c11','-D_DEFAULT_SOURCE','-Wall','-Wextra','-Werror','-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer']
+    includes=['-I'+str(path) for path in (temp,root/'native',work/'pp/include',work/'addons/include',work/'media/include',work/'include')]
+    subprocess.run(['cc',*flags,*includes,str(root/'tests/test_native_frame_lease.c'),str(root/'native/tube_frame_lease.c'),str(work/'pp/src/pp_playback.c'),str(work/'pp/src/pp_clock.c'),'-lm','-pthread','-o',str(temp/'test')],check=True)
+    subprocess.run([str(temp/'test')],check=True)
+
+app=(work/'core/src/Application.cpp').read_text()
+retirement=function(app,'            if (tube_present_source.tube_lease)')
+assert app.index(retirement)>app.index('            evo_agc_runtime_present();')
+assert 'if (!(swap && uiActive)) pp_playback_release_video_frame(&tube_present_source);' in app
+assert 'tube_present_source=f;f.tube_lease=nullptr;' in app
+assert 'tube_present_source=hiddenFrame;hiddenFrame.tube_lease=nullptr;' in app
+assert source.index('!tube_frame_pool_unregister(s->frame_mem)')<source.index('sceVideodec2DeleteDecoder(s->decoder)')
+controller=(work/'core/src/services/PlaybackController.cpp').read_text()
+stop=function(controller,'void PlaybackController::stopPlayback()')
+assert stop.index('pthread_join(video_thread')<stop.index('pp_playback_on_file_close(')<stop.index('evo_vdec_close(')
+scaffold=r"""
+#include "tube_frame_lease.h"
+#include <cassert>
+struct{const void*tube_lease=nullptr;}tube_present_source;
+static bool completed=false;
+static int evo_agc_runtime_last_present_retired(){return completed;}
+static void evo_boot_log(const char*){}
+static void pp_playback_release_video_frame(decltype(tube_present_source)*frame){tube_frame_lease_release(frame->tube_lease);frame->tube_lease=nullptr;}
+static void retire(){
+"""+retirement+r"""
+}
+int main(){void*base=(void*)0x10000000;assert(tube_frame_pool_register(base,16384,8));assert(tube_frame_pool_claim(base,0)==0);tube_present_source.tube_lease=base;
+ retire();assert(tube_frame_pool_busy(base)==1&&!tube_frame_pool_unregister(base)&&tube_present_source.tube_lease==base);
+ completed=true;retire();assert(!tube_frame_pool_busy(base)&&!tube_present_source.tube_lease);assert(tube_frame_pool_unregister(base));}
+"""
+with tempfile.TemporaryDirectory(prefix='tube-native-present-') as temp:
+    temp=Path(temp);(temp/'test.cpp').write_text(scaffold)
+    subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-I'+str(root/'native'),'-c',str(root/'native/tube_frame_lease.c'),'-o',str(temp/'lease.o')],check=True)
+    subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-I'+str(root/'native'),str(temp/'test.cpp'),str(temp/'lease.o'),'-pthread','-o',str(temp/'test')],check=True)
+    subprocess.run([str(temp/'test')],check=True)
+print('PASS actual Application failed-present retention, successful retirement, snapshot transfer and stop-order checks')

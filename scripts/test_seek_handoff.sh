@@ -28,7 +28,7 @@ ASAN_OPTIONS=detect_leaks=1 "${destination}/audio-test" \
     "${root}/fixtures/generated/audio.m4a" "${root}/fixtures/generated/audio.webm"
 cc -std=c11 -D_DEFAULT_SOURCE -O1 -g -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" -I"${root}/native" -I"${evo}/include" -I"${evo}/pp/include" \
-    "${root}/tests/test_seek_process.c" "${evo}/pp/src/pp_playback.c" "${evo}/pp/src/pp_clock.c" \
+    "${root}/tests/test_seek_process.c" "${evo}/pp/src/pp_playback.c" "${evo}/pp/src/pp_clock.c" "${root}/native/tube_frame_lease.c" \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm -pthread \
     -o "${destination}/process-test"
 ASAN_OPTIONS=detect_leaks=1 "${destination}/process-test" \
