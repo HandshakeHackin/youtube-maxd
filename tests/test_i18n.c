@@ -64,15 +64,14 @@ int main(void) {
         assert(tr("12 channels marked as watched", 0) && strstr(out, "12"));
         /* Lines the updater makes at run time: versions, percentages and names pass through, a known reason is translated. */
         assert(tr("Version 1.2.3 is available. Open Settings, About to read what is new and update.", 0) && strstr(out, "1.2.3"));
-        assert(tr("Downloading: 37% - select to pause", 0) && strstr(out, "37"));
+        assert(tr("Downloading: 37% - select to cancel", 0) && strstr(out, "37"));
         assert(tr("Installed 0.1.0; latest 0.2.0 (ProsperoTube 0.2.0)", 0) && strstr(out, "0.1.0") && strstr(out, "ProsperoTube 0.2.0"));
         assert(tr("What is new in ProsperoTube 0.2.0", 0) && strstr(out, "ProsperoTube 0.2.0") && strcmp(out, "What is new in ProsperoTube 0.2.0"));
-        assert(tr("The update server could not be reached (too many redirects).", 0) && !strstr(out, "too many redirects"));
-        assert(tr("The update server could not be reached (Connection reset by peer).", 0) && strstr(out, "(Connection reset by peer)"));
+        assert(tr("The catalog signature, hash or sequence could not be verified. No update was accepted.", 0));
         assert(tr("Notify about updates: on", TUBE_I18N_LABELS) && tr("Theme: Teal (true black)", TUBE_I18N_LABELS));
-        char notice[256] = "ProsperoTube was updated to version 0.2.0.";        /* a toast's own buffer */
+        char notice[256] = "ProsperoTube closes now. Wait for the update notification before opening it again.";        /* a toast's own buffer */
         tube_i18n_field(notice, sizeof notice, TUBE_I18N_LABELS);
-        assert(strstr(notice, "0.2.0") && strstr(notice, "ProsperoTube") && strcmp(notice, "ProsperoTube was updated to version 0.2.0."));
+        assert(strstr(notice, "ProsperoTube") && strcmp(notice, "ProsperoTube closes now. Wait for the update notification before opening it again."));
         /* Interface preferences: a label with a value that is a number, a name or a term of the catalog. */
         assert(tr("Interface scale: 1.25x", TUBE_I18N_LABELS) && strstr(out, "1.25x") && tr("4K: any", TUBE_I18N_LABELS) && !strncmp(out, "4K", 2));
         assert(tr("1.3333:1 (4:3 display)", 0) && strstr(out, "1.3333:1") && strstr(out, "4:3"));

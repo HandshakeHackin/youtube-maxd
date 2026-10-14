@@ -122,42 +122,6 @@
    ]
   },
   {
-   "source": "A file could not be created while unpacking",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A file could not be replaced and the update could not be undone completely. It is undone at the next start.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A file could not be replaced. The update was undone; the installed version is unchanged.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A file could not be written while unpacking. Is the storage full?",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A file in the archive is damaged",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A folder could not be created while unpacking",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "A frame of the video instead of its published thumbnail",
    "context": [
     "browser"
@@ -176,13 +140,7 @@
    ]
   },
   {
-   "source": "A notice once per start when a newer version exists; the check itself runs at most once a day",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A path in the archive is too long",
+   "source": "A notice once per start when a newer version exists; the check itself runs once per launch",
    "context": [
     "browser"
    ]
@@ -584,42 +542,6 @@
    "source": "An import file is still being read. Retry in a moment.",
    "context": [
     "status"
-   ]
-  },
-  {
-   "source": "An unpacked file could not be read back",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "An unpacked file does not match the archive",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "An unpacked file has the wrong permissions",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "An unpacked file has the wrong size",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "An unpacked file is missing",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "An unpacked folder is missing",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -1159,7 +1081,6 @@
   {
    "source": "Cancelled",
    "context": [
-    "browser",
     "toast"
    ]
   },
@@ -1951,6 +1872,12 @@
   },
   {
    "source": "Closes ProsperoTube",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Closes ProsperoTube so the helper can replace its files; open it again after the notification",
    "context": [
     "browser"
    ]
@@ -2765,7 +2692,7 @@
    ]
   },
   {
-   "source": "Downloading: {0}% - select to pause",
+   "source": "Downloading: {0}% - select to cancel",
    "context": [
     "browser"
    ],
@@ -2773,7 +2700,7 @@
    "args": "n"
   },
   {
-   "source": "Downloads {0} MB, checks it against the release and prepares the new version",
+   "source": "Downloads {0} MB, checks it against the signed catalog and prepares the new version",
    "context": [
     "browser"
    ],
@@ -5238,12 +5165,6 @@
    ]
   },
   {
-   "source": "No releases were found at the update address.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "No results for \"{0}\"",
    "context": [
     "afterglow"
@@ -5282,12 +5203,6 @@
    "source": "No supported playback choices were returned.",
    "context": [
     "status"
-   ]
-  },
-  {
-   "source": "No verified update is waiting.",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -5817,12 +5732,6 @@
   },
   {
    "source": "Original or an aspect override; independent of zoom",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Out of memory",
    "context": [
     "browser"
    ]
@@ -6609,24 +6518,16 @@
    ]
   },
   {
+   "source": "ProsperoTube closes now. Wait for the update notification before opening it again.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "ProsperoTube could not access its data folder. Start your jailbreak's ELF loader or Lapy service, then reopen ProsperoTube.",
    "context": [
     "kit"
    ]
-  },
-  {
-   "source": "ProsperoTube is installed as an image, which cannot be updated in place. Replace the image with the new version's.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "ProsperoTube is not installed in {0}, the only folder it updates in place. Get the new version from the release page.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
   },
   {
    "source": "ProsperoTube is up to date.",
@@ -6639,22 +6540,6 @@
    "context": [
     "afterglow"
    ]
-  },
-  {
-   "source": "ProsperoTube runs from {0}. Only a copy in {1} updates itself; get the new version from the release page.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "ss"
-  },
-  {
-   "source": "ProsperoTube was updated to version {0}.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
   },
   {
    "source": "Protect this profile with a password (experimental)",
@@ -7399,12 +7284,6 @@
   },
   {
    "source": "Repeat or forget queries saved for the selected profile",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Replaces the app's files and closes ProsperoTube; open it again. The previous version is kept until the new one has started",
    "context": [
     "browser"
    ]
@@ -9576,72 +9455,6 @@
    ]
   },
   {
-   "source": "The archive holds a link or a special file",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive holds an unsafe path",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive is empty",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive is encrypted",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive is not this app's folder",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive is too large (ZIP64)",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive spans disks or is too large (ZIP64)",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive unpacks to more than an update may hold",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive uses a compression this app cannot read",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive's directory could not be read",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The archive's directory is damaged",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "The authorized profile response was invalid.",
    "context": [
     "status"
@@ -9839,6 +9652,18 @@
   },
   {
    "source": "The built-in service was started without an alternative SponsorBlock server",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The catalog could not be checked, or ProsperoTube is not listed yet.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "The catalog signature, hash or sequence could not be verified. No update was accepted.",
    "context": [
     "browser"
    ]
@@ -10064,14 +9889,6 @@
    ]
   },
   {
-   "source": "The copy in {0} is not the one that is running, so it is left alone. Get the new version from the release page.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
    "source": "The description response was invalid.",
    "context": [
     "status"
@@ -10082,58 +9899,6 @@
    "context": [
     "status"
    ]
-  },
-  {
-   "source": "The download could not be opened",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download could not be saved in the app's data.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download could not be written. Is the storage full?",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download does not match the release's SHA-256. Nothing was changed.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download does not match the size the release lists.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download is not a ZIP archive",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The download server answered with status {0}.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "n"
-  },
-  {
-   "source": "The download stopped ({0}). Select the update again to continue it.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
   },
   {
    "source": "The excluded channel list is full.",
@@ -10193,12 +9958,6 @@
    "source": "The message was not confirmed. Check the chat before sending again.",
    "context": [
     "status"
-   ]
-  },
-  {
-   "source": "The new version is in place. ProsperoTube closes now: open it again.",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -10348,12 +10107,6 @@
    ]
   },
   {
-   "source": "The release does not hold this app at the listed version. Nothing was changed.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "The release notes, as the developer wrote them",
    "context": [
     "browser"
@@ -10464,30 +10217,6 @@
    ]
   },
   {
-   "source": "The staged update could not be read. Nothing was changed.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The staged update could not be recorded. Nothing was changed.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The staging folder could not be created",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The staging folder holds something the archive does not",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "The startup section could not open. Showing the main menu.",
    "context": [
     "status"
@@ -10512,53 +10241,19 @@
    ]
   },
   {
+   "source": "The update checker could not start.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The update could not be applied.",
    "context": [
     "browser"
    ]
   },
   {
-   "source": "The update could not be recorded. The installed version is unchanged.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The update folder in the app's data could not be created.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "The update is ready. Select Restart to finish in About.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The update server answered with status {0}.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "n"
-  },
-  {
-   "source": "The update server could not be reached ({0}).",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
-   "source": "The update server is answering too many requests. Try again in an hour.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The update server's answer could not be read.",
    "context": [
     "browser"
    ]
@@ -10690,7 +10385,7 @@
    ]
   },
   {
-   "source": "This is a development build. It does not update itself: install a release to get updates.",
+   "source": "This is a development build. Install a release to update from the catalog.",
    "context": [
     "browser"
    ]
@@ -11344,6 +11039,12 @@
    "source": "Upcoming",
    "context": [
     "afterglow"
+   ]
+  },
+  {
+   "source": "Update preferences could not be saved.",
+   "context": [
+    "browser"
    ]
   },
   {
@@ -12518,12 +12219,6 @@
    ]
   },
   {
-   "source": "no network transport",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "not set",
    "context": [
     "browser"
@@ -12561,12 +12256,6 @@
    "source": "on this PS5 and on YouTube",
    "context": [
     "afterglow"
-   ]
-  },
-  {
-   "source": "out of memory",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -12664,12 +12353,6 @@
    ]
   },
   {
-   "source": "the address is not one of GitHub's",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "the built-in service",
    "context": [
     "browser"
@@ -12700,12 +12383,6 @@
    ]
   },
   {
-   "source": "the request failed",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "the service gave no address",
    "context": [
     "browser"
@@ -12728,12 +12405,6 @@
    "context": [
     "browser",
     "kit"
-   ]
-  },
-  {
-   "source": "too many redirects",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -12923,7 +12594,7 @@
    "args": "ss"
   },
   {
-   "source": "{0} of {1} MB; a paused download continues where it stopped",
+   "source": "{0} of {1} MB; cancelling leaves the installed app untouched",
    "context": [
     "browser"
    ],
