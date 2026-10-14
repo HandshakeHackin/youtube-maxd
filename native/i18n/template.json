@@ -4061,7 +4061,8 @@
   {
    "source": "Keep playing while browsing",
    "context": [
-    "afterglow"
+    "afterglow",
+    "kit"
    ]
   },
   {
@@ -12356,7 +12357,8 @@
   {
    "source": "return to video",
    "context": [
-    "afterglow"
+    "afterglow",
+    "kit"
    ]
   },
   {
