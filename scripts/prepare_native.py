@@ -70,6 +70,7 @@ def main():
         "core/include/evo/interfaces/IPlaybackController.hpp", "core/include/evo/services/PlaybackController.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_kit/src/evo_hui_modals.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "ui_rml/src/evo_rmlui_render_agc.cpp", "media/src/evo_direct_mem.c",
+        "media/include/evo_direct_mem.h", "ui_kit/src/hui_agc_batch.cpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h", "ui_rml/src/evo_rmlui_provider_art.cpp",
@@ -487,6 +488,8 @@ static void run_command(const char *line)
     afterglow_overlay.apply(ROOT, WORK, replace, player)
     from agc_fence_overlay import apply_agc_fence_overlay
     apply_agc_fence_overlay(replace, player)
+    from agc_gpu_pool_overlay import apply_agc_gpu_pool_overlay
+    apply_agc_gpu_pool_overlay(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
