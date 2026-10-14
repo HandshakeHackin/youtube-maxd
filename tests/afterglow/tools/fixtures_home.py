@@ -45,6 +45,7 @@ SHELVES = {
     "gaming": (1, 14, 44, 45, 46),
     "news": (16, 47, 48, 49),
     "sports": (7, 27, 50, 51),
+    "live": (4, 1),
 }
 
 
@@ -88,3 +89,4 @@ for topic, numbers in SHELVES.items():
 write("empty", "library:home", [])
 for topic in SHELVES:
     write("empty", "home-topic:" + topic, [])
+write("signed-in", "home-topic:live", [video(4), video(1)])

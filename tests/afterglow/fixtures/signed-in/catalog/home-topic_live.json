@@ -1,0 +1,26 @@
+{
+ "items": [
+  {
+   "id": "vid04xxxxxx",
+   "title": "Late Night Synth Session — Live from the Boathouse",
+   "subtitle": "Nacre Sound",
+   "channel_id": "UCfixture000000000000004",
+   "art_url": "art://stage/0/59",
+   "views": "2,184 watching",
+   "is_live": true,
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid01xxxxxx",
+   "title": "I Rebuilt a Whole City in One Weekend (No Mods)",
+   "subtitle": "Glassfern Games",
+   "channel_id": "UCfixture000000000000001",
+   "art_url": "art://city/1/23",
+   "views": "842K views",
+   "published": "5 days ago",
+   "duration_sec": 1601,
+   "overview": "An invented description for the pictures of the interface."
+  }
+ ],
+ "has_more": false
+}

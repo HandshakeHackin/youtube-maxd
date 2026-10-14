@@ -73,16 +73,20 @@ README's **Roadmap**). The two recommended first:
    checks pass; console acceptance remains pending. Grouped options, caption
    tabs and chat beside the picture remain to implement.
 
-Then: the Afterglow translations (about 430 texts show in English;
+Then: the Afterglow translations (many texts still fall back to English;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), the bell count
-and a "Live now" shelf, live DVR, keep-playing-while-browsing, the interface's
+and accurate read-state updates, live DVR, keep-playing-while-browsing, the interface's
 own sound recordings (`docs/afterglow/sound-design.md`), and the smaller items
-of the roadmap.
+of the roadmap. The Live now shelf is implemented for Guest and account Home,
+loaded when reached and filtered to live videos. Provider checks and 62 Home
+boards in four looks pass; console acceptance remains pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
 - Update decision resolved on 2026-10-14: use the homebrew.page catalog and
-  helper, like the owner's other apps. Integration remains pending.
+  helper, like the owner's other apps. Integration and host checks are done;
+  full app linking and console acceptance remain pending. A published signed
+  catalog entry and release are required for an end-to-end update.
 - The README footer entry for ProsperoTube in the protocol repository's
   `scripts/readme-footer/repos.toml` (prepared, not committed).
 - Making the repository public, and the first release.
@@ -97,10 +101,11 @@ of the roadmap.
   audio-port initialization and frame progress, and teardown restores all
   overrides. Offline driver tests pass; the original stash is retained as
   a backup. The revised sound step has not yet run on a console.
-- Six packages of Afterglow screens were being switched from private stand-ins
-  to the shared pieces when work stopped on 2026-10-13; the shared pieces exist
-  (ARCHITECTURE.md section 12d), some screens may still carry `// REQUEST:`
-  stand-ins. `grep -rn "REQUEST:" native/afterglow` lists them.
+- The six Afterglow screen packages now reuse the existing shared pieces
+  (ARCHITECTURE.md section 12d). The migration passes 611 boards in four looks
+  and targeted checks of the final cleanup. Typed Settings/comment/reply
+  submissions now reach the provider. Console acceptance remains pending;
+  remaining `// REQUEST:` comments name backend or design limitations.
 - Pull request 1 (`codex/first-version`) is already merged; verified on GitHub
   during the 2026-10-14 continuation. No closure is needed.
 

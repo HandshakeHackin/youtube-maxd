@@ -31,6 +31,7 @@ constexpr ShelfPlan kSignedIn[] = {
     {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
     {"recommended", tr_mark("Recommended for you"), "library:home", model::ShelfKind::videos, 16},
     {"subscriptions", tr_mark("New from your subscriptions"), "library:subscriptions", model::ShelfKind::videos, 16},
+    {"live", tr_mark("Live now"), "home-topic:live", model::ShelfKind::videos, 16, true},
 };
 // Without an account the page begins with videos all the same: what YouTube recommends to the
 // session when it does (a new Guest gets a notice instead), then what is popular in a few topics.
@@ -46,6 +47,7 @@ constexpr ShelfPlan kGuest[] = {
     {"trending", tr_mark("Trending now"), "section:trending", model::ShelfKind::videos, 16, true},
     {"news", tr_mark("News"), "home-topic:news", model::ShelfKind::videos, 16, true},
     {"sports", tr_mark("Sports"), "home-topic:sports", model::ShelfKind::videos, 16, true},
+    {"live", tr_mark("Live now"), "home-topic:live", model::ShelfKind::videos, 16, true},
 };
 
 unsigned language()
@@ -331,6 +333,8 @@ const model::Home &Data::home()
             {
                 // Continue watching holds what was started and not finished.
                 if (shelf.id == "continue" && (video.watched || video.progress < 0.02f || video.progress > 0.97f))
+                    continue;
+                if (shelf.id == "live" && !(video.badges & model::kBadgeLive))
                     continue;
                 shelf.videos.push_back(video);
             }

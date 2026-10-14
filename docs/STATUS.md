@@ -8,8 +8,9 @@ scope. Opus fixtures pass on the host; console Opus, 4K and HDR remain open.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's
-signed catalog and helper for updates; replacing the current updater remains
-pending. The dated snapshot below has not been revalidated in full.
+signed catalog and helper for updates; the integration passes host checks,
+but full app linking and console acceptance remain pending. The dated
+snapshot below has not been revalidated in full.
 
 Afterglow's profile-password sheet now uses the shared typed-answer API rather
 than discarding the input and calling a placeholder. All account boards pass
@@ -22,6 +23,11 @@ five seconds of Undo after landing; Undo preserves pause and prevents an
 immediate repeat skip. Final-segment skips offer Undo before completion is
 committed. Prompt marks use their category colours. Provider and generated
 player checks pass under sanitizers; console acceptance remains pending.
+
+Home's Live now shelf reuses the existing Live topic, loads only when reached
+and filters archived videos out. Provider checks and 62 Home boards in four
+looks pass. The shared-screen migration also passes its host boards and fixes
+typed Settings/comment/reply delivery. These changes await console acceptance.
 
 Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states

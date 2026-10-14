@@ -159,7 +159,7 @@ const char *guest_home(const std::string &job)
     if (asks("\"action\":\"home\""))
         return kNothing;
     if (asks("\"action\":\"topic_videos\""))
-        return asks("\"section\":\"music\"") ? kTrending : asks("\"section\":\"gaming\"") || asks("\"section\":\"news\"") ? kGaming : kNothing;
+        return asks("\"section\":\"music\"") || asks("\"section\":\"live\"") ? kTrending : asks("\"section\":\"gaming\"") || asks("\"section\":\"news\"") ? kGaming : kNothing;
     if (asks("\"action\":\"topics\"") && asks("\"section\":\"trending\""))
         return kRefused;
     return kTrending;
@@ -271,9 +271,9 @@ int main()
         // further down than the page reaches: two filled rows to begin with.
         g_route = guest_home;
         const model::Home *home = &data.home();
-        assert(home->profile.guest && home->invite_sign_in && home->shelves.size() == 8 && home->load == model::Load::loading);
-        const char *order[] = {"continue", "recommended", "music", "gaming", "topics", "trending", "news", "sports"};
-        for (std::size_t i = 0; i < 8; ++i)
+        assert(home->profile.guest && home->invite_sign_in && home->shelves.size() == 9 && home->load == model::Load::loading);
+        const char *order[] = {"continue", "recommended", "music", "gaming", "topics", "trending", "news", "sports", "live"};
+        for (std::size_t i = 0; i < 9; ++i)
             assert(home->shelves[i].id == order[i]);
         assert(shelf(*home, "music")->catalog == "home-topic:music" && shelf(*home, "music")->load == model::Load::idle);
         assert(shelf(*home, "recommended")->catalog == "library:home" && shelf(*home, "trending")->catalog == "section:trending");
@@ -295,7 +295,7 @@ int main()
         assert(shelf(*home, "recommended")->load == model::Load::ready && shelf(*home, "recommended")->videos.empty());
         assert(shelf(*home, "gaming")->load == model::Load::ready && shelf(*home, "gaming")->videos.size() == 2);
         assert(shelf(*home, "gaming")->videos[0].id == "ccccccccc01" && shelf(*home, "gaming")->videos[1].channel == "Glassfern Games");
-        for (const char *later : {"topics", "trending", "news", "sports"})
+        for (const char *later : {"topics", "trending", "news", "sports", "live"})
             assert(shelf(*home, later)->load == model::Load::idle && shelf(*home, later)->videos.empty() && shelf(*home, later)->topics.empty());
         // The page is walked down: the topics (the provider's own list, no request), then Trending, which
         // YouTube refuses a Guest (one notice row, no video: the shelf is not shown), then News. Sports waits.
@@ -360,6 +360,18 @@ int main()
         if (source.revision() != revision || source.pending() != 0)
             std::fprintf(stderr, "revision %u -> %u, pending %d\n", revision, source.revision(), source.pending());
         assert(source.revision() == revision && source.pending() == 0);
+
+        // Live now is read only when reached, and archived videos in the topic stay out.
+        assert(shelf(*home,"live")->load == model::Load::idle && !job_asked("\"section\":\"live\""));
+        g_route = guest_home;
+        data.home_reach(20);
+        for (int i=0; i<60; ++i) {
+            data.pump();serve("");home=&data.home();
+            if(shelf(*home,"live")->load == model::Load::ready) break;
+        }
+        assert(job_asked("\"section\":\"live\"") && shelf(*home,"live")->videos.size()==1 &&
+               (shelf(*home,"live")->videos[0].badges & model::kBadgeLive));
+        g_route = nullptr;
 
         // A catalog page read directly: the main menu's rows are interface rows.
         const Page *menu = &data.catalog("");

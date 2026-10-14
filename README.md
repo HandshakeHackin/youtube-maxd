@@ -260,7 +260,10 @@ What is planned, roughly in order. Nothing here has a date.
       beside the video rather than over it.
       The next-video offer and automatic-skip Undo are implemented and
       host-tested; their console acceptance is pending.
-- [ ] Home: an unread count on the notifications bell and a "Live now" shelf.
+- [x] Home: a "Live now" shelf, read when reached and showing live videos only
+      (host-tested; console acceptance pending).
+- [ ] Home: a service count on the notifications bell that stays correct when
+      notifications are read; the current badge counts cached unread rows.
 - [ ] Translations of the Afterglow interface's texts into the 21 languages.
 - [ ] The interface's own sound recordings in place of the UI kit's sounds.
 - [ ] Afterglow as the default interface, once every screen is validated on a

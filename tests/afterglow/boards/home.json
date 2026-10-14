@@ -43,8 +43,16 @@
    "name": "home-third-shelf",
    "fixture": "signed-in",
    "settle": 2.0,
-   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"wait": 0.8}],
+   "steps": [{"press": "down"}, {"press": "down"}, {"wait": 0.8}],
    "expect": {"screen": "home", "focus": "subscriptions/0", "state": {"row": "subscriptions"}}
+  },
+  {
+   "name": "home-live-now",
+   "fixture": "signed-in",
+   "settle": 2.0,
+   "steps": [{"press": "down"}, {"press": "down"}, {"press": "down"}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "live/0", "state": {"row": "live", "shelves": "4", "hero": "Late Night Synth Session — Live from the Boathouse"},
+              "asked": ["home-topic:live"]}
   },
   {
    "name": "home-end-of-shelf",
@@ -205,8 +213,8 @@
    "settle": 2.0,
    "steps": [{"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6},
              {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.8}],
-   "expect": {"screen": "home", "focus": "sports/0", "state": {"row": "sports", "shelves": "6"},
-              "asked": ["home-topic:news", "home-topic:sports"]}
+   "expect": {"screen": "home", "focus": "live/0", "state": {"row": "live", "shelves": "7", "hero": "Late Night Synth Session — Live from the Boathouse"},
+              "asked": ["home-topic:news", "home-topic:sports", "home-topic:live"]}
   },
   {
    "name": "home-guest-topic-opens",
