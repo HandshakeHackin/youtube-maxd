@@ -3,7 +3,7 @@
 
 def apply_sponsor_overlay(replace, player):
     screen = player + 'core/src/screens/PlayerScreen.cpp'
-    replace(screen, '#include "tube_provider.h"', '#include "tube_provider.h"\n#if defined(EVO_AGC_DEVICE)\n#include "afterglow/app/afterglow.h"\n#endif')
+    replace(screen, '#include "tube_provider.h"', '#include "tube_provider.h"\n#if defined(EVO_AGC_DEVICE)\n#include "tube_afterglow.h"\n#endif')
     replace(screen, '    if (!ended && !playback->isPaused() && !playback->isScrubbing()) {',
             '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&\n        !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && !pb_prebuffer_hold) {')
     replace(screen, '    // Scrub hold update', '''    if (tube_sponsor_prompt(playback->getPositionSeconds()) &&
