@@ -148,7 +148,7 @@ int main(void) {
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* The shared screens provide counts, so both English forms select the language's own plural. */
-    static const char *const afterglow[] = {"de", "es", "fr", "it", "nl", "pt-BR", "pt-PT", "sv"};
+    static const char *const afterglow[] = {"de", "es", "fr", "it", "nb", "nl", "pt-BR", "pt-PT", "sv"};
     for (size_t i = 0; i < sizeof afterglow / sizeof *afterglow; ++i) {
         use(afterglow[i]);
         assert(tr("Captions: 1 language", 0) && strstr(out, "1"));
@@ -160,6 +160,12 @@ int main(void) {
     use("fr");
     assert(!strcmp(tr("1 replies", 0), "1 réponse"));
     assert(!strcmp(tr("2 reply", 0), "2 réponses"));
+
+    use("nb");
+    assert(!strcmp(tr("Who is watching?", 0), "Hvem ser på?"));
+    assert(!strcmp(tr("Chapter 2 of 17", 0), "Kapittel 2 av 17"));
+    assert(!strcmp(tr("5 min left", 0), "5 min igjen"));
+    assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");

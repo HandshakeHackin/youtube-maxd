@@ -1,7 +1,7 @@
 # Interface languages
 
 ProsperoTube shows its browser, its preferences and its messages in 21
-languages besides English; toasts and the player stay English for now. This page says how that works, how to add a
+languages besides English. Classic player controls and toasts stay English for now. This page says how that works, how to add a
 language, what to do after the interface changes, and what is not translated
 yet.
 
@@ -18,7 +18,8 @@ yet.
 | `fr` | Français | `pt-BR` | Português (Brasil) | `vi` | Tiếng Việt |
 
 The classic interface is covered by every catalog. Dutch, French, German, Italian,
-Spanish, Swedish and both Portuguese variants cover all Afterglow texts; the other 13 languages still fall back to English
+Norwegian Bokmål, Spanish, Swedish and both Portuguese variants cover all
+Afterglow texts; the other 12 languages still fall back to English
 for Afterglow-only texts. `bash scripts/test_i18n.sh` reports both totals and
 requires 99% coverage of the classic texts for every language. Completed
 Afterglow catalogs additionally require every Afterglow text and 99% overall.
@@ -167,7 +168,7 @@ short as the English, because a card shows one line and cuts the rest.
 
 ## What is not translated
 
-- **The player interface**: controls, in-player menus and lists, pickers,
+- **The Classic player interface**: controls, in-player menus and lists, pickers,
   dialogs, the on-screen keyboard and toasts (a toast is drawn by the same
   kit, also over the browser). Its fonts are baked atlases with 113
   characters, ASCII and a few signs: not one accented letter, and a letter
