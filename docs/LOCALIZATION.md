@@ -17,8 +17,8 @@ yet.
 | `fi` | Suomi | `pl` | Polski | `uk` | Українська |
 | `fr` | Français | `pt-BR` | Português (Brasil) | `vi` | Tiếng Việt |
 
-The classic interface is covered by every catalog. French, German, Italian, Spanish
-and both Portuguese variants also cover all Afterglow texts; the other 15 languages still fall back to English
+The classic interface is covered by every catalog. Dutch, French, German, Italian,
+Spanish and both Portuguese variants also cover all Afterglow texts; the other 14 languages still fall back to English
 for Afterglow-only texts. `bash scripts/test_i18n.sh` reports both totals and
 requires 99% coverage of the classic texts for every language. Completed
 Afterglow catalogs additionally require every Afterglow text and 99% overall.

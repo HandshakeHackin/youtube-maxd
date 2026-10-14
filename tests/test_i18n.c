@@ -135,6 +135,12 @@ int main(void) {
     assert(!strcmp(tr("5 min left", 0), "5 min rimanenti"));
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
+    use("nl");
+    assert(!strcmp(tr("Who is watching?", 0), "Wie kijkt er?"));
+    assert(!strcmp(tr("Chapter 2 of 17", 0), "Hoofdstuk 2 van 17"));
+    assert(!strcmp(tr("5 min left", 0), "Nog 5 min"));
+    assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
+
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");
     char label[512], value[512], joined[1100];

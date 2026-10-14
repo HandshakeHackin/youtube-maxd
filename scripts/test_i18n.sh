@@ -16,7 +16,7 @@ assert len(report) >= 21, "catalogs are missing"
 # The texts only the Afterglow interface shows are translated in their own pass, after its screens: until
 # then a catalog is held to the classic interface's texts, and Afterglow shows what is missing in English.
 # Completed catalogs must also cover every Afterglow text. Add each language here when its pass is finished.
-AFTERGLOW_TRANSLATED = {"de", "es", "fr", "it", "pt-BR", "pt-PT"}
+AFTERGLOW_TRANSLATED = {"de", "es", "fr", "it", "nl", "pt-BR", "pt-PT"}
 for row in report:
     print(f"{row['tag']:6} {row['name']:22} {row['coverage']:6.2f}%  missing {row['missing']}  (Afterglow: {row['missing_afterglow']} of {row['afterglow']})  stale {row['stale']}")
     complete = row["tag"] in AFTERGLOW_TRANSLATED
