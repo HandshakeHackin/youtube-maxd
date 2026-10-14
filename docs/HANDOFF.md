@@ -89,13 +89,16 @@ README's **Roadmap**). The two recommended first:
    on no-swap loops now pass host checks. On .40, the frame fix eliminated
    command-buffer and ring exhaustion, but live-video testing stopped at
    DNS failure for YouTube and homebrew.page. An offline generated 8-second
-   3840x2160 VP9 fixture on .40 then opened the native decoder and published
-   all 240 frames with zero late drops or GPU faults. It stalled at 7.99/8.0 s:
-   the video decode-done flag was set, but playback did not complete within
-   45 seconds. Its
-   clean teardown restored state and released the .40 lock. This short case
-   exercises the integrated display path but does not isolate the GPU-pool
-   guard or accept natural EOF, long/network 4K, HDR, audio or seeking. See
+   3840x2160 VP9 fixture on .40 then opened the native decoder, presented
+   full-width frames and published all 240 with zero late drops or GPU faults.
+   At 7.99/8.0 s, natural EOF, audio drain, video decode and display retirement
+   gates were true and the player was paused. The source pauses after observing
+   completion when no next item exists, but one-second status polling never
+   sampled `complete=1`; the strict completion observer therefore timed out.
+   This is not evidence of stalled decoding. Clean teardown restored state and
+   released the .40 lock. The short case exercises the integrated display path
+   but does not isolate the GPU-pool guard or accept long/network 4K, HDR,
+   physical audio, seeking or direct completion-transition proof. See
    HARDWARE_ACCEPTANCE.md for the exact cases.
 
 2. **Afterglow player as on its boards**: next-video card, Undo after a
