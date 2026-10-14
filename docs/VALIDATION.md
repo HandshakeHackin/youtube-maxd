@@ -3883,7 +3883,7 @@ passing; account removal is serialized in the Python companion.
 Account-removal PS5 candidate `0e75c5ea` compiled 211 objects and passed linking,
 native container validation and PFS/ZIP packaging. Its clean build ID is
 `prosperotube-0e75c5ea_1009-2106`. The immutable 126-file candidate is stored at
-`/home/denis/.cache/prosperotube/candidates/0e75c5e-account-remove/PPSA99142`,
+`~/.cache/prosperotube/candidates/0e75c5e-account-remove/PPSA99142`,
 with eboot SHA-256 prefix `862761034df260c3`. The Lapy helper and notices are
 packaged, and PS5 storage remains `/data/prosperotube`. Evidence:
 `.deps/account-remove-ps5-build.log`, `.deps/account-remove-freeze.log`.
@@ -3923,7 +3923,7 @@ PS5 controls remain unverified.
 Comment-rating candidate `0b5f0712` compiled 211 PS5 objects and passed linking,
 native container validation and PFS/ZIP packaging. Its clean build ID is
 `prosperotube-0b5f0712_1009-2129`. The immutable 126-file candidate is
-`/home/denis/.cache/prosperotube/candidates/0b5f071-comment-ratings/PPSA99142`,
+`~/.cache/prosperotube/candidates/0b5f071-comment-ratings/PPSA99142`,
 with eboot SHA-256 prefix `5487ccd4e7593cd7`; the packaged Lapy helper remains
 included. Evidence: `.deps/comment-rating-ps5-build.log`,
 `.deps/comment-rating-freeze.log`. The bounded console case's first title check
@@ -4627,7 +4627,7 @@ PlayerScreen, playback picker and RML provider objects pass:
 Source `f6b78748` completed the full PS5 build, container/folder/PFS/ZIP
 packaging and immutable freeze: 126 files, eboot SHA-256 prefix
 `8d193cb081d74d0d`, build `prosperotube-f6b78748_1011-0348`.
-Candidate: `/home/denis/.cache/prosperotube/candidates/f6b78748-offline-player-controls/PPSA99142`.
+Candidate: `~/.cache/prosperotube/candidates/f6b78748-offline-player-controls/PPSA99142`.
 Evidence: `.deps/offline-player-controls-{ps5-build,freeze}.log` and result
 files (both 0). Nothing was installed or launched. All offline work and the full
 SmartTube objective remain incomplete; remaining sections stay active.
@@ -4672,7 +4672,7 @@ Source `e72ea7a9` completed all 216 PS5 object builds, link, container conversio
 folder/PFS/ZIP packaging and immutable freeze: build
 `prosperotube-e72ea7a9_1011-0409`, 126 files, eboot SHA-256 prefix
 `f781c88de0150ef7`. Candidate:
-`/home/denis/.cache/prosperotube/candidates/e72ea7a9-offline-seek-controls/PPSA99142`.
+`~/.cache/prosperotube/candidates/e72ea7a9-offline-seek-controls/PPSA99142`.
 Evidence: `.deps/offline-seek-controls-{ps5-build,freeze}.log` and result files
 (both 0). No deployment, console check, launch or input was performed. The full
 SmartTube objective and remaining offline work are still active.
@@ -4707,7 +4707,7 @@ Source `8d660737` completed all 216 PS5 objects, link/container conversion and
 folder/PFS/ZIP packaging, then immutable freeze: build
 `prosperotube-8d660737_1011-0425`, 126 files, eboot SHA-256 prefix
 `dc47bbd694039d72`. Candidate:
-`/home/denis/.cache/prosperotube/candidates/8d660737-offline-profile-settings/PPSA99142`.
+`~/.cache/prosperotube/candidates/8d660737-offline-profile-settings/PPSA99142`.
 Both `.deps/offline-profile-settings-{ps5-build,freeze}.result` files are 0.
 Full SmartTube parity and remaining offline work are still active.
 
