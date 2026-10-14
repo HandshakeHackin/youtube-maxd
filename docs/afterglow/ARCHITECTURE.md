@@ -238,9 +238,8 @@ the service itself.
 `evo_provider_youtube.list_catalog(id, page, ...)` and turns the answer into a
 `Page`. It keeps **one request in flight** and queues the rest in the order
 they were asked: the provider's paging state belongs to one list at a time, and
-its answers arrive on the main thread from `evo_net_poll()`. Home's three
-shelves therefore fill one after the other; each shows its bones until its turn
-comes.
+its answers arrive on the main thread from `evo_net_poll()`. Home's shelves
+therefore fill one after the other; each shows its bones until its turn comes.
 
 ### 5.3 A page and its rows
 
@@ -321,12 +320,36 @@ channels; `invite_sign_in`.
 | signed in | `continue` | Continue watching | `history` | videos started and not finished, 12 |
 | signed in | `recommended` | Recommended | `library:home` | 16 |
 | signed in | `subscriptions` | From your subscriptions | `library:subscriptions` | 16 |
-| Guest | `topics` | Browse by topic | `discover` | topics, 16 |
 | Guest | `continue` | Continue watching | `history` | as above |
-| Guest | `trending` | Trending | `section:trending` | 16 |
+| Guest | `recommended` | Recommended for you | `library:home` | 16 |
+| Guest | `music`, `gaming` | Music, Gaming | `home-topic:music`, `home-topic:gaming` | 16 |
+| Guest | `topics` | Browse by topic | `discover` | topics, 16 |
+| Guest | `trending` | Trending now | `section:trending` | 16 |
+| Guest | `news`, `sports` | News, Sports | `home-topic:news`, `home-topic:sports` | 16 |
 
 `pinned` are the `channel:` rows of the main menu (catalog `""`). A shelf whose
 catalog answers with nothing is not shown. The hero is the focused video.
+
+**A Guest's Home begins with videos.** What YouTube gives a session without an
+account, seen through the built-in service on 2026-10-13: its Home is a notice
+and no video (the provider lists the notice and its leads), Trending is refused
+(one notice row), and a topic (`FEtopics_music` and its siblings) answers with
+rows of videos. So the first shelf that has anything is the first topic, and
+the two lists above it cost one short request each and show themselves the day
+YouTube fills them. `home-topic:<topic>` (`music`, `gaming`, `news`, `sports`,
+`live`) is the provider's catalog for such a shelf: the service's library
+action `topic_videos` lists the topic's rows with one request to YouTube and
+answers with the videos of the first rows as one list (no folders, no Shorts,
+no repeats, at most 24, one page).
+
+**In its turn.** A Guest's shelves are asked for one after the other, top to
+bottom: a shelf is asked when every shelf above it has answered and fewer
+filled shelves stand above it than the page reaches. `Data::home_reach(rows)`
+says how far that is; Home passes the row in focus plus the one under it, so
+the page opens with two filled shelves and asks for a further one when the
+focus arrives on the last. A shelf whose turn has not come has `Load::idle`
+and is not waited for (`Home::load` is ready without it); rows therefore only
+ever appear at the bottom. A signed-in Home asks its three at once, as before.
 
 ### 5.5 Facts: what the provider has to tell beyond a row
 
@@ -814,7 +837,8 @@ second way to **draw** that same state, not a second player:
 
 **Home against board 03.** Shelves are named as the board names them
 (Continue watching, Recommended for you, New from your subscriptions; Guest:
-Browse by topic, Trending now). The hero shows the 4K and CC chips when the
+Browse by topic, Trending now, and since 2026-10-13 shelves of videos above
+the topics, section 5.4). The hero shows the 4K and CC chips when the
 video carries them. Differences that stand until their part exists: Square
 opens Search, not Watch later (an account action is a confirm row and then an
 apply row of the provider; it arrives with the shared actions sheet); the bell
@@ -871,7 +895,9 @@ four looks. What the merge decided:
   id), `empty` is a Guest. A board that shows a set to somebody else says so
   itself: `"profile": {"id": ..., "name": ..., "guest": ..., "signed_in": ...}`.
 - `signed-in/library_subscriptions` is the subscriptions screen's list (Home's
-  third shelf reads the same file); `guest/section_trending` is Home's.
+  third shelf reads the same file); `guest/section_trending` is Home's, and a
+  Guest's video shelves (`library_home`, `home-topic_*` in `guest` and `empty`)
+  are written by `tools/fixtures_home.py`.
 - Acting rows `account:apply:<n>` are numbered per package: accounts 7,
   channel family 8 to 10, 17, 20 and up, 60 and up; take a free number.
 - A board that follows a route into another package's page checks the screen

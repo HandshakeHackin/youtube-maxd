@@ -16,6 +16,10 @@
   {
    "body_contains": "\"browseId\":\"UCffffffffffffffffffffff\"",
    "file": "channel.json"
+  },
+  {
+   "body_contains": "\"browseId\":\"FEtopics_music\"",
+   "file": "topics.json"
   }
  ],
  "POST www.youtube.com/youtubei/v1/player": [

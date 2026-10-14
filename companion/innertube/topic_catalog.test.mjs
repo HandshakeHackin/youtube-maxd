@@ -226,3 +226,25 @@ test('topic schedules outside the representable date range cannot permanently ex
   const next=await library.execute({action:'group_window',group:context.group,id:page.items[0].id,index:0,target:1,direction:1});
   assert.equal(next.video_id,page.items[1].id);assert.equal(next.index,1);
 });
+
+test('a topic as one list of videos: the first rows of one browse request, without folders, shorts or repeats',async()=>{
+  const calls=[];
+  const short=tile(7);short.tileRenderer.contentType='TILE_CONTENT_TYPE_SHORTS';
+  const client={actions:{execute:async(path,args)=>{
+    calls.push(args);
+    return response({tvBrowseRenderer:{content:{sectionListRenderer:{contents:[
+      shelf([tile(1),tile(2),short],'row-next'),shelf([tile(2),tile(3)]),shelf(Array.from({length:30},(_,i)=>tile(100+i)))],...cont('root-next')}}}});
+  }}};
+  const library=new Library(async()=>client,[{id:'other',cookie:''}]);
+  const page=await library.execute({action:'topic_videos',section:'gaming'});
+  assert.equal(calls.length,1);assert.equal(calls[0].browseId,'FEtopics_gaming');
+  assert.equal(page.kind,'catalog');assert.equal(page.has_more,false);assert.equal(page.items.length,24);
+  assert.deepEqual(page.items.slice(0,4).map(item=>item.id),['00000000001','00000000002','00000000003','00000000100']);
+  assert(page.items.every(item=>!item.is_folder && !item.is_short && item.title));
+  assert.equal(new Set(page.items.map(item=>item.id)).size,24);
+  for(const section of ['movies','trending','shorts','kids','my_videos',''])
+    await assert.rejects(library.execute({action:'topic_videos',section}),{code:'invalid_catalog'});
+  await assert.rejects(library.execute({action:'topic_videos',section:'music',profile:'missing'}),{code:'unknown_profile'});
+  const empty=new Library(async()=>({actions:{execute:async()=>response({sectionListRenderer:{contents:[]}})}}));
+  assert.deepEqual((await empty.execute({action:'topic_videos',section:'news'})).items,[]);
+});

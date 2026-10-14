@@ -68,7 +68,7 @@ const LIBRARY = {
     'watch_later', 'playlist', 'comments', 'replies', 'continue', 'like', 'dislike', 'unrate', 'subscribe', 'unsubscribe',
     'playlist_create', 'playlist_add', 'playlist_remove', 'playlist_rename', 'playlist_delete', 'watch_later_add',
     'watch_later_remove', 'watch_progress', 'profile_remove', 'comment_rate', 'mark_watched', 'live_chat', 'chat_poll',
-    'chat_close', 'chat_send', 'topics', 'topic_open', 'playback_queue', 'playback_at', 'playback_next', 'channel_window',
+    'chat_close', 'chat_send', 'topics', 'topic_open', 'topic_videos', 'playback_queue', 'playback_at', 'playback_next', 'channel_window',
     'group_window', 'history_remove', 'search', 'search_suggestions', 'description', 'channels', 'notifications', 'feedback',
     'channel', 'channel_search', 'playlist_save', 'playlist_unsave', 'history_pause', 'history_resume', 'history_clear',
     'video_details', 'stream_reminder', 'playlist_order', 'subscribe_notifications', 'comment_post', 'comment_reply']),

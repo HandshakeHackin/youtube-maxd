@@ -1,0 +1,62 @@
+{
+ "items": [
+  {
+   "id": "vid16xxxxxx",
+   "title": "A Map of Every Night Train Still Running",
+   "subtitle": "Tidewrit",
+   "channel_id": "UCfixture000000000000006",
+   "art_url": "art://globe/1/193",
+   "views": "1.4M views",
+   "published": "3 weeks ago",
+   "duration_sec": 1000,
+   "badges": [
+    "cc"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid47xxxxxx",
+   "title": "The Week in Six Maps",
+   "subtitle": "Tidewrit",
+   "channel_id": "UCfixture000000000000006",
+   "art_url": "art://globe/2/493",
+   "views": "310K views",
+   "published": "2 days ago",
+   "duration_sec": 642,
+   "badges": [
+    "new",
+    "cc"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid48xxxxxx",
+   "title": "How a Harbour Town Voted to Keep Its Ferry",
+   "subtitle": "Tidewrit",
+   "channel_id": "UCfixture000000000000006",
+   "art_url": "art://ocean/2/505",
+   "views": "94K views",
+   "published": "6 days ago",
+   "duration_sec": 1126,
+   "badges": [
+    "cc"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid49xxxxxx",
+   "title": "Why the Night Trains Are Coming Back",
+   "subtitle": "Tidewrit",
+   "channel_id": "UCfixture000000000000006",
+   "art_url": "art://globe/3/517",
+   "views": "1.2M views",
+   "published": "1 month ago",
+   "duration_sec": 815,
+   "badges": [
+    "cc"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  }
+ ],
+ "has_more": false
+}

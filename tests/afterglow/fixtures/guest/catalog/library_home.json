@@ -1,0 +1,33 @@
+{
+ "items": [
+  {
+   "id": "account:notice",
+   "title": "Home recommendations need a signed-in account",
+   "subtitle": "YouTube provides Home recommendations only to signed-in accounts",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "account:notice",
+   "title": "Search",
+   "subtitle": "Square searches YouTube from any list",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "discover",
+   "title": "Discover",
+   "subtitle": "Topics and YouTube sections",
+   "is_folder": true,
+   "interface": true
+  },
+  {
+   "id": "library",
+   "title": "Accounts & library",
+   "subtitle": "Sign in to YouTube to get Home recommendations",
+   "is_folder": true,
+   "interface": true
+  }
+ ],
+ "has_more": false
+}

@@ -285,6 +285,10 @@ def library(s):
     same("continuation of nothing", s.library(action="continue", cursor="unknown")[1]["error"]["code"], "cursor_expired")
     status, direct = s.call("POST", "/v1/library", {"action": "search", "query": "canned"})[::2]
     same("direct library route", (status, direct["kind"], len(direct["items"])), (200, "catalog", 24))
+    status, shelf = s.library(action="topic_videos", section="music")
+    same("a topic as one list of videos", (status, shelf["kind"], [r["id"] for r in shelf["items"]], shelf["has_more"], shelf["items"][0]["title"]),
+         (200, "catalog", [f"fixture{200 + n:04d}" for n in range(6)], False, "Topic video 0"))
+    same("a topic that is no shelf of Home", s.library(action="topic_videos", section="movies")[1]["error"]["code"], "invalid_catalog")
     status, opened = s.library(action="channel", channel=CHANNEL)
     same("channel page", (status, opened["channel"]["id"], opened["channel"]["title"], opened["channel"]["tab"],
                           [r["id"] for r in opened["items"]], {r["subtitle"] for r in opened["items"]}, {r["channel_id"] for r in opened["items"]},

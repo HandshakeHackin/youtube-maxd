@@ -1,0 +1,413 @@
+{
+ "contents": {
+  "tvBrowseRenderer": {
+   "content": {
+    "tvSurfaceContentRenderer": {
+     "content": {
+      "sectionListRenderer": {
+       "contents": [
+        {
+         "shelfRenderer": {
+          "title": {
+           "simpleText": "Recommended"
+          },
+          "content": {
+           "horizontalListRenderer": {
+            "items": [
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0200",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0200"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0200/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 0"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             },
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0201",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0201"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0201/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 1"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             },
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0202",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0202"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0202/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 2"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         }
+        },
+        {
+         "shelfRenderer": {
+          "title": {
+           "simpleText": "Top music videos"
+          },
+          "content": {
+           "horizontalListRenderer": {
+            "items": [
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0202",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0202"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0202/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 2"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             },
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0203",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0203"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0203/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 3"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             },
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0204",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0204"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0204/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 4"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             },
+             {
+              "tileRenderer": {
+               "contentType": "TILE_CONTENT_TYPE_VIDEO",
+               "contentId": "fixture0205",
+               "onSelectCommand": {
+                "watchEndpoint": {
+                 "videoId": "fixture0205"
+                }
+               },
+               "header": {
+                "tileHeaderRenderer": {
+                 "thumbnail": {
+                  "thumbnails": [
+                   {
+                    "url": "https://i.ytimg.com/vi/fixture0205/hqdefault.jpg"
+                   }
+                  ]
+                 },
+                 "thumbnailOverlays": [
+                  {
+                   "thumbnailOverlayTimeStatusRenderer": {
+                    "text": {
+                     "simpleText": "2:03"
+                    }
+                   }
+                  }
+                 ]
+                }
+               },
+               "metadata": {
+                "tileMetadataRenderer": {
+                 "title": {
+                  "simpleText": "Topic video 5"
+                 },
+                 "lines": [
+                  {
+                   "lineRenderer": {
+                    "items": [
+                     {
+                      "lineItemRenderer": {
+                       "text": {
+                        "simpleText": "Fixture channel"
+                       }
+                      }
+                     }
+                    ]
+                   }
+                  }
+                 ]
+                }
+               }
+              }
+             }
+            ]
+           }
+          }
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  }
+ }
+}

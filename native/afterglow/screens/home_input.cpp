@@ -122,10 +122,15 @@ void Home::handle(const InputFrame &input, UpdateContext &context)
         else if (pressed(input, Action::touch))
         {
             // The actions of the video in focus, as the frame's sheet. What they change, Home reads again.
+            // A Guest's shelves are YouTube's public lists, which no action here changes: only what is kept on this PS5 is read again.
             Data *data = &context.services.data;
-            context.nav.actions(video.id, video.title, [data]
+            const bool account = signed_in_;
+            context.nav.actions(video.id, video.title, [data, account]
             {
-                for (const char *catalog : {"history", "library:home", "library:subscriptions", "section:trending", "library:watch_later"})
+                data->forget("history");
+                if (!account)
+                    return;
+                for (const char *catalog : {"library:home", "library:subscriptions", "section:trending", "library:watch_later"})
                     data->forget(catalog);
             });
         }

@@ -1,0 +1,58 @@
+{
+ "items": [
+  {
+   "id": "vid07xxxxxx",
+   "title": "Every Goal From a Wild Final Day",
+   "subtitle": "Quarterline",
+   "channel_id": "UCfixture000000000000007",
+   "art_url": "art://pitch/0/85",
+   "views": "1.9M views",
+   "published": "16 hours ago",
+   "duration_sec": 588,
+   "badges": [
+    "new"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid27xxxxxx",
+   "title": "Hard Court Highlights: Game Seven",
+   "subtitle": "Quarterline",
+   "channel_id": "UCfixture000000000000007",
+   "art_url": "art://pitch/2/325",
+   "views": "2.6M views",
+   "published": "1 day ago",
+   "duration_sec": 734,
+   "badges": [
+    "new"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid50xxxxxx",
+   "title": "The Longest Rally of the Season",
+   "subtitle": "Quarterline",
+   "channel_id": "UCfixture000000000000007",
+   "art_url": "art://pitch/1/529",
+   "views": "4.4M views",
+   "published": "3 days ago",
+   "duration_sec": 367,
+   "overview": "An invented description for the pictures of the interface."
+  },
+  {
+   "id": "vid51xxxxxx",
+   "title": "Final Lap, Three Abreast",
+   "subtitle": "Quarterline",
+   "channel_id": "UCfixture000000000000007",
+   "art_url": "art://pitch/3/541",
+   "views": "870K views",
+   "published": "1 week ago",
+   "duration_sec": 498,
+   "badges": [
+    "4k"
+   ],
+   "overview": "An invented description for the pictures of the interface."
+  }
+ ],
+ "has_more": false
+}

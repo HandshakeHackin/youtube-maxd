@@ -251,6 +251,14 @@ int main(void) {
         puts("phone: state reported, receiver closed at the service and ended upstream");
     }
 
+    /* A Guest's Home: a topic as one shelf of videos, from the one request that lists the topic's rows. */
+    calls = item_calls;
+    assert(p->list_catalog("home-topic:music", 0, items_cb, NULL) == 0);
+    run_until(&item_calls, calls + 1, 30, "the videos of a topic");
+    assert(last_ok && last_count == 6);
+    for (int i = 0; i < last_count; ++i) assert(!last_items[i].is_folder && strlen(last_items[i].id) == 11 && *last_items[i].title);
+    printf("home: a topic as a shelf of %d videos, first \"%s\"\n", last_count, last_items[0].title);
+
     /* The saved state never names the service. */
     p->list_catalog("settings:ask-stream", 0, items_cb, NULL);
     FILE *state = fopen(evo_data_path("youtube.json"), "rb"); assert(state);
@@ -275,6 +283,6 @@ int main(void) {
     p->shutdown();
     assert(!tube_service_running());
     evo_net_shutdown();
-    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, alternative SponsorBlock server, dislikes, import, phone, stop and restart");
+    puts("PASS: provider on the real built-in service: start, search, resolve, manifest, captions, alternative SponsorBlock server, dislikes, import, phone, a topic's shelf, stop and restart");
     return 0;
 }

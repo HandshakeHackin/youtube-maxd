@@ -1,5 +1,5 @@
 {
- "about": "Home: the opening moment, signed in (hero, Continue watching, Recommended, From your subscriptions), Guest (topics, Trending, the invitation), the rail, attract mode, and the page while it loads, is empty or offline.",
+ "about": "Home: the opening moment, signed in (hero, Continue watching, Recommended, From your subscriptions), Guest (videos first: Music and Gaming, the topics under them, further shelves as the page is walked down, the invitation), the rail, attract mode, and the page while it loads, is empty or offline.",
  "boards": [
   {
    "name": "home-opening",
@@ -167,24 +167,52 @@
   },
   {
    "name": "home-guest",
+   "about": "Without an account the page begins with videos: YouTube's Home has none for a new Guest (a notice), so the hero and the first shelf are Music, then Gaming. Nothing further down was asked for yet.",
    "fixture": "guest",
    "settle": 2.0,
-   "expect": {"screen": "home", "focus": "topics/0",
-              "state": {"load": "ready", "profile": "guest", "shelves": "2", "row": "topics", "invite": "1"},
-              "asked": ["discover", "history", "section:trending"]}
+   "expect": {"screen": "home", "focus": "music/0",
+              "state": {"load": "ready", "profile": "guest", "shelves": "2", "row": "music", "invite": "1",
+                        "hero": "Late Night Synth Session — Live from the Boathouse"},
+              "asked": ["history", "library:home", "home-topic:music", "home-topic:gaming"]}
+  },
+  {
+   "name": "home-guest-second-shelf",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "down", "wait": 0.6}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "gaming/1", "state": {"row": "gaming", "shelves": "3", "hero": "Speedrunning My Own Level and Regretting It"},
+              "asked": ["discover"]}
+  },
+  {
+   "name": "home-guest-topics",
+   "about": "Browse by topic stands under the first shelves.",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "home", "focus": "topics/0", "state": {"row": "topics"}}
   },
   {
    "name": "home-guest-trending",
    "fixture": "guest",
    "settle": 2.0,
-   "steps": [{"press": "down"}, {"press": "right"}, {"wait": 0.8}],
-   "expect": {"screen": "home", "focus": "trending/1", "state": {"row": "trending"}}
+   "steps": [{"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "right"}, {"wait": 0.8}],
+   "expect": {"screen": "home", "focus": "trending/1", "state": {"row": "trending"}, "asked": ["section:trending"]}
+  },
+  {
+   "name": "home-guest-last-shelf",
+   "about": "The page walked to its end: every further shelf was asked for when the page reached it.",
+   "fixture": "guest",
+   "settle": 2.0,
+   "steps": [{"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6},
+             {"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.8}],
+   "expect": {"screen": "home", "focus": "sports/0", "state": {"row": "sports", "shelves": "6"},
+              "asked": ["home-topic:news", "home-topic:sports"]}
   },
   {
    "name": "home-guest-topic-opens",
    "fixture": "guest",
    "settle": 2.0,
-   "steps": [{"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
+   "steps": [{"press": "down", "wait": 0.6}, {"press": "down", "wait": 0.6}, {"press": "right"}, {"press": "right"}, {"press": "cross"}, {"wait": 0.8}],
    "expect": {"screen": "grid", "argument": "section:gaming"}
   },
   {

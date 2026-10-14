@@ -116,7 +116,7 @@ then carries the mark to its place at the head of the rail.
 | 03-05 | Home, signed in | ToastStack, glyph hints | Hero with the focused picture dissolving into the page, play line, shelves, cards, focus ring |
 | 06 | Home, rail open | glyph hints | Rail: labels, gliding plate, pinned channels, profile |
 | 07 | Home, attract | glyph hints | Full-screen picture, lockup, time-to-next line |
-| 08 | Home, Guest | glyph hints | Topic tiles, sign-in invitation, trending shelf |
+| 08 | Home, Guest | glyph hints | Topic tiles, sign-in invitation, trending shelf; as built, shelves of videos stand above the topic tiles (ARCHITECTURE.md, 5.4) |
 | 09 | Search | SearchField (field, suggestions, recent searches, match underline), Keyboard | "Best matches" strip that fills as you type |
 | 10 | Results | Skeleton (bones while loading) | Filter chips, video, channel and playlist cards |
 | 11-12 | Channel | TabBar (underline) | Banner, avatar, Subscribe and notification level, featured video, latest uploads, grid |

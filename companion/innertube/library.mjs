@@ -383,7 +383,7 @@ export class Library {
     if (input.action === 'stream_reminder' && input.reminder !== 'status') privateActions.add('stream_reminder');
     if (privateActions.has(input.action) && !authenticated)
       throw new LibraryError('account_required', 'Configure an account profile on the companion first.', 401);
-    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'suggestions', 'search', 'search_suggestions', 'description', 'channel', 'channel_search', 'video_details', 'stream_reminder'].includes(input.action))
+    if (!privateActions.has(input.action) && !['home', 'playlist', 'comments', 'topics', 'topic_open', 'topic_videos', 'suggestions', 'search', 'search_suggestions', 'description', 'channel', 'channel_search', 'video_details', 'stream_reminder'].includes(input.action))
       throw new LibraryError('unknown_operation', 'This library operation is unavailable.');
     if (['channel', 'channel_search'].includes(input.action)) requireId(input.channel, channelId);
     if (['like', 'dislike', 'unrate', 'comments', 'playlist_add', 'playlist_remove', 'watch_later_add', 'watch_later_remove', 'watch_progress', 'history_remove', 'mark_watched', 'description', 'feedback',
@@ -425,6 +425,26 @@ export class Library {
     if (['comment_post', 'comment_reply'].includes(input.action)) return this.commentPosts.run(owner, client, input);
     if(input.action==='history_remove')return this.historyActions.remove(owner,client,input);
     if(input.action==='mark_watched')return this.historyActions.markWatched(owner,client,input);
+    if (input.action === 'topic_videos') {
+      // A topic as one list of videos (a Home shelf): the videos of its first rows, from the one
+      // browse request that lists the rows. A row that would need a request of its own is left out.
+      if (!['music', 'gaming', 'news', 'sports', 'live'].includes(input.section))
+        throw new LibraryError('invalid_catalog', 'Choose an available section.');
+      const root = await this.topics.root(owner, input.section, client, false);
+      const videos = [], seen = new Set();
+      const add = item => {
+        if (!item || item.is_folder || item.is_short || videos.length >= 24 || seen.has(item.id)) return;
+        seen.add(item.id); videos.push(item);
+      };
+      for (const row of root.catalog_items.slice(0, 6)) {
+        if (videos.length >= 24) break;
+        if (!row?.is_folder) { add(row); continue; }
+        const key = String(row.id).split(':')[2];
+        if (!this.topics.entries.get(key)?.source?.row) continue;
+        for (const item of (await this.topics.open(owner, input.section, key)).catalog_items) add(item);
+      }
+      return this.page(owner, 'catalog', { catalog_items: videos, has_continuation: false }, null, '', '', 0, false, '', extra);
+    }
     if (input.action === 'topics' || input.action === 'topic_open') {
       const feed = input.section === 'kids' ?
         (input.action === 'topics' ? await this.kids.root(owner, client) : await this.kids.open(owner, input.id)) :

@@ -5,9 +5,10 @@
 // ProviderSource and Data run on the real native/tube_provider.c. The network
 // is a queue of requests this file answers with documents written below, the
 // way tests/test_native.c does; nothing leaves the process. Covered: Guest
-// Home assembles from the provider's catalogs, one request at a time; a
-// service row's facts reach the view model; a failed job and a cancelled
-// request; the browsing profile and the revision.
+// Home assembles from the provider's catalogs, one request at a time and a
+// row further down only when the page reaches it; a service row's facts reach
+// the view model; a failed job and a cancelled request; the browsing profile
+// and the revision.
 
 #include "afterglow/app/data_provider.hpp"
 #include "afterglow/app/play_start.hpp"
@@ -41,6 +42,10 @@ std::vector<Pending> g_pending;
 std::string g_error;
 int g_jobs_posted = 0;
 int g_most_jobs_at_once = 0;
+std::string g_last_job;            // the body of the job posted last
+std::vector<std::string> g_jobs;   // ... and of every job
+// When set, the document a finished job returns is chosen by what the job asked.
+const char *(*g_route)(const std::string &job) = nullptr;
 
 void reply(std::size_t index, int ok, int status, const std::string &body)
 {
@@ -94,15 +99,23 @@ void serve(const char *job)
         else if (p.method == "POST" && p.url.find("/v1/jobs") != std::string::npos)
         {
             ++g_jobs_posted;
+            g_last_job = p.body;
+            g_jobs.push_back(p.body);
             reply(0, 1, 200, "{\"job\":\"fixture_job\",\"state\":\"pending\"}");
             usleep(300000);
             tube_poll();
         }
         else if (p.url.find("/v1/jobs/fixture_job") != std::string::npos)
         {
-            if (*job == '\0')
+            if (p.method == "DELETE")
+            {
+                reply(0, 1, 200, "{}"); // a job called back
+                continue;
+            }
+            const char *document = g_route != nullptr ? g_route(g_last_job) : job;
+            if (*document == '\0')
                 return;
-            reply(0, 1, 200, job);
+            reply(0, 1, 200, document);
         }
         else
         {
@@ -110,6 +123,36 @@ void serve(const char *job)
             assert(false);
         }
     }
+}
+
+// Home without an account as the built-in service answers it (seen live on 2026-10-13): YouTube's
+// Home is a notice and no videos, Trending is refused, a topic answers with the videos of its rows.
+const char *kNothing = "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"catalog\",\"items\":[],\"has_more\":false,\"cursor\":\"\"}}";
+const char *kRefused = "{\"state\":\"failed\",\"error\":{\"code\":\"catalog_unavailable\",\"message\":\"YouTube does not offer this section here.\"}}";
+const char *kGaming =
+    "{\"state\":\"done\",\"result\":{\"api_version\":1,\"kind\":\"catalog\",\"items\":["
+    "{\"id\":\"ccccccccc01\",\"title\":\"A Whole City in One Weekend\",\"subtitle\":\"Glassfern Games\",\"channel_id\":\"UCdddddddddddddddddddddd\",\"duration_sec\":902},"
+    "{\"id\":\"ccccccccc02\",\"title\":\"Speedrunning My Own Level\",\"subtitle\":\"Glassfern Games\",\"channel_id\":\"UCdddddddddddddddddddddd\",\"duration_sec\":411}"
+    "],\"has_more\":false,\"cursor\":\"\"}}";
+const char *guest_home(const std::string &job)
+{
+    const auto asks = [&](const char *text) { return job.find(text) != std::string::npos; };
+    if (asks("\"action\":\"home\""))
+        return kNothing;
+    if (asks("\"action\":\"topic_videos\""))
+        return asks("\"section\":\"music\"") ? kTrending : asks("\"section\":\"gaming\"") || asks("\"section\":\"news\"") ? kGaming : kNothing;
+    if (asks("\"action\":\"topics\"") && asks("\"section\":\"trending\""))
+        return kRefused;
+    return kTrending;
+}
+bool job_asked(const char *text)
+{
+    for (const std::string &job : g_jobs)
+    {
+        if (job.find(text) != std::string::npos)
+            return true;
+    }
+    return false;
 }
 
 const afterglow::model::Shelf *shelf(const afterglow::model::Home &home, const char *id)
@@ -176,21 +219,62 @@ int main()
         assert(profile.id == "guest" && profile.guest && !profile.signed_in && profile.name.empty());
         const unsigned revision = source.revision();
 
-        // Guest Home: topics, continue watching, trending; each shelf with its own state.
+        // Guest Home begins with videos: what YouTube recommends to the session (a notice and nothing
+        // else for a new Guest), then the topics' own videos. Each row is asked in its turn, and no
+        // further down than the page reaches: two filled rows to begin with.
+        g_route = guest_home;
         const model::Home *home = &data.home();
-        assert(home->profile.guest && home->invite_sign_in && home->shelves.size() == 3 && home->load == model::Load::loading);
-        assert(shelf(*home, "topics") && shelf(*home, "continue") && shelf(*home, "trending"));
-        assert(shelf(*home, "trending")->load == model::Load::loading && shelf(*home, "trending")->catalog == "section:trending");
-        for (int i = 0; i < 40; ++i)
+        assert(home->profile.guest && home->invite_sign_in && home->shelves.size() == 8 && home->load == model::Load::loading);
+        const char *order[] = {"continue", "recommended", "music", "gaming", "topics", "trending", "news", "sports"};
+        for (std::size_t i = 0; i < 8; ++i)
+            assert(home->shelves[i].id == order[i]);
+        assert(shelf(*home, "music")->catalog == "home-topic:music" && shelf(*home, "music")->load == model::Load::idle);
+        assert(shelf(*home, "recommended")->catalog == "library:home" && shelf(*home, "trending")->catalog == "section:trending");
+        for (int i = 0; i < 60; ++i)
         {
             data.pump();
-            serve(kTrending);
+            serve("");
             home = &data.home();
             if (home->load == model::Load::ready)
                 break;
         }
         assert(home->load == model::Load::ready);
         assert(g_most_jobs_at_once <= 1); // the provider is asked one list at a time
+        // Three requests went out: Home, Music, Gaming. YouTube's Home had no video, so the first shelf with any is Music.
+        if (g_jobs_posted != 3)
+            std::fprintf(stderr, "guest home: %d jobs\n", g_jobs_posted);
+        assert(g_jobs_posted == 3 && job_asked("\"action\":\"home\"") && job_asked("\"section\":\"music\"") && job_asked("\"section\":\"gaming\""));
+        assert(!job_asked("\"section\":\"trending\"") && !job_asked("\"section\":\"news\"") && !job_asked("\"section\":\"sports\""));
+        assert(shelf(*home, "recommended")->load == model::Load::ready && shelf(*home, "recommended")->videos.empty());
+        assert(shelf(*home, "gaming")->load == model::Load::ready && shelf(*home, "gaming")->videos.size() == 2);
+        assert(shelf(*home, "gaming")->videos[0].id == "ccccccccc01" && shelf(*home, "gaming")->videos[1].channel == "Glassfern Games");
+        for (const char *later : {"topics", "trending", "news", "sports"})
+            assert(shelf(*home, later)->load == model::Load::idle && shelf(*home, later)->videos.empty() && shelf(*home, later)->topics.empty());
+        // The page is walked down: the topics (the provider's own list, no request), then Trending, which
+        // YouTube refuses a Guest (one notice row, no video: the shelf is not shown), then News. Sports waits.
+        data.home_reach(4);
+        for (int i = 0; i < 60; ++i)
+        {
+            data.pump();
+            serve("");
+            home = &data.home();
+            if (home->load == model::Load::ready && shelf(*home, "news")->load == model::Load::ready)
+                break;
+        }
+        assert(home->load == model::Load::ready && g_jobs_posted == 5 && g_most_jobs_at_once <= 1);
+        assert(shelf(*home, "trending")->load == model::Load::ready && shelf(*home, "trending")->videos.empty());
+        assert(shelf(*home, "news")->videos.size() == 2 && shelf(*home, "sports")->load == model::Load::idle && !job_asked("\"section\":\"sports\""));
+        // A shelf of a topic has one page, and only the topics Home shows are known.
+        const Page *second = &data.catalog("home-topic:music", 1);
+        const Page *unknown = &data.catalog("home-topic:movies");
+        for (int i = 0; i < 6 && (second->load == model::Load::loading || unknown->load == model::Load::loading); ++i)
+        {
+            data.pump();
+            second = &data.catalog("home-topic:music", 1);
+            unknown = &data.catalog("home-topic:movies");
+        }
+        assert(second->load == model::Load::failed && unknown->load == model::Load::failed && g_jobs_posted == 5);
+        g_route = nullptr;
 
         // The topics are the profile's Discover rows, as interface texts with their icons.
         const model::Shelf *topics = shelf(*home, "topics");
@@ -205,10 +289,11 @@ int main()
         assert(gaming && trending_topic);
         // Nothing was watched yet: Continue watching is ready and empty, which Home does not show.
         assert(shelf(*home, "continue")->load == model::Load::ready && shelf(*home, "continue")->videos.empty());
-        // Trending: the service's rows, with the facts beside them.
-        const model::Shelf *trending = shelf(*home, "trending");
+        // Music: the service's rows, with the facts beside them.
+        home = &data.home();
+        const model::Shelf *trending = shelf(*home, "music");
         if (trending->videos.size() != 3)
-            std::fprintf(stderr, "trending: load %d, %zu videos, more %d, error %s\n", static_cast<int>(trending->load), trending->videos.size(), trending->more ? 1 : 0, trending->error.c_str());
+            std::fprintf(stderr, "music: load %d, %zu videos, more %d, error %s\n", static_cast<int>(trending->load), trending->videos.size(), trending->more ? 1 : 0, trending->error.c_str());
         assert(trending->load == model::Load::ready && trending->videos.size() == 3 && !trending->more);
         const model::Video &first = trending->videos[0];
         assert(first.id == "aaaaaaaaaa1" && first.video_id == "aaaaaaaaaa1" && first.title == "Seven Days Alone on the Ridge Line");
@@ -373,7 +458,7 @@ int main()
         assert(start.step(400.5) && start.state(&reason, 400.5) == Start::idle);
     }
     p->shutdown();
-    std::puts("PASS: Afterglow data on the provider: Guest Home from the provider's catalogs one request at a time, row facts in the view "
+    std::puts("PASS: Afterglow data on the provider: Guest Home with videos first, one request at a time and no further than the page reaches, row facts in the view "
               "models, a failed job, a cancelled request, a typed text with no prompt armed, the browsing profile");
     return 0;
 }

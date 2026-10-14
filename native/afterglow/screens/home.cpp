@@ -5,8 +5,10 @@
 // The hero follows the focus: the focused video's picture dissolves into the
 // page, its title and its play line stand on the left. Under it the shelves:
 // signed in, Continue watching, Recommended and From your subscriptions; as
-// Guest, the topics, Trending and an invitation to sign in. Left of the first
-// card is the rail. Alone for a while, the page shows off what is on.
+// Guest, videos first (what YouTube recommends to the session, then Music and
+// Gaming), the topics under them, further shelves as the page is walked down,
+// and an invitation to sign in. Left of the first card is the rail. Alone for
+// a while, the page shows off what is on.
 
 #include "afterglow/screens/home.hpp"
 
@@ -42,6 +44,8 @@ void Home::update(const InputFrame &input, UpdateContext &context)
 {
     age_ += context.dt;
     const bool reduced = context.reduced_motion;
+    // The row in focus and the one under it: a Guest's further rows are asked for when the page gets there.
+    context.services.data.home_reach(row_ + 2);
     collect(context.services.data.home());
     const int count = static_cast<int>(rows_.size());
     row_ = std::clamp(row_, 0, std::max(0, count - 1));
@@ -241,9 +245,9 @@ void Home::collect(const model::Home &home)
             else
                 shown_.erase(shelf.id);
         }
-        // A shelf that is being read again keeps what it showed until the answer is in.
+        // A shelf that is being read again, or waits for its turn to be, keeps what it showed until the answer is in.
         const auto kept = shown_.find(shelf.id);
-        if (kept != shown_.end() && (ready || shelf.load == model::Load::loading))
+        if (kept != shown_.end() && (ready || shelf.load == model::Load::loading || shelf.load == model::Load::idle))
         {
             rows_.push_back(Row{kept->second});
             any_ready = true;

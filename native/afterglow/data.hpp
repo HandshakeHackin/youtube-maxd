@@ -172,6 +172,13 @@ class Data
     // Home as the profile sees it. Shelves appear in display order at once,
     // each with its own Load state, and fill as their answers arrive.
     const model::Home &home();
+    // How many filled rows Home wants: the row in focus and what is next to
+    // it on the screen. A Guest's rows are asked in their turn, one request at
+    // a time, and a row further down only when the page reaches it.
+    void home_reach(int rows)
+    {
+        home_reach_ = rows < 2 ? 2 : rows;
+    }
     // One page of a catalog, kept until the source's revision changes.
     const Page &catalog(const std::string &id, int page = 0);
     // Forgets everything that was fetched; the next read asks again.
@@ -255,6 +262,8 @@ class Data
     unsigned next_action_ = 1;
     model::Home home_;
     bool home_built_ = false;
+    int home_reach_ = 2;
+    std::vector<bool> home_asked_; // per shelf of home_: its catalog was asked for
     unsigned revision_ = 0;
     unsigned language_ = 0;
     model::Video handed_;

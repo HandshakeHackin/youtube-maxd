@@ -23,16 +23,29 @@ struct ShelfPlan
     const char *catalog;
     model::ShelfKind kind;
     std::size_t limit; // cards kept from the first page
+    // Asked in its turn: after every row above it has answered, and only while fewer filled rows
+    // stand above it than the page reaches (Data::home_reach). A row of a signed-in Home is asked at once.
+    bool in_turn = false;
 };
 constexpr ShelfPlan kSignedIn[] = {
     {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
     {"recommended", tr_mark("Recommended for you"), "library:home", model::ShelfKind::videos, 16},
     {"subscriptions", tr_mark("New from your subscriptions"), "library:subscriptions", model::ShelfKind::videos, 16},
 };
+// Without an account the page begins with videos all the same: what YouTube recommends to the
+// session when it does (a new Guest gets a notice instead), then what is popular in a few topics.
+// YouTube refuses Trending to a session without an account at the time of writing; the row is
+// there for when it answers. Every row is asked in its turn, so a row YouTube leaves empty costs
+// one request and the rows further down none until the page reaches them.
 constexpr ShelfPlan kGuest[] = {
-    {"topics", tr_mark("Browse by topic"), "discover", model::ShelfKind::topics, 16},
-    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
-    {"trending", tr_mark("Trending now"), "section:trending", model::ShelfKind::videos, 16},
+    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12, true},
+    {"recommended", tr_mark("Recommended for you"), "library:home", model::ShelfKind::videos, 16, true},
+    {"music", tr_mark("Music"), "home-topic:music", model::ShelfKind::videos, 16, true},
+    {"gaming", tr_mark("Gaming"), "home-topic:gaming", model::ShelfKind::videos, 16, true},
+    {"topics", tr_mark("Browse by topic"), "discover", model::ShelfKind::topics, 16, true},
+    {"trending", tr_mark("Trending now"), "section:trending", model::ShelfKind::videos, 16, true},
+    {"news", tr_mark("News"), "home-topic:news", model::ShelfKind::videos, 16, true},
+    {"sports", tr_mark("Sports"), "home-topic:sports", model::ShelfKind::videos, 16, true},
 };
 
 unsigned language()
@@ -252,10 +265,15 @@ void Data::build_home()
         shelf.title = tr(plan[i].title);
         shelf.catalog = plan[i].catalog;
         shelf.kind = plan[i].kind;
-        shelf.load = model::Load::loading;
+        // A row asked in its turn is idle until then: nothing was asked for it.
+        shelf.load = plan[i].in_turn ? model::Load::idle : model::Load::loading;
         home_.shelves.push_back(std::move(shelf));
-        slot(plan[i].catalog, 0).seen = 0;
+        if (!plan[i].in_turn)
+            slot(plan[i].catalog, 0).seen = 0;
     }
+    home_asked_.assign(count, false);
+    for (std::size_t i = 0; i < count; ++i)
+        home_asked_[i] = !plan[i].in_turn;
     slot("", 0).seen = 0;
     home_built_ = true;
 }
@@ -268,18 +286,35 @@ const model::Home &Data::home()
         build_home();
     }
     const ShelfPlan *plan = home_.profile.signed_in ? kSignedIn : kGuest;
+    int asked = 0;
     int answered = 0;
     int offline = 0;
+    int filled = 0;       // rows above that have something to show
+    bool waiting = false; // a row above has not answered yet
     for (std::size_t i = 0; i < home_.shelves.size(); ++i)
     {
         model::Shelf &shelf = home_.shelves[i];
+        if (!home_asked_[i])
+        {
+            // Its turn: everything above has answered and the page reaches this far.
+            if (waiting || filled >= home_reach_)
+                continue;
+            home_asked_[i] = true;
+            slot(shelf.catalog, 0).seen = 0; // a page kept from before is copied as a new one is
+        }
         Slot &source = slot(shelf.catalog, 0);
+        ++asked;
         if (source.page.load != model::Load::loading)
             ++answered;
+        else
+            waiting = true;
         if (source.page.load == model::Load::offline)
             ++offline;
         if (source.version == source.seen && shelf.load == source.page.load)
+        {
+            filled += !shelf.videos.empty() || !shelf.topics.empty() ? 1 : 0;
             continue;
+        }
         source.seen = source.version;
         shelf.load = source.page.load;
         shelf.error = source.page.error;
@@ -308,6 +343,7 @@ const model::Home &Data::home()
         }
         if (shelf.topics.size() > limit)
             shelf.topics.resize(limit);
+        filled += !shelf.videos.empty() || !shelf.topics.empty() ? 1 : 0;
     }
     Slot &menu = slot("", 0);
     if (menu.version != menu.seen)
@@ -315,8 +351,8 @@ const model::Home &Data::home()
         menu.seen = menu.version;
         home_.pinned = menu.page.channels;
     }
-    const int total = static_cast<int>(home_.shelves.size());
-    home_.load = total > 0 && offline == total ? model::Load::offline : answered == total ? model::Load::ready : model::Load::loading;
+    // Rows whose turn has not come are not waited for: the page is ready with what it reaches.
+    home_.load = asked > 0 && offline == asked ? model::Load::offline : answered == asked ? model::Load::ready : model::Load::loading;
     return home_;
 }
 

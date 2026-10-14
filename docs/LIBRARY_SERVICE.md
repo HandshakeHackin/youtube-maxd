@@ -424,6 +424,11 @@ Continue either shelf lists or their contents with the usual `continue` action
 and returned cursor. IDs/cursors are opaque, profile-scoped and expire; reload
 the section when expired. Playlist/channel/storefront folders preserve their
 originating section. Channel and Movies storefront pages retain their shelves.
+`{"action":"topic_videos","section":"music"}` (also `gaming`, `news`, `sports`
+and `live`) answers with one page of videos instead: those of the section's
+first shelves, taken from the one request that lists the shelves, without
+folders, Shorts or repeats and at most 24. It has no continuation; the
+section itself has the rest.
 An empty storefront's upstream explanation is returned as `catalog_unavailable`.
 These requests use YouTube's TV browse feed. A configured profile with an active
 signed-in session prepends a personalized Liked music folder. It uses the pinned

@@ -107,6 +107,10 @@ class FixtureLibrary:
             self.accounts[owner]["comment_ratings"][ref["items"][0]] = rating
             ref["result"] = {"api_version": 1, "success": True, "rating": rating}
             return copy.deepcopy(ref["result"])
+        if action == "topic_videos":
+            if request.get("section") not in {"music", "gaming", "news", "sports", "live"}:
+                raise ServiceError("invalid_catalog", "Choose an available section.", 400)
+            return self._page(owner, "catalog", [self._video(i) for i in VIDEOS])
         if action in {"topics", "topic_open"}:
             section = request.get("section")
             if section not in {"music", "gaming", "news", "sports", "live", "movies", "trending", "shorts", "my_videos"}:

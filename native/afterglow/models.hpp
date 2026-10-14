@@ -92,11 +92,11 @@ enum class ShelfKind : std::uint8_t
 // One row of Home (and of any screen made of rows).
 struct Shelf
 {
-    std::string id;      // stable within its screen: "continue", "recommended", "subscriptions", "topics", "trending"
+    std::string id;      // stable within its screen: "continue", "recommended", "subscriptions", "music", "topics", "trending"
     std::string title;   // an interface text, already in the profile's language
     std::string catalog; // where "see all" leads: a provider catalog id, "" for none
     ShelfKind kind = ShelfKind::videos;
-    Load load = Load::idle;
+    Load load = Load::idle; // idle: a row of Home whose turn to be asked has not come
     std::string error; // for Load::failed: the provider's message
     std::vector<Video> videos;
     std::vector<Topic> topics;
@@ -116,7 +116,8 @@ struct Profile
 struct Home
 {
     Profile profile;
-    std::vector<Shelf> shelves;  // in display order; Guest: topics, trending. Signed in: continue, recommended, subscriptions
+    std::vector<Shelf> shelves;  // in display order. Signed in: continue, recommended, subscriptions. Guest: continue,
+                                 // recommended, music, gaming, topics, trending, news, sports (data.cpp)
     std::vector<Channel> pinned; // the rail's channels
     bool invite_sign_in = false; // Guest: the invitation card is shown
     Load load = Load::idle;      // of the whole page: offline when the service cannot be reached

@@ -6740,6 +6740,20 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         r->items_cb = cb; copy(r->parent, sizeof r->parent, parent); r->wants_health = 1; r->requires = COMPANION_IMPORT;
         begin(r); return 0;
     }
+    if (parent && !strncmp(parent, "home-topic:", 11)) {
+        /* A topic as one shelf of Home: the videos of the topic's first rows, which the service
+         * takes from the one request that lists the rows. One page; the topic itself has the rest. */
+        static const char *const topics[] = {"music", "gaming", "news", "sports", "live"};
+        int known = 0;
+        for (size_t i = 0; i < sizeof topics / sizeof *topics; ++i) if (!strcmp(parent + 11, topics[i])) known = 1;
+        if (!known || page) { tube_set_error("Reload this section to continue browsing."); cb(0, NULL, 0, 0, ud); return 0; }
+        Request *r = request_new(3, ud); if (!r) return -1;
+        r->items_cb = cb; copy(r->parent, sizeof r->parent, parent);
+        snprintf(r->payload, sizeof r->payload,
+            "{\"action\":\"library\",\"library\":{\"action\":\"topic_videos\",\"profile\":\"%s\",\"section\":\"%s\"}}",
+            g_library_profile, parent + 11);
+        begin(r); return 0;
+    }
     if (parent && !strncmp(parent, "section:", 8)) {
         if (!section || page >= LIBRARY_PAGES ||
             (page && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {

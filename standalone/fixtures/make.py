@@ -90,6 +90,23 @@ def playlist():
                     "playlistId": PLAYLIST, "isEditable": False, "contents": [row(n) for n in range(3)]}}]}}]}}}}]}}}
 
 
+def topics():
+    """A topic as the TV client lists it: shelves of tiles. The second shelf repeats a video of the first."""
+    def tile(n):
+        identifier = f"fixture{200 + n:04d}"
+        return {"tileRenderer": {"contentType": "TILE_CONTENT_TYPE_VIDEO", "contentId": identifier,
+            "onSelectCommand": {"watchEndpoint": {"videoId": identifier}},
+            "header": {"tileHeaderRenderer": {"thumbnail": {"thumbnails": [{"url": f"https://i.ytimg.com/vi/{identifier}/hqdefault.jpg"}]},
+                "thumbnailOverlays": [{"thumbnailOverlayTimeStatusRenderer": {"text": {"simpleText": "2:03"}}}]}},
+            "metadata": {"tileMetadataRenderer": {"title": {"simpleText": f"Topic video {n}"},
+                "lines": [{"lineRenderer": {"items": [{"lineItemRenderer": {"text": {"simpleText": "Fixture channel"}}}]}}]}}}}
+
+    def shelf(title, numbers):
+        return {"shelfRenderer": {"title": {"simpleText": title}, "content": {"horizontalListRenderer": {"items": [tile(n) for n in numbers]}}}}
+    return {"contents": {"tvBrowseRenderer": {"content": {"tvSurfaceContentRenderer": {"content": {"sectionListRenderer": {
+        "contents": [shelf("Recommended", range(0, 3)), shelf("Top music videos", range(2, 6))]}}}}}}}
+
+
 def track(itag, mime, bitrate, average, extra):
     return {"itag": itag, "url": f"{MEDIA}&itag={itag}", "mimeType": mime, "bitrate": bitrate, "averageBitrate": average,
             "lastModified": "1700000000000000", "contentLength": "1000000", "approxDurationMs": "635200",
@@ -195,6 +212,7 @@ def main():
     write("search.json", search())
     write("channel.json", channel())
     write("playlist.json", playlist())
+    write("topics.json", topics())
     write("player.json", player())
     write("player_live.json", live_player())
     write("player_short.json", short_player())
@@ -234,7 +252,8 @@ def main():
         "POST www.youtube.com/youtubei/v1/search": {"file": "search.json"},
         "POST www.youtube.com/youtubei/v1/browse": [
             {"body_contains": f'"browseId":"VL{PLAYLIST}"', "file": "playlist.json"},
-            {"body_contains": f'"browseId":"{CHANNEL}"', "file": "channel.json"}],
+            {"body_contains": f'"browseId":"{CHANNEL}"', "file": "channel.json"},
+            {"body_contains": '"browseId":"FEtopics_music"', "file": "topics.json"}],
         "POST www.youtube.com/youtubei/v1/player": [
             {"body_contains": f'"videoId":"{VIDEO}"', "file": "player.json"},
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
