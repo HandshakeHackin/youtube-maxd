@@ -150,7 +150,7 @@ int main(void) {
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* The shared screens provide counts, so both English forms select the language's own plural. */
-    static const char *const afterglow[] = {"cs", "da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pl", "pt-BR", "pt-PT", "ro", "sv", "tr", "vi"};
+    static const char *const afterglow[] = {"cs", "da", "de", "es", "fi", "fr", "hu", "id", "it", "nb", "nl", "pl", "pt-BR", "pt-PT", "ro", "ru", "sv", "tr", "vi"};
     for (size_t i = 0; i < sizeof afterglow / sizeof *afterglow; ++i) {
         use(afterglow[i]);
         assert(tr("Who is watching?", 0));
@@ -192,6 +192,14 @@ int main(void) {
     assert(!strcmp(tr("1.5 chapters", 0), "1.5 rozdziału"));
     assert(!strcmp(tr("2 min left", 0), "Pozostały 2 min"));
     assert(!strcmp(tr("5 min left", 0), "Pozostało 5 min"));
+
+    use("ru");
+    assert(!strcmp(tr("1 reply", 0), "1 ответ"));
+    assert(!strcmp(tr("2 replies", 0), "2 ответа"));
+    assert(!strcmp(tr("5 replies", 0), "5 ответов"));
+    assert(!strcmp(tr("21 replies", 0), "21 ответ"));
+    assert(!strcmp(tr("11 replies", 0), "11 ответов"));
+    assert(!strcmp(tr("1.5 replies", 0), "1.5 ответа"));
 
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");

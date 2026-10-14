@@ -18,8 +18,8 @@ yet.
 | `fr` | Français | `pt-BR` | Português (Brasil) | `vi` | Tiếng Việt |
 
 The classic interface is covered by every catalog. Afterglow is complete in
-`cs`, `da`, `de`, `es`, `fi`, `fr`, `hu`, `id`, `it`, `nb`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ro`, `sv`, `tr`, `vi`.
-The remaining 3 languages fall back to English for missing Afterglow texts.
+`cs`, `da`, `de`, `es`, `fi`, `fr`, `hu`, `id`, `it`, `nb`, `nl`, `pl`, `pt-BR`, `pt-PT`, `ro`, `ru`, `sv`, `tr`, `vi`.
+The remaining 2 languages fall back to English for missing Afterglow texts.
 `bash scripts/test_i18n.sh` reports both totals and requires 99% coverage
 of the classic texts in every language. Completed Afterglow catalogs also
 require every Afterglow text and 99% overall coverage.
