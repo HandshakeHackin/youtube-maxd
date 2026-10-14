@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Playlistehandlinger",
   "/ Section actions": "/ Sektionshandlinger",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 eller 270 grader med uret",
-  "1 channel": "1 kanal",
-  "1 playlist": "1 playliste",
-  "1 subscription": "1 abonnement",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, afspilningspunkt gemt",
   "3 to 20 minutes": "3 til 20 minutter",
   "360 degrees": "360 grader",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "LYD STOPPET",
   "About DeArrow": "Om DeArrow",
   "About SponsorBlock": "Om SponsorBlock",
-  "About {0} results": "Omkring {0} resultater",
+  "About {0} results": {
+   "one": "Omkring {0} resultat",
+   "other": "Omkring {0} resultater"
+  },
   "Above 100% the sound is boosted and may distort": "Over 100% forstærkes lyden og kan forvrænges",
   "Access was not allowed on the other device.": "Adgang blev ikke tilladt på den anden enhed.",
   "Account action screens do not have additional pages.": "Skærme med kontohandlinger har ikke flere sider.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Tilknyt YouTube-appen på din telefon",
   "Link the YouTube app with a TV code; off until a phone is linked": "Tilknyt YouTube-appen med en tv-kode; slået fra, indtil en telefon er tilknyttet",
   "Linked now": "Tilknyttet nu",
-  "Linked now: {0} phones": "Tilknyttet nu: {0} telefoner",
+  "Linked now: {0} phones": {
+   "one": "Tilknyttet nu: {0} telefon",
+   "other": "Tilknyttet nu: {0} telefoner"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Tilknytning af en telefon er ikke en del af denne indbyggede YouTube-tjeneste.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Tilknytning af en telefon kræver YouTube-tjenesten, som ikke svarer. Det gemte på denne PS5 er stadig tilgængeligt.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Tilknytning af en telefon kræver, at den indbyggede YouTube-tjeneste kører, og at det lokale lager er skrivbart. Tjek begge dele, og prøv igen.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Kryds læser den og viser, hvad den indeholder",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} følges allerede; {1} ikke tilføjet: listen rummer {2} kanaler",
-  "{0} channels": "{0} kanaler",
+  "{0} channels": {
+   "one": "{0} kanal",
+   "other": "{0} kanaler"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} kanal føjet til Fulgte kanaler",
    "other": "{0} kanaler føjet til Fulgte kanaler"
@@ -2067,7 +2071,10 @@
    "one": "{0} kapitel",
    "other": "{0} kapitler"
   },
-  "{0} further settings": "{0} flere indstillinger",
+  "{0} further settings": {
+   "one": "{0} yderligere indstilling",
+   "other": "{0} flere indstillinger"
+  },
   "{0} has nothing in this section.": "{0} har intet i denne del.",
   "{0} is back at its defaults": "{0} er tilbage til standardværdierne",
   "{0} kept; newest: {1}": "{0} beholdt; nyeste: {1}",
@@ -2076,11 +2083,17 @@
    "one": "{0} min tilbage",
    "other": "{0} min tilbage"
   },
-  "{0} new": "{0} nye",
+  "{0} new": {
+   "one": "{0} ny",
+   "other": "{0} nye"
+  },
   "{0} of {1}": "{0} af {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} af {1} MB; annullering ændrer ikke den installerede app",
   "{0} on this video": "{0} på denne video",
-  "{0} playlists": "{0} playlister",
+  "{0} playlists": {
+   "one": "{0} playliste",
+   "other": "{0} playlister"
+  },
   "{0} replies": {
    "one": "{0} svar",
    "other": "{0} svar"
@@ -2093,10 +2106,22 @@
    "one": "{0} segment sprunget over",
    "other": "{0} segmenter sprunget over"
   },
-  "{0} subscriptions": "{0} abonnementer",
-  "{0} videos": "{0} videoer",
-  "{0} videos, resume points kept": "{0} videoer, afspilningspunkter gemt",
-  "{0} waiting": "{0} venter",
+  "{0} subscriptions": {
+   "one": "{0} abonnement",
+   "other": "{0} abonnementer"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} videoer"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, afspilningspunkt gemt",
+   "other": "{0} videoer, afspilningspunkter gemt"
+  },
+  "{0} waiting": {
+   "one": "{0} venter",
+   "other": "{0} venter"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Kryds anvender denne ændring på YouTube én gang; Cirkel går tilbage uden at sende den.",
   "{0}: {1}": "{0}: {1}"
  }

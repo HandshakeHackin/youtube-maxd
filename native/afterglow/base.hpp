@@ -72,6 +72,8 @@ std::string fill(std::string_view pattern, std::string_view first, std::string_v
 // (one, few, many, other: the language's own rule). The catalogs key it by the
 // second form; scripts/i18n_extract.py reads both from this call.
 std::string tr_n(const char *one, const char *other, long count);
+// An integer fact from the service; worded or out-of-range counts stay untouched.
+std::string tr_n(const char *one, const char *other, std::string_view count);
 
 inline bool starts_with(std::string_view text, std::string_view prefix)
 {

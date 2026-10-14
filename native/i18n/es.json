@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Acciones de la lista",
   "/ Section actions": "/ Acciones de la sección",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 o 270 grados en sentido horario",
-  "1 channel": "1 canal",
-  "1 playlist": "1 lista de reproducción",
-  "1 subscription": "1 suscripción",
-  "1 video": "1 vídeo",
-  "1 video, resume point kept": "1 vídeo, punto de reanudación guardado",
   "3 to 20 minutes": "De 3 a 20 minutos",
   "360 degrees": "360 grados",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "AUDIO DETENIDO",
   "About DeArrow": "Acerca de DeArrow",
   "About SponsorBlock": "Acerca de SponsorBlock",
-  "About {0} results": "Aproximadamente {0} resultados",
+  "About {0} results": {
+   "one": "Aproximadamente {0} resultado",
+   "other": "Aproximadamente {0} resultados"
+  },
   "Above 100% the sound is boosted and may distort": "Por encima del 100% el sonido se amplifica y puede distorsionarse",
   "Access was not allowed on the other device.": "No se permitió el acceso en el otro dispositivo.",
   "Account action screens do not have additional pages.": "Las pantallas de acciones de cuenta no tienen más páginas.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Vincular la aplicación YouTube de tu teléfono",
   "Link the YouTube app with a TV code; off until a phone is linked": "Vincula la app de YouTube con un código de TV; desactivado hasta que se vincule un teléfono",
   "Linked now": "Vinculado ahora",
-  "Linked now: {0} phones": "Vinculados ahora: {0} teléfonos",
+  "Linked now: {0} phones": {
+   "one": "Vinculado ahora: {0} teléfono",
+   "other": "Vinculados ahora: {0} teléfonos"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Vincular un teléfono no forma parte de este servicio integrado de YouTube.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Vincular un teléfono necesita el servicio de YouTube, que no responde. Lo guardado en esta PS5 sigue disponible.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Vincular un teléfono requiere el servicio integrado de YouTube en marcha y almacenamiento local con escritura. Comprueba ambos y reinténtalo.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Cruz lo lee y muestra lo que contiene",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} ya seguidos; {1} no añadidos: la lista admite {2} canales",
-  "{0} channels": "{0} canales",
+  "{0} channels": {
+   "one": "{0} canal",
+   "other": "{0} canales"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} canal añadido a Canales seguidos",
    "other": "{0} canales añadidos a Canales seguidos"
@@ -2067,7 +2071,10 @@
    "one": "{0} capítulo",
    "other": "{0} capítulos"
   },
-  "{0} further settings": "{0} ajustes más",
+  "{0} further settings": {
+   "one": "{0} ajuste más",
+   "other": "{0} ajustes más"
+  },
   "{0} has nothing in this section.": "{0} no tiene nada en esta sección.",
   "{0} is back at its defaults": "{0} ha vuelto a sus valores predeterminados",
   "{0} kept; newest: {1}": "{0} conservadas; la más reciente: {1}",
@@ -2076,11 +2083,17 @@
    "one": "Quedan {0} min",
    "other": "Quedan {0} min"
   },
-  "{0} new": "{0} nuevos",
+  "{0} new": {
+   "one": "{0} nuevo",
+   "other": "{0} nuevos"
+  },
   "{0} of {1}": "{0} de {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} de {1} MB; cancelar no modifica la aplicación instalada",
   "{0} on this video": "{0} en este vídeo",
-  "{0} playlists": "{0} listas de reproducción",
+  "{0} playlists": {
+   "one": "{0} lista de reproducción",
+   "other": "{0} listas de reproducción"
+  },
   "{0} replies": {
    "one": "{0} respuesta",
    "other": "{0} respuestas"
@@ -2093,10 +2106,22 @@
    "one": "{0} segmento saltado",
    "other": "{0} segmentos saltados"
   },
-  "{0} subscriptions": "{0} suscripciones",
-  "{0} videos": "{0} vídeos",
-  "{0} videos, resume points kept": "{0} vídeos, puntos de reanudación guardados",
-  "{0} waiting": "{0} en espera",
+  "{0} subscriptions": {
+   "one": "{0} suscripción",
+   "other": "{0} suscripciones"
+  },
+  "{0} videos": {
+   "one": "{0} vídeo",
+   "other": "{0} vídeos"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} vídeo, punto de reanudación guardado",
+   "other": "{0} vídeos, puntos de reanudación guardados"
+  },
+  "{0} waiting": {
+   "one": "{0} en espera",
+   "other": "{0} en espera"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Perfil: {1}. Cruz aplica este cambio en YouTube una vez; Círculo vuelve sin enviarlo.",
   "{0}: {1}": "{0}: {1}"
  }

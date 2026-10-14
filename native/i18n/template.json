@@ -38,36 +38,6 @@
    ]
   },
   {
-   "source": "1 channel",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
-   "source": "1 playlist",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
-   "source": "1 subscription",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
-   "source": "1 video",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
-   "source": "1 video, resume point kept",
-   "context": [
-    "afterglow"
-   ]
-  },
-  {
    "source": "3 to 20 minutes",
    "context": [
     "afterglow"
@@ -187,7 +157,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "About {0} result"
   },
   {
    "source": "Above 100% the sound is boosted and may distort",
@@ -4404,7 +4375,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "Linked now: {0} phone"
   },
   {
    "source": "Linking a phone is not part of this built-in YouTube service.",
@@ -12550,7 +12522,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} channel"
   },
   {
    "source": "{0} channels added to Followed channels",
@@ -12594,7 +12567,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} further setting"
   },
   {
    "source": "{0} has nothing in this section.",
@@ -12643,7 +12617,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} new"
   },
   {
    "source": "{0} of {1}",
@@ -12675,7 +12650,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} playlist"
   },
   {
    "source": "{0} replies",
@@ -12710,7 +12686,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} subscription"
   },
   {
    "source": "{0} videos",
@@ -12718,7 +12695,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} video"
   },
   {
    "source": "{0} videos, resume points kept",
@@ -12726,7 +12704,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} video, resume point kept"
   },
   {
    "source": "{0} waiting",
@@ -12734,7 +12713,8 @@
     "afterglow"
    ],
    "pattern": true,
-   "args": "s"
+   "args": "n",
+   "one": "{0} waiting"
   },
   {
    "source": "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.",

@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Ενέργειες playlist",
   "/ Section actions": "/ Ενέργειες ενότητας",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 ή 270 μοίρες δεξιόστροφα",
-  "1 channel": "1 κανάλι",
-  "1 playlist": "1 playlist",
-  "1 subscription": "1 εγγραφή",
-  "1 video": "1 βίντεο",
-  "1 video, resume point kept": "1 βίντεο, θέση συνέχισης αποθηκευμένη",
   "3 to 20 minutes": "3 έως 20 λεπτά",
   "360 degrees": "360 μοίρες",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "Ο ΗΧΟΣ ΔΙΑΚΟΠΗΚΕ",
   "About DeArrow": "Σχετικά με το DeArrow",
   "About SponsorBlock": "Σχετικά με το SponsorBlock",
-  "About {0} results": "Περίπου {0} αποτελέσματα",
+  "About {0} results": {
+   "one": "Περίπου {0} αποτέλεσμα",
+   "other": "Περίπου {0} αποτελέσματα"
+  },
   "Above 100% the sound is boosted and may distort": "Πάνω από 100% ο ήχος ενισχύεται και μπορεί να παραμορφωθεί",
   "Access was not allowed on the other device.": "Δεν επιτράπηκε η πρόσβαση στην άλλη συσκευή.",
   "Account action screens do not have additional pages.": "Οι οθόνες ενεργειών λογαριασμού δεν έχουν επιπλέον σελίδες.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Σύνδεση εφαρμογής YouTube στο τηλέφωνο",
   "Link the YouTube app with a TV code; off until a phone is linked": "Σύνδεση της εφαρμογής YouTube με κωδικό τηλεόρασης; ανενεργή μέχρι να συνδεθεί τηλέφωνο",
   "Linked now": "Συνδεδεμένο τώρα",
-  "Linked now: {0} phones": "Συνδεδεμένα τώρα: {0} τηλέφωνα",
+  "Linked now: {0} phones": {
+   "one": "Συνδεδεμένο τώρα: {0} τηλέφωνο",
+   "other": "Συνδεδεμένα τώρα: {0} τηλέφωνα"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Η σύνδεση τηλεφώνου δεν περιλαμβάνεται σε αυτήν την ενσωματωμένη υπηρεσία YouTube.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Η σύνδεση τηλεφώνου χρειάζεται την υπηρεσία YouTube, που δεν απαντά. Τα δεδομένα σε αυτό το PS5 μένουν διαθέσιμα.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Η σύνδεση τηλεφώνου απαιτεί την ενσωματωμένη υπηρεσία YouTube σε λειτουργία και εγγράψιμο τοπικό χώρο αποθήκευσης. Ελέγξτε και τα δύο και δοκιμάστε ξανά.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; το ✕ το διαβάζει και δείχνει τι περιέχει",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} ακολουθούνται ήδη; {1} δεν προστέθηκαν: η λίστα χωράει {2} κανάλια",
-  "{0} channels": "{0} κανάλια",
+  "{0} channels": {
+   "one": "{0} κανάλι",
+   "other": "{0} κανάλια"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} κανάλι προστέθηκε στα «Κανάλια που ακολουθείτε»",
    "other": "{0} κανάλια προστέθηκαν στα «Κανάλια που ακολουθείτε»"
@@ -2067,7 +2071,10 @@
    "one": "{0} κεφάλαιο",
    "other": "{0} κεφάλαια"
   },
-  "{0} further settings": "{0} επιπλέον ρυθμίσεις",
+  "{0} further settings": {
+   "one": "{0} επιπλέον ρύθμιση",
+   "other": "{0} επιπλέον ρυθμίσεις"
+  },
   "{0} has nothing in this section.": "Το {0} δεν έχει τίποτα σε αυτή την ενότητα.",
   "{0} is back at its defaults": "Το {0} επέστρεψε στις προεπιλογές",
   "{0} kept; newest: {1}": "Διατηρούνται {0}; νεότερο: {1}",
@@ -2076,11 +2083,17 @@
    "one": "Απομένει {0} λεπτό",
    "other": "Απομένουν {0} λεπτά"
   },
-  "{0} new": "{0} νέα",
+  "{0} new": {
+   "one": "{0} νέο",
+   "other": "{0} νέα"
+  },
   "{0} of {1}": "{0} από {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} από {1} MB· η ακύρωση δεν αλλάζει την εγκατεστημένη εφαρμογή",
   "{0} on this video": "{0} σε αυτό το βίντεο",
-  "{0} playlists": "{0} playlist",
+  "{0} playlists": {
+   "one": "{0} playlist",
+   "other": "{0} playlist"
+  },
   "{0} replies": {
    "one": "{0} απάντηση",
    "other": "{0} απαντήσεις"
@@ -2093,10 +2106,22 @@
    "one": "{0} τμήμα παραλείφθηκε",
    "other": "{0} τμήματα παραλείφθηκαν"
   },
-  "{0} subscriptions": "{0} εγγραφές",
-  "{0} videos": "{0} βίντεο",
-  "{0} videos, resume points kept": "{0} βίντεο, θέσεις συνέχισης αποθηκευμένες",
-  "{0} waiting": "{0} σε αναμονή",
+  "{0} subscriptions": {
+   "one": "{0} εγγραφή",
+   "other": "{0} εγγραφές"
+  },
+  "{0} videos": {
+   "one": "{0} βίντεο",
+   "other": "{0} βίντεο"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} βίντεο, θέση συνέχισης αποθηκευμένη",
+   "other": "{0} βίντεο, θέσεις συνέχισης αποθηκευμένες"
+  },
+  "{0} waiting": {
+   "one": "{0} σε αναμονή",
+   "other": "{0} σε αναμονή"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Προφίλ: {1}. Το ✕ εφαρμόζει αυτή την αλλαγή στο YouTube μία φορά; το ○ επιστρέφει χωρίς υποβολή.",
   "{0}: {1}": "{0}: {1}"
  }

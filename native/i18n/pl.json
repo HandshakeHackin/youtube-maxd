@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Działania playlisty",
   "/ Section actions": "/ Działania sekcji",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 lub 270 stopni w prawo",
-  "1 channel": "1 kanał",
-  "1 playlist": "1 playlista",
-  "1 subscription": "1 subskrypcja",
-  "1 video": "1 film",
-  "1 video, resume point kept": "1 film, punkt wznowienia zachowany",
   "3 to 20 minutes": "Od 3 do 20 minut",
   "360 degrees": "360 stopni",
   "3D": "3D",
@@ -33,7 +28,12 @@
   "AUDIO STOPPED": "DŹWIĘK ZATRZYMANY",
   "About DeArrow": "O DeArrow",
   "About SponsorBlock": "O SponsorBlock",
-  "About {0} results": "Około {0} wyników",
+  "About {0} results": {
+   "one": "Około {0} wyniku",
+   "few": "Około {0} wyników",
+   "many": "Około {0} wyników",
+   "other": "Około {0} wyniku"
+  },
   "Above 100% the sound is boosted and may distort": "Powyżej 100% dźwięk jest wzmacniany i może być zniekształcony",
   "Access was not allowed on the other device.": "Nie zezwolono na dostęp na drugim urządzeniu.",
   "Account action screens do not have additional pages.": "Ekrany działań na koncie nie mają kolejnych stron.",
@@ -738,7 +738,12 @@
   "Link the YouTube app on your phone": "Połącz aplikację YouTube na telefonie",
   "Link the YouTube app with a TV code; off until a phone is linked": "Połącz aplikację YouTube kodem telewizora; wyłączone do czasu połączenia telefonu",
   "Linked now": "Teraz połączono",
-  "Linked now: {0} phones": "Teraz połączono: {0} telefonów",
+  "Linked now: {0} phones": {
+   "one": "Teraz połączono: {0} telefon",
+   "few": "Teraz połączono: {0} telefony",
+   "many": "Teraz połączono: {0} telefonów",
+   "other": "Teraz połączono: {0} telefonu"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Łączenie telefonu nie jest częścią tej wbudowanej usługi YouTube.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Połączenie telefonu wymaga usługi YouTube, która nie odpowiada. Dane zapisane na tym PS5 pozostają dostępne.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Łączenie telefonu wymaga działającej wbudowanej usługi YouTube i zapisywalnej pamięci lokalnej. Sprawdź obie rzeczy i spróbuj ponownie.",
@@ -2060,7 +2065,12 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Krzyżyk odczytuje go i pokazuje, co zawiera",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "Już obserwowane: {0}; niedodane: {1}: lista mieści tyle kanałów: {2}",
-  "{0} channels": "{0} kanałów",
+  "{0} channels": {
+   "one": "{0} kanał",
+   "few": "{0} kanały",
+   "many": "{0} kanałów",
+   "other": "{0} kanału"
+  },
   "{0} channels added to Followed channels": {
    "one": "Dodano {0} kanał do Obserwowanych kanałów",
    "few": "Dodano {0} kanały do Obserwowanych kanałów",
@@ -2085,7 +2095,12 @@
    "many": "{0} rozdziałów",
    "other": "{0} rozdziału"
   },
-  "{0} further settings": "{0} dodatkowych ustawień",
+  "{0} further settings": {
+   "one": "{0} dodatkowe ustawienie",
+   "few": "{0} dodatkowe ustawienia",
+   "many": "{0} dodatkowych ustawień",
+   "other": "{0} dodatkowego ustawienia"
+  },
   "{0} has nothing in this section.": "{0} nie ma nic w tej sekcji.",
   "{0} is back at its defaults": "{0} wrócił do ustawień domyślnych",
   "{0} kept; newest: {1}": "Zachowano: {0}; najnowsza: {1}",
@@ -2096,11 +2111,21 @@
    "many": "Pozostało {0} min",
    "other": "Pozostało {0} min"
   },
-  "{0} new": "{0} nowych",
+  "{0} new": {
+   "one": "{0} nowy",
+   "few": "{0} nowe",
+   "many": "{0} nowych",
+   "other": "{0} nowego"
+  },
   "{0} of {1}": "{0} z {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} z {1} MB; anulowanie nie zmienia zainstalowanej aplikacji",
   "{0} on this video": "{0} przy tym filmie",
-  "{0} playlists": "{0} playlist",
+  "{0} playlists": {
+   "one": "{0} playlista",
+   "few": "{0} playlisty",
+   "many": "{0} playlist",
+   "other": "{0} playlisty"
+  },
   "{0} replies": {
    "one": "{0} odpowiedź",
    "few": "{0} odpowiedzi",
@@ -2119,10 +2144,30 @@
    "many": "{0} fragmentów pominiętych",
    "other": "{0} fragmentu pominiętego"
   },
-  "{0} subscriptions": "{0} subskrypcji",
-  "{0} videos": "{0} filmów",
-  "{0} videos, resume points kept": "{0} filmów, punkty wznowienia zachowane",
-  "{0} waiting": "{0} oczekujących",
+  "{0} subscriptions": {
+   "one": "{0} subskrypcja",
+   "few": "{0} subskrypcje",
+   "many": "{0} subskrypcji",
+   "other": "{0} subskrypcji"
+  },
+  "{0} videos": {
+   "one": "{0} film",
+   "few": "{0} filmy",
+   "many": "{0} filmów",
+   "other": "{0} filmu"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} film, punkt wznowienia zachowany",
+   "few": "{0} filmy, punkty wznowienia zachowane",
+   "many": "{0} filmów, punkty wznowienia zachowane",
+   "other": "{0} filmu, punkt wznowienia zachowany"
+  },
+  "{0} waiting": {
+   "one": "{0} oczekuje",
+   "few": "{0} oczekują",
+   "many": "{0} oczekuje",
+   "other": "{0} oczekuje"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Krzyżyk jednorazowo stosuje tę zmianę w YouTube; Kółko wraca bez wysyłania.",
   "{0}: {1}": "{0}: {1}"
  }

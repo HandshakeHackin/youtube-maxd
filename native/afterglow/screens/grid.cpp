@@ -54,9 +54,7 @@ std::string shown_fact(const model::Row &row, std::string_view name)
 // "24" -> "24 videos"; a count the provider already worded stays as it is.
 std::string videos_text(const std::string &count)
 {
-    if (!all_digits(count))
-        return count;
-    return count == "1" ? std::string(tr("1 video")) : fill(tr("{0} videos"), count);
+    return tr_n("{0} video", "{0} videos", count);
 }
 
 // A list that plays through in its order: a playlist, Watch later, the queue.

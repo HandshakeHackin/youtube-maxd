@@ -637,11 +637,20 @@ void Channels::lay_out(const ui::Fonts &fonts)
 
 std::string Channels::subtitle() const
 {
-    const std::string count = std::to_string(tiles_.size()) + (list().more ? "+" : "");
     switch (mode_)
     {
     case Mode::account:
-        return dotted({fill(tr("{0} subscriptions"), count), selected_order() >= 0 ? order_phrase(selected_order()) : ""});
+    {
+        std::string count = tr_n("{0} subscription", "{0} subscriptions", static_cast<long>(tiles_.size()));
+        if (list().more)
+        {
+            const std::string digits = std::to_string(tiles_.size());
+            const auto at = count.find(digits);
+            if (at != std::string::npos)
+                count.insert(at + digits.size(), "+");
+        }
+        return dotted({count, selected_order() >= 0 ? order_phrase(selected_order()) : ""});
+    }
     case Mode::local:
         return dotted({tr("Followed on this PS5"), tr("sign in to see your YouTube subscriptions")});
     case Mode::kept:

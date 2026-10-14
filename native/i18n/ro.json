@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Acțiuni pentru playlist",
   "/ Section actions": "/ Acțiuni pentru secțiune",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 sau 270 de grade în sensul acelor de ceasornic",
-  "1 channel": "1 canal",
-  "1 playlist": "1 playlist",
-  "1 subscription": "1 abonament",
-  "1 video": "1 videoclip",
-  "1 video, resume point kept": "1 videoclip, poziția de reluare păstrată",
   "3 to 20 minutes": "3–20 de minute",
   "360 degrees": "360 de grade",
   "3D": "3D",
@@ -33,7 +28,11 @@
   "AUDIO STOPPED": "AUDIO OPRIT",
   "About DeArrow": "Despre DeArrow",
   "About SponsorBlock": "Despre SponsorBlock",
-  "About {0} results": "Aproximativ {0} rezultate",
+  "About {0} results": {
+   "one": "Aproximativ {0} rezultat",
+   "few": "Aproximativ {0} rezultate",
+   "other": "Aproximativ {0} de rezultate"
+  },
   "Above 100% the sound is boosted and may distort": "Peste 100% sunetul este amplificat și poate distorsiona",
   "Access was not allowed on the other device.": "Accesul nu a fost permis pe celălalt dispozitiv.",
   "Account action screens do not have additional pages.": "Ecranele cu acțiuni de cont nu au pagini suplimentare.",
@@ -734,7 +733,11 @@
   "Link the YouTube app on your phone": "Conectează aplicația YouTube de pe telefon",
   "Link the YouTube app with a TV code; off until a phone is linked": "Conectează aplicația YouTube cu un cod TV; dezactivat până când este conectat un telefon",
   "Linked now": "Conectat acum",
-  "Linked now: {0} phones": "Conectate acum: {0} telefoane",
+  "Linked now: {0} phones": {
+   "one": "Conectat acum: {0} telefon",
+   "few": "Conectate acum: {0} telefoane",
+   "other": "Conectate acum: {0} de telefoane"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Conectarea unui telefon nu face parte din acest serviciu YouTube integrat.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Conectarea telefonului necesită serviciul YouTube, care nu răspunde. Ce este salvat pe acest PS5 rămâne disponibil.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Conectarea unui telefon necesită serviciul YouTube integrat pornit și o stocare locală în care se poate scrie. Verifică-le pe amândouă și reîncearcă.",
@@ -2055,7 +2058,11 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Cruce îl citește și arată ce listează",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} deja urmărite; {1} neadăugate: limita listei este {2}",
-  "{0} channels": "{0} canale",
+  "{0} channels": {
+   "one": "{0} canal",
+   "few": "{0} canale",
+   "other": "{0} de canale"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} canal adăugat la Canale urmărite",
    "few": "{0} canale adăugate la Canale urmărite",
@@ -2076,7 +2083,11 @@
    "few": "{0} capitole",
    "other": "{0} de capitole"
   },
-  "{0} further settings": "{0} setări suplimentare",
+  "{0} further settings": {
+   "one": "{0} setare suplimentară",
+   "few": "{0} setări suplimentare",
+   "other": "{0} de setări suplimentare"
+  },
   "{0} has nothing in this section.": "{0} nu are nimic în această secțiune.",
   "{0} is back at its defaults": "{0} a revenit la valorile implicite",
   "{0} kept; newest: {1}": "{0} păstrate; cel mai nou: {1}",
@@ -2086,11 +2097,19 @@
    "few": "{0} min rămase",
    "other": "{0} min rămase"
   },
-  "{0} new": "{0} noi",
+  "{0} new": {
+   "one": "{0} nou",
+   "few": "{0} noi",
+   "other": "{0} noi"
+  },
   "{0} of {1}": "{0} din {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} din {1} MB; anularea nu schimbă aplicația instalată",
   "{0} on this video": "{0} la acest videoclip",
-  "{0} playlists": "{0} playlisturi",
+  "{0} playlists": {
+   "one": "{0} playlist",
+   "few": "{0} playlisturi",
+   "other": "{0} de playlisturi"
+  },
   "{0} replies": {
    "one": "{0} răspuns",
    "few": "{0} răspunsuri",
@@ -2106,10 +2125,26 @@
    "few": "{0} segmente sărite",
    "other": "{0} de segmente sărite"
   },
-  "{0} subscriptions": "{0} abonamente",
-  "{0} videos": "{0} videoclipuri",
-  "{0} videos, resume points kept": "{0} videoclipuri, poziții de reluare păstrate",
-  "{0} waiting": "{0} în așteptare",
+  "{0} subscriptions": {
+   "one": "{0} abonament",
+   "few": "{0} abonamente",
+   "other": "{0} de abonamente"
+  },
+  "{0} videos": {
+   "one": "{0} videoclip",
+   "few": "{0} videoclipuri",
+   "other": "{0} de videoclipuri"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} videoclip, poziția de reluare păstrată",
+   "few": "{0} videoclipuri, poziții de reluare păstrate",
+   "other": "{0} de videoclipuri, poziții de reluare păstrate"
+  },
+  "{0} waiting": {
+   "one": "{0} în așteptare",
+   "few": "{0} în așteptare",
+   "other": "{0} în așteptare"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Cruce aplică această modificare pe YouTube o singură dată; Cerc revine fără a o trimite.",
   "{0}: {1}": "{0}: {1}"
  }

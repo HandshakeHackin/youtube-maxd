@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Soittolistan toiminnot",
   "/ Section actions": "/ Osion toiminnot",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 tai 270 astetta myötäpäivään",
-  "1 channel": "1 kanava",
-  "1 playlist": "1 soittolista",
-  "1 subscription": "1 tilaus",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, jatkokohta säilytetty",
   "3 to 20 minutes": "3–20 minuuttia",
   "360 degrees": "360 astetta",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "ÄÄNI PYSÄHTYI",
   "About DeArrow": "Tietoja DeArrow'sta",
   "About SponsorBlock": "Tietoja SponsorBlockista",
-  "About {0} results": "Noin {0} tulosta",
+  "About {0} results": {
+   "one": "Noin {0} tulos",
+   "other": "Noin {0} tulosta"
+  },
   "Above 100% the sound is boosted and may distort": "Yli 100%:n arvoilla ääntä vahvistetaan ja se voi säröytyä",
   "Access was not allowed on the other device.": "Käyttöä ei sallittu toisella laitteella.",
   "Account action screens do not have additional pages.": "Tilitoimintojen näytöillä ei ole lisäsivuja.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Yhdistä puhelimen YouTube-sovellus",
   "Link the YouTube app with a TV code; off until a phone is linked": "Yhdistä YouTube-sovellus TV-koodilla; pois päältä, kunnes puhelin on yhdistetty",
   "Linked now": "Yhdistetty nyt",
-  "Linked now: {0} phones": "Yhdistetty nyt: {0} puhelinta",
+  "Linked now: {0} phones": {
+   "one": "Yhdistetty nyt: {0} puhelin",
+   "other": "Yhdistetty nyt: {0} puhelinta"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Puhelimen yhdistäminen ei kuulu tähän sisäänrakennettuun YouTube-palveluun.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Puhelimen yhdistäminen vaatii YouTube-palvelun, joka ei vastaa. Tälle PS5:lle tallennettu sisältö on käytettävissä.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Puhelimen yhdistäminen vaatii, että sisäänrakennettu YouTube-palvelu on käynnissä ja paikalliseen tallennustilaan voi kirjoittaa. Tarkista molemmat ja yritä uudelleen.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Risti lukee sen ja näyttää, mitä se sisältää",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} jo seurattu; {1} lisäämättä: listalle mahtuu {2} kanavaa",
-  "{0} channels": "{0} kanavaa",
+  "{0} channels": {
+   "one": "{0} kanava",
+   "other": "{0} kanavaa"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} kanava lisätty Seurattuihin kanaviin",
    "other": "{0} kanavaa lisätty Seurattuihin kanaviin"
@@ -2067,7 +2071,10 @@
    "one": "{0} luku",
    "other": "{0} lukua"
   },
-  "{0} further settings": "{0} lisäasetusta",
+  "{0} further settings": {
+   "one": "{0} lisäasetus",
+   "other": "{0} lisäasetusta"
+  },
   "{0} has nothing in this section.": "Kohteessa {0} ei ole mitään tässä osiossa.",
   "{0} is back at its defaults": "{0} on palautettu oletuksiin",
   "{0} kept; newest: {1}": "{0} säilytetty; uusin: {1}",
@@ -2076,11 +2083,17 @@
    "one": "{0} min jäljellä",
    "other": "{0} min jäljellä"
   },
-  "{0} new": "{0} uutta",
+  "{0} new": {
+   "one": "{0} uusi",
+   "other": "{0} uutta"
+  },
   "{0} of {1}": "{0}/{1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0}/{1} Mt; peruutus ei muuta asennettua sovellusta",
   "{0} on this video": "{0} tässä videossa",
-  "{0} playlists": "{0} soittolistaa",
+  "{0} playlists": {
+   "one": "{0} soittolista",
+   "other": "{0} soittolistaa"
+  },
   "{0} replies": {
    "one": "{0} vastaus",
    "other": "{0} vastausta"
@@ -2093,10 +2106,22 @@
    "one": "{0} osio ohitettu",
    "other": "{0} osiota ohitettu"
   },
-  "{0} subscriptions": "{0} tilausta",
-  "{0} videos": "{0} videota",
-  "{0} videos, resume points kept": "{0} videota, jatkokohdat säilytetty",
-  "{0} waiting": "{0} odottaa",
+  "{0} subscriptions": {
+   "one": "{0} tilaus",
+   "other": "{0} tilausta"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} videota"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, jatkokohta säilytetty",
+   "other": "{0} videota, jatkokohdat säilytetty"
+  },
+  "{0} waiting": {
+   "one": "{0} odottaa",
+   "other": "{0} odottaa"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profiili: {1}. Risti ottaa muutoksen käyttöön YouTubessa kerran; Ympyrä palaa lähettämättä sitä.",
   "{0}: {1}": "{0}: {1}"
  }

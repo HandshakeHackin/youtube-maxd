@@ -291,7 +291,7 @@ void Settings::draw_home(G &g) const
             {
                 Faded content(g, here);
                 draw_tile(g, base, tile, tr(tile.name),
-                          shown_[i] + 1 == static_cast<int>(tiles().size()) ? filled(tr("{0} further settings"), std::to_string(unknown_)) : tile_summary(tile, main.rows),
+                          shown_[i] + 1 == static_cast<int>(tiles().size()) ? tr_n("{0} further setting", "{0} further settings", static_cast<long>(unknown_)) : tile_summary(tile, main.rows),
                           focus, tile_attention(tile, main.rows), false);
             }
         }

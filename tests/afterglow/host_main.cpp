@@ -44,6 +44,7 @@
 #include "stb/stb_image_write.h"
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -400,6 +401,28 @@ void fail(Results &results, const std::string &board, const std::string &look, c
     std::fprintf(stderr, "FAIL %s [%s]: %s\n", board.c_str(), look.c_str(), what.c_str());
 }
 
+void check_integer_counts(Results &results)
+{
+    set_platform(nullptr);
+    const auto check = [&](std::string_view input, const std::string &expected)
+    {
+        ++results.checks;
+        if (tr_n("{0} item", "{0} items", input) != expected)
+            fail(results, "integer counts", "all", "numeric count or original service text was changed");
+    };
+    check("0", "0 items");
+    check("1", "1 item");
+    check("2", "2 items");
+    check("001", "1 item");
+    const std::string largest = std::to_string(std::numeric_limits<long>::max());
+    check(largest, largest + " items");
+    for (const std::string_view original : {std::string_view{}, std::string_view("-1"), std::string_view("+1"),
+             std::string_view(" 1"), std::string_view("1 "), std::string_view("1.2M"), std::string_view("1,200"),
+             std::string_view("12 videos"), std::string_view("12+"), std::string_view("0x10"), std::string_view("١"),
+             std::string_view("9999999999999999999999999999"), std::string_view("1\0x", 3)})
+        check(original, std::string(original));
+}
+
 std::uint32_t action_of(const std::string &name, Direction *direction)
 {
     static const struct
@@ -662,6 +685,7 @@ int main(int argc, char **argv)
     std::sort(files.begin(), files.end());
 
     Results results;
+    check_integer_counts(results);
     for (const std::string &id : options.looks)
         check_look(look_by_id(id), results);
 

@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Azioni playlist",
   "/ Section actions": "/ Azioni sezione",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 o 270 gradi in senso orario",
-  "1 channel": "1 canale",
-  "1 playlist": "1 playlist",
-  "1 subscription": "1 iscrizione",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, punto di ripresa conservato",
   "3 to 20 minutes": "Da 3 a 20 minuti",
   "360 degrees": "360 gradi",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "AUDIO INTERROTTO",
   "About DeArrow": "Informazioni su DeArrow",
   "About SponsorBlock": "Informazioni su SponsorBlock",
-  "About {0} results": "Circa {0} risultati",
+  "About {0} results": {
+   "one": "Circa {0} risultato",
+   "other": "Circa {0} risultati"
+  },
   "Above 100% the sound is boosted and may distort": "Oltre il 100% l'audio è amplificato e può distorcere",
   "Access was not allowed on the other device.": "L'accesso non è stato consentito sull'altro dispositivo.",
   "Account action screens do not have additional pages.": "Le schermate delle azioni dell'account non hanno altre pagine.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Collega l'app YouTube sul telefono",
   "Link the YouTube app with a TV code; off until a phone is linked": "Collega l'app YouTube con un codice TV; disattivato finché non è collegato un telefono",
   "Linked now": "Collegato ora",
-  "Linked now: {0} phones": "Collegati ora: {0} telefoni",
+  "Linked now: {0} phones": {
+   "one": "Collegato ora: {0} telefono",
+   "other": "Collegati ora: {0} telefoni"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Il collegamento di un telefono non fa parte di questo servizio YouTube integrato.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Collegare un telefono richiede il servizio YouTube, che non risponde. Ciò che è salvato su questa PS5 resta disponibile.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Per collegare un telefono servono il servizio YouTube integrato in esecuzione e un archivio locale scrivibile. Controlla entrambi e riprova.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Croce lo legge e mostra cosa elenca",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} già seguiti; {1} non aggiunti: l'elenco contiene {2} canali",
-  "{0} channels": "{0} canali",
+  "{0} channels": {
+   "one": "{0} canale",
+   "other": "{0} canali"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} canale aggiunto a Canali seguiti",
    "other": "{0} canali aggiunti a Canali seguiti"
@@ -2067,7 +2071,10 @@
    "one": "{0} capitolo",
    "other": "{0} capitoli"
   },
-  "{0} further settings": "{0} altre impostazioni",
+  "{0} further settings": {
+   "one": "{0} altra impostazione",
+   "other": "{0} altre impostazioni"
+  },
   "{0} has nothing in this section.": "{0} non ha nulla in questa sezione.",
   "{0} is back at its defaults": "{0} è tornato ai valori predefiniti",
   "{0} kept; newest: {1}": "{0} conservati; il più recente: {1}",
@@ -2076,11 +2083,17 @@
    "one": "{0} min rimanente",
    "other": "{0} min rimanenti"
   },
-  "{0} new": "{0} nuovi",
+  "{0} new": {
+   "one": "{0} nuovo",
+   "other": "{0} nuovi"
+  },
   "{0} of {1}": "{0} di {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} di {1} MB; annullare non modifica l'app installata",
   "{0} on this video": "{0} in questo video",
-  "{0} playlists": "{0} playlist",
+  "{0} playlists": {
+   "one": "{0} playlist",
+   "other": "{0} playlist"
+  },
   "{0} replies": {
    "one": "{0} risposta",
    "other": "{0} risposte"
@@ -2093,10 +2106,22 @@
    "one": "{0} segmento saltato",
    "other": "{0} segmenti saltati"
   },
-  "{0} subscriptions": "{0} iscrizioni",
-  "{0} videos": "{0} video",
-  "{0} videos, resume points kept": "{0} video, punti di ripresa conservati",
-  "{0} waiting": "{0} in attesa",
+  "{0} subscriptions": {
+   "one": "{0} iscrizione",
+   "other": "{0} iscrizioni"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} video"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, punto di ripresa conservato",
+   "other": "{0} video, punti di ripresa conservati"
+  },
+  "{0} waiting": {
+   "one": "{0} in attesa",
+   "other": "{0} in attesa"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profilo: {1}. Croce applica questa modifica su YouTube una sola volta; Cerchio torna senza inviarla.",
   "{0}: {1}": "{0}: {1}"
  }

@@ -20,7 +20,10 @@ yet.
 Every catalog covers the Classic and Afterglow interfaces. Afterglow uses
 the same whole-text lookup, runtime patterns and language-specific plural forms.
 `bash scripts/test_i18n.sh` reports coverage and requires every Afterglow text,
-all plural forms, 99% overall coverage and no obsolete keys in every catalog.
+all plural forms, 99% overall coverage and no obsolete keys in every catalog. Numeric quantities are passed
+through `tr_n` after their number is known. Service counts expressed as words,
+abbreviations, signed values or values outside `long` remain byte-for-byte as
+received. A paginated channel list keeps `+` after its displayed number.
 
 Afterglow uses `tube_i18n_translate` through its platform text hook and draws
 with its dynamic font engine. It can use these translations independently of

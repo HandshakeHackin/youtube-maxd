@@ -159,6 +159,17 @@ int main(void) {
         assert(tr("1 chapter", 0) && tr("2 chapters", 0));
         assert(tr("1 reply", 0) && tr("2 replies", 0));
         assert(tr("1 segment skipped", 0) && tr("2 segments skipped", 0));
+        static const long amounts[] = {0, 1, 2, 5, 11, 21, 101, 10000000001L};
+        static const char *const quantities[] = {"About %ld results", "Linked now: %ld phones", "%ld channels",
+            "%ld further settings", "%ld new", "%ld playlists", "%ld subscriptions", "%ld videos",
+            "%ld videos, resume points kept", "%ld waiting"};
+        for (size_t n = 0; n < sizeof amounts / sizeof *amounts; ++n) {
+            char number[32]; snprintf(number, sizeof number, "%ld", amounts[n]);
+            for (size_t q = 0; q < sizeof quantities / sizeof *quantities; ++q) {
+                char source[128]; snprintf(source, sizeof source, quantities[q], amounts[n]);
+                assert(tr(source, 0) && strstr(out, number));
+            }
+        }
     }
     use("fr");
     assert(!strcmp(tr("1 replies", 0), "1 réponse"));
@@ -214,6 +225,28 @@ int main(void) {
     assert(!strcmp(tr("2 chapters", 0), "2 κεφάλαια"));
     assert(!strcmp(tr("1 min left", 0), "Απομένει 1 λεπτό"));
     assert(!strcmp(tr("5 min left", 0), "Απομένουν 5 λεπτά"));
+
+    use("cs");
+    assert(!strcmp(tr("2 videos", 0), "2 videa"));
+    assert(!strcmp(tr("5 videos", 0), "5 videí"));
+    use("pl");
+    assert(!strcmp(tr("2 videos", 0), "2 filmy"));
+    assert(!strcmp(tr("5 videos", 0), "5 filmów"));
+    assert(!strcmp(tr("1.5 videos", 0), "1.5 filmu"));
+    use("ro");
+    assert(!strcmp(tr("0 videos", 0), "0 videoclipuri"));
+    assert(!strcmp(tr("1 video", 0), "1 videoclip"));
+    assert(!strcmp(tr("20 videos", 0), "20 de videoclipuri"));
+    use("ru");
+    assert(!strcmp(tr("0 channels", 0), "0 каналов"));
+    assert(!strcmp(tr("2 channels", 0), "2 канала"));
+    assert(!strcmp(tr("21 channels", 0), "21 канал"));
+    assert(!strcmp(tr("10000000001 channels", 0), "10000000001 канал"));
+    use("uk");
+    assert(!strcmp(tr("21 subscriptions", 0), "21 підписка"));
+    use("fr");
+    assert(!strcmp(tr("0 videos", 0), "0 vidéo"));
+    assert(!strcmp(tr("2 videos", 0), "2 vidéos"));
 
     /* "<label>: <value>" is translated in two parts, only where the caller says the line is the interface's own. */
     use("es");

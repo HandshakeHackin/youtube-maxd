@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Oynatma listesi işlemleri",
   "/ Section actions": "/ Bölüm işlemleri",
   "0, 90, 180 or 270 degrees clockwise": "Saat yönünde 0, 90, 180 veya 270 derece",
-  "1 channel": "1 kanal",
-  "1 playlist": "1 oynatma listesi",
-  "1 subscription": "1 abonelik",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, devam noktası saklandı",
   "3 to 20 minutes": "3–20 dakika",
   "360 degrees": "360 derece",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "SES DURDURULDU",
   "About DeArrow": "DeArrow hakkında",
   "About SponsorBlock": "SponsorBlock hakkında",
-  "About {0} results": "Yaklaşık {0} sonuç",
+  "About {0} results": {
+   "one": "Yaklaşık {0} sonuç",
+   "other": "Yaklaşık {0} sonuç"
+  },
   "Above 100% the sound is boosted and may distort": "%100'ün üzerinde ses yükseltilir ve bozulabilir",
   "Access was not allowed on the other device.": "Diğer cihazda erişime izin verilmedi.",
   "Account action screens do not have additional pages.": "Hesap işlemi ekranlarında başka sayfa yoktur.",
@@ -727,7 +725,10 @@
   "Link the YouTube app on your phone": "Telefonunuzdaki YouTube uygulamasını bağla",
   "Link the YouTube app with a TV code; off until a phone is linked": "YouTube uygulamasını bir TV koduyla bağlayın; bir telefon bağlanana kadar kapalıdır",
   "Linked now": "Şu an bağlı",
-  "Linked now: {0} phones": "Şu an bağlı: {0} telefon",
+  "Linked now: {0} phones": {
+   "one": "Şu an bağlı: {0} telefon",
+   "other": "Şu an bağlı: {0} telefon"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Telefon bağlama bu yerleşik YouTube hizmetinin parçası değil.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Telefon bağlamak için yanıt vermeyen YouTube hizmeti gerekir. Bu PS5'te kayıtlı veriler kullanılabilir.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Telefon bağlamak için yerleşik YouTube hizmetinin çalışması ve yerel depolamanın yazılabilir olması gerekir. İkisini de kontrol edip yeniden deneyin.",
@@ -2046,7 +2047,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Çarpı okur ve neleri listelediğini gösterir",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} zaten takip ediliyor; {1} eklenmedi: liste {2} kanal alır",
-  "{0} channels": "{0} kanal",
+  "{0} channels": {
+   "one": "{0} kanal",
+   "other": "{0} kanal"
+  },
   "{0} channels added to Followed channels": {
    "other": "{0} kanal Takip edilen kanallara eklendi"
   },
@@ -2060,7 +2064,10 @@
    "one": "{0} bölüm",
    "other": "{0} bölüm"
   },
-  "{0} further settings": "{0} ek ayar",
+  "{0} further settings": {
+   "one": "{0} ek ayar",
+   "other": "{0} ek ayar"
+  },
   "{0} has nothing in this section.": "{0} bu bölümde hiçbir şey içermiyor.",
   "{0} is back at its defaults": "{0} varsayılanlarına döndü",
   "{0} kept; newest: {1}": "{0} saklandı; en yeni: {1}",
@@ -2069,11 +2076,17 @@
    "one": "{0} dakika kaldı",
    "other": "{0} dakika kaldı"
   },
-  "{0} new": "{0} yeni",
+  "{0} new": {
+   "one": "{0} yeni",
+   "other": "{0} yeni"
+  },
   "{0} of {1}": "{0}/{1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} / {1} MB; iptal etmek yüklü uygulamayı değiştirmez",
   "{0} on this video": "{0} bu videoda",
-  "{0} playlists": "{0} oynatma listesi",
+  "{0} playlists": {
+   "one": "{0} oynatma listesi",
+   "other": "{0} oynatma listesi"
+  },
   "{0} replies": {
    "one": "{0} yanıt",
    "other": "{0} yanıt"
@@ -2085,10 +2098,22 @@
    "one": "{0} bölüm atlandı",
    "other": "{0} bölüm atlandı"
   },
-  "{0} subscriptions": "{0} abonelik",
-  "{0} videos": "{0} video",
-  "{0} videos, resume points kept": "{0} video, devam noktaları saklandı",
-  "{0} waiting": "{0} bekliyor",
+  "{0} subscriptions": {
+   "one": "{0} abonelik",
+   "other": "{0} abonelik"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} video"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, devam noktası saklandı",
+   "other": "{0} video, devam noktaları saklandı"
+  },
+  "{0} waiting": {
+   "one": "{0} bekliyor",
+   "other": "{0} bekliyor"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Çarpı bu değişikliği YouTube'a bir kez uygular; Daire göndermeden geri döner.",
   "{0}: {1}": "{0}: {1}"
  }

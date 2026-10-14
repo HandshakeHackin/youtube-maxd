@@ -201,7 +201,10 @@ static int plural_form(int rule, const char *number, size_t length) {
     unsigned long value = 0; int fraction = 0;
     for (size_t i = 0; i < length; ++i) {
         if (number[i] == '.' || number[i] == ',') { fraction = 1; break; }
-        if (number[i] >= '0' && number[i] <= '9' && value < 100000000UL) value = value * 10 + (unsigned long)(number[i] - '0');
+        if (number[i] >= '0' && number[i] <= '9') {
+            value = value * 10 + (unsigned long)(number[i] - '0');
+            if (value >= 100) value = 100 + value % 100; /* Preserve the last two digits without overflow. */
+        }
     }
     const unsigned long ones = value % 10, tens = value % 100;
     const int paucal = ones >= 2 && ones <= 4 && !(tens >= 12 && tens <= 14);

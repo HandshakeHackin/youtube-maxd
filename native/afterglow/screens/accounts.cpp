@@ -274,10 +274,8 @@ void Accounts::sync()
         else
         {
             // One line under the state: the subscriptions where the service counts them, else what the marks on the face mean.
-            if (tile.subscriptions == "1")
-                card.extra = tr("1 subscription");
-            else if (!tile.subscriptions.empty())
-                card.extra = fill(tr("{0} subscriptions"), tile.subscriptions);
+            if (!tile.subscriptions.empty())
+                card.extra = tr_n("{0} subscription", "{0} subscriptions", tile.subscriptions);
             else if (tile.locked)
                 card.extra = tr("Password protected");
             else if (tile.selected)

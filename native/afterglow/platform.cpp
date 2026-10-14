@@ -6,6 +6,7 @@
 #include "afterglow/platform.hpp"
 
 #include <algorithm>
+#include <charconv>
 
 namespace afterglow
 {
@@ -61,6 +62,17 @@ std::string tr_n(const char *one, const char *other, long count)
     if (one == nullptr || other == nullptr)
         return {};
     return g_platform != nullptr ? g_platform->translate_count(one, other, count) : fill(count == 1 ? one : other, std::to_string(count));
+}
+
+std::string tr_n(const char *one, const char *other, std::string_view count)
+{
+    if (count.empty() || count.front() < '0' || count.front() > '9')
+        return std::string(count);
+    long value = 0;
+    const auto parsed = std::from_chars(count.data(), count.data() + count.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != count.data() + count.size())
+        return std::string(count);
+    return tr_n(one, other, value);
 }
 
 std::string dotted(std::initializer_list<std::string_view> parts)

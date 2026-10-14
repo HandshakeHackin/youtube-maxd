@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Playlistacties",
   "/ Section actions": "/ Sectieacties",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 of 270 graden met de klok mee",
-  "1 channel": "1 kanaal",
-  "1 playlist": "1 playlist",
-  "1 subscription": "1 abonnement",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, afspeelpositie bewaard",
   "3 to 20 minutes": "3 tot 20 minuten",
   "360 degrees": "360 graden",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "AUDIO GESTOPT",
   "About DeArrow": "Over DeArrow",
   "About SponsorBlock": "Over SponsorBlock",
-  "About {0} results": "Ongeveer {0} resultaten",
+  "About {0} results": {
+   "one": "Ongeveer {0} resultaat",
+   "other": "Ongeveer {0} resultaten"
+  },
   "Above 100% the sound is boosted and may distort": "Boven 100% wordt het geluid versterkt en kan het vervormen",
   "Access was not allowed on the other device.": "Toegang is niet toegestaan op het andere apparaat.",
   "Account action screens do not have additional pages.": "Schermen met accountacties hebben geen extra pagina's.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "YouTube-app op je telefoon koppelen",
   "Link the YouTube app with a TV code; off until a phone is linked": "De YouTube-app koppelen met een tv-code; uit totdat een telefoon is gekoppeld",
   "Linked now": "Nu gekoppeld",
-  "Linked now: {0} phones": "Nu gekoppeld: {0} telefoons",
+  "Linked now: {0} phones": {
+   "one": "Nu gekoppeld: {0} telefoon",
+   "other": "Nu gekoppeld: {0} telefoons"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Een telefoon koppelen maakt geen deel uit van deze ingebouwde YouTube-service.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Een telefoon koppelen vereist de YouTube-service, die niet antwoordt. Wat op deze PS5 is opgeslagen blijft beschikbaar.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Om een telefoon te koppelen moet de ingebouwde YouTube-service draaien en de lokale opslag beschrijfbaar zijn. Controleer beide en probeer het opnieuw.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Kruisje leest het en toont wat erin staat",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} al gevolgd; {1} niet toegevoegd: de lijst bevat maximaal {2} kanalen",
-  "{0} channels": "{0} kanalen",
+  "{0} channels": {
+   "one": "{0} kanaal",
+   "other": "{0} kanalen"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} kanaal toegevoegd aan Gevolgde kanalen",
    "other": "{0} kanalen toegevoegd aan Gevolgde kanalen"
@@ -2067,7 +2071,10 @@
    "one": "{0} hoofdstuk",
    "other": "{0} hoofdstukken"
   },
-  "{0} further settings": "{0} overige instellingen",
+  "{0} further settings": {
+   "one": "{0} overige instelling",
+   "other": "{0} overige instellingen"
+  },
   "{0} has nothing in this section.": "{0} heeft niets in dit onderdeel.",
   "{0} is back at its defaults": "{0} is teruggezet naar de standaardwaarden",
   "{0} kept; newest: {1}": "{0} bewaard; nieuwste: {1}",
@@ -2076,11 +2083,17 @@
    "one": "Nog {0} min",
    "other": "Nog {0} min"
   },
-  "{0} new": "{0} nieuw",
+  "{0} new": {
+   "one": "{0} nieuwe",
+   "other": "{0} nieuwe"
+  },
   "{0} of {1}": "{0} van {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} van {1} MB; annuleren laat de geïnstalleerde app ongemoeid",
   "{0} on this video": "{0} bij deze video",
-  "{0} playlists": "{0} playlists",
+  "{0} playlists": {
+   "one": "{0} playlist",
+   "other": "{0} playlists"
+  },
   "{0} replies": {
    "one": "{0} antwoord",
    "other": "{0} antwoorden"
@@ -2093,10 +2106,22 @@
    "one": "{0} segment overgeslagen",
    "other": "{0} segmenten overgeslagen"
   },
-  "{0} subscriptions": "{0} abonnementen",
-  "{0} videos": "{0} video's",
-  "{0} videos, resume points kept": "{0} video's, afspeelposities bewaard",
-  "{0} waiting": "{0} wachtend",
+  "{0} subscriptions": {
+   "one": "{0} abonnement",
+   "other": "{0} abonnementen"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} video's"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, afspeelpositie bewaard",
+   "other": "{0} video's, afspeelposities bewaard"
+  },
+  "{0} waiting": {
+   "one": "{0} wachtend",
+   "other": "{0} wachtend"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profiel: {1}. Kruisje past deze wijziging eenmalig toe op YouTube; Rondje gaat terug zonder deze te verzenden.",
   "{0}: {1}": "{0}: {1}"
  }

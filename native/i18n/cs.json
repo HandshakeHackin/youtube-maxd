@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Akce playlistu",
   "/ Section actions": "/ Akce sekce",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 nebo 270 stupňů po směru hodin",
-  "1 channel": "1 kanál",
-  "1 playlist": "1 playlist",
-  "1 subscription": "1 odběr",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, pozice pokračování zachována",
   "3 to 20 minutes": "3 až 20 minut",
   "360 degrees": "360 stupňů",
   "3D": "3D",
@@ -33,7 +28,11 @@
   "AUDIO STOPPED": "ZVUK ZASTAVEN",
   "About DeArrow": "O DeArrow",
   "About SponsorBlock": "O SponsorBlock",
-  "About {0} results": "Asi {0} výsledků",
+  "About {0} results": {
+   "one": "Asi {0} výsledku",
+   "few": "Asi {0} výsledků",
+   "other": "Asi {0} výsledků"
+  },
   "Above 100% the sound is boosted and may distort": "Nad 100 % je zvuk zesílen a může být zkreslený",
   "Access was not allowed on the other device.": "Na druhém zařízení nebyl povolen přístup.",
   "Account action screens do not have additional pages.": "Obrazovky akcí účtu nemají další stránky.",
@@ -734,7 +733,11 @@
   "Link the YouTube app on your phone": "Propojit aplikaci YouTube v telefonu",
   "Link the YouTube app with a TV code; off until a phone is linked": "Propojit aplikaci YouTube kódem televize; vypnuto, dokud není propojen telefon",
   "Linked now": "Právě propojeno",
-  "Linked now: {0} phones": "Právě propojeno: {0} telefonů",
+  "Linked now: {0} phones": {
+   "one": "Právě propojeno: {0} telefon",
+   "few": "Právě propojeno: {0} telefony",
+   "other": "Právě propojeno: {0} telefonů"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Propojení telefonu není součástí této vestavěné služby YouTube.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Propojení telefonu vyžaduje službu YouTube, která neodpovídá. Data uložená na této PS5 zůstávají dostupná.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Propojení telefonu vyžaduje spuštěnou vestavěnou službu YouTube a zapisovatelné místní úložiště. Zkontrolujte obojí a zkuste to znovu.",
@@ -2055,7 +2058,11 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Křížek jej načte a zobrazí, co uvádí",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "Již sledováno: {0}; nepřidáno: {1}: kapacita seznamu kanálů je {2}",
-  "{0} channels": "{0} kanálů",
+  "{0} channels": {
+   "one": "{0} kanál",
+   "few": "{0} kanály",
+   "other": "{0} kanálů"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} kanál přidán do Sledovaných kanálů",
    "few": "{0} kanály přidány do Sledovaných kanálů",
@@ -2076,7 +2083,11 @@
    "few": "{0} kapitoly",
    "other": "{0} kapitol"
   },
-  "{0} further settings": "{0} dalších nastavení",
+  "{0} further settings": {
+   "one": "{0} další nastavení",
+   "few": "{0} další nastavení",
+   "other": "{0} dalších nastavení"
+  },
   "{0} has nothing in this section.": "{0} nemá nic v této části.",
   "{0} is back at its defaults": "{0} je zpět na výchozích hodnotách",
   "{0} kept; newest: {1}": "Uchováno: {0}; nejnovější: {1}",
@@ -2086,11 +2097,19 @@
    "few": "Zbývají {0} min",
    "other": "Zbývá {0} min"
   },
-  "{0} new": "{0} nových",
+  "{0} new": {
+   "one": "{0} nové",
+   "few": "{0} nová",
+   "other": "{0} nových"
+  },
   "{0} of {1}": "{0} z {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} z {1} MB; zrušení ponechá nainstalovanou aplikaci beze změny",
   "{0} on this video": "{0} u tohoto videa",
-  "{0} playlists": "{0} playlistů",
+  "{0} playlists": {
+   "one": "{0} playlist",
+   "few": "{0} playlisty",
+   "other": "{0} playlistů"
+  },
   "{0} replies": {
    "one": "{0} odpověď",
    "few": "{0} odpovědi",
@@ -2106,10 +2125,26 @@
    "few": "{0} úseky přeskočeny",
    "other": "{0} úseků přeskočeno"
   },
-  "{0} subscriptions": "{0} odběrů",
-  "{0} videos": "{0} videí",
-  "{0} videos, resume points kept": "{0} videí, pozice pokračování zachovány",
-  "{0} waiting": "{0} čeká",
+  "{0} subscriptions": {
+   "one": "{0} odběr",
+   "few": "{0} odběry",
+   "other": "{0} odběrů"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "few": "{0} videa",
+   "other": "{0} videí"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, pozice pokračování zachována",
+   "few": "{0} videa, pozice pokračování zachovány",
+   "other": "{0} videí, pozice pokračování zachovány"
+  },
+  "{0} waiting": {
+   "one": "{0} čeká",
+   "few": "{0} čekají",
+   "other": "{0} čeká"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Křížek použije tuto změnu na YouTube jednou; Kolečko vrací zpět bez odeslání.",
   "{0}: {1}": "{0}: {1}"
  }

@@ -1011,7 +1011,7 @@ class Results final : public Screen
         if (load_ == model::Load::ready && !count_.empty() && !cells_.empty())
         {
             const float x = kField.x + kField.w + 28.0f;
-            text(g, g.f.regular, fit(g.f.regular, fill(tr("About {0} results"), count_), 22.0f, kRight - 140.0f - x), x, kField.cy() + 8.0f, 22.0f,
+            text(g, g.f.regular, fit(g.f.regular, tr_n("About {0} result", "About {0} results", count_), 22.0f, kRight - 140.0f - x), x, kField.cy() + 8.0f, 22.0f,
                  g.k.ink3);
         }
     }
@@ -1049,7 +1049,7 @@ class Results final : public Screen
     void draw_playlist(const DrawContext &context, G &g, const Cell &cell, const Rect &big, float focus) const
     {
         const std::string line = dotted({tr("Playlist"), cell.owner});
-        const std::string count = cell.count.empty() ? std::string() : fill(tr("{0} videos"), cell.count);
+        const std::string count = tr_n("{0} video", "{0} videos", cell.count);
         playlist_card(g, big, CardText{cell.title, line, count}, context.images.get(cell.thumb, PictureSize::card), focus, 1.0f);
     }
 

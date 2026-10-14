@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Thao tác với danh sách phát",
   "/ Section actions": "/ Thao tác với mục",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 hoặc 270 độ theo chiều kim đồng hồ",
-  "1 channel": "1 kênh",
-  "1 playlist": "1 danh sách phát",
-  "1 subscription": "1 kênh đăng ký",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, đã lưu vị trí tiếp tục",
   "3 to 20 minutes": "3 đến 20 phút",
   "360 degrees": "360 độ",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "ĐÃ DỪNG ÂM THANH",
   "About DeArrow": "Giới thiệu về DeArrow",
   "About SponsorBlock": "Giới thiệu về SponsorBlock",
-  "About {0} results": "Khoảng {0} kết quả",
+  "About {0} results": {
+   "one": "Khoảng {0} kết quả",
+   "other": "Khoảng {0} kết quả"
+  },
   "Above 100% the sound is boosted and may distort": "Trên 100%, âm thanh được khuếch đại và có thể bị méo",
   "Access was not allowed on the other device.": "Thiết bị kia không cho phép truy cập.",
   "Account action screens do not have additional pages.": "Màn hình thao tác tài khoản không có trang bổ sung.",
@@ -727,7 +725,10 @@
   "Link the YouTube app on your phone": "Liên kết ứng dụng YouTube trên điện thoại",
   "Link the YouTube app with a TV code; off until a phone is linked": "Liên kết ứng dụng YouTube bằng mã TV; tắt cho đến khi có điện thoại được liên kết",
   "Linked now": "Đang liên kết",
-  "Linked now: {0} phones": "Đang liên kết: {0} điện thoại",
+  "Linked now: {0} phones": {
+   "one": "Đang liên kết: {0} điện thoại",
+   "other": "Đang liên kết: {0} điện thoại"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Liên kết điện thoại không thuộc dịch vụ YouTube tích hợp này.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Liên kết điện thoại cần dịch vụ YouTube, nhưng dịch vụ không trả lời. Dữ liệu lưu trên PS5 này vẫn có sẵn.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "Để liên kết điện thoại, dịch vụ YouTube tích hợp phải đang chạy và bộ nhớ cục bộ phải ghi được. Hãy kiểm tra cả hai rồi thử lại.",
@@ -2046,7 +2047,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; nút ✕ để đọc và hiện nội dung tệp liệt kê",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} kênh đã theo dõi từ trước; {1} kênh không được thêm: danh sách chứa {2} kênh",
-  "{0} channels": "{0} kênh",
+  "{0} channels": {
+   "one": "{0} kênh",
+   "other": "{0} kênh"
+  },
   "{0} channels added to Followed channels": {
    "other": "Đã thêm {0} kênh vào Kênh đang theo dõi"
   },
@@ -2060,7 +2064,10 @@
    "one": "{0} chương",
    "other": "{0} chương"
   },
-  "{0} further settings": "{0} cài đặt khác",
+  "{0} further settings": {
+   "one": "{0} cài đặt khác",
+   "other": "{0} cài đặt khác"
+  },
   "{0} has nothing in this section.": "{0} không có gì trong phần này.",
   "{0} is back at its defaults": "{0} đã về mặc định",
   "{0} kept; newest: {1}": "Đã giữ {0}; mới nhất: {1}",
@@ -2069,11 +2076,17 @@
    "one": "Còn {0} phút",
    "other": "Còn {0} phút"
   },
-  "{0} new": "{0} mới",
+  "{0} new": {
+   "one": "{0} mới",
+   "other": "{0} mới"
+  },
   "{0} of {1}": "{0} trên {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} trên {1} MB; hủy không thay đổi ứng dụng đã cài",
   "{0} on this video": "{0} trong video này",
-  "{0} playlists": "{0} danh sách phát",
+  "{0} playlists": {
+   "one": "{0} danh sách phát",
+   "other": "{0} danh sách phát"
+  },
   "{0} replies": {
    "one": "{0} phản hồi",
    "other": "{0} phản hồi"
@@ -2085,10 +2098,22 @@
    "one": "Đã bỏ qua {0} đoạn",
    "other": "Đã bỏ qua {0} đoạn"
   },
-  "{0} subscriptions": "{0} kênh đăng ký",
-  "{0} videos": "{0} video",
-  "{0} videos, resume points kept": "{0} video, đã lưu vị trí tiếp tục",
-  "{0} waiting": "{0} đang chờ",
+  "{0} subscriptions": {
+   "one": "{0} kênh đăng ký",
+   "other": "{0} kênh đăng ký"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} video"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, đã lưu vị trí tiếp tục",
+   "other": "{0} video, đã lưu vị trí tiếp tục"
+  },
+  "{0} waiting": {
+   "one": "{0} đang chờ",
+   "other": "{0} đang chờ"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Hồ sơ: {1}. Nút ✕ áp dụng thay đổi này lên YouTube một lần; nút ○ quay lại mà không gửi.",
   "{0}: {1}": "{0}: {1}"
  }

@@ -566,7 +566,7 @@ class LinkPhone final : public Screen
             const bool linked = !remote_.devices.empty();
             const std::string heading = !linked                        ? std::string(tr("Phone connection"))
                                         : remote_.devices.size() == 1 ? std::string(tr("Linked now"))
-                                                                      : fill(tr("Linked now: {0} phones"), std::to_string(remote_.devices.size()));
+                                                                      : tr_n("Linked now: {0} phone", "Linked now: {0} phones", static_cast<long>(remote_.devices.size()));
             overline(g, heading, kDevices.x + 30.0f, kDevices.y + 46.0f, g.k.ink3);
             // The connection, in a word and a mark: never by colour alone.
             const std::string &now = state();

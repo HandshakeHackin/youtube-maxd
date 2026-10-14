@@ -9,11 +9,6 @@
   "/ Playlist actions": "/ Spellisteåtgärder",
   "/ Section actions": "/ Sektionsåtgärder",
   "0, 90, 180 or 270 degrees clockwise": "0, 90, 180 eller 270 grader medurs",
-  "1 channel": "1 kanal",
-  "1 playlist": "1 spellista",
-  "1 subscription": "1 prenumeration",
-  "1 video": "1 video",
-  "1 video, resume point kept": "1 video, uppspelningsposition sparad",
   "3 to 20 minutes": "3 till 20 minuter",
   "360 degrees": "360 grader",
   "3D": "3D",
@@ -33,7 +28,10 @@
   "AUDIO STOPPED": "LJUDET STOPPAT",
   "About DeArrow": "Om DeArrow",
   "About SponsorBlock": "Om SponsorBlock",
-  "About {0} results": "Ungefär {0} resultat",
+  "About {0} results": {
+   "one": "Ungefär {0} resultat",
+   "other": "Ungefär {0} resultat"
+  },
   "Above 100% the sound is boosted and may distort": "Över 100% förstärks ljudet och kan förvrängas",
   "Access was not allowed on the other device.": "Åtkomst tilläts inte på den andra enheten.",
   "Account action screens do not have additional pages.": "Skärmar med kontoåtgärder har inga fler sidor.",
@@ -730,7 +728,10 @@
   "Link the YouTube app on your phone": "Länka YouTube-appen på mobilen",
   "Link the YouTube app with a TV code; off until a phone is linked": "Länka YouTube-appen med en tv-kod; av tills en telefon har länkats",
   "Linked now": "Länkad nu",
-  "Linked now: {0} phones": "Länkade nu: {0} mobiler",
+  "Linked now: {0} phones": {
+   "one": "Länkad nu: {0} mobil",
+   "other": "Länkade nu: {0} mobiler"
+  },
   "Linking a phone is not part of this built-in YouTube service.": "Att länka en telefon ingår inte i den här inbyggda YouTube-tjänsten.",
   "Linking a phone needs the YouTube service, which is not answering. What is saved on this PS5 stays available.": "Att länka en mobil kräver YouTube-tjänsten, som inte svarar. Det som sparats på denna PS5 är tillgängligt.",
   "Linking a phone needs the built-in YouTube service running and writable local storage. Check both and retry.": "För att länka en telefon måste den inbyggda YouTube-tjänsten köras och den lokala lagringen vara skrivbar. Kontrollera båda och försök igen.",
@@ -2050,7 +2051,10 @@
   "{0} KiB; Cross reads it and shows what it lists": "{0} KiB; Kryss läser den och visar vad den innehåller",
   "{0} KiB{1}": "{0} KiB{1}",
   "{0} already followed; {1} not added: the list holds {2} channels": "{0} följs redan; {1} lades inte till: listan rymmer {2} kanaler",
-  "{0} channels": "{0} kanaler",
+  "{0} channels": {
+   "one": "{0} kanal",
+   "other": "{0} kanaler"
+  },
   "{0} channels added to Followed channels": {
    "one": "{0} kanal har lagts till i Följda kanaler",
    "other": "{0} kanaler har lagts till i Följda kanaler"
@@ -2067,7 +2071,10 @@
    "one": "{0} kapitel",
    "other": "{0} kapitel"
   },
-  "{0} further settings": "{0} fler inställningar",
+  "{0} further settings": {
+   "one": "{0} ytterligare inställning",
+   "other": "{0} fler inställningar"
+  },
   "{0} has nothing in this section.": "{0} har inget i den här delen.",
   "{0} is back at its defaults": "{0} har återställts till standardvärden",
   "{0} kept; newest: {1}": "{0} behålls; nyaste: {1}",
@@ -2076,11 +2083,17 @@
    "one": "{0} min kvar",
    "other": "{0} min kvar"
   },
-  "{0} new": "{0} nya",
+  "{0} new": {
+   "one": "{0} ny",
+   "other": "{0} nya"
+  },
   "{0} of {1}": "{0} av {1}",
   "{0} of {1} MB; cancelling leaves the installed app untouched": "{0} av {1} MB; avbrott ändrar inte den installerade appen",
   "{0} on this video": "{0} på den här videon",
-  "{0} playlists": "{0} spellistor",
+  "{0} playlists": {
+   "one": "{0} spellista",
+   "other": "{0} spellistor"
+  },
   "{0} replies": {
    "one": "{0} svar",
    "other": "{0} svar"
@@ -2093,10 +2106,22 @@
    "one": "{0} segment överhoppat",
    "other": "{0} segment överhoppade"
   },
-  "{0} subscriptions": "{0} prenumerationer",
-  "{0} videos": "{0} videor",
-  "{0} videos, resume points kept": "{0} videor, uppspelningspositioner sparade",
-  "{0} waiting": "{0} väntar",
+  "{0} subscriptions": {
+   "one": "{0} prenumeration",
+   "other": "{0} prenumerationer"
+  },
+  "{0} videos": {
+   "one": "{0} video",
+   "other": "{0} videor"
+  },
+  "{0} videos, resume points kept": {
+   "one": "{0} video, uppspelningsposition sparad",
+   "other": "{0} videor, uppspelningspositioner sparade"
+  },
+  "{0} waiting": {
+   "one": "{0} väntar",
+   "other": "{0} väntar"
+  },
   "{0}. Profile: {1}. Cross applies this change to YouTube once; Circle returns without submitting it.": "{0}. Profil: {1}. Kryss tillämpar ändringen på YouTube en gång; Cirkel går tillbaka utan att skicka den.",
   "{0}: {1}": "{0}: {1}"
  }

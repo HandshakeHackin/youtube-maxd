@@ -119,7 +119,7 @@ void Channels::draw_tiles(G &g, const DrawContext &context) const
             }
             else if (tile.unseen > 0 && marks_.value > 0.01f)
             {
-                const std::string label = fill(tr("{0} new"), std::to_string(tile.unseen));
+                const std::string label = tr_n("{0} new", "{0} new", static_cast<long>(tile.unseen));
                 const float asked = doing_ == 2 ? (g.reduced ? 0.6f : 0.45f + 0.4f * ui::breathe(g.time, 0.9f)) : 1.0f;
                 g.l.push_opacity(marks_.value * asked);
                 tag(g, r.cx() - tag_width(g, label) * 0.5f, r.y + 298.0f, label, g.k.raised, g.k.ink);

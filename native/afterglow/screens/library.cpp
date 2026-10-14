@@ -101,7 +101,7 @@ std::string shown_fact(const model::Row &row, std::string_view name)
 
 std::string videos_text(std::size_t count)
 {
-    return count == 1 ? std::string(tr("1 video")) : fill(tr("{0} videos"), std::to_string(count));
+    return tr_n("{0} video", "{0} videos", static_cast<long>(count));
 }
 
 enum class Kind : std::uint8_t
@@ -629,7 +629,7 @@ class Library final : public Screen
                 const std::string owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
                 cell.line = owner.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + owner;
                 const std::string amount = shown_fact(row, "count");
-                cell.count = all_digits(amount) ? (amount == "1" ? std::string(tr("1 video")) : fill(tr("{0} videos"), amount)) : amount;
+                cell.count = tr_n("{0} video", "{0} videos", amount);
             }
             else
             {
@@ -1073,8 +1073,7 @@ class Library final : public Screen
             return place;
         const std::size_t count = static_cast<std::size_t>(length(index));
         const std::string amount = !kTabs[index].playlists ? videos_text(count)
-                                   : count == 1           ? std::string(tr("1 playlist"))
-                                                          : fill(tr("{0} playlists"), std::to_string(count));
+                                  : tr_n("{0} playlist", "{0} playlists", static_cast<long>(count));
         return amount + " \xC2\xB7 " + place;
     }
 
@@ -1176,17 +1175,15 @@ class Library final : public Screen
     {
         if (index == 3)
             return follows_count_ < 0 ? std::string()
-                   : follows_count_ == 1 ? std::string(tr("1 channel"))
-                                         : fill(tr("{0} channels"), std::to_string(follows_count_));
+                                      : tr_n("{0} channel", "{0} channels", static_cast<long>(follows_count_));
         static constexpr int kPanes[] = {kHistory, kFavorites, kQueue};
         const int count = length(kPanes[index]);
         if (count < 0)
             return {};
         if (index == 0) // the tile opens History, where every video waits at the place it was left at
-            return count == 1 ? std::string(tr("1 video, resume point kept"))
-                              : fill(tr("{0} videos, resume points kept"), std::to_string(count));
+            return tr_n("{0} video, resume point kept", "{0} videos, resume points kept", static_cast<long>(count));
         if (index == 2)
-            return fill(tr("{0} waiting"), std::to_string(count));
+            return tr_n("{0} waiting", "{0} waiting", static_cast<long>(count));
         return videos_text(static_cast<std::size_t>(count));
     }
 
