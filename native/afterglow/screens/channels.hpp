@@ -170,7 +170,6 @@ class Channels final : public Screen
     Choice choices_[2];
     const char *choice_names_[2] = {"", ""};
     Notice notice_;
-    Sheet sheet_;
     std::string subtitle_;
 
     Act act_;

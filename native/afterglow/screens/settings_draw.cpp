@@ -41,20 +41,11 @@ void chevron_v(G &g, float cx, float y, int direction, Color color, float size =
     g.l.line(cx, tip, cx + size, back, 2.5f, color);
 }
 
-float bone_alpha(const G &g, float offset)
-{
-    return g.reduced ? 0.8f : 0.6f + 0.4f * ui::breathe(g.time + offset, 1.7f);
-}
-
 // A bone is the look's raised tone, twice over: on a frosted tile one layer of it is barely there.
-Color bone_colour(const G &g, float offset)
-{
-    return g.k.raised.with_alpha(std::min(1.0f, g.k.raised.a * 2.2f) * bone_alpha(g, offset));
-}
 
 void line_bone(G &g, const Rect &r, float offset)
 {
-    g.l.rounded_rect(r, std::min(r.h * 0.5f, 12.0f), bone_colour(g, offset));
+    bone(g, r, std::min(r.h * 0.5f, 12.0f), static_cast<int>(offset * 10.0f));
 }
 
 // One line of the sample caption, in the style the profile chose.
@@ -421,7 +412,7 @@ void draw_tile(G &g, const Rect &base, const Tile &tile, std::string_view name, 
 void draw_tile_bones(G &g, const Rect &r, float phase)
 {
     glass_panel(g, r, kRadiusPanel, 0.8f);
-    g.l.circle(r.x + 54.0f, r.y + 56.0f, 30.0f, bone_colour(g, phase));
+    bone(g, {r.x + 24.0f, r.y + 26.0f, 60.0f, 60.0f}, 30.0f, static_cast<int>(phase * 10.0f));
     line_bone(g, {r.x + 28.0f, r.y + 102.0f, r.w * 0.46f, 22.0f}, phase);
     line_bone(g, {r.x + 28.0f, r.y + 138.0f, r.w * 0.66f, 16.0f}, phase + 0.1f);
 }
@@ -442,7 +433,7 @@ void draw_form_bones(G &g, float amount)
             y += kRowH + kRowGap;
         }
     }
-    g.l.rounded_rect(kPreviewBox, 22.0f, bone_colour(g, 0.3f));
+    bone(g, kPreviewBox, kRadiusField, 3);
     g.l.pop_opacity();
 }
 

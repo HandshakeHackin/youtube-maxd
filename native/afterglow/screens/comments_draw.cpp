@@ -18,12 +18,6 @@ namespace afterglow::comments_page
 namespace
 {
 
-// REQUEST: tr() has no plural forms (as video.hpp).
-std::string counted(int count, const char *one, const char *other)
-{
-    return fill(count == 1 ? one : other, std::to_string(count));
-}
-
 // A tracked label in capitals takes more room than its letters: it is cut until it fits.
 std::string fit_overline(G &g, std::string label, float width)
 {
@@ -60,29 +54,12 @@ std::string tail_fit(const Face &face, const std::string &value, float size, flo
     return "..." + value.substr(starts[low]);
 }
 
-// One controller button, by the design language's own hint row.
-void hint_glyph(G &g, ui::Button button, float right, float cy)
-{
-    const ui::Hint item{button, ""};
-    g.l.push_transform(1.0f, 0.0f, 0.0f, 0.0f, cy - kHintY);
-    afterglow::hints(g, &item, 1, 1.0f, false, right);
-    g.l.pop_transform();
-}
-
 } // namespace
 
 // A bone: the kit's skeleton, one block at a time, all on one clock.
 void Comments::bone(G &g, const Rect &r, float radius) const
 {
-    // REQUEST: update() has no Look, so a kit component is given the look's theme on a copy here.
-    ui::Skeleton bones = bones_;
-    bones.style.theme = g.k.theme;
-    bones.style.reduced_motion = g.reduced;
-    bones.style.kind = ui::SkeletonKind::block;
-    bones.style.radius = radius;
-    bones.set_bounds(r);
-    ui::Canvas canvas{g.l, g.f, g.glass, g.time};
-    bones.draw(canvas);
+    afterglow::bone(g, r, radius);
 }
 
 // The entrance of the nth group of the screen.
@@ -119,7 +96,7 @@ void Comments::draw_comment(G &g, const DrawContext &context, const Item &item, 
 
     // Who, when, and what the channel made of it.
     float cursor = x + 72.0f;
-    cursor += text(g, g.f.semibold, fit(g.f.semibold, item.author, kTypeAuthor, (right - cursor) * 0.5f), cursor, y + 38.0f, kTypeAuthor, k.ink) +
+    cursor += text(g, g.f.semibold, fit(g.f.semibold, item.author, kTypeSub, (right - cursor) * 0.5f), cursor, y + 38.0f, kTypeSub, k.ink) +
               14.0f;
     if (cursor + measure(g.f.regular, item.age, kTypeFine) <= right)
         cursor += text(g, g.f.regular, item.age, cursor, y + 38.0f, kTypeFine, k.ink3) + 16.0f;
@@ -147,14 +124,14 @@ void Comments::draw_comment(G &g, const DrawContext &context, const Item &item, 
     if (open < 1.0f)
     {
         g.l.push_opacity(1.0f - open);
-        paragraph(g, g.f.regular, item.text, tx, y + 70.0f, kTypeSaid, width, kTextLine, ink, kLinesAtRest);
+        paragraph(g, g.f.regular, item.text, tx, y + 70.0f, kTypeCard, width, kTextLine, ink, kLinesAtRest);
         g.l.pop_opacity();
     }
     if (open > 0.0f)
     {
         g.l.push_clip({tx - 6.0f, y + 44.0f, width + 12.0f, item.h - 84.0f});
         g.l.push_opacity(open);
-        paragraph(g, g.f.regular, item.text, tx, y + 70.0f, kTypeSaid, width, kTextLine, ink, kLinesInFocus);
+        paragraph(g, g.f.regular, item.text, tx, y + 70.0f, kTypeCard, width, kTextLine, ink, kLinesInFocus);
         g.l.pop_opacity();
         g.l.pop_clip();
     }
@@ -167,15 +144,7 @@ void Comments::draw_comment(G &g, const DrawContext &context, const Item &item, 
         g.l.glow({x + 70.0f, foot - 18.0f, 24.0f, 24.0f}, 12.0f, 26.0f * pop, k.accent.with_alpha(0.55f * pop));
     if (rating)
     {
-        // REQUEST: update() has no Look, so the kit's spinner is given the look's theme on a copy here.
-        ui::Spinner spinner = spinner_;
-        spinner.style.theme = k.theme;
-        spinner.style.reduced_motion = g.reduced;
-        spinner.style.color = k.ink2;
-        spinner.style.thickness = 2.0f;
-        spinner.set_bounds({x + 72.0f, foot - 16.0f, 20.0f, 20.0f});
-        ui::Canvas canvas{g.l, g.f, g.glass, g.time};
-        spinner.draw(canvas);
+        afterglow::spinner(g, x + 82.0f, foot - 6.0f, 10.0f, k.ink2);
     }
     else if (!item.written_here)
     {
@@ -191,7 +160,7 @@ void Comments::draw_comment(G &g, const DrawContext &context, const Item &item, 
         const bool opened = open_.find(item.id) != open_.end();
         icon(g, Icon::reply, at + 9.0f, foot - 6.0f, 18.0f, tone);
         at += 26.0f;
-        at += text(g, g.f.semibold, counted(item.replies, tr("{0} reply"), tr("{0} replies")), at, foot, kTypeFine, tone);
+        at += text(g, g.f.semibold, tr_n("{0} reply", "{0} replies", item.replies), at, foot, kTypeFine, tone);
         // The way in is to the right; an open thread points down at its replies.
         if (focus > 0.5f)
             icon(g, opened ? Icon::chevron_down : Icon::chevron_right, at + 16.0f, foot - 6.0f, 16.0f, tone.with_alpha(tone.a * focus));
@@ -217,17 +186,17 @@ void Comments::draw_thread(G &g, const DrawContext &context) const
         if (!g.reduced)
             plate.y += ui::shake(nudge_.value, g.time, 10.0f, 8.0f);
         g.l.push_opacity(arrive(3));
-        lift(g, plate, kRadiusPlate, 0.5f);
-        glass_panel(g, plate, kRadiusPlate);
-        g.l.bordered_rect(plate.inset(-4.0f), kRadiusPlate + 4.0f, clear(), k.theme.focus_width, k.focus);
+        lift(g, plate, kRadiusPicture, 0.5f);
+        glass_panel(g, plate, kRadiusPicture);
+        g.l.bordered_rect(plate.inset(-4.0f), kRadiusPicture + 4.0f, clear(), k.theme.focus_width, k.focus);
         g.l.pop_opacity();
     }
     else if (at >= 0)
     {
         // While writing the comment being answered keeps a quiet plate.
         const Rect plate = item_rect(at);
-        glass_panel(g, plate, kRadiusPlate);
-        g.l.bordered_rect(plate.inset(-4.0f), kRadiusPlate + 4.0f, clear(), k.theme.focus_width, k.focus.with_alpha(0.7f));
+        glass_panel(g, plate, kRadiusPicture);
+        g.l.bordered_rect(plate.inset(-4.0f), kRadiusPicture + 4.0f, clear(), k.theme.focus_width, k.focus.with_alpha(0.7f));
     }
     const int first = first_shown();
     for (int i = 0; i < total; ++i)
@@ -312,7 +281,7 @@ void Comments::draw_about(G &g, const DrawContext &context) const
         g.l.image(picture.texture, thumb, picture.cover(thumb.w / thumb.h), kWhite.with_alpha(shown), kRadiusPicture);
     if (!video_title_.empty())
     {
-        const float after = paragraph(g, g.f.semibold, video_title_, thumb.x, thumb.y + thumb.h + 44.0f, kTypeName, thumb.w, 33.0f, k.ink, 2);
+        const float after = paragraph(g, g.f.semibold, video_title_, thumb.x, thumb.y + thumb.h + 44.0f, kTypeRow, thumb.w, 33.0f, k.ink, 2);
         text(g, g.f.regular, fit(g.f.regular, video_channel_, kTypeNote, thumb.w), thumb.x, after + 4.0f, kTypeNote, k.ink2);
     }
     else if (coming)
@@ -340,24 +309,24 @@ void Comments::draw_about(G &g, const DrawContext &context) const
     {
         const std::string name = profile_.name.empty() ? std::string(tr("You")) : profile_.name;
         avatar(g, compose.x + 34.0f, compose.cy(), 22.0f, name, profile_.id, Picture{});
-        text(g, g.f.regular, fit(g.f.regular, fill(tr("Add a comment as {0}"), name), kTypeSaid, room), compose.x + 72.0f, compose.cy() + 8.0f,
-             kTypeSaid, k.ink3);
-        hint_glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
+        text(g, g.f.regular, fit(g.f.regular, fill(tr("Add a comment as {0}"), name), kTypeCard, room), compose.x + 72.0f, compose.cy() + 8.0f,
+             kTypeCard, k.ink3);
+        glyph(g, ui::Button::square, compose.x + compose.w - 31.0f, compose.cy(), 34.0f);
         note = tr("Comments and replies are posted to YouTube from your account, once, after you confirm.");
     }
     else if (!profile_.signed_in)
     {
         icon(g, Icon::user, compose.x + 36.0f, compose.cy(), 28.0f, k.ink3);
-        text(g, g.f.regular, fit(g.f.regular, tr("Sign in to write and to like"), kTypeSaid, room), compose.x + 72.0f, compose.cy() + 8.0f,
-             kTypeSaid, k.ink3);
-        hint_glyph(g, ui::Button::square, compose.x + compose.w - 14.0f, compose.cy());
+        text(g, g.f.regular, fit(g.f.regular, tr("Sign in to write and to like"), kTypeCard, room), compose.x + 72.0f, compose.cy() + 8.0f,
+             kTypeCard, k.ink3);
+        glyph(g, ui::Button::square, compose.x + compose.w - 31.0f, compose.cy(), 34.0f);
         note = tr("Reading needs no account. Writing, answering and liking use a YouTube account on this profile.");
     }
     else
     {
         icon(g, Icon::chat, compose.x + 36.0f, compose.cy(), 28.0f, k.ink3);
-        text(g, g.f.regular, fit(g.f.regular, tr("Comments cannot be added here"), kTypeSaid, compose.w - 100.0f), compose.x + 72.0f,
-             compose.cy() + 8.0f, kTypeSaid, k.ink3);
+        text(g, g.f.regular, fit(g.f.regular, tr("Comments cannot be added here"), kTypeCard, compose.w - 100.0f), compose.x + 72.0f,
+             compose.cy() + 8.0f, kTypeCard, k.ink3);
     }
     if (!note.empty())
         paragraph(g, g.f.regular, note, thumb.x, 826.0f, kTypeMeta, thumb.w, 28.0f, k.ink3, 3);
@@ -385,11 +354,11 @@ void Comments::draw_writing(G &g, const DrawContext &context, float amount) cons
     g.l.bordered_rect(field, kRadiusField, clear(), 2.0f, k.focus.with_alpha(sending ? 0.3f : 0.8f));
     if (text_.empty())
     {
-        text(g, g.f.regular, fit(g.f.regular, to != nullptr ? tr("Write your reply") : tr("Write your comment"), kTypeName, field.w - 60.0f),
-             field.x + 26.0f, field.cy() + 9.0f, kTypeName, k.ink3);
+        text(g, g.f.regular, fit(g.f.regular, to != nullptr ? tr("Write your reply") : tr("Write your comment"), kTypeRow, field.w - 60.0f),
+             field.x + 26.0f, field.cy() + 9.0f, kTypeRow, k.ink3);
     }
-    const float typed = text(g, g.f.regular, tail_fit(g.f.regular, text_, kTypeName, field.w - 60.0f), field.x + 26.0f, field.cy() + 9.0f,
-                             kTypeName, k.ink.with_alpha(sending ? 0.6f : 1.0f));
+    const float typed = text(g, g.f.regular, tail_fit(g.f.regular, text_, kTypeRow, field.w - 60.0f), field.x + 26.0f, field.cy() + 9.0f,
+                             kTypeRow, k.ink.with_alpha(sending ? 0.6f : 1.0f));
     if (!sending && (g.reduced || std::fmod(g.time, 1.0f) < 0.55f))
         g.l.rounded_rect({field.x + 28.0f + typed, field.cy() - 16.0f, 3.0f, 32.0f}, 1.5f, k.accent);
 
@@ -402,15 +371,7 @@ void Comments::draw_writing(G &g, const DrawContext &context, float amount) cons
          k.ink3, gfx::Align::right);
     if (sending)
     {
-        // REQUEST: update() has no Look, so the kit's spinner is given the look's theme on a copy here.
-        ui::Spinner spinner = spinner_;
-        spinner.style.theme = k.theme;
-        spinner.style.reduced_motion = g.reduced;
-        spinner.style.color = k.accent;
-        spinner.style.thickness = 2.5f;
-        spinner.set_bounds({field.x + 4.0f, under - 19.0f, 24.0f, 24.0f});
-        ui::Canvas canvas{g.l, g.f, g.glass, g.time};
-        spinner.draw(canvas);
+        afterglow::spinner(g, field.x + 16.0f, under - 7.0f, 12.0f, k.accent);
         text(g, g.f.regular, tr("Posting to YouTube"), field.x + 40.0f, under, kTypeFine, k.ink2);
     }
     else if (!trouble_.empty())
@@ -425,10 +386,7 @@ void Comments::draw_writing(G &g, const DrawContext &context, float amount) cons
              k.ink3);
     }
 
-    // REQUEST: update() has no Look, so the kit's keyboard is given the look's theme on a copy here.
     ui::Keyboard keys = keys_;
-    keys.style.theme = k.theme;
-    keys.style.reduced_motion = g.reduced;
     keys.set_active(!sending);
     ui::Canvas canvas{g.l, g.f, context.glass, g.time};
     keys.draw(canvas);
@@ -457,7 +415,7 @@ void Comments::draw(const DrawContext &context, const Phase &phase) const
         // The header's second line: how many there are.
         Enter enter(g, arrive(0), -14.0f);
         if (!count_.empty())
-            text(g, g.f.regular, fit(g.f.regular, fill(tr("{0} on this video"), count_), kTypeAuthor, 700.0f), kLeft, 166.0f, kTypeAuthor,
+            text(g, g.f.regular, fit(g.f.regular, fill(tr("{0} on this video"), count_), kTypeSub, 700.0f), kLeft, 166.0f, kTypeSub,
                  k.ink2);
     }
     {

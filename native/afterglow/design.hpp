@@ -288,6 +288,7 @@ struct Choice
 {
     const char *label = ""; // already translated
     Icon icon = Icon::chevron_right;
+    ui::Button button = ui::Button::cross;
 };
 // The message of a page that is empty, signed out, failed or offline (boards
 // 37 and 38): a mark on a disc, what is the matter, up to three lines of what
@@ -306,7 +307,7 @@ struct Notice
     void lay_out(const ui::Fonts &fonts, float centre, float y, std::string_view body, const Choice *choices, int choice_count);
     // focus_at is the way on the focus is at (a spring between 0 and 1);
     // focused says whether the message has the focus at all.
-    void draw(G &g, Icon glyph, std::string_view title, std::string_view body, const Choice *choices, float focus_at, bool focused) const;
+    void draw(G &g, Icon glyph, std::string_view title, std::string_view body, const Choice *choices, float focus_at, bool focused, Color tone = clear()) const;
     // The height the message takes, mark to the foot of its ways on.
     float height() const;
 };

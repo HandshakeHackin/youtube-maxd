@@ -30,8 +30,6 @@ namespace afterglow
 namespace
 {
 
-using search::fill;
-using search::starts_with;
 using search::trimmed;
 
 constexpr Rect kKeys{928.0f, 196.0f, 896.0f, 452.0f};
@@ -176,6 +174,8 @@ class Search final : public Screen
 
     void update(const InputFrame &input, UpdateContext &context) override
     {
+        if (context.look)
+            wear(*context.look, context.reduced_motion);
         Data &data = context.services.data;
         data_ = &data;
         age_ += context.dt;
@@ -228,8 +228,7 @@ class Search final : public Screen
     void draw(const DrawContext &context, const Phase &phase) const override
     {
         G g = context.g();
-        search::Handover hand(g, phase);
-        wear(context.look);
+        HandOver hand(g, phase);
         ui::Canvas canvas{g.l, context.fonts, context.glass, context.time};
         {
             Enter enter(g, arrive(1, 0.06f, 0.5f), 20.0f);
@@ -405,16 +404,13 @@ class Search final : public Screen
 
     // ---- the kit's components in the look and the language -----------------------
 
-    // REQUEST: update() has no Look, and a kit component draws in its style's
-    // theme; until UpdateContext carries the look the two components are
-    // mutable and put the theme on when they are drawn (requests/A.md).
-    void wear(const Look &look) const
+    void wear(const Look &look, bool reduced)
     {
-        keys_.style.theme = look.theme;
-        field_.style.theme = look.theme;
-        rows_bone_.style.theme = look.theme;
+        afterglow::wear(keys_.style, look, reduced);
+        afterglow::wear(field_.style, look, reduced);
+        afterglow::wear(rows_bone_.style, look, reduced);
         for (ui::Skeleton &bone : bones_)
-            bone.style.theme = look.theme;
+            afterglow::wear(bone.style, look, reduced);
     }
 
     void localise(bool reduced)

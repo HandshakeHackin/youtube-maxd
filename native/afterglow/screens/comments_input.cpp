@@ -159,12 +159,9 @@ void Comments::advance_job(UpdateContext &context)
             trouble_.clear();
             if (job.kind == Job::Kind::post)
             {
-                // REQUEST: Data::act() lists a row and carries nothing; the text typed here has to
-                // travel with "comment:post:<id>" and "comment:reply:<cursor>" (the provider takes
-                // it from its text prompt today).
                 job.row = post_row_;
                 job.stage = Job::Stage::acting;
-                job.ticket = data.act(job.row);
+                job.ticket = data.act(job.row, text_);
                 job.steps = 1;
             }
             else
@@ -210,7 +207,7 @@ void Comments::advance_job(UpdateContext &context)
             return;
         }
         job_.stage = Job::Stage::acting;
-        job_.ticket = data.act(row);
+        job_.ticket = job_.kind == Job::Kind::reply ? data.act(row, text_) : data.act(row);
         job_.steps = 1;
         return;
     }
@@ -477,6 +474,8 @@ void Comments::input_thread(const InputFrame &input, UpdateContext &context)
 
 void Comments::update(const InputFrame &input, UpdateContext &context)
 {
+    if (context.look)
+        wear(keys_.style, *context.look, context.reduced_motion);
     age_ += context.dt;
     clock_ = context.time;
     advance_job(context);
@@ -525,8 +524,6 @@ void Comments::update(const InputFrame &input, UpdateContext &context)
     nudge_.update(context.dt, 9.0f);
     like_pop_.update(context.dt, 5.0f);
     keys_.update(context.dt);
-    spinner_.update(context.dt);
-    bones_.update(context.dt);
 }
 
 // ---- what the frame and the tests ask ---------------------------------------------------

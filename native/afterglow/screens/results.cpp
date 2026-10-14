@@ -24,13 +24,8 @@ namespace afterglow
 namespace
 {
 
-using search::fill;
-using search::starts_with;
 using search::trimmed;
 
-constexpr int kColumns = 4;
-constexpr float kCellW = 394.0f;
-constexpr float kCellH = 222.0f;
 constexpr float kCellPitchX = kCellW + 24.0f;
 constexpr float kCellPitchY = 352.0f;
 constexpr float kGridTop = 268.0f;
@@ -190,6 +185,8 @@ class Results final : public Screen
 
     void update(const InputFrame &input, UpdateContext &context) override
     {
+        if (context.look)
+            wear(*context.look, context.reduced_motion);
         Data &data = context.services.data;
         age_ += context.dt;
         ready_age_ += context.dt;
@@ -266,8 +263,7 @@ class Results final : public Screen
     void draw(const DrawContext &context, const Phase &phase) const override
     {
         G g = context.g();
-        search::Handover hand(g, phase);
-        wear(context.look);
+        HandOver hand(g, phase);
         ui::Canvas canvas{g.l, context.fonts, context.glass, context.time};
         draw_header(g);
         draw_chips(g);
@@ -401,14 +397,12 @@ class Results final : public Screen
 
     // ---- the kit's components in the look and the language -----------------------
 
-    // REQUEST: as in the search screen, the look reaches the kit's components
-    // only when they are drawn (requests/A.md, "The look in update").
-    void wear(const Look &look) const
+    void wear(const Look &look, bool reduced)
     {
-        menu_.style.theme = look.theme;
-        state_.style.theme = look.theme;
+        afterglow::wear(menu_.style, look, reduced);
+        afterglow::wear(state_.style, look, reduced);
         for (ui::Skeleton &bone : bones_)
-            bone.style.theme = look.theme;
+            afterglow::wear(bone.style, look, reduced);
     }
 
     void localise(bool reduced)
@@ -472,12 +466,10 @@ class Results final : public Screen
     // language's own arithmetic, so the focus knows where each one is.
     void lay_out_chips(const ui::Fonts &fonts)
     {
-        gfx::DrawList nothing;
-        G g{nothing, fonts, look_afterglow(), 0, 0.0f, false};
         float x = kChipsLeft;
         for (int i = 0; i < kChipCount; ++i)
         {
-            const float width = chip_width(g, chip_label(i), kChipHeight, chip_opens_list(i));
+            const float width = chip_width(fonts, chip_label(i), kChipHeight, chip_opens_list(i));
             chips_[static_cast<std::size_t>(i)] = {x, kChipsY - kChipHeight * 0.5f, width, kChipHeight};
             x += width + 12.0f;
         }
@@ -564,8 +556,6 @@ class Results final : public Screen
                 const model::Channel &found = page.channels[channel++];
                 cell.kind = Kind::channel;
                 cell.channel_id = found.id;
-                // REQUEST: the data layer fills a channel's handle, subscribers and
-                // subscribed from the row's facts (requests/A.md); read here until it does.
                 cell.handle = found.handle.empty() ? row.fact("handle") : found.handle;
                 cell.subscribers = found.subscribers.empty() ? row.fact("subscribers") : found.subscribers;
                 cell.subscribed = found.subscribed || row.has("subscribed");
@@ -753,9 +743,8 @@ class Results final : public Screen
 
     void search_again(UpdateContext &context)
     {
-        // REQUEST: with a way to know that the search screen is the one below,
-        // this would be nav.back() and keep that screen as it was (requests/A.md).
-        context.nav.root(Route{ScreenId::search, query_, {}});
+        if (!context.nav.back_to(ScreenId::search))
+            context.nav.root(Route{ScreenId::search, query_, {}});
     }
 
     void open_cell(const Cell &cell, UpdateContext &context, bool details)
@@ -951,10 +940,7 @@ class Results final : public Screen
             open_cell(cell, context, true);
         else if (pressed(input, Action::touch) && cell.kind == Kind::video)
         {
-            // REQUEST: the actions sheet of a video is one piece for every screen
-            // that lists videos (requests/A.md). Until it exists Touchpad opens
-            // the video page, where the actions are.
-            open_cell(cell, context, true);
+            context.nav.actions(cell.video.id, cell.video.title);
         }
     }
 
@@ -1053,67 +1039,18 @@ class Results final : public Screen
 
     void draw_channel(const DrawContext &context, G &g, const Cell &cell, const Rect &big, float focus) const
     {
-        const Rect card{big.x, big.y, big.w, big.h + kChannelExtra};
-        if (focus > 0.01f)
-            g.l.shadow({card.x, card.y + 20.0f, card.w, card.h}, kRadiusPanel, 40.0f, kBlack.with_alpha(0.5f * focus));
-        glass_panel(g, card, kRadiusPanel);
-        // Without the mark of a subscription the rest sits in the middle of the card.
-        const float drop = cell.subscribed ? 0.0f : 26.0f;
-        const float room = card.w - 48.0f;
-        avatar(g, card.cx(), card.y + 86.0f + drop, 60.0f, cell.title, cell.channel_id, context.images.get(cell.thumb, PictureSize::avatar));
-        text(g, g.f.semibold, fit(g.f.semibold, cell.title, 26.0f, room), card.cx(), card.y + 190.0f + drop, 26.0f, g.k.ink, gfx::Align::center);
-        // "@handle · 2.41M subscribers"; where both do not fit, the handle is the one that is cut.
-        const std::string tail = cell.subscribers.empty() ? std::string() : (cell.handle.empty() ? "" : " \xC2\xB7 ") + cell.subscribers;
-        const float tail_w = measure(g.f.regular, tail, kTypeMeta);
-        const std::string line = tail_w < room - 120.0f ? fit(g.f.regular, cell.handle, kTypeMeta, room - tail_w) + tail
-                                                         : fit(g.f.regular, cell.subscribers.empty() ? cell.handle : cell.subscribers, kTypeMeta, room);
-        text(g, g.f.regular, line, card.cx(), card.y + 222.0f + drop, kTypeMeta, g.k.ink2, gfx::Align::center);
-        if (cell.subscribed)
-        {
-            const std::string label = fit(g.f.semibold, tr("Subscribed"), 21.0f, room - 76.0f);
-            const float label_w = measure(g.f.semibold, label, 21.0f);
-            const float width = std::max(192.0f, label_w + 76.0f);
-            const Rect mark{card.cx() - width * 0.5f, card.y + 244.0f, width, 44.0f};
-            g.l.rounded_rect(mark, 22.0f, g.k.raised);
-            g.l.bordered_rect(mark, 22.0f, clear(), 1.5f, g.k.hairline);
-            icon(g, Icon::check, mark.cx() - label_w * 0.5f - 4.0f, mark.cy(), 20.0f, g.k.accent);
-            text(g, g.f.semibold, label, mark.cx() - label_w * 0.5f + 16.0f, mark.cy() + 7.5f, 21.0f, g.k.ink);
-        }
+        const std::string line = dotted({cell.handle, cell.subscribers});
+        channel_card(g, {big.x, big.y, big.w, big.h + kChannelExtra},
+                     CardText{cell.title, line, {}, cell.channel_id, Icon::user, cell.subscribed},
+                     context.images.get(cell.thumb, PictureSize::avatar), focus, 1.0f);
     }
 
     // A playlist: its first picture with the others stacked behind it.
     void draw_playlist(const DrawContext &context, G &g, const Cell &cell, const Rect &big, float focus) const
     {
-        const Picture art = context.images.get(cell.thumb, PictureSize::card);
-        const Color tone = art.ready() ? art.tone : flatten(g.k.raised, g.k.base);
-        g.l.rounded_rect({big.x + 28.0f, big.y - 16.0f, big.w - 56.0f, 30.0f}, 12.0f, tone.with_alpha(0.5f));
-        g.l.rounded_rect({big.x + 14.0f, big.y - 8.0f, big.w - 28.0f, 30.0f}, 14.0f, tone.with_alpha(0.85f));
-        if (focus > 0.01f)
-            g.l.shadow({big.x, big.y + 20.0f, big.w, big.h}, kRadiusThumb, 40.0f, kBlack.with_alpha(0.55f * focus));
-        const float shown = art.ready() ? (g.reduced ? 1.0f : tween::clamp01(art.age / 0.25f)) : 0.0f;
-        if (shown < 1.0f)
-            picture_placeholder(g, big, kRadiusThumb);
-        if (shown > 0.0f)
-        {
-            const float dim = 0.86f + 0.14f * focus;
-            g.l.image(art.texture, big, art.cover(big.w / big.h), Color{dim, dim, dim, shown}, kRadiusThumb);
-        }
-        g.l.bordered_rect(big, kRadiusThumb, clear(), 1.5f, kWhite.with_alpha(0.1f)); // the edge every picture card has
-        const Rect side{big.x + big.w - 132.0f, big.y, 132.0f, big.h};
-        g.l.rounded_rect(side, kRadiusThumb, kBlack.with_alpha(0.66f));
-        icon(g, Icon::queue, side.cx(), side.cy() - 18.0f, 34.0f, kWhite);
-        if (!cell.count.empty())
-        {
-            // "24 videos"; a count too long for the panel stands alone under the mark of a list.
-            const std::string worded = fill(tr("{0} videos"), cell.count);
-            const bool fits = measure(g.f.semibold, worded, 20.0f) <= side.w - 16.0f;
-            text(g, g.f.semibold, fits ? worded : fit(g.f.semibold, cell.count, 20.0f, side.w - 16.0f), side.cx(), side.cy() + 32.0f, 20.0f, kWhite,
-                 gfx::Align::center);
-        }
-        const float after = paragraph(g, g.f.semibold, cell.title, big.x + 2.0f, big.y + big.h + 36.0f, 23.0f, big.w - 4.0f, 30.0f,
-                                      g.k.ink.with_alpha(0.82f + 0.18f * focus), 2);
-        const std::string line = std::string(tr("Playlist")) + (cell.owner.empty() ? "" : " \xC2\xB7 ") + cell.owner;
-        text(g, g.f.regular, fit(g.f.regular, line, kTypeMeta, big.w - 4.0f), big.x + 2.0f, after, kTypeMeta, g.k.ink2);
+        const std::string line = dotted({tr("Playlist"), cell.owner});
+        const std::string count = cell.count.empty() ? std::string() : fill(tr("{0} videos"), cell.count);
+        playlist_card(g, big, CardText{cell.title, line, count}, context.images.get(cell.thumb, PictureSize::card), focus, 1.0f);
     }
 
     void draw_bone(ui::Canvas &canvas, int slot, const Rect &r) const

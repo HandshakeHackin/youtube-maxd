@@ -49,28 +49,9 @@ constexpr float kRelatedPitch = 304.0f;
 constexpr Rect kSheet{1296.0f, -40.0f, 720.0f, 1160.0f};     // More actions
 constexpr Rect kSheetList{1336.0f, 196.0f, 536.0f, 720.0f};
 constexpr Rect kSharePanel{450.0f, 214.0f, 1020.0f, 652.0f}; // Share
-// REQUEST: theme.hpp has kRadiusThumb, kRadiusPanel and kRadiusChip only; the
-// boards also use a picture that has become a page's (24) and sheets (36 to 44).
-constexpr float kRadiusHero = 24.0f;
-constexpr float kRadiusSheet = 40.0f;
-constexpr float kRadiusDialog = 36.0f;
-constexpr float kRadiusField = 16.0f;
-// REQUEST: theme.hpp's type scale stops at kTypeMeta (20) and kTypeBody (24);
-// the boards set secondary lines at 19 to 23 and a name at 25.
-constexpr float kTypeFine = 19.0f;  // a count under a name
-constexpr float kTypeNote = 21.0f;  // a line under a panel title
-constexpr float kTypeRead = 22.0f;  // running text beside a picture
-constexpr float kTypeLine = 23.0f;  // the numbers under a title
-constexpr float kTypeName = 25.0f;  // a channel's name
 constexpr float kTypePanel = 34.0f; // a sheet's title
-constexpr float kTypeDialog = 38.0f; // a panel's title
 
 // ---- small helpers -----------------------------------------------------------------
-
-inline bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
 
 // "local:video:<scope>:<verb>:<video>": the verb.
 inline std::string verb_of(std::string_view id)
@@ -91,33 +72,6 @@ inline std::string account_action(std::string_view id)
         return {};
     const std::size_t end = id.find(':', 16);
     return std::string(id.substr(16, end == std::string_view::npos ? end : end - 16));
-}
-
-// REQUEST: base.hpp has tr() and nothing that puts a value into a translated
-// pattern. "{0}" and "{1}" are replaced; anything else stays.
-inline std::string fill(const char *pattern, std::string_view first, std::string_view second = {})
-{
-    std::string out;
-    for (const char *at = pattern; *at != '\0'; ++at)
-    {
-        if (at[0] == '{' && (at[1] == '0' || at[1] == '1') && at[2] == '}')
-        {
-            out += at[1] == '0' ? first : second;
-            at += 2;
-        }
-        else
-        {
-            out.push_back(*at);
-        }
-    }
-    return out;
-}
-
-// REQUEST: tr() has no plural forms (the catalogs do: "one", "other"). Until a
-// tr_n(pattern, count) exists the two English forms are separate texts.
-inline std::string counted(int count, const char *one, const char *other)
-{
-    return fill(count == 1 ? one : other, std::to_string(count));
 }
 
 // ---- what the page knows about its video ---------------------------------------------
@@ -259,6 +213,8 @@ class VideoPage final : public Screen
     void enter(const Route &route, UpdateContext &context, bool restored) override;
     void update(const InputFrame &input, UpdateContext &context) override;
     void draw(const DrawContext &context, const Phase &phase) const override;
+    void draw_over(const DrawContext &context, const Phase &phase) const override;
+    float over() const override { return layer_amount_.value; }
     std::span<const ui::Hint> hints() const override;
     FocusInfo focus() const override;
     std::vector<std::pair<std::string, std::string>> focusable() const override;
@@ -413,9 +369,6 @@ class VideoPage final : public Screen
     Request request_;
     std::optional<Request> after_dialog_;
     std::shared_ptr<int> answer_ = std::make_shared<int>(0); // the dialog's: 0 none, 1 yes, 2 sign in
-    gfx::DrawList nowhere_; // measuring with the design language's own functions
-    ui::Spinner spinner_;   // on the control whose request is in flight
-    ui::Skeleton bones_;    // the shimmer every bone of the page shares
 
     float age_ = 0.0f;
     float clock_ = 0.0f;

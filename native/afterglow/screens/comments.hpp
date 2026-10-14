@@ -51,43 +51,8 @@ constexpr Rect kSheet{kLeft - 28.0f, 588.0f, 1704.0f, 560.0f}; // writing: rises
 constexpr Rect kField{kLeft + 14.0f, 772.0f, 760.0f, 76.0f};
 constexpr Rect kKeys{1004.0f, 640.0f, 780.0f, 340.0f};
 constexpr int kTextLimit = 500; // characters of a comment written here
-// REQUEST: theme.hpp has kRadiusThumb, kRadiusPanel and kRadiusChip only (as video.hpp).
-constexpr float kRadiusPlate = 24.0f;
-constexpr float kRadiusPicture = 20.0f;
-constexpr float kRadiusSheet = 40.0f;
-constexpr float kRadiusField = 22.0f;
-// REQUEST: theme.hpp's type scale stops at kTypeMeta (20) and kTypeBody (24) (as video.hpp).
-constexpr float kTypeFine = 19.0f;   // an age, a count
-constexpr float kTypeNote = 21.0f;   // a line under a title
-constexpr float kTypeAuthor = 22.0f; // who wrote it; the header's second line
-constexpr float kTypeSaid = 23.0f;   // what they wrote
-constexpr float kTypeName = 25.0f;   // the video's title beside the thread
-
-// ---- small helpers (REQUEST: the same as video.hpp carries; a screen may not include another's) ----
-
-inline bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
 
 // Puts values into a translated pattern: "{0}" and "{1}".
-inline std::string fill(const char *pattern, std::string_view first, std::string_view second = {})
-{
-    std::string out;
-    for (const char *at = pattern; *at != '\0'; ++at)
-    {
-        if (at[0] == '{' && (at[1] == '0' || at[1] == '1') && at[2] == '}')
-        {
-            out += at[1] == '0' ? first : second;
-            at += 2;
-        }
-        else
-        {
-            out.push_back(*at);
-        }
-    }
-    return out;
-}
 
 // ---- the thread ---------------------------------------------------------------------
 
@@ -269,8 +234,6 @@ class Comments final : public Screen
     // Requests.
     Job job_;
     std::shared_ptr<int> answer_ = std::make_shared<int>(0); // a dialog's: 0 none, 1 post, 2 sign in
-    ui::Spinner spinner_;
-    ui::Skeleton bones_; // the shimmer every bone of the screen shares
     int echo_serial_ = 0;
 
     float age_ = 0.0f;

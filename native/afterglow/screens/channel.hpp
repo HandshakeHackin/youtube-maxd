@@ -78,13 +78,8 @@ class Channel final : public Screen
     void enter(const Route &route, UpdateContext &context, bool restored) override;
     void update(const InputFrame &input, UpdateContext &context) override;
     void draw(const DrawContext &context, const Phase &phase) const override;
-    std::string title() const override
-    {
-        // REQUEST: the banner is this page's header, but the frame writes the
-        // route's title when a screen has none of its own. A space keeps the
-        // header empty until a screen can say that it has no title.
-        return " ";
-    }
+    std::string title() const override { return {}; }
+    Header header() const override { return Header::on_picture; }
     std::span<const ui::Hint> hints() const override;
     FocusInfo focus() const override;
     std::vector<std::pair<std::string, std::string>> focusable() const override;
@@ -249,7 +244,6 @@ class Channel final : public Screen
     Rect retry_{}; // where the section is laid out, before the page's scroll
     float name_width_ = 600.0f;
     Notice trouble_;
-    Sheet sheet_;
 
     // Subscribe and the notification level: asked, then confirmed or refused.
     bool subscribed_ = false;

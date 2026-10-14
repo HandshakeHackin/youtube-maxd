@@ -52,15 +52,7 @@ float VideoPage::arrive(int index) const
 // A bone: the kit's skeleton, one block at a time, all on one clock.
 void VideoPage::bone(G &g, const Rect &r, float radius) const
 {
-    // REQUEST: update() has no Look, so a kit component is given the look's theme on a copy here.
-    ui::Skeleton bones = bones_;
-    bones.style.theme = g.k.theme;
-    bones.style.reduced_motion = g.reduced;
-    bones.style.kind = ui::SkeletonKind::block;
-    bones.style.radius = radius;
-    bones.set_bounds(r);
-    ui::Canvas canvas{g.l, g.f, g.glass, g.time};
-    bones.draw(canvas);
+    afterglow::bone(g, r, radius);
 }
 
 void VideoPage::bone_disc(G &g, float cx, float cy, float radius) const
@@ -70,16 +62,8 @@ void VideoPage::bone_disc(G &g, float cx, float cy, float radius) const
 
 void VideoPage::draw_spinner(const DrawContext &context, float cx, float cy, float size, Color color) const
 {
-    // REQUEST: update() has no Look, so a kit component is given the look's
-    // theme on a copy here instead of once when it changes.
-    ui::Spinner spinner = spinner_;
-    spinner.style.theme = context.look.theme;
-    spinner.style.reduced_motion = context.reduced_motion;
-    spinner.style.color = color;
-    spinner.style.thickness = 2.5f;
-    spinner.set_bounds({cx - size * 0.5f, cy - size * 0.5f, size, size});
-    ui::Canvas canvas{context.ui, context.fonts, context.glass, context.time};
-    spinner.draw(canvas);
+    G g = context.g();
+    afterglow::spinner(g, cx, cy, size * 0.5f, color);
 }
 
 // ---- what it is ---------------------------------------------------------------------------
@@ -118,7 +102,7 @@ void VideoPage::draw_details(G &g, const DrawContext &context) const
         const float room = kColumn - tags - (tags > 0.0f ? 18.0f : 0.0f);
         float x = kLeft;
         if (!meta.empty())
-            x += text(g, g.f.regular, fit(g.f.regular, meta, kTypeLine, room), kLeft, meta_y_, kTypeLine, k.ink2) + 18.0f;
+            x += text(g, g.f.regular, fit(g.f.regular, meta, kTypeCard, room), kLeft, meta_y_, kTypeCard, k.ink2) + 18.0f;
         for (const char *mark : marks)
         {
             if (mark != nullptr)
@@ -133,7 +117,7 @@ void VideoPage::draw_details(G &g, const DrawContext &context) const
         const Rect sub = subscribe_rect();
         const float room = (can_subscribe() ? sub.x : kLeft + kColumn) - (kLeft + 70.0f) - 20.0f;
         avatar(g, kLeft + 27.0f, y - 8.0f, 27.0f, d.channel, d.channel_id, context.images.get(d.avatar, PictureSize::avatar));
-        text(g, g.f.semibold, fit(g.f.semibold, d.channel, kTypeName, room), kLeft + 70.0f, y - 6.0f, kTypeName, k.ink);
+        text(g, g.f.semibold, fit(g.f.semibold, d.channel, kTypeRow, room), kLeft + 70.0f, y - 6.0f, kTypeRow, k.ink);
         text(g, g.f.regular, fit(g.f.regular, d.subscribers, kTypeFine, room), kLeft + 70.0f, y + 20.0f, kTypeFine, k.ink3);
         if (can_subscribe())
         {
@@ -158,12 +142,12 @@ void VideoPage::draw_details(G &g, const DrawContext &context) const
     {
         Enter enter(g, arrive(4), 20.0f);
         if (description_lines_ > 0)
-            paragraph(g, g.f.regular, d.overview, kLeft, description_y_, kTypeRead, kColumn, 32.0f, k.ink2, description_lines_);
+            paragraph(g, g.f.regular, d.overview, kLeft, description_y_, kTypeSub, kColumn, 32.0f, k.ink2, description_lines_);
         // What the video carries, at a glance.
         const std::string facts[3] = {
-            d.chapters > 0 ? counted(d.chapters, tr("{0} chapter"), tr("{0} chapters")) : std::string(),
-            d.segments > 0 ? counted(d.segments, tr("{0} segment skipped"), tr("{0} segments skipped")) : std::string(),
-            d.captions > 1 ? counted(d.captions, tr("Captions: {0} language"), tr("Captions: {0} languages")) : std::string()};
+            d.chapters > 0 ? tr_n("{0} chapter", "{0} chapters", d.chapters) : std::string(),
+            d.segments > 0 ? tr_n("{0} segment skipped", "{0} segments skipped", d.segments) : std::string(),
+            d.captions > 1 ? tr_n("Captions: {0} language", "Captions: {0} languages", d.captions) : std::string()};
         const Icon marks[3] = {Icon::chapters, Icon::skip, Icon::captions};
         float x = kLeft;
         for (int i = 0; i < 3; ++i)
@@ -286,8 +270,8 @@ void VideoPage::draw_related(G &g, const DrawContext &context) const
              30.0f, k.ink3);
         text(g, g.f.regular,
              fit(g.f.regular, broken ? tr("The related videos could not be loaded.") : tr("YouTube names no related videos for this one."),
-                 kTypeRead, kRight - kLeft - 60.0f),
-             kLeft + 46.0f, kRelatedY + 38.0f, kTypeRead, k.ink3);
+                 kTypeSub, kRight - kLeft - 60.0f),
+             kLeft + 46.0f, kRelatedY + 38.0f, kTypeSub, k.ink3);
         return;
     }
     const int count = static_cast<int>(related_.size());
@@ -364,15 +348,12 @@ void VideoPage::draw_hero(G &g, const DrawContext &context, const Phase &phase, 
     if (alpha <= 0.01f)
         return;
     const float settled = tween::clamp01((hero.w - kRelatedW) / (kHero.w - kRelatedW));
-    const float radius = tween::lerp(kRadiusThumb, kRadiusHero, settled);
-    // REQUEST: a hand-over carries a rectangle and no picture, so a page that
-    // arrives before its details draws the design's resting box where the
-    // card's picture should already be.
-    const Picture large = context.images.get(details_.thumb, PictureSize::hero);
+    const float radius = tween::lerp(kRadiusThumb, kRadiusPicture, settled);
+    const Picture large = context.images.get(details_.thumb.empty() ? phase.picture : details_.thumb, PictureSize::hero);
     const float sharp = large.ready() ? (g.reduced ? 1.0f : tween::clamp01(large.age / 0.25f)) : 0.0f;
     Picture small;
     if (sharp < 1.0f)
-        small = context.images.get(details_.thumb, PictureSize::card); // what the card showed, until the larger one is there
+        small = context.images.get(details_.thumb.empty() ? phase.picture : details_.thumb, PictureSize::card); // what the card showed, until the larger one is there
     const Color glow = large.ready() ? large.glow : small.ready() ? small.glow : k.raised;
     g.l.push_opacity(alpha);
     if (large.ready() || small.ready())
@@ -414,10 +395,7 @@ void VideoPage::draw_sheet(G &g, const DrawContext &context, float amount) const
     text(g, g.f.regular, fit(g.f.regular, details_.title, kTypeNote, 480.0f), x + 2.0f, 156.0f, kTypeNote, k.ink2);
     if (!sheet_rows_.empty())
     {
-        // REQUEST: update() has no Look, so the list is given the look's theme on a copy here.
         ui::ListView list = list_;
-        list.style.theme = context.look.theme;
-        list.style.reduced_motion = context.reduced_motion;
         list.leading = [&](ui::Canvas &, const Rect &row, const ui::ListItem &item, int, float focus)
         {
             const std::size_t at = static_cast<std::size_t>(std::clamp(item.tag, 0, static_cast<int>(sheet_rows_.size()) - 1));
@@ -451,14 +429,14 @@ void VideoPage::draw_share(G &g, float amount) const
     const Rect &panel = kSharePanel;
     g.l.push_opacity(amount);
     g.l.push_transform(g.reduced ? 1.0f : 0.94f + 0.06f * amount, 960.0f, 540.0f, 0.0f, g.reduced ? 0.0f : 24.0f * (1.0f - amount));
-    lift(g, panel, kRadiusDialog, 1.4f);
-    glass_panel(g, panel, kRadiusDialog, 1.3f);
+    lift(g, panel, kRadiusSheet, 1.4f);
+    glass_panel(g, panel, kRadiusSheet, 1.3f);
     const Rect code{panel.x + 56.0f, panel.y + 56.0f, 420.0f, 420.0f};
     const float x = panel.x + 532.0f;
     const float room = 432.0f;
     const ShareLink *link = links_.empty() ? nullptr : &links_[static_cast<std::size_t>(link_)];
     overline(g, fit_overline(g, tr("Share"), room), x, panel.y + 92.0f, k.accent);
-    text(g, g.f.display, fit(g.f.display, tr("Take it with you"), kTypeDialog, room), x - 2.0f, panel.y + 148.0f, kTypeDialog, k.ink);
+    text(g, g.f.display, fit(g.f.display, tr("Take it with you"), kTypePlayer, room), x - 2.0f, panel.y + 148.0f, kTypePlayer, k.ink);
     if (link != nullptr)
     {
         // A code is read by a camera: dark on light in every look.
@@ -467,7 +445,7 @@ void VideoPage::draw_share(G &g, float amount) const
                                      ? fill(tr("Point your phone's camera at the code, or type the address. The link opens at {0}."),
                                             duration_text(details_.resume_s))
                                      : std::string(tr("Point your phone's camera at the code, or type the address."));
-        paragraph(g, g.f.regular, body, x, panel.y + 196.0f, kTypeRead, room - 12.0f, 32.0f, k.ink2, 3);
+        paragraph(g, g.f.regular, body, x, panel.y + 196.0f, kTypeSub, room - 12.0f, 32.0f, k.ink2, 3);
         const Rect address{x, panel.y + 316.0f, room, 60.0f};
         g.l.rounded_rect(address, kRadiusField, k.raised);
         std::string_view shown = link->url;
@@ -475,7 +453,7 @@ void VideoPage::draw_share(G &g, float amount) const
             shown.remove_prefix(8);
         if (starts_with(shown, "www."))
             shown.remove_prefix(4);
-        text(g, g.f.mono, fit(g.f.mono, shown, kTypeRead, address.w - 44.0f), address.x + 22.0f, address.cy() + 7.5f, kTypeRead, k.ink);
+        text(g, g.f.mono, fit(g.f.mono, shown, kTypeSub, address.w - 44.0f), address.x + 22.0f, address.cy() + 7.5f, kTypeSub, k.ink);
         for (std::size_t i = 0; i < links_.size(); ++i)
         {
             const bool chosen = static_cast<int>(i) == link_;
@@ -487,7 +465,7 @@ void VideoPage::draw_share(G &g, float amount) const
         g.l.rounded_rect(code, 18.0f, k.raised);
         icon(g, links_load_ == model::Load::offline ? Icon::offline : Icon::alert, code.cx(), code.cy(), 72.0f, k.ink3);
         paragraph(g, g.f.regular, links_error_.empty() ? tr("The link could not be loaded.") : links_error_.c_str(), x, panel.y + 196.0f,
-                  kTypeRead, room - 12.0f, 32.0f, k.ink2, 4);
+                  kTypeSub, room - 12.0f, 32.0f, k.ink2, 4);
     }
     else
     {
@@ -496,7 +474,7 @@ void VideoPage::draw_share(G &g, float amount) const
         bone(g, {x, panel.y + 210.0f, room - 120.0f, 20.0f}, 10.0f);
         bone(g, {x, panel.y + 316.0f, room, 60.0f}, kRadiusField);
     }
-    text(g, g.f.regular, fit(g.f.regular, details_.title, kTypeLine, 420.0f), panel.x + 56.0f, panel.y + 540.0f, kTypeLine, k.ink);
+    text(g, g.f.regular, fit(g.f.regular, details_.title, kTypeCard, 420.0f), panel.x + 56.0f, panel.y + 540.0f, kTypeCard, k.ink);
     std::string line = details_.channel;
     const std::string length = duration_text(details_.duration_s);
     if (!length.empty())
@@ -518,9 +496,6 @@ void VideoPage::draw_layers(const DrawContext &context, float fade) const
     const float layer = tween::clamp01(layer_amount_.value) * fade;
     if (layer <= 0.01f)
         return;
-    // REQUEST: a screen draws under the frame's clock, hint row and rail, so
-    // this layer cannot cover them as the boards show; Screen needs a second
-    // draw the frame calls after its own furniture.
     G g = context.g();
     g.l.rounded_rect({0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight}, 0.0f, kBlack.with_alpha(0.5f * layer));
     if (shown_layer_ == Layer::menu)
@@ -565,6 +540,11 @@ void VideoPage::draw(const DrawContext &context, const Phase &phase) const
     draw_hero(g, context, phase, motion);
     g.l.pop_transform();
     g.l.pop_opacity();
+}
+
+void VideoPage::draw_over(const DrawContext &context, const Phase &phase) const
+{
+    const Motion motion = hand_over(phase, context.reduced_motion);
     draw_layers(context, motion.alpha * motion.furniture);
 }
 

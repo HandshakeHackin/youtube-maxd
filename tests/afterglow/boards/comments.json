@@ -98,7 +98,7 @@
    "fixture": "signed-in",
    "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "down"}, {"press": "cross", "wait": 0.8}, {"press": "cross"}, {"press": "cross"}, {"press": "options", "wait": 0.8}, {"press": "cross", "wait": 1.6}],
-   "expect": {"screen": "comments", "focus": "comment/1", "dialog": 0, "state": {"writing": "no", "text": "", "pending": "", "replies_shown": "2"}, "asked": ["menu:discussion:replies:rpMirela0001", "comment:reply:rcMirela0001", "comment:review:302", "account:apply:302"]}
+   "expect": {"screen": "comments", "focus": "comment/1", "dialog": 0, "state": {"writing": "no", "text": "", "pending": "", "replies_shown": "2"}, "answered": ["comment:reply:rcMirela0001=qq"], "asked": ["menu:discussion:replies:rpMirela0001", "comment:reply:rcMirela0001", "comment:review:302", "account:apply:302"]}
   },
   {
    "name": "comments-reply-refused",
@@ -119,7 +119,7 @@
    "fixture": "signed-in",
    "route": {"screen": "comments", "argument": "pT5xRidgeLn"},
    "steps": [{"press": "square", "wait": 0.8}, {"press": "cross"}, {"press": "options", "wait": 0.6}, {"press": "cross", "wait": 1.6}],
-   "expect": {"screen": "comments", "focus": "comment/0", "state": {"writing": "no", "comments": "9", "pending": ""}, "asked": ["comment:post:pT5xRidgeLn", "comment:review:331", "account:apply:331"]}
+   "expect": {"screen": "comments", "focus": "comment/0", "state": {"writing": "no", "comments": "9", "pending": ""}, "answered": ["comment:post:pT5xRidgeLn=q"], "asked": ["comment:post:pT5xRidgeLn", "comment:review:331", "account:apply:331"]}
   },
   {
    "name": "comments-loading",

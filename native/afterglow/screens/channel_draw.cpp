@@ -15,7 +15,7 @@ namespace afterglow::channel_page
 void Channel::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
-    Travel travel(g, phase);
+    HandOver travel(g, phase);
     if (!head_.known)
     {
         if (base_.load == model::Load::failed || base_.load == model::Load::offline)
@@ -37,7 +37,6 @@ void Channel::draw(const DrawContext &context, const Phase &phase) const
     draw_tabs(g, context);
     foot_scrim(g);
     draw_sort_menu(g);
-    sheet_.draw(g);
 }
 
 void Channel::draw_bones(G &g) const
@@ -178,11 +177,6 @@ void Channel::draw_tabs(G &g, const DrawContext &context) const
     Enter enter(g, arrive(age_, 3, 0.06f, 0.5f), 18.0f);
     const float y = tabs_y(scroll_.value);
     ui::TabBar bar = bar_;
-    const float omega = bar.style.theme.omega;
-    const float damping = bar.style.theme.damping;
-    bar.style.theme = context.look.theme;
-    bar.style.theme.omega = omega;
-    bar.style.theme.damping = damping;
     bar.set_bounds({kLeft - 22.0f, y, 900.0f, kTabsH});
     ui::Canvas canvas{g.l, g.f, g.glass, g.time};
     bar.draw(canvas);

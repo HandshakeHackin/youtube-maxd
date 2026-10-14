@@ -77,14 +77,13 @@ void Subscriptions::enter(const Route &route, UpdateContext &context, bool resto
 
 void Subscriptions::update(const InputFrame &input, UpdateContext &context)
 {
+    if (context.look)
+    {
+        wear(bar_.style, *context.look, context.reduced_motion);
+        bar_.style.theme.omega = 18.0f;
+    }
     age_ += context.dt;
     read(context);
-    sheet_.update(context);
-    if (sheet_.take_changed())
-    {
-        context.services.data.forget("library:subscriptions");
-        context.services.data.forget("library:channels");
-    }
     lay_out(context.services.fonts);
     if (context.top)
     {
@@ -106,8 +105,6 @@ std::span<const ui::Hint> Subscriptions::hints() const
 {
     static ui::Hint items[4];
     std::size_t count = 0;
-    if (sheet_.open())
-        return sheet_.hints();
     if (zone_ == Zone::notice)
         items[count++] = {ui::Button::cross, tr("Choose")};
     else if (zone_ == Zone::feed)
@@ -128,8 +125,6 @@ std::span<const ui::Hint> Subscriptions::hints() const
 FocusInfo Subscriptions::focus() const
 {
     FocusInfo info;
-    if (sheet_.open())
-        return sheet_.focus();
     if (zone_ == Zone::notice && notice_.count > 0)
     {
         info.id = std::string("state/") + choice_names_[choice_];
@@ -198,7 +193,6 @@ void Subscriptions::snapshot(Snapshot &out) const
     out.set("strip", static_cast<int>(strip_.size()));
     out.set("pages", feed_.taken);
     out.set("scroll", static_cast<int>(scroll_.target));
-    sheet_.snapshot(out);
     std::vector<std::string> titles;
     for (std::size_t i = 0; i < order_.size() && i < 12; ++i)
         titles.push_back(feed_.videos[static_cast<std::size_t>(order_[i])].title);
@@ -464,13 +458,6 @@ void Subscriptions::go(Zone zone, UpdateContext &context)
 
 void Subscriptions::handle(const InputFrame &input, UpdateContext &context)
 {
-    if (sheet_.open())
-    {
-        Route route;
-        if (sheet_.handle(input, context, &route))
-            context.nav.push(route, Move::push);
-        return;
-    }
     if (pressed(input, Action::back))
     {
         context.nav.back();
@@ -562,7 +549,7 @@ void Subscriptions::handle_strip(const InputFrame &input, UpdateContext &context
     else if (pressed(input, Action::touch))
     {
         if (const model::Channel *channel = strip_channel(pick_))
-            sheet_.show(channel->row, channel->name, context);
+            context.nav.actions(channel->row, channel->name, [data = &context.services.data] { data->forget("library:subscriptions"); data->forget("library:channels"); });
     }
 }
 
@@ -624,9 +611,9 @@ void Subscriptions::handle_feed(const InputFrame &input, UpdateContext &context)
         feed_.want_more();
     const model::Video &video = *focused_video();
     if (pressed(input, Action::confirm))
-        family::play(video, x, context);
+        play_video(context, video, {}, x);
     else if (pressed(input, Action::touch))
-        sheet_.show(video.id, video.title, context);
+        context.nav.actions(video.id, video.title, [data = &context.services.data] { data->forget("library:subscriptions"); data->forget("library:channels"); });
 }
 
 void Subscriptions::handle_notice(const InputFrame &input, UpdateContext &context)
@@ -727,9 +714,9 @@ void Subscriptions::advance(UpdateContext &context)
     target = std::max(target, kStripPitch * static_cast<float>(pick_ - (kStripShown - 1)));
     strip_scroll_.target = std::max(target, 0.0f);
     strip_scroll_.update(dt, reduced ? 60.0f : 14.0f);
-    feed_focus_.target = zone_ == Zone::feed && !sheet_.open() ? 1.0f : 0.0f;
+    feed_focus_.target = zone_ == Zone::feed ? 1.0f : 0.0f;
     feed_focus_.update(dt, quick);
-    strip_focus_.target = zone_ == Zone::strip && !sheet_.open() ? 1.0f : 0.0f;
+    strip_focus_.target = zone_ == Zone::strip ? 1.0f : 0.0f;
     strip_focus_.update(dt, quick);
     pick_pos_.target = static_cast<float>(pick_);
     pick_pos_.update(dt, quick);

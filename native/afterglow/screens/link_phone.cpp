@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace afterglow
 {
@@ -153,14 +154,15 @@ class LinkPhone final : public Screen
             }
         }
 
-        const int decided = question_.update(input, context.dt, context.feedback, context.top);
+        const int decided = std::exchange(*decision_, -2);
         if (decided != -2)
         {
+            asking_ = false;
             if (decided == 1)
                 act(data, "settings:remote:reset");
             return;
         }
-        if (!context.top || question_.is_open())
+        if (!context.top || asking_)
             return;
 
         if (sheet_open_)
@@ -229,7 +231,7 @@ class LinkPhone final : public Screen
     {
         G g = context.g();
         {
-            Travel travel(g, phase);
+            HandOver travel(g, phase);
             page_head(g, tr("Phone pairing (experimental)"), tr("Link the YouTube app on your phone"), arrive(age_, 0, 0.05f, 0.5f));
             if (load_ == model::Load::ready && !remote_.available)
             {
@@ -252,14 +254,13 @@ class LinkPhone final : public Screen
                 draw_sheet(g);
             }
         }
-        question_.draw(context);
     }
 
     std::span<const ui::Hint> hints() const override
     {
         static ui::Hint items[4];
         int count = 0;
-        if (question_.is_open())
+        if (asking_)
         {
             items[count++] = {ui::Button::cross, tr("Choose")};
             items[count++] = {ui::Button::circle, tr("Cancel")};
@@ -292,14 +293,7 @@ class LinkPhone final : public Screen
     {
         FocusInfo info;
         info.total = 1;
-        if (question_.is_open())
-        {
-            info.id = "dialog/" + std::to_string(question_.focus());
-            info.text = question_.answer(question_.focus());
-            info.index = question_.focus();
-            info.total = 2;
-        }
-        else if (sheet_open_)
+        if (sheet_open_)
         {
             info.id = kOptionIds[option_];
             info.text = remote_.option_title[option_];
@@ -329,7 +323,7 @@ class LinkPhone final : public Screen
 
     std::vector<std::pair<std::string, std::string>> focusable() const override
     {
-        if (sheet_open_ && !question_.is_open())
+        if (sheet_open_ && !asking_)
             return {{kOptionIds[0], remote_.option_title[0]}, {kOptionIds[1], remote_.option_title[1]}, {kOptionIds[2], remote_.option_title[2]}};
         const FocusInfo only = focus();
         return {{only.id, only.text}};
@@ -343,7 +337,7 @@ class LinkPhone final : public Screen
         out.set("connection", remote_.on ? "on" : "off");
         out.set("devices", static_cast<int>(remote_.devices.size()));
         out.set("sheet", sheet_open_ ? 1 : 0);
-        out.set("question", question_.is_open() ? "reset" : "");
+        out.set("question", asking_ ? "reset" : "");
         out.set("busy", ticket_ != 0 ? acted_ : std::string());
     }
 
@@ -457,9 +451,10 @@ class LinkPhone final : public Screen
             }
             else if (option_ == 2)
             {
-                question_.ask(ui::StatusKind::danger, tr("Reset phone pairing?"),
+                asking_ = true;
+                context.nav.ask(Question{ui::StatusKind::danger, tr("Reset phone pairing?"),
                               tr("The connection is turned off and this TV's pairing identity is forgotten. A phone has to be linked again with a new TV code."),
-                              {tr("Keep"), tr("Reset")}, 1, 0, false, context.feedback);
+                              {tr("Keep"), tr("Reset")}, 1, 0, false}, [decision = decision_](int choice) { *decision = choice; });
             }
             else
             {
@@ -571,7 +566,7 @@ class LinkPhone final : public Screen
             const bool linked = !remote_.devices.empty();
             const std::string heading = !linked                        ? std::string(tr("Phone connection"))
                                         : remote_.devices.size() == 1 ? std::string(tr("Linked now"))
-                                                                      : with(tr("Linked now: {0} phones"), std::to_string(remote_.devices.size()));
+                                                                      : fill(tr("Linked now: {0} phones"), std::to_string(remote_.devices.size()));
             overline(g, heading, kDevices.x + 30.0f, kDevices.y + 46.0f, g.k.ink3);
             // The connection, in a word and a mark: never by colour alone.
             const std::string &now = state();
@@ -731,7 +726,8 @@ class LinkPhone final : public Screen
     tween::Spring sheet_shown_;
     tween::Spring option_pos_;
     ui::Pulse nudge_;
-    LocalQuestion question_;
+    std::shared_ptr<int> decision_ = std::make_shared<int>(-2);
+    bool asking_ = false;
 };
 
 } // namespace

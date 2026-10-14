@@ -88,6 +88,8 @@ class Accounts final : public Screen
     void update(const InputFrame &input, UpdateContext &context) override;
 
     void draw(const DrawContext &context, const Phase &phase) const override;
+    void draw_over(const DrawContext &context, const Phase &phase) const override;
+    float over() const override { return sheet_.visible() ? 1.0f : 0.0f; }
 
     std::string title() const override;
 
@@ -169,8 +171,7 @@ class Accounts final : public Screen
 
     // ---- drawing -------------------------------------------------------------------
 
-    // REQUEST: UpdateContext::look, so a kit component is dressed where it is updated (requests/F.md, 3).
-    void dress(const DrawContext &context) const;
+    void dress(const UpdateContext &context);
 
     // A tile's face: the profile's picture or its initial, a check on whoever is watching, a lock on a protected one.
     void draw_face(ui::Canvas &canvas, const Rect &area, int index) const;
@@ -198,7 +199,6 @@ class Accounts final : public Screen
 
     // The focus.
     mutable ui::ProfilePicker picker_;
-    mutable const Look *worn_ = nullptr;
     mutable const DrawContext *drawing_ = nullptr; // while draw() runs: what the picker's faces are drawn with
     Zone zone_ = Zone::tiles;
     int action_ = 0;
@@ -210,7 +210,7 @@ class Accounts final : public Screen
 
     // What is being done.
     Work work_;
-    LocalQuestion question_;
+    std::shared_ptr<int> decision_ = std::make_shared<int>(-2);
     Asking asking_ = Asking::nothing;
     bool selected_before_ = false;
     PasswordSheet sheet_;

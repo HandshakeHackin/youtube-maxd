@@ -185,7 +185,7 @@ class SignIn final : public Screen
                 use_ticket_ = 0;
                 if (done)
                 {
-                    context.nav.toast(with(tr("Watching as {0}"), profile_name_), ToastKind::success);
+                    context.nav.toast(fill(tr("Watching as {0}"), profile_name_), ToastKind::success);
                     context.nav.root(Route{ScreenId::home, {}, {}});
                 }
                 else
@@ -266,8 +266,8 @@ class SignIn final : public Screen
     void draw(const DrawContext &context, const Phase &phase) const override
     {
         G g = context.g();
-        Travel travel(g, phase);
-        const std::string title = state_ == State::approved ? with(tr("Signed in as {0}"), profile_name_)
+        HandOver travel(g, phase);
+        const std::string title = state_ == State::approved ? fill(tr("Signed in as {0}"), profile_name_)
                                                             : std::string(tr("Finish on your phone or computer"));
         page_head(g, tr("Sign in to YouTube"), title, arrive(age_, 0, 0.05f, 0.5f));
         if (state_ == State::unavailable)
@@ -507,7 +507,7 @@ class SignIn final : public Screen
 
     std::string choice_label(int index) const
     {
-        return index == 0 ? with(tr("Watch as {0}"), profile_name_) : std::string(tr("All profiles"));
+        return index == 0 ? fill(tr("Watch as {0}"), profile_name_) : std::string(tr("All profiles"));
     }
 
     Rect choice_rect(int index) const
@@ -626,7 +626,7 @@ class SignIn final : public Screen
         case State::code:
             spinner(g, cx, cy, 16.0f, g.k.accent);
             line = tr("Waiting for your approval");
-            side = with(tr("The code is good for {0}"), clock_text(remaining_));
+            side = fill(tr("The code is good for {0}"), clock_text(remaining_));
             if (remaining_ < 60.0f)
                 side_ink = g.k.theme.warning; // the last minute, said in words and in colour
             break;
@@ -635,7 +635,7 @@ class SignIn final : public Screen
             const float pop = g.reduced ? 1.0f : tween::back_out(tween::clamp01(state_age_ / 0.4f));
             g.l.circle(cx, cy, 20.0f * pop, g.k.theme.success);
             icon(g, Icon::check, cx, cy, 26.0f * pop, g.k.on_accent);
-            line = with(tr("Signed in as {0}"), profile_name_);
+            line = fill(tr("Signed in as {0}"), profile_name_);
             break;
         }
         case State::denied:

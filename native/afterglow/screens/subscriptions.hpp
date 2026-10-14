@@ -181,7 +181,6 @@ class Subscriptions final : public Screen
     Choice choices_[2];
     const char *choice_names_[2] = {"", ""};
     Notice notice_;
-    Sheet sheet_;
 
     float age_ = 0.0f;
     tween::Spring scroll_;

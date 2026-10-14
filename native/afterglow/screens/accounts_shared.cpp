@@ -45,60 +45,12 @@ const std::string &fact_of(const Page &page, std::string_view name)
     return kNone;
 }
 
-std::string with(const char *pattern, std::string_view first, std::string_view second)
-{
-    std::string out(pattern != nullptr ? pattern : "");
-    const auto put = [&](const char *mark, std::string_view value)
-    {
-        const std::size_t at = out.find(mark);
-        if (at != std::string::npos)
-            out.replace(at, 3, value);
-    };
-    // The later mark first: a value may itself hold "{0}".
-    put("{1}", second);
-    put("{0}", first);
-    return out;
-}
-
 std::string clock_text(float seconds)
 {
     const int whole = std::max(0, static_cast<int>(std::ceil(seconds)));
     char buffer[16];
     std::snprintf(buffer, sizeof buffer, "%d:%02d", whole / 60, whole % 60);
     return buffer;
-}
-
-// ---- motion ----------------------------------------------------------------------
-
-Travel::Travel(G &g, const Phase &phase) : l_(g.l)
-{
-    const float in = tween::clamp01(phase.in);
-    const float out = tween::clamp01(phase.out);
-    // What leaves is gone early; what arrives waits a moment for it.
-    alpha_ = tween::clamp01(in * 1.4f - 0.2f) * (1.0f - tween::clamp01(out * 1.7f));
-    if (in >= 1.0f && out <= 0.0f)
-        alpha_ = 1.0f;
-    float dx = 0.0f;
-    float scale = 1.0f;
-    if (!g.reduced)
-    {
-        const float arrives = 1.0f - tween::quint_out(in);
-        const float leaves = tween::cubic_in(out);
-        if (phase.move == Move::push)
-            dx = 110.0f * arrives - 90.0f * leaves;
-        else if (phase.move == Move::pop)
-            dx = -110.0f * arrives + 90.0f * leaves;
-        else if (phase.move == Move::fade)
-            scale = 1.0f - 0.025f * leaves;
-    }
-    l_.push_opacity(alpha_);
-    l_.push_transform(scale, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, dx, 0.0f);
-}
-
-Travel::~Travel()
-{
-    l_.pop_transform();
-    l_.pop_opacity();
 }
 
 // ---- pieces ----------------------------------------------------------------------
@@ -159,89 +111,23 @@ Rect message_button_rect(const ui::Fonts &fonts, std::string_view body, std::str
 {
     if (action.empty())
         return {};
-    // Under the words, however many lines they take.
-    const int lines = std::max(1, measure_block(fonts.regular, body, kTypeBody, 820.0f, 34.0f, 3).lines);
-    const float width = measure(fonts.semibold, action, kTypeBody) + 96.0f;
-    return {1000.0f - width * 0.5f, 502.0f + 34.0f * static_cast<float>(lines - 1) + 44.0f, width, 64.0f};
+    const std::string label(action);
+    const Choice choice{label.c_str(), Icon::update};
+    Notice notice;
+    notice.lay_out(fonts, 1000.0f, 280.0f, body, &choice, 1);
+    return notice.buttons[0];
 }
 
 Rect message_page(G &g, Icon glyph, std::string_view title, std::string_view body, std::string_view action, float focus,
                   float amount, Color tone)
 {
-    const bool toned = tone.a > 0.0f;
-    {
-        Enter enter(g, amount, 26.0f);
-        g.l.circle(1000.0f, 336.0f, 56.0f, toned ? tone.with_alpha(0.2f) : g.k.raised);
-        icon(g, glyph, 1000.0f, 336.0f, 58.0f, toned ? tone : g.k.ink);
-        text(g, g.f.display, fit(g.f.display, title, 36.0f, 1100.0f), 1000.0f, 452.0f, 36.0f, g.k.ink, gfx::Align::center);
-        paragraph(g, g.f.regular, body, 1000.0f, 502.0f, kTypeBody, 820.0f, 34.0f, g.k.ink2, 3, gfx::Align::center);
-    }
-    const Rect button_rect = message_button_rect(g.f, body, action);
-    if (!action.empty())
-    {
-        Enter enter(g, tween::clamp01(amount * 1.4f - 0.4f), 18.0f);
-        button(g, button_rect, action, Icon::update, focus, true);
-    }
-    return button_rect;
-}
-
-// ---- the question with a safe answer ------------------------------------------------
-
-void LocalQuestion::ask(ui::StatusKind icon_kind, std::string title, std::string body, std::vector<std::string> answers, int danger,
-                   int safe, bool stacked, Feedback &feedback)
-{
-    ui::DialogContent content;
-    content.icon = icon_kind;
-    content.title = std::move(title);
-    content.body = std::move(body);
-    for (std::size_t i = 0; i < answers.size(); ++i)
-    {
-        const bool warns = static_cast<int>(i) == danger;
-        const bool leads = danger < 0 && i == 0;
-        content.buttons.push_back({std::move(answers[i]), warns || leads ? ui::ButtonKind::primary : ui::ButtonKind::secondary, warns});
-    }
-    content.default_button = safe;
-    dialog_.style.width = stacked ? 900.0f : 760.0f; // stacked answers are sentences: they get the room to be read whole
-    dialog_.style.centered = true;
-    dialog_.style.frosted = true;
-    dialog_.style.buttons = stacked ? ui::DialogButtons::stacked : ui::DialogButtons::row;
-    dialog_.set_bounds({0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight});
-    dialog_.open(std::move(content), feedback);
-}
-
-int LocalQuestion::update(const InputFrame &input, float dt, Feedback &feedback, bool top)
-{
-    dialog_.update(dt);
-    if (!dialog_.is_open() || !top)
-        return -2;
-    const ui::Event event = dialog_.handle(input, feedback);
-    if (event == ui::Event::activated)
-        return dialog_.choice();
-    if (event == ui::Event::cancelled)
-        return -1;
-    return -2;
-}
-
-void LocalQuestion::draw(const DrawContext &context) const
-{
-    if (!dialog_.visible())
-        return;
-    // REQUEST: UpdateContext::look, so a kit component is dressed where it is updated (requests/F.md, 3).
-    if (worn_ != &context.look || dialog_.style.reduced_motion != context.reduced_motion)
-    {
-        worn_ = &context.look;
-        dialog_.style.theme = context.look.theme;
-        dialog_.style.sounds.set = context.look.theme.sounds;
-        dialog_.style.reduced_motion = context.reduced_motion;
-    }
-    ui::Canvas canvas{context.ui, context.fonts, context.glass, context.time};
-    dialog_.draw(canvas);
-}
-
-std::string LocalQuestion::answer(int index) const
-{
-    const auto &buttons = dialog_.content().buttons;
-    return index >= 0 && index < static_cast<int>(buttons.size()) ? buttons[static_cast<std::size_t>(index)].label : std::string();
+    const std::string label(action);
+    const Choice choice{label.c_str(), Icon::update};
+    Notice notice;
+    notice.lay_out(g.f, 1000.0f, 280.0f, body, &choice, action.empty() ? 0 : 1);
+    Enter enter(g, amount, 26.0f);
+    notice.draw(g, glyph, title, body, &choice, 0.0f, focus > 0.5f, tone);
+    return action.empty() ? Rect{} : notice.buttons[0];
 }
 
 } // namespace afterglow::acct

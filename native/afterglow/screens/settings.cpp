@@ -91,8 +91,6 @@ void Settings::enter(const Route &route, UpdateContext &context, bool restored)
     sticky_ = PreviewKind::none;
     preview_ = PreviewState{};
     preview_placed_ = false;
-    sheet_.open = false;
-    sheet_.amount.snap(0.0f);
     applied_ = refused_ = 0;
     last_applied_.clear();
     last_refused_.clear();
@@ -122,48 +120,16 @@ void Settings::update(const InputFrame &input, UpdateContext &context)
 void Settings::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
-    // The hand-over: a page deeper arrives from the right while this one slides off to the left, and back.
-    const bool reduced = context.reduced_motion;
-    float opacity = 1.0f;
-    float scale = 1.0f;
-    float dx = 0.0f;
-    if (phase.out > 0.0f)
-    {
-        opacity = 1.0f - tween::smoothstep(phase.out * 2.4f);
-        if (!reduced && phase.move == Move::fade)
-            scale = 1.0f - 0.025f * tween::cubic_out(phase.out);
-        if (!reduced && phase.move == Move::push)
-            dx = -90.0f * tween::cubic_in(phase.out);
-        if (!reduced && phase.move == Move::pop)
-            dx = 90.0f * tween::cubic_in(phase.out);
-    }
-    else if (phase.in < 1.0f)
-    {
-        opacity = tween::smoothstep((phase.in - 0.12f) / 0.6f);
-        if (!reduced && phase.move == Move::push)
-            dx = 110.0f * (1.0f - tween::quint_out(phase.in));
-        if (!reduced && phase.move == Move::pop)
-            dx = -110.0f * (1.0f - tween::quint_out(phase.in));
-    }
-    if (opacity <= 0.003f)
-        return;
-    g.l.push_opacity(opacity);
-    g.l.push_transform(scale, 960.0f, 540.0f, dx, 0.0f);
+    HandOver hand(g, phase);
     if (home_)
         draw_home(g);
     else
         draw_page(g, context);
-    g.l.pop_transform();
-    if (sheet_.amount.value > 0.01f)
-        draw_sheet(g, context);
-    g.l.pop_opacity();
 }
 
 std::string Settings::title() const
 {
-    // REQUEST: a path over the title in the frame's header (requests/e.md, 3). Until the frame draws
-    // "SETTINGS > CAPTIONS" and sets the name lower, a page draws both itself and keeps the frame's title blank.
-    return home_ ? std::string(tr("Settings")) : std::string(" ");
+    return home_ ? std::string(tr("Settings")) : std::string();
 }
 
 std::span<const ui::Hint> Settings::hints() const
@@ -174,14 +140,6 @@ std::span<const ui::Hint> Settings::hints() const
 FocusInfo Settings::focus() const
 {
     FocusInfo info;
-    if (sheet_.open)
-    {
-        info.id = "sheet/keys";
-        info.text = sheet_.item.label;
-        info.rect = sheet_.keys.key_rect(sheet_.keys.focus_row(), sheet_.keys.focus_key());
-        info.total = 1;
-        return info;
-    }
     if (home_)
     {
         const int index = shown_.empty() ? 0 : shown_[static_cast<std::size_t>(std::clamp(focus_, 0, static_cast<int>(shown_.size()) - 1))];
@@ -239,6 +197,7 @@ std::vector<std::pair<std::string, std::string>> Settings::focusable() const
 
 void Settings::snapshot(Snapshot &out) const
 {
+    out.set("typing", typing_ ? 1 : 0);
     out.set("page", home_ ? std::string("home") : route_.argument);
     out.set("load", load_name(home_ ? sources_.front().load : page_load()));
     out.set("tiles", static_cast<int>(shown_.size()));
@@ -249,8 +208,6 @@ void Settings::snapshot(Snapshot &out) const
     out.set("last_applied", last_applied_);
     out.set("last_refused", last_refused_);
     out.set("moving", grabbed_ ? 1 : 0);
-    out.set("typing", sheet_.open ? 1 : 0);
-    out.set("typed", sheet_.text);
     out.set("scroll", static_cast<int>(home_ ? tiles_scroll_.target : scroll_.position.target));
     out.set("defaults", has_reset_ ? 1 : 0);
     static constexpr const char *kPreviews[] = {"none", "captions", "theme", "card"};

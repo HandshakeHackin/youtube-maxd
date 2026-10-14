@@ -24,6 +24,7 @@ struct Lists
     std::vector<model::Row> rows;
     std::vector<model::Video> videos;
     std::vector<model::Channel> channels;
+    std::vector<model::Topic> topics;
     std::vector<int> video_row;   // rows[video_row[i]] is the row of videos[i]
     std::vector<int> channel_row; // ... of channels[i]
 

@@ -38,33 +38,8 @@ const model::Row *find_row(const Page &page, std::string_view id);
 const model::Row *find_prefix(const Page &page, std::string_view prefix);
 // The fact of a name on the first row that has it; "" when none has.
 const std::string &fact_of(const Page &page, std::string_view name);
-// "{0}" and "{1}" of a translated pattern replaced.
-std::string with(const char *pattern, std::string_view first, std::string_view second = {});
 // m:ss of a number of seconds.
 std::string clock_text(float seconds);
-
-// ---- motion ----------------------------------------------------------------------
-
-// A page in a hand-over: it fades, slides a little the way the move goes and
-// stays put otherwise (design notes, section 8: deeper and back out).
-// REQUEST: a shared piece for this in design.hpp, so every screen moves alike
-// (requests/F.md, 4).
-class Travel
-{
-  public:
-    Travel(G &g, const Phase &phase);
-    ~Travel();
-    Travel(const Travel &) = delete;
-    Travel &operator=(const Travel &) = delete;
-    float alpha() const
-    {
-        return alpha_;
-    }
-
-  private:
-    gfx::DrawList &l_;
-    float alpha_ = 1.0f;
-};
 
 // ---- pieces ----------------------------------------------------------------------
 
@@ -86,43 +61,6 @@ void notice(G &g, const Rect &r, Icon glyph, std::string_view title, std::string
 Rect message_page(G &g, Icon glyph, std::string_view title, std::string_view body, std::string_view action, float focus,
                   float amount, Color tone = clear());
 Rect message_button_rect(const ui::Fonts &fonts, std::string_view body, std::string_view action);
-
-// ---- the question with a safe answer ------------------------------------------------
-
-// REQUEST: Nav::confirm with a destructive answer, its own two labels and the
-// focus on the safe one (board 41), and a question with three answers. The
-// frame's dialog opens on the confirming answer and names the other "Cancel";
-// until it can do this, the account screens keep the kit's dialog themselves
-// for these two questions (requests/F.md, 2).
-class LocalQuestion
-{
-  public:
-    // answers: one to three labels; `danger` is the index of the answer drawn
-    // in the warning colour (-1 for none); the focus opens on `safe`.
-    void ask(ui::StatusKind icon, std::string title, std::string body, std::vector<std::string> answers, int danger,
-             int safe, bool stacked, Feedback &feedback);
-    bool is_open() const
-    {
-        return dialog_.is_open();
-    }
-    // The answer chosen this frame (its index), -1 when the question was put
-    // away, -2 while nothing was decided.
-    int update(const InputFrame &input, float dt, Feedback &feedback, bool top);
-    void draw(const DrawContext &context) const;
-    int focus() const
-    {
-        return dialog_.focus();
-    }
-    const std::string &title() const
-    {
-        return dialog_.content().title;
-    }
-    std::string answer(int index) const;
-
-  private:
-    mutable ui::Dialog dialog_;
-    mutable const Look *worn_ = nullptr;
-};
 
 // ---- the sheet a password is typed on -------------------------------------------------
 
@@ -165,11 +103,10 @@ class PasswordSheet
     }
 
   private:
-    void dress(const DrawContext &context) const;
+    void dress(const UpdateContext &context);
 
     mutable ui::Keyboard keys_;
     mutable ui::TextField field_;
-    mutable const Look *worn_ = nullptr;
     std::string title_;
     std::string label_;
     float extra_ = 0.0f; // what a title of two lines adds to the sheet's height

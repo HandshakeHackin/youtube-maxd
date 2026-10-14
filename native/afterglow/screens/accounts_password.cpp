@@ -88,6 +88,7 @@ std::string PasswordSheet::take()
 
 int PasswordSheet::update(const InputFrame &input, UpdateContext &context)
 {
+    dress(context);
     shown_.target = open_ ? 1.0f : 0.0f;
     shown_.update(context.dt, context.reduced_motion ? 60.0f : 15.0f);
     keys_.update(context.dt);
@@ -132,27 +133,22 @@ int PasswordSheet::update(const InputFrame &input, UpdateContext &context)
     return 0;
 }
 
-void PasswordSheet::dress(const DrawContext &context) const
+void PasswordSheet::dress(const UpdateContext &context)
 {
-    // REQUEST: UpdateContext::look, so a kit component is dressed where it is updated (requests/F.md, 3).
-    if (worn_ == &context.look && keys_.style.reduced_motion == context.reduced_motion)
+    if (!context.look)
         return;
-    worn_ = &context.look;
     for (ui::ComponentStyle *style : {static_cast<ui::ComponentStyle *>(&keys_.style), static_cast<ui::ComponentStyle *>(&field_.style)})
     {
-        style->theme = context.look.theme;
-        style->sounds.set = context.look.theme.sounds;
-        style->reduced_motion = context.reduced_motion;
+        wear(*style, *context.look, context.reduced_motion);
     }
     // The bullet where the face has it.
-    field_.style.mask = covers(context.fonts.regular, "\xE2\x80\xA2") ? "\xE2\x80\xA2" : "*";
+    field_.style.mask = covers(context.services.fonts.regular, "\xE2\x80\xA2") ? "\xE2\x80\xA2" : "*";
 }
 
 void PasswordSheet::draw(const DrawContext &context) const
 {
     if (!visible())
         return;
-    dress(context);
     G g = context.g();
     const float a = tween::clamp01(shown_.value);
     g.l.rounded_rect({0.0f, 0.0f, gfx::kVirtualWidth, gfx::kVirtualHeight}, 0.0f, kBlack.with_alpha((g.k.dark ? 0.55f : 0.3f) * a));

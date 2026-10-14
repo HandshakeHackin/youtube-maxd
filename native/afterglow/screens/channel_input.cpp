@@ -56,13 +56,6 @@ void Channel::turn(int direction, const InputFrame &input, UpdateContext &contex
 
 void Channel::handle(const InputFrame &input, UpdateContext &context)
 {
-    if (sheet_.open())
-    {
-        Route route;
-        if (sheet_.handle(input, context, &route))
-            context.nav.push(route, Move::push);
-        return;
-    }
     if (sort_open_)
     {
         handle_sort_menu(input, context);
@@ -104,9 +97,9 @@ void Channel::handle(const InputFrame &input, UpdateContext &context)
     {
         // The actions of the video in focus; anywhere else, those of the channel itself.
         if (cell != nullptr && cell->video)
-            sheet_.show(cell->v.id, cell->v.title, context);
+            context.nav.actions(cell->v.id, cell->v.title, [data = &context.services.data, catalog = base_.catalog] { data->forget(catalog); });
         else if (cell == nullptr)
-            sheet_.show("channel:" + id_, head_.name, context);
+            context.nav.actions("channel:" + id_, head_.name, [data = &context.services.data, catalog = base_.catalog] { data->forget(catalog); });
         return;
     }
     switch (zone_)
@@ -339,7 +332,7 @@ void Channel::press_cell(Tab &of, const InputFrame &input, UpdateContext &contex
         return;
     const Cell &cell = of.cells[static_cast<std::size_t>(of.focus)];
     if (cell.video)
-        family::play(cell.v, cell_rect(of, of.focus, true).cx(), context);
+        play_video(context, cell.v, cell_rect(of, of.focus, true), cell_rect(of, of.focus, true).cx());
     else
         context.nav.push(Route{ScreenId::grid, cell.id, cell.title}, Move::push);
 }

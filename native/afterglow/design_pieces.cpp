@@ -288,10 +288,10 @@ float Notice::height() const
     return 190.0f + static_cast<float>(lines) * kNoticeLine + (count > 0 ? 60.0f : -30.0f);
 }
 
-void Notice::draw(G &g, Icon mark, std::string_view title, std::string_view body, const Choice *choices, float focus_at, bool focused) const
+void Notice::draw(G &g, Icon mark, std::string_view title, std::string_view body, const Choice *choices, float focus_at, bool focused, Color tone) const
 {
-    g.l.circle(cx, top + kNoticeDisc, kNoticeDisc, g.k.raised);
-    icon(g, mark, cx, top + kNoticeDisc, 50.0f, g.k.ink);
+    g.l.circle(cx, top + kNoticeDisc, kNoticeDisc, tone.a > 0.0f ? tone.with_alpha(0.2f) : g.k.raised);
+    icon(g, mark, cx, top + kNoticeDisc, 50.0f, tone.a > 0.0f ? tone : g.k.ink);
     text(g, g.f.semibold, fit(g.f.semibold, title, kTypeMessage, 1200.0f), cx, top + 142.0f, kTypeMessage, g.k.ink, gfx::Align::center);
     if (!body.empty())
         paragraph(g, g.f.regular, body, cx, top + 181.0f, kTypeBody, kNoticeWidth, kNoticeLine, g.k.ink2, 3, gfx::Align::center);
@@ -301,7 +301,7 @@ void Notice::draw(G &g, Icon mark, std::string_view title, std::string_view body
         const Rect &r = buttons[0];
         const float label_w = measure(g.f.semibold, choices[0].label, kTypeBody);
         const float x = r.cx() - (label_w + 44.0f) * 0.5f;
-        glyph(g, ui::Button::cross, x + 17.0f, r.cy(), 34.0f);
+        glyph(g, choices[0].button, x + 17.0f, r.cy(), 34.0f);
         text(g, g.f.semibold, choices[0].label, x + 44.0f, r.cy() + 8.5f, kTypeBody, focused ? g.k.ink : g.k.ink2);
         return;
     }

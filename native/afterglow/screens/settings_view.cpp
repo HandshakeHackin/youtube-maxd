@@ -36,10 +36,6 @@ void Settings::advance(UpdateContext &context)
     plate_.update(dt, quick);
     grab_.target = grabbed_ ? 1.0f : 0.0f;
     grab_.update(dt, reduced ? 60.0f : 16.0f);
-    sheet_.amount.target = sheet_.open ? 1.0f : 0.0f;
-    sheet_.amount.update(dt, reduced ? 60.0f : 13.0f);
-    if (sheet_.amount.value > 0.01f)
-        sheet_.keys.update(dt);
     for (const Item &item : items_)
     {
         Motion &motion = motion_[key_of(item)];
@@ -175,14 +171,6 @@ void Settings::make_hints()
         if (hint_count_ < hints_.size())
             hints_[hint_count_++] = {button, label, second};
     };
-    if (sheet_.open)
-    {
-        add(ui::Button::cross, tr("Type"));
-        add(ui::Button::square, tr("Delete"));
-        add(ui::Button::options, tr("Save"));
-        add(ui::Button::circle, tr("Cancel"));
-        return;
-    }
     if (home_)
     {
         const Source &main = sources_.front();
@@ -273,7 +261,6 @@ void Settings::draw_home(G &g) const
     const Source &main = sources_.front();
     const bool loading = main.load == model::Load::idle || main.load == model::Load::loading;
     {
-        // REQUEST: a line under the title in the frame's header (requests/e.md, 3).
         Enter enter(g, arrive(0, 0.05f, 0.5f), -14.0f);
         const std::string who = profile_.guest || profile_.name.empty() ? std::string(tr("Guest")) : profile_.name;
         text(g, g.f.regular, fit(g.f.regular, filled(tr("For {0} \xC2\xB7 saved on this PS5"), who), 22.0f, 1200.0f), kLeft, 166.0f, 22.0f, k.ink2);
@@ -469,49 +456,6 @@ float Settings::shake_of(const Item &item, const G &g) const
 {
     const auto found = motion_.find(key_of(item));
     return found == motion_.end() || g.reduced ? 0.0f : ui::shake(found->second.refused.value, g.time, 12.0f);
-}
-
-void Settings::draw_sheet(G &g, const DrawContext &context) const
-{
-    const Look &k = g.k;
-    const float amount = tween::clamp01(sheet_.amount.value);
-    g.l.push_opacity(amount);
-    g.l.rounded_rect({kRail, 0.0f, gfx::kVirtualWidth - kRail, gfx::kVirtualHeight}, 0.0f, kBlack.with_alpha(k.dark ? 0.62f : 0.3f));
-    g.l.push_transform(1.0f, 0.0f, 0.0f, 0.0f, g.reduced ? 0.0f : 40.0f * (1.0f - amount));
-    lift(g, kSheet, 36.0f, 1.0f);
-    glass_panel(g, kSheet, 36.0f, 1.5f);
-    text(g, g.f.display, fit(g.f.display, sheet_.item.label, 34.0f, kSheet.w - 88.0f), kSheet.x + 44.0f, kSheet.y + 66.0f, 34.0f, k.ink);
-    text(g, g.f.regular, fit(g.f.regular, sheet_.item.detail, kTypeMeta, kSheet.w - 88.0f), kSheet.x + 44.0f, kSheet.y + 100.0f, kTypeMeta, k.ink2);
-    const Rect field{kSheet.x + 44.0f, kSheet.y + 124.0f, kSheet.w - 88.0f, 64.0f};
-    g.l.rounded_rect(field, 16.0f, k.raised);
-    g.l.bordered_rect(field, 16.0f, clear(), 2.0f, k.focus.with_alpha(0.6f));
-    std::string typed = sheet_.text;
-    if (sheet_.item.row.has("secret"))
-    {
-        typed.clear();
-        for (std::size_t i = 0; i < sheet_.text.size(); ++i)
-        {
-            if ((static_cast<unsigned char>(sheet_.text[i]) & 0xC0u) != 0x80u)
-                typed += "\xE2\x80\xA2";
-        }
-    }
-    // The end of a long text stays in view: what does not fit leaves on the left.
-    g.l.push_clip(field.inset(14.0f));
-    const float width = measure(g.f.mono, typed, kTypeBody);
-    const float room = field.w - 44.0f;
-    const float x = field.x + 20.0f - std::max(0.0f, width - room);
-    text(g, g.f.mono, typed, x, field.cy() + 8.5f, kTypeBody, k.ink);
-    if (g.reduced || std::fmod(g.time, 1.0f) < 0.55f)
-        g.l.rounded_rect({x + width + 3.0f, field.cy() - 16.0f, 2.5f, 32.0f}, 1.0f, k.accent);
-    g.l.pop_clip();
-    // The kit's keyboard, in the look's theme.
-    ui::Keyboard keys = sheet_.keys;
-    keys.style.theme = context.look.theme;
-    keys.style.sounds.set = context.look.theme.sounds;
-    ui::Canvas canvas{g.l, context.fonts, context.glass, context.time};
-    keys.draw(canvas);
-    g.l.pop_transform();
-    g.l.pop_opacity();
 }
 
 } // namespace afterglow::settings

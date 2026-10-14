@@ -75,7 +75,6 @@ void Comments::enter(const Route &route, UpdateContext &context, bool restored)
     keys_.style.panel = false;
     keys_.style.max_length = kTextLimit;
     keys_.set_bounds(kKeys);
-    spinner_.style.kind = ui::SpinnerKind::arc;
 }
 
 std::string Comments::title() const
@@ -126,7 +125,7 @@ Item Comments::item_of(const model::Row &row, int depth, const ui::Fonts &fonts)
     }
     else
     {
-        item.lines = std::clamp(measure_block(fonts.regular, item.text, kTypeSaid, text_width(depth), kTextLine, kLinesInFocus).lines, 1,
+        item.lines = std::clamp(measure_block(fonts.regular, item.text, kTypeCard, text_width(depth), kTextLine, kLinesInFocus).lines, 1,
                                 kLinesInFocus);
         lines_[row.id] = item.lines;
     }

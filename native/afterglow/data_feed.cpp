@@ -19,6 +19,7 @@ void append(Lists &into, const Page &page)
     // add_row() decided what each row is and left its place in the page with the view model.
     const int base = static_cast<int>(into.rows.size());
     into.rows.insert(into.rows.end(), page.rows.begin(), page.rows.end());
+    into.topics.insert(into.topics.end(), page.topics.begin(), page.topics.end());
     for (const model::Video &video : page.videos)
     {
         into.videos.push_back(video);

@@ -9,6 +9,7 @@
 // without one is invited to sign in.
 
 #include "afterglow/screen.hpp"
+#include "afterglow/data_feed.hpp"
 
 #include "ui/components/skeleton.hpp"
 #include "ui/components/stat.hpp"
@@ -36,100 +37,11 @@ constexpr float kThumbW = 170.6f; // 16:9 at the row's height
 constexpr float kThumbH = 96.0f;
 constexpr Rect kMessage{kLeft + 400.0f, 280.0f, 848.0f, 460.0f};
 constexpr const char *kCatalog = "library:notifications";
-constexpr int kPageLimit = 80; // pages read at most
-// REQUEST: theme.hpp has no size for the line under a page title, nor the sizes
-// of the message block the approved empty and offline boards use.
-constexpr float kTypeSub = 22.0f;
-constexpr float kTypeMessage = 36.0f;
 
-bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
-
-// A translated pattern with its number in place: "{0} new" -> "3 new".
-std::string fill(const char *pattern, std::string_view value)
-{
-    std::string out(pattern);
-    const std::size_t at = out.find("{0}");
-    if (at != std::string::npos)
-        out.replace(at, 3, value);
-    return out;
-}
-
-// REQUEST: the data layer cleans a row's title and subtitle of what no face
-// draws, but not its facts; a fact that is shown is cleaned here meanwhile.
 std::string shown_fact(const model::Row &row, std::string_view name)
 {
     return clean(row.fact(name));
 }
-
-// ---- stand-ins for pieces more than one screen needs ---------------------------
-
-// REQUEST: Data has no way to see that a page changed and no list across pages.
-// A catalog read page by page. poll() runs every frame the list is on screen:
-// the first call of a page asks for it, later calls see what has arrived.
-struct Feed
-{
-    std::string catalog;
-    int pages = 1;       // asked for so far
-    int ready = 0;       // of them, how many have answered, counted from the first
-    model::Load load = model::Load::idle; // of the first page
-    std::string error;
-    bool more = false;    // a page beyond those asked for exists
-    bool growing = false; // the last page asked for is on its way
-    bool stuck = false;   // ... or was refused: the list ends early
-    std::string stuck_error;
-    std::uint64_t stamp = 0;
-
-    void reset(std::string id)
-    {
-        *this = Feed{};
-        catalog = std::move(id);
-    }
-    // True when what the pages hold changed since the last call.
-    bool poll(Data &data)
-    {
-        std::uint64_t next = 1469598103934665603ull;
-        const auto mix = [&next](std::uint64_t value) { next = (next ^ value) * 1099511628211ull; };
-        ready = 0;
-        more = false;
-        growing = false;
-        stuck = false;
-        for (int index = 0; index < pages; ++index)
-        {
-            const Page &page = data.catalog(catalog, index);
-            if (index == 0)
-            {
-                load = page.load;
-                error = page.error;
-            }
-            mix(static_cast<std::uint64_t>(page.load) + 11u);
-            if (page.load != model::Load::ready)
-            {
-                growing = index > 0 && page.load == model::Load::loading;
-                stuck = index > 0 && !growing;
-                if (stuck)
-                    stuck_error = page.error;
-                break;
-            }
-            ++ready;
-            mix(page.rows.size());
-            for (const model::Row &row : page.rows)
-                mix(std::hash<std::string>{}(row.id) ^ (row.has("unread") ? 0x9e3779b97f4a7c15ull : 0ull));
-            more = page.more && index + 1 == pages;
-        }
-        const bool changed = next != stamp;
-        stamp = next;
-        return changed;
-    }
-    // One more page, when there is one and none is on its way.
-    void grow()
-    {
-        if (more && !growing && pages < kPageLimit)
-            ++pages;
-    }
-};
 
 // One notification as its row shows it.
 struct Notice
@@ -191,7 +103,7 @@ class Notifications final : public Screen
             return; // back from the channel or the video: the row in focus and the scroll stay
         route_ = route;
         age_ = 0.0f;
-        feed_.reset(kCatalog);
+        feed_.start(kCatalog);
         rows_.clear();
         read_.clear();
         notice_.clear();
@@ -203,16 +115,6 @@ class Notifications final : public Screen
         told_stuck_ = false;
         ring_snap_ = true;
         profile_ = context.services.data.profile();
-        bone_.style.line_height = 18.0f;
-        bone_.style.line_gap = 16.0f;
-        bone_.style.row_height = 64.0f;
-        bone_.style.rows = 1;
-        block_.style.title_size = kTypeMessage;
-        block_.style.body_size = kTypeBody;
-        block_.style.hint_size = kTypeBody;
-        block_.style.max_text_width = 640.0f;
-        block_.style.max_lines = 4;
-        block_.enter();
         shown_state_ = state_now();
     }
 
@@ -229,17 +131,16 @@ class Notifications final : public Screen
         {
             rows_.clear(); // another profile is browsing: nothing of the one before stays while its list loads
             read_.clear();
-            feed_.stamp = 0;
+            feed_.restart();
         }
         profile_ = browsing;
-        if (profile_.signed_in && feed_.poll(data))
+        if (profile_.signed_in && feed_.read(data))
             rebuild();
 
         const State state = state_now();
         if (state != shown_state_)
         {
             shown_state_ = state;
-            block_.enter();
         }
         if (state == State::loading)
         {
@@ -254,17 +155,18 @@ class Notifications final : public Screen
         // The focus stays on a row that exists, and that row stays on the page.
         const int count = static_cast<int>(rows_.size());
         focus_ = std::clamp(focus_, 0, std::max(0, count - 1));
-        const bool waiting = feed_.growing && count > 0 && focus_ == count - 1; // the next page's bones come into view under the last row
+        const bool waiting = feed_.fetching_more() && count > 0 && focus_ == count - 1; // the next page's bones come into view under the last row
         first_row_ = std::clamp(first_row_, focus_ - (kVisibleRows - 1), focus_);
         first_row_ = waiting ? std::max(0, count - kVisibleRows + 1) : std::clamp(first_row_, 0, std::max(0, count - kVisibleRows));
         scroll_.target = static_cast<float>(first_row_) * kRowPitch;
         scroll_.update(dt, context.reduced_motion ? 60.0f : 13.0f);
         if (state == State::ready && count - 1 - focus_ <= kVisibleRows)
-            feed_.grow(); // the end of what has arrived is near: ask for the next page
-        if (feed_.stuck && !told_stuck_)
+            if (feed_.wanted < 80)
+                feed_.want_more(); // the end of what has arrived is near: ask for the next page
+        if (feed_.more_failed && !told_stuck_)
         {
             told_stuck_ = true;
-            context.nav.toast(feed_.stuck_error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : feed_.stuck_error,
+            context.nav.toast(feed_.error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : feed_.error,
                               ToastKind::warning);
         }
 
@@ -277,10 +179,6 @@ class Notifications final : public Screen
         }
         if (state == State::ready && count > 0)
             (void)context.services.images.get(rows_[static_cast<std::size_t>(focus_)].thumb, PictureSize::ambient);
-        bone_.style.reduced_motion = context.reduced_motion;
-        bone_.update(dt);
-        block_.style.reduced_motion = context.reduced_motion;
-        block_.update(dt);
 
         const Rect target = row_rect(focus_);
         if (ring_snap_ || age_ < 0.1f)
@@ -312,13 +210,6 @@ class Notifications final : public Screen
         ui::Canvas canvas{g.l, g.f, g.glass, g.time};
         const State state = state_now();
         const float shown = state == State::loading ? 0.0f : tween::smoothstep(reveal_);
-        const std::string under = subtitle(state);
-        if (!under.empty())
-        {
-            // REQUEST: the frame draws a page's title but not the line under it.
-            Enter enter(g, tween::stagger(age_, 0, 0.05f, 0.5f) * shown, -14.0f);
-            text(g, g.f.regular, fit(g.f.regular, under, kTypeSub, 1200.0f), kLeft, 166.0f, kTypeSub, g.k.ink2);
-        }
         if (shown < 1.0f)
         {
             // Bones in the shape of the rows, then the rows in the same places.
@@ -337,6 +228,8 @@ class Notifications final : public Screen
         g.l.pop_transform();
         g.l.pop_opacity();
     }
+
+    std::string subtitle() const override { return subtitle(state_now()); }
 
     std::string title() const override
     {
@@ -397,8 +290,8 @@ class Notifications final : public Screen
         out.set("index", focus_);
         out.set("row", first_row_);
         out.set("unread", unread());
-        out.set("pages", feed_.pages);
-        out.set("more", feed_.more || feed_.growing ? 1 : 0);
+        out.set("pages", feed_.wanted);
+        out.set("more", (feed_.more && !feed_.more_failed) || feed_.fetching_more() ? 1 : 0);
         out.set("signed_in", profile_.signed_in ? 1 : 0);
         out.set("subtitle", subtitle(state));
         std::vector<std::string> titles;
@@ -416,7 +309,7 @@ class Notifications final : public Screen
             return State::invite;
         if (!rows_.empty())
             return State::ready; // also while a newer answer is on its way
-        if (feed_.ready > 0)
+        if (feed_.taken > 0)
             return notice_.empty() ? State::empty : State::notice;
         if (feed_.load == model::Load::failed)
             return State::failed;
@@ -453,7 +346,7 @@ class Notifications final : public Screen
     // Turns the pages that have arrived into rows. The focus stays on the same notification where it still exists.
     void rebuild()
     {
-        if (feed_.ready == 0)
+        if (feed_.taken == 0)
         {
             // Asked again and not answered yet: what was there stays until the answer replaces it.
             if (feed_.load != model::Load::loading && feed_.load != model::Load::idle)
@@ -465,53 +358,50 @@ class Notifications final : public Screen
         const std::string focused = focus_ < static_cast<int>(rows_.size()) ? rows_[static_cast<std::size_t>(focus_)].key : std::string();
         rows_.clear();
         notice_.clear();
-        for (int number = 0; number < feed_.ready; ++number)
+        std::size_t next_video = 0;
+        for (std::size_t row_index = 0; row_index < feed_.rows.size(); ++row_index)
         {
-            const Page &page = data_->catalog(feed_.catalog, number);
-            std::size_t next_video = 0;
-            for (const model::Row &row : page.rows)
+            const model::Row &row = feed_.rows[row_index];
+            const model::Video *video = next_video < feed_.videos.size() && feed_.videos[next_video].at == static_cast<int>(row_index) ? &feed_.videos[next_video++] : nullptr;
+            if (row.id == "account:notice")
             {
-                const model::Video *video = next_video < page.videos.size() && page.videos[next_video].id == row.id ? &page.videos[next_video++] : nullptr;
-                if (row.id == "account:notice")
-                {
-                    if (notice_.empty())
-                        notice_ = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
-                    continue;
-                }
-                if (video == nullptr)
-                    continue; // only notifications that open a video are rows
-                Notice item;
-                item.video = *video;
-                item.channel = shown_fact(row, "channel");
-                item.channel_id = video->channel_id;
-                item.when = row.fact("published").empty() ? row.subtitle : shown_fact(row, "published");
-                item.thumb = row.thumb;
-                item.avatar = row.fact("channel_art_url");
-                item.unread = row.has("unread");
-                item.live = (video->badges & model::kBadgeLive) != 0;
-                // YouTube words a notification as one sentence, "<channel> <what happened>: <title>".
-                // Where the provider names the channel, the sentence is taken apart along it; else it is shown whole.
-                item.title = row.title;
-                if (!item.channel.empty() && starts_with(row.title, item.channel) && row.title.size() > item.channel.size() + 1 &&
-                    row.title[item.channel.size()] == ' ')
-                {
-                    const std::string rest = row.title.substr(item.channel.size() + 1);
-                    const std::size_t colon = rest.find(": ");
-                    if (colon != std::string::npos && colon + 2 < rest.size())
-                    {
-                        item.what = rest.substr(0, colon);
-                        item.title = rest.substr(colon + 2);
-                    }
-                    else
-                    {
-                        item.what = rest;
-                        item.title.clear();
-                    }
-                }
-                item.key = row.id + "|" + item.when + "|" + std::to_string(std::count_if(rows_.begin(), rows_.end(), [&row](const Notice &other)
-                                                                              { return other.video.id == row.id; }));
-                rows_.push_back(std::move(item));
+                if (notice_.empty())
+                    notice_ = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
+                continue;
             }
+            if (video == nullptr)
+                continue; // only notifications that open a video are rows
+            Notice item;
+            item.video = *video;
+            item.channel = shown_fact(row, "channel");
+            item.channel_id = video->channel_id;
+            item.when = row.fact("published").empty() ? row.subtitle : shown_fact(row, "published");
+            item.thumb = row.thumb;
+            item.avatar = row.fact("channel_art_url");
+            item.unread = row.has("unread");
+            item.live = (video->badges & model::kBadgeLive) != 0;
+            // YouTube words a notification as one sentence, "<channel> <what happened>: <title>".
+            // Where the provider names the channel, the sentence is taken apart along it; else it is shown whole.
+            item.title = row.title;
+            if (!item.channel.empty() && starts_with(row.title, item.channel) && row.title.size() > item.channel.size() + 1 &&
+                row.title[item.channel.size()] == ' ')
+            {
+                const std::string rest = row.title.substr(item.channel.size() + 1);
+                const std::size_t colon = rest.find(": ");
+                if (colon != std::string::npos && colon + 2 < rest.size())
+                {
+                    item.what = rest.substr(0, colon);
+                    item.title = rest.substr(colon + 2);
+                }
+                else
+                {
+                    item.what = rest;
+                    item.title.clear();
+                }
+            }
+            item.key = row.id + "|" + item.when + "|" + std::to_string(std::count_if(rows_.begin(), rows_.end(), [&row](const Notice &other)
+                                                                          { return other.video.id == row.id; }));
+            rows_.push_back(std::move(item));
         }
         for (std::size_t i = 0; i < rows_.size(); ++i)
         {
@@ -536,9 +426,7 @@ class Notifications final : public Screen
         }
     }
 
-    // REQUEST: the provider has no row that tells YouTube a notification was read
-    // (the service keeps YouTube's own "clicked" call to itself). Until it has,
-    // read is remembered by this page only.
+    // shortcut: read state lasts for this page; use the provider when it exposes a mark-read action.
     void mark_read(const Notice &row)
     {
         if (is_unread(row))
@@ -574,13 +462,13 @@ class Notifications final : public Screen
                 {
                     move(context, 1);
                 }
-                else if (feed_.stuck && !input.nav_repeat)
+                else if (feed_.more_failed && !input.nav_repeat)
                 {
                     // The page after this one was refused: ask for the list again; what is here stays meanwhile.
                     told_stuck_ = false;
                     context.services.data.forget(feed_.catalog);
                 }
-                else if (!feed_.more && !feed_.growing)
+                else if (!feed_.more && !feed_.fetching_more())
                 {
                     refuse(input, context, 0.0f, 1.0f); // the last notification; while more are arriving the press just waits
                 }
@@ -773,17 +661,12 @@ class Notifications final : public Screen
         return {row.x + row.w - kThumbW - 16.0f, row.y + (row.h - kThumbH) * 0.5f, kThumbW, kThumbH};
     }
 
-    void draw_bones(G &g, ui::Canvas &canvas, const Rect &r) const
+    void draw_bones(G &g, ui::Canvas &, const Rect &r) const
     {
-        ui::Skeleton bone = bone_;
-        bone.style.theme = g.k.theme;
-        bone.style.kind = ui::SkeletonKind::list_row;
-        bone.set_bounds({r.x + 54.0f, r.cy() - 32.0f, 900.0f, 64.0f});
-        bone.draw(canvas);
-        bone.style.kind = ui::SkeletonKind::block;
-        bone.style.radius = kRadiusThumb;
-        bone.set_bounds(thumb_rect(r));
-        bone.draw(canvas);
+        bone(g, {r.x + 54.0f, r.cy() - 30.0f, 60.0f, 60.0f}, 30.0f);
+        bone(g, {r.x + 134.0f, r.cy() - 28.0f, 600.0f, 18.0f}, 9.0f);
+        bone(g, {r.x + 134.0f, r.cy() + 6.0f, 420.0f, 18.0f}, 9.0f, 1);
+        bone(g, thumb_rect(r), kRadiusThumb);
     }
 
     void draw_rows(const DrawContext &context, G &g, ui::Canvas &canvas, float alpha) const
@@ -863,7 +746,7 @@ class Notifications final : public Screen
             if (row.live)
                 tag(g, thumb.x + 8.0f, thumb.y + 20.0f, tr("LIVE"), g.k.accent, g.k.on_accent, 24.0f);
         }
-        if (feed_.growing)
+        if (feed_.fetching_more())
         {
             // More notifications are on their way: their bones stand where they will land.
             for (int i = count; i < count + 2; ++i)
@@ -893,21 +776,14 @@ class Notifications final : public Screen
 
     void draw_message(G &g, ui::Canvas &canvas, State state, float alpha) const
     {
+        (void)canvas;
         const Message m = message_of(state);
-        ui::EmptyState block = block_;
-        block.style.theme = g.k.theme;
-        block.title = m.title;
-        block.body = m.body;
-        block.action = m.action;
-        const Icon which = m.icon;
-        block.icon = [&g, which](ui::Canvas &, const Rect &area)
-        {
-            g.l.circle(area.cx(), area.cy(), area.w * 0.5f, g.k.raised);
-            icon(g, which, area.cx(), area.cy(), area.w * 0.52f, g.k.ink);
-        };
-        block.set_bounds(kMessage);
+        const Choice choice{m.action.c_str(), Icon::chevron_right, ui::Button::cross};
+        afterglow::Notice notice;
+        const Rect r = kMessage;
+        notice.lay_out(g.f, r.cx(), r.y, m.body, &choice, m.action.empty() ? 0 : 1);
         g.l.push_opacity(alpha);
-        block.draw(canvas);
+        notice.draw(g, m.icon, m.title, m.body, &choice, 0.0f, true);
         g.l.pop_opacity();
     }
 
@@ -932,8 +808,6 @@ class Notifications final : public Screen
     float reveal_ = 0.0f;      // how far the answer has taken over from the bones
     bool was_loading_ = false; // bones were shown: the answer cross-fades in
     bool told_stuck_ = false;  // a toast has said that the list ends early
-    ui::Skeleton bone_;
-    ui::EmptyState block_;
     std::array<ui::Hint, 4> hints_{};
     std::size_t hint_count_ = 0;
 };

@@ -121,11 +121,6 @@ void Settings::bump(const InputFrame &input, UpdateContext &context)
 
 void Settings::input_page(const InputFrame &input, UpdateContext &context)
 {
-    if (sheet_.open)
-    {
-        input_sheet(input, context);
-        return;
-    }
     if (leave_ > 0.0f)
     {
         // The choice was confirmed: the list closes once the mark has been seen on it.
@@ -449,17 +444,47 @@ void Settings::activate(const Item &item, const InputFrame &input, UpdateContext
         break;
     }
     case Kind::text:
-        sheet_.open = true;
-        sheet_.item = item;
-        sheet_.text = item.row.has("secret") ? std::string() : item.row.fact("text").empty() ? item.value : item.row.fact("text");
-        sheet_.keys.style.bindings = ui::KeyboardBindings::standard();
-        sheet_.keys.style.panel = false;
-        sheet_.keys.style.reduced_motion = context.reduced_motion;
-        sheet_.keys.set_bounds(kSheetKeys);
-        sheet_.keys.set_length(-1);
-        sheet_.keys.enter();
-        context.feedback.play(audio::Cue::modal_open);
+    {
+        if (changes_.size() >= kWaiting)
+        {
+            context.feedback.play(audio::Cue::error, 1.0f, 0.0f, 0.6f);
+            break;
+        }
+        typing_ = true;
+        TextQuestion question;
+        question.title = item.label;
+        question.detail = item.detail;
+        question.secret = item.row.has("secret");
+        question.initial = question.secret ? std::string() : item.row.fact("text").empty() ? item.value : item.row.fact("text");
+        question.may_be_empty = true;
+        const std::weak_ptr<int> alive = alive_;
+        context.nav.ask_text(std::move(question), [this, alive, item](bool taken, std::string text)
+        {
+            if (alive.expired())
+            {
+                std::fill(text.begin(), text.end(), '\0');
+                return;
+            }
+            typing_ = false;
+            if (taken)
+            {
+                Change change;
+                change.item = item.row.id;
+                change.catalog = item.catalog;
+                change.action = item.row.id;
+                change.typed = true;
+                if (!item.row.has("secret"))
+                {
+                    change.value = text;
+                    change.sets_value = true;
+                }
+                change.text = std::move(text);
+                changes_.push_back(std::move(change));
+            }
+            std::fill(text.begin(), text.end(), '\0');
+        });
         break;
+    }
     case Kind::link:
     {
         ScreenId target = ScreenId::reader;
@@ -568,38 +593,6 @@ void Settings::show_or_hide(const Item &item, const InputFrame &input, UpdateCon
     change.sets_on = true;
     if (ask(std::move(change), context))
         context.feedback.play(audio::Cue::toggle, shown(item).on ? 1.08f : 0.94f, ui::pan_for_x(kFormX + kFormW));
-}
-
-void Settings::input_sheet(const InputFrame &input, UpdateContext &context)
-{
-    if (pressed(input, Action::back))
-    {
-        sheet_.open = false;
-        context.feedback.play(audio::Cue::modal_close);
-        return;
-    }
-    ui::Event event = ui::Event::none;
-    if (pressed(input, Action::menu))
-        event = ui::Event::activated; // Options saves from anywhere on the keyboard
-    else
-        event = sheet_.keys.handle(input, context.feedback);
-    for (int i = 0; i < sheet_.keys.erased(); ++i)
-        drop_last_character(sheet_.text);
-    sheet_.text += sheet_.keys.typed();
-    if (event != ui::Event::activated)
-        return;
-    sheet_.open = false;
-    Change change;
-    change.item = sheet_.item.row.id;
-    change.catalog = sheet_.item.catalog;
-    change.action = sheet_.item.row.id;
-    if (!sheet_.item.row.has("secret"))
-    {
-        change.value = sheet_.text;
-        change.sets_value = true;
-    }
-    if (ask(std::move(change), context))
-        context.feedback.play(audio::Cue::select);
 }
 
 } // namespace afterglow::settings

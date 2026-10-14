@@ -11,6 +11,7 @@
 // ("history", "watch_later", "playlists", "liked", "queue", "favorites").
 
 #include "afterglow/screen.hpp"
+#include "afterglow/data_feed.hpp"
 
 #include "ui/components/skeleton.hpp"
 #include "ui/components/stat.hpp"
@@ -28,10 +29,7 @@ namespace
 {
 
 // ---- the page ------------------------------------------------------------------
-constexpr int kColumns = 4;
 constexpr int kVisibleRows = 2;
-constexpr float kCellW = 394.0f;
-constexpr float kCellH = 222.0f;
 constexpr float kPitchX = kCellW + 24.0f;
 constexpr float kPitchY = 352.0f;
 constexpr float kCellText = 96.0f; // the title's two lines and the line under them
@@ -44,12 +42,6 @@ constexpr float kTilesTitle = 736.0f;
 constexpr float kTilesTop = 764.0f;
 constexpr float kTileH = 124.0f;
 constexpr int kTiles = 4;
-constexpr int kPageLimit = 80; // pages of one list read at most
-// REQUEST: theme.hpp has no size for the line under a page title, nor the sizes
-// of the message block the approved empty and offline boards use.
-constexpr float kTypeSub = 22.0f;
-constexpr float kTypeCard = 23.0f;
-constexpr float kTypeMessage = 36.0f;
 
 struct Tab
 {
@@ -97,28 +89,11 @@ const char *tab_label(int index)
     }
 }
 
-bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
-
 bool all_digits(std::string_view text)
 {
     return !text.empty() && std::all_of(text.begin(), text.end(), [](char c) { return c >= '0' && c <= '9'; });
 }
 
-// A translated pattern with its number in place: "{0} videos" -> "12 videos".
-std::string fill(const char *pattern, std::string_view value)
-{
-    std::string out(pattern);
-    const std::size_t at = out.find("{0}");
-    if (at != std::string::npos)
-        out.replace(at, 3, value);
-    return out;
-}
-
-// REQUEST: the data layer cleans a row's title and subtitle of what no face
-// draws, but not its facts; a fact that is shown is cleaned here meanwhile.
 std::string shown_fact(const model::Row &row, std::string_view name)
 {
     return clean(row.fact(name));
@@ -128,73 +103,6 @@ std::string videos_text(std::size_t count)
 {
     return count == 1 ? std::string(tr("1 video")) : fill(tr("{0} videos"), std::to_string(count));
 }
-
-// ---- stand-ins for pieces more than one screen needs ---------------------------
-
-// REQUEST: Data has no way to see that a page changed and no list across pages.
-// A catalog read page by page. poll() runs every frame the list is on screen:
-// the first call of a page asks for it, later calls see what has arrived.
-struct Feed
-{
-    std::string catalog;
-    int pages = 1;       // asked for so far
-    int ready = 0;       // of them, how many have answered, counted from the first
-    model::Load load = model::Load::idle; // of the first page
-    std::string error;
-    bool more = false;    // a page beyond those asked for exists
-    bool growing = false; // the last page asked for is on its way
-    bool stuck = false;   // ... or was refused: the list ends early
-    std::string stuck_error;
-    std::uint64_t stamp = 0;
-
-    void reset(std::string id)
-    {
-        *this = Feed{};
-        catalog = std::move(id);
-    }
-    // True when what the pages hold changed since the last call.
-    bool poll(Data &data)
-    {
-        std::uint64_t next = 1469598103934665603ull;
-        const auto mix = [&next](std::uint64_t value) { next = (next ^ value) * 1099511628211ull; };
-        ready = 0;
-        more = false;
-        growing = false;
-        stuck = false;
-        for (int index = 0; index < pages; ++index)
-        {
-            const Page &page = data.catalog(catalog, index);
-            if (index == 0)
-            {
-                load = page.load;
-                error = page.error;
-            }
-            mix(static_cast<std::uint64_t>(page.load) + 11u);
-            if (page.load != model::Load::ready)
-            {
-                growing = index > 0 && page.load == model::Load::loading;
-                stuck = index > 0 && !growing;
-                if (stuck)
-                    stuck_error = page.error;
-                break;
-            }
-            ++ready;
-            mix(page.rows.size());
-            for (const model::Row &row : page.rows)
-                mix(std::hash<std::string>{}(row.id));
-            more = page.more && index + 1 == pages;
-        }
-        const bool changed = next != stamp;
-        stamp = next;
-        return changed;
-    }
-    // One more page, when there is one and none is on its way.
-    void grow()
-    {
-        if (more && !growing && pages < kPageLimit)
-            ++pages;
-    }
-};
 
 enum class Kind : std::uint8_t
 {
@@ -213,40 +121,6 @@ struct Cell
     model::Video video; // as the provider gave it: what is played
     model::Video card;  // as the card shows it (History says when it was watched)
 };
-
-// REQUEST: design.hpp has the video card only; results and the grid show playlists too.
-// A playlist: its first picture with the others stacked behind it.
-void playlist_card(G &g, const Rect &r, const Cell &cell, const Picture &picture, float focus, float alpha)
-{
-    if (alpha <= 0.01f)
-        return;
-    const float f = tween::clamp01(focus);
-    g.l.push_opacity(tween::clamp01(alpha));
-    const Color tone = picture.ready() ? picture.tone : gfx::mix(g.k.base2, g.k.ink, 0.22f);
-    g.l.rounded_rect({r.x + 28.0f, r.y - 16.0f, r.w - 56.0f, 30.0f}, 12.0f, tone.with_alpha(0.5f));
-    g.l.rounded_rect({r.x + 14.0f, r.y - 8.0f, r.w - 28.0f, 30.0f}, 14.0f, tone.with_alpha(0.85f));
-    if (f > 0.01f)
-        g.l.shadow({r.x, r.y + 20.0f, r.w, r.h}, kRadiusThumb, 40.0f, kBlack.with_alpha(0.55f * f));
-    const float shown = picture.ready() ? (g.reduced ? 1.0f : tween::clamp01(picture.age / 0.25f)) : 0.0f;
-    if (shown < 1.0f)
-        picture_placeholder(g, r, kRadiusThumb);
-    if (shown > 0.0f)
-    {
-        const float dim = 0.86f + 0.14f * f;
-        g.l.image(picture.texture, r, picture.cover(r.w / r.h), Color{dim, dim, dim, shown}, kRadiusThumb);
-    }
-    g.l.bordered_rect(r, kRadiusThumb, clear(), 1.5f, kWhite.with_alpha(0.1f));
-    const Rect side{r.x + r.w - 132.0f, r.y, 132.0f, r.h};
-    g.l.rounded_rect(side, kRadiusThumb, kBlack.with_alpha(0.66f));
-    icon(g, Icon::queue, side.cx(), side.cy() - (cell.count.empty() ? 0.0f : 18.0f), 34.0f, kWhite);
-    if (!cell.count.empty())
-        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 8.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
-             kWhite, gfx::Align::center);
-    const float after = paragraph(g, g.f.semibold, cell.title, r.x + 2.0f, r.y + r.h + 36.0f, kTypeCard, r.w - 4.0f, 30.0f,
-                                  g.k.ink.with_alpha(0.82f + 0.18f * f), 2);
-    text(g, g.f.regular, fit(g.f.regular, cell.line, kTypeMeta, r.w - 4.0f), r.x + 2.0f, after, kTypeMeta, g.k.ink2);
-    g.l.pop_opacity();
-}
 
 Rect cell_rect(int index, float scroll = 0.0f)
 {
@@ -314,9 +188,6 @@ bool removes(int tab, std::string_view id)
         return starts_with(id, "account:confirm:watch_later_remove:");
     case kLiked:
         return starts_with(id, "account:confirm:unrate:");
-    // REQUEST: the provider changes the queue and the favourites through
-    // tube_toggle_queue() and tube_toggle_favorite() only; these two acting
-    // rows of the video's menu are asked of it.
     case kQueue:
         return starts_with(id, "local:video:") && has(":queue:");
     case kFavorites:
@@ -368,10 +239,10 @@ class Library final : public Screen
             if (route.argument == kTabs[i].id)
                 tab_ = i;
             panes_[static_cast<std::size_t>(i)] = Pane{};
-            panes_[static_cast<std::size_t>(i)].feed.reset(kTabs[i].catalog);
+            panes_[static_cast<std::size_t>(i)].feed.start(kTabs[i].catalog);
         }
         prev_tab_ = tab_;
-        follows_.reset("subscriptions");
+        follows_.start("subscriptions");
         follows_count_ = -1;
         zone_ = Zone::content;
         ring_snap_ = true;
@@ -393,18 +264,6 @@ class Library final : public Screen
         tabs_.set_active(tab_, true);
         language_ = context.services.platform.language_revision();
 
-        bone_.style.kind = ui::SkeletonKind::card;
-        bone_.style.picture = 0.7f;
-        bone_.style.lines = 2;
-        bone_.style.radius = kRadiusThumb;
-        block_.style.title_size = kTypeMessage;
-        block_.style.body_size = kTypeBody;
-        block_.style.hint_size = kTypeBody;
-        block_.style.max_text_width = 640.0f;
-        block_.style.max_lines = 4;
-        block_.enter();
-        block_out_ = block_;
-        spinner_.style.kind = ui::SpinnerKind::arc;
     }
 
     void update(const InputFrame &input, UpdateContext &context) override
@@ -450,16 +309,16 @@ class Library final : public Screen
                 continue;
             if (i != tab_ && !counted && !(tiles_ && !kTabs[i].account))
                 continue;
-            if (panes_[static_cast<std::size_t>(i)].feed.poll(data))
+            if (panes_[static_cast<std::size_t>(i)].feed.read(data))
                 rebuild(i);
         }
-        if (tiles_ && follows_.poll(data))
+        if (tiles_ && follows_.read(data))
         {
             follows_count_ = -1;
-            if (follows_.ready > 0 && !follows_.more)
+            if (follows_.taken > 0 && !follows_.more)
             {
                 follows_count_ = 0;
-                for (int index = 0; index < follows_.ready; ++index)
+                for (int index = 0; index < follows_.taken; ++index)
                     follows_count_ += static_cast<int>(data.catalog(follows_.catalog, index).channels.size());
             }
         }
@@ -473,7 +332,6 @@ class Library final : public Screen
         if (state != shown_state_)
         {
             shown_state_ = state;
-            block_.enter();
         }
         if (state == State::loading)
         {
@@ -491,16 +349,17 @@ class Library final : public Screen
         const int rows = (count + kColumns - 1) / kColumns;
         const int row = pane.focus / kColumns;
         // On the last row that has arrived while the next page is on its way, the list waits with that page's bones in view.
-        const bool waiting = pane.feed.growing && rows > 0 && row == rows - 1;
+        const bool waiting = pane.feed.fetching_more() && rows > 0 && row == rows - 1;
         pane.first_row = std::clamp(pane.first_row, row - (kVisibleRows - 1), row);
         pane.first_row = waiting ? row : std::clamp(pane.first_row, 0, std::max(0, rows - kVisibleRows));
         pane.scroll.target = static_cast<float>(pane.first_row) * kPitchY;
         if (state == State::ready && rows - 1 - row <= 2)
-            pane.feed.grow(); // the end of what has arrived is near: ask for the next page
-        if (pane.feed.stuck && !pane.told_stuck)
+            if (pane.feed.wanted < 80)
+                pane.feed.want_more(); // the end of what has arrived is near: ask for the next page
+        if (pane.feed.more_failed && !pane.told_stuck)
         {
             pane.told_stuck = true;
-            context.nav.toast(pane.feed.stuck_error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : pane.feed.stuck_error,
+            context.nav.toast(pane.feed.error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : pane.feed.error,
                               ToastKind::warning);
         }
         for (Pane &each : panes_)
@@ -514,15 +373,10 @@ class Library final : public Screen
 
         const Zone zone = zone_now(state);
         tabs_.set_focused(zone == Zone::tabs);
-        tabs_.style.reduced_motion = context.reduced_motion;
+        if (context.look)
+            wear(tabs_.style, *context.look, context.reduced_motion);
         tabs_.update(dt);
-        bone_.style.reduced_motion = context.reduced_motion;
-        bone_.update(dt);
-        block_.style.reduced_motion = context.reduced_motion;
-        block_.update(dt);
-        block_out_.update(dt);
-        spinner_.style.reduced_motion = context.reduced_motion;
-        spinner_.update(dt);
+
 
         const Rect target = ring_target(state);
         if (ring_snap_ || age_ < 0.1f)
@@ -558,14 +412,8 @@ class Library final : public Screen
         g.l.push_transform(hand.scale, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, hand.dx, 0.0f);
         ui::Canvas canvas{g.l, g.f, g.glass, g.time};
         {
-            // REQUEST: the frame draws a page's title but not the line under it.
-            Enter enter(g, tween::stagger(age_, 0, 0.05f, 0.5f), -14.0f);
-            text(g, g.f.regular, fit(g.f.regular, subtitle(), kTypeSub, 1100.0f), kLeft, 166.0f, kTypeSub, g.k.ink2);
-        }
-        {
             Enter enter(g, tween::stagger(age_, 1, 0.05f, 0.5f), 18.0f);
             ui::TabBar tabs = tabs_;
-            tabs.style.theme = g.k.theme;
             tabs.draw(canvas);
             // Where this list lives and how long it is, in what room the tabs leave.
             const Rect last = tabs.tab_rect(g.f, kTabCount - 1);
@@ -663,8 +511,8 @@ class Library final : public Screen
         out.set("items", static_cast<int>(pane.cells.size()));
         out.set("index", pane.focus);
         out.set("row", pane.first_row);
-        out.set("pages", pane.feed.pages);
-        out.set("more", pane.feed.more || pane.feed.growing ? 1 : 0);
+        out.set("pages", pane.feed.wanted);
+        out.set("more", (pane.feed.more && !pane.feed.more_failed) || pane.feed.fetching_more() ? 1 : 0);
         out.set("signed_in", profile_.signed_in ? 1 : 0);
         out.set("watch_later", tabs_.tabs()[kWatchLater].badge);
         out.set("queue", tabs_.tabs()[kQueue].badge);
@@ -686,7 +534,7 @@ class Library final : public Screen
             return State::invite;
         if (!pane.cells.empty())
             return State::ready; // also while a newer answer is on its way
-        if (pane.feed.ready > 0)
+        if (pane.feed.taken > 0)
             return pane.notice.empty() ? State::empty : State::notice;
         if (pane.feed.load == model::Load::failed)
             return State::failed;
@@ -709,11 +557,11 @@ class Library final : public Screen
     int length(int index) const
     {
         const Pane &pane = panes_[static_cast<std::size_t>(index)];
-        if (pane.feed.ready == 0 && pane.cells.empty())
+        if (pane.feed.taken == 0 && pane.cells.empty())
             return -1;
         if (pane.total >= 0)
             return std::max(0, pane.total - static_cast<int>(pane.hidden.size()));
-        return pane.feed.more || pane.feed.growing || pane.feed.stuck ? -1 : static_cast<int>(pane.cells.size());
+        return pane.feed.more || pane.feed.fetching_more() || pane.feed.more_failed ? -1 : static_cast<int>(pane.cells.size());
     }
     // The number a tab shows.
     int counted(int index) const
@@ -725,7 +573,7 @@ class Library final : public Screen
     void rebuild(int index)
     {
         Pane &pane = panes_[static_cast<std::size_t>(index)];
-        if (pane.feed.ready == 0)
+        if (pane.feed.taken == 0)
         {
             // Asked again and not answered yet: what was there stays until the answer replaces it.
             if (pane.feed.load != model::Load::loading && pane.feed.load != model::Load::idle)
@@ -740,57 +588,54 @@ class Library final : public Screen
         if (data_ == nullptr)
             return;
         Data &data = *data_;
-        for (int number = 0; number < pane.feed.ready; ++number)
+        if (!pane.feed.rows.empty() && all_digits(pane.feed.rows.front().fact("total")))
+            pane.total = std::atoi(pane.feed.rows.front().fact("total").c_str());
+        std::size_t next_video = 0;
+        for (std::size_t row_index = 0; row_index < pane.feed.rows.size(); ++row_index)
         {
-            const Page &page = data.catalog(pane.feed.catalog, number);
-            if (number == 0 && !page.rows.empty() && all_digits(page.rows.front().fact("total")))
-                pane.total = std::atoi(page.rows.front().fact("total").c_str());
-            std::size_t next_video = 0;
-            for (const model::Row &row : page.rows)
+            const model::Row &row = pane.feed.rows[row_index];
+            const bool is_video = next_video < pane.feed.videos.size() && pane.feed.videos[next_video].at == static_cast<int>(row_index);
+            const model::Video *video = is_video ? &pane.feed.videos[next_video++] : nullptr;
+            if (row.id == "account:notice")
             {
-                const bool is_video = next_video < page.videos.size() && page.videos[next_video].id == row.id;
-                const model::Video *video = is_video ? &page.videos[next_video++] : nullptr;
-                if (row.id == "account:notice")
-                {
-                    if (pane.notice.empty())
-                        pane.notice = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
-                    continue;
-                }
-                if (std::find(pane.hidden.begin(), pane.hidden.end(), row.id) != pane.hidden.end())
-                {
-                    still_hidden.push_back(row.id);
-                    continue;
-                }
-                Cell cell;
-                cell.id = row.id;
-                cell.title = row.title;
-                cell.thumb = row.thumb;
-                if (video != nullptr)
-                {
-                    cell.video = *video;
-                    cell.card = *video;
-                    // History says when the video was watched instead of how many watched it.
-                    const std::string watched = shown_fact(row, "watched");
-                    if (index == kHistory && !watched.empty())
-                    {
-                        cell.card.views.clear();
-                        cell.card.age = watched;
-                    }
-                }
-                else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
-                {
-                    cell.kind = Kind::playlist;
-                    const std::string owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
-                    cell.line = owner.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + owner;
-                    const std::string amount = shown_fact(row, "count");
-                    cell.count = all_digits(amount) ? (amount == "1" ? std::string(tr("1 video")) : fill(tr("{0} videos"), amount)) : amount;
-                }
-                else
-                {
-                    continue; // a row this page has no card for
-                }
-                pane.cells.push_back(std::move(cell));
+                if (pane.notice.empty())
+                    pane.notice = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
+                continue;
             }
+            if (std::find(pane.hidden.begin(), pane.hidden.end(), row.id) != pane.hidden.end())
+            {
+                still_hidden.push_back(row.id);
+                continue;
+            }
+            Cell cell;
+            cell.id = row.id;
+            cell.title = row.title;
+            cell.thumb = row.thumb;
+            if (video != nullptr)
+            {
+                cell.video = *video;
+                cell.card = *video;
+                // History says when the video was watched instead of how many watched it.
+                const std::string watched = shown_fact(row, "watched");
+                if (index == kHistory && !watched.empty())
+                {
+                    cell.card.views.clear();
+                    cell.card.age = watched;
+                }
+            }
+            else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
+            {
+                cell.kind = Kind::playlist;
+                const std::string owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
+                cell.line = owner.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + owner;
+                const std::string amount = shown_fact(row, "count");
+                cell.count = all_digits(amount) ? (amount == "1" ? std::string(tr("1 video")) : fill(tr("{0} videos"), amount)) : amount;
+            }
+            else
+            {
+                continue; // a row this page has no card for
+            }
+            pane.cells.push_back(std::move(cell));
         }
         pane.hidden = std::move(still_hidden);
         for (std::size_t i = 0; i < pane.cells.size(); ++i)
@@ -828,8 +673,6 @@ class Library final : public Screen
         content_age_ = 0.0f;
         rippled_from_ = -1;
         ring_snap_ = true;
-        block_out_ = block_;
-        block_.enter();
         shown_state_ = state_of(tab_);
     }
 
@@ -971,13 +814,13 @@ class Library final : public Screen
         case Direction::down:
             if (pane.focus / kColumns >= (count - 1) / kColumns)
             {
-                if (pane.feed.stuck && !input.nav_repeat)
+                if (pane.feed.more_failed && !input.nav_repeat)
                 {
                     // The page after this one was refused: ask for the list again; what is here stays meanwhile.
                     pane.told_stuck = false;
                     context.services.data.forget(pane.feed.catalog);
                 }
-                else if (!pane.feed.more && !pane.feed.growing)
+                else if (!pane.feed.more && !pane.feed.fetching_more())
                 {
                     refuse(input, context, 0.0f, 1.0f); // the end of the list; while more is arriving the press just waits
                 }
@@ -1062,9 +905,7 @@ class Library final : public Screen
         const Cell &cell = pane.cells[static_cast<std::size_t>(pane.focus)];
         if (cell.kind != Kind::video)
             return;
-        // REQUEST: Touchpad opens the Actions sheet of a video; until the frame has one, the video page stands in.
-        context.nav.push(Route{ScreenId::video, cell.video.id, cell.video.title}, Move::zoom,
-                         grown(cell_rect(pane.focus, pane.scroll.target), 0.05f, 5.0f));
+        context.nav.actions(cell.video.id, cell.video.title, [data = &context.services.data, catalog = pane.feed.catalog] { data->forget(catalog); });
     }
 
     // Square on a video: its actions menu is read for the row that takes it out of this list.
@@ -1373,14 +1214,12 @@ class Library final : public Screen
         {
             // Bones in the shape of the list, then the list in the same places.
             g.l.push_opacity(1.0f - shown);
-            ui::Skeleton bone = bone_;
-            bone.style.theme = g.k.theme;
+
             for (int i = 0; i < kColumns * kVisibleRows; ++i)
             {
                 Enter enter(g, active ? tween::stagger(content_age_, 2 + i, 0.045f, 0.45f) : 1.0f, 26.0f);
                 const Rect r = cell_rect(i);
-                bone.set_bounds({r.x, r.y, r.w, r.h + kCellText});
-                bone.draw(canvas);
+                card_bone(g, r);
             }
             g.l.pop_opacity();
         }
@@ -1429,29 +1268,23 @@ class Library final : public Screen
                 const float below = tween::clamp01((kHintY - 36.0f - r.y) / 70.0f);
                 const float card_alpha = (1.0f - tween::clamp01(above * 1.5f)) * below * (leaving ? 0.4f : 1.0f);
                 if (cell.kind == Kind::playlist)
-                    playlist_card(g, big, cell, picture, focus, card_alpha);
+                    playlist_card(g, big, CardText{cell.title, cell.line, cell.count}, picture, focus, card_alpha);
                 else
                     video_card(g, big, cell.card, picture, focus, card_alpha, 2);
                 if (leaving)
                 {
-                    ui::Spinner spinner = spinner_;
-                    spinner.style.theme = g.k.theme;
-                    spinner.style.color = g.k.ink;
-                    spinner.set_bounds({big.cx() - 24.0f, big.cy() - 24.0f, 48.0f, 48.0f});
-                    spinner.draw(canvas);
+                    spinner(g, big.cx(), big.cy(), 24.0f, g.k.ink);
                 }
             }
         }
-        if (pane.feed.growing)
+        if (pane.feed.fetching_more())
         {
             // More of the list is on its way: its bones stand where it will land.
-            ui::Skeleton bone = bone_;
-            bone.style.theme = g.k.theme;
+
             for (int i = count; i < (count / kColumns + 2) * kColumns && i / kColumns <= last_row + 1; ++i)
             {
                 const Rect r = cell_rect(i, scroll);
-                bone.set_bounds({r.x, r.y, r.w, r.h + kCellText});
-                bone.draw(canvas);
+                card_bone(g, r);
             }
         }
         if (focused && pane.focus < count)
@@ -1483,23 +1316,15 @@ class Library final : public Screen
 
     void draw_message(G &g, ui::Canvas &canvas, int index, State state, float alpha, bool active) const
     {
+        (void)canvas;
         const Message m = message_of(index, state);
+        const Choice choice{m.action.c_str(), Icon::chevron_right, m.button};
+        afterglow::Notice notice;
         const bool tiles = state == State::offline && kTabs[index].account;
-        ui::EmptyState block = active ? block_ : block_out_;
-        block.style.theme = g.k.theme;
-        block.title = m.title;
-        block.body = m.body;
-        block.action = m.action;
-        block.action_button = m.button;
-        const Icon which = m.icon;
-        block.icon = [&g, which](ui::Canvas &, const Rect &area)
-        {
-            g.l.circle(area.cx(), area.cy(), area.w * 0.5f, g.k.raised);
-            icon(g, which, area.cx(), area.cy(), area.w * 0.52f, g.k.ink);
-        };
-        block.set_bounds(tiles ? kMessageOverTiles : kMessage);
+        const Rect r = tiles ? kMessageOverTiles : kMessage;
+        notice.lay_out(g.f, r.cx(), r.y, m.body, &choice, m.action.empty() ? 0 : 1);
         g.l.push_opacity(alpha);
-        block.draw(canvas);
+        notice.draw(g, m.icon, m.title, m.body, &choice, 0.0f, true);
         if (tiles)
             draw_tiles(g, index, active);
         g.l.pop_opacity();
@@ -1544,11 +1369,7 @@ class Library final : public Screen
     Data *data_ = nullptr;             // the frame's, which outlives every screen
     const ui::Fonts *fonts_ = nullptr; // ... and its fonts, for measuring the tabs
     Removal removal_;
-    ui::Spinner spinner_; // on the card that is being removed
     ui::TabBar tabs_;
-    ui::Skeleton bone_;
-    ui::EmptyState block_;     // the message of the tab on screen
-    ui::EmptyState block_out_; // ... and of the one that is leaving
     std::array<Pane, kTabCount> panes_;
     Feed follows_; // the channels followed on this PS5, for their tile
     int follows_count_ = -1;

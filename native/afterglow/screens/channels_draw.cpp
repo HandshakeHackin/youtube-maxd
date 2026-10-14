@@ -12,7 +12,7 @@ namespace afterglow::channels_page
 void Channels::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
-    Travel travel(g, phase);
+    HandOver travel(g, phase);
     draw_head(g);
     switch (mode_)
     {
@@ -24,7 +24,7 @@ void Channels::draw(const DrawContext &context, const Phase &phase) const
     case Mode::trouble:
     {
         Enter enter(g, arrive(age_, 2, 0.07f, 0.55f), 26.0f);
-        notice_.draw(g, notice_icon(), notice_title(), notice_body(), choices_, choice_pos_.value, zone_ == Zone::notice && !sheet_.open());
+        notice_.draw(g, notice_icon(), notice_title(), notice_body(), choices_, choice_pos_.value, zone_ == Zone::notice);
         break;
     }
     default:
@@ -32,7 +32,6 @@ void Channels::draw(const DrawContext &context, const Phase &phase) const
         break;
     }
     foot_scrim(g);
-    sheet_.draw(g);
 }
 
 void Channels::draw_head(G &g) const

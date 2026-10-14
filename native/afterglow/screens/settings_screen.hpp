@@ -167,6 +167,7 @@ class Settings final : public Screen
     void update(const InputFrame &input, UpdateContext &context) override;
     void draw(const DrawContext &context, const Phase &phase) const override;
     std::string title() const override;
+    Header header() const override { return home_ ? Header::title : Header::clock; }
     std::span<const ui::Hint> hints() const override;
     FocusInfo focus() const override;
     std::vector<std::pair<std::string, std::string>> focusable() const override;
@@ -199,6 +200,8 @@ class Settings final : public Screen
         std::string item;    // the row it is shown on ("" for a page's defaults)
         std::string catalog; // ... and the list that row is of
         std::string action;  // the row the provider is asked to carry out
+        std::string text;    // typed answer, erased once the provider takes it
+        bool typed = false;
         std::string value;   // what the row shows meanwhile
         std::string done;    // what to say when it worked, "" for nothing
         bool sets_value = false;
@@ -239,18 +242,6 @@ class Settings final : public Screen
     {
         bool ready = false;
         std::vector<Item> rows;
-    };
-
-    // REQUEST: text entry as a service of the frame and Data::act(row, text) (requests/e.md, 1 and 2).
-    // Until then a typed value is taken here, on the kit's keyboard, and the provider is only told that
-    // the row was chosen.
-    struct TextSheet
-    {
-        bool open = false;
-        Item item;
-        std::string text;
-        ui::Keyboard keys;
-        tween::Spring amount;
     };
 
     static constexpr Rect kNoticeButton{kLeft + 136.0f, 470.0f, 300.0f, 60.0f};
@@ -305,10 +296,6 @@ class Settings final : public Screen
     void move(const Item &item, int direction, const InputFrame &input, UpdateContext &context);
     void show_or_hide(const Item &item, const InputFrame &input, UpdateContext &context);
 
-    // ---- input: typing --------------------------------------------------------------
-
-    void input_sheet(const InputFrame &input, UpdateContext &context);
-
     // ---- what moves -----------------------------------------------------------------
 
     void advance(UpdateContext &context);
@@ -323,10 +310,7 @@ class Settings final : public Screen
     void draw_home(G &g) const;
     void draw_page(G &g, const DrawContext &context) const;
     float shake_of(const Item &item, const G &g) const;
-    void draw_sheet(G &g, const DrawContext &context) const;
 
-    static constexpr Rect kSheet{510.0f, 150.0f, 900.0f, 720.0f};
-    static constexpr Rect kSheetKeys{554.0f, 372.0f, 812.0f, 460.0f};
 
     Route route_;
     model::Profile profile_;
@@ -351,6 +335,7 @@ class Settings final : public Screen
     std::map<std::string, Motion> motion_;
     int steps_ = 0;
     bool grabbed_ = false;
+    bool typing_ = false;
     float leave_ = 0.0f;
     int applied_ = 0;
     int refused_ = 0;
@@ -371,7 +356,6 @@ class Settings final : public Screen
     PreviewState preview_;
     bool preview_placed_ = false;
     tween::Spring look_scale_, look_position_, look_plate_, look_interface_, look_grid_;
-    TextSheet sheet_;
     std::array<ui::Hint, 6> hints_{};
     std::size_t hint_count_ = 0;
     std::shared_ptr<int> alive_;

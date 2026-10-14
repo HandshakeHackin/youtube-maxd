@@ -62,12 +62,6 @@ void Channels::update(const InputFrame &input, UpdateContext &context)
     age_ += context.dt;
     read(context);
     finish(context);
-    sheet_.update(context);
-    if (sheet_.take_changed())
-    {
-        context.services.data.forget("library:channels");
-        context.services.data.forget("subscriptions");
-    }
     lay_out(context.services.fonts);
     if (context.top)
     {
@@ -92,8 +86,6 @@ std::span<const ui::Hint> Channels::hints() const
 {
     static ui::Hint items[4];
     std::size_t count = 0;
-    if (sheet_.open())
-        return sheet_.hints();
     if (zone_ == Zone::notice)
     {
         items[count++] = {ui::Button::cross, tr("Choose")};
@@ -119,8 +111,6 @@ std::span<const ui::Hint> Channels::hints() const
 FocusInfo Channels::focus() const
 {
     FocusInfo info;
-    if (sheet_.open())
-        return sheet_.focus();
     if (zone_ == Zone::notice && notice_.count > 0)
     {
         info.id = std::string("state/") + choice_names_[choice_];
@@ -181,7 +171,6 @@ void Channels::snapshot(Snapshot &out) const
     out.set("action", doing_ != 0 ? "pending" : outcome_);
     out.set("marks", marks());
     out.set("scroll", static_cast<int>(scroll_.target));
-    sheet_.snapshot(out);
     std::vector<std::string> names;
     for (std::size_t i = 0; i < tiles_.size() && i < 18; ++i)
         names.push_back(tiles_[i].channel.name);
@@ -417,13 +406,6 @@ void Channels::press_choice(UpdateContext &context)
 
 void Channels::handle(const InputFrame &input, UpdateContext &context)
 {
-    if (sheet_.open())
-    {
-        Route route;
-        if (sheet_.handle(input, context, &route))
-            context.nav.push(route, Move::push);
-        return;
-    }
     if (pressed(input, Action::back))
     {
         context.nav.back();
@@ -586,7 +568,7 @@ void Channels::handle_tiles(const InputFrame &input, UpdateContext &context)
     if (pressed(input, Action::confirm))
         context.nav.push(Route{ScreenId::channel, tile.channel.id, tile.channel.name}, Move::push);
     else if (pressed(input, Action::touch))
-        sheet_.show(tile.channel.row, tile.channel.name, context);
+        context.nav.actions(tile.channel.row, tile.channel.name, [data = &context.services.data] { data->forget("library:channels"); data->forget("subscriptions"); });
 }
 
 Icon Channels::notice_icon() const
@@ -681,7 +663,7 @@ void Channels::advance(UpdateContext &context)
     target = std::max(target, kTilePitchY * static_cast<float>(row - 1));
     scroll_.target = std::max(target, 0.0f);
     scroll_.update(dt, reduced ? 60.0f : 12.0f);
-    tiles_focus_.target = zone_ == Zone::tiles && !sheet_.open() ? 1.0f : 0.0f;
+    tiles_focus_.target = zone_ == Zone::tiles ? 1.0f : 0.0f;
     tiles_focus_.update(dt, quick);
     order_focus_.target = zone_ == Zone::order ? 1.0f : 0.0f;
     order_focus_.update(dt, quick);

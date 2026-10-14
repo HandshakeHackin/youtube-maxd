@@ -12,6 +12,7 @@
 // profile"), the page says so and offers a way on.
 
 #include "afterglow/screen.hpp"
+#include "afterglow/data_feed.hpp"
 
 #include "ui/components/skeleton.hpp"
 #include "ui/components/stat.hpp"
@@ -28,10 +29,7 @@ namespace
 {
 
 // ---- the page ------------------------------------------------------------------
-constexpr int kColumns = 4;
 constexpr int kVisibleRows = 2;
-constexpr float kCellW = 394.0f;
-constexpr float kCellH = 222.0f;
 constexpr float kPitchX = kCellW + 24.0f;
 constexpr float kPitchY = 352.0f;
 constexpr float kCellText = 96.0f;    // the title's two lines and the line under them
@@ -42,35 +40,12 @@ constexpr float kBarCy = 206.0f;
 constexpr float kBarButtonH = 52.0f;
 constexpr float kBarChipH = 44.0f;
 constexpr Rect kMessage{kLeft + 400.0f, 280.0f, 848.0f, 460.0f};
-constexpr int kPageLimit = 80; // pages of one catalog read at most
-// REQUEST: theme.hpp has no size for the line under a page title, nor the sizes
-// of the message block the approved empty and offline boards use.
-constexpr float kTypeSub = 22.0f;
-constexpr float kTypeCard = 23.0f;
-constexpr float kTypeMessage = 36.0f;
-
-bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
 
 bool all_digits(std::string_view text)
 {
     return !text.empty() && std::all_of(text.begin(), text.end(), [](char c) { return c >= '0' && c <= '9'; });
 }
 
-// A translated pattern with its number in place: "{0} videos" -> "12 videos".
-std::string fill(const char *pattern, std::string_view value)
-{
-    std::string out(pattern);
-    const std::size_t at = out.find("{0}");
-    if (at != std::string::npos)
-        out.replace(at, 3, value);
-    return out;
-}
-
-// REQUEST: the data layer cleans a row's title and subtitle of what no face
-// draws, but not its facts; a fact that is shown is cleaned here meanwhile.
 std::string shown_fact(const model::Row &row, std::string_view name)
 {
     return clean(row.fact(name));
@@ -90,73 +65,6 @@ bool plays_in_order(std::string_view catalog)
     return starts_with(catalog, "library:playlist:") || starts_with(catalog, "playlist:") || catalog == "library:watch_later" ||
            catalog == "queue";
 }
-
-// ---- stand-ins for pieces more than one screen needs ---------------------------
-
-// REQUEST: Data has no way to see that a page changed and no list across pages.
-// A catalog read page by page. poll() runs every frame the list is on screen:
-// the first call of a page asks for it, later calls see what has arrived.
-struct Feed
-{
-    std::string catalog;
-    int pages = 1;       // asked for so far
-    int ready = 0;       // of them, how many have answered, counted from the first
-    model::Load load = model::Load::idle; // of the first page
-    std::string error;
-    bool more = false;    // a page beyond those asked for exists
-    bool growing = false; // the last page asked for is on its way
-    bool stuck = false;   // ... or was refused: the list ends early
-    std::string stuck_error;
-    std::uint64_t stamp = 0;
-
-    void reset(std::string id)
-    {
-        *this = Feed{};
-        catalog = std::move(id);
-    }
-    // True when what the pages hold changed since the last call.
-    bool poll(Data &data)
-    {
-        std::uint64_t next = 1469598103934665603ull;
-        const auto mix = [&next](std::uint64_t value) { next = (next ^ value) * 1099511628211ull; };
-        ready = 0;
-        more = false;
-        growing = false;
-        stuck = false;
-        for (int index = 0; index < pages; ++index)
-        {
-            const Page &page = data.catalog(catalog, index);
-            if (index == 0)
-            {
-                load = page.load;
-                error = page.error;
-            }
-            mix(static_cast<std::uint64_t>(page.load) + 11u);
-            if (page.load != model::Load::ready)
-            {
-                growing = index > 0 && page.load == model::Load::loading;
-                stuck = index > 0 && !growing;
-                if (stuck)
-                    stuck_error = page.error;
-                break;
-            }
-            ++ready;
-            mix(page.rows.size());
-            for (const model::Row &row : page.rows)
-                mix(std::hash<std::string>{}(row.id));
-            more = page.more && index + 1 == pages;
-        }
-        const bool changed = next != stamp;
-        stamp = next;
-        return changed;
-    }
-    // One more page, when there is one and none is on its way.
-    void grow()
-    {
-        if (more && !growing && pages < kPageLimit)
-            ++pages;
-    }
-};
 
 enum class Kind : std::uint8_t
 {
@@ -195,100 +103,9 @@ Rect focused_rect(const Rect &cell, Kind kind, float focus = 1.0f)
     return grown(card_rect(cell, kind), (tile ? 0.04f : 0.05f) * focus, (tile ? 4.0f : 5.0f) * focus);
 }
 
-// REQUEST: design.hpp has the video card only; results, the library and this
-// page show playlists, sections and channels among videos.
-// A playlist: its first picture with the others stacked behind it.
-void playlist_card(G &g, const Rect &r, const Cell &cell, const Picture &picture, float focus, float alpha)
-{
-    if (alpha <= 0.01f)
-        return;
-    const float f = tween::clamp01(focus);
-    g.l.push_opacity(tween::clamp01(alpha));
-    const Color tone = picture.ready() ? picture.tone : gfx::mix(g.k.base2, g.k.ink, 0.22f);
-    g.l.rounded_rect({r.x + 28.0f, r.y - 16.0f, r.w - 56.0f, 30.0f}, 12.0f, tone.with_alpha(0.5f));
-    g.l.rounded_rect({r.x + 14.0f, r.y - 8.0f, r.w - 28.0f, 30.0f}, 14.0f, tone.with_alpha(0.85f));
-    if (f > 0.01f)
-        g.l.shadow({r.x, r.y + 20.0f, r.w, r.h}, kRadiusThumb, 40.0f, kBlack.with_alpha(0.55f * f));
-    const float shown = picture.ready() ? (g.reduced ? 1.0f : tween::clamp01(picture.age / 0.25f)) : 0.0f;
-    if (shown < 1.0f)
-        picture_placeholder(g, r, kRadiusThumb);
-    if (shown > 0.0f)
-    {
-        const float dim = 0.86f + 0.14f * f;
-        g.l.image(picture.texture, r, picture.cover(r.w / r.h), Color{dim, dim, dim, shown}, kRadiusThumb);
-    }
-    g.l.bordered_rect(r, kRadiusThumb, clear(), 1.5f, kWhite.with_alpha(0.1f));
-    const Rect side{r.x + r.w - 132.0f, r.y, 132.0f, r.h};
-    g.l.rounded_rect(side, kRadiusThumb, kBlack.with_alpha(0.66f));
-    icon(g, Icon::queue, side.cx(), side.cy() - (cell.count.empty() ? 0.0f : 18.0f), 34.0f, kWhite);
-    if (!cell.count.empty())
-        text(g, g.f.semibold, fit(g.f.semibold, cell.count, kTypeMeta, side.w - 8.0f), side.cx(), side.cy() + 32.0f, kTypeMeta,
-             kWhite, gfx::Align::center);
-    const float after = paragraph(g, g.f.semibold, cell.title, r.x + 2.0f, r.y + r.h + 36.0f, kTypeCard, r.w - 4.0f, 30.0f,
-                                  g.k.ink.with_alpha(0.82f + 0.18f * f), 2);
-    text(g, g.f.regular, fit(g.f.regular, cell.line, kTypeMeta, r.w - 4.0f), r.x + 2.0f, after, kTypeMeta, g.k.ink2);
-    g.l.pop_opacity();
-}
-
 // A section inside the section: a tile that opens, with its picture when it has one.
-void folder_card(G &g, const Rect &r, const Cell &cell, const Picture &picture, float focus, float alpha)
-{
-    if (alpha <= 0.01f)
-        return;
-    const float f = tween::clamp01(focus);
-    g.l.push_opacity(tween::clamp01(alpha));
-    if (f > 0.01f)
-        lift(g, r, kRadiusPanel, f);
-    const float shown = picture.ready() ? (g.reduced ? 1.0f : tween::clamp01(picture.age / 0.25f)) : 0.0f;
-    Color ink = g.k.ink;
-    if (shown < 1.0f)
-        glass_panel(g, r, kRadiusPanel, 1.0f + 0.2f * f);
-    if (shown > 0.0f)
-    {
-        // Over a picture the words are white on a shade, whatever the look.
-        const float dim = 0.5f + 0.12f * f;
-        g.l.image(picture.texture, r, picture.cover(r.w / r.h), Color{dim, dim, dim, shown}, kRadiusPanel);
-        g.l.gradient_rect(r, kRadiusPanel, kBlack.with_alpha(0.0f), kBlack.with_alpha(0.55f * shown));
-        g.l.bordered_rect(r, kRadiusPanel, clear(), 1.5f, kWhite.with_alpha(0.12f * shown));
-        ink = gfx::mix(ink, kWhite, shown);
-    }
-    icon(g, cell.icon, r.x + 46.0f, r.y + 48.0f, 36.0f, ink);
-    icon(g, Icon::chevron_right, r.x + r.w - 40.0f, r.y + 48.0f, 26.0f, ink.with_alpha(0.6f + 0.4f * f));
-    // The title sits at the tile's foot: two lines grow upward.
-    const TextBlock block = measure_block(g.f.semibold, cell.title, kTypeShelf, r.w - 64.0f, 34.0f, 2);
-    paragraph(g, g.f.semibold, cell.title, r.x + 32.0f, r.y + r.h - 30.0f - 34.0f * static_cast<float>(std::max(1, block.lines) - 1),
-              kTypeShelf, r.w - 64.0f, 34.0f, ink, 2);
-    if (!cell.line.empty())
-        text(g, g.f.regular, fit(g.f.regular, cell.line, kTypeMeta, r.w - 4.0f), r.x + 2.0f, r.y + r.h + 36.0f, kTypeMeta, g.k.ink2);
-    g.l.pop_opacity();
-}
 
 // A channel among the videos: its face, its name and how many follow it.
-void channel_card(G &g, const Rect &r, const Cell &cell, const Picture &picture, float focus, float alpha)
-{
-    if (alpha <= 0.01f)
-        return;
-    const float f = tween::clamp01(focus);
-    g.l.push_opacity(tween::clamp01(alpha));
-    if (f > 0.01f)
-        g.l.shadow({r.x, r.y + 20.0f, r.w, r.h}, kRadiusPanel, 40.0f, kBlack.with_alpha(0.5f * f));
-    glass_panel(g, r, kRadiusPanel, 1.0f + 0.2f * f);
-    avatar(g, r.cx(), r.y + 86.0f, 60.0f, cell.title, cell.id, picture);
-    text(g, g.f.semibold, fit(g.f.semibold, cell.title, kTypeShelf, r.w - 40.0f), r.cx(), r.y + 190.0f, kTypeShelf, g.k.ink, gfx::Align::center);
-    text(g, g.f.regular, fit(g.f.regular, cell.line, kTypeMeta, r.w - 40.0f), r.cx(), r.y + 222.0f, kTypeMeta, g.k.ink2, gfx::Align::center);
-    if (cell.subscribed)
-    {
-        // Selected is said with a mark, not with the focus.
-        const char *label = tr("Subscribed");
-        const float label_w = std::min(measure(g.f.semibold, label, kTypeMeta), r.w - 120.0f);
-        const Rect pill{r.cx() - label_w * 0.5f - 34.0f, r.y + 244.0f, label_w + 68.0f, 44.0f};
-        g.l.rounded_rect(pill, 22.0f, g.k.raised);
-        g.l.bordered_rect(pill, 22.0f, clear(), 1.5f, g.k.hairline);
-        icon(g, Icon::check, pill.x + 26.0f, pill.cy(), 20.0f, g.k.accent);
-        text(g, g.f.semibold, fit(g.f.semibold, label, kTypeMeta, label_w + 2.0f), pill.x + 44.0f, pill.cy() + 7.0f, kTypeMeta, g.k.ink);
-    }
-    g.l.pop_opacity();
-}
 
 enum class State : std::uint8_t
 {
@@ -360,16 +177,7 @@ class Grid final : public Screen
         bar_focus_ = 0;
         profile_ = context.services.data.profile();
         language_ = context.services.platform.language_revision();
-        bone_.style.kind = ui::SkeletonKind::card;
-        bone_.style.picture = 0.7f;
-        bone_.style.lines = 2;
-        bone_.style.radius = kRadiusThumb;
-        block_.style.title_size = kTypeMessage;
-        block_.style.body_size = kTypeBody;
-        block_.style.hint_size = kTypeBody;
-        block_.style.max_text_width = 640.0f;
-        block_.style.max_lines = 4;
-        block_.enter();
+
         shown_state_ = State::loading;
     }
 
@@ -385,22 +193,21 @@ class Grid final : public Screen
         if (browsing.id != profile_.id || browsing.signed_in != profile_.signed_in)
         {
             cells_.clear(); // another profile is browsing: nothing of the one before stays while its list loads
-            feed_.stamp = 0;
+            feed_.restart();
         }
         profile_ = browsing;
         if (language_ != context.services.platform.language_revision())
         {
             language_ = context.services.platform.language_revision();
-            feed_.stamp = 0; // the row above the grid holds interface texts: build it again
+            feed_.restart(); // the row above the grid holds interface texts: build it again
         }
-        if (feed_.poll(data))
+        if (feed_.read(data))
             rebuild(context.services.fonts);
 
         const State state = state_now();
         if (state != shown_state_)
         {
             shown_state_ = state;
-            block_.enter();
         }
         if (state == State::loading)
         {
@@ -419,17 +226,18 @@ class Grid final : public Screen
         const int rows = (count + kColumns - 1) / kColumns;
         const int row = focus_ / kColumns;
         // On the last row that has arrived while the next page is on its way, the list waits with that page's bones in view.
-        const bool waiting = feed_.growing && rows > 0 && row == rows - 1;
+        const bool waiting = feed_.fetching_more() && rows > 0 && row == rows - 1;
         first_row_ = std::clamp(first_row_, row - (kVisibleRows - 1), row);
         first_row_ = waiting ? row : std::clamp(first_row_, 0, std::max(0, rows - kVisibleRows));
         scroll_.target = static_cast<float>(first_row_) * kPitchY;
         scroll_.update(dt, context.reduced_motion ? 60.0f : 12.0f);
         if (state == State::ready && rows - 1 - row <= 2)
-            feed_.grow(); // the end of what has arrived is near: ask for the next page
-        if (feed_.stuck && !told_stuck_)
+            if (feed_.wanted < 80)
+                feed_.want_more(); // the end of what has arrived is near: ask for the next page
+        if (feed_.more_failed && !told_stuck_)
         {
             told_stuck_ = true;
-            context.nav.toast(feed_.stuck_error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : feed_.stuck_error,
+            context.nav.toast(feed_.error.empty() ? std::string(tr("The rest of this list could not be loaded.")) : feed_.error,
                               ToastKind::warning);
         }
         if (state != State::loading)
@@ -451,10 +259,6 @@ class Grid final : public Screen
         }
         if (state == State::ready && count > 0)
             (void)context.services.images.get(cells_[static_cast<std::size_t>(focus_)].thumb, PictureSize::ambient);
-        bone_.style.reduced_motion = context.reduced_motion;
-        bone_.update(dt);
-        block_.style.reduced_motion = context.reduced_motion;
-        block_.update(dt);
 
         const Zone zone = zone_now(state);
         const Rect target = ring_target();
@@ -493,24 +297,16 @@ class Grid final : public Screen
         ui::Canvas canvas{g.l, g.f, g.glass, g.time};
         const State state = state_now();
         const float shown = state == State::loading ? 0.0f : tween::smoothstep(reveal_);
-        if (!subtitle_.empty())
-        {
-            // REQUEST: the frame draws a page's title but not the line under it.
-            Enter enter(g, tween::stagger(age_, 0, 0.05f, 0.5f) * shown, -14.0f);
-            text(g, g.f.regular, fit(g.f.regular, subtitle_, kTypeSub, 1400.0f), kLeft, 166.0f, kTypeSub, g.k.ink2);
-        }
         if (shown < 1.0f)
         {
             // Bones in the shape of the list, then the list in the same places.
             g.l.push_opacity(1.0f - shown);
-            ui::Skeleton bone = bone_;
-            bone.style.theme = g.k.theme;
+
             for (int i = 0; i < kColumns * kVisibleRows; ++i)
             {
                 Enter enter(g, tween::stagger(content_age_, 2 + i, 0.045f, 0.45f), 26.0f);
                 const Rect r = cell_rect(i, 0.0f);
-                bone.set_bounds({r.x, r.y, r.w, r.h + kCellText});
-                bone.draw(canvas);
+                card_bone(g, r);
             }
             g.l.pop_opacity();
         }
@@ -522,6 +318,8 @@ class Grid final : public Screen
         g.l.pop_transform();
         g.l.pop_opacity();
     }
+
+    std::string subtitle() const override { return subtitle_; }
 
     std::string title() const override
     {
@@ -591,8 +389,8 @@ class Grid final : public Screen
         out.set("items", static_cast<int>(cells_.size()));
         out.set("index", focus_);
         out.set("row", first_row_);
-        out.set("pages", feed_.pages);
-        out.set("more", feed_.more || feed_.growing ? 1 : 0);
+        out.set("pages", feed_.wanted);
+        out.set("more", (feed_.more && !feed_.more_failed) || feed_.fetching_more() ? 1 : 0);
         out.set("bar", static_cast<int>(bar_.size()));
         out.set("subtitle", subtitle_);
         std::string chosen;
@@ -619,7 +417,7 @@ class Grid final : public Screen
     // Another catalog on the same page (the first one, or a filter of it): the list starts over.
     void open_catalog(const std::string &catalog)
     {
-        feed_.reset(catalog);
+        feed_.start(catalog);
         cells_.clear();
         notice_.clear();
         subtitle_.clear();
@@ -637,7 +435,7 @@ class Grid final : public Screen
     {
         if (!cells_.empty())
             return State::ready; // also while a newer answer is on its way
-        if (feed_.ready > 0)
+        if (feed_.taken > 0)
             return notice_.empty() ? State::empty : State::notice;
         if (feed_.load == model::Load::failed)
             return State::failed;
@@ -670,7 +468,7 @@ class Grid final : public Screen
     // Turns the pages that have arrived into cells, the row above them and the line under the title.
     void rebuild(const ui::Fonts &fonts)
     {
-        if (feed_.ready == 0)
+        if (feed_.taken == 0)
         {
             // Asked again and not answered yet: what was there stays until the answer replaces it.
             if (feed_.load != model::Load::loading && feed_.load != model::Load::idle)
@@ -685,81 +483,78 @@ class Grid final : public Screen
         std::vector<BarItem> chips;
         std::string count, owner, updated, first_notice;
         int videos = 0;
-        for (int number = 0; number < feed_.ready; ++number)
+        if (!feed_.rows.empty() && all_digits(feed_.rows.front().fact("total")))
+            count = feed_.rows.front().fact("total");
+        std::size_t next_video = 0, next_channel = 0, next_topic = 0;
+        for (std::size_t row_index = 0; row_index < feed_.rows.size(); ++row_index)
         {
-            const Page &page = data_->catalog(feed_.catalog, number);
-            if (number == 0 && !page.rows.empty() && all_digits(page.rows.front().fact("total")))
-                count = page.rows.front().fact("total");
-            std::size_t next_video = 0, next_channel = 0, next_topic = 0;
-            for (const model::Row &row : page.rows)
+            const model::Row &row = feed_.rows[row_index];
+            const model::Video *video = next_video < feed_.videos.size() && feed_.videos[next_video].at == static_cast<int>(row_index) ? &feed_.videos[next_video++] : nullptr;
+            const model::Channel *channel = next_channel < feed_.channels.size() && feed_.channels[next_channel].at == static_cast<int>(row_index) ? &feed_.channels[next_channel++] : nullptr;
+            const model::Topic *topic = next_topic < feed_.topics.size() && feed_.topics[next_topic].id == row.id ? &feed_.topics[next_topic++] : nullptr;
+            if (row.folder && (!row.fact("chip").empty() || starts_with(row.id, "library:filter:")))
             {
-                const model::Video *video = next_video < page.videos.size() && page.videos[next_video].id == row.id ? &page.videos[next_video++] : nullptr;
-                const model::Channel *channel = next_channel < page.channels.size() && page.channels[next_channel].row == row.id ? &page.channels[next_channel++] : nullptr;
-                const model::Topic *topic = next_topic < page.topics.size() && page.topics[next_topic].id == row.id ? &page.topics[next_topic++] : nullptr;
-                if (row.folder && (!row.fact("chip").empty() || starts_with(row.id, "library:filter:")))
-                {
-                    // A filter the provider offers for this list (the one that is on names this very catalog).
-                    BarItem chip;
-                    chip.id = row.id;
-                    chip.label = row.title;
-                    chip.selected = row.has("selected") || row.id == feed_.catalog;
-                    chips.push_back(std::move(chip));
-                    continue;
-                }
-                if (row.id == feed_.catalog)
-                {
-                    // The list itself, first in its own catalog: what the line under the title says.
-                    if (!row.fact("count").empty())
-                        count = shown_fact(row, "count");
-                    owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
-                    updated = shown_fact(row, "updated");
-                    continue;
-                }
-                if (row.id == "account:notice")
-                {
-                    if (first_notice.empty())
-                        first_notice = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
-                    continue;
-                }
-                Cell cell;
-                cell.id = row.id;
-                cell.title = row.title;
-                cell.thumb = row.thumb;
-                if (video != nullptr)
-                {
-                    cell.video = *video;
-                    ++videos;
-                }
-                else if (channel != nullptr)
-                {
-                    cell.kind = Kind::channel;
-                    cell.id = channel->id;
-                    cell.title = channel->name;
-                    cell.thumb = channel->avatar;
-                    const std::string handle = shown_fact(row, "handle");
-                    const std::string followers = row.fact("subscribers").empty() ? channel->subscribers : shown_fact(row, "subscribers");
-                    cell.line = handle.empty() || followers.empty() ? handle + followers : handle + " \xC2\xB7 " + followers;
-                    cell.subscribed = row.has("subscribed");
-                }
-                else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
-                {
-                    cell.kind = Kind::playlist;
-                    const std::string by = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
-                    cell.line = by.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + by;
-                    cell.count = videos_text(shown_fact(row, "count"));
-                }
-                else if (row.folder)
-                {
-                    cell.kind = Kind::folder;
-                    cell.line = row.subtitle;
-                    cell.icon = topic != nullptr ? icon_by_name(topic->icon) : Icon::grid;
-                }
-                else
-                {
-                    continue; // a notice or an action of the provider's own: this page has no cell for it
-                }
-                cells_.push_back(std::move(cell));
+                // A filter the provider offers for this list (the one that is on names this very catalog).
+                BarItem chip;
+                chip.id = row.id;
+                chip.label = row.title;
+                chip.selected = row.has("selected") || row.id == feed_.catalog;
+                chips.push_back(std::move(chip));
+                continue;
             }
+            if (row.id == feed_.catalog)
+            {
+                // The list itself, first in its own catalog: what the line under the title says.
+                if (!row.fact("count").empty())
+                    count = shown_fact(row, "count");
+                owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
+                updated = shown_fact(row, "updated");
+                continue;
+            }
+            if (row.id == "account:notice")
+            {
+                if (first_notice.empty())
+                    first_notice = row.subtitle.empty() ? row.title : row.title + ". " + row.subtitle;
+                continue;
+            }
+            Cell cell;
+            cell.id = row.id;
+            cell.title = row.title;
+            cell.thumb = row.thumb;
+            if (video != nullptr)
+            {
+                cell.video = *video;
+                ++videos;
+            }
+            else if (channel != nullptr)
+            {
+                cell.kind = Kind::channel;
+                cell.id = channel->id;
+                cell.title = channel->name;
+                cell.thumb = channel->avatar;
+                const std::string handle = shown_fact(row, "handle");
+                const std::string followers = row.fact("subscribers").empty() ? channel->subscribers : shown_fact(row, "subscribers");
+                cell.line = handle.empty() || followers.empty() ? handle + followers : handle + " \xC2\xB7 " + followers;
+                cell.subscribed = row.has("subscribed");
+            }
+            else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
+            {
+                cell.kind = Kind::playlist;
+                const std::string by = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
+                cell.line = by.empty() ? std::string(tr("Playlist")) : std::string(tr("Playlist")) + " \xC2\xB7 " + by;
+                cell.count = videos_text(shown_fact(row, "count"));
+            }
+            else if (row.folder)
+            {
+                cell.kind = Kind::folder;
+                cell.line = row.subtitle;
+                cell.icon = topic != nullptr ? icon_by_name(topic->icon) : Icon::grid;
+            }
+            else
+            {
+                continue; // a notice or an action of the provider's own: this page has no cell for it
+            }
+            cells_.push_back(std::move(cell));
         }
         if (cells_.empty())
             notice_ = first_notice;
@@ -797,13 +592,11 @@ class Grid final : public Screen
             bar_.erase(bar_.begin());
         }
         // Measured with the design language's own pieces; the look does not change a width.
-        gfx::DrawList scratch;
-        G g{scratch, fonts, look_afterglow(), 0, 0.0f, false};
         float x = 0.0f;
         for (BarItem &item : bar_)
         {
             item.x = x;
-            item.width = item.play_all ? button_width(g, item.label, true) : chip_width(g, item.label, kBarChipH);
+            item.width = item.play_all ? button_width(fonts, item.label, true) : chip_width(fonts, item.label, kBarChipH);
             x += item.width + (item.play_all ? 20.0f : 12.0f);
         }
 
@@ -816,7 +609,7 @@ class Grid final : public Screen
         };
         if (!count.empty())
             add(videos_text(count));
-        else if (videos > 0 && videos == static_cast<int>(cells_.size()) && !feed_.more && !feed_.growing && !feed_.stuck)
+        else if (videos > 0 && videos == static_cast<int>(cells_.size()) && !feed_.more && !feed_.fetching_more() && !feed_.more_failed)
             add(videos_text(std::to_string(videos)));
         add(owner);
         add(updated);
@@ -884,8 +677,9 @@ class Grid final : public Screen
             const Cell &cell = cells_[static_cast<std::size_t>(focus_)];
             if (pressed(input, Action::confirm))
                 open(context, cell);
-            else if ((pressed(input, Action::north) || pressed(input, Action::touch)) && cell.kind == Kind::video)
-                // REQUEST: Touchpad opens the Actions sheet of a video; until the frame has one, the video page stands in.
+            else if (pressed(input, Action::touch) && cell.kind == Kind::video)
+                context.nav.actions(cell.video.id, cell.video.title, [data = &context.services.data, catalog = feed_.catalog] { data->forget(catalog); });
+            else if (pressed(input, Action::north) && cell.kind == Kind::video)
                 context.nav.push(Route{ScreenId::video, cell.video.id, cell.video.title}, Move::zoom, focused_rect(cell_rect(focus_, scroll_.target), cell.kind));
             return;
         }
@@ -1005,13 +799,13 @@ class Grid final : public Screen
         case Direction::down:
             if (focus_ / kColumns >= (count - 1) / kColumns)
             {
-                if (feed_.stuck && !input.nav_repeat)
+                if (feed_.more_failed && !input.nav_repeat)
                 {
                     // The page after this one was refused: ask for the list again; what is here stays meanwhile.
                     told_stuck_ = false;
                     context.services.data.forget(feed_.catalog);
                 }
-                else if (!feed_.more && !feed_.growing)
+                else if (!feed_.more && !feed_.fetching_more())
                 {
                     refuse(input, context, 0.0f, 1.0f); // the end of the list; while more is arriving the press just waits
                 }
@@ -1206,27 +1000,25 @@ class Grid final : public Screen
                     video_card(g, big, cell.video, picture, focus, card_alpha, 2);
                     break;
                 case Kind::playlist:
-                    playlist_card(g, big, cell, picture, focus, card_alpha);
+                    playlist_card(g, big, CardText{cell.title, cell.line, cell.count, cell.id, cell.icon, cell.subscribed}, picture, focus, card_alpha);
                     break;
                 case Kind::folder:
-                    folder_card(g, big, cell, picture, focus, card_alpha);
+                    folder_card(g, big, CardText{cell.title, cell.line, cell.count, cell.id, cell.icon, cell.subscribed}, picture, focus, card_alpha);
                     break;
                 case Kind::channel:
-                    channel_card(g, big, cell, picture, focus, card_alpha);
+                    channel_card(g, big, CardText{cell.title, cell.line, cell.count, cell.id, cell.icon, cell.subscribed}, picture, focus, card_alpha);
                     break;
                 }
             }
         }
-        if (feed_.growing)
+        if (feed_.fetching_more())
         {
             // More of the list is on its way: its bones stand where it will land.
-            ui::Skeleton bone = bone_;
-            bone.style.theme = g.k.theme;
+
             for (int i = count; i < (count / kColumns + 2) * kColumns && i / kColumns <= last_row + 1; ++i)
             {
                 const Rect r = cell_rect(i, scroll);
-                bone.set_bounds({r.x, r.y, r.w, r.h + kCellText});
-                bone.draw(canvas);
+                card_bone(g, r);
             }
         }
         if (on_cells > 0.01f && focus_ < count)
@@ -1291,22 +1083,14 @@ class Grid final : public Screen
 
     void draw_message(G &g, ui::Canvas &canvas, State state, float alpha) const
     {
+        (void)canvas;
         const Message m = message_of(state);
-        ui::EmptyState block = block_;
-        block.style.theme = g.k.theme;
-        block.title = m.title;
-        block.body = m.body;
-        block.action = m.action;
-        block.action_button = m.button;
-        const Icon which = m.icon;
-        block.icon = [&g, which](ui::Canvas &, const Rect &area)
-        {
-            g.l.circle(area.cx(), area.cy(), area.w * 0.5f, g.k.raised);
-            icon(g, which, area.cx(), area.cy(), area.w * 0.52f, g.k.ink);
-        };
-        block.set_bounds(kMessage);
+        const Choice choice{m.action.c_str(), Icon::chevron_right, m.button};
+        afterglow::Notice notice;
+        const Rect r = kMessage;
+        notice.lay_out(g.f, r.cx(), r.y, m.body, &choice, m.action.empty() ? 0 : 1);
         g.l.push_opacity(alpha);
-        block.draw(canvas);
+        notice.draw(g, m.icon, m.title, m.body, &choice, 0.0f, true);
         g.l.pop_opacity();
     }
 
@@ -1340,8 +1124,6 @@ class Grid final : public Screen
     float reveal_ = 0.0f;      // how far the answer has taken over from the bones
     bool was_loading_ = false; // bones were shown: the answer cross-fades in
     bool told_stuck_ = false;  // a toast has said that the list ends early
-    ui::Skeleton bone_;
-    ui::EmptyState block_;
     std::array<ui::Hint, 5> hints_{};
     std::size_t hint_count_ = 0;
 };

@@ -70,19 +70,7 @@ const char *request_name(Request::Kind kind)
 
 void VideoPage::launch(const model::Video &video, UpdateContext &context)
 {
-    // REQUEST: the motion table's "picture to player" (the page's picture
-    // becomes the whole screen, and comes back) is no Move of the frame yet;
-    // the player simply takes over.
-    if (context.services.data.play(video))
-    {
-        context.feedback.play(audio::Cue::launch);
-        context.feedback.rumble(0.6f, 0.16f);
-    }
-    else
-    {
-        context.feedback.play(audio::Cue::error, 1.0f, 0.0f, 0.6f);
-        context.nav.toast(tr("This video cannot be played right now."), ToastKind::error);
-    }
+    play_video(context, video, kHero);
 }
 
 void VideoPage::refuse(const InputFrame &input, UpdateContext &context)
@@ -668,8 +656,7 @@ void VideoPage::animate(UpdateContext &context)
     channel_focus_.target = zone_ == Zone::channel ? 1.0f : 0.0f;
     channel_focus_.update(dt, quick);
     {
-        G g{nowhere_, context.services.fonts, look_afterglow(), 0, 0.0f, true};
-        const float wanted = button_width(g, subscribed() ? tr("Subscribed") : tr("Subscribe"), true);
+        const float wanted = button_width(context.services.fonts, subscribed() ? tr("Subscribed") : tr("Subscribe"), true);
         if (subscribe_w_.target == 0.0f)
             subscribe_w_.snap(wanted);
         subscribe_w_.target = wanted;
@@ -705,12 +692,12 @@ void VideoPage::animate(UpdateContext &context)
     ring_.target(target);
     ring_.update(dt, quick);
     list_.update(dt);
-    spinner_.update(dt);
-    bones_.update(dt);
 }
 
 void VideoPage::update(const InputFrame &input, UpdateContext &context)
 {
+    if (context.look)
+        wear(list_.style, *context.look, context.reduced_motion);
     age_ += context.dt;
     clock_ = context.time;
     reduced_ = context.reduced_motion;

@@ -138,8 +138,6 @@ Channel::Channel() : alive_(std::make_shared<int>(0))
     bar_.style.text_size = 26.0f;
     bar_.style.padding = 22.0f;
     bar_.style.gap = 12.0f;
-    // REQUEST: update() has no Look, so the bar cannot wear the look's theme
-    // there; draw() dresses a copy. The pace is the same in all four looks.
     bar_.style.theme.omega = 18.0f;
     bar_.style.theme.damping = 0.9f;
 }
@@ -185,16 +183,14 @@ void Channel::enter(const Route &route, UpdateContext &context, bool restored)
 
 void Channel::update(const InputFrame &input, UpdateContext &context)
 {
+    if (context.look)
+    {
+        wear(bar_.style, *context.look, context.reduced_motion);
+        bar_.style.theme.omega = 18.0f;
+    }
     age_ += context.dt;
     read(context);
     finish_action(context);
-    sheet_.update(context);
-    if (sheet_.take_changed())
-    {
-        // Something was done to the channel from its sheet: the page says how it stands now.
-        override_ = false;
-        context.services.data.forget(base_.catalog);
-    }
     lay_out(context.services.fonts);
     if (context.top)
     {
@@ -632,11 +628,11 @@ void Channel::advance(UpdateContext &context)
     const float quick = reduced ? 60.0f : 20.0f;
     scroll_.target = wanted_scroll();
     scroll_.update(dt, reduced ? 60.0f : 12.0f);
-    content_focus_.target = zone_ == Zone::content && !sort_open_ && !sheet_.open() ? 1.0f : 0.0f;
+    content_focus_.target = zone_ == Zone::content && !sort_open_ ? 1.0f : 0.0f;
     content_focus_.update(dt, quick);
     button_pos_.target = static_cast<float>(button_);
     button_pos_.update(dt, quick);
-    actions_focus_.target = zone_ == Zone::actions && !sheet_.open() ? 1.0f : 0.0f;
+    actions_focus_.target = zone_ == Zone::actions ? 1.0f : 0.0f;
     actions_focus_.update(dt, quick);
     sort_focus_.target = zone_ == Zone::sort && !sort_open_ ? 1.0f : 0.0f;
     sort_focus_.update(dt, quick);
@@ -650,7 +646,7 @@ void Channel::advance(UpdateContext &context)
     pop_.update(dt, 7.0f);
     shake_.update(dt, 9.0f);
     nudge_.update(dt, 10.0f);
-    bar_.set_focused(zone_ == Zone::tabs && !sort_open_ && !sheet_.open());
+    bar_.set_focused(zone_ == Zone::tabs && !sort_open_);
     bar_.style.reduced_motion = reduced;
     bar_.update(dt);
     for (Tab &each : tabs_)
@@ -687,8 +683,6 @@ std::span<const ui::Hint> Channel::hints() const
 {
     static ui::Hint items[4];
     std::size_t count = 0;
-    if (sheet_.open())
-        return sheet_.hints();
     if (sort_open_)
     {
         items[count++] = {ui::Button::cross, tr("Choose")};
@@ -719,8 +713,6 @@ std::span<const ui::Hint> Channel::hints() const
 FocusInfo Channel::focus() const
 {
     FocusInfo info;
-    if (sheet_.open())
-        return sheet_.focus();
     if (!head_.known)
     {
         info.id = zone_ == Zone::trouble ? "state/retry" : "state/loading";
@@ -839,7 +831,6 @@ void Channel::snapshot(Snapshot &out) const
     out.set("tabs", static_cast<int>(tabs_.size()));
     out.set("scroll", static_cast<int>(scroll_.target));
     out.set("sort_open", sort_open_ ? 1 : 0);
-    sheet_.snapshot(out);
     std::vector<std::string> names;
     for (const Tab &each : tabs_)
         names.push_back(each.name);

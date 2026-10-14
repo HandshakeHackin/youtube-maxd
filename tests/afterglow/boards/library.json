@@ -135,14 +135,14 @@
    "expect": {"screen": "library", "focus": "queue/0", "state": {"items": "2", "queue": "2"}, "asked": ["local:video:7:queue:everygoa007"]}
   },
   {
-   "name": "library-details",
+   "name": "library-actions",
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}],
-   "expect": {"screen": "video", "moving": 0, "argument": "writinga009"}
+   "expect": {"screen": "library", "focus": "sheet/0", "state": {"sheet": "1", "sheet_load": "ready"}}
   },
   {
-   "name": "library-back-from-details",
+   "name": "library-back-from-actions",
    "fixture": "d-signed-in",
    "route": {"screen": "library"},
    "steps": [{"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.8}, {"press": "circle"}, {"wait": 0.8}],

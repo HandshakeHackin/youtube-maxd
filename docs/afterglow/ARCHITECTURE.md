@@ -977,6 +977,34 @@ these and keeps no copy.
 | `Screen::draw_over()`, `over()`, `header()` | `screen.hpp` | sheets drawn under the clock, a title of one space |
 | `refuse()`, `play_video()`, `route_of_row()`, `icon_of_row()` | `screen.hpp` | `family::refuse`, `family::play`, private tables of row ids |
 
+**Screen migration (2026-10-14).** Packages A–F now use the shared
+hand-over, card, notice, skeleton, spinner, type/radius, text interpolation
+and plural pieces instead of their `REQUEST` copies. Channel-family sheets
+are gone: Touchpad uses `Nav::actions()` on channels, subscriptions, search
+results, grids and library videos. Account and phone questions use
+`Nav::ask()` with their safe/destructive answers. Settings uses
+`Nav::ask_text()` and delivers its queued text through `Data::act(row, text)`;
+comments and replies deliver their actual composition through the same seam.
+Boards assert those payloads, not merely that a row was selected. Queued
+Settings text is wiped after delivery. The account password sheet remains a
+specialized retry/busy view on the kit's text field and keyboard; it now wears
+the look during update and draws above the frame.
+
+The common feed retains topic view models as well as videos/channels, so
+switching grid paging does not lose the section icons. The prior 80-page cap
+remains on these screens. `Choice` can name its controller glyph (Library's
+Triangle retry), and `Notice` accepts an optional warning/danger tone.
+Video overlays draw above the frame, and a carried card picture is shown
+while details are loading. Font-only measuring overloads replace scratch draw
+lists.
+
+Validation: all 611 host boards pass in the four looks (26,960 checks);
+the Settings text board also checks the text before saving. Real account and
+phone actions still need owner acceptance on hardware. Notifications still
+remember read state only while their page lives: the provider does not yet
+expose the mark-read action. The remaining large screen-file splits and the
+package/console integration checks are separate work.
+
 **Every numbered request.** "done" names the piece above; "bridge" is the list
 of what the provider and the service have to produce (package G: section 5.5
 and the request files are its contract; nothing in the interface waits for it,

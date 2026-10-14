@@ -157,7 +157,7 @@
    "fixture": "signed-in",
    "route": {"screen": "channel", "argument": "UCnorthlightatlas0000000", "title": "Northlight Atlas"},
    "steps": [{"press": "r1"}, {"press": "down"}, {"press": "right"}, {"press": "touchpad"}, {"wait": 0.6}, {"press": "down"}, {"press": "cross"}, {"wait": 1.0}],
-   "expect": {"screen": "channel", "focus": "videos/1", "state": {"sheet": "0"}, "asked": ["account:confirm:watch_later_add:ptv00000020", "account:apply:40"]}
+   "expect": {"screen": "channel", "focus": "videos/1", "asked": ["account:confirm:watch_later_add:ptv00000020", "account:apply:40"]}
   },
   {
    "name": "channel-search",

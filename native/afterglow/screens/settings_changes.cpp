@@ -74,7 +74,11 @@ void Settings::settle(UpdateContext &context)
     Data &data = context.services.data;
     Change &front = changes_.front();
     if (front.ticket == 0)
-        front.ticket = data.act(front.action);
+    {
+        front.ticket = front.typed ? data.act(front.action, front.text) : data.act(front.action);
+        std::fill(front.text.begin(), front.text.end(), '\0');
+        front.text.clear();
+    }
     const Page &state = data.action(front.ticket);
     if (state.load == model::Load::loading)
         return;

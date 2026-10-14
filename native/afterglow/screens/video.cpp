@@ -223,13 +223,12 @@ void VideoPage::enter(const Route &route, UpdateContext &context, bool restored)
     links_id_ = "link:video:" + id_;
     list_.style.highlight.kind = ui::HighlightKind::fill;
     list_.style.row_height = 68.0f;
-    list_.style.title_size = kTypeName;
+    list_.style.title_size = kTypeRow;
     list_.style.value_size = kTypeMeta;
     list_.style.leading_width = 52.0f;
     list_.style.gap = 4.0f;
     list_.style.sounds.cancel = audio::Cue::modal_close;
     list_.set_bounds(kSheetList);
-    spinner_.style.kind = ui::SpinnerKind::arc;
 }
 
 // ---- reading --------------------------------------------------------------------------
@@ -383,7 +382,6 @@ void VideoPage::read_menu(UpdateContext &context)
         if (!have_ && layer_ != Layer::menu)
             return;
         menu_id_ = data.menu(id_, details_.title);
-        // REQUEST: Data::menu() names the menus of folders; a video's actions are this catalog of the provider.
         if (menu_id_.empty())
             menu_id_ = "account:menu:" + id_;
     }
@@ -462,14 +460,13 @@ void VideoPage::read_links(UpdateContext &context)
 
 void VideoPage::lay_out_links(const ui::Fonts &fonts)
 {
-    G g{nowhere_, fonts, look_afterglow(), 0, 0.0f, true}; // measures; draws nothing
     const float left = kSharePanel.x + 532.0f;
     const float room = 432.0f;
     float x = left;
     float cy = kSharePanel.y + 436.0f;
     for (ShareLink &link : links_)
     {
-        const float w = chip_width(g, link.label);
+        const float w = chip_width(fonts, link.label);
         if (x > left && x + w > left + room)
         {
             x = left; // the chips of a longer language take a second row
@@ -518,7 +515,7 @@ void VideoPage::lay_out(const ui::Fonts &fonts)
         measured_limit_ = limit;
         description_lines_ = details_.overview.empty()
                                  ? 0
-                                 : std::clamp(measure_block(fonts.regular, details_.overview, kTypeRead, kColumn, 32.0f, limit).lines, 1, limit);
+                                 : std::clamp(measure_block(fonts.regular, details_.overview, kTypeSub, kColumn, 32.0f, limit).lines, 1, limit);
     }
     const float last = kTitleY + kTitleLine * static_cast<float>(title_lines_ - 1);
     meta_y_ = last + 44.0f;
@@ -538,7 +535,6 @@ std::string VideoPage::like_label() const
 
 void VideoPage::build_buttons(const ui::Fonts &fonts)
 {
-    G g{nowhere_, fonts, look_afterglow(), 0, 0.0f, true}; // measures; draws nothing
     buttons_.clear();
     const auto add = [&](Act act, std::string label, Icon icon)
     {
@@ -590,7 +586,7 @@ void VideoPage::build_buttons(const ui::Fonts &fonts)
         for (ActionButton &button : buttons_)
         {
             button.x = x;
-            button.w = button.label.empty() ? kActionH : button_width(g, button.label, true) + (button.primary ? 24.0f : 0.0f);
+            button.w = button.label.empty() ? kActionH : button_width(fonts, button.label, true) + (button.primary ? 24.0f : 0.0f);
             x += button.w + kActionGap;
         }
         if (x - kActionGap <= kRight || dropped >= std::size(kDropOrder))

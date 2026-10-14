@@ -12,7 +12,7 @@ namespace afterglow::subscriptions_page
 void Subscriptions::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
-    Travel travel(g, phase);
+    HandOver travel(g, phase);
     if (mode_ == Mode::loading)
     {
         draw_bones(g);
@@ -29,7 +29,7 @@ void Subscriptions::draw(const DrawContext &context, const Phase &phase) const
     else
     {
         Enter enter(g, arrive(age_, 4, 0.07f, 0.55f), 26.0f);
-        notice_.draw(g, notice_icon(), notice_title(), notice_body(), choices_, choice_pos_.value, zone_ == Zone::notice && !sheet_.open());
+        notice_.draw(g, notice_icon(), notice_title(), notice_body(), choices_, choice_pos_.value, zone_ == Zone::notice);
     }
     g.l.pop_transform();
     if (clipped)
@@ -39,15 +39,9 @@ void Subscriptions::draw(const DrawContext &context, const Phase &phase) const
     {
         Enter enter(g, arrive(age_, 1, 0.05f, 0.5f), -14.0f);
         ui::TabBar bar = bar_;
-        const float omega = bar.style.theme.omega;
-        const float damping = bar.style.theme.damping;
-        bar.style.theme = context.look.theme;
-        bar.style.theme.omega = omega;
-        bar.style.theme.damping = damping;
-        ui::Canvas canvas{g.l, g.f, g.glass, g.time};
+            ui::Canvas canvas{g.l, g.f, g.glass, g.time};
         bar.draw(canvas);
     }
-    sheet_.draw(g);
 }
 
 void Subscriptions::draw_bones(G &g) const

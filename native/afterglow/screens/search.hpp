@@ -25,11 +25,6 @@ inline constexpr std::string_view kHistoryRun = "search-history:run:";
 inline constexpr std::string_view kHistoryForget = "search-history:forget:";
 inline constexpr std::string_view kHistoryClear = "search-history:clear:";
 
-inline bool starts_with(std::string_view text, std::string_view prefix)
-{
-    return text.size() >= prefix.size() && text.compare(0, prefix.size(), prefix) == 0;
-}
-
 // The text without the spaces around it.
 inline std::string trimmed(std::string_view text)
 {
@@ -38,16 +33,6 @@ inline std::string trimmed(std::string_view text)
     while (!text.empty() && text.back() == ' ')
         text.remove_suffix(1);
     return std::string(text);
-}
-
-// A translated pattern with its one value: fill(tr("About {0} results"), "1,240").
-inline std::string fill(const char *pattern, std::string_view value)
-{
-    std::string out(pattern != nullptr ? pattern : "");
-    const std::size_t at = out.find("{0}");
-    if (at != std::string::npos)
-        out.replace(at, 3, value);
-    return out;
 }
 
 // Completions for the text typed so far: YouTube's own, through the service.
@@ -131,50 +116,5 @@ inline std::string results_catalog(std::string_view query, const Filters &filter
         return "search:" + std::string(query);
     return "search-with:" + filters.options() + ":" + std::string(query);
 }
-
-// REQUEST: the general hand-over of the design belongs in design.hpp, where
-// every screen can wear it (docs/afterglow/requests/A.md, "Hand-over"). Until
-// then this is the scratch design's own arithmetic: the leaving screen fades
-// and slides 90 pixels along a push, the arriving one comes 110 pixels from
-// the other side; a section change sinks the old screen to 97.5 %; a carried
-// picture takes the old screen's furniture away early.
-struct Handover
-{
-    gfx::DrawList &l;
-    float alpha = 1.0f;
-
-    Handover(G &g, const Phase &phase) : l(g.l)
-    {
-        float scale = 1.0f;
-        float dx = 0.0f;
-        const bool carried = phase.move == Move::zoom || phase.move == Move::shrink;
-        const bool slides = phase.move == Move::push || phase.move == Move::pop;
-        const float way = phase.move == Move::pop ? -1.0f : 1.0f;
-        if (phase.out > 0.0f)
-        {
-            alpha = 1.0f - tween::smoothstep(phase.out * (carried ? 3.4f : 2.4f));
-            if (!g.reduced && phase.move == Move::fade)
-                scale = 1.0f - 0.025f * tween::cubic_out(phase.out);
-            if (!g.reduced && slides)
-                dx = -90.0f * way * tween::cubic_in(phase.out);
-        }
-        else if (phase.in < 1.0f)
-        {
-            if (phase.move == Move::fade || slides)
-                alpha = tween::smoothstep((phase.in - 0.12f) / 0.6f);
-            if (!g.reduced && slides)
-                dx = 110.0f * way * (1.0f - tween::quint_out(phase.in));
-        }
-        l.push_opacity(alpha);
-        l.push_transform(scale, gfx::kVirtualWidth * 0.5f, gfx::kVirtualHeight * 0.5f, dx, 0.0f);
-    }
-    ~Handover()
-    {
-        l.pop_transform();
-        l.pop_opacity();
-    }
-    Handover(const Handover &) = delete;
-    Handover &operator=(const Handover &) = delete;
-};
 
 } // namespace afterglow::search

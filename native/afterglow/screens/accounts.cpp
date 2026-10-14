@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace afterglow
 {
@@ -74,6 +75,7 @@ void Accounts::enter(const Route &route, UpdateContext &context, bool restored)
 
 void Accounts::update(const InputFrame &input, UpdateContext &context)
 {
+    dress(context);
     age_ += context.dt;
     fonts_ = &context.services.fonts;
     Data &data = context.services.data;
@@ -106,7 +108,7 @@ void Accounts::update(const InputFrame &input, UpdateContext &context)
         }
     }
 
-    const int decided = question_.update(input, context.dt, context.feedback, context.top);
+    const int decided = std::exchange(*decision_, -2);
     if (decided != -2)
     {
         answered(decided, context);
@@ -126,7 +128,7 @@ void Accounts::update(const InputFrame &input, UpdateContext &context)
         work_ = Work{};
         return;
     }
-    if (!context.top || question_.is_open() || sheet_.is_open())
+    if (!context.top || (asking_ != Asking::nothing) || sheet_.is_open())
         return;
 
     // A profile named by the route is asked for as soon as it is listed.
@@ -275,7 +277,7 @@ void Accounts::sync()
             if (tile.subscriptions == "1")
                 card.extra = tr("1 subscription");
             else if (!tile.subscriptions.empty())
-                card.extra = with(tr("{0} subscriptions"), tile.subscriptions);
+                card.extra = fill(tr("{0} subscriptions"), tile.subscriptions);
             else if (tile.locked)
                 card.extra = tr("Password protected");
             else if (tile.selected)
@@ -446,9 +448,9 @@ void Accounts::update_actions(const InputFrame &input, UpdateContext &context)
             work_.name = shown_name(*tile);
             work_.locked = tile->locked && !tile->selected;
             selected_before_ = tile->selected;
-            question_.ask(ui::StatusKind::danger, with(tr("Remove {0} from this PS5?"), work_.name),
+            context.nav.ask(Question{ui::StatusKind::danger, fill(tr("Remove {0} from this PS5?"), work_.name),
                           tr("The sign-in is deleted from this console. You continue as Guest; other accounts stay available."),
-                          {tr("Keep"), tr("Remove")}, 1, 0, false, context.feedback);
+                          {tr("Keep"), tr("Remove")}, 1, 0, false}, [decision = decision_](int choice) { *decision = choice; });
         }
     }
 }
@@ -465,7 +467,7 @@ void Accounts::password(UpdateContext &context)
     {
         // The provider keeps a password for the profile that is watching, and no other.
         refuse(InputFrame{}, context);
-        context.nav.toast(with(tr("Watch as {0} first to set its password"), shown_name(*tile)), ToastKind::info);
+        context.nav.toast(fill(tr("Watch as {0} first to set its password"), shown_name(*tile)), ToastKind::info);
         return;
     }
     work_ = Work{};
@@ -480,11 +482,11 @@ void Accounts::password(UpdateContext &context)
         return;
     }
     asking_ = Asking::password;
-    question_.ask(ui::StatusKind::question, tr("Password protection (experimental)"),
+    context.nav.ask(Question{ui::StatusKind::question, tr("Password protection (experimental)"),
                   tr("Asked before the profile is selected; this PS5 stores a salted hash, never the text"),
                   {tr("Change the password of this profile (experimental)"), tr("Remove the password of this profile (experimental)"),
                    tr("Cancel")},
-                  -1, 0, true, context.feedback);
+                  -1, 0, true}, [decision = decision_](int choice) { *decision = choice; });
 }
 
 void Accounts::answered(int choice, UpdateContext &context)
@@ -584,14 +586,14 @@ void Accounts::advance(const Page &page, UpdateContext &context)
         if (work_.step == Work::Step::select && wants_password(page))
         {
             work_.step = Work::Step::password;
-            sheet_.open(with(tr("Watch as {0}"), work_.name), tr("Password of this profile"), true, context.services.fonts, context.feedback);
+            sheet_.open(fill(tr("Watch as {0}"), work_.name), tr("Password of this profile"), true, context.services.fonts, context.feedback);
         }
         else if (work_.step == Work::Step::select || work_.step == Work::Step::password)
         {
             sheet_.close();
             if (work_.kind == Work::Kind::watch)
             {
-                context.nav.toast(with(tr("Watching as {0}"), work_.name), ToastKind::success);
+                context.nav.toast(fill(tr("Watching as {0}"), work_.name), ToastKind::success);
                 work_ = Work{};
                 context.nav.root(Route{ScreenId::home, {}, {}});
             }

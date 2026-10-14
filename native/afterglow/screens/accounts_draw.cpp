@@ -17,9 +17,8 @@ void Accounts::draw(const DrawContext &context, const Phase &phase) const
 {
     G g = context.g();
     drawing_ = &context;
-    dress(context);
     {
-        Travel travel(g, phase);
+        HandOver travel(g, phase);
         {
             Enter enter(g, arrive(age_, 0, 0.06f, 0.5f), -14.0f);
             text(g, g.f.regular, fit(g.f.regular, tr("Each profile keeps its own history, queue and settings"), 22.0f, 1300.0f),
@@ -47,9 +46,12 @@ void Accounts::draw(const DrawContext &context, const Phase &phase) const
                          tr("Try again"), 1.0f, arrive(age_, 1, 0.06f, 0.5f), offline ? g.k.theme.warning : g.k.theme.danger);
         }
     }
-    sheet_.draw(context);
-    question_.draw(context);
     drawing_ = nullptr;
+}
+
+void Accounts::draw_over(const DrawContext &context, const Phase &) const
+{
+    sheet_.draw(context);
 }
 
 std::string Accounts::title() const
@@ -63,7 +65,7 @@ std::span<const ui::Hint> Accounts::hints() const
     int count = 0;
     if (sheet_.is_open())
         return sheet_.hints();
-    if (question_.is_open())
+    if (asking_ != Asking::nothing)
     {
         items[count++] = {ui::Button::cross, tr("Choose")};
         items[count++] = {ui::Button::circle, tr("Cancel")};
@@ -96,14 +98,6 @@ std::span<const ui::Hint> Accounts::hints() const
 FocusInfo Accounts::focus() const
 {
     FocusInfo info;
-    if (question_.is_open())
-    {
-        info.id = "dialog/" + std::to_string(question_.focus());
-        info.text = question_.answer(question_.focus());
-        info.index = question_.focus();
-        info.total = asking_ == Asking::remove ? 2 : 3;
-        return info;
-    }
     if (sheet_.is_open())
         return sheet_.focus();
     if (load_ == model::Load::loading || load_ == model::Load::idle)
@@ -142,7 +136,7 @@ FocusInfo Accounts::focus() const
 std::vector<std::pair<std::string, std::string>> Accounts::focusable() const
 {
     std::vector<std::pair<std::string, std::string>> out;
-    if (load_ != model::Load::ready || question_.is_open() || sheet_.is_open())
+    if (load_ != model::Load::ready || (asking_ != Asking::nothing) || sheet_.is_open())
     {
         const FocusInfo only = focus();
         out.emplace_back(only.id, only.text);
@@ -166,7 +160,7 @@ void Accounts::snapshot(Snapshot &out) const
     out.set("casting", casting_ == 0 ? "unavailable" : casting_ == 1 ? "available" : "unknown");
     static constexpr const char *kWork[] = {"", "watch", "remove", "lock_set", "lock_change", "lock_remove"};
     out.set("work", kWork[static_cast<std::size_t>(work_.kind)]);
-    out.set("question", !question_.is_open() ? "" : asking_ == Asking::remove ? "remove" : "password");
+    out.set("question", asking_ == Asking::nothing ? "" : asking_ == Asking::remove ? "remove" : "password");
     // Which password the sheet asks for; words of the interface are not state.
     out.set("sheet", !sheet_.is_open() ? "" : work_.step == Work::Step::fresh ? "new-password" : work_.step == Work::Step::current ? "current-password" : "password");
     std::vector<std::string> names;
@@ -191,7 +185,7 @@ std::string Accounts::failure_words() const
     if (load_ != model::Load::offline)
         return error_.empty() ? std::string(tr("The list of profiles was not answered. Try again.")) : error_;
     const std::string name = profile_.guest || profile_.name.empty() ? std::string(tr("Guest")) : profile_.name;
-    return with(tr("The profiles cannot be read while the YouTube service is not answering. You keep watching as {0}, and what is saved on this PS5 stays available."), name);
+    return fill(tr("The profiles cannot be read while the YouTube service is not answering. You keep watching as {0}, and what is saved on this PS5 stays available."), name);
 }
 
 const char *Accounts::action_label(int index)
@@ -216,24 +210,25 @@ Rect Accounts::action_rect(int index) const
     return {x, kActionsTop, widths[std::clamp(index, 0, 2)], kActionHeight};
 }
 
-void Accounts::dress(const DrawContext &context) const
+void Accounts::dress(const UpdateContext &context)
 {
-    if (worn_ != &context.look || picker_.style.reduced_motion != context.reduced_motion)
-    {
-        worn_ = &context.look;
-        picker_.style.theme = context.look.theme;
-        picker_.style.sounds.set = context.look.theme.sounds;
-        picker_.style.reduced_motion = context.reduced_motion;
-    }
+    if (!context.look)
+        return;
+    wear(picker_.style, *context.look, context.reduced_motion);
     // The light around the focused tile is its picture's colour, or the look's own focus.
-    // REQUEST: the avatar's tint from design.hpp, so a tile without a picture glows in its avatar's colour (requests/F.md, 5).
     const int count = static_cast<int>(picker_.profiles().size());
     for (int i = 0; i < count; ++i)
     {
-        Color light = context.look.focus;
+        Color light = context.look->focus;
+        if (i < static_cast<int>(tiles_.size()))
+        {
+            Color top, bottom;
+            avatar_tint(tiles_[static_cast<std::size_t>(i)].id, &top, &bottom);
+            light = top;
+        }
         if (i < static_cast<int>(tiles_.size()) && !tiles_[static_cast<std::size_t>(i)].avatar.empty())
         {
-            const Picture picture = context.images.get(tiles_[static_cast<std::size_t>(i)].avatar, PictureSize::avatar);
+            const Picture picture = context.services.images.get(tiles_[static_cast<std::size_t>(i)].avatar, PictureSize::avatar);
             if (picture.ready())
                 light = picture.glow;
         }
@@ -282,8 +277,8 @@ void Accounts::draw_actions(G &g) const
     if (work_.kind != Work::Kind::none && work_.age > 0.25f && !sheet_.visible())
     {
         // What was asked for is on its way.
-        const std::string line = work_.kind == Work::Kind::watch    ? with(tr("Switching to {0}"), work_.name)
-                                 : work_.kind == Work::Kind::remove ? with(tr("Removing {0}"), work_.name)
+        const std::string line = work_.kind == Work::Kind::watch    ? fill(tr("Switching to {0}"), work_.name)
+                                 : work_.kind == Work::Kind::remove ? fill(tr("Removing {0}"), work_.name)
                                                                     : std::string(tr("One moment"));
         const std::string fitted = fit(g.f.semibold, line, kTypeBody, 900.0f);
         const float width = measure(g.f.semibold, fitted, kTypeBody);
