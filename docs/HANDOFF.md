@@ -58,7 +58,10 @@ In the owner's order of interest (he asked what is missing; the list is the
 README's **Roadmap**). The two recommended first:
 
 1. **VP9 and Opus again**: ranged manifests for WebM tracks (Cues give the
-   byte ranges), so 4K VP9 and HDR come back.
+   byte ranges), so 4K VP9 and HDR come back. Implementation now enables WebM
+   indexing and fixes FFmpeg's zero-byte range-boundary read, which caused
+   the seek hang. Generated MP4/WebM seeks pass on the host; a PS5 candidate
+   and console acceptance remain pending. HDR selection/output is separate.
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in

@@ -93,6 +93,8 @@ class Server:
                         lab.refused += 1
                         self.send_response(403); self.send_header("Content-Length", "0"); self.send_header("Connection", "close"); self.end_headers(); return
                 start, end, raw = 0, len(data) - 1, self.headers.get("Range", "")
+                if media:
+                    lab.ranges.append(raw)
                 if raw:
                     match = re.fullmatch(r"bytes=(\d+)-(\d*)", raw)
                     if not match or int(match[1]) > end:
@@ -120,6 +122,7 @@ class Server:
         self.base = f"http://127.0.0.1:{self.httpd.server_port}"
     def reset(self, refuse=None):
         self.requests = self.bytes = self.refused = 0
+        self.ranges = []
         self.refuse = refuse
 
 

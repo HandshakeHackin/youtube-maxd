@@ -330,9 +330,9 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     // Since 2026-10-14 YouTube answers 403 to an open-ended or whole-file range
     // (`rqh=1` in the address; bounded ranges of a few megabytes are served), so
     // the one-segment shape no longer plays. With ranged manifests only tracks
-    // with an MP4 segment index are offered (WebM keeps the one-segment shape, see
-    // segments.js); the full list is the fallback when none has one.
-    const indexed = list.filter(format => format.init_range && format.index_range && !/^[a-z]+\/webm/.test(format.mime_type ?? ''));
+    // with an MP4 or WebM segment index are offered; the full list is the
+    // fallback when none has one.
+    const indexed = list.filter(format => format.init_range && format.index_range);
     const usable = ranged && selectVideo(indexed, request).some(format => !format.has_audio) && selectAudio(indexed, request).length ? indexed : list;
     const audios = selectAudio(usable, request);
     for (const video of selectVideo(usable, request)) {

@@ -7,7 +7,7 @@ import { catalog } from './core.js';
 import { branding, thumbnails, votes } from './extras.js';
 import { chaptersOf, codecName, dashManifest, hlsVariants, redact, selectAudio, selectVideo, vttToSrt } from './resolve.js';
 import { Invalid, jobRequest, libraryRequest, resolveRequest } from './schema.js';
-import { cueSegments, evenSegments, sidxSegments } from './segments.js';
+import { cueSegments, evenSegments, fileIndex, sidxSegments } from './segments.js';
 
 const host = globalThis.__host;
 
@@ -112,7 +112,7 @@ export async function selfTest() {
     if (!variants[0].master.includes('URI="https://manifest.googlevideo.com/api/a/audio.m3u8"')) return false;
     return !redact('https://rr1---sn-a.googlevideo.com/videoplayback?expire=99&sig=SECRET').includes('SECRET');
   });
-  await check('segment indexes', () => {
+  await check('segment indexes', async () => {
     // sidx, version 0: timescale 1000, three fragments.
     const sidx = new Uint8Array(68), data = new DataView(sidx.buffer);
     data.setUint32(0, 68); sidx.set([0x73, 0x69, 0x64, 0x78], 4); data.setUint32(16, 1000); data.setUint16(30, 3);
@@ -135,6 +135,11 @@ export async function selfTest() {
     const point = (ms, position) => [0xbb, 0x8d, 0xb3, 0x82, ms >> 8, ms & 255, 0xb7, 0x87, 0xf7, 0x81, 1, 0xf1, 0x82, position >> 8, position & 255];
     const cues = Uint8Array.of(0x1c, 0x53, 0xbb, 0x6b, 0x9e, ...point(0, 500), ...point(5000, 9000));
     same(cueSegments(head, cues, 20000, 12), { timescale: 1000, segments: [{ start: 517, end: 9016, duration: 5000 }, { start: 9017, end: 19999, duration: 7000 }] });
+    const reads = [], format = { mime_type: 'video/webm', content_length: 20000,
+      init_range: { start: 0, end: head.length - 1 }, index_range: { start: 100, end: 100 + cues.length - 1 } };
+    same(await fileIndex(async (first, last) => { reads.push([first, last]); return first === 0 ? head : cues; }, format, 12),
+      cueSegments(head, cues, 20000, 12));
+    same(reads, [[0, head.length - 1], [100, 100 + cues.length - 1]]);
   });
   await check('request models', () => {
     same(libraryRequest({ action: 'search', query: 'x' }).sort, 'top');

@@ -1,4 +1,4 @@
-"""Enable FFmpeg 7.1.1 byte seeking for complete single-file DASH VOD only."""
+"""Fix FFmpeg 7.1.1 DASH byte seeking and ranged-fragment EOF handling."""
 from pathlib import Path
 import argparse
 
@@ -31,7 +31,15 @@ def patch(source):
         }
         return avio_seek(v->input, offset, whence);
     }'''
-    for old,new in ((before,after),(old_seek,new_seek)):
+    old_read = '''    ret = read_from_url(v, v->cur_seg, buf, buf_size);
+    if (ret > 0)'''
+    new_read = '''    ret = read_from_url(v, v->cur_seg, buf, buf_size);
+    /* A bounded range has ended: let the demuxer retire this fragment.
+     * Returning zero makes the WebM parser retry the same exhausted input. */
+    if (!ret)
+        ret = AVERROR_EOF;
+    if (ret > 0)'''
+    for old,new in ((before,after),(old_seek,new_seek),(old_read,new_read)):
         if new in source: continue
         if source.count(old)!=1: raise RuntimeError('FFmpeg DASH source does not match the pinned overlay')
         source=source.replace(old,new,1)

@@ -147,7 +147,7 @@ async function manifest(text) {
   for (const track of request.tracks) {
     // head_file: the file's first bytes; index_file: the bytes of index_range.
     const head = new Uint8Array(host.readFile(track.head_file)), index = new Uint8Array(host.readFile(track.index_file));
-    tracks.push({ kind: track.kind, format: track, url: track.url, index: await fileIndex(async first => first === 0 ? head : index, track, request.duration, true) });
+    tracks.push({ kind: track.kind, format: track, url: track.url, index: await fileIndex(async first => first === 0 ? head : index, track, request.duration) });
   }
   return { manifest: rangedManifest(request.duration, tracks, request.segment_seconds), segments: tracks.map(track => track.index.segments.length) };
 }

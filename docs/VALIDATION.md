@@ -1,5 +1,20 @@
 # Offline validation record — 0.1.0
 
+## Ranged WebM seeking: host checks — 2026-10-14
+
+`standalone/test/ranged_seek_test.py` passes 12 cases using generated ten-minute
+AVC/AAC MP4 and VP9/Opus WebM files: seeks at 0, 300 and 580 seconds, with
+twelve seconds copied after each seek, using individual fragments and
+30-second groups. Every media request has a bounded byte range; less than
+8 MiB is read per case. The previous WebM middle-seek hang is reproduced
+before the FFmpeg range-boundary EOF fix and completes after it.
+
+`standalone/test_host.sh` passes plain and under ASan/UBSan: 21 engine checks,
+167 service checks, 201 account checks, 51 import checks and 272 remote checks
+per build. The engine check also calls the shipping WebM index reader and
+verifies its head/index request ranges. No live account or console is involved.
+PS5 playback, 4K performance and HDR output remain unverified for this change.
+
 ## Subscriptions import and phone casting in the built-in service: offline only — 2026-10-13
 
 The two features that still needed the PC companion are answered by the service

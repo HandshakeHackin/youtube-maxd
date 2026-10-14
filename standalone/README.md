@@ -258,6 +258,23 @@ as a shim (`Buffer.byteLength`); `node:crypto` is aliased to `js/node_crypto.js`
 
 ### Seeking
 
+The ranged path now also reads WebM Cues and offers indexed VP9/Opus tracks.
+The FFmpeg overlay converts a zero-byte range-boundary read to `AVERROR_EOF`,
+so the WebM parser returns control to DASH to open the next fragment instead
+of retrying the exhausted range. Generated MP4 and WebM fixtures pass seeks
+at 0, 300 and 580 seconds, with twelve seconds read after each seek, for
+individual fragments and 30-second groups. Every media request has a bounded
+byte range. This is host evidence; console acceptance is still pending.
+
+Reproduce with the patched host FFmpeg and the built host service:
+
+```sh
+python3 standalone/test/ranged_seek_test.py --ffmpeg <patched-ffmpeg> --tube-js standalone/build/tube_js
+```
+
+The following records the earlier single-file investigation and the WebM
+failure before the range-boundary fix.
+
 The console does not use stock FFmpeg. `scripts/patch_ffmpeg_dash_seek.py`
 changes two places in `dashdec.c` (7.1.1): a complete single-file VOD
 representation (one fragment from offset 0, no separate initialisation
