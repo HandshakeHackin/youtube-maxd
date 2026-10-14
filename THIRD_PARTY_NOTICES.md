@@ -94,7 +94,9 @@ original code-drawn/synthetic assets. SmartTube (MIT at the inspected revision
 `2c60453007dfc3775ff525c3837c2d1d4e95aab9`) and MediaServiceCore are behaviour and
 architectural references only, and FreeTube (AGPL-3.0-or-later) is the reference
 for reading YouTube without an account through YouTube.js; their code/assets
-are not distributed here.
+are not distributed here, with one exception: the list of blocked live-chat
+author names in `companion/innertube/live_chat.mjs` is taken from SmartTube's
+`ChatController` at that revision (MIT, Copyright (c) 2020-present yuliskov).
 
 Native microphone AudioIn ABI and routing are based on the GPL-3.0-or-later
 [ps5-audio-decoding-research microphone proof of concept](https://github.com/blackbearreloaded/ps5-audio-decoding-research/tree/26be5a12f92b2cdc67f8a9e082fd69ae0e9a35a2/examples/native-audio-poc/microphone).
@@ -124,8 +126,8 @@ V3, preserved at `native/licenses/Unicode-3.0.txt` and copied into native assets
   `assets/prosperotube-notices`. FriBidi's source is Pacbrew's package source;
   this repository's sources and build recipe are what relinking the app
   against another build of it takes. The console font names and their order,
-  and the way glyphs become distance fields, follow ProsperoEden's launcher,
-  ProsperoLichess and ProsperoRadio (`gfx/system_fonts.cpp`,
+  and the way glyphs become distance fields, follow ProsperoEden's launcher
+  and ProsperoRadio (`gfx/system_fonts.cpp`,
   GPL-3.0-or-later, same author); the code is written for this project. The
   sub-pixel placement of an edge from its coverage follows Gustavson and
   Strand, "Anti-aliased Euclidean distance transform" (2011); the distance

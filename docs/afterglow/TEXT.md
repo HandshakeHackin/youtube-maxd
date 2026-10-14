@@ -151,8 +151,8 @@ a text drawn every frame costs one hash and one atlas look-up per glyph.
 ## 4. Fonts
 
 **The console's.** `Config::font_dirs` are searched for the names the family's
-other apps read on real consoles (ProsperoEden's launcher, ProsperoLichess,
-ProsperoRadio: `gfx/system_fonts.cpp`); of each line the first file found is
+other apps read on real consoles (ProsperoEden's launcher and ProsperoRadio:
+`gfx/system_fonts.cpp`); of each line the first file found is
 used:
 
 | Role | Files, in order |
@@ -546,7 +546,7 @@ and say so.
   `assets/prosperotube-notices`. FriBidi's source is Pacbrew's package source;
   this repository's sources and build recipe are what relinking the app
   against another build of it takes. The console font names and their order, and the way glyphs become
-  distance fields, follow ProsperoEden's launcher, ProsperoLichess and
+  distance fields, follow ProsperoEden's launcher and
   ProsperoRadio (`gfx/system_fonts.cpp`, GPL-3.0-or-later, same author); the
   code is written for this project. The sub-pixel placement of an edge from
   its coverage follows Gustavson and Strand, "Anti-aliased Euclidean distance

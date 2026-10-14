@@ -229,8 +229,7 @@ Three steps, each useful alone:
    - ProsperoRadio: `~/ProsperoRadio/ui-kit/overrides/gfx/{font,harfbuzz,bidi,system_fonts}.cpp`;
      the font table names `SST-*`, `SSTJpPro-Regular`, `SSTThai-*`,
      `SSTArabic-*` under `/preinst/common/font` (`system_fonts.cpp:58-63,176`; read).
-   - ProsperoLichess: `~/ProsperoLichess/src/gfx/{system_fonts,bidi,font}.cpp`;
-     ProsperoTV: `opengl-ui/src/tv/font_shape.cpp` (research pass).
+   - ProsperoTV: `opengl-ui/src/tv/font_shape.cpp` (research pass).
    - The kit's own account of it: `KIT/docs/ADOPTING.md:114-125` (first glyph
      of a new script costs a frame of about 110 ms: warm the scripts up).
    - EVO already links `libharfbuzz.a` and `libfreetype.a`

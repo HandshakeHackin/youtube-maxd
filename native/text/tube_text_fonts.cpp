@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The console font names and the order they are asked in come from the family's other apps
-// (ProsperoEden's launcher, ProsperoLichess, ProsperoRadio: gfx/system_fonts.cpp, same author,
+// (ProsperoEden's launcher and ProsperoRadio: gfx/system_fonts.cpp, same author,
 // same licence), which read them on real consoles.
 
 #include "tube_text_fonts.hpp"

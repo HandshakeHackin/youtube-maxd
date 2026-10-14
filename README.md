@@ -5,10 +5,11 @@
 <h1 align="center">ProsperoTube</h1>
 
 > **In testing: 0.1.0 (content version `01.000.000`) has not been released yet.**
-> The self-sufficient build has passed bounded Guest sessions on a PS5; accounts,
-> phone casting, updates and the new Afterglow interface have not run on a
-> console. The owner decided that no version is published until every Afterglow
-> screen is built and validated on a console ([decision](docs/DECISIONS.md)).
+> The self-sufficient build has passed bounded Guest sessions on a PS5, and the
+> new Afterglow interface has had its first runs there; accounts, phone casting
+> and updates have not been tried on a console yet. No version will be published
+> until every Afterglow screen is built and validated on a console
+> ([decision](docs/DECISIONS.md)).
 > [Status](docs/STATUS.md) records what was tested and where.
 
 <p align="center">
@@ -31,7 +32,7 @@
 
 The picture shows the Afterglow interface's Home as drawn on a PC by the
 interface's test harness, with invented sample videos and channels. It is not
-a console capture: Afterglow has not run on a PS5 yet.
+a console capture.
 
 ## Highlights
 

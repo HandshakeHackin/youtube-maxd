@@ -42,8 +42,7 @@ a development build, a copy that does not run from
 The owner's other PS5 apps share one update kit, kept in
 [ps5-native-app-boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
 (`docs/UPDATE_CHECK.md`, `docs/SELF_UPDATE.md`) and used by ProsperoLight,
-ProsperoAI, ProsperoEden, ProsperoTV, ProsperoRadio, ProsperoPuzzles and
-ProsperoLichess:
+ProsperoAI, ProsperoEden, ProsperoTV, ProsperoRadio and ProsperoPuzzles:
 
 - the app asks **homebrew.page** for its catalog entry, signed with Ed25519,
   with a sequence number against replay, and compares `contentVersion` values;
