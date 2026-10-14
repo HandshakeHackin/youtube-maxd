@@ -480,6 +480,8 @@ static void run_command(const char *line)
     apply_i18n_overlay(replace, player, WORK, ROOT)
     # The Afterglow interface: sources, fonts and its three hooks in EVO (scripts/afterglow_overlay.py).
     afterglow_overlay.apply(ROOT, WORK, replace, player)
+    from agc_fence_overlay import apply_agc_fence_overlay
+    apply_agc_fence_overlay(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
