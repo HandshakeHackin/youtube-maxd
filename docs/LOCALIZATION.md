@@ -17,12 +17,12 @@ yet.
 | `fi` | Suomi | `pl` | Polski | `uk` | Українська |
 | `fr` | Français | `pt-BR` | Português (Brasil) | `vi` | Tiếng Việt |
 
-The classic interface is covered by every catalog. Dutch, French, German, Italian,
-Norwegian Bokmål, Spanish, Swedish and both Portuguese variants cover all
-Afterglow texts; the other 12 languages still fall back to English
-for Afterglow-only texts. `bash scripts/test_i18n.sh` reports both totals and
-requires 99% coverage of the classic texts for every language. Completed
-Afterglow catalogs additionally require every Afterglow text and 99% overall.
+The classic interface is covered by every catalog. Afterglow is complete in
+`da`, `de`, `es`, `fr`, `it`, `nb`, `nl`, `pt-BR`, `pt-PT`, `sv`.
+The remaining 11 languages fall back to English for missing Afterglow texts.
+`bash scripts/test_i18n.sh` reports both totals and requires 99% coverage
+of the classic texts in every language. Completed Afterglow catalogs also
+require every Afterglow text and 99% overall coverage.
 
 Afterglow uses `tube_i18n_translate` through its platform text hook and draws
 with its dynamic font engine. It can use these translations independently of

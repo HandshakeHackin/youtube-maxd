@@ -149,9 +149,11 @@ int main(void) {
     assert(tr("Remove Northlight Atlas from this PS5?", 0) && strstr(out, "Northlight Atlas"));
 
     /* The shared screens provide counts, so both English forms select the language's own plural. */
-    static const char *const afterglow[] = {"de", "es", "fr", "it", "nb", "nl", "pt-BR", "pt-PT", "sv"};
+    static const char *const afterglow[] = {"da", "de", "es", "fr", "it", "nb", "nl", "pt-BR", "pt-PT", "sv"};
     for (size_t i = 0; i < sizeof afterglow / sizeof *afterglow; ++i) {
         use(afterglow[i]);
+        assert(tr("Who is watching?", 0));
+        assert(tr("Chapter 2 of 17", 0) && strstr(out, "2") && strstr(out, "17"));
         assert(tr("Captions: 1 language", 0) && strstr(out, "1"));
         assert(tr("Captions: 2 languages", 0) && strstr(out, "2"));
         assert(tr("1 chapter", 0) && tr("2 chapters", 0));
