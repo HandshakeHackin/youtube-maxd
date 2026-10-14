@@ -802,6 +802,8 @@
   "Move": "Přesunout",
   "Move down": "Přesunout dolů",
   "Move up": "Přesunout nahoru",
+  "Moved down in queue": "Posunuto ve frontě dolů",
+  "Moved up in queue": "Posunuto ve frontě nahoru",
   "Movies": "Filmy",
   "Multiline subtitles": "Víceřádkové podtitulky",
   "Music": "Hudba",

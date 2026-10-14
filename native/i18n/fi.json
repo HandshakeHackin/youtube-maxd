@@ -796,6 +796,8 @@
   "Move": "Siirrä",
   "Move down": "Siirrä alas",
   "Move up": "Siirrä ylös",
+  "Moved down in queue": "Siirretty jonossa alaspäin",
+  "Moved up in queue": "Siirretty jonossa ylöspäin",
   "Movies": "Elokuvat",
   "Multiline subtitles": "Moniriviset alaotsikot",
   "Music": "Musiikki",

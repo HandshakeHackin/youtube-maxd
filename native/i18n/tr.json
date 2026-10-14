@@ -793,6 +793,8 @@
   "Move": "Taşı",
   "Move down": "Aşağı taşı",
   "Move up": "Yukarı taşı",
+  "Moved down in queue": "Kuyrukta aşağı taşındı",
+  "Moved up in queue": "Kuyrukta yukarı taşındı",
   "Movies": "Filmler",
   "Multiline subtitles": "Çok satırlı alt başlıklar",
   "Music": "Müzik",

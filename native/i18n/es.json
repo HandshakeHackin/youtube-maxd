@@ -796,6 +796,8 @@
   "Move": "Mover",
   "Move down": "Bajar",
   "Move up": "Subir",
+  "Moved down in queue": "Movido hacia abajo en la cola",
+  "Moved up in queue": "Movido hacia arriba en la cola",
   "Movies": "Películas",
   "Multiline subtitles": "Subtítulo en varias líneas",
   "Music": "Música",

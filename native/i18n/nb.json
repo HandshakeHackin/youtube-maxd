@@ -796,6 +796,8 @@
   "Move": "Flytt",
   "Move down": "Flytt ned",
   "Move up": "Flytt opp",
+  "Moved down in queue": "Flyttet ned i køen",
+  "Moved up in queue": "Flyttet opp i køen",
   "Movies": "Filmer",
   "Multiline subtitles": "Undertitler på flere linjer",
   "Music": "Musikk",

@@ -796,6 +796,8 @@
   "Move": "Déplacer",
   "Move down": "Descendre",
   "Move up": "Monter",
+  "Moved down in queue": "Déplacé vers le bas dans la file d'attente",
+  "Moved up in queue": "Déplacé vers le haut dans la file d'attente",
   "Movies": "Films",
   "Multiline subtitles": "Sous-titre de carte multiligne",
   "Music": "Musique",

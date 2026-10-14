@@ -55,6 +55,7 @@ int main(void) {
         assert(tr("SponsorBlock actions", 0) && strstr(out, "SponsorBlock"));
         assert(!tr("ProsperoTube", 0) && !tr("YouTube", 0));
         assert(tr("Skipped", 0) && tr("Undo", 0) && tr("Unable to undo the skip", 0));
+        assert(tr("Moved up in queue", 0) && tr("Moved down in queue", 0));
         assert(tr("Keep playing while browsing", 0) && tr("Now playing", 0) && tr("Paused", 0));
         assert(tr("return to video", 0) && strcmp(out, "return to video"));
         assert(tr("Quality", 0) && tr("Second language", 0) && tr("Select quality, audio, playback speed or live chat", 0));

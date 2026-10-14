@@ -2525,7 +2525,8 @@
   {
    "source": "Details",
    "context": [
-    "afterglow"
+    "afterglow",
+    "kit"
    ]
   },
   {
@@ -4772,6 +4773,18 @@
    ]
   },
   {
+   "source": "Moved down in queue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
+   "source": "Moved up in queue",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Movies",
    "context": [
     "afterglow",
@@ -6120,7 +6133,8 @@
   {
    "source": "Playback details",
    "context": [
-    "afterglow"
+    "afterglow",
+    "kit"
    ]
   },
   {

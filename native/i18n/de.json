@@ -796,6 +796,8 @@
   "Move": "Verschieben",
   "Move down": "Nach unten",
   "Move up": "Nach oben",
+  "Moved down in queue": "In der Warteschlange nach unten verschoben",
+  "Moved up in queue": "In der Warteschlange nach oben verschoben",
   "Movies": "Filme",
   "Multiline subtitles": "Mehrzeilige Kartendetails",
   "Music": "Musik",
