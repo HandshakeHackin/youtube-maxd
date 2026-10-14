@@ -45,14 +45,8 @@ if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
     printf 'Service bundle: %s  %s bytes  sha256 %s\n' "${bundle}" "$(stat -c %s "${bundle}")" "$(sha256sum "${bundle}" | cut -d ' ' -f 1)"
 fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
-lapy_options=()
-if [[ -n "${PROSPEROTUBE_LAPY_RESULT_FILE:-}" ]]; then
-    lapy_options+=(--result-file "${PROSPEROTUBE_LAPY_RESULT_FILE}")
-fi
-if [[ "${PROSPEROTUBE_LAPY_STOP_DIAGNOSTICS:-0}" == 1 ]]; then
-    lapy_options+=(--target-stop-diagnostics)
-fi
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy" "${lapy_options[@]}"
+# The exact-title upstream Lapy helper, built and verified as ProsperoEden does it.
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libdav1d.a" ]]; then
     bash "${work}/scripts/build-dav1d.sh" --install --jobs 8
 fi
@@ -75,6 +69,7 @@ for symbol in ff_hevc_decoder ff_hevc_mp4toannexb_bsf; do
     }
 done
 bash "${work}/scripts/package-app.sh" --zip "$@"
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 --check-app "${work}/output/app/PPSA99142"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
 cp -a "${work}/output/app/PPSA99142" "${destination}/"

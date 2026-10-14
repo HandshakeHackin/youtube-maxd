@@ -68,15 +68,17 @@ title and shared USB filenames and must not be invoked against ProsperoTube.
 Add EVO's `--virtual-keyboard` option for scripted app text-entry cases; the
 development input commands cannot type into the PS5 system IME.
 
-For a bounded Lapy diagnostic candidate, set
-`PROSPEROTUBE_LAPY_RESULT_FILE=/data/prosperotube/lapy-helper.log` when running
-`build_ps5.sh`. This selects the pinned upstream helper's file-mirror option;
-the diagnostic installer must create `/data/prosperotube` before launch and
-record that preparation. The helper refuses to start if it cannot open this
-file. Normal builds omit the variable and do not require an existing directory.
-The helper manifest records the exact source revision and optional result path.
-No shared ps5log configuration is changed. See `native/elevation/README.md` for
-the PR #50 revision and hardware acceptance limits.
+The Lapy helper is built the way
+[ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) builds its own:
+`scripts/build_lapy_helper.py` fetches the pinned
+[PS5-Lapy-JB-Daemon](https://github.com/blackbearreloaded/PS5-Lapy-JB-Daemon)
+commit, the Payload SDK v0.42 archive and the ps5log header (each checked by
+commit or SHA-256), runs upstream's own `make owned-helper TARGET_TITLE=PPSA99142`
+and checks the generated manifest (title, one-shot mode, no service, the
+root-layout retry feature, ELF and protocol hashes) before the helper is
+packaged. After packaging, `build_ps5.sh` checks the copy in the app folder
+again. There are no diagnostic helper builds: Lapy's privileged source is never
+copied or changed. See `native/elevation/README.md`.
 
 `package_release.py` packages companion/documentation bytes from the committed
 Git revision and only named generated media fixtures. Local account files,
