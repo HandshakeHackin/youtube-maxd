@@ -1785,8 +1785,9 @@ static int embedded_start(void) {
 #ifdef TUBE_EMBEDDED_SERVICE
     if (!g_embedded || g_embedded_stopped) return 0;
     unsigned short port = 0; char token[65] = "", source[40];
-    /* Each is asked only for a profile that turned it on: segments, and the dislike count of an opened details page. */
-    static const tube_service_options options = {.sponsorblock = 1, .return_youtube_dislike = 1};
+    /* Each is asked only for a profile that turned it on: segments, and the dislike count of an opened details page.
+     * Manifests are ranged: since 2026-10-14 YouTube answers 403 to an open-ended or whole-file range. */
+    static const tube_service_options options = {.sponsorblock = 1, .return_youtube_dislike = 1, .ranged_manifest = 1};
     if (!tube_service_running()) tube_service_configure(&options);
     int rc = tube_service_start(evo_data_dir(), &port, token);
     token[64] = 0;
