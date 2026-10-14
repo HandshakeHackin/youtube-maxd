@@ -262,7 +262,7 @@ export async function playerResponse(yt, id, client, full = false) {
 
 // The video as the resolver sees it: the first client in `order` that answers
 // with something playable. Failures carry the companion's resolver codes.
-export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async () => {}, fetch, facts = () => ({}) } = {}) {
+export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async () => {}, fetch, facts = () => ({}), playback = null, ranged = false } = {}) {
   let failure = 'extraction_failed';
   // A client is asked again (twice at most) only when YouTube refuses the
   // links it just handed out: seen live on 2026-10-11, where FFmpeg met 403 on
@@ -290,12 +290,23 @@ export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async 
       } catch (error) { if (!(error instanceof ServiceError)) failure = 'resolver_network'; }
     }
     if (!list.some(format => linkKind(format) !== 'none') && !hls.length) { failure = live ? failure : 'extraction_failed'; continue; }
-    // One kilobyte of the first video file proves the links are served before
-    // a player is pointed at them.
-    const sample = live ? null : list.find(format => format.has_video && format.url);
-    if (sample && fetch) {
+    // One kilobyte of the selected video file proves its link is served before
+    // a player is pointed at it. Non-playback callers retain the first sample.
+    const indexed = ranged ? list.filter(format => format.init_range && format.index_range) : [];
+    const usable = indexed.length && selectVideo(indexed, playback ?? {}).some(format => !format.has_audio) &&
+      selectAudio(indexed, playback ?? {}).length ? indexed : list;
+    const sample = live ? null : playback ? selectVideo(usable, playback)[0] : list.find(format => format.has_video && format.url);
+    if (sample?.url && fetch) {
       const reply = await fetch(safeRemote(sample.url), { headers: { Range: 'bytes=0-1023' }, max_bytes: 65536 }).catch(() => null);
       if (reply && [401, 403, 410].includes(reply.status)) { refusedBy = client; failure = 'media_refused'; continue; }
+      // A newly signed link can serve its header but refuse a seek into the
+      // file. Check one bounded deep range before handing it to FFmpeg.
+      const length = Number(sample.content_length);
+      if (playback && Number.isSafeInteger(length) && length > 131072) {
+        const first = Math.floor(length / 2), last = Math.min(length - 1, first + 65535);
+        const deep = await fetch(safeRemote(sample.url), { headers: { Range: `bytes=${first}-${last}` }, max_bytes: 131072 }).catch(() => null);
+        if (deep && [401, 403, 410].includes(deep.status)) { refusedBy = client; failure = 'media_refused'; continue; }
+      }
     }
     // How long the signed addresses stay valid, as the answer says (about six hours).
     const lifetime = number(info.streaming_data?.expires?.getTime?.() ? (info.streaming_data.expires.getTime() - Date.now()) / 1000 : 21600, 21600);

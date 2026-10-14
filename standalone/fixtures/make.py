@@ -14,7 +14,7 @@ import struct
 HERE = Path(__file__).resolve().parent
 CHANNEL = "UC" + "f" * 22
 PLAYLIST = "PLfixture0001"
-VIDEO, LIVE, GONE, SHORT, DENIED = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY"
+VIDEO, LIVE, GONE, SHORT, DENIED, RETRY = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY", "fxtRETRY001"
 ZOO = "jNQXAC9IVRw"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 
@@ -223,6 +223,14 @@ def main():
     # The same video on a media host that refuses every read (links YouTube will not serve).
     denied = json.loads(json.dumps(player()).replace("rr1---sn-fixture", "rr2---sn-fixture").replace(VIDEO, DENIED))
     write("player_denied.json", denied)
+    # A link that serves its header but refuses a deep range, followed by the
+    # same format from a fresh player answer with a usable signed address.
+    retry_bad = json.loads(json.dumps(player()).replace(VIDEO, RETRY))
+    for fmt in retry_bad["streamingData"]["adaptiveFormats"]:
+        if fmt["itag"] == 315:
+            fmt["url"] = fmt["url"].replace("rr1---sn-fixture", "rr3---sn-fixture")
+    write("player_retry_bad.json", retry_bad)
+    write("player_retry_good.json", json.loads(json.dumps(player()).replace(VIDEO, RETRY)))
     write("next.json", watch_next())
     write("next_empty.json", {})
     write("player_gone.json", {"playabilityStatus": {"status": "ERROR", "reason": "This video is unavailable"}})
@@ -262,6 +270,8 @@ def main():
             {"body_contains": f'"videoId":"{VIDEO}"', "file": "player.json"},
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
             {"body_contains": f'"videoId":"{SHORT}"', "file": "player_short.json"},
+            {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_bad.json", "times": 2, "tag": "retry-bad"},
+            {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_good.json", "tag": "retry-good"},
             {"body_contains": f'"videoId":"{DENIED}"', "file": "player_denied.json"},
             {"body_contains": f'"videoId":"{GONE}"', "file": "player_gone.json"}],
         "POST www.youtube.com/youtubei/v1/next": [
@@ -269,6 +279,9 @@ def main():
         f"GET manifest.googlevideo.com/api/manifest/hls_variant/id/{LIVE}/file/index.m3u8": {"file": "live.m3u8", "type": "application/vnd.apple.mpegurl"},
         "GET rr1---sn-fixture.googlevideo.com/videoplayback": {"file": "sidx.bin", "status": 206, "type": "video/mp4"},
         "GET rr2---sn-fixture.googlevideo.com/videoplayback": {"status": 403, "type": "text/plain"},
+        "GET rr3---sn-fixture.googlevideo.com/videoplayback": [
+            {"header_contains": "range: bytes=500000-565535", "status": 403, "tag": "retry-deep"},
+            {"file": "sidx.bin", "status": 206, "type": "video/mp4", "tag": "retry-start"}],
         "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
         "GET suggestqueries-clients6.youtube.com/complete/search": {"url_contains": "q=canned", "file": "suggest.txt", "type": "text/javascript"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},

@@ -403,6 +403,16 @@ def playback(s):
     same("refused links", s.call("POST", "/v1/resolve", {"id": "fixtureDENY"})[::2],
          (502, {"api_version": 1, "error": {"code": "upstream_media", "message": "The media server could not provide this resource."}}))
     check("refused links are retried with pauses", 1.5 < time.time() - began < 10, time.time() - began)
+    s.call("GET", "/v1/_upstream?clear=1")
+    status, _, avc = s.call("POST", "/v1/resolve", {"id": "fxtRETRY001", "codec": "avc", "max_height": 1080})
+    same("unselected 4K refusal does not affect AVC", (status, avc["choices"][0]["label"]),
+         (200, "1080p 60 fps H264 / AAC"))
+    status, _, recovered = s.call("POST", "/v1/resolve", {"id": "fxtRETRY001", "codec": "vp9", "max_height": 2160})
+    same("deep-range refusal recovers with same format", (status, recovered["choices"][0]["label"]),
+         (200, "2160p 60 fps VP9 / AAC"))
+    tags = [row["tag"] for row in s.call("GET", "/v1/_upstream?clear=1")[2]["requests"] if row["tag"].startswith("retry-")]
+    same("playback policies keep separate extraction cache and retry selected link", tags,
+         ["retry-bad", "retry-bad", "retry-start", "retry-deep", "retry-good"])
     same("resolve, other profile", s.call("POST", "/v1/resolve", {"id": VIDEO, "profile": "someone"})[0], 404)
     same("resolve, bad request", s.call("POST", "/v1/resolve", {"id": VIDEO, "max_height": 99})[0], 422)
 

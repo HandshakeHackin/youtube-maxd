@@ -73,7 +73,7 @@ export class Companion {
   // account's own session only behind the switch in account_playback.js.
   async source(request, fresh, account = false) {
     if (account) return accountExtract(request.profile, request.id);
-    try { return await extractVideo(request.id, { hl: request.hl, fresh }); }
+    try { return await extractVideo(request.id, { hl: request.hl, fresh, playback: request, ranged: this.ranged }); }
     catch (error) { if (!needsAccount(request.profile, error)) throw error; }
     return accountExtract(request.profile, request.id);
   }

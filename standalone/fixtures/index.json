@@ -36,6 +36,17 @@
    "file": "player_short.json"
   },
   {
+   "body_contains": "\"videoId\":\"fxtRETRY001\"",
+   "file": "player_retry_bad.json",
+   "times": 2,
+   "tag": "retry-bad"
+  },
+  {
+   "body_contains": "\"videoId\":\"fxtRETRY001\"",
+   "file": "player_retry_good.json",
+   "tag": "retry-good"
+  },
+  {
    "body_contains": "\"videoId\":\"fixtureDENY\"",
    "file": "player_denied.json"
   },
@@ -66,6 +77,19 @@
   "status": 403,
   "type": "text/plain"
  },
+ "GET rr3---sn-fixture.googlevideo.com/videoplayback": [
+  {
+   "header_contains": "range: bytes=500000-565535",
+   "status": 403,
+   "tag": "retry-deep"
+  },
+  {
+   "file": "sidx.bin",
+   "status": 206,
+   "type": "video/mp4",
+   "tag": "retry-start"
+  }
+ ],
  "GET www.youtube.com/api/timedtext": {
   "file": "captions.vtt",
   "type": "text/vtt"

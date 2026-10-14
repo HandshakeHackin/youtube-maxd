@@ -183,8 +183,9 @@ export async function prepare(yt, client) {
 const extractions = new Map();
 let running = 0;
 const waiters = [];
-export async function extractVideo(id, { hl = '', fresh = false, order = PLAYBACK_ORDER } = {}) {
-  const key = `${id}|${hl}|${order.join(',')}`, now = host.now();
+export async function extractVideo(id, { hl = '', fresh = false, order = PLAYBACK_ORDER, playback = null, ranged = false } = {}) {
+  const policy = playback ? `${playback.codec}/${playback.max_height}/${playback.max_fps}/${ranged}` : '';
+  const key = `${id}|${hl}|${order.join(',')}|${policy}`, now = host.now();
   for (const [name, entry] of extractions) if (entry.until <= now) extractions.delete(name);
   if (!fresh && extractions.has(key)) return extractions.get(key).value;
   const work = (async () => {
@@ -192,7 +193,7 @@ export async function extractVideo(id, { hl = '', fresh = false, order = PLAYBAC
     running++;
     try {
       const yt = await playbackClient(hl).catch(() => { throw resolverError('resolver_network'); });
-      return await extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch, facts: rawPlayerFacts });
+      return await extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch, facts: rawPlayerFacts, playback, ranged });
     } finally { running--; waiters.shift()?.(); }
   })();
   const value = deadline(45000, work, () => new ServiceError('timeout', 'YouTube took too long to respond. Retry from the video screen.', 504));
