@@ -420,6 +420,39 @@ static void copy_title(char *out, size_t size, const char *text) {
     out[used] = 0;
 }
 
+static char g_playing_channel[193], g_playing_channel_id[25], g_playing_art[512];
+static char g_playing_views[17], g_playing_published[65];
+
+const char *tube_playing_fact(const char *name) {
+    if (!name) return "";
+    if (!strcmp(name, "channel")) return g_playing_channel;
+    if (!strcmp(name, "channel_id")) return g_playing_channel_id;
+    if (!strcmp(name, "channel_art_url")) return g_playing_art;
+    if (!strcmp(name, "views")) return g_playing_views;
+    if (!strcmp(name, "published")) return g_playing_published;
+    return "";
+}
+
+static const char *fact_string(const cJSON *object, const char *name) {
+    const cJSON *item = cJSON_GetObjectItemCaseSensitive(object, name);
+    return cJSON_IsString(item) ? item->valuestring : "";
+}
+
+static int channel_id_valid(const char *id) {
+    if (strlen(id) != 24 || id[0] != 'U' || id[1] != 'C') return 0;
+    for (const char *at = id + 2; *at; ++at)
+        if (!((*at >= 'A' && *at <= 'Z') || (*at >= 'a' && *at <= 'z') ||
+              (*at >= '0' && *at <= '9') || *at == '_' || *at == '-')) return 0;
+    return 1;
+}
+
+static int views_valid(const char *value) {
+    size_t n = strlen(value);
+    if (!n || n > 16) return 0;
+    for (const char *at = value; *at; ++at) if (*at < '0' || *at > '9') return 0;
+    return 1;
+}
+
 static int add_chapter(double start, const char *title) {
     if (!isfinite(start) || start < 0 || start > 1e9 || g_chapter_count >= TUBE_EXTRA_CHAPTERS) return 0;
     int at = g_chapter_count;
@@ -512,6 +545,8 @@ int tube_extra_seek_preview_tile(double seconds, double duration, int target_wid
 }
 
 void tube_extra_video_end(void) {
+    g_playing_channel[0] = g_playing_channel_id[0] = g_playing_art[0] = 0;
+    g_playing_views[0] = g_playing_published[0] = 0;
     g_has_loudness = 0; g_loudness = 0; g_short = 0;
     g_chapter_count = 0; g_storyboard_count = 0;
     g_stream_height = 0; g_stream_fps = 0; g_stream_bitrate = 0; g_stream_codec[0] = 0;
@@ -522,6 +557,14 @@ void tube_extra_video_end(void) {
 void tube_extra_video_begin(const cJSON *resolve_result) {
     tube_extra_video_end();
     if (!cJSON_IsObject(resolve_result)) return;
+    copy_title(g_playing_channel, sizeof g_playing_channel, fact_string(resolve_result, "channel"));
+    const char *id = fact_string(resolve_result, "channel_id");
+    if (channel_id_valid(id)) copy_title(g_playing_channel_id, sizeof g_playing_channel_id, id);
+    const char *art = fact_string(resolve_result, "channel_art_url");
+    if (strlen(art) < sizeof g_playing_art) copy_title(g_playing_art, sizeof g_playing_art, art);
+    const char *views = fact_string(resolve_result, "views");
+    if (views_valid(views)) copy_title(g_playing_views, sizeof g_playing_views, views);
+    copy_title(g_playing_published, sizeof g_playing_published, fact_string(resolve_result, "published"));
     const cJSON *loudness = cJSON_GetObjectItemCaseSensitive(resolve_result, "loudness_db");
     tube_extra_set_loudness(cJSON_IsNumber(loudness), cJSON_IsNumber(loudness) ? loudness->valuedouble : 0);
     tube_extra_set_short(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(resolve_result, "is_short")));

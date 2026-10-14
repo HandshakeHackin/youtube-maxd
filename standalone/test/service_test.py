@@ -333,7 +333,8 @@ def playback(s):
          (400, {"api_version": 1, "error": {"code": "invalid_video", "message": "Enter an eleven-character YouTube video ID."}}))
 
     status, play = s.job({"action": "resolve", "playback": {"id": VIDEO, "codec": "avc", "max_height": 1080}})
-    same("resolve fields", (status, list(play)), (200, ["api_version", "id", "title", "duration_sec", "expires_in", "choices", "captions", "chapters",
+    same("resolve fields", (status, list(play)), (200, ["api_version", "id", "title", "channel", "channel_id", "channel_art_url", "views", "published",
+                                                        "duration_sec", "expires_in", "choices", "captions", "chapters",
                                                         "paid_content_text", "loudness_db", "is_short", "storyboards"]))
     token = re.fullmatch(re.escape(s.base) + r"/media/([A-Za-z0-9_-]{32})/d0\.mpd", play["choices"][0]["url"])
     check("manifest address", token is not None, play["choices"][0]["url"])
@@ -342,7 +343,8 @@ def playback(s):
         "url": f"{prefix}/d{n}.mpd", "label": label, "container": "dash", "video_codec": codec, "audio_codec": "aac", "width": width,
         "height": height, "fps": fps, "bitrate_bps": rate, "is_live": False, "video_range": "SDR", "audio_channels": 2}
     same("resolve result", play, {
-        "api_version": 1, "id": VIDEO, "title": "Fixture video", "duration_sec": 635, "expires_in": 1800,
+        "api_version": 1, "id": VIDEO, "title": "Fixture video", "channel": "Fixture channel", "channel_id": CHANNEL,
+        "channel_art_url": "", "views": "12345", "published": "", "duration_sec": 635, "expires_in": 1800,
         "choices": [choice(0, "1080p 60 fps H264 / AAC", "h264", 1920, 1080, 60, 3248000), choice(1, "720p 30 fps H264 / AAC", "h264", 1280, 720, 30, 1100000)],
         "captions": [{"language": "en", "name": "English", "url": f"{prefix}/c0.srt", "automatic": False, "translated": False}],
         "chapters": [{"title": "Opening", "start": 0, "end": 120}, {"title": "Main part", "start": 120, "end": 500}, {"title": "Credits", "start": 500, "end": 635}],

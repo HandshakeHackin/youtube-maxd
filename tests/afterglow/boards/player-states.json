@@ -2,6 +2,24 @@
  "about": "The player: every state beside the nine approved boards. Written by tests/afterglow/tools/player_boards.py.",
  "boards": [
   {
+   "name": "player-playing-facts",
+   "fixture": "signed-in",
+   "player": "ridge",
+   "view": {
+    "channel": "Fixture channel",
+    "channel_id": "UCffffffffffffffffffffff",
+    "avatar": "",
+    "meta": "Views: 12345 · Published: 2024-10-14"
+   },
+   "expect": {
+    "screen": "player",
+    "state": {
+     "channel": "Fixture channel",
+     "meta": "Views: 12345 · Published: 2024-10-14"
+    }
+   }
+  },
+  {
    "name": "player-paused",
    "fixture": "signed-in",
    "player": "ridge",

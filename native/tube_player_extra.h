@@ -201,6 +201,8 @@ int tube_extra_resume_allowed(double duration_seconds);
  * it is switched back. */
 void tube_extra_video_begin(const struct cJSON *resolve_result);
 void tube_extra_video_end(void);
+/* A bounded snapshot of the active resolve result; empty when unavailable or stopped. */
+const char *tube_playing_fact(const char *name);
 void tube_extra_set_loudness(int has_value, double loudness_db);
 void tube_extra_set_short(int is_short);
 int tube_extra_is_short(void);

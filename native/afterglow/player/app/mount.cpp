@@ -232,8 +232,9 @@ void fill_controls(Mount &m)
     const std::time_t now = std::time(nullptr);
     if (raw.chrome_hidden == 0 || !same(pb.title, "Video Playback") || v.title.empty())
         v.title = pb.title; // with its controls hidden EVO hands a stand-in title: the video is still the same one
-    v.channel.clear(); // REQUEST: the playing video's channel, views and age (requests/H.md)
-    v.avatar.clear();
+    v.channel = tube_playing_fact("channel");
+    v.channel_id = tube_playing_fact("channel_id");
+    v.avatar = tube_playing_fact("channel_art_url");
     v.live = raw.is_live != 0;
     v.live_status.clear();
     // The player's own word about the stream, where it has one.
@@ -241,6 +242,13 @@ void fill_controls(Mount &m)
              : same(pb.meta, "BUFFERING...")              ? std::string(tr("Buffering..."))
              : same(pb.meta, "WAITING FOR THE SERVER...") ? std::string(tr("Waiting for the server..."))
                                                           : pb.meta;
+    if (!v.live && v.meta.empty())
+    {
+        const std::string views = tube_playing_fact("views");
+        const std::string published = tube_playing_fact("published");
+        v.meta = dotted({views.empty() ? std::string() : std::string(tr("Views")) + ": " + views,
+                         published.empty() ? std::string() : std::string(tr("Published")) + ": " + published});
+    }
     v.paused = raw.paused != 0;
     v.loading = raw.loading != 0;
     v.scrubbing = raw.scrub_active != 0;

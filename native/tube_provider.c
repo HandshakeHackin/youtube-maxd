@@ -3615,9 +3615,11 @@ static void resolved(Request *r, const cJSON *root) {
     g_resolved_quality = r->quality;
     g_resolved_playlist = r->playlist;
     g_resolved_incognito = r->incognito;
-    static const char *const facts[] = {"loudness_db", "is_short", "chapters", "storyboards"};
+    static const char *const facts[] = {"loudness_db", "is_short", "chapters", "storyboards",
+                                      "channel", "channel_id", "views", "published", "channel_art_url"};
     cJSON_Delete(g_resolved_facts); g_resolved_facts = cJSON_CreateObject();
     for (unsigned i = 0; g_resolved_facts && i < sizeof facts / sizeof *facts; ++i) {
+        if (!strcmp(facts[i], "channel_art_url") && !tube_art_url_allowed(str(root, facts[i]))) continue;
         cJSON *fact = cJSON_Duplicate(cJSON_GetObjectItemCaseSensitive(root, facts[i]), 1);
         if (fact && !cJSON_AddItemToObject(g_resolved_facts, facts[i], fact)) cJSON_Delete(fact);
     }
@@ -7289,7 +7291,7 @@ static void chosen(const char *id, const evo_stream_choice_t *choice) {
     g_sb_finish_target = -1;
     char profile[33]; copy(profile, sizeof profile, !strcmp(id, g_resolved_id) ? g_resolved_profile : "");
     copy(g_active_profile, sizeof g_active_profile, valid_profile(profile) ? profile : g_library_profile);
-    if (g_resolved_facts && !strcmp(id, g_resolved_id)) tube_extra_video_begin(g_resolved_facts);
+    if (g_resolved_facts && !strcmp(id, g_resolved_id) && !strcmp(g_active_profile, g_resolved_profile)) tube_extra_video_begin(g_resolved_facts);
     else tube_extra_video_end();
     if (!recovering) {
         memset(&g_active_playlist,0,sizeof g_active_playlist);

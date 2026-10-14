@@ -1,6 +1,7 @@
 /* Host regression tests exercise the shipping C provider with queued HTTP mocks.
  * SPDX-License-Identifier: GPL-3.0-or-later */
 #include "tube_provider.h"
+#include "tube_player_extra.h"
 #include "evo_net.h"
 #include "evo_data_path.h"
 #include "cJSON.h"
@@ -154,8 +155,13 @@ int main(void) {
     assert(strstr(pending[0].body, "\"profile\":\"guest\""));
     assert(strstr(pending[0].body, "\"codec\":\"av1\""));
     assert(strstr(pending[0].body, "\"max_fps\":30"));
-    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"label\":\"1080p\",\"container\":\"dash\",\"height\":1080,\"video_codec\":\"av1\",\"audio_codec\":\"aac\"}],\"chapters\":[{\"start\":0},{\"start\":20},{\"start\":60}]}}");
+    poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Fixture\",\"channel\":\"Fixture channel\",\"channel_id\":\"UCffffffffffffffffffffff\",\"views\":\"12345\",\"published\":\"2024-10-14\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/capability/d0.mpd\",\"label\":\"1080p\",\"container\":\"dash\",\"height\":1080,\"video_codec\":\"av1\",\"audio_codec\":\"aac\"}],\"chapters\":[{\"start\":0},{\"start\":20},{\"start\":60}]}}");
     assert(resolve_calls == 1 && last_ok && pending_count == 1);
+    evo_stream_choice_t fact_choice = {0};
+    p->stream_chosen("abcdefghijk", &fact_choice);
+    assert(!strcmp(tube_playing_fact("channel"), "Fixture channel"));
+    assert(!strcmp(tube_playing_fact("views"), "12345"));
+    assert(!strcmp(tube_playing_fact("published"), "2024-10-14"));
     reply(0, 1, 200, "{\"segments\":[{\"start\":10,\"end\":20},{\"start\":15,\"end\":30},{\"start\":29,\"end\":40}]}");
     assert(tube_skip_target(12) == 20);
     assert(tube_skip_target(16) < 0); /* no repeated seeks during a pending skip */

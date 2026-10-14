@@ -21,12 +21,13 @@ the code they are marked `// REQUEST:`.
    `scripts/test_afterglow_controls.py` executes the generated map and detail
    actions, ownership guards and aliases. The 85 player boards pass in four
    looks; console acceptance remains pending.
-2. **Facts of the playing video**: channel name, channel id, channel picture,
-   views and age. Proposed: `const char *tube_playing_fact(const char *name)`
-   with the names of section 5.5 (`channel`, `channel_id`, `channel_art_url`,
-   `views`, `published`). Fills `PlayerView::channel`, `channel_id`, `avatar`,
-   `meta`. Stand-in: the second line of the title block shows only the
-   player's own word ("Buffering...").
+2. **Facts of the playing video**: implemented from optional resolve metadata.
+   `tube_playing_fact()` owns bounded channel name/id, views and publish date
+   for the active video; stop and source changes clear them. The mount fills
+   `PlayerView::channel`, `channel_id`, and `meta`; playback status still takes
+   the second line while buffering. An avatar appears only for an allowed
+   channel image address. The current services provide none, so the player's
+   existing initial stands in. Host-tested; console acceptance pending.
 3. **How far the stream is read ahead**, in seconds, for the lighter stretch of
    the timeline (`PlayerView::buffered`). Stand-in: not drawn.
 4. **The next video as an offer** (board 23): implemented through

@@ -795,6 +795,8 @@ std::string Player::snapshot_json() const
     out += "],\"state\":{";
     const auto number = [&](const char *name, long value) { json_field(out, name, std::to_string(value)); };
     json_field(out, "title", view_.title);
+    json_field(out, "channel", view_.channel);
+    json_field(out, "meta", view_.meta);
     json_field(out, "controls", view_.chrome_hidden || view_.chrome <= 0.01f ? "hidden" : "shown");
     json_field(out, "playback", view_.loading ? "loading" : view_.scrubbing ? "seeking" : view_.paused ? "paused" : "playing");
     number("live", view_.live ? 1 : 0);

@@ -7,6 +7,7 @@ import math
 from urllib.parse import parse_qs, urlsplit
 from .models import Caption, Choice, Playback, ResolveRequest, ServiceError, Storyboard, number, safe_remote, text
 from .media_refresh import Representation, binding, media_headers
+from .description import describe
 
 DASH = "urn:mpeg:dash:schema:mpd:2011"
 ET.register_namespace("", DASH)
@@ -108,6 +109,7 @@ class Sessions:
             raise ServiceError("busy", "The companion has too many active playback sessions. Retry shortly.", 503)
         session = Session(secrets.token_urlsafe(24), request.id, now + self.ttl, profile=request.profile)
         prefix = f"{base.rstrip('/')}/media/{session.token}"
+        facts = describe(info, request.id, 0)
         formats = info.get("formats") or []
         live = info.get("is_live") is True
         duration = number(info.get("duration"))
@@ -270,6 +272,8 @@ class Sessions:
         from .paid_content import disclosure
         from .player_metadata import loudness
         return Playback(id=request.id, title=text(info.get("title")), duration_sec=duration,
+                        channel=facts["channel"], channel_id=facts["channel_id"],
+                        views=facts["views"], published=facts["published"],
                         expires_in=self.ttl, choices=choices, captions=captions, chapters=chapters,
                         paid_content_text=disclosure(info.get("paid_content_text")),
                         loudness_db=loudness(info.get("loudness_db")), is_short=info.get("media_type") == "short",

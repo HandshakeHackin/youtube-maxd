@@ -397,7 +397,13 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     .map(chapter => ({ title: text(chapter.title, 96), start: number(chapter.start_time), end: number(chapter.end_time) }));
   // The player configuration names the loudness; some clients only put it on the audio formats.
   const loudness = info.player_config?.audio_config?.loudness_db ?? selectAudio(list, request)[0]?.loudness_db;
-  return { api_version: 1, id: request.id, title: text(details.title), duration_sec: duration, expires_in: ttl, choices, captions, chapters,
+  const views = String(details.view_count ?? '');
+  const channelId = String(details.channel_id ?? '');
+  return { api_version: 1, id: request.id, title: text(details.title),
+    channel: text(details.author), channel_id: /^UC[A-Za-z0-9_-]{22}$/.test(channelId) ? channelId : '',
+    channel_art_url: '', views: /^\d{1,16}$/.test(views) ? views : '',
+    published: text(info.primary_info?.published, 64),
+    duration_sec: duration, expires_in: ttl, choices, captions, chapters,
     paid_content_text: disclosure(source.facts?.paid), loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
     is_short: isShort(info, list, source.facts), storyboards };
 }

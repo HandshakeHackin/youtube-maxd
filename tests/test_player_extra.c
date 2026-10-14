@@ -423,7 +423,8 @@ static void test_speeds_and_shorts(void) {
 
 static void test_video(void) {
     char text[512];
-    cJSON *result = cJSON_Parse("{\"loudness_db\":6.0206,\"is_short\":true,"
+    cJSON *result = cJSON_Parse("{\"channel\":\"Fixture channel\",\"channel_id\":\"UCffffffffffffffffffffff\","
+        "\"views\":\"12345\",\"published\":\"2024-01-01\",\"loudness_db\":6.0206,\"is_short\":true,"
         "\"chapters\":[{\"title\":\"Second & last\",\"start\":95.5,\"end\":200},{\"title\":\"Intro\",\"start\":0,\"end\":95.5},"
         "{\"title\":7,\"start\":3725},{\"start\":\"x\"},{\"title\":\"bad\",\"start\":-1},7,{\"title\":\"A\\u0001B\\u00e9\",\"start\":200}],"
         "\"storyboards\":[{\"width\":48,\"height\":27,\"columns\":10,\"rows\":10,\"count\":100,\"sheets\":1,\"interval_ms\":0,\"url\":\"http://h/media/s/sb0-$M.jpg\"},"
@@ -436,6 +437,11 @@ static void test_video(void) {
     tube_extra_video_begin(result);
     cJSON_Delete(result);                                       /* nothing keeps pointers into the result */
     assert(tube_extra_is_short() && tube_extra_gain_milli() == 500);
+    assert(!strcmp(tube_playing_fact("channel"), "Fixture channel"));
+    assert(!strcmp(tube_playing_fact("channel_id"), "UCffffffffffffffffffffff"));
+    assert(!strcmp(tube_playing_fact("views"), "12345"));
+    assert(!strcmp(tube_playing_fact("published"), "2024-01-01"));
+    assert(!*tube_playing_fact("channel_art_url") && !*tube_playing_fact("unknown") && !*tube_playing_fact(NULL));
 
     /* Chapters arrive sorted with bounded, cleaned titles. */
     assert(tube_extra_chapter_count() == 4);
@@ -468,11 +474,13 @@ static void test_video(void) {
     /* The next video starts without the previous one's facts. */
     tube_extra_video_begin(NULL);
     assert(!tube_extra_is_short() && tube_extra_gain_milli() == 1000 && !tube_extra_chapter_count() && !tube_extra_storyboard_count());
+    assert(!*tube_playing_fact("channel") && !*tube_playing_fact("views"));
     assert(!tube_extra_seek_preview_tile(57, 120, 160, 90, &tile, text, sizeof text));
-    result = cJSON_Parse("{\"loudness_db\":null,\"is_short\":1,\"chapters\":{},\"storyboards\":null}");
+    result = cJSON_Parse("{\"loudness_db\":null,\"is_short\":1,\"channel_id\":\"bad\",\"views\":\"1.2M\",\"chapters\":{},\"storyboards\":null}");
     tube_extra_video_begin(result);
     cJSON_Delete(result);
     assert(!tube_extra_is_short() && tube_extra_gain_milli() == 1000 && !tube_extra_chapter_count());
+    assert(!*tube_playing_fact("channel_id") && !*tube_playing_fact("views"));
 
     /* The provider can also hand over the chapter starts it already keeps. */
     const double starts[] = { 30, 0, NAN, 10 };

@@ -35,6 +35,17 @@ def info():
                  "width": 1280, "height": 720, "tbr": 1000}],
             "subtitles": {"en": [{"ext": "vtt", "url": "https://www.youtube.com/api/timedtext?v=" + ID}]}}
 
+
+def test_playback_facts_are_bounded_and_optional():
+    source = info()
+    source.update(view_count=12345, upload_date="20241014")
+    playback = Sessions().create(source, ResolveRequest(id=ID), BASE)
+    assert (playback.channel, playback.channel_id, playback.views, playback.published, playback.channel_art_url) == (
+        "Fixture channel", "UC" + "a" * 22, "12345", "2024-10-14", "")
+    source.update(channel="x" * 300, channel_id="not-a-channel", view_count=-1, upload_date="bad")
+    playback = Sessions().create(source, ResolveRequest(id=ID), BASE)
+    assert (len(playback.channel), playback.channel_id, playback.views, playback.published) == (192, "", "", "")
+
 def test_caption_catalog_includes_languages_beyond_first_32_and_prefers_human():
     source = info()
     source["subtitles"] = {f"x{i:03}": [{"ext": "vtt", "name": f"Language {i}",

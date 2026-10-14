@@ -250,10 +250,10 @@ struct PlayerView
 {
     // ---- what is playing ----
     std::string title;      // evo_playback_osd_params_t::title
-    std::string channel;    // fixture
-    std::string channel_id; // fixture
-    std::string avatar;     // fixture: the channel's picture address
-    std::string meta;       // views and age (fixture); in the app the player's own word ("Buffering...")
+    std::string channel;    // tube_playing_fact("channel")
+    std::string channel_id; // tube_playing_fact("channel_id")
+    std::string avatar;     // tube_playing_fact("channel_art_url"), empty when unavailable
+    std::string meta;       // views and publish date, or the player's own status
     std::vector<std::string> tags; // "4K", "HDR", "CC", "Ends 22:04": the badges and the time preference
     std::string quality;    // "2160p60 VP9": tube_extra_controls_info() without its clock
     std::string clock;      // the hour, "" when the profile hides it

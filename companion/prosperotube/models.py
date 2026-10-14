@@ -146,6 +146,11 @@ class Playback(BaseModel):
     api_version: int = 1
     id: str
     title: str
+    channel: str = Field(default="", max_length=192)
+    channel_id: str = Field(default="", max_length=24)
+    channel_art_url: str = Field(default="", max_length=512)
+    views: str = Field(default="", max_length=16)
+    published: str = Field(default="", max_length=64)
     duration_sec: float
     expires_in: int
     choices: list[Choice]

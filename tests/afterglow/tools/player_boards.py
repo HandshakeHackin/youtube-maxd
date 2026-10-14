@@ -135,6 +135,9 @@ def states():
         {"author": "Northlight Atlas", "text": "Route notes and the gear list are in the description.", "badge": 3}],
         "hints": [hint("cross", "Pause"), hint("triangle", "Up next"), hint("options", "Options")]}
     return [
+        board("player-playing-facts", "ridge", view={"channel": "Fixture channel", "channel_id": "UC" + "f" * 22,
+              "avatar": "", "meta": "Views: 12345" + DOT + "Published: 2024-10-14"},
+              expect={"state": {"channel": "Fixture channel", "meta": "Views: 12345" + DOT + "Published: 2024-10-14"}}),
         board("player-paused", "ridge", view={"paused": True},
               expect={"focus": "osd-paused", "state": {"playback": "paused"}}),
         board("player-loading", "ridge", view={"loading": True, "meta": "Buffering...", "channel": "", "position": 2059, "buffered": -1},
