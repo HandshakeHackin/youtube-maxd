@@ -8,7 +8,7 @@ import tempfile
 work = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache/prosperotube/native")))
 source = (work / "projects/evoplayer/media/src/evo_agc_runtime.c").read_text()
 begin = source.index("static int agc_wait_slot_fence(")
-end = source.index("static int agc_wait_gpu_idle(", begin)
+end = source.index("int evo_agc_runtime_gpu_data_idle(", begin)
 helpers = source[begin:end]
 
 # These checks connect the exercised helpers to the actual call paths. A
