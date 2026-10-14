@@ -28,14 +28,14 @@ static void reply(int index,int status,const char *body) {
 static cJSON *request(const char *action) {
     assert(count==1); cJSON *root=cJSON_Parse(pending[0].body); assert(root);
     assert(!strcmp(cJSON_GetObjectItem(root,"action")->valuestring,action));
-    assert(!strcmp(pending[0].url,"http://192.168.4.34:8765/v1/remote"));
+    assert(!strcmp(pending[0].url,"http://192.168.1.50:8765/v1/remote"));
     assert(!strcmp(pending[0].bearer,"Authorization: Bearer synthetic-token")); return root;
 }
 static void clear_stop(void) {
     while (count) { cJSON *root=request("stop"); cJSON_Delete(root); reply(0,200,"{\"api_version\":1,\"state\":\"stopped\"}"); }
 }
 static void configure(int active,const char *selected,const char *id,const char *screen) {
-    tube_remote_configure("http://192.168.4.34:8765","synthetic-token",selected,active,id,screen);
+    tube_remote_configure("http://192.168.1.50:8765","synthetic-token",selected,active,id,screen);
 }
 static void remote_bind(int64_t now) {
     tube_remote_tick(now); cJSON *root=request("start"); cJSON_Delete(root); reply(0,200,started);
@@ -151,15 +151,15 @@ static void test_all_commands_and_pending_invalidation(void) {
 }
 static void test_original_source_cleanup(void) {
     configure(1,"guest",identity,"screen-123"); tube_remote_tick(25000); assert(count==1);
-    tube_remote_configure("http://192.168.4.34:9000","second-token","guest",1,identity,"screen-123");
+    tube_remote_configure("http://192.168.1.50:9000","second-token","guest",1,identity,"screen-123");
     reply(0,200,started); assert(count==1);
-    assert(!strcmp(pending[0].url,"http://192.168.4.34:8765/v1/remote"));
+    assert(!strcmp(pending[0].url,"http://192.168.1.50:8765/v1/remote"));
     assert(!strcmp(pending[0].bearer,"Authorization: Bearer synthetic-token"));
     clear_stop(); tube_remote_tick(25001); assert(count==1);
-    assert(!strcmp(pending[0].url,"http://192.168.4.34:9000/v1/remote"));
+    assert(!strcmp(pending[0].url,"http://192.168.1.50:9000/v1/remote"));
     assert(!strcmp(pending[0].bearer,"Authorization: Bearer second-token"));
     reply(0,200,started); tube_remote_shutdown(); assert(count==1);
-    assert(!strcmp(pending[0].url,"http://192.168.4.34:9000/v1/remote"));
+    assert(!strcmp(pending[0].url,"http://192.168.1.50:9000/v1/remote"));
     reply(0,200,"{\"api_version\":1,\"state\":\"stopped\"}");
 }
 static void test_voice_capability(void) {
