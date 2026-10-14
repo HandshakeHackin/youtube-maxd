@@ -80,6 +80,17 @@ README's **Roadmap**). The two recommended first:
    explain the earlier first-display fault or accept sustained 4K; sound was
    unjudged and Afterglow stop/return checks failed. Every case restored state
    and left the console idle. The AGC display path is the current investigation.
+   Later .30 cases reproduced an unmapped GPU read near `0x2a5` even with
+   AGC fence retirement and with VP9 close/open Reset omitted. The latest
+   fault occurred before a valid 4K output frame and outside every logged
+   decoder pool. The driver restored saved state but retained the .30 lock
+   after a new console error record; do not reuse .30 until the owner clears
+   that lock. A strict GPU-pool guard and a fix for an AGC UI frame left open
+   on no-swap loops now pass host checks. On .40, the frame fix eliminated
+   command-buffer and ring exhaustion, but live-video testing stopped at
+   DNS failure for YouTube and homebrew.page; the GPU-pool guard remains
+   unjudged on hardware. See HARDWARE_ACCEPTANCE.md for the exact cases.
+
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
