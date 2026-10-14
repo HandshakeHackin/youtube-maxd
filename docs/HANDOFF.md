@@ -118,7 +118,7 @@ README's **Roadmap**). The two recommended first:
    unchanged, and released the .30 lock. The 4K file discarded 253 frames
    as seek preroll at the saved 600 s position, separate from the four late
    presentation drops. FFmpeg logged premature-end and earliest-resync
-   warnings on a media segment; playback recovered, but transport and demux
+   warnings in the WebM media stream; playback recovered, but transport and demux
    robustness remain to validate. No playback scanout image was captured, so
    visual output rests on presenter counters, not a picture review. This is
    one bounded live 4K result, not long playback, audible output, HDR or 4K

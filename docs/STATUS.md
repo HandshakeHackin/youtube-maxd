@@ -41,7 +41,7 @@ restored saved state byte for byte, found unchanged error records and healthy
 services, and released the .30 lock. No 4K playback scanout image was captured;
 the Home capture does not show playback, and presenter counters are the only
 frame-display evidence. FFmpeg logged premature-end and earliest-resync
-warnings on a media segment and recovered. Transport and demux robustness
+warnings in the WebM media stream and recovered. Transport and demux robustness
 remain to validate. The 4K file discarded 253 frames as seek preroll while
 settling at its saved 600-second position; these were not late presentation
 drops. This single 24.3-second live session does not prove long live playback,
