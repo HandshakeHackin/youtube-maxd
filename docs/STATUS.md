@@ -4,11 +4,12 @@ Latest continuation, 2026-10-14: indexed WebM is enabled again after fixing
 FFmpeg's zero-byte range-boundary read. A bounded PS5 Guest session passed
 native VP9 1080p with AAC, seeking, pause/resume, history and Afterglow Home,
 search and playback; [hardware acceptance](HARDWARE_ACCEPTANCE.md) records its
-scope. Opus fixtures pass on the host; console Opus, 4K and HDR remain open.
+scope. Opus fixtures pass on the host; the offline VP9/Opus console result is
+described below. Live 4K, HDR and physical sound remain open.
 The combined 93b2e0c7 candidate repeated the 1080p pass, but a second video
 opened native 4K VP9 and hit a GPU unmapped-read page fault after its first
-valid frame. Console state was restored and the title closed; 4K remains
-unaccepted, and theatre/picker calibration was not reached in that case.
+valid frame. Console state was restored and the title closed; 4K was unaccepted
+at that point, and theatre/picker calibration was not reached in that case.
 The native frame-pool lease fix and strict output checks pass offline. Three
 subsequent bounded 2160p retests each passed native VP9 1080p and seeking, but
 faulted before 2160p playback advanced. Diagnostic maps placed two faults in
@@ -20,9 +21,19 @@ the decoder pools stopped playback. Every run restored saved state and left
 the console idle; sound was not enabled after stalled frames. A subsequent
 address-tracing build with unchanged playback logic opened full 3840x2160 VP9,
 advanced position, and published 52 frames with no late drops or GPU fault.
-It did not show a direct-pool fallback. The altered timing leaves the earlier
-first-display fault unexplained; sustained 4K, sound and the Afterglow stop
-flow remain unaccepted. The AGC display path is under investigation.
+It did not show a direct-pool fallback. The altered timing left the earlier
+first-display fault unexplained. Later AGC fence, strict GPU allocation and
+frame-boundary changes passed host checks; the no-swap frame-boundary fix also
+eliminated command-buffer exhaustion on .40. An offline generated 64-second
+3840x2160 VP9/Opus stream then played on .40 through native `sceVideodec2`:
+1,920 frames entered and were published, with zero late/seek drops, decode
+fatal or GPU faults. It reached 15/30/45/55-second checkpoints and the final
+63.99/64-second terminal pause with natural EOF, audio drain, video decode and
+display retirement gates true. Stage 6 parked and closed the app, restored
+saved state, left services healthy and released the .40 lock. This proves one
+bounded offline 4K/30 path, not live YouTube 4K, HDR, physical audio, 4K
+seek/repeat or very long sessions. The earlier network first-frame faults remain
+part of the hardware history; their exact address owner was not isolated.
 Missing storage access now posts an explanatory system notification before
 startup stops (package and startup checks passed; PS5 build passed; failure
 notification not exercised on hardware). The owner selected homebrew.page's

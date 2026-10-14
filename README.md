@@ -233,11 +233,13 @@ manifests described below.
 
 Further acceptance is still needed for real account use, phone casting, a
 published update, interface languages, AV1, HDR, backups and long playback.
-4K VP9 is not accepted yet. A resident 4K-capable decoder eliminated faults
-in retired 1080p allocations, but one 3840x2160 case faulted during its first
-display submission. A later diagnostic build played the same resolution for
-52 frames without a fault; its timing-only logs leave a presentation race
-unresolved. [Status](docs/STATUS.md) lists the evidence.
+An offline generated 3840x2160 VP9/Opus stream played through the native PS5
+decoder for 64 seconds at 30 fps: all 1,920 frames were published with no late
+drops, decode fatal or GPU fault. The .40 console closed cleanly and restored
+its saved state. Earlier live 4K candidates did fault during first display;
+this bounded fixture pass does not establish live YouTube 4K, HDR, physical
+audio, 4K seeking/repeat or very long sessions. [Status](docs/STATUS.md)
+lists the evidence.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player,
@@ -276,8 +278,8 @@ What is planned, roughly in order. Nothing here has a date.
       console.
 
 **Playback**
-- [ ] VP9 and Opus streams again, and with them 4K VP9 and HDR, by reading
-      WebM streams in ranges as MP4 is read today.
+- [ ] Validate live VP9/Opus and 4K streams, plus HDR selection/output. Ranged
+      WebM reading is implemented; one offline 4K/30 VP9/Opus run passed on PS5.
 - [ ] Rewinding live streams, and remembering the position in a live stream.
 - [x] Keep the current video playing as audio while browsing in Afterglow:
       choose “Keep playing while browsing” in playback options, then press L3

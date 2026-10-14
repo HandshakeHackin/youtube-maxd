@@ -40,7 +40,8 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
   read from its index (`native/tube_provider.c`, `standalone/js/resolve.js`).
   The continuation now also indexes WebM and fixes FFmpeg's range-boundary
   EOF handling. VP9 1080p with AAC passed on PS5; VP9/Opus generated fixtures
-  pass on the host. 4K and HDR acceptance remain pending.
+  pass on the host. One bounded offline 4K/30 VP9/Opus console run now passes;
+  live 4K and HDR acceptance remain pending.
 - **Lapy elevation follows ProsperoEden's current method** (helper built with
   upstream's `make owned-helper`, manifest shipped unchanged, packaged copy
   checked, every outcome logged). ProsperoTube deliberately differs in two
@@ -62,8 +63,9 @@ README's **Roadmap**). The two recommended first:
    byte ranges), so 4K VP9 and HDR come back. Implementation now enables WebM
    indexing and fixes FFmpeg's zero-byte range-boundary read, which caused
    the seek hang. Generated MP4/WebM seeks pass on the host and VP9 1080p
-   passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). Opus on the console,
-   4K performance and HDR selection/output remain to validate or implement.
+   passed on PS5 (ec4660ac; HARDWARE_ACCEPTANCE.md). The offline 4K/30
+   VP9/Opus path now passes on .40; live 4K, audible Opus and HDR
+   selection/output remain to validate or implement.
    The combined candidate 93b2e0c7 passed native VP9 1080p again, then faulted
    on the GPU after the first valid 4K frame of a second video. Local hardware
    decoding research exposed a frame-pool reuse race; explicit leases now hold
@@ -96,10 +98,16 @@ README's **Roadmap**). The two recommended first:
    completion when no next item exists, but one-second status polling never
    sampled `complete=1`; the strict completion observer therefore timed out.
    This is not evidence of stalled decoding. Clean teardown restored state and
-   released the .40 lock. The short case exercises the integrated display path
-   but does not isolate the GPU-pool guard or accept long/network 4K, HDR,
-   physical audio, seeking or direct completion-transition proof. See
-   HARDWARE_ACCEPTANCE.md for the exact cases.
+   released the .40 lock. A subsequent 64-second offline 3840x2160 VP9/Opus
+   case on .40 passed 15/30/45/55-second checkpoints and reached 63.99/64 s
+   with natural EOF, audio drain, video decode and display retirement gates
+   true. The native decoder published all 1,920 frames with no late/seek drops,
+   decode fatal or GPU fault. Stage 6 parked and closed the app, restored state,
+   left services healthy and released the .40 lock. This accepts one bounded
+   offline 4K/30 path, but does not isolate the strict GPU-pool guard or prove
+   live YouTube 4K, HDR, physical audio, 4K seek/repeat, very long sessions or
+   a directly sampled completion transition. The earlier network first-frame
+   faults remain unexplained. See HARDWARE_ACCEPTANCE.md for the exact cases.
 
 2. **Afterglow player as on its boards**: next-video card, Undo after a
    skipped segment, grouped options, tabbed captions, chat beside the video.
