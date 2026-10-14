@@ -31,6 +31,10 @@ static pthread_t audio_decode_thread;
 static pthread_mutex_t prospero_seek_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pp_playback g_pp_pb;
 static int refuse_seek, seek_calls, flush_calls;
+static int live_bound, live_prepare_ok=1;
+static int tube_live_context_matches(AVFormatContext *f) {(void)f;return live_bound;}
+static int tube_live_seek_admit(AVFormatContext *f,double target) {(void)f;(void)target;return 1;}
+static int tube_live_seek_prepare(AVFormatContext *f,double target) {(void)f;(void)target;return live_prepare_ok;}
 static int check_busy_clock;
 static int64_t seen_timestamp;
 long long now_ms(void) {
@@ -98,6 +102,12 @@ static void audio_only(const char *path) {
     assert(prospero_request_inplace_seek(0, 0) && process_seek_checked());
     assert(audio_seek_discard_until == 0 && !player_paused && !g_pp_pb.seek_discarding);
     const double base = resume_base_offset_seconds;
+    live_bound=1;live_prepare_ok=0;seek_calls=flush_calls=0;
+    assert(prospero_request_inplace_seek(2,0));
+    assert(!player_paused && !process_seek_checked());
+    assert(!seek_calls && !flush_calls && !video_decode_hold && !g_pp_pb.seek_discarding);
+    assert(!player_paused && resume_base_offset_seconds==base);
+    live_bound=0;live_prepare_ok=1;
     refuse_seek = 1;
     assert(prospero_request_inplace_seek(2, 0) && !process_seek_checked());
     assert(resume_base_offset_seconds == base && !g_pp_pb.seek_discarding && !player_paused);

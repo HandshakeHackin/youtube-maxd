@@ -248,6 +248,15 @@ void Player::draw_timeline(G &g, const Rect &lane, float alpha, bool on_page) co
     g.l.glow({tx - 6.0f, y - 6.0f, 12.0f, 12.0f}, 6.0f, 18.0f + 10.0f * scrub, thumb.with_alpha(0.35f));
     g.l.circle(tx, y, 9.0f + 4.0f * scrub, thumb);
 
+    // A moving live window has no whole-video length. Show the distance to
+    // its current edge while retaining the LIVE identity in the header.
+    if (view_.dvr)
+    {
+        text(g, g.f.mono, clock_text(std::max(0.0,view_.seek_end-now),true), lane.x, y+50.0f, kTypeClock, ink);
+        text(g, g.f.semibold, tr("LIVE"), lane.x+lane.w, y+50.0f, kTypeClock, ink.with_alpha(.7f), gfx::Align::right);
+        g.l.pop_opacity();
+        return;
+    }
     // ---- the clock of the video ----
     text(g, g.f.mono, clock_text(now), lane.x, y + 50.0f, kTypeClock, ink);
     const float whole_w = text(g, g.f.mono, clock_text(view_.duration), lane.x + lane.w, y + 50.0f, kTypeClock, ink.with_alpha(0.7f), gfx::Align::right);
@@ -282,7 +291,7 @@ void Player::draw_foot(G &g, const Motion &m) const
     if (m.foot <= 0.01f)
         return;
     g.l.push_transform(1.0f, 0.0f, 0.0f, 0.0f, m.rise);
-    if (view_.live)
+    if (view_.live && !view_.dvr)
         draw_live_bar(g, {kEdge, kBarY, kBarWidth, 0.0f}, m.foot, false);
     else
         draw_timeline(g, {kEdge, kBarY, kBarWidth, 0.0f}, m.foot, false);

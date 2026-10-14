@@ -1,8 +1,9 @@
-# Live DVR acceptance and current blocker
+# Live DVR acceptance and implementation status
 
-The shipping app still opens live streams at the live edge and refuses live
-scrubbing. Do not remove those gates based on a playlist containing several
-segments: the pinned FFmpeg 7.1.1 demuxer cannot safely seek that rolling window.
+The stock SDK still opens live streams at the live edge and refuses live
+scrubbing. The checked controller integration admits DVR only when the opt-in
+FFmpeg extension establishes a fresh, calibrated window for the current launch
+owner. A playlist containing several segments alone never enables seeking.
 The companion's bounded HLS byte buffer is useful for previously downloaded
 finite media; it does not establish a console live timeline or position restore.
 
@@ -87,7 +88,7 @@ proof. No PS5 FFmpeg rebuild or SDK modification was performed for this diagnost
 ## Isolated host candidate
 
 `scripts/patch_ffmpeg_hls_dvr.py` now supplies a checked, opt-in host candidate.
-It is not connected to the PS5 build or native controls. Apply it to a pristine,
+The isolated candidate can be applied to a pristine,
 isolated pinned `libavformat/hls.c`, then rebuild that copy's `libavformat.a`:
 
 ```sh
@@ -127,9 +128,8 @@ probe pass ASan/UBSan instrumentation. Its PS5 object compiles in an isolated
 copied configuration/source tree using read-only SDK headers; only existing
 upstream pointer-sign warnings remain. No PS5 archive was rebuilt or installed.
 
-Native seek gates, moving lower/upper timeline bounds, initial clock anchoring,
-account-scoped saved-point persistence and source/session ownership tests remain
-pending. This host stage does not establish console DVR or remote split-stream
+The subsequent stages below add native ownership, persistence and controller
+integration. This host stage does not establish console DVR or remote split-stream
 calibration, and must not be advertised as completed DVR support.
 
 ## Native ownership and persistence prerequisite
@@ -155,8 +155,8 @@ cannot consume it. The loader rejects malformed and out-of-range microseconds.
 passes under ASan/UBSan, including concurrent restore versus selection revocation,
 source/profile isolation, persistence across shutdown/reopen, moved windows,
 history clearing and privacy-policy changes. The touched provider object compiles
-with read-only PS5 SDK headers. These APIs are prerequisites only: the player does
-not call them yet, and production live seek gates are still unchanged.
+with read-only PS5 SDK headers. These APIs retain unsupported streams at the live edge; the controller wiring
+below calls them only for a captured YouTube live source.
 
 The demux-owner-only `av_hls_dvr_prepare_seek` entry point now refreshes and
 validates an absolute PTS target before the native caller pauses or flushes its
@@ -198,5 +198,39 @@ including concurrent identity/window readers, preflight expiry, fixed UI origin,
 owner revocation, changed-contained-timeline refusal and stock-library fallback.
 The provider owner/history/recovery tests pass with the stronger identity schema.
 HLS, runtime and provider PS5 objects compile using isolated/read-only inputs.
-These remain pre-activation pieces: controller launch/input and Afterglow fields
-are not wired yet, the shared SDK is unchanged, and console DVR remains untested.
+The controller/UI stage below consumes these checked APIs. The shared SDK is
+unchanged, and console DVR remains untested.
+
+## Controller and moving-window display
+
+The launch UI captures the owner before handing a live source to the opening
+worker. The worker enables/calibrates the extension, keeps a fixed session
+origin, and restores only a still-contained exact segment receipt. Initial audio
+and video anchor the live-edge clock instead of reporting an artificial zero.
+All close paths release the snapshot binding before closing the format context,
+after its workers have joined; decoder/GPU teardown ownership is unchanged.
+
+Input checks fresh seekability, clamps scrub/chapter jumps to both moving bounds,
+and leaves unsupported live controls unchanged. Demux admission and refreshed
+preflight precede playback pause, presentation hold, queue clearing and decoder
+flush. A preflight refusal restores the requested prior pause state without
+changing the valid media/clock. Direct seeks pass through the same admission.
+While paused or scrubbing, the demux owner refreshes only playlist metadata at
+most once per two seconds, including when packet queues are full. Network work
+holds no UI snapshot lock. No extra media recording/cache is introduced.
+
+Afterglow retains the LIVE badge and renders the current retained window, with a
+clock showing distance behind its edge. Moving the window changes the bar's
+lower bound rather than changing the session origin. Invalid/stale/unsupported
+windows retain the existing live-edge display. UTC receipts are separate from
+VOD resume; live progress does not mark the retained window as a completed video
+or report its session-relative clock as a fabricated remote broadcast offset.
+
+Validation: actual-media seek/resume/audio/clock handoff regressions and checked
+runtime/expiry/revocation tests pass with ASan/UBSan. Ninety-one player boards,
+including eight new DVR states, pass in all four looks (3508 checks). Controller,
+PlayerScreen, ProviderHostScreen, demux, runtime and mount PS5 objects compile in
+the dedicated generated tree with read-only SDK inputs. The stock weak-import
+fallback still passes. This establishes host integration, not console DVR:
+PS5 FFmpeg archive rebuilding, packaging and real live A/V seek/restore remain
+coordinated work after the playback hardware investigation.

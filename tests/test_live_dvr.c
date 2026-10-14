@@ -152,6 +152,10 @@ int main(int argc, char **argv) {
         snprintf(control, sizeof(control), "%.*s/advance", (int)(strrchr(argv[1], '/') - argv[1]), argv[1]);
         AVIOContext *io=NULL;unsigned char byte;
         assert(avio_open2(&io,control,AVIO_FLAG_READ,NULL,NULL)>=0 && avio_read(io,&byte,1)==1);avio_closep(&io);
+        tube_live_refresh_paused(format);
+        assert(tube_live_active_range(&start,&end) && start==4 && end==12);
+        /* Repeated queue-cap calls use the same bounded refresh interval. */
+        for (int i=0;i<1000;++i) tube_live_refresh_paused(format);
         assert(!tube_live_seek_prepare(format,.25));
         assert(tube_live_range(format,&start,&end) && start==4 && end==12);
         assert(!tube_live_seek_admit(format,.25) && tube_live_seek_admit(format,6));

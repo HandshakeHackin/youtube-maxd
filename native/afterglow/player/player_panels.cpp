@@ -342,7 +342,7 @@ void Player::draw_chat(G &g, const Motion &m) const
         if (!second.empty())
             text(g, g.f.regular, fit(g.f.regular, second, kTypeMeta, theatre.x + theatre.w - line_x), line_x, 141.0f, kTypeMeta, k.ink2);
         const Rect lane{theatre.x, theatre.y + theatre.h + 44.0f, theatre.w, 0.0f};
-        if (view_.live)
+        if (view_.live && !view_.dvr)
             draw_live_bar(g, lane, 1.0f, true);
         else
             draw_timeline(g, lane, 1.0f, true);

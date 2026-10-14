@@ -360,6 +360,9 @@ void read(const cJSON *object, PlayerView *view)
     get(object, "quality", &view->quality);
     get(object, "clock", &view->clock);
     get(object, "live", &view->live);
+    get(object, "dvr", &view->dvr);
+    get(object, "seek_start", &view->seek_start);
+    get(object, "seek_end", &view->seek_end);
     get(object, "live_status", &view->live_status);
     get(object, "paused", &view->paused);
     get(object, "loading", &view->loading);

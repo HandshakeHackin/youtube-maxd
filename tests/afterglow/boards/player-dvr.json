@@ -1,0 +1,167 @@
+{
+  "about": "Checked live DVR keeps LIVE identity and uses the moving retained window, including theatre and unsupported fallback.",
+  "boards": [
+    {
+      "name": "player-dvr-middle",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 2,
+        "seek_end": 10,
+        "position": 6
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "seek_start": "2",
+          "seek_end": "10",
+          "seek_progress": "500",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-moving",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 4,
+        "seek_end": 12,
+        "position": 6
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "seek_start": "4",
+          "seek_end": "12",
+          "seek_progress": "250",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-scrub",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 4,
+        "seek_end": 12,
+        "position": 6,
+        "scrubbing": true,
+        "scrub_target": 8
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "target": "8",
+          "playback": "seeking",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-expired-point",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 8,
+        "seek_end": 16,
+        "position": 6
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "seek_progress": "0",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-edge",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 8,
+        "seek_end": 16,
+        "position": 16
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "seek_progress": "1000",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-unsupported",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": false,
+        "seek_start": 0,
+        "seek_end": 0
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "0",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-invalid",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 12,
+        "seek_end": 4
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "0",
+          "live": "1"
+        }
+      }
+    },
+    {
+      "name": "player-dvr-theatre",
+      "fixture": "signed-in",
+      "player": "live",
+      "view": {
+        "dvr": true,
+        "seek_start": 4,
+        "seek_end": 12,
+        "position": 6,
+        "chat": {
+          "side": 1,
+          "theatre": true,
+          "compose": "",
+          "filter": ""
+        }
+      },
+      "expect": {
+        "screen": "player",
+        "state": {
+          "dvr": "1",
+          "chat": "theatre",
+          "seek_progress": "250",
+          "live": "1"
+        }
+      }
+    }
+  ]
+}

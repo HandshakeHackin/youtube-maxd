@@ -27,6 +27,8 @@ static int tube_player_seek_seconds() { return interval; }
 static void evo_boot_log(const char*,...) {}
 static std::string notice;
 static void toast(const char*, const char *message) { notice=message; }
+static void *play_fmt=nullptr;
+static void tube_live_remember_position(void*,double) {}
 static double resume_base_offset_seconds=0;
 static double evo_pb_position_s();
 static char resume_file[]="/tmp/tube-seek-resume-XXXXXX";
@@ -56,7 +58,10 @@ struct PlaybackController {
     int m_tubeScrubMode=0, requests=0, m_scrubHoldDirection=0;
     uint64_t m_scrubHoldStartMs=0, m_scrubHoldLastStepMs=0, m_scrubAutoCommitDeadlineMs=0;
     double physical=40, requested=-1, m_scrubTargetSeconds=0, m_durationSeconds=100;
-    bool keepPaused=false;
+    bool keepPaused=false,dvr=false;
+    double liveStart=0,liveEnd=100;
+    bool isSeekable() const {return !live || dvr;}
+    bool getSeekRange(double *start,double *end) const {if(!dvr)return false;if(start)*start=liveStart;if(end)*end=liveEnd;return true;}
     struct {
         std::string provider="youtube", item_id="abcdefghijk", title="Video";
         bool is_live=false;
@@ -223,5 +228,11 @@ int main() {
         stepped.cancelScrub();
         stepped.m_source.provider="";assert(stepped.getSeekIntervalSeconds()==10);
     }
+    PlaybackController liveDvr;reset(liveDvr,false);liveDvr.live=true;liveDvr.dvr=true;
+    liveDvr.liveStart=30;liveDvr.liveEnd=80;interval=10;mode=2;
+    liveDvr.moveScrub(-100);assert(liveDvr.isScrubbing() && liveDvr.m_scrubTargetSeconds==30);
+    liveDvr.moveScrub(100);assert(liveDvr.m_scrubTargetSeconds==79.75);
+    liveDvr.liveStart=60;liveDvr.liveEnd=100;liveDvr.moveScrub(-100);assert(liveDvr.m_scrubTargetSeconds==60);
+    liveDvr.cancelScrub();liveDvr.dvr=false;liveDvr.moveScrub(10);assert(!liveDvr.isScrubbing());
     puts("PASS: shipping scrub/FSM modes, pause/commit/cancel/EOF ownership, actual-clock chat/phone/history and input priority");
 }

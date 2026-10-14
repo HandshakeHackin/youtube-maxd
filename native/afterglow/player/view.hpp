@@ -258,6 +258,8 @@ struct PlayerView
     std::string quality;    // "2160p60 VP9": tube_extra_controls_info() without its clock
     std::string clock;      // the hour, "" when the profile hides it
     bool live = false;
+    bool dvr = false; // checked, fresh moving window; the stream remains live
+    double seek_start = 0.0, seek_end = 0.0; // fixed session clock, end exclusive
     std::string live_status; // fixture: "2,184 watching · started 1 h 42 min ago"
 
     // ---- where it is ----

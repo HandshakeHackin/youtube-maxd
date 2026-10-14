@@ -18,6 +18,9 @@ static long long now_ms() { return 1000; }
 static double resume_base_offset_seconds = 11.5;
 static int g_pp_pb, begins, resumes, request_calls;
 static bool hold, complete_before_return;
+static bool live_bound, live_admit=true;
+static int tube_live_context_matches(void*) {return live_bound;}
+static int tube_live_seek_admit(void*,double target) {return !live_bound || (live_admit && target>=30 && target<120);}
 static void pp_playback_notify_seek_begin(int *, int64_t) { ++begins; hold = true; }
 static void pp_playback_resume(int *) { ++resumes; }
 static void evo_boot_log(const char *, ...) {}
@@ -57,7 +60,7 @@ static void reset() {
     controls_last_used_ms = 777;
     resume_base_offset_seconds = 11.5; begins = resumes = request_calls = 0;
     hold = complete_before_return = false;
-    completion_seeks=0;
+    completion_seeks=0;live_bound=false;live_admit=true;
 }
 
 int main() {
@@ -81,6 +84,10 @@ int main() {
     assert(resume_base_offset_seconds == 9 && begins == 1 && !hold && !prospero_seek_pending);
     assert(ui.m_resumeBaseOffset == 11.5); // startup bookkeeping is not seek state
 
+    reset();live_bound=true;ui.seekTo(110);
+    assert(prospero_seek_pending && prospero_seek_target_seconds==110 && !player_paused); // no stale VOD clamp or preflight pause
+    reset();live_bound=true;live_admit=false;ui.seekTo(50);
+    assert(!prospero_seek_pending && !player_paused && resumes==1 && !begins);
     for (double target : {-1.0, std::numeric_limits<double>::quiet_NaN(),
                           std::numeric_limits<double>::infinity(), 1e300}) {
         reset(); ui.seekTo(target);

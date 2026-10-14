@@ -23,6 +23,7 @@
 extern "C"
 {
 #include "tube_player_extra.h"
+#include "tube_live_runtime.h"
 #include "tube_provider.h"
 #include "tube_seek_sheets.h"
 #include "tube_time_display.h"
@@ -245,6 +246,9 @@ void fill_controls(Mount &m)
     v.scrubbing = raw.scrub_active != 0;
     v.position = raw.position_sec;
     v.duration = raw.duration_sec;
+    v.seek_start=v.seek_end=0;
+    v.dvr=v.live && tube_live_active_range(&v.seek_start,&v.seek_end);
+    if (v.dvr) v.duration=v.seek_end;
     v.scrub_target = raw.scrub_target;
     v.buffered = -1.0;
     v.rate = evo_audio_rate();
@@ -346,7 +350,7 @@ void fill_controls(Mount &m)
         v.controls.emplace_back("queue");
     v.controls.emplace_back("more");
     v.hints.clear();
-    if (!v.live)
+    if (!v.live || v.dvr)
         v.hints.push_back({ui::Button::dpad, ui::Button::none, tr("Seek")});
     if (chapters > 1)
         v.hints.push_back({ui::Button::l1, ui::Button::r1, tr("Chapter")});

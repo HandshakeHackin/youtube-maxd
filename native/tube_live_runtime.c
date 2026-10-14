@@ -2,6 +2,7 @@
 #include "tube_live_runtime.h"
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
+#include <libavutil/time.h>
 #include <math.h>
 #include <pthread.h>
 #include <string.h>
@@ -14,14 +15,14 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static AVFormatContext *context;
 static tube_live_owner binding;
 static int enabled, calibrated;
-static int64_t origin;
+static int64_t origin, next_refresh;
 static int snapshot(AVFormatContext *f, int64_t window[7]) {
     return f && f == context && enabled && tube_live_owner_current(binding.token) &&
         av_hls_get_dvr_window && av_hls_get_dvr_window(f,window);
 }
 void tube_live_context_open(AVFormatContext *f, const tube_live_owner *owner, const char *url) {
     pthread_mutex_lock(&mutex);
-    context=f;enabled=calibrated=0;origin=0;memset(&binding,0,sizeof binding);
+    context=f;enabled=calibrated=0;origin=next_refresh=0;memset(&binding,0,sizeof binding);
     if (f && owner && url && f->url && !strcmp(f->url,url) && !strcmp(owner->url,url) &&
         tube_live_owner_current(owner->token) && av_hls_get_dvr_window && av_hls_dvr_prepare_seek && av_hls_dvr_point_identity &&
         f->iformat && !strcmp(f->iformat->name,"hls") &&
@@ -46,21 +47,37 @@ int tube_live_context_calibrate(AVFormatContext *f, double *initial_base, double
 }
 void tube_live_context_release(AVFormatContext *f) {
     pthread_mutex_lock(&mutex);
-    if (f==context) {context=NULL;enabled=calibrated=0;origin=0;memset(&binding,0,sizeof binding);}
+    if (f==context) {context=NULL;enabled=calibrated=0;origin=next_refresh=0;memset(&binding,0,sizeof binding);}
     pthread_mutex_unlock(&mutex);
 }
 int tube_live_context_matches(AVFormatContext *f) {
     pthread_mutex_lock(&mutex);int result=f && f==context;pthread_mutex_unlock(&mutex);return result;
 }
-int tube_live_range(AVFormatContext *f, double *start, double *end) {
+static int range_locked(AVFormatContext *f, double *start, double *end) {
     int ok=0;int64_t window[7];
-    pthread_mutex_lock(&mutex);
     if (calibrated && snapshot(f,window) && window[3]>=origin) {
         if(start)*start=(window[3]-origin)/(double)AV_TIME_BASE;
         if(end)*end=(window[4]-origin)/(double)AV_TIME_BASE;
         ok=1;
     }
-    pthread_mutex_unlock(&mutex);return ok;
+    return ok;
+}
+int tube_live_range(AVFormatContext *f, double *start, double *end) {
+    pthread_mutex_lock(&mutex);int ok=range_locked(f,start,end);pthread_mutex_unlock(&mutex);return ok;
+}
+int tube_live_active_range(double *start, double *end) {
+    pthread_mutex_lock(&mutex);int ok=range_locked(context,start,end);pthread_mutex_unlock(&mutex);return ok;
+}
+void tube_live_refresh_paused(AVFormatContext *f) {
+    int64_t absolute;unsigned token;
+    pthread_mutex_lock(&mutex);
+    int64_t now=av_gettime_relative();
+    if (!f || f!=context || !calibrated || !enabled || now<next_refresh || !tube_live_owner_current(binding.token)) {pthread_mutex_unlock(&mutex);return;}
+    next_refresh=now+2000000;absolute=origin;token=binding.token;
+    pthread_mutex_unlock(&mutex);
+    /* Owner-thread metadata refresh only: no recording or media reads. The
+     * original point may have expired; publication still advances the window. */
+    if (tube_live_owner_current(token) && av_hls_dvr_prepare_seek) av_hls_dvr_prepare_seek(f,absolute);
 }
 int tube_live_seek_admit(AVFormatContext *f, double target) {
     double start,end;

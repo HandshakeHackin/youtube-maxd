@@ -51,8 +51,17 @@ int main(void) {
     int64_t bounds[7];window(bounds,0);
     const int64_t point=1760000006000000LL;
     assert(tube_live_remember(&first,bounds,point,point_identity));
-    p->report_progress(A,0,0,EVO_PROVIDER_PLAY_STOP);
-    root=read_store();char *stored=cJSON_PrintUnformatted(root);assert(stored && !strstr(stored,"capability"));free(stored);cJSON_Delete(root);
+    p->report_progress(A,9,10,EVO_PROVIDER_PLAY_UPDATE);
+    p->report_progress(A,10,10,EVO_PROVIDER_PLAY_STOP);
+    root=read_store();
+    cJSON *entry;
+    cJSON_ArrayForEach(entry,cJSON_GetObjectItem(root,"records"))
+        if(!strcmp(cJSON_GetObjectItem(entry,"id")->valuestring,A)) {
+            assert(cJSON_GetObjectItem(entry,"position")->valuedouble==0);
+            assert(!cJSON_IsTrue(cJSON_GetObjectItem(entry,"played")));
+            assert(cJSON_GetObjectItem(entry,"duration")->valuedouble==0);
+        }
+    char *stored=cJSON_PrintUnformatted(root);assert(stored && !strstr(stored,"capability"));free(stored);cJSON_Delete(root);
     assert(tube_live_capture(A,live.url,&again) && again.saved_utc==point && !tube_live_owner_current(first.token));
     window(bounds,2);assert(tube_live_restore(&again,bounds,point_identity)==point);
     int64_t wrong_identity[3];memcpy(wrong_identity,point_identity,sizeof wrong_identity);

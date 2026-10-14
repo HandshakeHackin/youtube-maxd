@@ -35,7 +35,10 @@ static int tracked_seek(AVFormatContext *format, int stream, int64_t timestamp, 
     return force_refusal ? AVERROR(EIO) : av_seek_frame(format, stream, timestamp, flags);
 }
 #define av_seek_frame tracked_seek
+static int tube_live_seek_prepare(AVFormatContext*,double) {return 1;}
 static double shipping_resume(double resumeOffset) {
+    double tubeLiveBase=0;
+    struct { bool is_live=false; } source;
     bool wantResume = true;
     double m_resumeBaseOffset = resumeOffset;
     resume_base_offset_seconds = resumeOffset;

@@ -273,6 +273,7 @@ G Player::make_g(gfx::DrawList &list, std::uint32_t glass) const
 
 float Player::share(double seconds) const
 {
+    if (view_.dvr) return static_cast<float>(std::clamp((seconds-view_.seek_start)/(view_.seek_end-view_.seek_start),0.0,1.0));
     return view_.duration > 0.0 ? static_cast<float>(std::clamp(seconds / view_.duration, 0.0, 1.0)) : 0.0f;
 }
 
@@ -431,6 +432,9 @@ void Player::update(const PlayerView &view, float dt)
 {
     const PlayerView before = std::move(view_);
     view_ = view;
+    view_.dvr = view_.live && view_.dvr && std::isfinite(view_.seek_start) && std::isfinite(view_.seek_end) &&
+        view_.seek_start>=0 && view_.seek_end>view_.seek_start;
+    if (view_.dvr) view_.duration=view_.seek_end;
     feedback_.clear();
     time_ += dt;
     // Another video, or the first frame: nothing glides in from the one before.
@@ -794,6 +798,10 @@ std::string Player::snapshot_json() const
     json_field(out, "controls", view_.chrome_hidden || view_.chrome <= 0.01f ? "hidden" : "shown");
     json_field(out, "playback", view_.loading ? "loading" : view_.scrubbing ? "seeking" : view_.paused ? "paused" : "playing");
     number("live", view_.live ? 1 : 0);
+    number("dvr", view_.dvr ? 1 : 0);
+    number("seek_start", static_cast<long>(view_.seek_start));
+    number("seek_end", static_cast<long>(view_.seek_end));
+    number("seek_progress", static_cast<long>(share(view_.position)*1000));
     number("position", static_cast<long>(view_.position));
     number("target", static_cast<long>(view_.scrubbing ? view_.scrub_target : view_.position));
     number("duration", static_cast<long>(view_.duration));

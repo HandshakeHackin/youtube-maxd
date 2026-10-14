@@ -7170,12 +7170,23 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
     const char *profile = *g_active_profile ? g_active_profile : g_library_profile;
     const int silent = history_suppressed();
     Record *r = record_for(id, profile, !silent);
-    if (r && dur > 0) r->item.duration_sec = dur;
+    if (r && !r->item.is_live && dur > 0) r->item.duration_sec = dur;
     if (silent) { /* Duration is metadata; position, watched marker and reports are history. */
         if (state == EVO_PROVIDER_PLAY_START) { g_finished = 0; g_skip_guard = -1; g_completion_action=g_completion_consumed=0; g_sponsor_completed=g_sponsor_seek_pending=0; }
         g_watch.dirty = 0; return;
     }
     if (!r) return;
+    if (r->item.is_live) {
+        /* The fixed DVR origin is not the broadcast's elapsed clock or total
+         * duration. Persist only its checked UTC point, never a VOD resume,
+         * end marker or fabricated remote watch-report offset. */
+        r->item.resume_pos_sec=0;r->updated=(long long)time(NULL);
+        g_watch.dirty=0;
+        if (state==EVO_PROVIDER_PLAY_STOP) g_watch.stopped=1;
+        if (state==EVO_PROVIDER_PLAY_START) { g_finished=0;g_skip_guard=-1;g_completion_action=g_completion_consumed=0;g_sponsor_completed=g_sponsor_seek_pending=0; }
+        if (state==EVO_PROVIDER_PLAY_STOP || now_ms()-g_last_save>=10000) save();
+        return;
+    }
     if (g_finished && state != EVO_PROVIDER_PLAY_START && !strcmp(id, g_active_id)) {
         /* Explicit SponsorBlock completion stops before the old clock reaches
          * the end. Its final stop report must not restore an outro resume. */
