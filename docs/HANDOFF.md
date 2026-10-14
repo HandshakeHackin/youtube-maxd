@@ -68,6 +68,10 @@ README's **Roadmap**). The two recommended first:
    skipped segment, grouped options, tabbed captions, chat beside the video.
    What the existing player cannot tell yet is listed in
    `docs/afterglow/requests/H.md`.
+   The continuation wires the next-video card's five-second Play now/Cancel
+   offer, automatic-skip Undo and category colours. Host provider/controller
+   checks pass; console acceptance remains pending. Grouped options, caption
+   tabs and chat beside the picture remain to implement.
 
 Then: the Afterglow translations (about 430 texts show in English;
 `python3 scripts/i18n_extract.py`, catalogs in `native/i18n/`), the bell count

@@ -349,6 +349,58 @@ int main(void) {
     minimum(0); provider->list_catalog("settings:sb:minimum", 0, items_cb, NULL);
     assert(!strcmp(last_items[0].title, "Disabled") && !strcmp(last_items[0].subtitle, "Selected"));
     provider->list_catalog("settings:sb", 0, items_cb, NULL); assert(!strcmp(last_items[9].title, "Ignore short segments: disabled"));
-    puts("PASS: shipping SponsorBlock actions, confirmation, end skips, watched state, queue transitions, exclusions, persistence and stale replies");
+    /* Undo is offered after an actual landing; it survives a slow seek and
+       keeps the undone interval from immediately skipping again. */
+    assert(provider->set_source("http://127.0.0.1:8765#123456") == 0);
+    provider->search("fixture", 0, items_cb, NULL);
+    reply(0, 1, 200, "{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");
+    poll_job("{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"abcdefghijk\",\"channel_id\":\"UCaaaaaaaaaaaaaaaaaaaaaa\",\"duration_sec\":100}],\"has_more\":false}}");
+    action("sponsor", 1);
+    list_store = read_store();
+    const int no_repeat = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(list_store,"sponsor_settings"),"no_repeat"));
+    cJSON_Delete(list_store);
+    if (no_repeat) provider->list_catalog("settings:sb:repeat", 0, items_cb, NULL);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    tube_sponsor_skip_t skipped;
+    assert(!tube_sponsor_last_skip(&skipped));
+    assert(tube_skip_target(12) == 20);
+    tube_sponsor_skip_started(12, 20);
+    tube_sponsor_skip_observe(12, 1); assert(!tube_sponsor_last_skip(&skipped));
+    tube_sponsor_skip_observe(12, 0); assert(!tube_sponsor_last_skip(&skipped)); // failed seek
+    tube_sponsor_skip_started(12, 20);
+    tube_sponsor_skip_observe(20, 0);
+    assert(tube_sponsor_last_skip(&skipped) && skipped.from == 12 && skipped.to == 20 &&
+           skipped.rgb == 0x00ff00 && skipped.age_ms < TUBE_SPONSOR_UNDO_MS && *skipped.category);
+    tube_sponsor_undo_started(11); assert(tube_sponsor_last_skip(&skipped)); // stale target
+    tube_sponsor_undo_started(skipped.from); assert(!tube_sponsor_last_skip(&skipped));
+    assert(tube_skip_target(12) < 0 && tube_skip_target(16) < 0 && tube_skip_target(20) < 0);
+    assert(tube_skip_target(30) < 0 && tube_skip_target(12) == 20); // later manual rewind follows the repeat policy
+    tube_sponsor_skip_started(12, 20); tube_sponsor_skip_observe(20, 0);
+    assert(tube_sponsor_last_skip(&skipped));
+    usleep((TUBE_SPONSOR_UNDO_MS + 100) * 1000);
+    assert(!tube_sponsor_last_skip(&skipped));
+    action("sponsor", 0);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(12) == 20);
+    tube_sponsor_skip_started(12, 20); tube_sponsor_skip_observe(20, 0);
+    assert(!tube_sponsor_last_skip(&skipped)); // silent means no interactive notice
+    action("sponsor", 1);
+    segments("{\"segments\":[{\"start\":10,\"end\":20,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(12) == 20);
+    tube_sponsor_skip_started(12, 20); tube_sponsor_skip_observe(20, 0);
+    assert(tube_sponsor_last_skip(&skipped));
+    segments("{\"segments\":[{\"start\":80,\"end\":105,\"category\":\"sponsor\"}]}");
+    provider->stream_chosen("abcdefghijk", &selected);
+    assert(tube_skip_target(80)==105 && tube_sponsor_finish(105,100));
+    tube_sponsor_skip_started(80,105);tube_sponsor_skip_observe(80,0);
+    assert(tube_sponsor_last_skip(&skipped) && skipped.from==80 && skipped.to==105);
+    tube_completion_seek_started(80);tube_sponsor_undo_started(80);
+    tube_completion_seek_observe(80,0);
+    assert(!tube_sponsor_completed() && !tube_sponsor_last_skip(&skipped) && tube_skip_target(80)<0);
+    provider->set_source("http://localhost:8765"); assert(!tube_sponsor_last_skip(&skipped));
+    puts("PASS: shipping SponsorBlock actions, Undo landing/expiry/rewind policy, confirmation, end skips, watched state, queue transitions, exclusions, persistence and stale replies");
     return 0;
 }

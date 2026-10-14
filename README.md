@@ -258,6 +258,8 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] The player as on its boards: the next-video card, Undo after a skipped
       segment, grouped playback options, captions in tabs, and the live chat
       beside the video rather than over it.
+      The next-video offer and automatic-skip Undo are implemented and
+      host-tested; their console acceptance is pending.
 - [ ] Home: an unread count on the notifications bell and a "Live now" shelf.
 - [ ] Translations of the Afterglow interface's texts into the 21 languages.
 - [ ] The interface's own sound recordings in place of the UI kit's sounds.

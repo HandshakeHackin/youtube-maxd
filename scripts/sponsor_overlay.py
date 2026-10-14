@@ -3,6 +3,7 @@
 
 def apply_sponsor_overlay(replace, player):
     screen = player + 'core/src/screens/PlayerScreen.cpp'
+    replace(screen, '#include "tube_provider.h"', '#include "tube_provider.h"\n#if defined(EVO_AGC_DEVICE)\n#include "afterglow/app/afterglow.h"\n#endif')
     replace(screen, '    if (!ended && !playback->isPaused() && !playback->isScrubbing()) {',
             '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&\n        !evo_demux_is_seeking() && !g_pp_pb.seek_discarding && !pb_prebuffer_hold) {')
     replace(screen, '    // Scrub hold update', '''    if (tube_sponsor_prompt(playback->getPositionSeconds()) &&
@@ -47,16 +48,47 @@ def apply_sponsor_overlay(replace, player):
     // End ProsperoTube highlight input.
 
     // Scrub hold update''')
-    replace(screen, '            playback->seekTo(target); toast("SPONSORBLOCK", "Skipped an optional segment");', '''            playback->seekTo(target);
-            if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped an optional segment");''')
+    replace(screen, '            playback->seekTo(target); toast("SPONSORBLOCK", "Skipped an optional segment");', '''            const double from = playback->getPositionSeconds();
+            if (playback->seekTo(target, false)) {
+                tube_sponsor_skip_started(from, target);
+                if (tube_sponsor_show_message()) {
+#if defined(EVO_AGC_DEVICE)
+                    if (!tube_afterglow_enabled())
+#endif
+                        toast("SPONSORBLOCK", "Skipped an optional segment");
+                }
+            } else toast("SPONSORBLOCK", "Unable to seek");''')
     replace(screen, '''        double target = tube_skip_target(playback->getPositionSeconds());
         if (target >= 0 && target < playback->getDurationSeconds()) {''', '''        double target = tube_skip_target(playback->getPositionSeconds());
         if (tube_sponsor_finish(target, playback->getDurationSeconds())) {
-            if (tube_sponsor_show_message()) toast("SPONSORBLOCK", "Skipped the final segment");
+            tube_sponsor_skip_started(playback->getPositionSeconds(), target);
+            if (tube_sponsor_show_message()) {
+#if defined(EVO_AGC_DEVICE)
+                if (!tube_afterglow_enabled())
+#endif
+                    toast("SPONSORBLOCK", "Skipped the final segment");
+            }
             playback->setPaused(true);
             return;
         }
         if (target >= 0 && target < playback->getDurationSeconds()) {''')
+    replace(screen, '    const bool ended =', '''    tube_sponsor_skip_observe(playback->getPositionSeconds(), playback->isScrubbing() ||
+        evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold);
+    const bool ended =''')
+    replace(screen, '    // Scrub hold update', '''#if defined(EVO_AGC_DEVICE)
+    // ProsperoTube SponsorBlock Undo: the interactive notice owns Cross.
+    tube_sponsor_skip_t skipped;
+    if (!m_showStatsForNerds && tube_afterglow_enabled() && tube_sponsor_last_skip(&skipped) &&
+        (pressed & PadButtons::Cross) && !(pressed & PadButtons::Circle)) {
+        if (playback->isLiveSource() || playback->isScrubbing() || (evo_pb_is_complete() && !tube_sponsor_completed()) ||
+            evo_demux_is_seeking() || g_pp_pb.seek_discarding || pb_prebuffer_hold) return true;
+        if (playback->seekTo(skipped.from, evo_pb_is_paused() != 0)) tube_sponsor_undo_started(skipped.from);
+        else toast("SPONSORBLOCK", "Unable to undo the skip");
+        return true;
+    }
+#endif
+
+    // Scrub hold update''')
     kit = player + 'ui_kit/src/evo_hui_osd.cpp'
     replace(kit, '#include "evo_hui_osd.hpp"', '#include "evo_hui_osd.hpp"\n#include "tube_sponsor_draw.h"')
     replace(kit, '        const float tx = track.x + track.w * f;', '''        // ProsperoTube SponsorBlock marker draw (also extracted by host tests).

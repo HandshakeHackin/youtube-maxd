@@ -15,6 +15,14 @@ Afterglow's profile-password sheet now uses the shared typed-answer API rather
 than discarding the input and calling a placeholder. All account boards pass
 in the four looks; real profile-password use on the console remains pending.
 
+The player now connects the existing next-video card to a five-second offer:
+previewing preserves the selected queue/playlist/recommendation, Cross plays
+now and Circle cancels. Automatic SponsorBlock skips with messages expose
+five seconds of Undo after landing; Undo preserves pause and prevents an
+immediate repeat skip. Final-segment skips offer Undo before completion is
+committed. Prompt marks use their category colours. Provider and generated
+player checks pass under sanitizers; console acceptance remains pending.
+
 Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
 equivalence stays the long-term target ([goal](../GOAL.md)); this page states
 what the first release contains, how far each part was checked, and what is

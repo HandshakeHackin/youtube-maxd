@@ -94,6 +94,7 @@ static struct {
     tube_playlist_window_t value;
 } g_playlist_window;
 static int g_playlist_eof_wait, g_playlist_next_ready;
+static struct { long long deadline; unsigned scope; int focus, play; } g_next_offer;
 static int g_manual_direction;
 static int g_manual_fallback;
 static unsigned g_manual_scope,g_manual_selection;
@@ -452,9 +453,15 @@ static int g_highlight_guard = -1;
 static double g_highlight_origin;
 static int g_segment_count, g_skip_guard = -1;
 static double g_skip_until;
+static struct { double from, to; int category, pending; long long shown; } g_sb_skip;
+static double g_sb_undo_from = -1, g_sb_undo_until;
+static const unsigned g_sb_colors[TUBE_SB_CATEGORIES] = {
+    0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0xffff00, 0xff9900, 0x2793e6, 0x7300ff, 0xff1684
+};
 static double g_chapters[128];
 static int g_chapter_count;
 static void sponsor_invalidate(void) {
+    memset(&g_sb_skip, 0, sizeof g_sb_skip); g_sb_undo_from = -1;
     g_paid_text[0] = 0; g_paid_shown = 0;
     if (!++g_sb_serial) ++g_sb_serial;
     g_sb_active_serial = 0; g_sb_source[0] = 0; g_segment_count = 0;
@@ -4488,6 +4495,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    memset(&g_next_offer,0,sizeof g_next_offer);
     if(!++g_phone_next.serial)++g_phone_next.serial;
     g_phone_next.state=-1;
     if(g_manual_direction)tube_playlist_eof_cancel();
@@ -7069,6 +7077,7 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
 }
 
 static void chosen(const char *id, const evo_stream_choice_t *choice) {
+    memset(&g_sb_skip, 0, sizeof g_sb_skip); g_sb_undo_from = -1;
     int recovering = tube_recovery_active() && !strcmp(id, g_recovery.id);
     if (!recovering) { tube_sleep_activity(); tube_playlist_eof_cancel(); }
     if (!recovering && !++g_selection_serial) ++g_selection_serial;
@@ -7349,9 +7358,6 @@ double tube_highlight_target(double position, double duration) {
     return target;
 }
 int tube_sponsor_markers(double duration, tube_sponsor_marker_t *markers, int capacity) {
-    static const unsigned colors[TUBE_SB_CATEGORIES] = {
-        0x00ff00, 0x00ffff, 0x0000ff, 0xff00ff, 0xffff00, 0xff9900, 0x2793e6, 0x7300ff, 0xff1684
-    };
     if (!markers || capacity <= 0 || !isfinite(duration) || duration <= 0 || !sponsor_playing_scope()) return 0;
     int count = 0;
     for (int i = 0; i < g_segment_count && count < capacity; ++i) {
@@ -7359,7 +7365,7 @@ int tube_sponsor_markers(double duration, tube_sponsor_marker_t *markers, int ca
         if (!g_sb.colors[category] || g_segments[i][0] > duration ||
             (category != 8 && g_segments[i][0] == duration)) continue;
         markers[count++] = (tube_sponsor_marker_t){g_segments[i][0] / duration,
-            fmin(g_segments[i][1], duration) / duration, colors[category], category == 8};
+            fmin(g_segments[i][1], duration) / duration, g_sb_colors[category], category == 8};
     }
     return count;
 }
@@ -7387,6 +7393,44 @@ double tube_sponsor_confirm(double position, int accept) {
     return accept ? end : -1;
 }
 int tube_sponsor_show_message(void) { return g_sb_message; }
+void tube_sponsor_skip_started(double from, double to) {
+    memset(&g_sb_skip, 0, sizeof g_sb_skip);
+    if (!sponsor_playing_scope() || !g_sb_message || !isfinite(from) || !isfinite(to) || from < 0 ||
+        to <= from || g_skip_guard < 0 || g_skip_guard >= g_segment_count || to != g_skip_until) return;
+    g_sb_skip.from = from; g_sb_skip.to = to;
+    g_sb_skip.category = g_segment_categories[g_skip_guard];
+    if (tube_sponsor_completed()) g_sb_skip.shown=now_ms();
+    else g_sb_skip.pending = 1;
+}
+void tube_sponsor_skip_observe(double position, int busy) {
+    if (!g_sb_skip.pending && !g_sb_skip.shown) return;
+    const long long now = now_ms();
+    if (!sponsor_playing_scope() || !isfinite(position) || (g_sb_skip.shown &&
+        (now < g_sb_skip.shown || now - g_sb_skip.shown >= TUBE_SPONSOR_UNDO_MS))) {
+        memset(&g_sb_skip, 0, sizeof g_sb_skip); return;
+    }
+    if (g_sb_skip.pending && !busy) {
+        if (position < g_sb_skip.to - .1 || position > g_sb_skip.to + 2.0) { memset(&g_sb_skip, 0, sizeof g_sb_skip); return; }
+        g_sb_skip.pending = 0; g_sb_skip.shown = now;
+    }
+}
+int tube_sponsor_last_skip(tube_sponsor_skip_t *skip) {
+    const long long age = now_ms() - g_sb_skip.shown;
+    if (!skip || !g_sb_skip.shown || !sponsor_playing_scope() || age < 0 || age >= TUBE_SPONSOR_UNDO_MS) return 0;
+    *skip = (tube_sponsor_skip_t){g_sb_skip.from, g_sb_skip.to, g_sb_colors[g_sb_skip.category],
+        (unsigned)age, tube_sb_labels[g_sb_skip.category]};
+    return 1;
+}
+void tube_sponsor_undo_started(double target) {
+    tube_sponsor_skip_t skip;
+    if (!tube_sponsor_last_skip(&skip) || target != skip.from) return;
+    g_sb_undo_from = skip.from; g_sb_undo_until = skip.to;
+    g_sb_last_position = target;
+    memset(&g_sb_skip, 0, sizeof g_sb_skip);
+}
+unsigned tube_sponsor_prompt_rgb(double position) {
+    return tube_sponsor_prompt(position) ? g_sb_colors[g_segment_categories[g_sb_prompt]] : 0;
+}
 static int sponsor_match(double position, int index, double rate) {
     return g_segment_categories[index] != 8 && position >= g_segments[index][0] &&
         position <= fmin(g_segments[index][0] + 2.0 * rate, g_segments[index][1]);
@@ -7394,6 +7438,10 @@ static int sponsor_match(double position, int index, double rate) {
 double tube_skip_target_at_rate(double position, double rate) {
     if (!sponsor_scope() || !isfinite(position) || position < 0 || !isfinite(rate) || rate <= 0) {
         g_sb_prompt = -1; g_sb_finish_target = -1; return -1;
+    }
+    if (g_sb_undo_from >= 0) {
+        if (position >= g_sb_undo_from - .5 && position < g_sb_undo_until + .25) return -1;
+        g_sb_undo_from = -1;
     }
     if (g_sb_last_position >= 0 && position < g_sb_last_position - .5) {
         g_skip_guard = -1; g_sb_prompt = -1; g_sb_finish_target = -1;
@@ -7488,7 +7536,8 @@ int tube_queue_skip_unavailable(const char *id) {
 }
 
 void tube_playlist_eof_cancel(void) {
-    if(g_manual_direction) {g_next_id[0]=0;g_next_profile[0]=0;}
+    g_next_id[0]=0;g_next_profile[0]=0;
+    memset(&g_next_offer,0,sizeof g_next_offer);
     g_manual_direction=0;
     if(!++g_recommendation.serial)++g_recommendation.serial;
     g_recommendation.state=-1;
@@ -7641,6 +7690,7 @@ static void manual_departure(void) {
 static int finish_and_next(int playlist) {
     if(g_manual_direction)return 0;
     if (g_finished) {
+        if (*g_next_id || g_playlist_next_ready) return 1;
         if(g_recommendation.state>=0 && recommendation_current())return g_recommendation.state==1;
         return playlist ? playlist_eof_advance() : 0;
     }
@@ -7740,15 +7790,15 @@ void tube_completion_playback_state(int ended,int busy) {
     }
 }
 
-int tube_take_next(evo_provider_item_t *item) {
-    if(*g_menu_launch.id) { /* Play from start or Play incognito, taken once */
+static int next_item(evo_provider_item_t *item, int consume) {
+    if(consume && *g_menu_launch.id) { /* Play from start or Play incognito, taken once */
         Record *r=g_menu_launch.scope==g_playlist_scope && !strcmp(g_menu_launch.profile,g_library_profile)?record(g_menu_launch.id,0):NULL;
         g_menu_launch.id[0]=0;
         if(r && item) {*item=r->item;dearrow_item(item,r);return 1;}
     }
-    if(g_manual_direction && tube_manual_navigation_status()!=1)return 0;
+    if(g_manual_direction && (!consume || tube_manual_navigation_status()!=1))return 0;
     if(g_recommendation.state==1) {
-        int current=recommendation_current();g_recommendation.state=-1;
+        int current=recommendation_current();if(consume)g_recommendation.state=-1;
         if(!current || !item)return 0;
         if(channel_name_blocks_active() && !*g_recommendation.channel_name)return 0;
         if(channel_blocks_active() && (!*g_recommendation.channel || blocked_identity(g_recommendation.channel,g_recommendation.channel_name)>=0))return 0;
@@ -7761,21 +7811,56 @@ int tube_take_next(evo_provider_item_t *item) {
         item->kind=EVO_MEDIA_VIDEO;item->resume_pos_sec=0;
         copy(item->playback_playlist,sizeof item->playback_playlist,g_recommendation.next_context.playlist);
         item->playback_index=g_recommendation.next_context.index;item->playback_scope=g_recommendation.next_context.scope;
-        manual_departure();return 1;
+        if(consume)manual_departure();
+        return 1;
     }
     if (g_playlist_next_ready) {
-        g_playlist_next_ready=0;
+        if(consume)g_playlist_next_ready=0;
         if (!item || (channel_blocks_active() && !*g_playlist_next.parent_id) || (channel_name_blocks_active() && !*g_playlist_next.subtitle) || blocked_identity(g_playlist_next.parent_id,g_playlist_next.subtitle)>=0 || (!g_autoplay && !g_manual_direction) || !playlist_window_current()) return 0;
-        *item=g_playlist_next;manual_departure();return 1;
+        *item=g_playlist_next;if(consume)manual_departure();return 1;
     }
-    if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { g_next_id[0] = 0; return 0; }
-    Record *r = record_for(g_next_id, g_next_profile, 0); g_next_id[0] = 0; g_next_profile[0] = 0;
+    if (!*g_next_id || strcmp(g_next_profile, g_library_profile)) { if(consume)g_next_id[0] = 0; return 0; }
+    Record *r = record_for(g_next_id, g_next_profile, 0);
+    if(consume) {g_next_id[0] = 0; g_next_profile[0] = 0;}
     if (!r || blocked_identity(r->item.parent_id,r->item.subtitle)>=0 || (!r->queued && g_manual_direction>=0) || !item) return 0;
-    copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
-    copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
-    g_launch_origin.music = r->queued_music; g_launch_origin.automatic = !g_manual_direction;
-    manual_departure();
+    if(consume) {
+        copy(g_launch_origin.id, sizeof g_launch_origin.id, r->item.id);
+        copy(g_launch_origin.profile, sizeof g_launch_origin.profile, r->profile);
+        g_launch_origin.music = r->queued_music; g_launch_origin.automatic = !g_manual_direction;
+        manual_departure();
+    }
     *item = r->item; dearrow_item(item, r); return 1;
+}
+
+int tube_take_next(evo_provider_item_t *item) {
+    memset(&g_next_offer,0,sizeof g_next_offer);
+    return next_item(item,1);
+}
+int tube_next_offer(tube_next_offer_t *offer) {
+    if (!offer || !g_next_offer.deadline || g_next_offer.scope!=g_playlist_scope ||
+        strcmp(g_active_profile,g_library_profile) || !g_finished || !next_item(&offer->item,0)) return 0;
+    long long left=g_next_offer.deadline-now_ms();
+    offer->left_ms=left>0?(left>TUBE_NEXT_OFFER_MS?TUBE_NEXT_OFFER_MS:(int)left):0;
+    offer->focus=g_next_offer.focus;return 1;
+}
+int tube_next_offer_hold(void) {
+    if (g_next_offer.scope!=g_playlist_scope) memset(&g_next_offer,0,sizeof g_next_offer);
+    if (!g_next_offer.deadline) {
+        evo_provider_item_t item;
+        if (!g_finished || strcmp(g_active_profile,g_library_profile) || !next_item(&item,0)) return 0;
+        g_next_offer.deadline=now_ms()+TUBE_NEXT_OFFER_MS;g_next_offer.scope=g_playlist_scope;
+    }
+    tube_next_offer_t offer;
+    return tube_next_offer(&offer) && !g_next_offer.play && offer.left_ms>0;
+}
+int tube_next_offer_input(int direction,int confirm,int cancel) {
+    tube_next_offer_t offer;
+    if (!tube_next_offer(&offer)) return 0;
+    if (cancel || (confirm && g_next_offer.focus)) {
+        tube_playlist_eof_cancel();g_completion_action=TUBE_COMPLETION_PAUSE;g_completion_consumed=0;
+    } else if (confirm) g_next_offer.play=1;
+    else if (direction) g_next_offer.focus=direction>0?1:0;
+    return 1;
 }
 
 int tube_choose_stream_enabled(void) { return g_ask_stream; }

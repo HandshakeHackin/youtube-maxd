@@ -55,7 +55,18 @@ def apply_playlist_context_overlay(replace, player, host):
             if(status<0)toast("PLAYBACK","No video available in this direction");
         }
     }
-    if (manualVideoReady || (ended && !completionBusy && (tube_phone_finished() || (!tube_phone_owns_media() && tube_finish_drained_and_next(playback->getPositionSeconds())))))''')
+    bool deferFinalSkip=false;
+#if defined(EVO_AGC_DEVICE)
+    tube_sponsor_skip_t finalSkip;
+    deferFinalSkip=tube_afterglow_enabled() && tube_sponsor_completed() && tube_sponsor_last_skip(&finalSkip);
+#endif
+    const bool phoneVideoReady=!manualVideoReady && ended && !completionBusy && tube_phone_finished();
+    bool localVideoReady=!manualVideoReady && !phoneVideoReady && ended && !completionBusy && !deferFinalSkip && !tube_phone_owns_media() &&
+        tube_finish_drained_and_next(playback->getPositionSeconds());
+#if defined(EVO_AGC_DEVICE)
+    if (localVideoReady && tube_afterglow_enabled() && tube_next_offer_hold()) localVideoReady=false;
+#endif
+    if (manualVideoReady || phoneVideoReady || localVideoReady)''')
     replace(screen, '    if (!ended && !evo_pb_is_paused() && !playback->isScrubbing() && !playback->isLiveSource() &&', '''    if (ended && !completionBusy && !tube_phone_owns_media()) {
         const int action=tube_take_completion_action();
         if (action==TUBE_COMPLETION_REPEAT) {
@@ -76,6 +87,12 @@ def apply_playlist_context_overlay(replace, player, host):
     replace(player+'core/src/screens/PlayerScreen.cpp',
         'bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {',
         '''bool PlayerScreen::handleInput(uint32_t pressed, uint32_t held, uint32_t released) {
+#if defined(EVO_AGC_DEVICE)
+    if (tube_afterglow_enabled() && !tube_phone_owns_media() && pressed &&
+        tube_next_offer_input((pressed & (PadButtons::Right | PadButtons::Down)) ? 1 :
+            (pressed & (PadButtons::Left | PadButtons::Up)) ? -1 : 0,
+            (pressed & PadButtons::Cross) != 0, (pressed & PadButtons::Circle) != 0)) return true;
+#endif
     if (pressed && (tube_playlist_eof_pending() || tube_manual_navigation_pending())) tube_playlist_eof_cancel();''')
     fields='''    char playback_playlist[101];
     int playback_index;

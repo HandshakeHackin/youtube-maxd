@@ -25,22 +25,20 @@ the code they are marked `// REQUEST:`.
    player's own word ("Buffering...").
 3. **How far the stream is read ahead**, in seconds, for the lighter stretch of
    the timeline (`PlayerView::buffered`). Stand-in: not drawn.
-4. **The next video as an offer** (board 23): which video is next and for how
-   long the offer stands. Proposed: `int tube_playlist_eof_peek(evo_provider_item_t *item,
-   int *left_ms, int *total_ms)`, and in PlayerScreen Cross: play now, Circle:
-   cancel, a focus between the two. Fills `PlayerView::next`. Stand-in: while
-   `tube_playlist_eof_pending()` a notice says "The next video is on its way /
-   Any button cancels", which is what the player does today.
-5. **Undo of a segment that was skipped** (board 22). Proposed:
-   `int tube_sponsor_last_skip(double *from, double *to, unsigned *rgb, const char **category, unsigned *age_ms)`
-   and Cross: back to `from` for a few seconds after an automatic skip. Fills
-   `PlayerView::notice` with `kind` "skip", `action` Undo and `left`. Stand-in:
-   EVO's toast ("Skipped an optional segment") is drawn as a notice in the same
-   place, without Undo; a segment that asks is drawn with Cross: Skip and
-   Circle: Keep, which exist.
-6. **The category colour of a segment that asks**
-   (`unsigned tube_sponsor_prompt_rgb(double position)`), for the notice's mark.
-   Stand-in: the look's accent.
+4. **The next video as an offer** (board 23): implemented through
+   `tube_next_offer()`, `tube_next_offer_hold()` and `tube_next_offer_input()`.
+   The card previews the validated next item without consuming it. It waits
+   five seconds; Cross plays now or activates the focused Cancel button,
+   Circle cancels and directions select the button. Classic, phone ownership
+   and explicit Previous/Next keep their existing paths. Host-tested; console
+   acceptance pending.
+5. **Undo of an automatic segment skip** (board 22): implemented through
+   `tube_sponsor_last_skip()` and `tube_sponsor_undo_started()`. The notice
+   starts after the seek lands, lasts five seconds and preserves pause when
+   undone. A final-segment skip delays completion while Undo stands. Silent
+   skips stay silent. Host-tested; console acceptance pending.
+6. **The category colour of a segment that asks**: implemented by
+   `tube_sponsor_prompt_rgb()` and used in the mounted notice.
 7. **The video's rectangle** (board 21, the theatre layout): EVO's video quad
    drawn into `Player::video_rect()` with `Player::video_radius()` while
    `Chat::theatre` is set. `tube_video_geometry` has resize, zoom and aspect,

@@ -191,8 +191,7 @@ struct Notice
     float left = -1.0f;    // share of its time that is left, 0..1; negative = no line
 };
 
-// The end of a video: the next one offers itself (fixture: the provider does
-// not say which video is next, nor how long the offer stands).
+// The end of a video: the provider's next-video offer.
 struct NextVideo
 {
     bool shown = false;

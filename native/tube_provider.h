@@ -136,6 +136,15 @@ void tube_highlight_retry_idle(void);
 const char *tube_sponsor_prompt(double position);
 double tube_sponsor_confirm(double position, int accept);
 int tube_sponsor_show_message(void);
+#define TUBE_SPONSOR_UNDO_MS 5000
+typedef struct { double from, to; unsigned rgb, age_ms; const char *category; } tube_sponsor_skip_t;
+/* Main thread: an accepted automatic seek is offered only after its landing is observed. */
+void tube_sponsor_skip_started(double from, double to);
+void tube_sponsor_skip_observe(double position, int busy);
+int tube_sponsor_last_skip(tube_sponsor_skip_t *skip);
+/* Call after the player's Undo seek has been accepted. */
+void tube_sponsor_undo_started(double target);
+unsigned tube_sponsor_prompt_rgb(double position);
 /* Main/UI thread, after successful playback start; consumes at most once. */
 const char *tube_take_paid_content_notice(void);
 int tube_sponsor_finish(double target, double duration);
@@ -146,6 +155,11 @@ int tube_playback_at_end(double position, double duration);
 int tube_finish_drained_and_next(double position);
 int tube_finish_and_next(double position, double duration);
 int tube_take_next(evo_provider_item_t *item);
+#define TUBE_NEXT_OFFER_MS 5000
+typedef struct { evo_provider_item_t item; int left_ms, focus; } tube_next_offer_t;
+int tube_next_offer(tube_next_offer_t *offer);
+int tube_next_offer_hold(void);
+int tube_next_offer_input(int direction, int confirm, int cancel);
 /* Explicit user navigation does not mark the current video watched or change
  * playback mode. status: 0=pending, 1=ready, -1=absent/failed/cancelled. */
 int tube_manual_navigation_begin(int direction);

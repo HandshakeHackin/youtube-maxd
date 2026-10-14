@@ -19,7 +19,13 @@ int main(void) {
     const evo_provider_t *p=&evo_provider_youtube;evo_provider_item_t next;evo_stream_choice_t choice={0};
     seed();assert(!p->init());assert(tube_set_playback_mode(TUBE_MODE_PAUSE));
     p->stream_chosen("abcdefghijk",&choice);
-    assert(tube_finish_drained_and_next(30) && tube_take_next(&next) && !strcmp(next.id,"cdefghijklm"));preserved();
+    tube_next_offer_t offer;
+    assert(tube_finish_drained_and_next(30) && tube_next_offer_hold() && tube_next_offer(&offer));
+    assert(!strcmp(offer.item.id,"cdefghijklm") && tube_finish_drained_and_next(30));preserved();
+    assert(tube_next_offer_input(1,0,0) && tube_next_offer_input(0,1,0));
+    assert(!tube_next_offer(&offer) && !tube_take_next(&next));preserved();
+    seed();assert(!p->init());p->stream_chosen("abcdefghijk",&choice);
+    assert(tube_finish_drained_and_next(30) && tube_next_offer_hold() && tube_take_next(&next) && !strcmp(next.id,"cdefghijklm"));preserved();
     seed();assert(!p->init());p->stream_chosen("abcdefghijk",&choice);
     assert(tube_manual_navigation_begin(1) && tube_take_next(&next) && !strcmp(next.id,"cdefghijklm"));preserved();
     p->stream_chosen("cdefghijklm",&choice);

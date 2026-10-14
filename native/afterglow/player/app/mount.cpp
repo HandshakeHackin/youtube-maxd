@@ -364,6 +364,22 @@ void fill_controls(Mount &m)
             chat.status = str(tube_player_chat_status());
     }
 
+    v.next = player::NextVideo{};
+    tube_next_offer_t next;
+    if (plain && tube_next_offer(&next))
+    {
+        v.next.shown = true;
+        v.next.watched = v.title;
+        v.next.card.id = next.item.id;
+        v.next.card.title = next.item.title;
+        v.next.card.channel = next.item.subtitle;
+        v.next.card.thumb = next.item.art_url;
+        v.next.card.duration_s = static_cast<int>(next.item.duration_sec);
+        v.next.seconds_left = static_cast<float>(next.left_ms) / 1000.0f;
+        v.next.seconds_total = static_cast<float>(TUBE_NEXT_OFFER_MS) / 1000.0f;
+        v.next.focus = next.focus;
+    }
+
     // ---- a segment that asks, or the next video on its way ----
     player::Notice &notice = v.notice;
     notice = player::Notice{};
@@ -376,14 +392,28 @@ void fill_controls(Mount &m)
         notice.title = prompt;
         notice.action = {ui::Button::cross, ui::Button::none, tr("Skip")};
         notice.second = {ui::Button::circle, ui::Button::none, tr("Keep")};
+        notice.rgb = tube_sponsor_prompt_rgb(raw.position_sec);
     }
-    else if (tube_playlist_eof_pending())
+    else if (!v.next.shown && tube_playlist_eof_pending())
     {
-        // REQUEST: which video is next, and for how long the offer stands (requests/H.md).
         notice.shown = true;
         notice.kind = "next";
         notice.title = tr("The next video is on its way");
         notice.detail = tr("Any button cancels");
+    }
+    else if (plain && !v.live)
+    {
+        tube_sponsor_skip_t skipped;
+        if (tube_sponsor_last_skip(&skipped))
+        {
+            notice.shown = true;
+            notice.kind = "skip";
+            notice.label = "SponsorBlock";
+            notice.title = std::string(tr("Skipped")) + " " + sentence(str(skipped.category));
+            notice.rgb = skipped.rgb;
+            notice.action = {ui::Button::cross, ui::Button::none, tr("Undo")};
+            notice.left = 1.0f - static_cast<float>(skipped.age_ms) / TUBE_SPONSOR_UNDO_MS;
+        }
     }
 
     // ---- the playback details, the development counter, dimming ----
@@ -563,6 +593,7 @@ player::Player &step(Mount &m, const ui::Fonts &fonts, float dt, unsigned frame,
         v.captions.second.clear();
         v.chat.side = 0;
         v.notice.shown = false;
+        v.next.shown = false;
         v.stats.shown = false;
         v.preview.clear();
         v.scrubbing = false;

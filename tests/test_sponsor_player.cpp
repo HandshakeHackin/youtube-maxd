@@ -27,7 +27,7 @@ struct Application {
     static Application& getInstance() { static Application app; return app; }
     ScreenManager* getScreenManager() { return &manager; }
 };
-namespace PadButtons { constexpr unsigned Cross = 1, Circle = 2, R3 = 4; }
+namespace PadButtons { constexpr unsigned Cross = 1, Circle = 2, R3 = 4, Right = 8, Down = 16, Left = 32, Up = 64; }
 static bool complete, seeking, pb_prebuffer_hold, engine_paused;
 static struct { bool seek_discarding; } g_pp_pb;
 static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures, idle_retries;
@@ -37,6 +37,25 @@ static int local_finish_calls, phone_finish_calls;
 static bool sponsor_completed;
 static int tube_sponsor_completed() { return sponsor_completed; }
 static void tube_completion_seek_observe(double,int) {}
+struct tube_sponsor_skip_t { double from, to; unsigned rgb, age_ms; const char *category; };
+static double next_target;
+static bool afterglow, undo_ready;
+static int skip_starts, undo_starts;
+static int tube_afterglow_enabled() { return afterglow; }
+static bool next_offer_wait, next_offer_ready;
+static int next_offer_direction, next_offer_confirm, next_offer_cancel;
+static int tube_next_offer_hold() { return next_offer_wait; }
+static int tube_next_offer_input(int direction, int confirm, int cancel) {
+    next_offer_direction=direction;next_offer_confirm=confirm;next_offer_cancel=cancel;
+    return next_offer_ready;
+}
+static void tube_sponsor_skip_observe(double, int) {}
+static void tube_sponsor_skip_started(double from, double to) { assert(from == state.position && to == next_target); ++skip_starts; }
+static int tube_sponsor_last_skip(tube_sponsor_skip_t *out) {
+    if (undo_ready) *out = {12, 20, 0x00ff00, 0, "Sponsor"};
+    return undo_ready;
+}
+static void tube_sponsor_undo_started(double target) { assert(target == 12); ++undo_starts; undo_ready = false; }
 enum { TUBE_COMPLETION_PAUSE=1, TUBE_COMPLETION_REPEAT=2 };
 static int completion_action, completion_taken;
 static int tube_take_completion_action() { ++completion_taken; int a=completion_action;completion_action=0;return a; }
@@ -49,7 +68,6 @@ static int tube_manual_navigation_status() {if(manual_status<0)manual_pending=fa
 static int playlist_cancels;
 static int tube_playlist_eof_pending() { return playlist_wait; }
 static void tube_playlist_eof_cancel() { manual_pending=false;playlist_wait=false; ++playlist_cancels; }
-static double next_target;
 static const char* prompt;
 static bool m_showStatsForNerds;
 static void toast(const char*, const char*) { ++notices; }
@@ -83,6 +101,8 @@ static bool input(unsigned pressed) {
     return false;
 }
 static void reset() {
+    next_offer_wait=next_offer_ready=false;next_offer_direction=next_offer_confirm=next_offer_cancel=0;
+    afterglow = undo_ready = false; skip_starts = undo_starts = 0;
     state = Playback{}; manager.returns = 0;
     completion_action=completion_taken=0;
     sponsor_completed=false;
@@ -95,6 +115,34 @@ static void reset() {
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
 int main() {
+    reset(); afterglow=true;complete=local_finished=next_offer_wait=true;tick();assert(!state.stops && !manager.returns);
+    next_offer_wait=false;tick();assert(state.stops==1 && manager.returns==1);
+    reset();afterglow=undo_ready=sponsor_completed=local_finished=true;state.paused=true;
+    tick();assert(!state.stops && !local_finish_calls);
+    complete=true;assert(input(PadButtons::Cross) && undo_starts==1 && state.sought==12 && state.paused);
+    reset(); afterglow=next_offer_ready=true;playlist_wait=true;
+    assert(input(PadButtons::Right) && next_offer_direction==1 && !playlist_cancels);
+    assert(input(PadButtons::Cross) && next_offer_confirm && !playlist_cancels);
+    assert(input(PadButtons::Cross|PadButtons::Circle) && next_offer_cancel && !playlist_cancels);
+    reset();afterglow=next_offer_ready=phone_owns=true;assert(!input(PadButtons::Cross));
+    reset(); next_target = 90; tick(); assert(skip_starts == 1);
+    reset(); next_target = 90; state.seek_accepts = false; tick(); assert(skip_starts == 0 && notices == 1);
+    reset(); next_target = 90; afterglow = show_message = true; tick(); assert(skip_starts == 1 && notices == 0);
+    reset(); afterglow = undo_ready = true; state.paused = true;
+    assert(input(PadButtons::Cross) && state.sought == 12 && state.paused && undo_starts == 1 && !undo_ready);
+    reset(); afterglow = undo_ready = true; state.seek_accepts = false;
+    assert(input(PadButtons::Cross) && !state.seeks && !undo_starts && undo_ready && notices == 1);
+    reset(); undo_ready = true; assert(!input(PadButtons::Cross) && !state.seeks);
+    reset(); afterglow = undo_ready = true; m_showStatsForNerds = true;
+    assert(!input(PadButtons::Cross) && !state.seeks);
+    reset(); afterglow = undo_ready = true;
+    assert(!input(PadButtons::Cross | PadButtons::Circle) && !state.seeks);
+    for (int gate = 0; gate < 6; ++gate) {
+        reset(); afterglow = undo_ready = true;
+        state.live = gate == 0; state.scrubbing = gate == 1; complete = gate == 2;
+        seeking = gate == 3; g_pp_pb.seek_discarding = gate == 4; pb_prebuffer_hold = gate == 5;
+        assert(input(PadButtons::Cross) && !state.seeks && !undo_starts && undo_ready);
+    }
     reset();manual_pending=true;manual_status=1;tick();assert(state.stops==1 && manager.returns==1 && !local_finish_calls);
     reset();manual_pending=true;manual_status=1;seeking=true;tick();assert(!state.stops);
     seeking=false;tick();assert(state.stops==1);

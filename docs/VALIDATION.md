@@ -2,6 +2,15 @@
 
 ## Ranged WebM seeking: host checks — 2026-10-14
 
+Afterglow player continuation: the next-video offer and automatic SponsorBlock
+Undo pass targeted provider tests with ASan/UBSan. Coverage includes deadline
+expiry, Play now and Cancel, non-destructive recommendation/queue previews,
+blocked channels, retained queue state, failed seek landing, Undo expiry,
+pause preservation and final-segment Undo before completion. The generated
+PS5 tick/pad-path harness passes, as do player and seek control regressions
+and package preparation. Existing player boards pass 75 boards in four looks
+(2,944 checks); the new mounted behavior is not yet console-tested.
+
 Afterglow profile-password integration: the existing account board now checks
 the typed `q` reaches the provider's answer API. It fails in all four looks
 before replacing the discarded-text placeholder with `Data::answer(text)`.
