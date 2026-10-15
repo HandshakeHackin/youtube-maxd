@@ -15,8 +15,10 @@ A verified audio-clock interpolation candidate (`90ed17f247d5bbd8` eboot prefix)
 still visibly hitched on native 3840x2160 VP9/24, despite 807 published frames
 and zero late drops in 34.8 seconds. Evidence:
 `/home/denis/pt-console/clock-smooth-production-verified-30/`.
-An earlier replay was inconclusive because installed bytes differed and its
-log was unchanged; the verified replay supersedes it.
+An earlier response arrived with an unchanged log. A raw FTP fetch returned
+the executable ELF view, which was incorrectly compared to the signed SELF;
+that hash difference did not prove a different installed revision. The later
+stored-byte-verified replay supplies the result used here.
 
 Offline review then found a specific delayed-output association bug:
 `decode_one` used the current input's VP9 show flag for a picture from an
@@ -30,6 +32,15 @@ including hidden/show-existing, drain, seek, errors and queue bounds. Existing
 native frame-lease tests also pass. This is an offline fix, not yet evidence
 that the TV hitch is gone. Validate the same clip after installing the newly
 built candidate; do not infer smoothness from counters alone.
+
+The production ZIP was built offline from clean commit `f4aaba6` with no
+remote-control or timing-trace build flags:
+`/home/denis/pt-candidates/vp9-order-f4aaba6/PPSA99142.zip`.
+Eboot SHA-256: `1f7ab0076f5bbbb1b17021bd05f4337d1f260bbcd2679b445b1146be7d72a1a1`.
+ZIP SHA-256: `2a9c34edd1627c785b352840f989849ad12502793e714d171b7023838a68303a`.
+Full PS5 build, signed-container integrity, packaged Lapy helper, ZIP CRC and
+embedded-eboot equality passed. It has not been installed or launched; the
+owner's latest instruction was to analyze offline first.
 
 The proposed flip-timing probe was archived outside product source at
 `/home/denis/pt-console/offline-hitch-diagnostics/`. It measures CPU-observed
