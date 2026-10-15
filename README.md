@@ -250,7 +250,10 @@ playback, a -60-second seek and another 150 seconds: their post-seek intervals
 advanced 138.88 and 144.85 seconds. Both saved distinct 4K player scanouts,
 closed cleanly and left no new error or GPU fault. This bounded result does not
 cover every public CDN condition. Synthetic live DVR rewind and UTC restore
-passed on .30. Synthetic PQ, HLG and SDR clips produced distinct nonflat
+passed on .30. A separate public Bloomberg 720p30 AVC/AAC live feed on .30
+rewound about 119 seconds, resumed frames, and reopened a saved UTC position
+after its playlist advanced; this was one bounded run, not long or 4K live
+acceptance. Synthetic PQ, HLG and SDR clips produced distinct nonflat
 scanout captures on .40, and active 30-to-25 fps playback changed the actual
 output refresh from 120 to 60 Hz. Earlier live 4K candidates had GPU faults;
 their unmapped-read addresses remain unattributed. [Status](docs/STATUS.md)
@@ -302,7 +305,8 @@ What is planned, roughly in order. Nothing here has a date.
 - [x] HDR selection and output for PQ, HLG and SDR (synthetic PS5 scanouts and
       format readback passed; TV-reported HDMI HDR indication remains unverified).
 - [x] Rewind and remember live position, including a sliding DVR window
-      (synthetic split-HLS console test passed; public live feed remains untested).
+      (synthetic split-HLS and one public Bloomberg 720p30 AVC/AAC .30 run
+      passed; longer and high-resolution live DVR remain unverified).
 - [x] Keep the current video playing as audio while browsing in Afterglow:
       choose “Keep playing while browsing” in playback options, then press L3
       to return to the video. The now-playing panel shows its title and pause

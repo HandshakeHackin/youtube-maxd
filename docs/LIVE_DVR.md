@@ -7,15 +7,21 @@ owner. A playlist containing several segments alone never enables seeking.
 The companion's bounded HLS byte buffer is useful for previously downloaded
 finite media; it does not establish a console live timeline or position restore.
 
-## Current status (2026-10-14)
+## Current status (2026-10-15)
 
 The packaged opt-in extension now supports one continuous HLS playlist or a
 calibrated video/audio pair; other layouts and uncalibrated streams remain
 non-seekable. On PS5 .30, a synthetic split-HLS AVC/AAC feed rewound from
 5.50 to 3.31 seconds, restored a remembered UTC point within 0.98 seconds
-after the window advanced, and rejected an evicted point. The signed build,
-result and teardown are recorded in [hardware acceptance](HARDWARE_ACCEPTANCE.md).
-A public live feed and high-resolution live DVR have not been tested.
+after the window advanced, and rejected an evicted point. A separate public
+Bloomberg 720p AVC/AAC feed rewound about 119 seconds and resumed frames;
+reopen after an 18.4-second playlist-window advance restored the saved UTC
+point within 2.61 seconds and resumed frames. The public candidate includes
+timezone-offset program-date-time parsing, exact discontinuity tag matching,
+AAC DTS calibration with absent PTS, and timestamp-wrap reset across seek
+(commits `e1d0806`, `2fdf356`, `964bb5c`). The builds, results and teardown
+are recorded in [hardware acceptance](HARDWARE_ACCEPTANCE.md). Longer public
+sessions and high-resolution live DVR remain untested.
 
 The sections below retain the implementation stages and earlier stock-library
 diagnostics; their stage-specific pending statements are historical.
@@ -268,6 +274,7 @@ At this stage, the recipe change required a coordinated FFmpeg SDK rebuild;
 no build or install was invoked against the shared SDK. Generated script syntax
 and pinned-source regeneration tests passed, as did the isolated host HLS
 archive's live-window, identity/runtime and stock-fallback acceptance. The
-later packaged build and synthetic .30 result are summarized above. Public
-live DVR validation remains pending; unsupported playlist layouts and
-uncalibrated streams remain non-seekable.
+later packaged build, synthetic .30 result and bounded public Bloomberg
+result are summarized above. Longer and high-resolution public live DVR
+validation remains pending; unsupported playlist layouts and uncalibrated
+streams remain non-seekable.

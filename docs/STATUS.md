@@ -1,5 +1,18 @@
 # Current implementation status
 
+Public live DVR update, 2026-10-15: candidate `964bb5c` passed a bounded
+Guest playback of Bloomberg Business News Live (`QB5BNdBFujE`) on .30.
+Native AVC 1280x720/29.97 opened, a -120-second command rewound the live
+position 3591.58 to 3472.61 seconds, and frames resumed. After stop and an
+18.4-second playlist-window advance, reopening the same public item restored
+the saved UTC point within 2.61 seconds and frames resumed. The candidate
+accepts timezone offsets in program-date-time, distinguishes discontinuity
+metadata from a discontinuity, calibrates AAC packets with absent PTS, and
+resets HLS timestamp-wrap references across rewind. Its one-launch teardown
+restored saved state, left .30 idle with unchanged error records, and released
+ShadowMount. This does not establish long sessions, high-resolution live DVR,
+or physically audible sound. See [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+
 Playback update, 2026-10-14: a synthetic split-HLS feed passed live DVR
 rewind, UTC position restore across a sliding window, and stale-point
 rejection on .30. A held 4K HTTP 403 startup passed the provider
@@ -50,8 +63,9 @@ when fragmented, outside its usage counters. That fits the later fault address
 range but is not proof of ownership; decoder-internal mappings also remain
 possible. Current source rejects the UI GPU fallback and retains HUI textures
 until GPU fences retire. The bounded runs do not establish reliability across
-every public CDN/timing condition, public live DVR, TV-reported HDMI HDR
-metadata, or audible output. A clean production package from `8c29385`
+every public CDN/timing condition, long or high-resolution public live DVR,
+TV-reported HDMI HDR metadata, or audible output. A clean production
+package from `8c29385`
 was built with signed-container integrity valid and its Lapy helper verified.
 The artifact path and hashes are in [the handoff](HANDOFF.md). The production
 package itself has not been installed on a console in this round.

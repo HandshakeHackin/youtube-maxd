@@ -6,6 +6,21 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Playback continuation on 2026-10-14
 
+A later 2026-10-15 public live DVR candidate (`964bb5c`, eboot SHA-256
+`4eba00b13cacdf11ceb9e4f17889780dfdc99d0fd7bf6032ca4048574ffab927`)
+passed on .30 as Guest with Bloomberg Business News Live (`QB5BNdBFujE`).
+Native 1280x720/29.97 AVC playback rewound 3591.58 to 3472.61 seconds
+after a -120-second command and resumed frames. After stop and an 18.4-second
+playlist-window advance, reopen restored the saved UTC point within 2.61
+seconds and resumed frames. The candidate includes HLS fixes for timezone
+offsets, discontinuity metadata, AAC DTS with absent PTS, and wrap reference
+reset on seek (`e1d0806`, `2fdf356`, `964bb5c`). One launch, saved-state
+restoration, unchanged error records, idle/healthy services and ShadowMount
+release passed. Private evidence:
+`/home/denis/pt-console/public-dvr-bloomberg-964bb5c-30-run/result.json`.
+Long or high-resolution public live DVR and physically audible sound remain
+unverified.
+
 The detailed 4K fault chronology below is historical. The current source adds
 DVR read interruption and UTC restore, automatic frame-rate switching from
 actual VideoOut state, PQ/HLG/SDR selection, pending-start cancellation, strict
@@ -242,8 +257,8 @@ queue Move up/down actions have generated input, native persistence and four-loo
 board coverage. All still need console acceptance.
 
 Live DVR includes the production SDK extension and passed bounded .30
-synthetic split-HLS rewind/UTC restore; public live-feed and longer-window
-console validation remain pending.
+synthetic split-HLS and public Bloomberg 720p AVC/AAC rewind/UTC restore.
+Longer-window and high-resolution public console validation remain pending.
 
 ### Open decisions for the owner (do not decide them yourself)
 
