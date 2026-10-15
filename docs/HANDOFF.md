@@ -6,6 +6,13 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Phone connection and account-list follow-up (2026-10-15)
 
+Production `a9ba0c1` is installed on .30 for owner testing. The console was
+idle before install; all 185 stored files matched after 120 seconds, error
+records unchanged and still idle. No launch or Chiaki-ng was used. ZIP CRC,
+archive bytes and packaged helper checks passed. Source and milestone pushed.
+Eboot SHA-256: `493206c276904316238e90eff8bcc0acd9087062d498f83adbcc57cffc31459f`.
+ZIP SHA-256: `686e23dad3f49fc6c5400306c7ea8c817ae9581e743b540d6488a6e53d4db168`.
+
 The owner confirms `139f8c1` now displays a TV code and the phone lists the TV.
 The console still reports no linked phone; casting was not confirmed. Account
 approval shows the generic label, but returning to Switch profile omits the
