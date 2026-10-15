@@ -6,6 +6,18 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Final offline release audit (2026-10-15)
 
+The owner's `30aba46` Afterglow replay still visibly hitches. The complete
+1,484-row trace has no omissions, failed presents, source/buffer PTS mismatch
+or backward PTS transition. Smoothing is off and the scheduler is active at
+120 Hz. Six steady-state six-refresh intervals cluster at 24.75?27.74 seconds,
+with GPU completion about 0.65?1.09 ms late as UI cost rises. From 5 to 24.75
+seconds, presentation metadata follows expected four/five-refresh cadence.
+This does not explain continuous visible hitching; decoded pixel identity is
+still unmeasured. Native playback reported 677 published pictures, no late
+loss or decoder fatal. The console was idle and error records unchanged.
+Next investigation compares sampled decoded luma with the leased source at
+presentation; metadata cadence is not treated as visual acceptance.
+
 The opt-in all-present Afterglow trace is built and frozen from `30aba46`.
 Generated regression and independent review pass; it records repeated/UI
 presentations plus pacing and submitted-buffer PTS without playback-time file
