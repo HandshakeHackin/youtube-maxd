@@ -4,7 +4,7 @@ Compile tests/test_live_dvr.c against the exact candidate FFmpeg first. This
 runner performs only bounded loopback requests and generates its own media.
 """
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
@@ -67,10 +67,19 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
                     if key != 'master.m3u8':
                         offset = state['time'] + (state['audio_time'] if key == 'audio.m3u8' else 0)
                         track = key[:-5] if key in ('video.m3u8', 'audio.m3u8') else 'source'
-                        body += ''.join('#EXT-X-PROGRAM-DATE-TIME:' + datetime.fromtimestamp(1760000000 + i * 2 + offset, timezone.utc).isoformat().replace('+00:00', 'Z') + f'\n#EXTINF:2.000000,\n{track}{i}.ts\n' for i in range(start, start + 4))
+                        zones = {'offset-utc.m3u8': timezone.utc,
+                                 'offset-plus.m3u8': timezone(timedelta(hours=1)),
+                                 'offset-minus.m3u8': timezone(timedelta(hours=-5))}
+                        def pdt(i):
+                            stamp = datetime.fromtimestamp(1760000000 + i * 2 + offset, zones.get(key, timezone.utc)).replace(microsecond=8000 if key in zones else 0).isoformat()
+                            return stamp if key in zones else stamp.replace('+00:00', 'Z')
+                        body += ''.join('#EXT-X-PROGRAM-DATE-TIME:' + pdt(i) +
+                                        f'\n#EXTINF:2.000000,\n{track}{i}.ts\n' for i in range(start, start + 4))
                     if key == 'empty-selected.m3u8': body = body.replace('source2.ts', 'empty2.ts')
                     if key == 'transport-reset.m3u8': body = body.replace('source', 'reset')
                     if key == 'missing-time.m3u8': body = '\n'.join(line for line in body.splitlines() if not line.startswith('#EXT-X-PROGRAM-DATE-TIME:')) + '\n'
+                    if key == 'missing-zone.m3u8': body = body.replace('Z\n#EXTINF:', '\n#EXTINF:')
+                    if key == 'invalid-zone.m3u8': body = body.replace('Z\n#EXTINF:', '+25:00\n#EXTINF:')
                     if key == 'discontinuity.m3u8' or state['gap']: body = body.replace('#EXTINF:', '#EXT-X-DISCONTINUITY\n#EXTINF:', 1)
                     if key == 'gap.m3u8': body = body.replace('#EXTINF:', '#EXT-X-GAP\n#EXTINF:', 1)
                     if key == 'finite.m3u8': body += '#EXT-X-ENDLIST\n'
@@ -115,9 +124,14 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
             event = probe('event.m3u8', target)
             additional = {}
             if candidate:
-                for key in ('missing-time.m3u8', 'discontinuity.m3u8', 'gap.m3u8', 'variants.m3u8', 'empty-selected.m3u8'):
+                for key in ('missing-time.m3u8', 'missing-zone.m3u8', 'invalid-zone.m3u8',
+                            'discontinuity.m3u8', 'gap.m3u8', 'variants.m3u8', 'empty-selected.m3u8'):
                     value = probe(key, target)
                     assert (key == 'empty-selected.m3u8' and not value['opened']) or (value['unseekable'] and value['seek_result'] < 0), value
+                    additional[key] = value
+                for key in ('offset-utc.m3u8', 'offset-plus.m3u8', 'offset-minus.m3u8'):
+                    value = probe(key, target)
+                    assert not value['unseekable'] and value['seek_result'] >= 0 and abs(value['landed'] - origin) < .2, value
                     additional[key] = value
                 additional['active_rollover'] = probe('rolling.m3u8', target, mode='rollover')
                 state['start'] = 0

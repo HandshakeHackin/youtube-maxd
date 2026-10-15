@@ -19,7 +19,7 @@ def patch(source):
         ('        pls->finished = 0;\n', '        pls->finished = 0;\n        pls->dvr_bad = 0;\n'),
         ('        } else if (av_strstart(line, "#EXTINF:", &ptr)) {', '''        } else if (av_strstart(line, "#EXT-X-PROGRAM-DATE-TIME:", &ptr)) {
             int64_t parsed;
-            if (strlen(ptr) < 20 || strlen(ptr) > 32 || ptr[strlen(ptr) - 1] != 'Z' ||
+            if (!tube_dvr_pdt_has_timezone(ptr) ||
                 !strchr(ptr, 'T') || av_parse_time(&parsed, ptr, 0) < 0 ||
                 parsed < 946684800000000LL || parsed > 4102444800000000LL ||
                 (dvr_utc != AV_NOPTS_VALUE && parsed != dvr_utc)) {

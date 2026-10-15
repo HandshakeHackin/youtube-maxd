@@ -4,6 +4,20 @@ static AVRational get_timebase(struct playlist *p);
 static int parse_playlist(HLSContext *, const char *, struct playlist *, AVIOContext *);
 int av_hls_get_dvr_window(AVFormatContext *s, int64_t out[7]);
 
+/* av_parse_time accepts a missing zone as local time; DVR identity cannot. */
+static int tube_dvr_pdt_has_timezone(const char *text)
+{
+    size_t n = strlen(text);
+    if (n < 20 || n > 32) return 0;
+    if (text[n - 1] == 'Z') return 1;
+    if (n < 25 || (text[n - 6] != '+' && text[n - 6] != '-') ||
+        text[n - 3] != ':') return 0;
+    return text[n - 5] >= '0' && text[n - 5] <= '9' &&
+           text[n - 4] >= '0' && text[n - 4] <= '9' &&
+           text[n - 2] >= '0' && text[n - 2] <= '9' &&
+           text[n - 1] >= '0' && text[n - 1] <= '9';
+}
+
 static void tube_dvr_publish(HLSContext *c)
 {
     int64_t value[7] = {0};
