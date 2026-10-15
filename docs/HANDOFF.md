@@ -4,6 +4,39 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Latest 4K hitch investigation (2026-10-15)
+
+The owner requested offline analysis before another console test. Keep .30 as
+the only test console and build ZIPs only. Audio, TV HDR indication and stable
+playback-menu transitions have owner confirmation on `b8d57c0`; smooth 4K is
+still unaccepted.
+
+A verified audio-clock interpolation candidate (`90ed17f247d5bbd8` eboot prefix)
+still visibly hitched on native 3840x2160 VP9/24, despite 807 published frames
+and zero late drops in 34.8 seconds. Evidence:
+`/home/denis/pt-console/clock-smooth-production-verified-30/`.
+An earlier replay was inconclusive because installed bytes differed and its
+log was unchanged; the verified replay supersedes it.
+
+Offline review then found a specific delayed-output association bug:
+`decode_one` used the current input's VP9 show flag for a picture from an
+older input. Local decoder research establishes that hidden coded frames also
+produce outputs. The new `vp9_output_order_overlay.py` queues each coded
+input's PTS and display flag and consumes them together on decode and drain.
+`scripts/test_vp9_output_order.py` compiles the generated functions with a
+bounded delayed-output oracle. The old implementation fails picture identity
+(expected picture 9 / PTS 9000, got picture 10 / PTS 9000); the fix passes,
+including hidden/show-existing, drain, seek, errors and queue bounds. Existing
+native frame-lease tests also pass. This is an offline fix, not yet evidence
+that the TV hitch is gone. Validate the same clip after installing the newly
+built candidate; do not infer smoothness from counters alone.
+
+The proposed flip-timing probe was archived outside product source at
+`/home/denis/pt-console/offline-hitch-diagnostics/`. It measures CPU-observed
+retirement, not authenticated scanout time, and is not part of the release.
+The generated renderer already uses a locked frame/PTS/serial snapshot; the
+unpatched upstream shared-PTS race does not exist in the built application.
+
 ## Playback continuation on 2026-10-14
 
 A later 2026-10-15 public live DVR candidate (`964bb5c`, eboot SHA-256

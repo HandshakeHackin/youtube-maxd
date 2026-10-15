@@ -1,5 +1,30 @@
 # Current implementation status
 
+4K picture-order update, 2026-10-15: offline regression now reproduces a
+VP9 pipeline bug that timing counters missed. At decoder depth four, the old
+code filtered a returned picture using the current input's show flag, although
+that output belongs to an earlier coded frame. Hidden alternate-reference
+inputs could therefore suppress visible pictures and later expose hidden
+pictures with otherwise regular visible timestamps. The regression compiles
+the generated decode/drain code and checks picture identity as well as PTS;
+the old code returns picture 10 where picture 9 / PTS 9000 is required.
+The fix queues every successful VP9 coded input's PTS and display flag and
+consumes that metadata for every output, including hidden pictures and EOF
+drain. Seek clears the queue; ambiguous errors, overflow and incomplete drain
+fail explicitly. The new regression and existing frame-lease checks pass.
+AVC/HEVC association is unchanged. This fix has not been console-tested.
+
+The earlier audio-clock interpolation removed the 2048-sample stepping from
+video scheduling but did not resolve the owner's visible hitch by itself.
+The verified .30 production replay (eboot `90ed17f247d5bbd8`) ran native
+3840x2160 VP9/24 for 34.8 seconds, publishing 807 frames with zero late drops;
+the owner still saw hitches with audio in sync. Error records stayed unchanged.
+Counters establish throughput, not correct picture identity or smooth TV
+motion. Per-frame timing logging also perturbed an earlier diagnostic run;
+CPU-observed flip completion is not a hardware scanout timestamp. No display
+scheduling change is justified yet. The owner already confirmed audible audio,
+TV-reported HDR and playback-menu transitions without blackouts on `b8d57c0`.
+
 4K endurance update, 2026-10-15: the latest instrumented `964bb5c` candidate
 passed a 600-second direct-LAN 3840x2160/30 VP9/Opus watch on .30, with two
 -170-second rewinds landing within a second and three distinct nonblank 4K
