@@ -103,6 +103,17 @@ settling, then the title was idle, error records unchanged and the lock
 released. It was not launched or playback-tested as a production build; the
 separately signed USB-remote candidate above supplied the DVR evidence.
 
+The same instrumented `964bb5c` candidate later passed a 600-second direct-LAN
+4K VP9/Opus watch on .30 with two -170-second rewinds, three distinct nonblank
+4K captures, no stall or GPU fault signature, and unchanged error records.
+Teardown restored all ten saved-state files, including the owner's
+`afterglow.on`, then released the title and lock. Evidence:
+`/home/denis/pt-console/lan4k-964bb5c-30-run2/result.json`. A separate
+application acquired the .30 lock immediately afterwards, so the instrumented
+candidate remains installed there; the production ZIP and folder above remain
+verified locally but have not been launch-tested. Do not replace the installed
+title while that other application owns .30.
+
 ## Where things stand
 
 - `main` holds everything. The repository is **private**; it goes public only

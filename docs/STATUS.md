@@ -1,5 +1,14 @@
 # Current implementation status
 
+4K endurance update, 2026-10-15: the latest instrumented `964bb5c` candidate
+passed a 600-second direct-LAN 3840x2160/30 VP9/Opus watch on .30, with two
+-170-second rewinds landing within a second and three distinct nonblank 4K
+captures. No playback stall, GPU fault signature or new error record appeared.
+The title stopped, parked and closed cleanly; all ten saved-state files and the
+owner's Afterglow override were restored. This strengthens bounded 4K evidence
+but does not launch-test the ZIP-only production binary or identify the older
+GPU fault address owner. See [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+
 Public live DVR update, 2026-10-15: candidate `964bb5c` passed a bounded
 Guest playback of Bloomberg Business News Live (`QB5BNdBFujE`) on .30.
 Native AVC 1280x720/29.97 opened, a -120-second command rewound the live
