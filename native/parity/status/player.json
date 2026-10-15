@@ -61,16 +61,17 @@
     "tests/test_quality_limits.py, tests/test_codecs.c, tests/test_profile_settings.c",
     "native/tube_player_extra.c: tube_preset_count/at/label/find ('Disabled' plus resolution x 60/30 fps x AVC/VP9/AV1, SmartTube's table without its HDR rows)",
     "scripts/player_actions_overlay.py: 'Video presets' list in the in-player options (KindPresetList / KindPreset); tube_player_set_quality + tube_player_reload reopen the video at its position",
-    "tests/test_player_extra.c, tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)"
+    "tests/test_player_extra.c, tests/test_player_menu.c (scripts/test_player_menu.sh), tests/test_player_extra_overlay.cpp (scripts/test_player_extra_overlay.sh)",
+    "scripts/hdr_post_flip_overlay.py and scripts/test_hdr_post_flip.py; docs/HARDWARE_ACCEPTANCE.md: HDR output and owner TV indication"
    ],
    "gaps": [
-    "No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'",
+    "No dedicated HDR preset rows (vp9.2 / av01 HDR); automatic HDR format selection and output are implemented",
     "The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits",
     "No 4320p entries"
    ],
    "offline_feasible": true,
    "size": "M",
-   "notes": "HDR output itself needs console work; the combined preset list is offline-feasible."
+   "notes": "HDR output has synthetic PQ/HLG/SDR scanout evidence and owner-confirmed TV HDR indication. Combined HDR preset rows remain absent."
   },
   {
    "id": "PlayerSettingsPresenter.appendVideoZoomCategory",
@@ -474,15 +475,20 @@
   {
    "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory",
    "title": "Auto frame rate switches",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checkboxes: Auto frame rate; frame-rate correction (24->23.97, 30->29.97, 60->59.94); resolution switch; double refresh rate; skip 24 fps; skip Shorts",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "scripts/auto_frame_rate_overlay.py: PlaybackOnly default, actual VideoOut support, stable output across playback menus",
+    "EVO core/src/screens/SettingsScreen.cpp: 120 Hz output mode preference; core/src/Application.cpp: playback refresh selection and restore",
+    "docs/HARDWARE_ACCEPTANCE.md: first playback 60-to-120-to-60 Hz, active 30-to-25 fps change, owner-confirmed menu continuity"
+   ],
    "gaps": [
-    "No display refresh-rate switching to match video fps; 'settings:frame-rate' is only a stream fps limit"
+    "SmartTube-specific fps correction, resolution switching, skip-24-fps and skip-Shorts controls are not implemented",
+    "Only supported 59.94/119.88 Hz output modes are established; 25/50 fps cannot be matched exactly with those modes"
    ],
    "offline_feasible": false,
    "size": "L",
-   "notes": "Needs PS5 video-out mode changes (see owner's VRR findings); cannot be validated on a host."
+   "notes": "Core automatic output switching is implemented and bounded console-tested. Remaining entries describe full SmartTube control parity."
   },
   {
    "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory",
@@ -491,11 +497,11 @@
    "smarttube": "Radio: Never, 0.25..15 s step 0.25 pause after a mode switch",
    "ps5_evidence": [],
    "gaps": [
-    "Depends on auto frame rate, which is absent"
+    "No configurable pause duration after a display-mode switch"
    ],
-   "offline_feasible": false,
+   "offline_feasible": true,
    "size": "S",
-   "notes": ""
+   "notes": "Automatic refresh switching exists; the SmartTube pause preference remains absent."
   },
   {
    "id": "AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory",
@@ -547,10 +553,12 @@
     "tests/test_resume_timeline.cpp, tests/test_speed_memory.c, tests/test_sleep_timer.c, tests/test_history_actions.py, tests/test_catalog_progress.c",
     "native/tube_provider.c: 'Play incognito' (no local history, resume position or account report); tests/test_history_modes.c",
     "native/tube_player_extra.c: settings:remember-short-position, settings:player-volume, settings:remember-quality (tube_player_remember_height in native/tube_provider.c); tests/test_player_extra.c, tests/test_extra_provider.c, tests/test_player_menu.c",
-    "Built-in service: history reports sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('first report: tracking data, history entry, position', 'a later position sends one update', 'stop report')"
+    "Built-in service: history reports sent from the console with the signed-in profile's session (standalone/js/accounts.js and the bundled library modules); standalone/test/account_test.py ('first report: tracking data, history entry, position', 'a later position sends one update', 'stop report')",
+    "native/tube_live_runtime.c, scripts/live_dvr_overlay.py and scripts/test_live_dvr.sh: owner-bound live windows, rewind and UTC restore",
+    "docs/HARDWARE_ACCEPTANCE.md: public live rewind and restored position after playlist-window advance"
    ],
    "gaps": [
-    "Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline')",
+    "Live DVR rewind and UTC restore are implemented; a dedicated 'seek to actual live' action and speed reset at live edge remain absent",
     "No music-video no-resume rule",
     "No pitch restore (no pitch setting)",
     "No resume-state expiry",
@@ -558,7 +566,7 @@
    ],
    "offline_feasible": true,
    "size": "L",
-   "notes": "Live DVR is the large part and needs service and console work; the remaining rules are small. The local history record of a played video was saved: accepted on console 2026-10-13 (docs/HARDWARE_ACCEPTANCE.md)."
+   "notes": "The remaining gaps are playback-state rules beyond the implemented DVR and resume path. Local history and bounded public live restore have console evidence."
   },
   {
    "id": "behavior.PlayerUIController",
@@ -633,15 +641,20 @@
   {
    "id": "behavior.AutoFrameRateController",
    "title": "Auto frame rate behaviour",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Switches display refresh rate/resolution to match the video, optional fps correction, double rate, skip 24 fps and Shorts, pause during switch, restore on exit",
-   "ps5_evidence": [],
+   "ps5_evidence": [
+    "scripts/auto_frame_rate_overlay.py: PlaybackOnly default, actual VideoOut support, stable output across playback menus",
+    "EVO core/src/screens/SettingsScreen.cpp: 120 Hz output mode preference; core/src/Application.cpp: playback refresh selection and restore",
+    "docs/HARDWARE_ACCEPTANCE.md: first playback 60-to-120-to-60 Hz, active 30-to-25 fps change, owner-confirmed menu continuity"
+   ],
    "gaps": [
-    "No display mode switching by video frame rate"
+    "SmartTube-specific fps correction, resolution switching, skip-24-fps and skip-Shorts controls are not implemented",
+    "Only supported 59.94/119.88 Hz output modes are established; 25/50 fps cannot be matched exactly with those modes"
    ],
    "offline_feasible": false,
    "size": "L",
-   "notes": "Third-party EVO has video-out code (media/src/evo_agc_runtime.c) but ProsperoTube adds no fps-matching."
+   "notes": "Core automatic output switching is implemented and bounded console-tested. Remaining entries describe full SmartTube control parity."
   },
   {
    "id": "behavior.SuggestionsController",
@@ -727,17 +740,19 @@
   {
    "id": "extra.Misc.RememberLivePosition",
    "title": "Remember live stream position",
-   "status": "missing",
+   "status": "partial",
    "smarttube": "Checkbox: restore the position inside a live stream's DVR window",
    "ps5_evidence": [
-    "scripts/playback_recovery_overlay.py: 'g_start_resume = src.is_live ? 0.0'"
+    "native/tube_live_runtime.c: calibrated DVR window and UTC position persistence/restore",
+    "scripts/live_dvr_overlay.py: live seek range, rewind and resumed position through PlaybackController",
+    "scripts/test_live_dvr.sh; docs/HARDWARE_ACCEPTANCE.md: synthetic sliding-window restore and public Bloomberg rewind/UTC restore"
    ],
    "gaps": [
-    "Live always starts at the live point; no DVR seek"
+    "Restore is automatic for a valid saved point; no separate remember-live-position checkbox"
    ],
-   "offline_feasible": false,
-   "size": "L",
-   "notes": "Depends on live DVR support."
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Long and high-resolution public live DVR remain hardware acceptance gaps."
   },
   {
    "id": "extra.Misc.RememberShortVideoPosition",
@@ -1230,11 +1245,11 @@
    "smarttube": "Click toggles AFR; long click opens AFR settings",
    "ps5_evidence": [],
    "gaps": [
-    "See behavior.AutoFrameRateController"
+    "No playback button with click-to-toggle and long-click-to-open refresh settings"
    ],
-   "offline_feasible": false,
-   "size": "L",
-   "notes": ""
+   "offline_feasible": true,
+   "size": "S",
+   "notes": "Refresh mode is available in Video & Display settings; automatic switching is implemented."
   },
   {
    "id": "extra.Button.PiP",

@@ -232,7 +232,7 @@ typing, About, and playback of several videos with seeking, through the ranged
 manifests described below.
 
 Further acceptance is still needed for real account use, phone casting, a
-published update, interface languages, AV1, backups, physical HDR indication,
+published update, interface languages, AV1, backups,
 audible Opus and longer public-network endurance. A direct-LAN 3840x2160 VP9/Opus
 stream played through the native PS5 decoder for 304 seconds to natural EOF
 with 9,416 published frames, five late drops, two successful 4K seeks and no
@@ -258,6 +258,12 @@ scanout captures on .40, and active 30-to-25 fps playback changed the actual
 output refresh from 120 to 60 Hz. Earlier live 4K candidates had GPU faults;
 their unmapped-read addresses remain unattributed. [Status](docs/STATUS.md)
 lists the evidence and limits.
+
+The owner confirmed audible video sound, TV-reported HDR and playback menus
+without output blackouts. A separate 4K/24 clip still visibly hitched after an
+audio-clock correction. Offline tests then reproduced delayed VP9 picture
+association, split-packet queue overflow and equal-timestamp ordering defects;
+the corrected candidate is built, but visual replay remains pending.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player, and
@@ -301,9 +307,10 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] Validate long public live VP9/Opus and 4K playback. Bounded direct-LAN
       4K/30 and two public-network 4K/25 VOD sessions with a -60-second seek
       passed on PS5; longer public live playback, varied CDN conditions and
-      audible Opus remain unverified.
+      audible Opus remain unverified. A separate 4K/24 picture hitch remains an
+      acceptance blocker; the corrected VP9 candidate awaits visual replay.
 - [x] HDR selection and output for PQ, HLG and SDR (synthetic PS5 scanouts and
-      format readback passed; TV-reported HDMI HDR indication remains unverified).
+      format readback passed; the owner confirmed TV-reported HDR on an HDR video).
 - [x] Rewind and remember live position, including a sliding DVR window
       (synthetic split-HLS and one public Bloomberg 720p30 AVC/AAC .30 run
       passed; longer and high-resolution live DVR remain unverified).

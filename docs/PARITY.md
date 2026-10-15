@@ -7,11 +7,11 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Area | Done | Partial | Missing | Not applicable | Total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Player and playback | 41 | 24 | 8 | 5 | 78 |
+| Player and playback | 41 | 27 | 5 | 5 | 78 |
 | Browsing, search and menus | 63 | 15 | 1 | 1 | 80 |
 | Accounts, remote control and integrations | 20 | 7 | 1 | 1 | 29 |
 | General, interface and maintenance | 26 | 16 | 10 | 6 | 58 |
-| **All** | **150** | **62** | **20** | **13** | **245** |
+| **All** | **150** | **65** | **17** | **13** | **245** |
 
 ## Player and playback
 
@@ -20,7 +20,7 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
 | Video buffer size (`PlayerSettingsPresenter.appendVideoBufferCategory`) | High and Highest keep no back buffer: SmartTube also retains 50 s behind the position, so a short rewind needs no request; here a seek back reads again; A change applies from the next video; SmartTube restarts the player engine when the choice changes; Without the packet ring (direct memory refused at open) High and Highest stay at the player's ten seconds: the flexible pool's ceilings hold no more | yes | S |
-| Video presets (resolution/fps/codec) (`PlayerSettingsPresenter.appendVideoPresetsCategory`) | No HDR presets (vp9.2 / av01 hdr); settings text says 'HDR remains deferred'; The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits; No 4320p entries | yes | M |
+| Video presets (resolution/fps/codec) (`PlayerSettingsPresenter.appendVideoPresetsCategory`) | No dedicated HDR preset rows (vp9.2 / av01 HDR); automatic HDR format selection and output are implemented; The combined preset list is offered in the in-player options only; YouTube preferences keep three separate limits; No 4320p entries | yes | M |
 | Audio delay (shift) (`PlayerSettingsPresenter.appendAudioDelayCategory`) | Fixed list of 29 values in the picker instead of free numeric entry; Negative delay is unverified in the PS5 audio engine | yes | M |
 | Preview while seeking (`PlayerSettingsPresenter.appendSeekingPreviewCategory`) | Drawn by the kit player controls only; the RmlUi fallback HUD shows no tiles; Never run on a console: the sheet fetch, the decode and the texture upload are host-tested only | yes | M |
 | Video speed dialog (`PlayerSettingsPresenter.appendVideoSpeedCategory`) | Speeds below 0.25x are rejected by the tempo stage; Speed change reopens the stream instead of a live rate change | yes | S |
@@ -28,12 +28,15 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 | Player misc switches (28) (`PlayerSettingsPresenter.appendMiscCategory`) | background play while searching or browsing a channel missing; comments placement missing (comments are not shown in the player); horizontally scrolled suggestions and 'don't resize video to fit dialog' have no equivalent (suggestions are a list in the options picker); remember live stream position missing (live always resumes at the live point); show UI on next video switch missing; UI animations switch missing; likes/dislikes count is shown on Video details and Open description only (see extra.Misc.LikesCount); tooltips, long-press hint, real channel icon, row focus sync and old speed-button behaviour have no equivalent (no button rows) | yes | L |
 | Developer options (player tweaks) (`PlayerSettingsPresenter.appendDeveloperCategory`) | 'Disable network error fixing': settings:error-fixer turns off the decoder and long-buffering fixes only; the stream refresh after an input failure has no off switch; No high-bitrate/Premium 1080p or high-bitrate mp4a selection switch; No 'force legacy codecs (360p progressive)' switch; No 'disable buffer on streams' (live latency) switch; No alt presets (bandwidth cap) behaviour; No 'hide Settings section' switch; No IPv4 / Google DNS switch: the built-in service always connects over IPv4 (fixed) and uses the console's DNS | yes | M |
 | Remember subtitles per channel (`extra.SubtitleRememberPerChannel`) | The switch is in YouTube preferences (Caption style, size and position) only, not in the in-player caption picker | yes | S |
+| Auto frame rate switches (`AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory`) | SmartTube-specific fps correction, resolution switching, skip-24-fps and skip-Shorts controls are not implemented; Only supported 59.94/119.88 Hz output modes are established; 25/50 fps cannot be matched exactly with those modes | no | L |
 | Video loading, next/previous, end-of-video handling (`behavior.VideoLoaderController`) | No preloading of the next video's formats; Next/previous are picker rows or the optional quick-skip D-pad mode; no 'next up' title in the HUD; No automatic aspect handling for vertical/Shorts video; No playlist restart-at-end handling for repeat of a whole list; Videos that need the account (age-restricted, private, members-only, purchased) do not play with the built-in service: every profile resolves as Guest and account_playback is off (standalone/js/account_playback.js) | yes | M |
-| Playback state: resume, history, speed, formats, live edge (`behavior.VideoStateController`) | Live streams: no DVR window, no 'seek to actual live', no remembered live position, no speed reset at the live edge (README: 'Live streams have no seekable timeline'); No music-video no-resume rule; No pitch restore (no pitch setting); No resume-state expiry; A quality chosen in the player is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted | yes | L |
+| Playback state: resume, history, speed, formats, live edge (`behavior.VideoStateController`) | Live DVR rewind and UTC restore are implemented; a dedicated 'seek to actual live' action and speed reset at live edge remain absent; No music-video no-resume rule; No pitch restore (no pitch setting); No resume-state expiry; A quality chosen in the player is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted | yes | L |
 | Player overlay UI and button actions (`behavior.PlayerUIController`) | No metadata-driven button states (liked, subscribed, in playlist) inside the player: the rows are the browser's video actions with fixed labels; No long-press secondary dialogs (the secondary settings are separate rows); Open channel, Search and the QR codes of Share link stop playback and leave for the browser | yes | L |
 | Advanced playback settings dialog (`behavior.HQDialogController`) | No audio language preference row in the dialog; The video buffer row applies from the next video (see PlayerSettingsPresenter.appendVideoBufferCategory); No pitch effect; A chosen video quality is kept only as the profile's maximum height (settings:remember-quality); a chosen audio format is not persisted; Single flat list instead of categories (long scroll: 55 zoom rows, 30 speeds, 21 sleep rows, 16 hide rows) | yes | M |
 | Automatic playback error fixing (`behavior.ErrorFixerController`) | No automatic caption disable when a caption load/parse fails during playback start (captions are switched off only as the first step for long buffering); An audio decoder or output failure gets a message but no fix (no other audio format can be requested); No handling of a stream that ended while watching (live ended -> reload as VOD); settings:error-fixer turns off the decoder and buffering fixes only; the stream refresh after an input failure has no off switch | yes | M |
+| Auto frame rate behaviour (`behavior.AutoFrameRateController`) | SmartTube-specific fps correction, resolution switching, skip-24-fps and skip-Shorts controls are not implemented; Only supported 59.94/119.88 Hz output modes are established; 25/50 fps cannot be matched exactly with those modes | no | L |
 | Suggestions, chapters and next-video selection (`behavior.SuggestionsController`) | Suggestions are a text list in the options picker (titles, no thumbnails), not rows under the controls; No chapter markers on the seek bar; No live title/description refresh; Like/dislike counts are on Video details and Open description only, not appended to the player's metadata | yes | L |
+| Remember live stream position (`extra.Misc.RememberLivePosition`) | Restore is automatic for a valid saved point; no separate remember-live-position checkbox | yes | S |
 | Likes/dislikes count (`extra.Misc.LikesCount`) | Counts are rows of Video details and Open description; the in-player Like / Dislike rows and the HUD do not show them; The like count has no switch of its own | yes | M |
 | Button: Subtitles (`extra.Button.Subtitles`) | No per-channel remember switch in the picker (YouTube preferences only); No separate human/auto-generated groups (flat list tagged '(automatic)' / '(translated)'); No recently-used ordering | yes | M |
 | Button: Advanced playback settings (`extra.Button.HighQuality`) | See behavior.HQDialogController | yes | M |
@@ -48,14 +51,11 @@ evidence; console acceptance is recorded separately in [hardware acceptance](HAR
 
 | Feature | Remaining | Offline | Size |
 | --- | --- | :---: | :---: |
-| Auto frame rate switches (`AutoFrameRateSettingsPresenter.appendAutoFrameRateCategory`) | No display refresh-rate switching to match video fps; 'settings:frame-rate' is only a stream fps limit | no | L |
-| Auto frame rate pause (`AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory`) | Depends on auto frame rate, which is absent | no | S |
+| Auto frame rate pause (`AutoFrameRateSettingsPresenter.appendAutoFrameRatePauseCategory`) | No configurable pause duration after a display-mode switch | yes | S |
 | Auto frame rate: supported display modes (`AutoFrameRateSettingsPresenter.appendAutoFrameRateModesCategory`) | No display-mode enumeration screen | no | S |
-| Auto frame rate behaviour (`behavior.AutoFrameRateController`) | No display mode switching by video frame rate | no | L |
-| Remember live stream position (`extra.Misc.RememberLivePosition`) | Live always starts at the live point; no DVR seek | no | L |
-| Keep playing while searching/browsing a channel (`extra.Misc.BackgroundPlayWhileSearching`) | Afterglow playback-options action keeps the same player audio running while browsing; L3 returns. Drained EOF pauses until return; no video PiP. Host-tested; console acceptance pending | partial | L |
+| Keep playing while searching/browsing a channel (`extra.Misc.BackgroundPlayWhileSearching`) | Leaving the player stops playback; no in-app mini player | no | L |
 | Tooltips, long-press hint, channel icon, row focus sync, UI animations, UI on next video, old speed button (`extra.Misc.UiChromeSwitches`) | None of the seven switches exists: 'show UI on next video' and 'UI animations' are not built; tooltips, the long-press hint, the real channel icon, row focus sync and the old speed-button behaviour tune button rows the PS5 player does not have (its actions are rows of the R2 options list) | yes | M |
-| Button: Auto frame rate (`extra.Button.AutoFrameRate`) | See behavior.AutoFrameRateController | no | L |
+| Button: Auto frame rate (`extra.Button.AutoFrameRate`) | No playback button with click-to-toggle and long-click-to-open refresh settings | yes | S |
 
 ### Done
 
