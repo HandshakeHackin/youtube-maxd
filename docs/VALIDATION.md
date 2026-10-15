@@ -3,6 +3,36 @@
 Current packaging uses the title ZIP only. Mentions of `.ffpfsc` below record
 earlier builds and are retained as historical evidence.
 
+## First-release audit and background EOF return ? 2026-10-15
+
+The full offline runner completed 102 steps: 83 passed and 19 failed. Failures
+exposed missing host dependencies and stale fixtures after earlier playback
+changes. Matching FFmpeg development headers and pinned Node 24.10.0 were
+restored; fixtures now exercise current seek, clock, ownership, drain and
+completion contracts. Of 17 corrected script reruns, 15 passed immediately;
+the remaining video-drain and seek-handoff checks passed after their clock
+and background ownership fixtures were corrected. Worker build and 200 tests
+passed. Python ran 825 tests with five optional skips; after restoring pinned
+Node, all six optional integration functions passed without skips. This is
+coverage across runs, not a claim of one clean full-suite invocation.
+
+Afterglow passed 647 boards in four looks, totaling 28,456 checks. Localization
+extraction/build checks pass; all 21 languages retain 99.66% text coverage,
+with seven new diagnostic messages using English fallback. Obsolete strings
+were removed; all Afterglow and plural-form coverage is retained.
+
+The audit also found a product bug: a natural EOF paused while browsing could
+remain paused when returning to the player. The existing background owner now
+tracks only the automatically issued EOF pause. Return consumes it for the
+matching active selection/profile; explicit pause, seek, scrub, stop and owner
+changes invalidate it. The flag is atomic because startup can cancel it from
+a worker. Generated player and SponsorBlock regressions, seek/pause checks,
+ASan/UBSan, and a threaded ThreadSanitizer regression pass. Independent review
+found no remaining blocker. Manual pauses are preserved.
+
+These host checks do not replace physical TV cadence/A/V acceptance, the
+recorded all-screen Afterglow acceptance gate, or a real signed catalog update.
+
 ## Native frame ownership and combined package — 2026-10-14
 
 The generated native frame-lease regression first reproduced a pool-wrap reuse

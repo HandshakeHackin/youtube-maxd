@@ -1,6 +1,7 @@
 /* Exact generated callback/launch worker and completion guard; engine/UI mocks. */
 #include "evo_provider.h"
 #include "tube_provider.h"
+#include "tube_background_play.h"
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -8,13 +9,27 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <cerrno>
 #include <pthread.h>
 #include <string>
 
-struct PlaybackSource { std::string url, title, provider, item_id; bool is_live=false; };
+static std::atomic<bool> start_cancelled{true};
+static int cancel_resets, live_captures;
+extern "C" void evo_stream_io_reset_start_cancel(void) { ++cancel_resets; start_cancelled=false; }
+extern "C" int tube_live_capture(const char *video, const char *url, tube_live_owner *owner) {
+    assert(start_cancelled && video && url && owner);
+    ++live_captures;
+    *owner={}; owner->token=17; owner->saved_utc=1760000000000000LL;
+    snprintf(owner->video,sizeof owner->video,"%s",video);
+    snprintf(owner->url,sizeof owner->url,"%s",url);
+    snprintf(owner->profile,sizeof owner->profile,"guest");
+    return 1;
+}
+struct PlaybackSource { std::string url, title, provider, item_id; bool is_live=false; tube_live_owner tube_live{}; };
 struct Playback {
     PlaybackSource opened; double position=0; bool answer=true; int stops=0;
     bool startPlaybackSource(const PlaybackSource& source, double resume) {
+        assert(!start_cancelled); // launch must reset a previous opening cancellation before the worker runs
         opened=source; position=resume; return answer;
     }
     void stopPlayback() { ++stops; }
@@ -67,7 +82,7 @@ extern "C" int tube_error_fix_choice(const evo_stream_choice_t*, int) { const in
 extern "C" int tube_recovery_active(void) { return active; }
 extern "C" void tube_recovery_finish(void) { ++finish_count; active=false; }
 extern "C" void tube_set_error(const char* text) { error=text; }
-static void chosen(const char*, const evo_stream_choice_t* choice) { ++chosen_count; chosen_url=choice->url; }
+static void chosen(const char*, const evo_stream_choice_t* choice) { assert(!tube_background_play_active()); ++chosen_count; chosen_url=choice->url; }
 static void evo_bt(const char*, ...) {}
 static void toast(const char*, const char*) {}
 static int evo_failure_reason(char*, size_t) { return 0; }
@@ -77,7 +92,13 @@ static void evo_rmlui_provider_set_status(const char*, int) {}
 static bool choice_is_hls(const evo_stream_choice_t& c) { return !strcmp(c.container,"hls"); }
 static void on_variants() {}
 template<class... A> static int evo_hls_variants_fetch(A...) { assert(false); return -1; }
+static bool fail_thread;
+static int fixture_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start)(void *), void *arg) {
+    return fail_thread ? EAGAIN : pthread_create(thread,attr,start,arg);
+}
+#define pthread_create fixture_pthread_create
 #include "recovery_handoff.inc"
+#undef pthread_create
 static void complete_worker() {
 #include "recovery_complete.inc"
 }
@@ -90,6 +111,8 @@ static void prepare() {
     g_pending.ask=1; g_pending.resume_sec=37;
     g_resolve_finished=false; g_tube_recovery_launch=true; active=true;
     g_start_done=false; g_start_success=false;
+    start_cancelled=true; cancel_resets=live_captures=0;
+    fail_thread=false; playback.answer=true; tube_background_play_clear();
 }
 static void join_worker() {
     assert(g_start_running); assert(!pthread_join(g_start_thread,nullptr));
@@ -103,11 +126,12 @@ int main() {
     snprintf(choices[1].headers,sizeof choices[1].headers,"X-Fixture: selected\r\n");
     prepare();
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)41);
-    assert(chosen_count==0 && !g_start_running); // late callback cannot launch
+    assert(chosen_count==0 && !g_start_running && start_cancelled && !cancel_resets && !live_captures); // late callback cannot launch
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
     assert(chosen_count==1 && chosen_url==choices[1].url && g_pending.choice_count==1 && !g_pending.ask);
     assert(playback.opened.url==choices[1].url && playback.opened.item_id=="abcdefghijk");
     assert(playback.position==37.625 && !playback.opened.is_live);
+    assert(cancel_resets==1 && !live_captures && !playback.opened.tube_live.token);
     assert(!strcmp(evo_stream_headers,choices[1].headers));
     complete_worker(); assert(g_start_success && !active && !g_tube_recovery_launch);
     assert(prospero_subtitle_delay_ms==450 && prospero_secondary_delay_ms==-300 && prospero_subtitle_time_scale==1.25);
@@ -115,6 +139,9 @@ int main() {
     prepare(); choices[1].is_live=1;
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
     assert(playback.opened.is_live && playback.position==0);
+    assert(cancel_resets==1 && live_captures==1 && playback.opened.tube_live.token==17);
+    assert(!strcmp(playback.opened.tube_live.video,"abcdefghijk") && !strcmp(playback.opened.tube_live.url,choices[1].url));
+    assert(!strcmp(playback.opened.tube_live.profile,"guest") && playback.opened.tube_live.saved_utc==1760000000000000LL);
     complete_worker();
     prepare(); match=-1;
     int before=chosen_count;
@@ -136,5 +163,23 @@ int main() {
     prepare(); playback.answer=false; prospero_subtitle_enabled=1;
     on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker(); complete_worker();
     assert(!g_start_success && !g_tube_recovery_launch && prospero_subtitle_enabled==1);
-    printf("PASS: exact generated recovery callback, pthread launch, fractional resume, live edge, captions and changed-context stop\n");
+    /* Background replacement clears ownership before selecting/opening the new item. */
+    prepare(); assert(tube_background_play_begin(8,"guest"));
+    on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
+    assert(!tube_background_play_active() && cancel_resets==1); complete_worker();
+    /* A failed launch must stop the retained background player, but must not
+       stop an unrelated foreground player when there was no background owner. */
+    for (int background=0; background<2; ++background) {
+        prepare(); if (background) assert(tube_background_play_begin(8,"guest"));
+        fail_thread=true; stops=playback.stops;
+        on_tube_resolved(1,choices,2,(void*)(uintptr_t)42);
+        assert(!g_start_running && g_resolve_finished && !g_tube_recovery_launch && !active);
+        assert(playback.stops==stops+background && !tube_background_play_active() && cancel_resets==1);
+    }
+    /* Provider ownership gates live capture even for a live resolved choice. */
+    prepare(); snprintf(g_pending.provider,sizeof g_pending.provider,"other"); choices[1].is_live=1;
+    on_tube_resolved(1,choices,2,(void*)(uintptr_t)42); join_worker();
+    assert(playback.opened.is_live && !live_captures && !playback.opened.tube_live.token && cancel_resets==1);
+    complete_worker();
+    printf("PASS: generated recovery callback/worker, resume, live ownership, start cancellation reset, background replacement/failure, captions and changed-context stop\n");
 }

@@ -25,6 +25,15 @@ PacketQueue video_packet_queue;
 static AVPacket *packets[1024];
 static unsigned packet_count, packet_read;
 static int audio_drained = 1, seeking;
+/* No AudioOut worker runs in this decoder/drain fixture. Supply a controlled
+ * smoothed reading separately from the raw block clock so the actual playback
+ * caller must consume the interpolation API, rather than its old raw global. */
+static int smooth_audio_valid, smooth_audio_reads;
+static double smooth_audio_seconds;
+double evo_audio_clock_smooth_seconds(void) {
+    ++smooth_audio_reads;
+    return smooth_audio_valid ? smooth_audio_seconds : audio_clock_seconds;
+}
 int pb_rebuffer_enabled = 1;
 static int64_t demux_last_vdts = AV_NOPTS_VALUE;
 static int demux_recover_tries;
@@ -198,9 +207,36 @@ static void run(const char *path) {
     first_video_pts_seconds = -1; video_clock_seconds = 0; g_first_frame_bc_done = 0;
 }
 
+static void audio_master_contract(void) {
+    assert(evo_audio_master_media_us(NULL) == -1);
+    audio_stream_index = 0; audio_handle = 1; audio_drained = 0;
+    first_video_pts_seconds = 2.0;
+    audio_clock_seconds = 1.0;
+    smooth_audio_seconds = 1.025; smooth_audio_valid = 1;
+    int reads = smooth_audio_reads;
+    assert(llabs(evo_audio_master_media_us(NULL) - 3025000) <= 1);
+    assert(smooth_audio_reads == reads + 1);
+    smooth_audio_seconds = 1.040;
+    assert(llabs(evo_audio_master_media_us(NULL) - 3040000) <= 1);
+    assert(audio_clock_seconds == 1.0); /* Smoothed advancement is independent. */
+    smooth_audio_valid = 0; /* A held/uninitialized output returns its raw clock. */
+    assert(evo_audio_master_media_us(NULL) == 3000000);
+
+    reads = smooth_audio_reads;
+    audio_drained = 1; assert(evo_audio_master_media_us(NULL) == -1); audio_drained = 0;
+    audio_stream_index = -1; assert(evo_audio_master_media_us(NULL) == -1); audio_stream_index = 0;
+    audio_handle = -1; assert(evo_audio_master_media_us(NULL) == -1); audio_handle = 1;
+    audio_clock_seconds = 0.01; assert(evo_audio_master_media_us(NULL) == -1); audio_clock_seconds = 1;
+    first_video_pts_seconds = -1; assert(evo_audio_master_media_us(NULL) == -1);
+    assert(smooth_audio_reads == reads); /* Inactive clocks are never sampled. */
+    audio_stream_index = audio_handle = -1; audio_drained = 1; audio_clock_seconds = 0;
+    smooth_audio_seconds = 0; smooth_audio_reads = 0;
+}
+
 int main(int argc, char **argv) {
     assert(argc == 3);
+    audio_master_contract();
     run(argv[1]); run(argv[2]);
-    puts("PASS: actual AVC/VP9 decode loop, explicit EOF, final-frame retirement, unknown duration and stale seek/reopen tokens");
+    puts("PASS: actual AVC/VP9 decode loop, smoothed audio-master contract, explicit EOF, final-frame retirement, unknown duration and stale seek/reopen tokens");
     return 0;
 }

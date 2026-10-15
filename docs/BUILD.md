@@ -205,6 +205,19 @@ anything failed. It honours `PROSPEROTUBE_NATIVE_WORK` and `PT_PY` (the pytest
 interpreter, default `.venv/bin/python`), needs no root, and fetches the pinned
 RmlUi on first use. Arguments select steps by name, e.g. `test_all.sh seek`.
 
+For the complete release pass, put the pinned Node 24.10.0 runtime on `PATH`,
+use the Python environment installed from `companion/requirements.lock`, and
+install the host FFmpeg development headers (`libavformat`, `libavcodec`,
+`libavutil`, `libavfilter`, `libswscale`, `libswresample`) matching its libraries.
+The DVR checks additionally need `PROSPEROTUBE_DVR_FFMPEG_SOURCE` pointing to an
+isolated configured FFmpeg 7.1.1 tree with the current DVR patch and static
+archives, plus `PROSPEROTUBE_DVR_CANDIDATE=1`; see [live DVR](LIVE_DVR.md).
+Set `PROSPEROTUBE_DASH_SOURCE` to the pristine FFmpeg 7.1.1 `dashdec.c` for
+the standalone DASH patch regression (its explicit file argument also works).
+The two DVR pytest checks explicitly skip without that configured source, so a
+release pass must provide it. Keep logs from the first pass before using the
+filtered runner: it replaces `build/test-logs/` on each invocation.
+
 `bash scripts/test_device_auth_native.sh` exercises the shipping native sign-in
 state machine with sanitizers, a deterministic clock and queued HTTP responses.
 It checks initiation, poll intervals/single-flight, cancellation, late original-

@@ -18,6 +18,13 @@ static long long now_ms() { return 1000; }
 static double resume_base_offset_seconds = 11.5;
 static int g_pp_pb, begins, resumes, request_calls;
 static bool hold, complete_before_return;
+static bool background_pause_owned;
+static int background_pause_ends;
+static void tube_background_play_end_pause(int resume) {
+    assert(resume == 0); // Seek takes ownership; do not resume as a side effect.
+    ++background_pause_ends;
+    background_pause_owned = false;
+}
 static bool live_bound, live_admit=true;
 static int tube_live_context_matches(void*) {return live_bound;}
 static int tube_live_seek_admit(void*,double target) {return !live_bound || (live_admit && target>=30 && target<120);}
@@ -32,6 +39,7 @@ static void tube_completion_seek_started(double) { ++completion_seeks; }
 #undef prospero_request_inplace_seek
 
 static int prospero_request_inplace_seek(double target, int paused) {
+    assert(!background_pause_owned && background_pause_ends == 1);
     ++request_calls;
     int accepted = shipping_request(target, paused);
     if (accepted && complete_before_return) {
@@ -60,6 +68,7 @@ static void reset() {
     controls_last_used_ms = 777;
     resume_base_offset_seconds = 11.5; begins = resumes = request_calls = 0;
     hold = complete_before_return = false;
+    background_pause_owned = true; background_pause_ends = 0;
     completion_seeks=0;live_bound=false;live_admit=true;
 }
 
@@ -69,6 +78,7 @@ int main() {
     ui.seekTo(45.25);
     assert(request_calls == 1 && !prospero_seek_pending && resumes == 1);
     assert(!completion_seeks);
+    assert(background_pause_ends == 1 && !background_pause_owned);
     assert(resume_base_offset_seconds == 11.5 && ui.m_resumeBaseOffset == 11.5 && !hold && begins == 0);
 
     reset(); ui.seekTo(45.25);
@@ -91,6 +101,7 @@ int main() {
     for (double target : {-1.0, std::numeric_limits<double>::quiet_NaN(),
                           std::numeric_limits<double>::infinity(), 1e300}) {
         reset(); ui.seekTo(target);
+        assert(background_pause_ends == 1 && !background_pause_owned);
         assert(request_calls == 0 && !player_paused && !prospero_seek_pending && begins == 0);
         assert(resume_base_offset_seconds == 11.5);
     }
@@ -99,7 +110,14 @@ int main() {
         reset(); assert(!shipping_request(target, 0));
         assert(!player_paused && !prospero_seek_pending && controls_last_used_ms == 777);
     }
+    reset(); play_fmt = nullptr;
+    assert(!ui.seekTo(45.25, true));
+    assert(background_pause_ends == 1 && !background_pause_owned && resumes == 0);
+    reset(); assert(ui.seekTo(45.25, true));
+    assert(background_pause_ends == 1 && !background_pause_owned && resumes == 0);
+    assert(prospero_seek_restore_paused == 1);
     reset(); ui.active = false; ui.seekTo(20);
     assert(!request_calls && !prospero_seek_pending);
+    assert(background_pause_ends == 1 && !background_pause_owned);
     return 0;
 }

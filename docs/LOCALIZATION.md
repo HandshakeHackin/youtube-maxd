@@ -25,6 +25,18 @@ through `tr_n` after their number is known. Service counts expressed as words,
 abbreviations, signed values or values outside `long` remain byte-for-byte as
 received. A paginated channel list keeps `+` after its displayed number.
 
+The current catalogs cover 2,056 of 2,063 sources (99.66%), including all 430
+Afterglow texts and their plural forms. Seven newer diagnostics use the normal
+English fallback in every catalog:
+
+- `LOCAL DATA`
+- `Could not save local changes; they may be lost when the app closes. Check free space and access to the data folder.`
+- `STREAM FAIL`
+- `Timed out seeking this stream`
+- `EVO vdec native: VP9 drain ended with pending coded frames`
+- `EVO vdec native: VP9 output lost coded-frame association`
+- `EVO vdec native: VP9 pending coded-frame queue full`
+
 Afterglow uses `tube_i18n_translate` through its platform text hook and draws
 with its dynamic font engine. It can use these translations independently of
 the old player's baked-atlas restriction below. Content such as video titles,

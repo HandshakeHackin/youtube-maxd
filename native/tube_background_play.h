@@ -10,6 +10,9 @@ int tube_background_play_active(void);
 int tube_background_play_take_browser_resume(void);
 int tube_background_play_matches(unsigned selection,const char *profile);
 void tube_background_play_clear(void);
+/* Only a pause issued by hidden EOF may be released automatically on return. */
+void tube_background_play_end_pause(int paused);
+int tube_background_play_take_end_pause(void);
 void tube_background_play_status(const char *title,int paused);
 const char *tube_background_play_title(void);
 int tube_background_play_paused(void);

@@ -76,11 +76,26 @@ int main(void) {
     return 0;
 }
 """
-ffmpeg = Path(os.environ['PROSPEROTUBE_DVR_FFMPEG_SOURCE'])
-with tempfile.TemporaryDirectory(prefix='tube-dvr-anchor-') as directory:
-    test = Path(directory) / 'test.c'; binary = Path(directory) / 'test'
-    test.write_text(scaffold + helper + observe + wrap + checks)
-    subprocess.run(['cc', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
-                    '-I'+str(ffmpeg), str(test), str(ffmpeg/'libavutil/libavutil.a'), '-lm', '-pthread', '-o', str(binary)], check=True)
-    subprocess.run([str(binary)], check=True, timeout=5)
-print('PASS: initial DVR calibration refuses advanced/expired segment identity and invalid packet timestamps')
+def check_anchor(ffmpeg):
+    with tempfile.TemporaryDirectory(prefix='tube-dvr-anchor-') as directory:
+        test = Path(directory) / 'test.c'; binary = Path(directory) / 'test'
+        test.write_text(scaffold + helper + observe + wrap + checks)
+        subprocess.run(['cc', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
+                        '-I'+str(ffmpeg), str(test), str(ffmpeg/'libavutil/libavutil.a'), '-lm', '-pthread', '-o', str(binary)], check=True)
+        subprocess.run([str(binary)], check=True, timeout=5)
+    print('PASS: initial DVR calibration refuses advanced/expired segment identity and invalid packet timestamps')
+
+
+def test_hls_dvr_anchor():
+    source = os.environ.get('PROSPEROTUBE_DVR_FFMPEG_SOURCE')
+    if not source:
+        import pytest
+        pytest.skip('Set PROSPEROTUBE_DVR_FFMPEG_SOURCE for the configured FFmpeg DVR check')
+    check_anchor(Path(source))
+
+
+if __name__ == '__main__':
+    source = os.environ.get('PROSPEROTUBE_DVR_FFMPEG_SOURCE')
+    if not source:
+        raise SystemExit('Set PROSPEROTUBE_DVR_FFMPEG_SOURCE to a configured FFmpeg 7.1.1 build')
+    check_anchor(Path(source))

@@ -31,6 +31,8 @@ static pthread_t audio_decode_thread;
 static pthread_mutex_t prospero_seek_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pp_playback g_pp_pb;
 static int refuse_seek, seek_calls, flush_calls;
+static int smooth_reset_calls, drain_reset_calls, smooth_clock_valid;
+static int smooth_before_process, drain_before_process, flush_before_process;
 static int live_bound, live_prepare_ok=1;
 static int tube_live_context_matches(AVFormatContext *f) {(void)f;return live_bound;}
 static int tube_live_seek_admit(AVFormatContext *f,double target) {(void)f;(void)target;return 1;}
@@ -49,7 +51,28 @@ static void packet_queue_clear(int *queue) { (void)queue; }
 static void evo_vdec_flush(void *decoder) { (void)decoder; ++flush_calls; }
 static void evo_adec_flush(void *decoder) { (void)decoder; }
 static int evo_audio_decode_is_parked(void) { return audio_parked; }
-static void evo_audio_drain_reset(void) {}
+static void evo_audio_drain_reset(void) {
+    assert(prospero_seek_in_progress && video_decode_hold && player_paused);
+    ++drain_reset_calls;
+}
+static void evo_audio_clock_smooth_reset(void) {
+    /* The real helper invalidates its interpolator and resets these two public
+     * counters. Verify the demux calls it after drain/decoder reset while the
+     * seek still owns the parked workers, never after their release. */
+    assert(prospero_seek_in_progress && video_decode_hold && player_paused);
+    assert(!video_thread_running || video_decode_parked);
+    assert(!audio_decode_thread_running || audio_parked);
+    assert(flush_calls == flush_before_process + 1);
+    assert(drain_reset_calls == drain_before_process + 1);
+    assert(smooth_reset_calls == smooth_before_process);
+    assert(resume_base_offset_seconds == prospero_seek_target_seconds);
+    assert(audio_seek_discard_until ==
+        (audio_stream_index >= 0 ? prospero_seek_target_seconds : -1.0));
+    ++smooth_reset_calls;
+    smooth_clock_valid = 0;
+    audio_samples_played = 0;
+    audio_clock_seconds = 0.0;
+}
 static void evo_pb_reset_video_drain(void) {}
 static void evo_demux_reset_eof(void) {}
 static void prospero_audio_resampler_reset(void) {}
@@ -64,10 +87,25 @@ static int seek(AVFormatContext *format, int stream, int64_t timestamp, int flag
 #include "seek_process.inc"
 #undef av_seek_frame
 static int process_seek_checked(void) {
+    smooth_before_process = smooth_reset_calls;
+    drain_before_process = drain_reset_calls;
+    flush_before_process = flush_calls;
+    smooth_clock_valid = 1;
+    audio_samples_played = 123456;
+    audio_clock_seconds = 2.572;
     check_busy_clock = 1;
     int result = prospero_process_seek_request();
     check_busy_clock = 0;
     assert(!prospero_seek_in_progress);
+    if (result) {
+        assert(smooth_reset_calls == smooth_before_process + 1);
+        assert(!smooth_clock_valid && audio_samples_played == 0 && audio_clock_seconds == 0.0);
+    } else {
+        /* Refused seek, invalid timeline and busy-worker rejection must retain
+         * the prior clock; no successful timeline change occurred. */
+        assert(smooth_reset_calls == smooth_before_process);
+        assert(smooth_clock_valid && audio_samples_played == 123456 && audio_clock_seconds == 2.572);
+    }
     return result;
 }
 
@@ -156,5 +194,5 @@ static void video_hold(const char *path) {
 }
 int main(int argc, char **argv) {
     assert(argc == 4); audio_only(argv[1]); audio_only(argv[2]); video_hold(argv[3]);
-    puts("PASS: shipping demux seeks, audio-only hold release, sub-50ms/zero gates, nonzero origins, real pp video discard and failed-seek clock retention");
+    puts("PASS: shipping demux seeks, audio-only hold release, sub-50ms/zero gates, nonzero origins, real pp video discard, ordered smooth-clock reset and failed-seek clock retention");
 }

@@ -2130,6 +2130,12 @@
    ]
   },
   {
+   "source": "Could not save local changes; they may be lost when the app closes. Check free space and access to the data folder.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Couldn't load this language",
    "context": [
     "toast"
@@ -2695,6 +2701,24 @@
    "source": "Dutch",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "EVO vdec native: VP9 drain ended with pending coded frames",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "EVO vdec native: VP9 output lost coded-frame association",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "EVO vdec native: VP9 pending coded-frame queue full",
+   "context": [
+    "kit"
    ]
   },
   {
@@ -4170,6 +4194,12 @@
    ]
   },
   {
+   "source": "LOCAL DATA",
+   "context": [
+    "toast"
+   ]
+  },
+  {
    "source": "Language",
    "context": [
     "afterglow"
@@ -4507,7 +4537,7 @@
   {
    "source": "Local data could not be loaded. The existing file has not been overwritten.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -4520,12 +4550,6 @@
    "source": "Local history, resume positions and reports for the selected account",
    "context": [
     "browser"
-   ]
-  },
-  {
-   "source": "Local library could not be saved. Check the ProsperoTube data directory.",
-   "context": [
-    "status"
    ]
   },
   {
@@ -7594,12 +7618,6 @@
    ]
   },
   {
-   "source": "SDR tracks; AV1 uses software decoding. HDR remains deferred",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "SEARCH",
    "context": [
     "toast"
@@ -7637,6 +7655,12 @@
   },
   {
    "source": "STREAM",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "STREAM FAIL",
    "context": [
     "toast"
    ]
@@ -10645,6 +10669,12 @@
    "source": "Time remaining",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Timed out seeking this stream",
+   "context": [
+    "toast"
    ]
   },
   {

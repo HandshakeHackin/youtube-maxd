@@ -5,19 +5,21 @@
 #include <cstdio>
 #include <initializer_list>
 
+static void tube_background_play_end_pause(int paused);
 struct Playback {
     double position = 80, duration = 100, sought = -1;
     bool paused = false, scrubbing = false, live = false, seek_accepts = true;
-    int stops = 0, seeks = 0;
+    int stops = 0, seeks = 0, pause_changes = 0;
     double getPositionSeconds() { return position; }
     double getDurationSeconds() { return duration; }
     bool isPaused() { return paused; }
     bool isScrubbing() { return scrubbing; }
     bool isLiveSource() { return live; }
-    void setPaused(bool value) { paused=value; }
-    void stopPlayback() { ++stops; }
+    void setPaused(bool value) { tube_background_play_end_pause(0); paused=value; ++pause_changes; }
+    void stopPlayback() { tube_background_play_end_pause(0); ++stops; }
     void seekTo(double target) { sought = target; ++seeks; }
     bool seekTo(double target, bool keepPaused) {
+        tube_background_play_end_pause(0);
         if (!seek_accepts) return false;
         paused = keepPaused; seekTo(target); return true;
     }
@@ -32,7 +34,10 @@ static bool complete, seeking, pb_prebuffer_hold, engine_paused;
 static struct { bool seek_discarding; } g_pp_pb;
 static int skip_calls, confirm_calls, finish_calls, notices, highlight_calls, highlight_failures, idle_retries;
 static bool finish_allowed, show_message, accepted;
-static bool phone_finished, phone_owns, local_finished;
+static bool phone_finished, phone_owns, local_finished, background_play, background_end_pause;
+static void tube_background_play_end_pause(int paused) { background_end_pause=background_play && paused; }
+static int tube_background_play_take_end_pause() { bool resume=background_play && background_end_pause;background_end_pause=false;return resume; }
+static int tube_background_play_active() { return background_play; }
 static int local_finish_calls, phone_finish_calls;
 static bool sponsor_completed;
 static int tube_sponsor_completed() { return sponsor_completed; }
@@ -71,7 +76,8 @@ static void tube_playlist_eof_cancel() { manual_pending=false;playlist_wait=fals
 static const char* prompt;
 static bool m_showStatsForNerds;
 static void toast(const char*, const char*) { ++notices; }
-static int evo_pb_is_complete() { return complete; }
+// The shipping completion predicate suppresses drained EOF while paused.
+static int evo_pb_is_complete() { return complete && !engine_paused && !state.paused && !state.scrubbing && !seeking; }
 static int evo_pb_is_paused() { return engine_paused || state.paused; }
 static int evo_demux_is_seeking() { return seeking; }
 static int tube_phone_finished() { ++phone_finish_calls; return phone_finished; }
@@ -111,10 +117,39 @@ static void reset() {
     complete = seeking = pb_prebuffer_hold = g_pp_pb.seek_discarding = engine_paused = false;
     skip_calls = confirm_calls = finish_calls = notices = highlight_calls = highlight_failures = idle_retries = 0;
     finish_allowed = show_message = accepted = false;
-    phone_finished = phone_owns = local_finished = false; local_finish_calls = phone_finish_calls = 0;
+    phone_finished = phone_owns = local_finished = background_play = background_end_pause = false; local_finish_calls = phone_finish_calls = 0;
     next_target = -1; prompt = nullptr; m_showStatsForNerds = false;
 }
+static void test_background_completion() {
+    for (bool sponsor : {false,true}) {
+        reset(); background_play=true; complete=!sponsor; sponsor_completed=sponsor;
+        local_finished=phone_finished=true; completion_action=TUBE_COMPLETION_REPEAT;
+        tick();
+        assert(state.paused && state.pause_changes==1 && !state.stops && !manager.returns);
+        assert(!phone_finish_calls && !local_finish_calls && !completion_taken && !skip_calls);
+        assert(completion_action==TUBE_COMPLETION_REPEAT);
+        tick(); assert(state.pause_changes==1 && !completion_taken); /* hidden EOF is idempotent */
+        assert(background_end_pause);
+        if (tube_background_play_take_end_pause()) state.setPaused(false);
+        background_play=local_finished=phone_finished=false; tick();
+        assert(completion_taken==1 && state.seeks==1 && state.sought==0 && !state.paused);
+    }
+    for (int gate=0;gate<4;++gate) {
+        reset(); background_play=complete=true;
+        state.scrubbing=gate==0; seeking=gate==1; g_pp_pb.seek_discarding=gate==2; pb_prebuffer_hold=gate==3;
+        tick(); assert(!state.paused && !state.stops && !manager.returns && !completion_taken);
+        state.scrubbing=seeking=g_pp_pb.seek_discarding=pb_prebuffer_hold=false;
+        tick(); assert(state.paused && !phone_finish_calls && !local_finish_calls);
+    }
+    reset(); background_play=true; next_target=90; tick();
+    assert(state.seeks==1 && state.sought==90 && skip_starts==1 && !manager.returns);
+    reset(); background_play=manual_pending=true; manual_status=1; tick();
+    assert(state.stops==1 && !manager.returns); /* finishing a pending transition never steals the browser */
+    reset();
+}
+
 int main() {
+    test_background_completion();
     reset(); afterglow=true;complete=local_finished=next_offer_wait=true;tick();assert(!state.stops && !manager.returns);
     next_offer_wait=false;tick();assert(state.stops==1 && manager.returns==1);
     reset();afterglow=undo_ready=sponsor_completed=local_finished=true;state.paused=true;

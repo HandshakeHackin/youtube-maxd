@@ -10,7 +10,14 @@ def apply(root,work,replace,player):
     replace(app,'        m_screenManager->update(frameDeltaMs);',r"""        // ProsperoTube background ownership: retire before updating another profile or owner.
         uint64_t tube_hidden_epoch=0,tube_hidden_serial=0;
         if (tube_background_play_active()) {
-            if (tube_phone_owns_media() || m_screenManager->getCurrentScreenId()==ScreenId::Player) tube_background_play_clear();
+            if (tube_phone_owns_media()) tube_background_play_clear();
+            else if (m_screenManager->getCurrentScreenId()==ScreenId::Player) {
+                if (tube_background_play_take_end_pause() && m_playbackController &&
+                    m_playbackController->isActive() &&
+                    tube_background_play_matches(tube_caption_selection(),tube_browse_profile()))
+                    m_playbackController->setPaused(false);
+                tube_background_play_clear();
+            }
             else if (m_softClose || !tube_afterglow_enabled() || !m_playbackController ||
                 !m_playbackController->isActive() ||
                 !tube_background_play_matches(tube_caption_selection(),tube_browse_profile())) {
@@ -41,9 +48,15 @@ def apply(root,work,replace,player):
     replace(screen,'#include "tube_provider.h"','#include "tube_provider.h"\n#include "tube_background_play.h"')
     # One EOF pause, before any watched/next-video state is consumed. Foreground flow remains unchanged.
     replace(screen,'    if (!tube_phone_owns_media()) tube_completion_playback_state(ended,completionBusy);',r"""    // ProsperoTube background completion: no invisible offers or automatic navigation.
-    if (tube_background_play_active() && ended && !completionBusy) {
-        if (!playback->isPaused()) playback->setPaused(true);
-        return;
+    if (tube_background_play_active()) {
+        if (completionBusy || !playback->isPaused()) tube_background_play_end_pause(0);
+        if (ended && !completionBusy) {
+            if (!playback->isPaused()) {
+                playback->setPaused(true);
+                tube_background_play_end_pause(1);
+            }
+            return;
+        }
     }
     // End ProsperoTube background completion.
     if (!tube_phone_owns_media()) tube_completion_playback_state(ended,completionBusy);""")
@@ -80,8 +93,13 @@ def apply(root,work,replace,player):
     replace(host,'    if (!m_streamPick && tube_afterglow_shown()) {',r"""    if (!m_streamPick && tube_afterglow_shown()) {
         // Voice recording/transcription and discovery/sign-in guards above keep their input ownership.
         if (tube_background_play_active() && pressed==PadButtons::L3 && !evo_keyboard_is_open() && tube_afterglow_background_return_allowed()) {
+            auto &app=Application::getInstance();
+            if (auto playback=app.getPlaybackController())
+                if (tube_background_play_take_end_pause() && playback->isActive() &&
+                    tube_background_play_matches(tube_caption_selection(),tube_browse_profile()))
+                    playback->setPaused(false);
             tube_background_play_clear();
-            if (auto sm=Application::getInstance().getScreenManager()) sm->navigateTo(ScreenId::Player);
+            if (auto sm=app.getScreenManager()) sm->navigateTo(ScreenId::Player);
             return true;
         }""")
     # Keep the old audio through resolution failures. Retire the background lease only at launch commit.
@@ -100,3 +118,12 @@ def apply(root,work,replace,player):
         'if (!tube_background_play_active() && tube_queue_recovery(playback->getPositionSeconds(), playback->isLiveSource(), prospero_subtitle_enabled))')
     replace(screen,'else if (tube_buffering_tick(&m_tubeBuffering, now,',
         'else if (!tube_background_play_active() && tube_buffering_tick(&m_tubeBuffering, now,')
+
+    # Explicit controls supersede our automatic EOF pause, including a repeated manual pause.
+    controller=player+'core/src/services/PlaybackController.cpp'
+    replace(controller,'#include "tube_provider.h"','#include "tube_provider.h"\n#include "tube_background_play.h"')
+    for signature in ('void PlaybackController::setPaused(bool paused)',
+                      'void PlaybackController::stopPlayback()',
+                      'void PlaybackController::beginScrub()',
+                      'bool PlaybackController::seekTo(double targetSeconds, bool keepPaused)'):
+        replace(controller,signature+' {',signature+' {\n    tube_background_play_end_pause(0);')

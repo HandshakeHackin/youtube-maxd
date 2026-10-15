@@ -618,37 +618,39 @@ authorization, private-account feeds, live cookie validity, account playback
 with TV signature challenges, and secondary-account or brand-channel mapping
 are unverified.
 
-## Remaining gates, in order
+## Remaining release gates
 
-1. **Live-service check of the built-in service on the host: done for Guest**
-   (2026-10-11, [validation](VALIDATION.md)). Account contracts wait for the
-   owner's sign-in on the console: sign-in itself, then each list, then one
-   change of each kind, then history reports.
-2. **Frozen candidate: built** from the standalone tree (release and
-   instrumented packages, hashes in the validation record).
-3. **One bounded console session on the core path: passed** (2026-10-13,
-   [hardware acceptance](HARDWARE_ACCEPTANCE.md)), under the shared-console
-   protocol (`tools/console/session.py`): startup, the service's start,
-   Discover, playback with seek, pause and options, Stop, history, clean park
-   and close. It was the first time the engine, the HTTPS client and direct
-   playback ran on a console. Its record names Discover and Stop where this
-   gate asked for search and the end of a video, and leaves open: sound and
-   motion by a person, VP9, AV1 and 4K, long sessions, sign-in.
-4. Fix what the session finds, then release.
-5. **Phone casting with a real phone**, after the core path holds: link with a
-   TV code, cast one video and one queue, control it, leave it idle for some
-   minutes, turn it off ([what to look at](REMOTE_SERVICE.md#built-in-receiver)).
+1. **Physical playback acceptance:** the owner confirmed audible sound,
+   TV-reported HDR and menu transitions without blackouts on the earlier build.
+   The final presentation scheduler has bounded timing, endurance, resume and
+   seek evidence above, but the owner still needs to judge smooth TV motion and
+   lip sync on the installed production candidate. Do not infer that result
+   from counters or the diagnostic build.
+2. **Afterglow acceptance:** all screen factories are implemented and bounded
+   console runs cover parts of the interface. The recorded all-screen console
+   acceptance decision has not been satisfied or explicitly waived. Classic
+   remains the default; screen calibration and physical sound checks remain.
+3. **Publication:** the owner decides repository visibility and the first
+   public release. A signed homebrew.page catalog entry must reference the
+   released ZIP before in-app updates can be offered. An unlisted catalog
+   result is expected before that entry exists; private GitHub API access is
+   not part of the update check. A complete update/relaunch still needs console
+   acceptance after publication.
 
-Before the first public release the repository has to be public, or the
-update check gets no answer ([updates](UPDATES.md)).
+Guest service and bounded core-path checks have passed, as have native VP9
+4K endurance, public live DVR rewind/restore, automatic refresh switching and
+HDR output checks recorded in [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+The frozen production ZIP and stored-byte installation are verified. Those
+results do not establish every codec, CDN condition, long live session or
+historical GPU fault's cause.
 
-Known limits that stay after the release: accounts unverified against the
-live service and no playback of videos that need the account; phone casting
-unverified with a real phone; no voice search; one YouTube client identity
-(`VISIONOS`) with no fallback but HLS; an English player and no language
-outside the Latin, Greek and Cyrillic scripts; and background playback without
-console acceptance. Automatic frame-rate switching and HDR have bounded console
-evidence above, while TV-reported HDMI mode is unverified.
+Experimental account use and phone casting still require an owner account or
+real phone. They are not required engineering for the Guest alpha; writing
+comments is also outside its required scope. Known limits include no playback
+of account-required videos, no voice search, one YouTube client identity
+(`VISIONOS`) with HLS fallback, an English player and unaccepted background
+playback on the console. See the scope and evidence above before promoting
+any experimental feature or changing Afterglow to the default.
 
 See [validation](VALIDATION.md), [hardware acceptance](HARDWARE_ACCEPTANCE.md),
 [parity](PARITY.md) and [goal](../GOAL.md).

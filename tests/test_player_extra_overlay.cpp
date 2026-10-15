@@ -312,9 +312,12 @@ static int evo_audio_has_failed() { return audioFailed; }
 static struct { int seek_discarding=0; } g_pp_pb;
 static int pb_prebuffer_hold;
 
+static bool afterglowPicker;
+static int tube_afterglow_picker_active() { return afterglowPicker; }
+
 enum OptionKind { KindAuto, KindVideo, KindAudio, KindSpeed, KindChat, KindSeekInterval, KindResize, KindZoom, KindAspect,
                   KindPixel, KindRotate, KindMirror, KindPlaybackMode, KindVideoNavigation, KindTubeAction, KindTubeMenuRow,
-                  KindTubeNotice, KindSearch, KindScreenOff, KindPresetList, KindPreset };
+                  KindTubeNotice, KindSearch, KindScreenOff, KindPresetList, KindPreset, KindAfterglowDetails, KindAfterglowStats };
 struct Options {
     struct Entry { OptionKind kind=KindAudio; int streamIndex=-1; std::string label, detail, badge; };
     Playback mock;
@@ -432,6 +435,28 @@ static void test_action_rows() {
     assert(filtered.find(KindVideoNavigation,-1)>0 && filtered.find(KindVideoNavigation,1)<0 && filtered.find(KindAuto)>0 && filtered.find(KindAudio)>0);
     assert(filtered.m_activeIndex==0);                         /* its row is gone */
     tube_player_extra_select(nullptr);
+}
+
+static void test_afterglow_detail_rows() {
+    tube_player_extra_select(nullptr); offerAll(); menu=Menu(); phoneOwns=false; afterglowPicker=false;
+    Options options; options.enter();
+    const auto classicCount=options.m_tracks.size();
+    assert(options.find(KindAfterglowDetails)<0 && options.find(KindAfterglowStats)<0);
+    afterglowPicker=true; options.refreshTracks();
+    assert(options.m_tracks.size()==classicCount+2);
+    const int details=options.find(KindAfterglowDetails), stats=options.find(KindAfterglowStats);
+    assert(details==static_cast<int>(classicCount) && stats==details+1);
+    assert(options.m_tracks[details].label=="Details" && options.m_tracks[stats].label=="Playback details");
+    options.refreshTracks();
+    assert(options.m_tracks.size()==classicCount+2); /* refreshing never duplicates shortcuts */
+    assert(tube_extra_set_buttons(0)); options.refreshTracks();
+    assert(options.find(KindAfterglowDetails)>=0 && options.find(KindAfterglowStats)>=0);
+    phoneOwns=true; options.refreshTracks();
+    assert(options.m_tracks.size()==3 && options.m_tracks[0].kind==KindPresetList);
+    assert(options.m_tracks[1].kind==KindAfterglowDetails && options.m_tracks[2].kind==KindAfterglowStats);
+    afterglowPicker=false; options.refreshTracks();
+    assert(options.m_tracks.size()==1 && options.m_tracks[0].kind==KindPresetList);
+    phoneOwns=false; tube_player_extra_select(nullptr);
 }
 
 static void test_action_lists() {
@@ -667,6 +692,7 @@ int main() {
     test_dpad();
     test_picker();
     test_action_rows();
+    test_afterglow_detail_rows();
     test_action_lists();
     test_presets_and_screen_off();
     test_chapter_notification();

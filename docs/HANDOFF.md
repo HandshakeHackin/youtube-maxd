@@ -4,6 +4,16 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Final offline release audit (2026-10-15)
+
+Background EOF return now resumes only its automatic pause; explicit controls
+cancel that state, including worker-side stop through an atomic flag. Generated
+regressions and sanitizer/thread checks pass. The release-wide host audit also
+repaired stale fixtures, restored pinned dependencies and refreshed localization.
+See [Validation](VALIDATION.md) for exact counts and limits. A new production
+ZIP is being prepared; the d26bfd0 artifact below remains the last installed
+candidate until its replacement is explicitly recorded.
+
 ## Latest 4K hitch investigation (2026-10-15)
 
 Candidate `d26bfd0` adds bounded presentation scheduling after GPU completion,
@@ -58,9 +68,7 @@ ZIP SHA-256:
 Local release artifact:
 `C:\Users\denis\Documents\PS5\output\ProsperoTube-alpha-d26bfd0\PPSA99142.zip`.
 The timing and endurance runs above used the matching diagnostic build;
-the final production binary was verified in place but not launched. The new
-host regression and documentation edits after `d26bfd0` do not change its
-production behavior. No public release or catalog entry was published.
+the final production binary was verified in place but not launched. Later background EOF and localization changes require a new production build. No public release or catalog entry was published.
 
 The bounded `de96f13` timing run on .30 completed one 32-second Guest replay
 of the same 4K/24 clip. All 790 traced pictures had consecutive serials and

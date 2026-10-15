@@ -10,6 +10,9 @@ start = source.index("static const char* tube_dev_path(")
 paths = source[start:source.index("#define CMD_PATH", start)]
 start = source.index("static void write_status(")
 body = source[start:source.index("\n}\n", start) + 3]
+header = (work / "projects/evoplayer/media/include/evo_playback.h").read_text()
+start = header.index("typedef struct evo_pb_completion_gates {")
+gates_type = header[start:header.index("} evo_pb_completion_gates;", start) + len("} evo_pb_completion_gates;")]
 scaffold = r'''
 #include <assert.h>
 #include <stdarg.h>
@@ -33,6 +36,20 @@ static int evo_pb_decode_fatal(void) { return 0; }
 static int evo_pb_is_eof(void) { return 1; }
 static int evo_pb_is_complete(void) { return 1; }
 static int evo_pb_is_active(void) { return 1; }
+static unsigned completion_mask;
+static void evo_pb_get_completion_gates(evo_pb_completion_gates *out) {
+    *out = (evo_pb_completion_gates){
+        .natural_eof = !!(completion_mask & 1),
+        .input_failed = !!(completion_mask & 2),
+        .audio_drained = !!(completion_mask & 4),
+        .video_decoded = !!(completion_mask & 8),
+        .display_retired = !!(completion_mask & 16),
+        .video_failed = !!(completion_mask & 32),
+        .paused = !!(completion_mask & 64),
+        .scrub = !!(completion_mask & 128),
+        .seeking = !!(completion_mask & 256),
+    };
+}
 static int fail_open, fail_write, fail_close, fail_rename;
 static const char *prior = "prior-complete-state\n";
 static void assert_prior(void) {
@@ -97,16 +114,23 @@ int main(int argc, char **argv) {
         assert(access(STATUS_TMP_PATH, F_OK) != 0);
     }
     for (int parked = 0; parked < 2; ++parked) {
-        seed(); write_status(1000000, parked);
-        char buffer[256] = {0};
-        FILE *file = fopen(STATUS_PATH, "r"); assert(file);
-        assert(fread(buffer, 1, sizeof buffer - 1, file) > 0 && !fclose(file));
-        char expected[256];
-        snprintf(expected, sizeof expected,
-            "build=test-build t=1000 scr=2 be=1 pos=12.25 dur=100.0 fps=60.0 "
-            "fatal=0 eof=1 complete=1 active=1 parked=%d\n", parked);
-        assert(!strcmp(buffer, expected));
-        assert(access(STATUS_TMP_PATH, F_OK) != 0);
+        // Exercise each independent gate so missing or swapped fields fail.
+        for (int gate = 0; gate <= 9; ++gate) {
+            completion_mask = gate ? 1u << (gate - 1) : 0;
+            seed(); write_status(1000000, parked);
+            char buffer[256] = {0};
+            FILE *file = fopen(STATUS_PATH, "r"); assert(file);
+            assert(fread(buffer, 1, sizeof buffer - 1, file) > 0 && !fclose(file));
+            char expected[256];
+            snprintf(expected, sizeof expected,
+                "build=test-build t=1000 scr=2 be=1 pos=12.25 dur=100.0 fps=60.0 "
+                "fatal=0 eof=1 complete=1 active=1 parked=%d "
+                "nat=%d ifail=%d aud=%d vdec=%d disp=%d vfail=%d pause=%d scrub=%d seek=%d\n",
+                parked, gate == 1, gate == 2, gate == 3, gate == 4,
+                gate == 5, gate == 6, gate == 7, gate == 8, gate == 9);
+            assert(!strcmp(buffer, expected));
+            assert(access(STATUS_TMP_PATH, F_OK) != 0);
+        }
     }
     return 0;
 }
@@ -114,8 +138,8 @@ int main(int argc, char **argv) {
 with tempfile.TemporaryDirectory(prefix="tube-atomic-status-") as directory:
     test = Path(directory) / "test.c"
     binary = Path(directory) / "test"
-    test.write_text(scaffold + paths + hooks + body + checks)
+    test.write_text(scaffold + gates_type + paths + hooks + body + checks)
     subprocess.run([os.environ.get("CC", "cc"), "-std=c11", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", str(test), "-o", str(binary)], check=True)
     subprocess.run([str(binary), directory], check=True)
-print("PASS: shipping status publisher keeps prior snapshots during partial writes and I/O failures; active/parked snapshots publish completely")
+print("PASS: shipping status publisher keeps prior snapshots during partial writes and I/O failures; active/parked snapshots and every completion gate publish completely")
