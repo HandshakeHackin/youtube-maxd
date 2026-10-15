@@ -1,5 +1,22 @@
 # Offline validation record — 0.1.0
 
+## Release failure paths (2026-10-15)
+
+`c1b67a5` passes generated-code ASan/UBSan checks for decoder renewal,
+frame leases and close/drain. Injected Delete/Create/Reset errors and watchdog
+timeouts retain uncertain handles and mappings, forbid subsequent creation
+following failed deletion, and prevent reuse even before the first decoded AU.
+Successful renewal remains covered. The VP9 output-order regression now uses
+the generated decoder's actual 16-entry pending queue rather than a larger
+fixture; the recorded complete sample peaked at five pending entries.
+
+Output-mode tests cover refused refresh/HDR changes, bounded retry exhaustion,
+recovery and actual-state readback. Both production and diagnostic builds pass
+signed-container, helper and ZIP checks; all 185 archived files match their
+frozen candidates. These guards are not installed or console-tested. They do
+not establish the cause of historical GPU faults. Artifact hashes and the
+currently installed build are recorded in [Handoff](HANDOFF.md).
+
 ## VP9 completion identity (2026-10-15)
 
 `6fc6d58` uses unique input tags returned by public `GetPictureInfo`. Generated
