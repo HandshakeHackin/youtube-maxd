@@ -4,12 +4,15 @@ Latest installed candidate: `f801bae`, the production font-upload fix and
 physical PS5 keyboard support. All 185 files matched after the installation
 persistence check. The subsequent owner replay still hitched in Chiaki-ng;
 that replay was not observed directly on the TV. Direct keyboard input and
-post-playback glyph recovery remain unconfirmed. Current title state is unknown.
+post-playback glyph recovery remain unconfirmed. The later bounded diagnostic run closed cleanly and restored saved state.
 
 The earlier `6599c48` Afterglow diagnostic matched all 1,576 sampled render
 inputs to their decoded outputs; this establishes sampled source identity,
-not complete rendered pixels or HDMI/Remote Play presentation. The next
-offline probe checks the completed tiled backbuffer. See [handoff](HANDOFF.md).
+not complete rendered pixels or HDMI/Remote Play presentation. The subsequent `b9d3583` completed-buffer trace found no discordant sampled
+source/output changes across 1,324 steady presentations, including 660 identical
+same-picture repeats across the two buffers. This argues against steady stale
+rendered content in that instrumented run, not full-frame or HDMI correctness.
+See [handoff](HANDOFF.md).
 
 ## Earlier playback evidence
 

@@ -11,6 +11,19 @@ UBSan, including bounds, cross-tile pixels, failed fences, buffer identity,
 repeats, full-ring behavior and hook ordering. Sparse hashes cannot establish
 complete pixel correctness, HDMI presentation or Remote Play capture timing.
 
+Diagnostic candidate `b9d3583` passes the PS5 build, signed-container and helper
+checks, ZIP CRC and comparison against all 185 frozen files. An initial build
+exposed a missing reset of `hui_agc_batch.hpp` during incremental preparation;
+that reset is fixed and the regenerated declaration/implementation counts are
+both one. Generated probe hook tests also pass. Hardware evidence is separate.
+
+The bounded `b9d3583` console case passed launch, same-clip 4K/24 playback,
+trace capture and clean teardown. All 1,558 sampled presentations matched
+decoder samples; 1,324 steady completed-buffer samples showed no discordant
+source/output change. Saved state and then production `f801bae` were restored.
+The restoration matched all 185 files after 120 seconds with unchanged errors
+and an idle console. Full-frame content, HDMI and remote capture remain unproven.
+
 ## Keyboard and font uploads (2026-10-15)
 
 - `python3 scripts/test_afterglow_atlas.py`: real shaping and AGC replacement/retirement methods pass ASan/UBSan lifecycle and allocation-failure regression.

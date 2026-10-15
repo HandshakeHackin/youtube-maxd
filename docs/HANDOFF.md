@@ -4,6 +4,37 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Completed-buffer trace result (2026-10-15)
+
+Diagnostic `b9d3583` passed one bounded 32-second same-clip Afterglow replay.
+All 1,558 pre-blit samples matched decoder samples, and all completed-buffer
+samples were valid. After five seconds, 1,324 presentations contained 656
+adjacent source/output hash changes and 667 unchanged pairs, with no discordant
+pair. All 660 same-serial repeated pairs switched buffers and retained the same
+output hash. No older output hash recurred with a different sampled source hash.
+This argues against steady stale rendered-buffer content in this instrumented
+run; it does not prove complete frame correctness, HDMI output or Chiaki capture.
+
+The 664 steady new pictures had 660 five-refresh and three four-refresh gaps,
+with no six-refresh gap. One pacing miss occurred at startup (50 ms), not in
+the steady window. Completed-buffer sampling cost 38 microseconds median,
+44 p95 and 110 maximum. The existing seven repeated decoded/output sample pairs
+at clip PTS 15.625?15.917 seconds recur, consistent with the earlier black-sample
+cluster; they do not establish a decoder fault. Startup output differences on
+repeated source pictures were confined to the first 1.38 seconds, when overlays
+were active.
+
+Saved files were restored; the title closed with healthy services and unchanged
+error records. The next physical comparison remains the same clip on the TV
+with Chiaki disconnected, then the remote stream separately. Do not change
+output mode or declare the hitch fixed from this trace. Source and test changes
+also correct an incremental-build header-reset omission found while packaging.
+
+After collecting the trace, production `f801bae` was restored: all 185 files
+matched again after 120 seconds, the console remained idle and errors were
+unchanged. No diagnostic build is left installed. Physical keyboard and
+post-playback glyph acceptance remain pending.
+
 ## Latest owner observation (2026-10-15)
 
 After installation of `f801bae`, the owner replayed the 4K VP9 clip and saw
