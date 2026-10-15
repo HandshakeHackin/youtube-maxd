@@ -6,7 +6,31 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Latest 4K hitch investigation (2026-10-15)
 
-Latest result: the owner replayed the verified `289e1c2` production candidate
+The next candidate adds a bounded presentation deadline after GPU completion,
+only for low-rate video on the verified 120 Hz output mode. It preserves the
+existing frame leases, accounts for rounded CFR timestamps and fractional
+refresh cadence, and handles pause/seek/stalls and slow clock drift. It adds
+roughly 17-25 ms of video preparation time, so physical A/V acceptance remains
+required. Host regression reproduces the old cadence defect and passes the
+new scheduler; do not treat that as a successful console or TV result.
+Local ZIP packaging also now normalizes archive permissions like CI.
+
+The bounded `de96f13` timing run on .30 completed one 32-second Guest replay
+of the same 4K/24 clip. All 790 traced pictures had consecutive serials and
+regular 41/42 ms PTS. In 668 steady first-picture intervals, CPU-observed
+flip retirement occupied four refresh ticks 94 times, five ticks 483 times,
+and six ticks 91 times at approximately 119.88 Hz. Raw VideoOut status word 1
+followed the same refresh lattice; its offset from the CPU observation varied
+by only 92 microseconds across the trace. Its ABI remains unnamed, so this is
+corroborating timing evidence, not a verified scanout timestamp or proof of TV
+smoothness. The next investigation is presentation scheduling and fence timing.
+
+The run restored saved state, left .30 idle with healthy services and unchanged
+error records, and released its lock. An earlier attempt failed only because
+the test selector expected a full title while the UI truncated it; its teardown
+also completed cleanly. Neither run establishes that the visible hitch is fixed.
+
+Previous visual result: the owner replayed the verified `289e1c2` production candidate
 and still saw hitches with smooth audio. Native VP9/24 at 3840x2160 published
 590 frames over 25.3 seconds, with zero late drops and no decoder fatal. The
 console was idle afterward; error records were unchanged from the pre-install
@@ -16,7 +40,7 @@ VideoOut status in bounded memory, dumping only after playback stops. Raw
 status fields other than the known flip marker have no verified timestamp ABI.
 
 
-The owner requested offline analysis before another console test. Keep .30 as
+The owner initially requested offline analysis, then authorized .30 testing. Keep .30 as
 the only test console and build ZIPs only. Audio, TV HDR indication and stable
 playback-menu transitions have owner confirmation on `b8d57c0`; smooth 4K is
 still unaccepted.
@@ -39,9 +63,9 @@ input's PTS and display flag and consumes them together on decode and drain.
 bounded delayed-output oracle. The old implementation fails picture identity
 (expected picture 9 / PTS 9000, got picture 10 / PTS 9000); the fix passes,
 including hidden/show-existing, drain, seek, errors and queue bounds. Existing
-native frame-lease tests also pass. This is an offline fix, not yet evidence
-that the TV hitch is gone. Validate the same clip after installing the newly
-built candidate; do not infer smoothness from counters alone.
+native frame-lease tests also pass. The later `289e1c2` console replay includes
+this correction and still visibly hitches. Retain the picture-order fix, but
+do not infer smoothness from counters alone.
 
 **Do not deploy the `f4aaba6` ZIP.** A follow-up integration review found that
 the five-slot reorder queue retains four pictures between calls, while one
@@ -54,7 +78,8 @@ share a timestamp; the old slot-index tie break could return a newer picture
 first. The new integration test executes generated send/receive code with the
 real five-slot limit, including eight-AU bursts, retries, EOF and seek. The
 previous candidate fails overflow; capacity-only processing fails picture
-order; the combined correction passes both. No console deployment occurred.
+order; the combined correction passes both. The withdrawn `f4aaba6` candidate
+was never deployed; the corrected `289e1c2` replacement was tested as below.
 
 The production ZIP was built offline from clean commit `f4aaba6` with no
 remote-control or timing-trace build flags:
@@ -62,10 +87,10 @@ remote-control or timing-trace build flags:
 Eboot SHA-256: `1f7ab0076f5bbbb1b17021bd05f4337d1f260bbcd2679b445b1146be7d72a1a1`.
 ZIP SHA-256: `2a9c34edd1627c785b352840f989849ad12502793e714d171b7023838a68303a`.
 Full PS5 build, signed-container integrity, packaged Lapy helper, ZIP CRC and
-embedded-eboot equality passed. It has not been installed or launched; the
-owner's latest instruction was to analyze offline first.
+embedded-eboot equality passed. This withdrawn artifact was never installed
+or launched and is retained only as historical build evidence.
 
-The proposed flip-timing probe was archived outside product source at
+The earlier CPU-only flip-timing probe was archived outside product source at
 `/home/denis/pt-console/offline-hitch-diagnostics/`. It measures CPU-observed
 retirement, not authenticated scanout time, and is not part of the release.
 The generated renderer already uses a locked frame/PTS/serial snapshot; the

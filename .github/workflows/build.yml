@@ -260,8 +260,8 @@ jobs:
           read -r _ _ version <<< "$(python3 scripts/release_version.py)"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      # A pre-release: the app's update check reads the list of releases and takes
-      # the highest version in it, pre-releases included (native/tube_update.h).
+      # Publishing a pre-release does not offer it in the app. Update discovery
+      # requires a separately published entry in the signed homebrew.page catalog.
       - name: Publish the GitHub pre-release
         env:
           GH_TOKEN: ${{ github.token }}

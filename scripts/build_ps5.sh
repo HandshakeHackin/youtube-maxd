@@ -86,8 +86,9 @@ for symbol in ff_hevc_decoder ff_hevc_mp4toannexb_bsf; do
 done
 bash "${work}/scripts/package-app.sh" --zip "$@"
 python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 --check-app "${work}/output/app/PPSA99142"
+python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99142.zip"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
 cp -a "${work}/output/app/PPSA99142" "${destination}/"
-find "${work}/output" -maxdepth 3 -type f -name '*.zip' -exec cp -t "${destination}/" {} +
+cp "${work}/output/app/PPSA99142.zip" "${destination}/"
 printf '%s\n' "ProsperoTube PS5 artifacts are in ${destination}. No console deployment performed."

@@ -2,7 +2,7 @@
 
 DIAGNOSTIC_C = r'''
 /* Diagnostic records are render-thread-only; logging and file I/O happen after playback. */
-#define TUBE_FLIP_DIAG_CAPACITY 1024u
+#define TUBE_FLIP_DIAG_CAPACITY 2048u
 #define TUBE_FLIP_DIAG_PATH "/data/prosperotube/flip_timing_diag.csv"
 struct tube_flip_diag_record {
     uint64_t epoch, serial;

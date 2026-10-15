@@ -95,7 +95,7 @@ int main(void) {
         tube_flip_diag_begin(8,i,42000,230); tube_flip_diag_finish(1);
     }
     tube_flip_diag_begin(8,2000,42000,240); tube_flip_diag_finish(1);
-    assert(tube_flip_diag_count==1024 && tube_flip_diag_overflow==1);
+    assert(tube_flip_diag_count==2048 && tube_flip_diag_overflow==1);
     assert(tube_flip_diag_records[0].epoch==7 && tube_flip_diag_records[1023].serial==1023);
     assert(!logs && !opens);
     tube_flip_diag_active(0);
@@ -126,9 +126,9 @@ with tempfile.TemporaryDirectory(prefix="flip-timing-diag-") as directory:
     subprocess.run([str(executable)], cwd=directory, check=True)
     with (directory / "full.csv").open() as stream:
         records = list(csv.DictReader(stream))
-    assert len(records) == 1024 and records[0]["pts_us"] == "-500"
+    assert len(records) == 2048 and records[0]["pts_us"] == "-500"
     assert records[0]["status7"] == "88" and records[1]["flip_rc"] == str(-(1 << 31))
-    assert records[3]["vblank_waits"] == "120" and records[-1]["serial"] == "1023"
+    assert records[3]["vblank_waits"] == "120" and records[-1]["serial"] == "2047"
     with (directory / "records.csv").open() as stream:
         records = list(csv.DictReader(stream))
     assert len(records) == 1 and records[0]["session"] == "3" and records[0]["epoch"] == "9"

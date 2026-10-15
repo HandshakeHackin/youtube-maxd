@@ -52,6 +52,14 @@ with tempfile.TemporaryDirectory(prefix="tube-release-") as directory:
         assert check.read(title + "/build-label.txt") == b"PR 7, abc1234\n"
         assert all((i.external_attr >> 16) & 0o777 == 0o777 for i in check.infolist()) and len(check.infolist()) == 5
 
+# Local candidates must be installable by tools that retain ZIP permissions,
+# just like CI releases, and must not copy unrelated stale archives.
+build = (ROOT / "scripts/build_ps5.sh").read_text()
+normalize = 'python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99142.zip"'
+copy_zip = 'cp "${work}/output/app/PPSA99142.zip" "${destination}/"'
+assert build.index(normalize) < build.index(copy_zip)
+assert "-name '*.zip'" not in build
+
 workflow = (ROOT / ".github/workflows/build.yml").read_text()
 trigger = workflow[workflow.index("\non:\n"):workflow.index("\npermissions:")]
 # Pushes build nothing but version tags; pull requests and a manual run build.

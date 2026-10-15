@@ -59,7 +59,7 @@ of every imported kit, helper and miniz file. Source notices and the miniz
 license are retained. The kit is compiled into the application; its console
 transport is enabled with the embedded service. `scripts/build_ps5.sh` builds
 the payload helper in the selected native work directory, and the packaging
-overlay includes it at the app root before ZIP or image generation.
+overlay includes it at the app root before ZIP generation.
 
 ## Before the first release
 

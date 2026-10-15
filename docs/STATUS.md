@@ -1,13 +1,41 @@
 # Current implementation status
 
+A presentation-deadline candidate now schedules low-rate video in a stable
+refresh interval after its existing GPU fence. It applies only to the verified
+120 Hz output mode when a source interval exceeds three refresh periods;
+other modes and faster playback retain the existing path. It adds roughly
+17-25 ms of preparation time, normalizes millisecond-rounded constant-rate
+PTS, and resets or recovers across pause, seek, stalls and clock drift without
+changing frame leases. Host models reproduce the old short/long refresh pairs
+and pass with the scheduler, including delayed GPU completion and audio drift.
+Console cadence and physical A/V acceptance are still pending.
+
+Local ZIP builds now apply the same permission normalization as CI before
+exporting the exact application archive. A real-candidate check preserved all
+entry contents and CRCs while setting the required archive permissions.
+
+Presentation timing update: candidate `de96f13` completed a bounded .30 replay
+of the same native 3840x2160/24 VP9 clip. All 790 traced pictures were ordered;
+PTS remained 41/42 ms. Of 668 steady first-picture retirement intervals, 94
+spanned four refresh ticks, 483 five ticks and 91 six ticks at approximately
+119.88 Hz. Raw VideoOut status word 1 followed that refresh lattice and tracked
+CPU observation with a 92-microsecond offset spread across the full trace.
+The field's ABI is still unnamed: it corroborates uneven retirement cadence,
+but is not an authenticated scanout timestamp or a TV smoothness verdict.
+Presentation scheduling and fence timing remain under investigation.
+
+Saved state was restored, the title closed, services remained healthy and error
+records were unchanged. The preceding attempt stopped on a truncated-title
+selector mismatch and also restored state cleanly. The diagnostic is opt-in;
+production builds do not collect the timing trace.
+
 Verified replay of `289e1c2`: the owner still reports picture hitches with
 smooth audio. The executable and all 185 installed files matched after the
 run. Native 3840x2160 VP9/24 playback published 590 frames in 25.3 seconds,
 with zero reported late drops or decoder fatal. The title was idle and error
 records were unchanged. These counters do not establish presentation cadence;
 the picture-order corrections are retained, but they did not resolve the
-reported symptom. A bounded in-memory flip timing diagnostic is the next
-investigation step; it is opt-in and absent from production builds.
+reported symptom. The subsequent bounded timing run is described above.
 
 First-release persistence fix: failures opening, writing, flushing, closing or
 renaming the local state file now produce a visible notice through the shared
@@ -41,7 +69,8 @@ The fix queues every successful VP9 coded input's PTS and display flag and
 consumes that metadata for every output, including hidden pictures and EOF
 drain. Seek clears the queue; ambiguous errors, overflow and incomplete drain
 fail explicitly. The new regression and existing frame-lease checks pass.
-AVC/HEVC association is unchanged. This fix has not been console-tested.
+AVC/HEVC association is unchanged. This was initially offline-only; the later
+`289e1c2` console replay exercised the combined fixes and still visibly hitched.
 
 The earlier audio-clock interpolation removed the 2048-sample stepping from
 video scheduling but did not resolve the owner's visible hitch by itself.
@@ -50,8 +79,9 @@ The verified .30 production replay (eboot `90ed17f247d5bbd8`) ran native
 the owner still saw hitches with audio in sync. Error records stayed unchanged.
 Counters establish throughput, not correct picture identity or smooth TV
 motion. Per-frame timing logging also perturbed an earlier diagnostic run;
-CPU-observed flip completion is not a hardware scanout timestamp. No display
-scheduling change is justified yet. The owner already confirmed audible audio,
+CPU-observed flip completion is not a hardware scanout timestamp. The newer
+bounded trace above supplies evidence for further presentation investigation.
+The owner already confirmed audible audio,
 TV-reported HDR and playback-menu transitions without blackouts on `b8d57c0`.
 
 4K endurance update, 2026-10-15: the latest instrumented `964bb5c` candidate

@@ -32,6 +32,9 @@ every overlaid file before applying checked patches, and copies the original
 provider/UI and complete cJSON. It never edits the submodule checkout.
 `build_ps5.sh` uses EVO's native packaging pipeline, builds PS5 FFmpeg,
 signs/inspects containers and copies the title folder and ZIP to `dist/`.
+Local builds and CI both store every ZIP entry with mode 0777 so extraction
+tools that preserve permissions produce a launchable installation; file
+contents are unchanged.
 Network access is needed only for uncached dependencies. Scripts never deploy
 or launch on PS5.
 
@@ -44,7 +47,9 @@ SDR AVC/VP9/HEVC/AV1. AV1 uses the existing PS5 libdav1d software decoder.
 HEVC uses EVO's existing PS5 decoder path and FFmpeg fallback. Packaging checks
 the AV1/HEVC decoder symbols and HEVC MP4-to-Annex-B converter. HEVC and AV1
 pass offline relay/decode/seek checks; console performance and presentation
-remain unverified. HDR selection remains unexposed.
+remain unverified. HDR selection and output are implemented: bounded console
+checks cover PQ, HLG and SDR, and the owner confirmed TV-reported HDR.
+See [hardware acceptance](HARDWARE_ACCEPTANCE.md) for the tested scope.
 See [reference candidates](REFERENCE_CANDIDATES.md) for source evidence.
 
 Set `PROSPEROTUBE_PS5_DIST` to an isolated candidate directory when checking
