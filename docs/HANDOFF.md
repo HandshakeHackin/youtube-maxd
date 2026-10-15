@@ -4,6 +4,16 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Owner replay: no noticeable hitching via RDP (2026-10-15)
+
+After the installed `6fc6d58` VP9 identity fix, the owner reports no noticeable
+hitching during the manual replay. They watched via RDP, not directly on the
+TV. Audio seemed in sync, but they explicitly note that remote-viewing delay
+makes sync difficult to judge. Record this as a positive subjective remote
+replay, not direct-TV motion or precise A/V-sync acceptance. Playback duration
+and app closure were not confirmed. The prepared sustained/reuse tests remain
+unrun; the follow-up `c1b67a5` guards remain uninstalled.
+
 ## Release failure-path audit (2026-10-15)
 
 A subsequent current-code audit found three engineering gaps beyond the

@@ -320,8 +320,9 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] Validate long public live VP9/Opus and 4K playback. Bounded direct-LAN
       4K/30 and two public-network 4K/25 VOD sessions with a -60-second seek
       passed on PS5; longer public live playback, varied CDN conditions and
-      audible Opus remain unverified. A separate 4K/24 picture hitch remains an
-      acceptance blocker pending a visual replay of the new identity-based VP9 fix.
+      audible Opus remain unverified. After the identity-based VP9 fix, the owner reported no noticeable
+      4K/24 hitching when viewing via RDP; audio seemed in sync but remote delay
+      made sync uncertain. Direct-TV and sustained acceptance remain pending.
       The later presentation scheduler corrected measured cadence in two short
       replays and passed a five-minute public 4K/24 watch (7,250 pictures, zero
       late drops, no new error record); physical motion and sync remain unaccepted.

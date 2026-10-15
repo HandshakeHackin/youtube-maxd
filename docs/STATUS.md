@@ -2,12 +2,16 @@
 
 Latest installed candidate: `6fc6d58`, the production VP9 completion-identity
 fix, also retaining the font-upload fix and physical PS5 keyboard support.
-All 185 files matched after the 120-second stored-byte check; the title is
-idle and error records are unchanged. The diagnostic version completed the
+All 185 files matched after the 120-second stored-byte check; at installation
+the title was idle and error records were unchanged. The diagnostic version completed the
 same-input 36-second 4K24 sample through EOF: all 864 packets and sampled
 visible pictures match the software reference, with zero association errors.
-No launch followed the production installation. TV smoothness/audio sync,
-physical keyboard input and post-playback glyph recovery remain unconfirmed.
+On 2026-10-15 the owner reported no noticeable hitching in the subsequent
+manual replay viewed via RDP. Audio seemed in sync, but remote-viewing delay
+made that difficult to judge. This is positive remote-viewing evidence, not
+direct-TV or precise A/V-sync acceptance. App closure was not confirmed.
+Sustained playback, physical keyboard input and post-playback glyph recovery
+remain unconfirmed.
 
 Follow-up `c1b67a5` adds decoder-renewal failure quarantine and bounded
 refresh/HDR retries. Host sanitizer and mode-policy tests pass; production
