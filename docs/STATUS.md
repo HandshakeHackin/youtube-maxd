@@ -8,8 +8,9 @@ output also preserves FIFO order for visible subframes sharing a timestamp.
 The integration regression checks actual generated send/receive/decode/drain
 and seek with the real queue limit: both the original overflow and the later
 equal-timestamp ordering defect reproduce, and the combined fix passes.
-Frame-lease tests still pass. A replacement ZIP and console validation remain
-required.
+Frame-lease tests still pass. The replacement production ZIP from `289e1c2`
+built and passed package and frozen-manifest checks. Another title was running
+at the first console check, so deployment and visual validation remain pending.
 
 4K picture-order update, 2026-10-15: offline regression now reproduces a
 VP9 pipeline bug that timing counters missed. At decoder depth four, the old
