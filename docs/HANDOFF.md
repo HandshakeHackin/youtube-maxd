@@ -28,8 +28,15 @@ The transition that produced this state is not established; do not attribute
 it to seeking beyond duration or to VP9/GPU ownership. The combined provider/picture suite, HLS callback regression and overlay
 checks pass ASan/UBSan. The actual sign-in handler and bounded diagnostic
 privacy checks also pass. Safe operation/error-category logging is added for
-the unresolved Library failure. Production rebuild and owner validation are
-next; installed `4d2fcbc` remains failed.
+the unresolved Library failure. Production `139f8c1` built successfully; ZIP
+CRC and all 185 archived file bytes match. The idle-first installation check
+found another title running and stopped before any write. Installed
+`4d2fcbc` remains failed; install the frozen new candidate only when idle.
+Production eboot SHA-256:
+`66a89a6cca013060165b5fe1bc3d12e231c5a098e144d4e8feb9e9f95b284905`.
+ZIP SHA-256:
+`057f9d7fdd80aa2dba3c7d9037b540658ef30c6da8f3a476016b59a5fcf8f40a`.
+No hardware validation of these new fixes has occurred.
 
 ## Phone-pairing fixes installed for manual testing (2026-10-15)
 

@@ -2,8 +2,10 @@
 
 Owner acceptance of installed `4d2fcbc` failed on 2026-10-15: no pairing code
 on page entry, a false Signed out label and missing account Library content,
-and an HLS app crash while seeking. Offline UI and null-segment fixes are in
-progress; account Library access and hardware acceptance remain unresolved.
+and an HLS app crash while seeking. UI and null-segment fixes in `139f8c1`
+pass host tests and production ZIP verification. Installation stopped before
+any write because another title was running. Account Library access and
+hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
 Latest installed candidate: `4d2fcbc`, the production phone-pairing fixes and
