@@ -10,6 +10,7 @@ PLAYER = ROOT / "third_party/evo/projects/evoplayer"
 
 def main():
     sources = {
+        "core/src/Application.cpp": (PLAYER / "core/src/Application.cpp").read_text(),
         "core/include/evo/services/SettingsService.hpp": (PLAYER / "core/include/evo/services/SettingsService.hpp").read_text(),
         "media/src/evo_agc_runtime.c": (PLAYER / "media/src/evo_agc_runtime.c").read_text(),
     }
@@ -28,8 +29,18 @@ def main():
     runtime = sources["media/src/evo_agc_runtime.c"]
     assert "m_refreshRateMode = RefreshRateMode::PlaybackOnly;" in settings
     assert "g_agc_dev.supports_120hz = (sup120 > 0) ? 1 : 0;" in runtime
+    patched_app = sources["core/src/Application.cpp"]
+    assert "m_screenManager->isPlaybackScreen(m_screenManager->getCurrentScreenId())" in patched_app
+    assert "const int want = (inPlaybackSession && setting_on" in patched_app
+    assert "} else if (!inPlaybackSession) {\n                want = false;" in patched_app
+    playback_screens = (PLAYER / "core/src/screens/ScreenManager.cpp").read_text().split(
+        "bool ScreenManager::isPlaybackScreen(ScreenId screenId) const {", 1)[1].split("\nint ScreenManager::railSectionCount", 1)[0]
+    for menu in ("ExitConfirm", "MediaInfo", "SubtitlePicker", "AudioTrackPicker"):
+        assert f"case ScreenId::{menu}:" in playback_screens
 
-    app = (PLAYER / "core/src/Application.cpp").read_text()
+    app = patched_app
+    hdr_decision = "const int want = (inPlaybackSession" + app.split(
+        "const int want = (inPlaybackSession", 1)[1].split(";", 1)[0] + ";"
     start = app.index("const double k = 119.88 / fps;")
     end = app.index("\n", app.index("want = kr >= 1.0", start))
     decision = app[start:end]
@@ -37,12 +48,20 @@ def main():
 #include <cassert>
 #include <cmath>
 #include <initializer_list>
+bool wants_hdr(bool inPlaybackSession, bool setting_on, int trc, bool s_hdr_want) {{
+    {hdr_decision}
+    return want;
+}}
 bool wants_120(double fps) {{
     bool want = false;
     if (fps > 1.0) {{ {decision} }}
     return want;
 }}
 int main() {{
+    assert(wants_hdr(true, true, -1, true)); // Playback menu has no current frame.
+    assert(!wants_hdr(true, true, 1, true));
+    assert(!wants_hdr(false, true, -1, true));
+    assert(!wants_hdr(true, false, 16, true));
     for (double fps : {{23.976, 24.0, 29.97, 30.0, 59.94, 60.0}})
         assert(wants_120(fps));
     for (double fps : {{0.0, 1.0, 25.0, 50.0}})
