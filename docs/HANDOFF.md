@@ -74,6 +74,16 @@ test reproduced a severe slowdown before the cap fix; it did not recur in
 these two passes. Continue treating other public CDN/timing conditions as unproven;
 the historical GPU fault address owner is still unknown.
 
+A clean production package was built from `8c29385` without the USB remote:
+`/home/denis/pt-candidates/playback-20261015-final-8c29385/`. Its signed
+`PPSA99142/eboot.bin` has SHA-256
+`d6da97aa728bab69f8cd090227e1e3fe2d0517607cd26c46083c908508dde13e`;
+`PPSA99142.ffpfsc` has SHA-256
+`cd43134574b4674e7bcd29c2756a348420b58395ba3896e48250a404d89e8a54`.
+The build reported valid signed-container integrity and verified its packaged
+Lapy helper. This production package has not been installed on a console; the
+separately signed USB-remote candidate above supplied the .30 evidence.
+
 ## Where things stand
 
 - `main` holds everything. The repository is **private**; it goes public only
