@@ -1,5 +1,27 @@
 # Offline validation record — 0.1.0
 
+## Phone pairing and sign-in integration (2026-10-15)
+
+The real provider/ProviderSource/Data regression now executes the extracted
+actual LinkPhone catalog/action/poll/take logic. Under ASan/UBSan it covers
+delayed registration and TV-code delivery without user refresh, linked-device
+updates, cast admission with fractional position and launch acknowledgment
+while the page remains mounted, empty device snapshots, failure and disable.
+Rendering and a real decoder/phone are not part of this integration harness.
+
+Native remote, connection, phone-player and provider suites pass sanitizers.
+Coverage includes duplicate/stale events, malformed atomic batches, the
+32-device bound, three transient-recovery attempts, budget reset after stable
+listening, cancellation, preserved pairing intent and rejection of a retired
+backend session after failed cleanup. Independent review found no blocker.
+
+Account checks pass 87 real QuickJS service assertions with a private test
+bundle, native ASan/UBSan sign-in checks, and the actual Afterglow state-handler
+regression. Credential-save errors retain their public explanation; expiry and
+terminal states come from the provider, and late authorization still succeeds.
+The combined Afterglow provider/picture and embedded-service suites also pass.
+These results are offline only; no live pairing, console or Chiaki-ng was used.
+
 ## Release failure paths (2026-10-15)
 
 `c1b67a5` passes generated-code ASan/UBSan checks for decoder renewal,

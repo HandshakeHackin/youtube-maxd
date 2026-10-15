@@ -498,3 +498,5 @@ int main(void) {
          "dislikes asked only with the profile's switch on, typed SponsorBlock server, no proxy offer, backups without the sign-ins");
     return 0;
 }
+
+int evo_net_callback_error(void) { return 0; }

@@ -483,6 +483,32 @@ def sign_in_edges(binary):
     shutil.rmtree(directory)
 
 
+
+def storage_failure(binary):
+    """Phone approval succeeds, but credential persistence fails without hiding why."""
+    directory = fixtures({"POST www.youtube.com/o/oauth2/token": [{"file": "authorized.json"}]},
+                         {"authorized.json": {"access_token": "access-token-1", "refresh_token": "refresh-token-1", "expires_in": 3600}})
+    s = Service(binary, directory)
+    try:
+        started = s.call("POST", "/v1/auth/start", {})[2]
+        # A directory at the temporary-file name makes open fail even as root.
+        blocked = Path(str(s.store()) + ".tmp")
+        blocked.mkdir(parents=True)
+        wait(5)
+        message = "The account could not be written to private storage."
+        same("authorized credentials report storage failure", s.call("POST", "/v1/auth/status", {"session": started["session"]})[::2],
+             (507, {"api_version": 1, "error": {"code": "auth_storage", "message": message}}))
+        same("storage failure is retained on status", s.call("POST", "/v1/auth/status", {"session": started["session"]})[2],
+             {"session": started["session"], "state": "failed", "error": message})
+        same("failed persistence never registers an account", s.post(action="profiles")[1]["profiles"],
+             [{"id": "guest", "name": "Guest", "account_configured": False}])
+        same("failed session does not redeem twice", s.sent("oauth2/token"), 1)
+        check("no credential file after failure", not s.store().exists())
+    finally:
+        s.finish("credential write failure")
+        shutil.rmtree(directory)
+
+
 def refresh(binary):
     refreshed = {"body_contains": '"grant_type":"refresh_token"', "file": "refreshed.json"}
     directory = fixtures({"POST www.youtube.com/o/oauth2/token": [
@@ -727,7 +753,7 @@ def lists_and_changes(binary):
 
 def main():
     binary = sys.argv[1] if len(sys.argv) > 1 else str(ROOT / "build" / "tube_js")
-    only = sys.argv[2:] or ["sign_in", "sign_in_edges", "refresh", "lists_and_changes"]
+    only = sys.argv[2:] or ["sign_in", "sign_in_edges", "storage_failure", "refresh", "lists_and_changes"]
     try:
         for name in only:
             globals()[name](binary)

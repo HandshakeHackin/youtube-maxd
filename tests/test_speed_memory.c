@@ -111,3 +111,5 @@ int main(void) {
     evo_provider_youtube.shutdown();
     puts("PASS: real provider channel/video/session/global speed memory, profile isolation, migration and last-speed retention");
 }
+
+int evo_net_callback_error(void) { return 0; }

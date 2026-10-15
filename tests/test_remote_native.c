@@ -8,7 +8,8 @@
 #include <string.h>
 
 typedef struct { char body[8192], url[544], bearer[160]; evo_net_cb cb; void *ud; } Pending;
-static Pending pending[16]; static int count, reject;
+static Pending pending[16]; static int count, reject, callback_error;
+int evo_net_callback_error(void) { return callback_error; }
 static const char *session = "0123456789abcdef0123456789abcdef";
 static const char *identity = "01234567-89ab-cdef-0123-456789abcdef";
 static const char *started = "{\"api_version\":1,\"session\":\"0123456789abcdef0123456789abcdef\",\"device_id\":\"01234567-89ab-cdef-0123-456789abcdef\",\"screen_id\":\"screen-123\",\"state\":\"listening\"}";
@@ -20,10 +21,15 @@ int evo_net_request_async(const char *method,const char *url,const char *body,co
     snprintf(p->body,sizeof p->body,"%s",body); snprintf(p->url,sizeof p->url,"%s",url);
     snprintf(p->bearer,sizeof p->bearer,"%s",headers[1]); p->cb=cb; p->ud=ud; return 0;
 }
-static void reply(int index,int status,const char *body) {
+static void reply_error(int index,int ok,int status,int error,const char *body) {
     assert(index<count); Pending p=pending[index];
     memmove(pending+index,pending+index+1,(size_t)(--count-index)*sizeof *pending);
-    p.cb(status==200,status,body,strlen(body)+1,p.ud);
+    callback_error=error;
+    p.cb(ok,status,body,strlen(body)+1,p.ud);
+    callback_error=0;
+}
+static void reply(int index,int status,const char *body) {
+    reply_error(index,status==200,status,status==200?0:EVO_NET_ERR_HTTP,body);
 }
 static cJSON *request(const char *action) {
     assert(count==1); cJSON *root=cJSON_Parse(pending[0].body); assert(root);
@@ -171,8 +177,124 @@ static void test_voice_capability(void) {
     root=request("start"); assert(!cJSON_GetObjectItem(root,"voice_enabled")); cJSON_Delete(root);
     reply(0,200,started); tube_remote_shutdown(); clear_stop();
 }
+static const char *upstream = "{\"api_version\":1,\"error\":{\"code\":\"remote_upstream\"}}";
+static void expect_start(void) {
+    cJSON *root=request("start");
+    assert(!cJSON_GetObjectItem(root,"session"));
+    assert(!strcmp(cJSON_GetObjectItem(root,"device_id")->valuestring,identity));
+    assert(!strcmp(cJSON_GetObjectItem(root,"screen_id")->valuestring,"screen-123"));
+    cJSON_Delete(root);
+}
+static void fresh_start_reply(void) {
+    static unsigned serial;
+    static char fresh[33]; char body[256];
+    snprintf(fresh,sizeof fresh,"%032x",++serial);session=fresh;
+    snprintf(body,sizeof body,"{\"api_version\":1,\"session\":\"%s\",\"device_id\":\"%s\",\"screen_id\":\"screen-123\",\"state\":\"listening\"}",session,identity);
+    reply(0,200,body);
+    assert(tube_remote_state()==TUBE_REMOTE_LISTENING);
+}
+static void fresh_bind(int64_t now) {
+    tube_remote_tick(now);expect_start();fresh_start_reply();
+}
+static void reset_test_session(void) { session="0123456789abcdef0123456789abcdef"; }
+static void test_transient_recovery_preserves_pair_not_commands(void) {
+    configure(1,"guest",identity,"screen-123"); remote_bind(40000);
+    tube_remote_tick(40001); poll_reply(0,"[{\"sequence\":1,\"action\":\"play\"}]");
+    tube_remote_command old; assert(tube_remote_take(&old));
+    tube_remote_tick(40501); cJSON *root=request("poll");cJSON_Delete(root);
+    tube_remote_pair(); /* A user requests pairing while the old poll is in flight. */
+    reply(0,409,upstream);
+    assert(tube_remote_state()==TUBE_REMOTE_STARTING && !tube_remote_owner_current(old.owner));
+    assert(!tube_remote_take(&old)); clear_stop();
+    tube_remote_tick(41500);assert(count==0);
+    tube_remote_tick(41501);expect_start();fresh_start_reply();
+    assert(!tube_remote_finish(old.owner,old.sequence,1));
+    tube_remote_tick(41502);root=request("pair");cJSON_Delete(root);
+    char paired[256];snprintf(paired,sizeof paired,"{\"api_version\":1,\"session\":\"%s\",\"state\":\"listening\",\"pairing_code\":\"123456789\"}",session);
+    reply(0,200,paired);
+    assert(!strcmp(tube_remote_code(),"123456789"));
+    tube_remote_tick(41503);root=request("poll");
+    assert(cJSON_GetObjectItem(root,"ack")->valueint==0);cJSON_Delete(root);
+    poll_reply(0,"[{\"sequence\":1,\"action\":\"pause\"}]");
+    tube_remote_command fresh;assert(tube_remote_take(&fresh) && fresh.owner!=old.owner && fresh.action==TUBE_REMOTE_PAUSE);
+    assert(tube_remote_finish(fresh.owner,fresh.sequence,1));
+    tube_remote_shutdown();clear_stop();reset_test_session();
+}
+static void test_recovery_budget_and_stability(void) {
+    configure(1,"guest",identity,"screen-123");remote_bind(50000);
+    tube_remote_tick(50001);reply(0,409,upstream);clear_stop();
+    int64_t now=50001;
+    for(int attempt=0;attempt<3;++attempt) {
+        int delay=1000<<attempt;
+        tube_remote_tick(now+delay-1);assert(count==0);
+        now+=delay;tube_remote_tick(now);expect_start();reply(0,502,upstream);
+        assert(tube_remote_state()==(attempt<2?TUBE_REMOTE_STARTING:TUBE_REMOTE_FAILED));
+    }
+    tube_remote_tick(now+100000);assert(count==0);
+    tube_remote_shutdown();
+    /* Successful START alone does not refill the budget; a full healthy minute does. */
+    configure(1,"guest",identity,"screen-123");remote_bind(200000);
+    tube_remote_tick(200001);reply_error(0,0,0,EVO_NET_ERR_CONNECT,"");clear_stop();
+    fresh_bind(201001);
+    tube_remote_tick(201002);reply(0,409,upstream);clear_stop();
+    tube_remote_tick(202002);assert(count==0);fresh_bind(203002);
+    tube_remote_tick(263002);poll_reply(0,"[]");
+    tube_remote_tick(263502);reply(0,409,upstream);clear_stop();
+    tube_remote_tick(264501);assert(count==0);fresh_bind(264502);
+    tube_remote_shutdown();clear_stop();reset_test_session();
+}
+static void test_recovery_error_classification(void) {
+    const int transient[]={EVO_NET_ERR_DNS,EVO_NET_ERR_CONNECT,EVO_NET_ERR_SEND_HDR,EVO_NET_ERR_SEND_BODY};
+    for(unsigned i=0;i<sizeof transient/sizeof *transient;++i) {
+        configure(1,"guest",identity,"screen-123");remote_bind(300000+i*3000);
+        tube_remote_tick(300001+i*3000);reply_error(0,0,0,transient[i],"");
+        assert(tube_remote_state()==TUBE_REMOTE_STARTING);clear_stop();tube_remote_shutdown();
+    }
+    const struct {int status,error;const char *body;} hard[]={
+        {401,EVO_NET_ERR_HTTP,"{\"api_version\":1,\"error\":{\"code\":\"remote_upstream\"}}"},
+        {403,EVO_NET_ERR_HTTP,"{\"api_version\":1,\"error\":{\"code\":\"unauthorized\"}}"},
+        {409,EVO_NET_ERR_HTTP,"{\"api_version\":1,\"error\":{\"code\":\"remote_ack\"}}"},
+        {502,EVO_NET_ERR_HTTP,"{\"api_version\":1,\"error\":{\"code\":\"remote_protocol\"}}"},
+        {502,EVO_NET_ERR_HTTP,"bad JSON"},
+        {0,EVO_NET_ERR_CHUNKED,""},{0,EVO_NET_ERR_DOWNGRADE,""},{0,EVO_NET_ERR_SSL_CONN,""}};
+    for(unsigned i=0;i<sizeof hard/sizeof *hard;++i) {
+        configure(1,"guest",identity,"screen-123");remote_bind(400000+i*3000);
+        tube_remote_tick(400001+i*3000);reply_error(0,0,hard[i].status,hard[i].error,hard[i].body);
+        assert(tube_remote_state()==TUBE_REMOTE_FAILED);clear_stop();
+        tube_remote_tick(402001+i*3000);assert(count==0);tube_remote_shutdown();
+    }
+}
+static void test_recovery_cancel_and_late_bind(void) {
+    configure(1,"guest",identity,"screen-123");remote_bind(500000);
+    tube_remote_tick(500001);reply(0,409,upstream);clear_stop();
+    configure(0,"guest",identity,"screen-123");tube_remote_tick(600000);assert(count==0 && tube_remote_state()==TUBE_REMOTE_OFF);
+    configure(1,"guest",identity,"screen-123");remote_bind(600001);
+    tube_remote_tick(600002);reply(0,409,upstream);clear_stop();
+    configure(1,"another",identity,"screen-123");
+    tube_remote_tick(600003);expect_start(); /* Profile change cancels old backoff. */
+    reply(0,200,started);tube_remote_shutdown();clear_stop();
+    configure(1,"guest",identity,"screen-123");remote_bind(700000);
+    tube_remote_tick(700001);reply(0,409,upstream);clear_stop();
+    tube_remote_tick(701001);expect_start();
+    tube_remote_shutdown();reply(0,200,started);
+    assert(tube_remote_state()==TUBE_REMOTE_OFF);clear_stop();
+    tube_remote_tick(800000);assert(count==0);
+}
+static void test_recovery_rejects_old_backend_session(void) {
+    configure(1,"guest",identity,"screen-123");remote_bind(900000);
+    tube_remote_tick(900001);reply_error(0,0,0,EVO_NET_ERR_CONNECT,"");
+    cJSON *root=request("stop");cJSON_Delete(root);
+    reply(0,503,upstream); /* Server may still own the old queue. */
+    tube_remote_tick(901001);expect_start();reply(0,200,started);
+    assert(tube_remote_state()==TUBE_REMOTE_FAILED);
+    tube_remote_command event;assert(!tube_remote_take(&event));clear_stop();
+    tube_remote_tick(950000);assert(count==0);tube_remote_shutdown();
+}
 int main(void) { test_commands_and_feedback(); test_scope_and_late_start_cleanup(); test_atomic_validation();
     test_all_commands_and_pending_invalidation(); test_original_source_cleanup(); test_voice_capability(); test_profile_selection();
+    test_transient_recovery_preserves_pair_not_commands(); test_recovery_budget_and_stability();
+    test_recovery_error_classification(); test_recovery_cancel_and_late_bind();
+    test_recovery_rejects_old_backend_session();
     configure(1,"guest",identity,"screen-123"); reject=1; tube_remote_tick(30000);
     assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
     tube_remote_voice_available(1); assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);

@@ -16,9 +16,56 @@ static unsigned generation = 1, revision;
 static int enabled, state, want_code, ack, count, update_id, dirty;
 static int voice_enabled;
 static int64_t clock_ms, next_poll, next_report;
+/* A dead backchannel needs a fresh scope, never a replay of old commands. */
+static unsigned recovery_attempts;
+static int64_t recovery_at, stable_since = -1;
+static char recovery_retired[33];
+enum { RECOVERY_LIMIT = 3, RECOVERY_STABLE_MS = 60000 };
 static char source[512], token[128], profile[33], session[33], device[37], screen[129], code[13];
 static tube_remote_command queue[32];
 static tube_remote_player player;
+typedef struct { char id[513], name[401]; } ConnectedDevice;
+static ConnectedDevice connected[32];
+static int connected_count, connection_sequence;
+
+static int connection_put(const char *id, const char *name) {
+    int index = 0;
+    while (index < connected_count && strcmp(connected[index].id, id)) ++index;
+    if (index == 32) return 0;
+    if (index == connected_count) ++connected_count;
+    snprintf(connected[index].id, sizeof connected[index].id, "%s", id);
+    snprintf(connected[index].name, sizeof connected[index].name, "%s", name);
+    return 1;
+}
+/* Connection metadata is independent of playback acknowledgment, but only a
+ * fully validated poll may update it; repeated polls must not replay events. */
+static int connection_update(const cJSON *row) {
+    int sequence = cJSON_GetObjectItemCaseSensitive(row, "sequence")->valueint;
+    if (sequence <= connection_sequence) return 1;
+    connection_sequence = sequence;
+    const char *action = cJSON_GetObjectItemCaseSensitive(row, "action")->valuestring;
+    if (!strcmp(action, "loungeStatus")) {
+        connected_count = 0;
+        const cJSON *entry;
+        cJSON_ArrayForEach(entry, cJSON_GetObjectItemCaseSensitive(row, "devices"))
+            if (!connection_put(cJSON_GetObjectItemCaseSensitive(entry, "device_id")->valuestring,
+                                cJSON_GetObjectItemCaseSensitive(entry, "name")->valuestring)) return 0;
+        ++revision;
+    } else if (!strcmp(action, "remoteConnected")) {
+        if (!connection_put(cJSON_GetObjectItemCaseSensitive(row, "device_id")->valuestring,
+                            cJSON_GetObjectItemCaseSensitive(row, "name")->valuestring)) return 0;
+        ++revision;
+    } else if (!strcmp(action, "remoteDisconnected")) {
+        const char *id = cJSON_GetObjectItemCaseSensitive(row, "device_id")->valuestring;
+        for (int i = 0; i < connected_count; ++i) if (!strcmp(connected[i].id, id)) {
+            --connected_count;
+            memmove(connected + i, connected + i + 1, (size_t)(connected_count - i) * sizeof *connected);
+            break;
+        }
+        ++revision;
+    }
+    return 1;
+}
 
 static int text(const cJSON *root, const char *key, char *dst, size_t cap) {
     const cJSON *item = cJSON_GetObjectItemCaseSensitive(root, key);
@@ -167,8 +214,40 @@ static int stop_request(RemoteRequest *r, const char *identity) {
 static void invalidate(int failed) {
     ++generation; if (!generation) ++generation;
     code[0] = 0; count = ack = update_id = dirty = 0; want_code = 0;
+    recovery_attempts = 0; recovery_at = 0; stable_since = -1; recovery_retired[0] = 0;
+    connected_count = connection_sequence = 0; memset(connected, 0, sizeof connected);
     if (*session) { RemoteRequest *r = allocate(); if (r) stop_request(r,session); }
     session[0] = 0; state = failed ? TUBE_REMOTE_FAILED : TUBE_REMOTE_OFF; ++revision;
+}
+/* Error responses can have ok==0 even when their HTTP body is available.
+ * In particular, polling a dead JS backchannel returns 409 remote_upstream.
+ * Do not classify all 409/5xx or malformed/auth responses as recoverable. */
+static int transient_failure(int ok, int status, const char *body, size_t size) {
+    if (!ok && !status) {
+        int error = evo_net_callback_error();
+        return error == EVO_NET_ERR_DNS || error == EVO_NET_ERR_CONNECT ||
+            error == EVO_NET_ERR_SEND_HDR || error == EVO_NET_ERR_SEND_BODY;
+    }
+    if (status != 409 && (status < 500 || status > 599)) return 0;
+    cJSON *root = parse(body, size);
+    const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
+    char name[64];
+    int transient = cJSON_IsObject(error) && text(error,"code",name,sizeof name) && !strcmp(name,"remote_upstream");
+    cJSON_Delete(root); return transient;
+}
+static void recover(void) {
+    unsigned attempt = recovery_attempts;
+    int pairing = want_code;
+    char retired[33]; snprintf(retired,sizeof retired,"%s",*session ? session : recovery_retired);
+    invalidate(attempt >= RECOVERY_LIMIT);
+    if (attempt >= RECOVERY_LIMIT) return;
+    memcpy(recovery_retired,retired,sizeof retired);
+    recovery_attempts = attempt + 1;
+    recovery_at = clock_ms + ((int64_t)1000 << attempt);
+    want_code = pairing;
+    state = TUBE_REMOTE_STARTING;
+    /* Reports must come from the current native scope; invalidate cleared dirty.
+     * The retained device/screen only identify the fresh remote session. */
 }
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
     RemoteRequest *r = ud; cJSON *root = ok && status == 200 ? parse(body,size) : NULL;
@@ -188,12 +267,16 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         char new_device[37], new_screen[129];
         if (!text(root,"device_id",new_device,sizeof new_device) || !uuid(new_device) ||
             !text(root,"screen_id",new_screen,sizeof new_screen) || !*new_screen || !ascii_id(new_screen) ||
-            (*device && strcmp(device,new_device)) || (*screen && strcmp(screen,new_screen))) {
-            /* A successful but invalid bind still belongs to this request. */
+            (*device && strcmp(device,new_device)) || (*screen && strcmp(screen,new_screen)) ||
+            (*recovery_retired && !strcmp(recovery_retired,returned))) {
+            /* A successful but invalid bind still belongs to this request.
+             * If STOP failed, idempotent START can return the retired receiver;
+             * accepting it with ack=0 could replay its old command queue. */
             invalidate(1); stop_request(r,returned); cJSON_Delete(root); return;
         }
         snprintf(device,sizeof device,"%s",new_device); snprintf(screen,sizeof screen,"%s",new_screen);
         memcpy(session,returned,sizeof session); state = TUBE_REMOTE_LISTENING; ++revision; next_poll = 0;
+        stable_since = clock_ms; recovery_retired[0] = 0;
     } else if (kind == PAIR) {
         char new_code[13]; if (!text(root,"pairing_code",new_code,sizeof new_code) ||
             (strlen(new_code)!=9 && strlen(new_code)!=12) || strspn(new_code,"0123456789")!=strlen(new_code)) goto failed;
@@ -212,16 +295,22 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         /* Local application may advance ack while a poll is in flight. Ignore
          * its already-applied prefix, retaining the exact outstanding commands. */
         if (n < count || memcmp(queue,staged,(size_t)count*sizeof *queue)) valid = 0;
-        if (valid) { memcpy(queue,staged,(size_t)n*sizeof *queue); count = n; }
+        if (valid) {
+            memcpy(queue,staged,(size_t)n*sizeof *queue); count = n;
+            cJSON_ArrayForEach(row,rows) if (!connection_update(row)) { valid = 0; break; }
+        }
         free(staged); if (!valid) goto failed;
         next_poll = clock_ms + 500;
     } else if (kind == UPDATE) { next_report = clock_ms + 2000; }
+    if (stable_since >= 0 && clock_ms - stable_since >= RECOVERY_STABLE_MS) recovery_attempts = 0;
     r->used = 0; cJSON_Delete(root); return;
 failed:
     if (kind == START && safe_id(returned,32,1)) {
         cJSON_Delete(root); invalidate(1); stop_request(r,returned); return;
     }
-    r->used = 0; cJSON_Delete(root); invalidate(1);
+    r->used = 0; cJSON_Delete(root);
+    if (transient_failure(ok,status,body,size)) recover();
+    else invalidate(1);
 }
 
 void tube_remote_configure(const char *src, const char *bearer, const char *selected,
@@ -256,6 +345,8 @@ void tube_remote_tick(int64_t now_ms) {
     clock_ms = now_ms;
     if (!enabled || state == TUBE_REMOTE_FAILED || !*source || !*token || !*profile) return;
     for (int i = 0; i < 4; ++i) if (requests[i].used) return; /* Includes old-scope cleanup. */
+    if (recovery_at && now_ms < recovery_at) return;
+    recovery_at = 0;
     int kind = !*session ? START : want_code ? PAIR : dirty && now_ms >= next_report ? UPDATE : now_ms >= next_poll ? POLL : 0;
     if (!kind) return;
     RemoteRequest *r = allocate(); cJSON *root = cJSON_CreateObject();
@@ -318,3 +409,8 @@ const char *tube_remote_screen(void) { return screen; }
 unsigned tube_remote_revision(void) { return revision; }
 int tube_remote_identity_valid(const char *value) { return value && uuid(value); }
 void tube_remote_shutdown(void) { invalidate(0); enabled = 0; voice_enabled = 0; }
+
+int tube_remote_connected_count(void) { return connected_count; }
+const char *tube_remote_connected_name(int index) {
+    return index >= 0 && index < connected_count ? connected[index].name : "";
+}

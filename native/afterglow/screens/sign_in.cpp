@@ -441,7 +441,7 @@ class SignIn final : public Screen
         }
         else
         {
-            error_.clear();
+            error_ = fact_of(page, "error");
             set(state == "denied" ? State::denied : state == "expired" ? State::expired : state == "canceled" || state == "cancelled" ? State::canceled : State::failed);
             context.feedback.play(audio::Cue::error, 1.0f, 0.0f, 0.7f);
         }

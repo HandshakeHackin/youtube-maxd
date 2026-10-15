@@ -174,3 +174,5 @@ int main(int argc,char**argv) {
     Rml::Shutdown(); evo_provider_youtube.shutdown(); unlink(evo_data_path("youtube.json")); rmdir(directory);
     puts("PASS: sign-in and link pages draw their QR code; rendered frames read back module for module");
 }
+
+extern "C" int evo_net_callback_error(void) { return 0; }

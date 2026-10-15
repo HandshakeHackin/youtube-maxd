@@ -514,7 +514,7 @@ static void account_removed(void);
 enum { AUTH_IDLE, AUTH_STARTING, AUTH_PENDING, AUTH_AUTHORIZED, AUTH_CANCELED,
        AUTH_EXPIRED, AUTH_DENIED, AUTH_FAILED };
 static struct { int state; unsigned serial, revision;
-    char session[33], code[33], url[64], profile[33], name[601];
+    char session[33], code[33], url[64], profile[33], name[601], error[256];
     long long deadline, next_poll; } g_auth;
 static void ignored(int ok, int status, const char *body, size_t size, void *ud);
 static void auth_cleanup_request(Request *r, const cJSON *root);
@@ -1686,6 +1686,20 @@ void tube_set_error(const char *message) {
     evo_error_set("%s", clean);
 }
 
+/* Keep the failure on its sign-in session: background polls have no screen callback. */
+static void auth_request_error(Request *r, const char *message) {
+    if (r->kind == 9 && r->intent == g_auth.serial &&
+        (g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING)) {
+        copy(g_auth.error, sizeof g_auth.error, message);
+        for (size_t i=0; g_auth.error[i]; ++i)
+            if ((unsigned char)g_auth.error[i] < 32) g_auth.error[i]=' ';
+        if (strstr(g_auth.error, "://") || strstr(g_auth.error, "Bearer"))
+            copy(g_auth.error, sizeof g_auth.error, "The sign-in request failed. Start a new session.");
+        embedded_wording(g_auth.error, sizeof g_auth.error);
+    }
+    tube_set_error(message);
+}
+
 /* Content language and country offered by the companion (SmartTube's lists).
  * The same language list names the preferred caption and audio languages. */
 static const struct { const char *code, *name; } g_languages[] = {
@@ -2299,7 +2313,27 @@ void tube_row_fact(const char *row, const char *name, const char *value) {
     copy(g_row_facts[slot].name, sizeof g_row_facts[slot].name, name);
     copy(g_row_facts[slot].value, sizeof g_row_facts[slot].value, value);
 }
+/* Read these live rather than caching facts from an earlier sign-in attempt. */
+static int auth_row_fact(const char *row, int index, const char **name, const char **value) {
+    const int auth_row = row && (!strcmp(row,"auth:info") || !strcmp(row,"auth:info:code") ||
+        (g_auth.state == AUTH_AUTHORIZED && !strncmp(row,"library:profile:",16) && !strcmp(row+16,g_auth.profile)));
+    if (!auth_row) return -1;
+    if (index < 0 || index >= 7) return 0;
+    static const char *const keys[]={"state","user_code","verification_url","expires_in","poll_after","error","name"};
+    static const char *const states[]={"idle","starting","pending","authorized","canceled","expired","denied","failed"};
+    static char expires[24], delay[24];
+    const long long now=now_ms();
+    snprintf(expires,sizeof expires,"%lld",g_auth.state==AUTH_PENDING && g_auth.deadline>now ? (g_auth.deadline-now+999)/1000 : 0);
+    snprintf(delay,sizeof delay,"%lld",g_auth.state==AUTH_PENDING && g_auth.next_poll>now ? (g_auth.next_poll-now+999)/1000 : 0);
+    const char *values[]={states[g_auth.state],g_auth.code,g_auth.url,expires,delay,
+        g_auth.state==AUTH_FAILED ? g_auth.error : "",g_auth.state==AUTH_AUTHORIZED ? g_auth.name : ""};
+    if(name)*name=keys[index];
+    if(value)*value=values[index];
+    return 1;
+}
 int tube_row_fact_at(const char *row, int index, const char **name, const char **value) {
+    const int auth=auth_row_fact(row,index,name,value);
+    if (auth>=0) return auth;
     for (int i = 0; row && *row && index >= 0 && i < g_row_fact_used; ++i)
         if (!strcmp(g_row_facts[i].row, row) && !index--) {
             if (name) *name = g_row_facts[i].name;
@@ -2654,6 +2688,7 @@ static void complete(Request *r, int ok) {
     if (r->kind == 9 && r->intent == g_auth.serial && !ok &&
         (g_auth.state == AUTH_STARTING || g_auth.state == AUTH_PENDING)) {
         auth_cleanup_request(r, NULL);
+        if (!*g_auth.error) copy(g_auth.error,sizeof g_auth.error,"YouTube sign-in could not be completed. Start a new session.");
         tube_auth_cancel(); g_auth.state = AUTH_FAILED; ++g_auth.revision;
     }
     if (r->kind == 8 && r->intent == g_watch.serial && !ok) {
@@ -2834,13 +2869,13 @@ static int begin(Request *r) {
         if (!g_embedded_stopped) {
             char message[240];
             snprintf(message, sizeof message, "The built-in YouTube service could not start: %s. Select the item again to retry.", g_embedded_error);
-            tube_set_error(message);
+            auth_request_error(r, message);
         }
         complete(r, 0); return 0;
     }
-    if (!*g_source) { tube_set_error("Set the companion LAN address in Options first."); complete(r, 0); return 0; }
+    if (!*g_source) { auth_request_error(r, "Set the companion LAN address in Options first."); complete(r, 0); return 0; }
     if (!*g_token) {
-        if (!*g_pin) { tube_set_error("Pair first: enter the companion address followed by # and its six-digit code in Options."); complete(r, 0); return 0; }
+        if (!*g_pin) { auth_request_error(r, "Pair first: enter the companion address followed by # and its six-digit code in Options."); complete(r, 0); return 0; }
         char payload[64]; snprintf(payload, sizeof payload, "{\"code\":\"%s\"}", g_pin);
         r->stage = 0; return send_request(r, "POST", "/v1/pair", payload);
     }
@@ -2856,7 +2891,7 @@ static int begin(Request *r) {
         r->health_tried = 1; r->stage = 5; return send_request(r, "GET", "/v1/health", NULL);
     }
     if (r->requires && !companion_has(r->requires)) {
-        tube_set_error(g_embedded ? "This action is not part of the built-in YouTube service yet." : companion_known() ? "The paired companion does not offer this action. Update it and enable its library worker." :
+        auth_request_error(r, g_embedded ? "This action is not part of the built-in YouTube service yet." : companion_known() ? "The paired companion does not offer this action. Update it and enable its library worker." :
             "The companion did not report what it offers. Check that it is running and retry.");
         complete(r, 0); return 0;
     }
@@ -3452,6 +3487,7 @@ static int auth_rows(evo_provider_items_cb cb, void *ud) {
             g_auth.state == AUTH_DENIED ? "YouTube authorization denied" :
             g_auth.state == AUTH_STARTING ? "Requesting YouTube sign-in code" : "YouTube sign-in could not be completed";
         folder(&rows[n++], "auth:info", title, g_embedded ? "Account credentials stay in the app data on this PS5" : "Account credentials stay on the companion");
+        if (g_auth.state == AUTH_FAILED && *g_auth.error) copy(rows[0].overview,sizeof rows[0].overview,g_auth.error);
         if (g_auth.state != AUTH_STARTING)
             folder(&rows[n++], "auth:start", "Start a new sign-in", "Authorize using your phone or computer");
     }
@@ -3463,7 +3499,7 @@ static void auth_result(Request *r, const cJSON *result) {
     int changed = 1;
     const char *state = str(result, "state"), *session = str(result, "session");
     if (!auth_session_valid(session) || (*g_auth.session && strcmp(g_auth.session, session))) {
-        tube_set_error("The sign-in response was invalid."); complete(r, 0); return;
+        auth_request_error(r, "The sign-in response was invalid."); complete(r, 0); return;
     }
     if (!strcmp(state, "pending")) {
         const char *code = str(result, "user_code"), *url = str(result, "verification_url");
@@ -3479,7 +3515,7 @@ static void auth_result(Request *r, const cJSON *result) {
             cJSON_GetObjectItemCaseSensitive(result, "poll_after")->valuedouble > 60 ||
             expires < 1 || expires > 1800 || floor(expires) != expires || floor(delay) != delay || delay > 60) {
             auth_cancel_remote(r->auth_source, r->auth_token, session);
-            tube_set_error("The sign-in response was invalid."); complete(r, 0); return;
+            auth_request_error(r, "The sign-in response was invalid."); complete(r, 0); return;
         }
         changed = g_auth.state != AUTH_PENDING || strcmp(g_auth.code, code) || strcmp(g_auth.url, url);
         copy(g_auth.session, sizeof g_auth.session, session);
@@ -3493,15 +3529,18 @@ static void auth_result(Request *r, const cJSON *result) {
         const char *id = str(profile, "id"), *name = str(profile, "name");
         if (g_auth.state != AUTH_PENDING || !valid_profile(id) || strlen(id) != 22 || strncmp(id, "oauth_", 6) ||
             strspn(id + 6, "0123456789abcdef") != 16 || !*name || strlen(name) > 600) {
-            tube_set_error("The authorized profile response was invalid."); complete(r, 0); return;
+            auth_request_error(r, "The authorized profile response was invalid."); complete(r, 0); return;
         }
         g_auth.state = AUTH_AUTHORIZED;
         copy(g_auth.profile, sizeof g_auth.profile, id); copy(g_auth.name, sizeof g_auth.name, name);
     } else if (!strcmp(state, "canceled")) g_auth.state = AUTH_CANCELED;
     else if (!strcmp(state, "expired")) g_auth.state = AUTH_EXPIRED;
     else if (!strcmp(state, "denied")) g_auth.state = AUTH_DENIED;
-    else if (!strcmp(state, "failed")) g_auth.state = AUTH_FAILED;
-    else { tube_set_error("The sign-in response was invalid."); complete(r, 0); return; }
+    else if (!strcmp(state, "failed")) {
+        auth_request_error(r,*str(result,"error") ? str(result,"error") : "YouTube sign-in could not be completed. Start a new session.");
+        g_auth.state = AUTH_FAILED;
+    }
+    else { auth_request_error(r, "The sign-in response was invalid."); complete(r, 0); return; }
     if (g_auth.state != AUTH_PENDING) g_auth.code[0] = g_auth.url[0] = 0;
     if (changed) ++g_auth.revision;
     evo_provider_items_cb cb = r->items_cb; void *data = r->ud;
@@ -4097,7 +4136,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
         if (status == 404 || status == 410) resolve_failure(r,error);
-        tube_set_error(*str(error, "message") ? str(error, "message") : g_embedded ? "The built-in YouTube service did not answer. Retry." : "Could not reach the companion. Check that it is running and the LAN address is correct.");
+        auth_request_error(r, *str(error, "message") ? str(error, "message") : g_embedded ? "The built-in YouTube service did not answer. Retry." : "Could not reach the companion. Check that it is running and the LAN address is correct.");
         /* A refused field or a new pairing means the companion is not the one that was read. */
         if (status == 401 || status == 422) companion_forget();
         if (status == 401) { g_token[0] = 0; save(); }
@@ -4122,7 +4161,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (r->stage == 1) {
         const char *job = str(root, "job");
         if (!*job || strlen(job) >= sizeof r->job || strspn(job, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") != strlen(job)) {
-            cJSON_Delete(root); tube_set_error("The companion job response was invalid."); complete(r, 0); return;
+            cJSON_Delete(root); auth_request_error(r, "The companion job response was invalid."); complete(r, 0); return;
         }
         copy(r->job, sizeof r->job, job); r->stage = 2; r->next_poll = now_ms() + 250;
         cJSON_Delete(root); return;
@@ -4146,7 +4185,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             cJSON_Delete(root); return;
         }
         if (!strcmp(state,"failed")) resolve_failure(r,error);
-        tube_set_error(*str(error, "message") ? str(error, "message") : "The request was cancelled or could not be completed.");
+        auth_request_error(r, *str(error, "message") ? str(error, "message") : "The request was cancelled or could not be completed.");
         cJSON_Delete(root); complete(r, 0); return;
     }
     const cJSON *result = cJSON_GetObjectItemCaseSensitive(root, "result");
@@ -4534,7 +4573,7 @@ void tube_poll(void) {
         Request *r = &g_requests[i];
         if (!r->used || r->inflight) continue;
         if (r->generation != g_generation || now_ms() > r->deadline) {
-            tube_set_error(r->kind == 6 ? "The account change was not confirmed. Check your account before repeating it." :
+            auth_request_error(r, r->kind == 6 ? "The account change was not confirmed. Check your account before repeating it." :
                 "The companion request was cancelled or timed out. Retry."); complete(r, 0); continue;
         }
         if (r->stage == 2 && now_ms() >= r->next_poll) {
@@ -6066,24 +6105,41 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "settings:remote", 15)) {
             char label[96]; const char *code = tube_remote_code();
             const int state = tube_remote_state();
-            snprintf(label, sizeof label, "Phone connection: %s", g_remote_write_failed ? "local data not saved" : g_remote_entropy_failed ? "random source unavailable" : !g_remote_enabled ? "off" :
+            const int linked = tube_remote_connected_count();
+            const int failed = g_remote_write_failed || g_remote_entropy_failed ||
+                (g_remote_enabled && !g_remote_identity_saved) || state == TUBE_REMOTE_FAILED;
+            const char *status = failed ? "stopped" : !g_remote_enabled ? "off" :
+                state == TUBE_REMOTE_LISTENING ? (linked ? "connected" : "ready") : "connecting";
+            const char *words = g_remote_write_failed ? "local data not saved" : g_remote_entropy_failed ? "random source unavailable" : !g_remote_enabled ? "off" :
                 !g_remote_identity_saved ? "storage unavailable" : state == TUBE_REMOTE_FAILED ? "stopped; retry linking" :
-                state == TUBE_REMOTE_LISTENING ? "ready" : "connecting");
+                state == TUBE_REMOTE_LISTENING ? (linked ? "connected" : "ready") : "connecting";
+            snprintf(label, sizeof label, "Phone connection: %s", words);
             CATALOG_FOLDER( "settings:remote:info", label, "YouTube app TV-code pairing" EXPERIMENTAL); experimental(&out[n - 1]);
+            tube_row_fact("settings:remote:info", "state", status);
+            tube_row_fact("settings:remote:info", "value", words);
+            tube_row_fact("settings:remote:info", "available", embedded_lacks(COMPANION_REMOTE) ? "0" : "1");
             if (*code) {
                 char formatted[20] = ""; size_t length = strlen(code), j = 0;
                 for (size_t i = 0; i < length; ++i) { if (i && !(i % 3)) formatted[j++] = ' '; formatted[j++] = code[i]; }
                 snprintf(label, sizeof label, "TV code: %s", formatted);
                 CATALOG_FOLDER( "settings:remote:code", label, "Enter this code in the YouTube app's TV-code pairing screen");
+                tube_row_fact("settings:remote:code", "value", code);
             }
             CATALOG_FOLDER( "settings:remote:pair", *code ? "Get a new TV code" : "Link a phone", "Enable connection and request a TV code");
             CATALOG_FOLDER( "settings:remote:toggle", g_remote_enabled ? "Turn phone connection off" : "Turn phone connection on", "Your local library stays available");
+            tube_row_fact("settings:remote:toggle", "selected", g_remote_enabled ? "1" : "0");
             CATALOG_FOLDER( "settings:remote:reset", "Reset phone pairing", "Turn off and forget this TV's pairing identity");
             CATALOG_FOLDER( "settings:remote:disconnect", g_remote_close_on_disconnect ? "When phone disconnects: close the app" : g_remote_stop_on_disconnect ? "When phone disconnects: stop playback" : "When phone disconnects: keep playing",
                 g_remote_close_on_disconnect ? "Close ProsperoTube when a linked phone disconnects, including while browsing" :
                 "Stop applies to phone-started playback; disconnections may happen when the phone sleeps");
             CATALOG_FOLDER( "settings:remote:history", g_remote_no_history ? "History for phone playback: off" : "History for phone playback: on",
                 "Off records no local history and sends no account reports for videos started from the phone");
+            for (int i = 0; i < linked && i < 32; ++i) {
+                char id[64]; snprintf(id, sizeof id, "settings:remote:device:%d", i);
+                CATALOG_FOLDER(id, tube_remote_connected_name(i), "");
+                out[n - 1].tube_interface = 0; /* A phone's name is user content. */
+                tube_row_fact(id, "connected", "1");
+            }
         } else if (!strncmp(parent, "settings:dearrow", 16)) {
             CATALOG_FOLDER( "settings:dearrow:titles", g_dearrow_titles ? "DeArrow titles: on" : "DeArrow titles: off", "Community titles; turn off to restore original titles");
             CATALOG_FOLDER( "settings:dearrow:thumbnails", g_dearrow_thumbnails ? "DeArrow thumbnails: on" : "DeArrow thumbnails: off", "Community thumbnails; changes apply to newly loaded videos");

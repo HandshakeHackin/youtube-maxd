@@ -8,8 +8,8 @@ service on the same `POST /v1/remote` with the same actions, fields, bounds and
 error codes. The native driver and the provider are unchanged apart from when
 the rows are shown. Everything below about the protocol and the native side
 applies to both; this section lists what is particular to the built-in one.
-**Host-tested only, against a stand-in for YouTube's service. No real phone has
-been linked to it.**
+**Host-tested against a stand-in for YouTube's service. Real-phone pairing
+and playback acceptance remain unverified.**
 
 - **Offered by the feature list.** The built-in service lists `remote` in
   `GET /v1/health`; the provider shows **Phone pairing (experimental)** and
@@ -102,6 +102,27 @@ It provides opt-in asynchronous registration/pair/poll/report/stop, typed comman
 owner-tagged acknowledgments and stable device/screen identity getters.
 The provider calls the driver and Application connects it to the native player.
 
+## Offline pairing repair (2026-10-15)
+
+Afterglow now receives explicit state, enabled and code facts from the native
+provider and refreshes throughout an enabled connection. Delayed codes, linked
+phones, disconnects and later failures no longer depend on reopening the page.
+Validated connection events maintain a bounded 32-device list; duplicate polls
+and retired sessions cannot restore old status. Connection metadata does not
+block cast commands or imply that playback started successfully.
+
+The provider integration test keeps the actual LinkPhone data/update logic
+mounted across delayed registration and code delivery, connection events, cast
+admission/acknowledgment, device removal, failure and disable. It uses the real
+provider, ProviderSource, Data and native phone driver, with a deterministic
+transport. Decoder/network playback and a real phone are outside this test.
+
+Google account sign-in is separate. Its provider rows now expose the actual
+state, remaining expiry and public error. A failed credential write retains
+its actionable storage error through background polling and Afterglow; it does
+not retry an uncertain token redemption. No console test was performed for
+these changes.
+
 ## Native pairing settings
 
 YouTube preferences > Phone pairing provides Link a phone, connection On/Off,
@@ -183,8 +204,14 @@ without silently dropping a playback command.
 
 There are at most four active receiver contexts, each with a 120-second renewable
 native lease and a 128-command queue. Normal long-poll completion opens another
-back-channel request. Transport errors require explicit restart; uncertain state
-reports are not automatically replayed. Failure clears pending commands and
+back-channel request. A failed service receiver stays failed, but the native
+driver retires it and attempts a new session for classified transient failures
+(`remote_upstream`, DNS, connect or send failure), after 1, 2 and 4 seconds.
+Sixty seconds of successful listening responses reset that budget. Reset,
+disable and profile changes cancel recovery. Protocol/auth errors and exhausted
+retries require explicit restart. An old backend session returned after failed
+cleanup is rejected to prevent replaying its commands. Uncertain state reports
+are not automatically replayed. Failure clears pending commands and
 stops the stream, so delayed callbacks cannot revive the receiver. Stop and
 companion shutdown cancel owned tasks and clear private protocol state. Channel
 termination is best effort with a two-second deadline.

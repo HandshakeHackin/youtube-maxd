@@ -116,3 +116,5 @@ int main(void) {
     assert(!unlink(evo_data_path("youtube.json"))); assert(!rmdir(dir));
     puts("Native phone pairing, stable identity, atomic storage, reset and late cleanup passed"); return 0;
 }
+
+int evo_net_callback_error(void) { return 0; }

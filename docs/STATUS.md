@@ -13,6 +13,12 @@ direct-TV or precise A/V-sync acceptance. App closure was not confirmed.
 Sustained playback, physical keyboard input and post-playback glyph recovery
 remain unconfirmed.
 
+Phone pairing has offline fixes for stale Afterglow state, missing linked-device
+feedback and transient receiver recovery. The integration regression exercises
+delayed code delivery and cast admission with the pairing page mounted. Google
+sign-in storage failures now retain their actionable message. These changes
+are not installed; real-phone validation remains pending.
+
 Follow-up `c1b67a5` adds decoder-renewal failure quarantine and bounded
 refresh/HDR retries. Host sanitizer and mode-policy tests pass; production
 and diagnostic ZIPs are built and verified but not installed. Reuse/control

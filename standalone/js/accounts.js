@@ -117,7 +117,7 @@ export class DeviceAuth {
     if (session.state === 'pending') Object.assign(value, { user_code: session.user_code, verification_url: session.verification_url,
       expires_in: Math.max(0, Math.ceil(session.deadline - this.clock())), poll_after: Math.max(0, Math.ceil(session.next_poll - this.clock())) });
     if (session.state === 'authorized') value.profile = session.profile;
-    if (session.state === 'failed') value.error = 'YouTube sign-in could not be completed. Start a new session.';
+    if (session.state === 'failed') value.error = session.error || 'YouTube sign-in could not be completed. Start a new session.';
     return value;
   }
   // `owner` is the job that asked, so a cancelled job can withdraw what it started.
@@ -176,11 +176,15 @@ export class DeviceAuth {
         this.active = null;
       } else throw new Error('response');
       return this.#public(session);
-    } catch {
-      // An uncertain redemption is never tried again: the session ends.
+    } catch (error) {
+      // An uncertain redemption is never tried again: the session ends. A known
+      // local storage failure is actionable and must survive subsequent status reads.
       if (session.state === 'pending') session.state = 'failed';
       if (this.active === session) this.active = null;
-      throw new ServiceError('auth_failed', 'YouTube sign-in could not be completed. Start a new session.', 502);
+      const failure = error instanceof ServiceError && error.code === 'auth_storage' ? error :
+        new ServiceError('auth_failed', 'YouTube sign-in could not be completed. Start a new session.', 502);
+      session.error = failure.message;
+      throw failure;
     } finally {
       session.polling = false; delete session.task;
       if (session.state !== 'pending') { delete session.client; delete session.device_code; }

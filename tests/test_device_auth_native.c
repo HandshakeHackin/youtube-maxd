@@ -30,6 +30,7 @@ int evo_net_request_async(const char *method, const char *url, const char *body,
         snprintf(p->bearer, sizeof p->bearer, "%s", headers[i]);
     p->cb = cb; p->ud = ud; return 0;
 }
+int evo_net_callback_error(void) { return 0; }
 void evo_error_set(const char *format, ...) { (void)format; }
 static void reply(int i, int status, const char *body) {
     assert(i < count); Pending p = pending[i];
@@ -77,6 +78,10 @@ int main(void) {
     assert(strstr(pending[0].body, "\"action\":\"auth\"") && strstr(pending[0].body, "\"start\""));
     code_done(900, 5);
     assert(ok && rows == 3 && !strcmp(items[0].title, "ABCD-EFGH"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"state"),"pending"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"expires_in"),"900"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"poll_after"),"5"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"error"),""));
     assert(strstr(items[0].overview, "automatic") && !strcmp(items[2].id, "auth:cancel"));
     unsigned revision = tube_auth_revision();
     p->list_catalog("auth:start", 0, list, NULL); assert(!count && rows == 3);
@@ -91,6 +96,8 @@ int main(void) {
     p->list_catalog("auth:session", 0, list, NULL);
     assert(ok && rows == 2 && !strcmp(items[0].id, "library:profile:oauth_0123456789abcdef"));
     assert(!strcmp(items[0].subtitle, "Living room")); check_store();
+    assert(!strcmp(tube_row_fact_get(items[0].id,"state"),"authorized"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"name"),"Living room"));
     p->list_catalog(items[0].id, 0, list, NULL); assert(rows == 12 && !count);
     assert(!strcmp(items[11].id, "account:remove"));
     unsigned accounts_revision = tube_accounts_revision();
@@ -146,6 +153,7 @@ int main(void) {
     assert(count == 1 && strstr(pending[0].url, "/v1/auth/cancel")); clear_ignored();
     p->list_catalog("auth:session", 0, list, NULL);
     assert(rows == 2 && strstr(items[0].title, "expired"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"state"),"expired"));
 
     p->list_catalog("auth:start", 0, list, NULL); code_done(900, 0);
     clock_ms += 1000; tube_poll(); assert(count == 1);
@@ -171,9 +179,33 @@ int main(void) {
     job_done("{\"state\":\"denied\",\"session\":\"0123456789abcdef0123456789abcdef\"}");
     p->list_catalog("auth:session", 0, list, NULL);
     assert(rows == 2 && strstr(items[0].title, "denied"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"state"),"denied"));
     clock_ms += 10000; tube_poll(); assert(!count);
     assert(!p->list_catalog("auth:start", 1, list, NULL) && !ok && !count);
     assert(!p->list_catalog("auth:unknown", 0, list, NULL) && !ok && !count);
+
+    /* Failed background status keeps its actionable message for later UI reads. */
+    p->list_catalog("auth:start", 0, list, NULL); code_done(1800, 0);
+    assert(!strcmp(tube_row_fact_get("auth:info:code","expires_in"),"1800"));
+    clock_ms += 1000; tube_poll();
+    reply(0, 200, "{\"job\":\"storage_failure\",\"state\":\"pending\"}");
+    clock_ms += 250; tube_poll();
+    reply(0, 200, "{\"state\":\"failed\",\"error\":{\"code\":\"auth_storage\",\"message\":\"The account could not be written to private storage.\"}}");
+    clear_ignored();p->list_catalog("auth:session",0,list,NULL);
+    assert(ok && !strcmp(tube_row_fact_get(items[0].id,"state"),"failed"));
+    assert(!strcmp(tube_row_fact_get(items[0].id,"error"),"The account could not be written to private storage."));
+    assert(strstr(items[0].overview,"private storage"));
+    p->list_catalog("auth:start",0,list,NULL);code_done(1800,5);
+    assert(!strcmp(tube_row_fact_get(items[0].id,"error"),""));
+    p->list_catalog("auth:cancel",0,list,NULL);clear_ignored();
+    assert(!strcmp(tube_row_fact_get("auth:info","state"),"canceled"));
+    assert(!strcmp(tube_row_fact_get("auth:info","error"),""));
+    /* A retained failed-session answer takes the same path, with URL redaction. */
+    p->list_catalog("auth:start",0,list,NULL);code_done(900,0);
+    clock_ms+=1000;tube_poll();
+    job_done("{\"state\":\"failed\",\"session\":\"0123456789abcdef0123456789abcdef\",\"error\":\"Failed at https://example.invalid/private-token\"}");
+    assert(!strcmp(tube_row_fact_get("auth:info","state"),"failed"));
+    assert(!strcmp(tube_row_fact_get("auth:info","error"),"The sign-in request failed. Start a new session."));
     assert(calls > 10);
     unlink(evo_data_path("youtube.json")); assert(!rmdir(dir));
     puts("native account sign-in/removal: polling, confirmation, Guest reset, reconciliation, cancellation and privacy passed");

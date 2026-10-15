@@ -279,3 +279,5 @@ int main(int argc,char**argv) {
     Rml::Shutdown();evo_provider_youtube.shutdown();unlink(evo_data_path("youtube.json"));rmdir(directory);
     puts("PASS: actual provider callbacks preserve current focus/scroll across polls, handle removal/mode/setup, and bind literal shipping chat RML");
 }
+
+extern "C" int evo_net_callback_error(void) { return 0; }

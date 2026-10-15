@@ -10,7 +10,7 @@
 // "settings:remote:reset" forgets this TV's pairing. An acting row answers
 // with the catalog as it is afterwards.
 //
-// Facts it reads: on "settings:remote:info" state (off, connecting, ready,
+// Facts it reads: on "settings:remote:info" state (off, connecting, ready, connected,
 // stopped; anything else is shown in the provider's own words from value) and
 // available ("0" for a build whose service links no phones); on
 // "settings:remote:code" value (the digits); on "settings:remote:toggle"
@@ -33,7 +33,7 @@ namespace
 using namespace acct;
 
 constexpr float kColumn = 900.0f;
-constexpr float kPoll = 2.0f; // seconds between two looks while a code is awaited
+constexpr float kPoll = 2.0f; // Also observe linked phones and later connection failures.
 constexpr Rect kDevices{kLeft, 728.0f, kColumn, 152.0f};
 constexpr Rect kPhone{1380.0f, 220.0f, 320.0f, 640.0f};
 constexpr Rect kSheet{1180.0f, 212.0f, 644.0f, 484.0f};
@@ -143,8 +143,8 @@ class LinkPhone final : public Screen
                 }
             }
         }
-        // While YouTube is asked for a code, the catalog is looked at again.
-        if (known_ && state() == "connecting" && ticket_ == 0)
+        // The receiver changes independently of this screen, including after a code arrives.
+        if (known_ && remote_.on && ticket_ == 0)
         {
             poll_in_ -= context.dt;
             if (poll_in_ <= 0.0f)
@@ -369,12 +369,12 @@ class LinkPhone final : public Screen
         next.on = toggle != nullptr && toggle->has("selected");
         if (next.state.empty())
             next.state = !next.code.empty() ? "ready" : next.on ? "connecting" : "off";
-        if (next.state != "off")
+        if (toggle != nullptr && toggle->fact("selected").empty() && next.state != "off")
             next.on = true;
         for (const model::Row &row : page.rows)
         {
-            if (row.id.rfind("settings:remote:device:", 0) == 0)
-                next.devices.push_back({row.title, row.subtitle, !row.has("connected") ? row.fact("connected").empty() : true});
+            if (row.id.rfind("settings:remote:device:", 0) == 0 && (row.fact("connected").empty() || row.has("connected")))
+                next.devices.push_back({row.title, row.subtitle, true});
         }
         for (int i = 0; i < 3; ++i)
         {
@@ -570,13 +570,13 @@ class LinkPhone final : public Screen
             overline(g, heading, kDevices.x + 30.0f, kDevices.y + 46.0f, g.k.ink3);
             // The connection, in a word and a mark: never by colour alone.
             const std::string &now = state();
-            const char *words = now == "ready" ? tr("Connection is on") : now == "connecting" ? tr("Connecting") : now == "off" ? tr("Connection is off")
+            const char *words = now == "connected" ? tr("Linked now") : now == "ready" ? tr("Connection is on") : now == "connecting" ? tr("Connecting") : now == "off" ? tr("Connection is off")
                                 : now == "stopped" ? tr("Connection stopped") : remote_.state_words.c_str();
-            const Color dot = now == "ready" ? g.k.theme.success : now == "connecting" ? g.k.theme.warning : now == "off" ? g.k.ink3 : g.k.theme.danger;
+            const Color dot = (now == "ready" || now == "connected") ? g.k.theme.success : now == "connecting" ? g.k.theme.warning : now == "off" ? g.k.ink3 : g.k.theme.danger;
             const std::string fitted = fit(g.f.regular, words, 22.0f, 300.0f);
             const float w = text(g, g.f.regular, fitted, kDevices.x + kDevices.w - 30.0f, kDevices.y + 105.0f, 22.0f, g.k.ink2, gfx::Align::right);
             const float dot_x = kDevices.x + kDevices.w - 30.0f - w - 22.0f;
-            if (now == "ready")
+            if (now == "ready" || now == "connected")
                 g.l.circle(dot_x, kDevices.y + 98.0f, 6.0f, dot);
             else if (now == "connecting")
                 g.l.circle(dot_x, kDevices.y + 98.0f, 6.0f, dot.with_alpha(g.reduced ? 1.0f : 0.5f + 0.5f * ui::breathe(g.time, 1.6f)));

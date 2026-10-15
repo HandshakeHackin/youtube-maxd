@@ -9,9 +9,10 @@ kit="$(python3 "${root}/scripts/ui_kit.py")"
 evo="${work}/projects/evoplayer"
 destination="${root}/build/tests/afterglow-data"
 mkdir -p "${destination}"
+python3 "${root}/tests/afterglow/provider/extract_link_phone.py" "${destination}/link_phone_probe.hpp"
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer)
 cflags=(-std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -Werror "${sanitize[@]}" -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include")
-cxxflags=(-std=c++20 -Wall -Wextra -Werror "${sanitize[@]}" -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include" -I"${kit}/src" -I"${kit}")
+cxxflags=(-I"${destination}" -std=c++20 -Wall -Wextra -Werror "${sanitize[@]}" -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include" -I"${kit}/src" -I"${kit}")
 objects=()
 for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "${root}/native/tube_player_extra.c" "${root}/native/tube_backup.c" \
     "${root}/native/tube_phone.c" "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c"; do

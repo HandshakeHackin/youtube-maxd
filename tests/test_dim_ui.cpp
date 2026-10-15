@@ -107,3 +107,5 @@ int main(int argc,char**argv) {
     Rml::Shutdown(); evo_provider_youtube.shutdown(); unlink(evo_data_path("youtube.json")); rmdir(directory);
     puts("PASS: the browser screen dims by the chosen amount over the whole frame and returns on input");
 }
+
+extern "C" int evo_net_callback_error(void) { return 0; }

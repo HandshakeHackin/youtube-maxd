@@ -4,6 +4,17 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Offline phone-pairing fixes (2026-10-15)
+
+Fixed the provider/Afterglow state contract, enabled-state refresh, linked-phone
+feedback, and bounded transient reconnect without old command replay. Added
+real provider-to-LinkPhone integration coverage through cast admission while
+the pairing page stays mounted. Account sign-in now preserves credential-save
+errors and supplies actual state/expiry facts. See [receiver details](REMOTE_SERVICE.md).
+
+These changes are offline only: no console access, deployment or Chiaki-ng.
+The installed console build remains unchanged; real-phone acceptance is pending.
+
 ## Owner replay: no noticeable hitching via RDP (2026-10-15)
 
 After the installed `6fc6d58` VP9 identity fix, the owner reports no noticeable

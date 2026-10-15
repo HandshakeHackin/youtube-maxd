@@ -128,3 +128,5 @@ int main(void) {
     puts("PASS: native chat pairing, direct polls, bounded snapshots, stable identities, retirement, mode/end/failure/source lifecycle and storage privacy");
     return 0;
 }
+
+int evo_net_callback_error(void) { return 0; }

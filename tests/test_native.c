@@ -628,3 +628,5 @@ int main(void) {
     printf("PASS: native provider, local state, stable IDs, pairing, jobs, cancellation, origins, SponsorBlock, chapters, discussions, account intents\n");
     return 0;
 }
+
+int evo_net_callback_error(void) { return 0; }

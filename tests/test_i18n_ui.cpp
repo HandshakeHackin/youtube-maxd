@@ -328,3 +328,5 @@ int main(int argc, char** argv) {
     printf("PASS: %d languages draw the main menu and the preferences, five of them again with other scales, card text and colour schemes; "
            "%zu different letters, all with glyphs; the key line takes two lines on %d of %d pages\n", languages, letters.size(), wrapped, checked);
 }
+
+extern "C" int evo_net_callback_error(void) { return 0; }

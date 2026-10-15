@@ -14,12 +14,16 @@
 
 #include "afterglow/app/data_provider.hpp"
 #include "afterglow/app/play_start.hpp"
+#include "link_phone_probe.hpp"
 
 extern "C"
 {
 #include "evo_data_path.h"
 #include "evo_net.h"
 #include "tube_provider.h"
+#include "tube_remote.h"
+#include "tube_phone.h"
+#include "cJSON.h"
 }
 
 #include <algorithm>
@@ -213,6 +217,8 @@ const afterglow::model::Shelf *shelf(const afterglow::model::Home &home, const c
 }
 
 } // namespace
+
+extern "C" int evo_net_callback_error(void) { return 0; }
 
 extern "C" int evo_net_request_async(const char *method, const char *url, const char *post, const char **headers,
                                      int header_count, evo_net_cb cb, void *ud)
@@ -655,9 +661,93 @@ int main()
         start.busy(false, false);
         assert(start.step(400.5) && start.state(&reason, 400.5) == Start::idle);
     }
+    {
+        // Real provider -> ProviderSource -> Data -> LinkPhone update/take. The code arrives after
+        // the action answer, with no user refresh; connected events and cast arrive while mounted.
+        serve(kNothing);
+        assert(g_pending.empty());
+        ProviderSource source;
+        Data data(source);
+        pairing_test::LinkPhoneProbe screen;
+        const auto frames = [&](int count = 6) {
+            for (int i = 0; i < count; ++i) { data.pump(); screen.update(data, 0.5f); }
+        };
+        const auto action_index = [&](const char *action) {
+            const std::string field = std::string("\"action\":\"") + action + "\"";
+            for (std::size_t i = 0; i < g_pending.size(); ++i)
+                if (g_pending[i].url.find("/v1/remote") != std::string::npos && g_pending[i].body.find(field) != std::string::npos) return i;
+            assert(false && "expected remote request"); return std::size_t(0);
+        };
+        const std::string session = "0123456789abcdef0123456789abcdef";
+        const std::string status = "{\"api_version\":1,\"state\":\"listening\",\"session\":\"" + session + "\"";
+        frames();
+        assert(screen.state() == "off" && !screen.remote_.on && screen.remote_.code.empty());
+        screen.act(data, "settings:remote:pair"); frames();
+        assert(screen.state() == "connecting" && screen.remote_.on && screen.remote_.code.empty());
+        tube_poll();
+        const auto start = action_index("start");
+        cJSON *request = cJSON_Parse(g_pending[start].body.c_str()); assert(request);
+        const std::string device = cJSON_GetObjectItemCaseSensitive(request, "device_id")->valuestring;
+        cJSON_Delete(request);
+        frames(12); // Delayed registration must not disable catalog polling.
+        reply(start, 1, 200, status + ",\"device_id\":\"" + device + "\",\"screen_id\":\"screen-afterglow\"}");
+        tube_poll();
+        const auto pair = action_index("pair");
+        frames(12);
+        assert(screen.remote_.code.empty() && screen.remote_.on);
+        reply(pair, 1, 200, status + ",\"pairing_code\":\"123456789012\"}");
+        frames(12);
+        assert(screen.state() == "ready" && screen.remote_.code == "123456789012");
+        assert(!std::strcmp(tube_row_fact_get("settings:remote:toggle", "selected"), "1"));
+        assert(!std::strcmp(tube_row_fact_get("settings:remote:code", "value"), "123456789012"));
+        int64_t phone_time = 1000000000000LL;
+        tube_remote_tick(phone_time);
+        reply(action_index("poll"), 1, 200, status + ",\"ack\":0,\"commands\":["
+            "{\"sequence\":1,\"action\":\"remoteConnected\",\"device_id\":\"phone-one\",\"name\":\"My phone\"},"
+            "{\"sequence\":2,\"action\":\"loungeStatus\",\"devices\":[{\"device_id\":\"phone-one\",\"name\":\"My phone\"}]},"
+            "{\"sequence\":3,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\"],"
+            "\"playlist\":\"\",\"index\":0,\"ctt\":\"\",\"position_sec\":12.5}]}");
+        frames(12);
+        assert(screen.state() == "connected" && screen.remote_.devices.size() == 1 && screen.remote_.devices[0].name == "My phone");
+        int browser_requests = 0;
+        tube_phone_controls controls{};
+        controls.context = &browser_requests;
+        controls.snapshot = [](void *, tube_remote_player *) { return 0; };
+        controls.browser = [](void *value) { ++*static_cast<int *>(value); };
+        tube_phone_tick_at(&controls, ++phone_time); // Connected and status do not block the cast.
+        tube_phone_tick_at(&controls, ++phone_time);
+        tube_phone_tick_at(&controls, ++phone_time);
+        char video[12]; double position = 0;
+        const unsigned ticket = tube_phone_take(video, &position);
+        assert(ticket && browser_requests == 1 && !std::strcmp(video, "abcdefghijk") && position == 12.5);
+        assert(tube_phone_launch_bind(ticket, 17) && tube_phone_launch_finish(ticket, 1));
+        frames();
+        assert(screen.state() == "connected"); // Screen stays mounted throughout native launch admission.
+        tube_remote_tick(phone_time += 3000);
+        reply(action_index("update"), 1, 200, status + "}");
+        tube_remote_tick(phone_time += 3000);
+        reply(action_index("poll"), 1, 200, status + ",\"ack\":3,\"commands\":["
+            "{\"sequence\":4,\"action\":\"loungeStatus\",\"devices\":[]}]}");
+        frames(12);
+        assert(screen.state() == "ready" && screen.remote_.devices.empty());
+        tube_phone_tick_at(&controls, ++phone_time);
+        tube_remote_command command{};
+        // An invalid ordered poll fails the receiver; the ready page must show the failure and erase its stale code.
+        tube_remote_tick(phone_time += 3000);
+        reply(action_index("update"), 1, 200, status + "}");
+        tube_remote_tick(phone_time += 3000);
+        reply(action_index("poll"), 1, 200, status + ",\"ack\":4,\"commands\":[{\"sequence\":6,\"action\":\"play\"}]}");
+        frames(12);
+        assert(screen.state() == "stopped" && screen.remote_.code.empty() && screen.remote_.devices.empty());
+        assert(!tube_remote_take(&command));
+        screen.act(data, "settings:remote:toggle"); frames();
+        assert(screen.state() == "off" && !screen.remote_.on);
+        // Dispose the bounded stop request; no live network was used.
+        while (!g_pending.empty()) reply(0, 1, 200, "{\"api_version\":1,\"state\":\"stopped\"}");
+    }
     p->shutdown();
     std::puts("PASS: Afterglow data on the provider: Guest Home with videos first, one request at a time and no further than the page reaches, row facts in the view "
               "models, a failed job, a cancelled request, a typed text with no prompt armed, the browsing profile, completions and matches while a search is "
-              "typed with a newer text taking the place of an older request");
+              "typed with a newer text taking the place of an older request; delayed phone code, connection/device changes, cast admission while mounted, and receiver failure");
     return 0;
 }
