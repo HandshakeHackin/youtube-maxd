@@ -233,7 +233,7 @@ manifests described below.
 
 Further acceptance is still needed for real account use, phone casting, a
 published update, interface languages, AV1, backups, physical HDR indication,
-audible Opus and long public-network playback. A direct-LAN 3840x2160 VP9/Opus
+audible Opus and longer public-network endurance. A direct-LAN 3840x2160 VP9/Opus
 stream played through the native PS5 decoder for 304 seconds to natural EOF
 with 9,416 published frames, five late drops, two successful 4K seeks and no
 GPU fault on .40. A revised build repeated the 304-second path on .30 with
@@ -241,7 +241,15 @@ GPU fault on .40. A revised build repeated the 304-second path on .30 with
 4K Afterglow artwork and navigation checks without a GPU fault. A separate
 bounded live YouTube test on .30 opened native 3840x2160 VP9 at 25 fps,
 advanced the position by 11 seconds, and published 315 frames with four late
-drops. Synthetic live DVR rewind and UTC restore
+drops. An earlier public BBC 4K/25 test reproduced severe slowdown after a
+-60-second seek: only 24.07 seconds of progress in the next 150 seconds. Its
+selected DASH/WebM track advertised 2 kbit/s and was limited to 8 MB of video
+read-ahead. Commit `cd45171` raises that cap to 48 MB for implausibly low-rate
+4K tracks. Two independent .30 public BBC sessions then passed 150 seconds of
+playback, a -60-second seek and another 150 seconds: their post-seek intervals
+advanced 138.88 and 144.85 seconds. Both saved distinct 4K player scanouts,
+closed cleanly and left no new error or GPU fault. This bounded result does not
+cover every public CDN condition. Synthetic live DVR rewind and UTC restore
 passed on .30. Synthetic PQ, HLG and SDR clips produced distinct nonflat
 scanout captures on .40, and active 30-to-25 fps playback changed the actual
 output refresh from 120 to 60 Hz. Earlier live 4K candidates had GPU faults;
@@ -258,7 +266,8 @@ languages that need other fonts or right-to-left layout.
 > an update of the app arrives. On 2026-10-14 YouTube began refusing requests
 > for whole media files; the player now reads MP4 and WebM streams in small byte
 > ranges. Native VP9 1080p and bounded 2160p have passed on the console;
-> longer live 2160p playback remains under investigation.
+> two five-minute public 2160p VOD runs with rewind have passed. Longer live
+> 2160p playback remains under investigation.
 
 ## Roadmap
 
@@ -287,8 +296,9 @@ What is planned, roughly in order. Nothing here has a date.
 
 **Playback**
 - [ ] Validate long public live VP9/Opus and 4K playback. Bounded direct-LAN
-      4K/30 with seeking and public live 4K/25 passed on PS5; longer public live
-      playback and audible Opus remain unverified.
+      4K/30 and two public-network 4K/25 VOD sessions with a -60-second seek
+      passed on PS5; longer public live playback, varied CDN conditions and
+      audible Opus remain unverified.
 - [x] HDR selection and output for PQ, HLG and SDR (synthetic PS5 scanouts and
       format readback passed; TV-reported HDMI HDR indication remains unverified).
 - [x] Rewind and remember live position, including a sliding DVR window
@@ -308,8 +318,6 @@ What is planned, roughly in order. Nothing here has a date.
       check with self-update from a published release.
 
 **Smaller items**
-- [ ] Posting comments and live-chat messages beyond the current experimental
-      rows.
 - [x] Queue reordering in the Library through scoped Move up/down actions
       (provider and four-look board checks pass; console acceptance pending).
 - [ ] Voice search without a computer.

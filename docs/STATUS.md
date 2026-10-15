@@ -25,20 +25,24 @@ The later public BBC Earth 4K/25 test on .30 advanced 150.14 seconds during
 its first 150-second interval and landed a -60-second seek within 0.5 seconds
 of the requested position. In the next 150-second interval it advanced only
 24.07 seconds, with presentation falling to about 3.5 frames/s. The video
-packet queue stayed near 120 while audio packets ran dry. FFmpeg's
-premature-file-end notices appeared during healthy playback too, and neither
-HTTP 403 nor a GPU fault appeared in this run. Audio starvation is a plausible
-explanation, but its cause is unproven. Stage 6 restored the nine saved-state
-files exactly, found healthy services and unchanged error records, and released
-the .30 lock. A focused diagnostic retest on .30 advanced 149.93 seconds in its
-first 150 seconds, then landed a -60-second seek and advanced 53.38 seconds
-over the next 60 seconds. Its token-safe counters showed about 6–7 seconds
-of seek preroll before audio packets and PCM output resumed, the audio and
-video clocks tracked closely, and underruns stopped increasing. The earlier
-sustained 3–4 frames/s collapse did not recur in this single run. No HTTP 403,
-GPU fault or new error appeared. Exact nine-file restoration, idle services
-and lock release passed. The temporary instrumentation was removed; a demux/
-audio-clock fix and repeat public-network endurance check remain pending.
+packet queue stayed near 120 while audio packets ran dry. A token-safe
+diagnostic retest did not reproduce the sustained collapse; it showed about
+6–7 seconds of seek preroll before audio/PCM resumed and clocks stabilized.
+Both runs restored the nine saved-state files and left .30 healthy and idle.
+
+The selected 4K DASH/WebM track reported a bogus 2 kbit/s rate, limiting its
+video read-ahead to 8 MB. Commit `cd45171` keeps 4K video read-ahead at 48 MB
+when that rate is implausibly low, while the unrelated core item still used
+8 MB. Two separate public BBC 3840x2160 VP9/25 sessions on .30 then passed
+the same 150-second playback, -60-second seek, 150-second playback plan.
+Their first intervals advanced 149.97 and 149.84 seconds; post-seek intervals
+advanced 138.88 and 144.85 seconds. Start and post-seek 4K scanouts showed
+different footage. Neither run logged HTTP 403, `DEMUX_OVERSHOOT`, a GPU fault
+or a new error record. Both completed exact nine-file restoration, healthy
+service/idle checks and lock release. This addresses the reproduced bounded
+post-seek slowdown, but two passes cannot establish reliability under every
+public CDN/timing condition. See [hardware acceptance](HARDWARE_ACCEPTANCE.md)
+for build hash, counts and evidence paths.
 
 Historical unmapped GPU read addresses remain unattributed. The old 64 MB UI
 direct-memory allocator could fall back to ordinary malloc for GPU descriptors

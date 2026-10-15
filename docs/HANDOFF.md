@@ -54,8 +54,25 @@ collapse did not reproduce in this one run. There was no HTTP 403, GPU fault
 or new error. Stage 6 restored all nine saved-state files, verified idle and
 services, and released the console lock. Evidence is at
 `/home/denis/pt-console/seek-audio-diag-30-run`. Temporary diagnostic
-instrumentation was removed from product source. A demux/audio-clock fix and
-repeat public-network endurance test remain pending.
+instrumentation was removed from product source.
+
+The selected 4K DASH/WebM track advertised a bogus 2 kbit/s rate and its
+video read-ahead was capped at 8 MB. Commit `cd45171` keeps 4K read-ahead at
+48 MB for implausibly low rates without changing the unrelated core item's
+8 MB cap. The signed `prosperotube-cd45171b_1014-2355` build (eboot SHA-256
+`9697e4ecb8d60a267848138b34d2f13efd3db818bdefc719195d499662dad01f`)
+passed two independent .30 public BBC 3840x2160 VP9/25 sessions, each with
+150 seconds of playback, one -60-second seek and another 150 seconds. First
+intervals advanced 149.97 and 149.84 seconds; post-seek intervals advanced
+138.88 and 144.85 seconds. Both captured different BBC footage in initial and
+post-seek 4K scanouts. Neither logged HTTP 403, `DEMUX_OVERSHOOT`, a GPU fault
+or a new error record. Both used one launch, restored all nine saved-state
+files, left the title idle and services healthy, and released the .30 lock.
+Evidence: `/home/denis/pt-console/read-ahead-cd45171-30-run` and
+`/home/denis/pt-console/read-ahead-cd45171-30-repeat`. The earlier bounded
+test reproduced a severe slowdown before the cap fix; it did not recur in
+these two passes. Continue treating other public CDN/timing conditions as unproven;
+the historical GPU fault address owner is still unknown.
 
 ## Where things stand
 
@@ -94,7 +111,8 @@ new icon, backgrounds and selection music. No EVO Player notice at start.
   The continuation now also indexes WebM and fixes FFmpeg's range-boundary
   EOF handling. VP9 1080p with AAC passed on PS5; VP9/Opus generated fixtures
   pass on the host. Bounded offline 4K/30 and live YouTube 4K/25 VP9 console
-  runs now pass; long public-network 4K, audible Opus and physical HDR
+  runs now pass; two five-minute public-network 4K VOD sessions with rewind
+  also pass. Longer public-network endurance, audible Opus and physical HDR
   indication remain pending.
 - **Lapy elevation follows ProsperoEden's current method** (helper built with
   upstream's `make owned-helper`, manifest shipped unchanged, packaged copy
