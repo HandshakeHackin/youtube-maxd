@@ -10,9 +10,13 @@ The opt-in all-present Afterglow trace is built and frozen from `30aba46`.
 Generated regression and independent review pass; it records repeated/UI
 presentations plus pacing and submitted-buffer PTS without playback-time file
 I/O. The first .30 attempt stopped at the running-title check: ProsperoTube was
-already running, so no install or launch was sent. Waiting for the owner to
-close it before the bounded Afterglow replay. This is diagnostic work, not a
-claimed fix.
+already running, so no install or launch was sent. After the owner closed it,
+the candidate installed and all 185 files matched after 120 seconds. The
+Afterglow driver launched and selected the exact clip, but media resolution
+failed before playback with a media-server resource error. Teardown restored
+saved files, left the console idle and healthy, and found no new error record.
+The diagnostic build remains installed; a manual same-clip replay was requested
+to collect the all-present trace. This is diagnostic work, not a claimed fix.
 
 The owner replayed the installed `5a65588` production candidate and reports
 that the same 4K VP9 video still hitches. **Visual acceptance failed.** The
