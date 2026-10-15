@@ -6,6 +6,16 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Latest 4K hitch investigation (2026-10-15)
 
+Latest result: the owner replayed the verified `289e1c2` production candidate
+and still saw hitches with smooth audio. Native VP9/24 at 3840x2160 published
+590 frames over 25.3 seconds, with zero late drops and no decoder fatal. The
+console was idle afterward; error records were unchanged from the pre-install
+baseline and all 185 installed files matched. Do not mark the hitch fixed.
+Opt-in `PROSPEROTUBE_FLIP_TIMING_DIAG=1` collects first-picture timing and raw
+VideoOut status in bounded memory, dumping only after playback stops. Raw
+status fields other than the known flip marker have no verified timestamp ABI.
+
+
 The owner requested offline analysis before another console test. Keep .30 as
 the only test console and build ZIPs only. Audio, TV HDR indication and stable
 playback-menu transitions have owner confirmation on `b8d57c0`; smooth 4K is
@@ -71,7 +81,7 @@ After the owner closed the prior title, the replacement was installed and
 verified again after 120 seconds: all 185 packaged files matched, executable
 hash matched, and the console remained idle. No launch was sent. The owner
 was asked to replay the same 4K clip, report smoothness/audio sync, then Close.
-That visual result is pending; installation does not establish smoothness.
+That replay still hitched, as recorded above; installation did not establish smoothness.
 
 ## Playback continuation on 2026-10-14
 

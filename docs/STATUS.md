@@ -1,5 +1,20 @@
 # Current implementation status
 
+Verified replay of `289e1c2`: the owner still reports picture hitches with
+smooth audio. The executable and all 185 installed files matched after the
+run. Native 3840x2160 VP9/24 playback published 590 frames in 25.3 seconds,
+with zero reported late drops or decoder fatal. The title was idle and error
+records were unchanged. These counters do not establish presentation cadence;
+the picture-order corrections are retained, but they did not resolve the
+reported symptom. A bounded in-memory flip timing diagnostic is the next
+investigation step; it is opt-in and absent from production builds.
+
+First-release persistence fix: failures opening, writing, flushing, closing or
+renaming the local state file now produce a visible notice through the shared
+application toast. Failed saves preserve the prior file and repeated failures
+coalesce until a successful save. Guest failure/retry and phone-provider tests
+pass; this does not replace console acceptance of the notice.
+
 VP9 packet-boundary update: the `f4aaba6` candidate was withdrawn before
 console deployment. One split packet could return multiple older visible
 pictures and overflow the five-slot reorder queue. Current source processes
@@ -12,7 +27,7 @@ Frame-lease tests still pass. The replacement production ZIP from `289e1c2`
 built and passed package and frozen-manifest checks. After owner confirmation
 that the prior title was closed, it was installed and all 185 files matched
 after the 120-second settle check. The console remained idle; the requested
-same-clip visual replay remains pending.
+same-clip replay result is recorded above.
 
 4K picture-order update, 2026-10-15: offline regression now reproduces a
 VP9 pipeline bug that timing counters missed. At decoder depth four, the old

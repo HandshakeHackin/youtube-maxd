@@ -263,7 +263,8 @@ The owner confirmed audible video sound, TV-reported HDR and playback menus
 without output blackouts. A separate 4K/24 clip still visibly hitched after an
 audio-clock correction. Offline tests then reproduced delayed VP9 picture
 association, split-packet queue overflow and equal-timestamp ordering defects;
-the corrected candidate is built, but visual replay remains pending.
+the corrected candidate still hitched in the owner's replay with smooth audio.
+Presentation timing remains under investigation.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player, and
@@ -308,7 +309,7 @@ What is planned, roughly in order. Nothing here has a date.
       4K/30 and two public-network 4K/25 VOD sessions with a -60-second seek
       passed on PS5; longer public live playback, varied CDN conditions and
       audible Opus remain unverified. A separate 4K/24 picture hitch remains an
-      acceptance blocker; the corrected VP9 candidate awaits visual replay.
+      acceptance blocker after the corrected VP9 candidate's visual replay.
 - [x] HDR selection and output for PQ, HLG and SDR (synthetic PS5 scanouts and
       format readback passed; the owner confirmed TV-reported HDR on an HDR video).
 - [x] Rewind and remember live position, including a sliding DVR window

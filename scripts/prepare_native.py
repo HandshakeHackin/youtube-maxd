@@ -162,7 +162,7 @@ def main():
         fp = std::fopen(path, "wb");
     }
 ''', "")
-    replace(player + "core/src/Application.cpp", "        evo_net_poll();", "        evo_net_poll();\n        tube_poll();")
+    replace(player + "core/src/Application.cpp", "        evo_net_poll();", "        evo_net_poll();\n        tube_poll();\n        if (!m_softClose) {\n            if (const char* notice = tube_take_storage_notice()) toast(\"LOCAL DATA\", notice);\n        }")
     replace(player + "core/src/Application.cpp", "    m_screenManager->navigateTo(ScreenId::MainMenu);", '    ProviderHostScreen::setPendingProvider("youtube");\n    m_screenManager->navigateTo(ScreenId::EmbyBrowse);')
     host = player + "core/src/screens/ProviderHostScreen.cpp"
     replace(host, '#include "evo_provider.h"', '#include "evo_provider.h"\n#include "tube_provider.h"')
@@ -511,6 +511,9 @@ static void run_command(const char *line)
     apply_evo_net_lanes_overlay(replace, player, WORK)
     from video_read_ahead_floor_overlay import apply as apply_video_read_ahead_floor_overlay
     apply_video_read_ahead_floor_overlay(replace, player)
+    if os.environ.get("PROSPEROTUBE_FLIP_TIMING_DIAG") == "1":
+        from flip_timing_diag_overlay import apply as apply_flip_timing_diag
+        apply_flip_timing_diag(replace, player)
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)

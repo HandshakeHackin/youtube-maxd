@@ -2017,13 +2017,27 @@ static void speed_load(const cJSON *root) {
 }
 
 
+static int g_storage_notice;
+static const char *storage_error(void) {
+    return g_store_writable ? "Could not save local changes; they may be lost when the app closes. Check free space and access to the data folder." :
+        "Local data could not be loaded. The existing file has not been overwritten.";
+}
+static void storage_failed(void) {
+    if (!g_storage_notice) g_storage_notice = 1;
+    tube_set_error(storage_error());
+}
+const char *tube_take_storage_notice(void) {
+    if (g_storage_notice != 1) return NULL;
+    g_storage_notice = 2;
+    return storage_error();
+}
 static void save(void) {
     g_remote_write_failed = 1;
     if (!g_store_writable) {
-        tube_set_error("Local data could not be loaded. The existing file has not been overwritten."); return;
+        storage_failed(); return;
     }
     cJSON *root = cJSON_CreateObject(), *rows = cJSON_CreateArray();
-    if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); return; }
+    if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); storage_failed(); return; }
     profile_settings_write(root);
     cJSON *blocked=cJSON_AddArrayToObject(root,"blocked_channels");
     for(int i=0;i<g_blocked_count;++i) {
@@ -2186,19 +2200,21 @@ static void save(void) {
     cJSON_AddItemToObject(root, "records", rows);
     char *body = cJSON_PrintUnformatted(root);
     cJSON_Delete(root);
-    if (!body) return;
+    if (!body) { storage_failed(); return; }
     evo_mkdir(evo_data_dir());
     char tmp[512], dst[512];
     copy(tmp, sizeof tmp, evo_data_path("youtube.json.tmp"));
     copy(dst, sizeof dst, evo_data_path("youtube.json"));
     FILE *f = fopen(tmp, "wb");
+    int ok = 0;
     if (f) {
         size_t size = strlen(body);
-        int ok = fwrite(body, 1, size, f) == size && fflush(f) == 0;
+        ok = fwrite(body, 1, size, f) == size && fflush(f) == 0;
         if (fclose(f)) ok = 0;
-        if (ok && rename(tmp, dst) == 0) { g_last_save = now_ms(); g_remote_identity_saved = !!*g_remote_device; g_remote_write_failed = 0; g_channel_marks_dirty = 0; }
-        else tube_set_error("Local library could not be saved. Check the ProsperoTube data directory.");
+        if (ok) ok = rename(tmp, dst) == 0;
     }
+    if (ok) { g_last_save = now_ms(); g_remote_identity_saved = !!*g_remote_device; g_remote_write_failed = 0; g_channel_marks_dirty = 0; g_storage_notice = 0; }
+    else storage_failed();
     free(body);
 }
 /* A change made in the player is saved with the selected profile's settings. */

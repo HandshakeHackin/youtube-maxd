@@ -288,6 +288,8 @@ int tube_queue_skip_unavailable(const char *video_id);
 int tube_queue_retry_pending(void);
 void tube_queue_retry_cancel(void);
 void tube_set_error(const char *message);
+/* Main/UI thread: once per failed-save episode; a successful save rearms it. */
+const char *tube_take_storage_notice(void);
 /* ---- In-player actions. Main/UI thread only. ----
  * The video actions menu and the lists behind it (related videos, queue,
  * playlist, description, links, confirmations), listed for the playing video
