@@ -12,7 +12,7 @@ export PATH=/usr/lib/llvm-18/bin:$PATH
 bash scripts/bootstrap_sdk.sh
 # Install the shader-toolchain dependencies listed below before its first build.
 bash scripts/build_ps5_shader_compiler.sh
-bash scripts/build_ps5.sh --ffpfsc
+bash scripts/build_ps5.sh
 ```
 
 LLVM 18.1.8 was used. Package names vary by distribution. The bootstrap fetches
@@ -31,9 +31,9 @@ independently checksum-pinned by this wrapper.
 every overlaid file before applying checked patches, and copies the original
 provider/UI and complete cJSON. It never edits the submodule checkout.
 `build_ps5.sh` uses EVO's native packaging pipeline, builds PS5 FFmpeg,
-signs/inspects containers and copies artifacts to `dist/`. MkPFS verifies its
-image. Network access is needed only for uncached dependencies. Scripts never
-deploy or launch on PS5.
+signs/inspects containers and copies the title folder and ZIP to `dist/`.
+Network access is needed only for uncached dependencies. Scripts never deploy
+or launch on PS5.
 
 The pinned EVO app pipeline also includes its PS5 Videodec2 hardware backend;
 the secondary high-resolution decoder is enabled by its packaging recipe.

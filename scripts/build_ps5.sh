@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Copyright (C) 2026 BlackBearReloaded. SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
+for option in "$@"; do
+    if [[ "$option" == "--ffpfsc" ]]; then
+        echo 'ProsperoTube packages the title as a ZIP; omit --ffpfsc.' >&2
+        exit 2
+    fi
+done
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK:-${HOME}/.cache/prosperotube/sdk}"
 export PATH="${PS5_PAYLOAD_SDK}/bin:${PATH}"
@@ -83,5 +89,5 @@ python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 --check-app "${work}/ou
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
 cp -a "${work}/output/app/PPSA99142" "${destination}/"
-find "${work}/output" -maxdepth 3 -type f \( -name '*.zip' -o -name '*.ffpfsc' \) -exec cp -t "${destination}/" {} +
+find "${work}/output" -maxdepth 3 -type f -name '*.zip' -exec cp -t "${destination}/" {} +
 printf '%s\n' "ProsperoTube PS5 artifacts are in ${destination}. No console deployment performed."

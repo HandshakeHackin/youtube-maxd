@@ -361,8 +361,6 @@ bash scripts/build_ps5_shader_compiler.sh
 # The application, with the built-in YouTube service.
 bash scripts/build_ps5.sh
 
-# The same, plus a .ffpfsc image.
-bash scripts/build_ps5.sh --ffpfsc
 ```
 
 Outputs are written to:
@@ -370,7 +368,6 @@ Outputs are written to:
 ```text
 dist/PPSA99142/        complete title folder
 dist/PPSA99142.zip     the folder as a ZIP
-dist/PPSA99142.ffpfsc  compressed image (with --ffpfsc)
 ```
 
 The offline checks:

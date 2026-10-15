@@ -51,7 +51,7 @@ def main():
             archive.writestr("ProsperoTube/" + name, body)
     artifacts = {}
     for path in sorted(DIST.iterdir()):
-        if path.is_file() and path.suffix in {".zip", ".ffpfsc", ".gz"}:
+        if path.is_file() and path.suffix in {".zip", ".gz"}:
             artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
     manifest = {"version": "0.1.0", "source_revision": revision, "title_id": "PPSA99142",
                 "validation": {"status": "Packaging records checksums; consult the validation record for test evidence.",

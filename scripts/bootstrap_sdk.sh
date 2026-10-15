@@ -13,4 +13,4 @@ fi
 if [[ ! -f "$PS5_PAYLOAD_SDK/EVO_PACBREW_VERSION" ]]; then
     PACBREW_VERSION=v0.39 bash "$root/third_party/evo/scripts/install-pacbrew-image.sh"
 fi
-echo "SDK ready at $PS5_PAYLOAD_SDK. Run bash scripts/build_ps5.sh --ffpfsc."
+echo "SDK ready at $PS5_PAYLOAD_SDK. Run bash scripts/build_ps5.sh."

@@ -1,5 +1,8 @@
 # Offline validation record — 0.1.0
 
+Current packaging uses the title ZIP only. Mentions of `.ffpfsc` below record
+earlier builds and are retained as historical evidence.
+
 ## Native frame ownership and combined package — 2026-10-14
 
 The generated native frame-lease regression first reproduced a pool-wrap reuse

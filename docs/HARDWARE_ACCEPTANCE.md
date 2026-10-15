@@ -339,7 +339,7 @@ still needs a presentation-drain contract and must not be inferred from EOF.
 Record firmware, loader/mounter versions, TV mode, source revision, companion
 runtime/lock versions and artifact SHA-256 before testing.
 
-1. Install the folder or `.ffpfsc` through your existing homebrew workflow.
+1. Install the folder or ZIP through your existing homebrew workflow.
    Verify title `PPSA99142` is free on your console before installation.
 2. Launch once: verify launcher artwork, eight native root entries, focus,
    paging, Options keyboard, settings, Back and soft close. Close the parked

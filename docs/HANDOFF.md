@@ -78,10 +78,11 @@ A clean production package was built from `8c29385` without the USB remote:
 `/home/denis/pt-candidates/playback-20261015-final-8c29385/`. Its signed
 `PPSA99142/eboot.bin` has SHA-256
 `d6da97aa728bab69f8cd090227e1e3fe2d0517607cd26c46083c908508dde13e`;
-`PPSA99142.ffpfsc` has SHA-256
-`cd43134574b4674e7bcd29c2756a348420b58395ba3896e48250a404d89e8a54`.
+`PPSA99142.zip` has SHA-256
+`b8fad63d260ef7798a9160b878621a931e785200c9ab201c4cdb850d71004f05`.
 The build reported valid signed-container integrity and verified its packaged
-Lapy helper. This production package has not been installed on a console; the
+Lapy helper. The ZIP passed a full member CRC check and contains the same
+eboot. This production package has not been installed on a console; the
 separately signed USB-remote candidate above supplied the .30 evidence.
 
 ## Where things stand
@@ -288,8 +289,8 @@ console validation remain pending.
   minutes), `bash scripts/test_i18n.sh`, `python3 -m pytest -q`. Ask before a
   release whether the full suite should run.
 - **PS5 package.**
-  `PROSPEROTUBE_NATIVE_WORK=~/.cache/prosperotube/native-ps5 PROSPEROTUBE_PS5_DIST=<dist> bash scripts/build_ps5.sh --ffpfsc`
-  writes `<dist>/PPSA99142/`, `PPSA99142.ffpfsc` and `PPSA99142.zip`. An
+  `PROSPEROTUBE_NATIVE_WORK=~/.cache/prosperotube/native-ps5 PROSPEROTUBE_PS5_DIST=<dist> bash scripts/build_ps5.sh`
+  writes `<dist>/PPSA99142/` and `PPSA99142.zip`. An
   instrumented build for console sessions adds `--usb-remote --virtual-keyboard`.
   Freeze a candidate with the protocol repository's
   `scripts/freeze-candidate.sh <dist>/PPSA99142 <frozen>` and check that
