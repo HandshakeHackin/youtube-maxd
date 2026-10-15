@@ -35,6 +35,14 @@ matched again after 120 seconds, the console remained idle and errors were
 unchanged. No diagnostic build is left installed. Physical keyboard and
 post-playback glyph acceptance remain pending.
 
+Next offline content check: compare native luma samples with software decoding
+of the same VP9 rendition. The current run records clip, codec/profile, size
+and rate but not the rendition itag or compressed-byte identity; the service's
+resolved manifests are memory-only. A fresh resolve and bounded media prefix
+can provide a reference, but a mismatch would remain inconclusive without
+matching input bytes. Capture bounded input identity on any new comparison
+run before attributing a difference to the native decoder.
+
 ## Latest owner observation (2026-10-15)
 
 After installation of `f801bae`, the owner replayed the 4K VP9 clip and saw
