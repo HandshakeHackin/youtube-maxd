@@ -71,7 +71,7 @@ def main():
         "core/include/evo/services/SettingsService.hpp",
         "ui_kit/src/evo_hui_osd.cpp", "ui_kit/src/evo_hui_modals.cpp", "ui_rml/src/evo_rmlui_app.cpp",
         "ui_rml/src/evo_rmlui_render_agc.cpp", "media/src/evo_stream_io.c", "media/include/evo_stream_io.h", "media/src/evo_direct_mem.c",
-        "media/include/evo_direct_mem.h", "ui_kit/src/hui_agc_batch.cpp",
+        "media/include/evo_direct_mem.h", "ui_kit/src/hui_agc_batch.cpp", "ui_kit/include/hui_agc_batch.hpp",
         "assets/rml/playback.rml", "assets/rml/playback.rcss",
         "ui_rml/src/evo_rmlui_provider.cpp", "ui/src/evo_nav.c", "src/evo_boot_log.c", "src/evo_usb_remote.c",
         "ui_rml/include/evo_rmlui_provider.h", "ui_rml/src/evo_rmlui_provider_art.cpp",
