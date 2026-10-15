@@ -6,6 +6,18 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Final offline release audit (2026-10-15)
 
+Candidate `6599c48` completed a bounded same-clip replay with Afterglow
+retained. All 1,576 sampled render inputs matched their corresponding decoded
+output samples (848 decoded records, no unmatched/mismatched comparisons).
+Sampling cost was about 53 microseconds median at each hook. Seven adjacent
+equal decoded hashes form one 0.3-second cluster, which is not itself proof
+of a decoder error without same-bitstream reference content. Steady timing
+had 672 five-refresh and three expected four-refresh intervals, no six-refresh
+intervals and no pacing misses. Saved state was restored; .30 was idle and
+healthy with unchanged error records. The diagnostic remains installed.
+The owner was asked to check whether its cache reads change the visible
+symptom; this run does not establish visual acceptance or full pixel identity.
+
 The owner's `30aba46` Afterglow replay still visibly hitches. The complete
 1,484-row trace has no omissions, failed presents, source/buffer PTS mismatch
 or backward PTS transition. Smoothing is off and the scheduler is active at
