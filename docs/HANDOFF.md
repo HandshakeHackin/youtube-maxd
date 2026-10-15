@@ -4,6 +4,36 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Identical-input VP9 defect confirmed (2026-10-15)
+
+A complete 36-second, video-only local WebM preserves all 864 compressed
+packets, PTS/DTS and software luma hashes from the downloaded reference. This
+removes the failed YouTube resolve from the diagnostic, not the production
+playback path. Diagnostic `dee3753` passed a bounded 32-second native 2160p24
+Afterglow replay, captured all three traces, removed its private media file,
+restored saved state and closed with unchanged error records.
+
+All 813 accepted console packets exactly match the reference prefix by
+SHA-256, PTS and size. Of 810 sampled output pictures, 115 match their assigned
+PTS, 635 match the next software picture, and 59 uniquely match seven software
+pictures earlier. Each of those 59 stale samples equals the prior contents of
+the same source pointer/slot eight published pictures earlier. One additional
+backward mapping is ambiguous repeated content. There are no geometry, missing
+PTS or invalid-sample comparisons. This confirms an app-side decode/output
+association defect independent of Remote Play capture.
+
+Every recorded output nevertheless reports valid=1 and picture_count=1.
+Associated coded-AU metadata agrees with submitted PTS, but the triggering
+submission is four calls later for 808 rows and three for the first two. A
+count-only filter cannot fix this; do not hard-code a one-frame timestamp shift
+or discard repeated hashes. Investigate true completion identity and hidden-AU
+handling against the local decoder research before changing the FIFO.
+The local test has no audio and does not establish TV or A/V acceptance.
+
+Production `f801bae` was restored afterward; all 185 files matched again after
+120 seconds, the console remained idle, and error records were unchanged.
+No diagnostic build or private sample remains installed.
+
 ## Software-reference investigation (2026-10-15)
 
 A bounded software decode of the same resolved VP9 Profile 0 / 2160p24

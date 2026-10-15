@@ -268,8 +268,12 @@ association, split-packet queue overflow and equal-timestamp ordering defects;
 the corrected candidate still hitched in the owner's replay with smooth audio.
 A presentation scheduler then removed the measured short/long refresh pairs
 in two .30 replays of that clip; the fractional-refresh correction remained
-regular. This adds about 17 ms of median video latency. Physical TV smoothness
-and A/V sync on this candidate still need owner acceptance.
+regular. This adds about 17 ms of median video latency. A later identical-input comparison
+confirmed stale VP9 pictures and incorrect picture/timestamp association. This
+decoder defect still needs a fix; regular presentation timing does not prove correct picture
+content or explain the earlier GPU faults. Physical TV smoothness and A/V sync
+also need owner acceptance. The latest hitch report came through Chiaki and
+does not establish the current physical TV result.
 
 Not included yet: playback of videos that need the account (age-restricted,
 private, members-only, purchased), voice search, a translated player, and

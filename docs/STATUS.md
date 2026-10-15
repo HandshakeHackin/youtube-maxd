@@ -17,10 +17,11 @@ See [handoff](HANDOFF.md).
 The software reference now links all 63 distinguishably missing historical
 pictures to hidden-plus-shown VP9 superframes. All 62 unambiguous backward
 hash matches point seven reference pictures backward, usually recurring every
-11?12 native pictures. This is a concrete decoder-association lead, conditional
-on compressed-input equivalence. Diagnostic `dee3753` adds packet fingerprints
+11?12 native pictures. The subsequent local replay verified all 813 accepted packet identities and
+confirmed 59 stale same-buffer pictures; the decoder-association defect is real. Diagnostic `dee3753` adds packet fingerprints
 and output metadata, but the bounded console replay failed to resolve the
-resource before decoding; clean teardown passed. No decoder fix or visual
+resource before decoding. A local-input case then captured all three traces
+with clean teardown and production restoration. No decoder fix or visual
 acceptance is claimed. See [handoff](HANDOFF.md).
 
 ## Earlier playback evidence
@@ -668,17 +669,21 @@ are unverified.
 
 ## Remaining release gates
 
-1. **Physical playback acceptance:** the owner confirmed audible sound,
+1. **Playback engineering:** fix the VP9 stale-picture and timestamp-association
+   defect now confirmed against identical input packets and a software reference. Bounded timing and endurance results
+   do not resolve the observed picture association discrepancy or attribute the
+   earlier GPU faults; these remain engineering work, not physical sign-off.
+2. **Physical playback acceptance:** the owner confirmed audible sound,
    TV-reported HDR and menu transitions without blackouts on the earlier build.
-   The final presentation scheduler has bounded timing, endurance, resume and
-   seek evidence above, but the owner still needs to judge smooth TV motion and
-   lip sync on the installed production candidate. Do not infer that result
-   from counters or the diagnostic build.
-2. **Afterglow acceptance:** all screen factories are implemented and bounded
+   The presentation scheduler has bounded timing, endurance, resume and seek
+   evidence above, but smooth TV motion and lip sync still need owner acceptance
+   on the production candidate. The latest hitch report came through Chiaki;
+   neither that observation nor diagnostic counters establish the TV result.
+3. **Afterglow acceptance:** all screen factories are implemented and bounded
    console runs cover parts of the interface. The recorded all-screen console
    acceptance decision has not been satisfied or explicitly waived. Classic
    remains the default; screen calibration and physical sound checks remain.
-3. **Publication:** the owner decides repository visibility and the first
+4. **Publication:** the owner decides repository visibility and the first
    public release. A signed homebrew.page catalog entry must reference the
    released ZIP before in-app updates can be offered. An unlisted catalog
    result is expected before that entry exists; private GitHub API access is
