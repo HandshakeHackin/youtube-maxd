@@ -5,6 +5,9 @@
 - `python3 scripts/test_afterglow_atlas.py`: real shaping and AGC replacement/retirement methods pass ASan/UBSan lifecycle and allocation-failure regression.
 - `python3 scripts/test_physical_keyboard.py`: native report mapping and mocked polling lifecycle pass UBSan.
 - `bash scripts/test_afterglow_keyboard.sh --reuse-host`: actual Frame, Search and TextSheet integration passes after rebuilding the host.
+- Search rendering: 38 boards per theme across all four themes, 152 pictures and 1,832 checks, no failures. The first harness run lacked its output directory; rerun with the directory present passed.
+- Generated `f801bae` backend independently reviewed: descriptor copies and GPU-idle retirement preserve earlier draws across atlas replacement.
+- Production `f801bae` built and passed signed-container/helper/ZIP checks; installed files matched all 185 frozen files after 120 seconds. Error history unchanged, title idle, no launch sent.
 - Physical typing and the missing-letter screenshot require console acceptance; US layout only.
 
 

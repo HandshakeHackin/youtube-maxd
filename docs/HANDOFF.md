@@ -29,6 +29,21 @@ regression also passes typing, live-result debounce, submit, input limits,
 UTF-8 backspace and hidden-page isolation. Console visual acceptance remains
 pending; this change does not claim to fix the 4K hitch.
 
+Candidate `f801bae` is the production keyboard/font build, with no timing
+diagnostics or development controls. PS5 compilation, signed-container integrity,
+packaged helper verification, ZIP CRC/permissions and comparison of all 185
+frozen files passed. Executable SHA-256:
+`efdd76df16f0530a2838546913cba6934f63ee85395503f0d62f4dded2368ec9`.
+ZIP SHA-256:
+`cdc3519d9505b34d5f40f222c37d11880ffb3dffad67b88bf6b6afa127fdb988`.
+
+Installed on the authorized test console: all 185 files matched after 120
+seconds, error records were unchanged and the title was idle. No launch was
+sent. Next owner check: physical typing/edit/submit in Search, then return to
+Search after playback and confirm keyboard labels and video titles remain
+complete. US layout is supported; international composition remains through
+the existing native IME.
+
 ## Final offline release audit (2026-10-15)
 
 Candidate `6599c48` completed a bounded same-clip replay with Afterglow
