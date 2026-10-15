@@ -1,16 +1,16 @@
 # Current implementation status
 
-Owner acceptance of installed `4d2fcbc` failed on 2026-10-15: no pairing code
+Owner acceptance of previous candidate `4d2fcbc` failed on 2026-10-15: no pairing code
 on page entry, a false Signed out label and missing account Library content,
 and an HLS app crash while seeking. UI and null-segment fixes in `139f8c1`
-pass host tests and production ZIP verification. Installation stopped before
-any write because another title was running. Account Library access and
-hardware acceptance remain unresolved.
+pass host tests and production ZIP verification. Candidate `139f8c1` is now
+installed on .30 with all 185 stored files verified after 120 seconds. Account
+Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `4d2fcbc`, the production phone-pairing fixes and
-failure-path guards, retaining the VP9 completion-identity fix, font-upload
-fix and physical PS5 keyboard support.
+Latest installed candidate: `139f8c1`, adding automatic TV-code requests,
+correct account labels, safe Library diagnostics and the HLS null-segment
+guard. It retains the earlier playback, font and physical keyboard fixes.
 All 185 files matched after the 120-second stored-byte check; at installation
 the title was idle and error records were unchanged. No launch was sent.
 The earlier `6fc6d58` diagnostic version completed the

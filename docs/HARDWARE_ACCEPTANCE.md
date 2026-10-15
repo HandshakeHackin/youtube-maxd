@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `139f8c1` production installed on .30 after owner closed other title | pass: idle-first check, all 185 stored files match after 120 seconds, error records unchanged and still idle | private evidence `phone-pairing-139f8c1-installed-production/result.json` | no launch or Chiaki-ng; functional pairing, Library and seek validation pending.
+
 - 2026-10-15 | owner replay of `4d2fcbc` on .30 | failed: no TV code on page entry, false Signed out after saved/selected OAuth approval, missing account Library content, app-only seek crash | crash symbolizes to HLS null-segment read; idle evidence preserved privately; no relaunch | offline repairs and renewed owner acceptance required.
 
 - 2026-10-15 | production phone-pairing candidate `4d2fcbc` installed on .30 | idle checked before installation; all 185 files matched stored bytes after 120 seconds; still idle and error records unchanged | eboot SHA-256 `8f7387103428658d5b6a86bd5f91fcfd64ac6607a366526495b8019ff3384943` | private evidence `/home/denis/pt-console/phone-pairing-4d2fcbc-installed-production/result.json` | no launch or Chiaki-ng; installation verification only, real-phone acceptance pending.
