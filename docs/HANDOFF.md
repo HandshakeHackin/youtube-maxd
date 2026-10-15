@@ -4,6 +4,31 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Identity fix passes full-sample console replay (2026-10-15)
+
+Committed and pushed `6fc6d58` replaces coded-AU FIFO association with exact
+returned input tags from public `GetPictureInfo`. The same-input native 4K24
+Afterglow case reached natural EOF and published all 864 pictures. All 864
+packet identities and all 864 sparse luma fingerprints match the software
+reference at their original timestamps. No missing, shifted or backward
+pictures remain. All 929 coded-AU completion records are present, including
+65 hidden completions. The public API executes successfully on hardware.
+
+The case restored saved state, deleted its private sample, closed cleanly and
+left error records unchanged. Production `6fc6d58` is installed: all 185 files matched stored bytes after
+120 seconds, with the console idle and error records unchanged. No launch was
+sent after installation. It has no timing probes or development controls.
+Production eboot SHA-256:
+`2b478f478cf71c5b8171336827f66c5650a5e338a4cba71b90f566de15e58b20`.
+ZIP SHA-256:
+`22ab2639785456d7670d965e3e7afbee50bc2e399c113b20f1893650b36d1792`.
+ZIP CRC, permission checks and all 185 archived files match the frozen folder.
+Next owner replay: same clip directly on the TV, then separately via Chiaki;
+report picture smoothness and audio sync.
+Physical TV motion/A/V sync and longer-run reliability are not established by
+this 36-second, video-only, sampled comparison. The earlier GPU fault ownership
+limits below still apply. See [validation](VALIDATION.md) for host coverage.
+
 ## Returned tags verify completion identity (2026-10-15)
 
 Diagnostic `3892445` passed a bounded identical-input Afterglow replay and
@@ -11,7 +36,7 @@ clean teardown. All 813 accepted compressed packets match the software
 reference. All 871 returned tags identify the correct submitted AU and its
 presentation flag, with no timestamp or tag discrepancies. The 811 shown
 completions follow the exact software display order. Shown completions arrive
-3?4 decode calls after submission; hidden completions arrive 15?16 calls later.
+3-4 decode calls after submission; hidden completions arrive 15-16 calls later.
 The coded-AU FIFO therefore discarded 61 shown completions and published 60
 hidden completions containing stale pixels. Hidden completion omission/delay
 must not consume the visible-picture queue.

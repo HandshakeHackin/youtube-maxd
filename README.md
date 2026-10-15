@@ -258,7 +258,8 @@ after its playlist advanced; this was one bounded run, not long or 4K live
 acceptance. Synthetic PQ, HLG and SDR clips produced distinct nonflat
 scanout captures on .40, and active 30-to-25 fps playback changed the actual
 output refresh from 120 to 60 Hz. Earlier live 4K candidates had GPU faults;
-their unmapped-read addresses remain unattributed. [Status](docs/STATUS.md)
+retired decoder allocations explain two recorded addresses, while later
+no-reset faults remain unattributed. [Status](docs/STATUS.md)
 lists the evidence and limits.
 
 The owner confirmed audible video sound, TV-reported HDR and playback menus
@@ -270,8 +271,10 @@ A presentation scheduler then removed the measured short/long refresh pairs
 in two .30 replays of that clip; the fractional-refresh correction remained
 regular. This adds about 17 ms of median video latency. A later identical-input comparison
 confirmed stale VP9 pictures and incorrect picture/timestamp association. This
-decoder defect still needs a fix; regular presentation timing does not prove correct picture
-content or explain the earlier GPU faults. Physical TV smoothness and A/V sync
+decoder defect is corrected by returned input tags in `6fc6d58`: all 864
+sampled pictures of the identical 36-second input match the software reference
+at their original timestamps through natural EOF. This bounded result does
+not establish full-frame correctness or explain the earlier GPU faults. Physical TV smoothness and A/V sync
 also need owner acceptance. The latest hitch report came through Chiaki and
 does not establish the current physical TV result.
 
@@ -318,7 +321,7 @@ What is planned, roughly in order. Nothing here has a date.
       4K/30 and two public-network 4K/25 VOD sessions with a -60-second seek
       passed on PS5; longer public live playback, varied CDN conditions and
       audible Opus remain unverified. A separate 4K/24 picture hitch remains an
-      acceptance blocker after the corrected VP9 candidate's visual replay.
+      acceptance blocker pending a visual replay of the new identity-based VP9 fix.
       The later presentation scheduler corrected measured cadence in two short
       replays and passed a five-minute public 4K/24 watch (7,250 pictures, zero
       late drops, no new error record); physical motion and sync remain unaccepted.

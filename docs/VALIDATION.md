@@ -1,5 +1,25 @@
 # Offline validation record — 0.1.0
 
+## VP9 completion identity (2026-10-15)
+
+`6fc6d58` uses unique input tags returned by public `GetPictureInfo`. Generated
+code passes ASan/UBSan regression for hidden ordinal 2 completing after visible
+ordinal 14, stale caller-slot contents, original equal/missing timestamps,
+show-existing presentation, seek/object reuse, unknown/misordered identities,
+API/bounds/lease failures, pending capacity and unchanged AVC behavior.
+Backpressure, native drain/surface and frame-lease regressions also pass.
+Both production and diagnostic preparation/builds pass; generated import
+artifacts include the new API exactly once and reset their pinned inputs.
+
+A bounded native 2160p24 Afterglow replay reached natural EOF. All 864 accepted
+compressed packets match the known 36-second sample, and all 864 sparse luma
+fingerprints match the software reference at the original PTS occurrence.
+There are zero missing, shifted or backward pictures. The 929 completion
+records cover all coded AUs, including 65 hidden inputs. Teardown restored
+saved files, removed private media, left the console idle and found no new
+error records. This verifies the diagnosed association defect; sparse hashes
+do not verify every pixel, physical motion, sound or longer-run reliability.
+
 ## Completed-buffer diagnostic (2026-10-15)
 
 The opt-in flip trace now samples 144 raw tiled pixels from the active buffer

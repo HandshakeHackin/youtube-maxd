@@ -1,10 +1,13 @@
 # Current implementation status
 
-Latest installed candidate: `f801bae`, the production font-upload fix and
-physical PS5 keyboard support. All 185 files matched after the installation
-persistence check. The subsequent owner replay still hitched in Chiaki-ng;
-that replay was not observed directly on the TV. Direct keyboard input and
-post-playback glyph recovery remain unconfirmed. The later bounded diagnostic run closed cleanly and restored saved state.
+Latest installed candidate: `6fc6d58`, the production VP9 completion-identity
+fix, also retaining the font-upload fix and physical PS5 keyboard support.
+All 185 files matched after the 120-second stored-byte check; the title is
+idle and error records are unchanged. The diagnostic version completed the
+same-input 36-second 4K24 sample through EOF: all 864 packets and sampled
+visible pictures match the software reference, with zero association errors.
+No launch followed the production installation. TV smoothness/audio sync,
+physical keyboard input and post-playback glyph recovery remain unconfirmed.
 
 The earlier `6599c48` Afterglow diagnostic matched all 1,576 sampled render
 inputs to their decoded outputs; this establishes sampled source identity,
@@ -29,7 +32,7 @@ trace maps every real-timestamp published picture to correct software content,
 while 61 stale outputs have the hidden-input timestamp sentinel and 61 real
 pictures are incorrectly discarded as FIFO-hidden. The fix must use verified
 completion identity. The tagged `3892445` replay verifies all 871 returned tags:
-shown completions arrive after 3?4 calls, hidden completions after 15?16, and
+shown completions arrive after 3-4 calls, hidden completions after 15-16, and
 all 811 shown completions preserve software display order. A public-picture-info
 fix now passes generated-code sanitizer regressions, with duplicate/missing
 timestamps preserved. Console build and full-sample validation are next; this
@@ -680,10 +683,12 @@ are unverified.
 
 ## Remaining release gates
 
-1. **Playback engineering:** fix the VP9 stale-picture and timestamp-association
-   defect now confirmed against identical input packets and a software reference. Bounded timing and endurance results
-   do not resolve the observed picture association discrepancy or attribute the
-   earlier GPU faults; these remain engineering work, not physical sign-off.
+1. **Playback reliability:** `6fc6d58` fixes the proven VP9 completion-association
+   defect: all 864 input packets and sampled visible pictures match the software
+   reference through natural EOF. Longer runs and varied streams remain outside
+   this bounded fix validation. The historical fault review attributes two
+   addresses to retired allocations; later no-reset faults remain unattributed.
+   These limits are not waived by the picture-identity result.
 2. **Physical playback acceptance:** the owner confirmed audible sound,
    TV-reported HDR and menu transitions without blackouts on the earlier build.
    The presentation scheduler has bounded timing, endurance, resume and seek

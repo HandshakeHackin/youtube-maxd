@@ -1,5 +1,8 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | VP9 returned-identity fix, full 36-second local 2160p24 sample in Afterglow | `6fc6d58`, diagnostic eboot SHA-256 `2d5ba6285e7219e25fbd90ae449c2d5253e17f31e8563e82531ba876dae28f06` | pass: all 864 accepted packet identities and all 864 sampled visible-picture hashes match the software reference at original timestamps, with zero missing/shifted/backward pictures; all 929 coded-AU completion tags accounted for, including 65 hidden; natural EOF and clean Close | saved state restored, private sample removed, idle and unchanged error records | video-only bounded evidence; no full-pixel, physical motion/audio or longer-run claim. See [validation](VALIDATION.md).
+
+
 - 2026-10-15 | production installation after pacing checks | `d26bfd0`, eboot SHA-256 `6f72ce284272c1c661a1379c63a1cc640981233a5b830e058925c045a11f9e6c`, ZIP SHA-256 `1c988284c8133d7b5e5c4cd5d8fc86034ac53b90228176e3efd53f0d71cfabdb` | PS5 .30 | install verified: all 185 files matched stored bytes after 120 seconds; title idle, error records unchanged. Production archive CRC/content/permissions passed and the binary lacks timing diagnostics and development controls | private evidence `/home/denis/pt-console/frame-pacing-d26bfd0-production-installed/result.json` | no launch was sent after installation. Runtime evidence below uses the matching diagnostic build. Physical smoothness and A/V sync on the final binary remain pending.
 
 
