@@ -7,6 +7,19 @@ owner. A playlist containing several segments alone never enables seeking.
 The companion's bounded HLS byte buffer is useful for previously downloaded
 finite media; it does not establish a console live timeline or position restore.
 
+## Current status (2026-10-14)
+
+The packaged opt-in extension now supports one continuous HLS playlist or a
+calibrated video/audio pair; other layouts and uncalibrated streams remain
+non-seekable. On PS5 .30, a synthetic split-HLS AVC/AAC feed rewound from
+5.50 to 3.31 seconds, restored a remembered UTC point within 0.98 seconds
+after the window advanced, and rejected an evicted point. The signed build,
+result and teardown are recorded in [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+A public live feed and high-resolution live DVR have not been tested.
+
+The sections below retain the implementation stages and earlier stock-library
+diagnostics; their stage-specific pending statements are historical.
+
 ## Reproduce without YouTube or a console
 
 Build a separate host copy of the pinned FFmpeg 7.1.1 with HLS, MPEG-TS and H.264
@@ -101,13 +114,14 @@ PROSPEROTUBE_DVR_CANDIDATE=1 \
 
 The patch is default-off (`prosperotube_dvr=1` enables it). Its digest makes
 reapplication idempotent; changed overlays require a fresh pinned source file.
-It supports only a single unencrypted continuous playlist with explicit UTC
-program-date-time, positive bounded durations, a 12-hour maximum window and an
-initial key packet with matching PTS/DTS. Missing/invalid identity, multiple
+At this stage, it supported only a single unencrypted continuous playlist with
+explicit UTC program-date-time, positive bounded durations, a 12-hour maximum
+window and an initial key packet with matching PTS/DTS. Missing/invalid identity, multiple
 playlists/renditions, gaps, discontinuities, transport reset/reordering, sequence
 rollback, changed overlapping timestamps/durations, no-overlap window jumps and
-PTS-wrap boundaries leave DVR unsupported or retire its calibration. This is a
-conservative first stage; split YouTube audio/video playlists remain unsupported.
+PTS-wrap boundaries leave DVR unsupported or retire its calibration. Split
+YouTube audio/video playlists remained unsupported at this stage; current
+video/audio-pair support is summarized above.
 
 The demux thread calibrates the packet/program timeline and refreshes the
 upstream playlist before accepting each live seek. Snapshot copies use a mutex;
@@ -198,8 +212,8 @@ including concurrent identity/window readers, preflight expiry, fixed UI origin,
 owner revocation, changed-contained-timeline refusal and stock-library fallback.
 The provider owner/history/recovery tests pass with the stronger identity schema.
 HLS, runtime and provider PS5 objects compile using isolated/read-only inputs.
-The controller/UI stage below consumes these checked APIs. The shared SDK is
-unchanged, and console DVR remains untested.
+The controller/UI stage below consumes these checked APIs. At this stage, the
+shared SDK was unchanged and console DVR remained untested.
 
 ## Controller and moving-window display
 
@@ -231,11 +245,11 @@ runtime/expiry/revocation tests pass with ASan/UBSan. Ninety-one player boards,
 including eight new DVR states, pass in all four looks (3508 checks). Controller,
 PlayerScreen, ProviderHostScreen, demux, runtime and mount PS5 objects compile in
 the dedicated generated tree with read-only SDK inputs. The stock weak-import
-fallback still passes. This establishes host integration, not console DVR:
-PS5 FFmpeg archive rebuilding, packaging and real live A/V seek/restore remain
-coordinated work after the playback hardware investigation.
+fallback still passes. At this stage, host integration was established, while
+PS5 FFmpeg archive rebuilding, packaging and console A/V seek/restore remained
+pending.
 
-## Reproducible PS5 recipe, rebuild still coordinated
+## Reproducible PS5 recipe
 
 `prepare_native.py` copies the HLS patcher and helper into the generated build
 scripts and applies it beside the existing DASH patch before FFmpeg configure.
@@ -250,9 +264,10 @@ python3 tests/test_hls_dvr_patch.py /isolated/ffmpeg-7.1.1/libavformat/hls.c
 
 The SDK identity now hashes both patchers and the HLS helper; the application
 build checks all five public HLS DVR symbols in the resulting avformat archive.
-This recipe change deliberately requires a coordinated FFmpeg SDK rebuild when
-`build_ps5.sh` next runs. No build/install was invoked against the shared SDK in
-this stage. Generated script syntax and pinned-source regeneration tests pass;
-the regenerated isolated host HLS archive still passes instrumented live-window,
-identity/runtime and stock-fallback acceptance. Hardware DVR validation remains
-pending, and unsupported/multi-playlist/uncalibrated streams remain non-seekable.
+At this stage, the recipe change required a coordinated FFmpeg SDK rebuild;
+no build or install was invoked against the shared SDK. Generated script syntax
+and pinned-source regeneration tests passed, as did the isolated host HLS
+archive's live-window, identity/runtime and stock-fallback acceptance. The
+later packaged build and synthetic .30 result are summarized above. Public
+live DVR validation remains pending; unsupported playlist layouts and
+uncalibrated streams remain non-seekable.
