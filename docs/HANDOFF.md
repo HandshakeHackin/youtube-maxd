@@ -12,6 +12,9 @@ real provider-to-LinkPhone integration coverage through cast admission while
 the pairing page stays mounted. Account sign-in now preserves credential-save
 errors and supplies actual state/expiry facts. See [receiver details](REMOTE_SERVICE.md).
 
+Production `4d2fcbc` builds and passes signed-container/helper/ZIP checks;
+all 185 archived files match. Source and validation are pushed to GitHub.
+
 These changes are offline only: no console access, deployment or Chiaki-ng.
 The installed console build remains unchanged; real-phone acceptance is pending.
 

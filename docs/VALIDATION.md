@@ -20,6 +20,10 @@ bundle, native ASan/UBSan sign-in checks, and the actual Afterglow state-handler
 regression. Credential-save errors retain their public explanation; expiry and
 terminal states come from the provider, and late authorization still succeeds.
 The combined Afterglow provider/picture and embedded-service suites also pass.
+The native provider and speed-memory regressions also pass. Production
+`4d2fcbc` builds and links for PS5, with valid signed container/helper checks.
+ZIP CRC, all 200 permission entries and all 185 archived files match the build.
+ZIP SHA-256: `d912abe5bad12fdbef43b4f1754c1178e418c262b26ccae371500116e9e8a2a6`.
 These results are offline only; no live pairing, console or Chiaki-ng was used.
 
 ## Release failure paths (2026-10-15)
