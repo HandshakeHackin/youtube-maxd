@@ -517,6 +517,8 @@ static void run_command(const char *line)
         apply_luma_identity_diag(replace, player)
         from vp9_packet_identity_diag_overlay import apply as apply_vp9_packet_identity_diag
         apply_vp9_packet_identity_diag(replace, player)
+        from vp9_picture_info_diag_overlay import apply as apply_vp9_picture_info_diag
+        apply_vp9_picture_info_diag(replace, player)
         from flip_timing_diag_overlay import apply as apply_flip_timing_diag
         apply_flip_timing_diag(replace, player)
     from frame_pacing_overlay import apply as apply_frame_pacing

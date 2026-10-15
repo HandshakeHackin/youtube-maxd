@@ -4,6 +4,25 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Historical GPU-fault ownership review (2026-10-15)
+
+A targeted extract from the original teardown, drain and no-reset runs confirms
+two distinct families. Faults at `0x247cf4000` and `0x248002000` belong to the
+same run's retired 1080p input and frame allocations respectively; both follow
+retirement and replacement creation. The drain case recorded four drained
+outputs before retirement. Resident decoding removes that resize/retirement
+path, but those records do not establish which outstanding GPU command kept
+the old address alive.
+
+The later no-reset fault at `0x2a5256000` is outside every decoder allocation
+logged in that run, with no retirement and before a valid 4K output. There is
+no address-level bound-descriptor/origin ledger in its saved logs. A generic
+direct-memory slab from another run cannot establish ownership here. The
+strict GPU-pool guard closes a plausible allocation hazard; it is not a proven
+causal explanation for this fault. The current stale-picture defect concerns
+contents in mapped caller buffers and must not be treated as attribution of
+these unmapped reads without additional completion/lifetime evidence.
+
 ## Identical-input VP9 defect confirmed (2026-10-15)
 
 A complete 36-second, video-only local WebM preserves all 864 compressed
@@ -41,15 +60,21 @@ completeness; invalid hashes, sequence gaps, capacity saturation and geometry
 mismatches cannot establish input/content equivalence. Self-tests and the
 813-packet / 695-picture-mismatch result pass.
 
-Bounded offline disassembly and independent review established the optional
-VP9 `sceVideodec2GetPictureInfo` call layout in the local firmware library. It
-reads metadata from a validated output trailer into an 88-byte structure.
-Return status and metadata validity must be recorded separately, and raw
-64-bit fields remain unnamed until compared with actual input. A diagnostic
-can collect every output before hidden-frame filtering without altering the
-production FIFO. IDA remains useful for producer semantics but is no longer
-required to prepare this narrowly bounded diagnostic. No new ABI call has
-been made on hardware yet.
+Bounded offline disassembly and independent review established the VP9
+metadata trailer read by `sceVideodec2GetPictureInfo` in firmware 12.70. The
+next diagnostic reads that trailer directly, avoiding a new API import or
+resolver. Its location is `output.buffer + output.buffer_size - 0xf8`; the
+reviewed parser reads a type at +0 and validity at +0x20, then copies raw
+fields including +0x08/+0x10/+0x18. The diagnostic validates the entire
+cache-line envelope inside the leased caller slot before reading. These raw
+fields remain unnamed until compared with actual input.
+
+The probe records every validated VP9 output before hidden-frame filtering,
+with fixed capacity and close-only file output. It never changes input tags,
+production FIFO behavior or frame fences. IDA remains useful for producer
+semantics but is no longer required to prepare this bounded diagnostic. The
+firmware-specific offsets are investigative evidence, not a portable decoder
+contract. No new ABI call is introduced.
 
 
 ## Software-reference investigation (2026-10-15)
