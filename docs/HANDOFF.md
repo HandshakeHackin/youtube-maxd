@@ -89,16 +89,19 @@ test reproduced a severe slowdown before the cap fix; it did not recur in
 these two passes. Continue treating other public CDN/timing conditions as unproven;
 the historical GPU fault address owner is still unknown.
 
-A clean production package was built from `8c29385` without the USB remote:
-`/home/denis/pt-candidates/playback-20261015-final-8c29385/`. Its signed
-`PPSA99142/eboot.bin` has SHA-256
-`d6da97aa728bab69f8cd090227e1e3fe2d0517607cd26c46083c908508dde13e`;
+The current ZIP-only production package was built from `964bb5c` without
+the USB remote: `/home/denis/pt-candidates/playback-20261015-final-964bb5c/`.
+Its signed `PPSA99142/eboot.bin` has SHA-256
+`dd9cf60618b3a1a9c0125e098644891620f57201879896e1334bb53228ec02b2`;
 `PPSA99142.zip` has SHA-256
-`b8fad63d260ef7798a9160b878621a931e785200c9ab201c4cdb850d71004f05`.
-The build reported valid signed-container integrity and verified its packaged
-Lapy helper. The ZIP passed a full member CRC check and contains the same
-eboot. This production package has not been installed on a console; the
-separately signed USB-remote candidate above supplied the .30 evidence.
+`ca5777c67b1f33e8b5f378e2109c0f7842f27ddf03f86b2d2bf0a75672100822`.
+Signed-container and packaged Lapy helper checks passed. The ZIP passed
+full CRC verification and its embedded eboot hash matched the folder.
+The 185-file production folder was installed on .30 solely to restore the
+title after the public DVR test: 185/185 files matched after 130 seconds of
+settling, then the title was idle, error records unchanged and the lock
+released. It was not launched or playback-tested as a production build; the
+separately signed USB-remote candidate above supplied the DVR evidence.
 
 ## Where things stand
 

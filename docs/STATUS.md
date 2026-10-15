@@ -64,11 +64,13 @@ range but is not proof of ownership; decoder-internal mappings also remain
 possible. Current source rejects the UI GPU fallback and retains HUI textures
 until GPU fences retire. The bounded runs do not establish reliability across
 every public CDN/timing condition, long or high-resolution public live DVR,
-TV-reported HDMI HDR metadata, or audible output. A clean production
-package from `8c29385`
-was built with signed-container integrity valid and its Lapy helper verified.
-The artifact path and hashes are in [the handoff](HANDOFF.md). The production
-package itself has not been installed on a console in this round.
+TV-reported HDMI HDR metadata, or audible output. A ZIP-only production
+package from `964bb5c` passed signed-container, Lapy helper, ZIP CRC and
+embedded-eboot checks. Its 185-file folder was installed on .30 solely to
+restore the title after the public DVR test; all 185 files matched after
+settling, and the console remained idle with unchanged errors and its lock
+released. This did not launch or playback-test the production build. Artifact
+path and hashes are in [the handoff](HANDOFF.md).
 
 Earlier 2026-10-14 investigation (superseded by the update above):
 indexed WebM is enabled again after fixing FFmpeg's zero-byte
