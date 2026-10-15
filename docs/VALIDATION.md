@@ -1,5 +1,16 @@
 # Offline validation record — 0.1.0
 
+## Completed-buffer diagnostic (2026-10-15)
+
+The opt-in flip trace now samples 144 raw tiled pixels from the active buffer
+after its existing GPU fence succeeds and before pacing/submission. It records
+geometry, HDR state, buffer index, validity, hash and sampling cost. The fixed
+trace ring and post-playback file output remain unchanged; production has no
+probe. `scripts/test_flip_timing_diag.py` passes real-tilemap fixtures under
+UBSan, including bounds, cross-tile pixels, failed fences, buffer identity,
+repeats, full-ring behavior and hook ordering. Sparse hashes cannot establish
+complete pixel correctness, HDMI presentation or Remote Play capture timing.
+
 ## Keyboard and font uploads (2026-10-15)
 
 - `python3 scripts/test_afterglow_atlas.py`: real shaping and AGC replacement/retirement methods pass ASan/UBSan lifecycle and allocation-failure regression.

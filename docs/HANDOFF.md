@@ -4,6 +4,21 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Latest owner observation (2026-10-15)
+
+After installation of `f801bae`, the owner replayed the 4K VP9 clip and saw
+hitching in the Chiaki-ng stream. This observation is not direct TV acceptance
+or a new direct TV failure; previous TV reports remain unresolved. Chiaki-ng
+keyboard input did not type in Search, but a physical PS5 keyboard was not
+tested. Missing-letter recovery after playback was not confirmed either.
+The owner cannot perform physical checks now. No console-idle confirmation
+was given after this replay, so do not assume it is safe to replace files.
+
+The next offline diagnostic extends sampled decoded/render-source identity
+to the completed tiled backbuffer before submission. It must remain opt-in,
+bounded, and preserve existing GPU fence/frame-lease ordering. A scanout
+fingerprint cannot itself prove HDMI or Remote Play capture smoothness.
+
 ## Keyboard and missing text follow-up (2026-10-15)
 
 The owner accidentally opened a different video during the `6599c48` visual

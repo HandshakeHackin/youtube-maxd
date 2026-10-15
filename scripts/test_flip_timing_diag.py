@@ -6,8 +6,11 @@ import os
 import subprocess
 import tempfile
 
-from flip_timing_diag_overlay import DIAGNOSTIC_C, apply
+from flip_timing_diag_overlay import DIAGNOSTIC_C, SCANOUT_C, apply
 
+work = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache/prosperotube/native")))
+tilemap = work / "projects/evoplayer/SDL_ps5tilemap.inc"
+assert tilemap.is_file(), "Prepared native tilemap required; this test never prepares/builds"
 isolated = os.environ.get("PROSPEROTUBE_DIAG_ISOLATED") == "1"
 if not isolated:
     work = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache/prosperotube/native")))
@@ -25,6 +28,14 @@ if not isolated:
             assert before.count(call) == sources[runtime_path].count(call), call
     runtime = sources[runtime_path]
     app = sources[player + names[2]]
+    sample = runtime.index("            tube_flip_diag_scanout(g_agc_dev.scanout_buffers[")
+    end = runtime.index("void evo_agc_runtime_frame_end(void)")
+    assert end < runtime.index("if (!retired)", end) < sample
+    assert sample < runtime.index("tube_flip_diag_submit((uint64_t)")
+    pacing = runtime.find("            evo_agc_frame_pacing_wait();", end)
+    if pacing >= 0:
+        assert sample < pacing
+    assert "g_agc_dev.active_backbuffer, scanout_tiled_bytes());" in runtime
     assert "tube_flip_diag_active(playbackActive);" in app
     assert app.index("tube_flip_diag_begin();") < app.index("tube_flip_diag_finish(")
     assert "if (new_frame) tube_flip_diag_begin" not in app
@@ -46,10 +57,16 @@ program = r'''
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-static unsigned logs, opens, invalidations;
+static unsigned logs, opens, invalidations, scanout_invalidations;
 static void evo_agc_runtime_cache_flush(const void *address, size_t bytes) {
-    assert(address && bytes == 64 && ((uintptr_t)address % 64) == 0);
-    ++invalidations;
+    assert(address);
+    if (bytes == 4) {
+        assert(((uintptr_t)address % 4) == 0);
+        ++scanout_invalidations;
+    } else {
+        assert(bytes == 64 && ((uintptr_t)address % 64) == 0);
+        ++invalidations;
+    }
 }
 static int refuse_file;
 static uint64_t tick = 100;
@@ -64,7 +81,7 @@ static FILE *diag_fopen(const char *path, const char *mode) {
 #define clock_gettime diag_clock_gettime
 #define fopen diag_fopen
 #define evo_boot_log(...) (++logs)
-''' + DIAGNOSTIC_C.replace('"/data/prosperotube/flip_timing_diag.csv"', '"records.csv"') + r'''
+''' + DIAGNOSTIC_C.replace('"/data/prosperotube/flip_timing_diag.csv"', '"records.csv"') + '\n#include "' + str(tilemap) + '"\n#define EVO_AGC_SCANOUT_STRIDE UINT64_C(0x04000000)\n' + SCANOUT_C + r'''
 static void begin_source(uint64_t epoch, uint64_t serial, int64_t pts, uint64_t fetch,
     int have, int fresh, int held, int smoothing, int blit)
 {
@@ -72,7 +89,42 @@ static void begin_source(uint64_t epoch, uint64_t serial, int64_t pts, uint64_t 
     if (blit != INT32_MIN) tube_flip_diag_blit(blit);
     tube_flip_diag_begin();
 }
+static _Alignas(64) uint32_t scanout[1024u*256u], scanout_copy[1024u*256u];
+static _Alignas(64) uint8_t display_surface[3840u*2176u*4u];
+static void check_scanout(void) {
+    struct tube_flip_diag_record *r=tube_flip_diag_current;
+    unsigned before=scanout_invalidations;
+    tube_flip_diag_scanout(NULL,1024,256,0,0,sizeof scanout);
+    tube_flip_diag_scanout(scanout,0,256,0,0,sizeof scanout);
+    tube_flip_diag_scanout(scanout,INT32_MAX,INT32_MAX,0,0,sizeof scanout);
+    tube_flip_diag_scanout(scanout,1024,256,0,2,sizeof scanout);
+    tube_flip_diag_scanout((uint8_t*)scanout+1,1024,256,0,0,sizeof scanout);
+    tube_flip_diag_scanout(scanout,1024,256,0,0,64);
+    tube_flip_diag_scanout(scanout,1024,256,0,0,EVO_AGC_SCANOUT_STRIDE+1);
+    assert(!r->scanout_valid && scanout_invalidations==before);
+    tube_flip_diag_scanout(scanout,1024,256,0,0,sizeof scanout);
+    uint64_t hash=r->scanout_hash;
+    assert(r->scanout_valid && r->scanout_sample_us==1 && scanout_invalidations==before+144);
+    tube_flip_diag_scanout(scanout_copy,1024,256,1,1,sizeof scanout_copy);
+    assert(r->scanout_valid && r->scanout_hash==hash && r->scanout_hdr && r->scanout_buffer==1);
+    /* First grid point is x=32,y=14: mutate that tiled pixel, not linear y*width+x. */
+    size_t first=PS5_tilemap[14][32];
+    scanout_copy[first]^=1u;
+    tube_flip_diag_scanout(scanout_copy,1024,256,1,1,sizeof scanout_copy);
+    assert(r->scanout_hash!=hash);
+    scanout_copy[first]^=1u;
+    assert(memcmp(scanout,scanout_copy,sizeof scanout)==0);
+    /* Shipping dimensions include partial tile rows; use the padded tiled extent. */
+    tube_flip_diag_scanout(display_surface,3840,2160,1,1,sizeof display_surface);
+    assert(r->scanout_valid && r->scanout_width==3840 && r->scanout_height==2160);
+    tube_flip_diag_scanout(display_surface,1920,1080,0,0,1920u*1152u*4u);
+    assert(r->scanout_valid);
+    tube_flip_diag_scanout(scanout,1024,256,0,1,sizeof scanout);
+    assert(r->scanout_hash==hash);
+}
 int main(void) {
+    for (unsigned i=0;i<1024u*256u;++i) scanout[i]=i*2654435761u;
+    memcpy(scanout_copy,scanout,sizeof scanout);
     uint64_t raw[8] = {11,22,33,44,55,66,77,88};
     static _Alignas(64) uint8_t luma[128*18], original[128*18];
     for (unsigned i=0; i<sizeof luma; ++i) luma[i]=(uint8_t)(i*37u+i/128u);
@@ -82,6 +134,8 @@ int main(void) {
     tube_flip_diag_active(1);
     /* A UI/no-source attempt is recorded explicitly; no stale video metadata. */
     begin_source(0,0,INT64_MIN,0,0,0,0,0,INT32_MIN);
+    tube_flip_diag_gpu(0,1);
+    tube_flip_diag_scanout(scanout,1024,256,0,0,sizeof scanout);
     tube_flip_diag_submit(43,0); tube_flip_diag_finish(1);
     assert(tube_flip_diag_count==1 && !tube_flip_diag_records[0].have_source);
     assert(tube_flip_diag_records[0].blit_rc==INT32_MIN);
@@ -92,7 +146,7 @@ int main(void) {
     assert(memcmp(luma,original,sizeof luma)==0);
     tube_flip_diag_blit(0); tube_flip_diag_begin();
     tube_flip_diag_suspend(1); tube_flip_diag_suspend(0);
-    tube_flip_diag_gpu(2,1); tube_flip_diag_submit(44,1);
+    tube_flip_diag_gpu(2,1); check_scanout(); tube_flip_diag_submit(44,1);
     tube_flip_diag_pacer(13,1,1,150.0,2,-1,-500);
     tube_flip_diag_submitted(0); tube_flip_diag_observed(raw,1);
     tube_flip_diag_waited(1); tube_flip_diag_finish(1);
@@ -115,6 +169,8 @@ int main(void) {
     assert(tube_flip_diag_source_record.sample_valid &&
         tube_flip_diag_source_record.source_luma_hash==expected_hash);
     tube_flip_diag_blit(0); tube_flip_diag_begin();
+    tube_flip_diag_gpu(0,1);
+    tube_flip_diag_scanout(scanout,1024,256,0,0,sizeof scanout);
     tube_flip_diag_submit(45,0); tube_flip_diag_pacer(13,1,0,150.0,2,-1,-600);
     tube_flip_diag_observed(raw,2); tube_flip_diag_finish(1);
     assert(r->flip_arg==44 && r->vblank_waits==1 && tube_flip_diag_count==3);
@@ -130,7 +186,11 @@ int main(void) {
     tube_flip_diag_active(1);
     assert(tube_flip_diag_count==5 && !logs && !opens);
     /* Failure attempts remain distinct from successful video draws/retirement. */
-    begin_source(8,1,0,200,1,1,0,0,-7); tube_flip_diag_gpu(500,0); tube_flip_diag_finish(0);
+    begin_source(8,1,0,200,1,1,0,0,-7); tube_flip_diag_gpu(500,0);
+    unsigned failed_before=scanout_invalidations;
+    tube_flip_diag_scanout(scanout,1024,256,0,0,sizeof scanout);
+    assert(scanout_invalidations==failed_before && !tube_flip_diag_current->scanout_valid);
+    tube_flip_diag_finish(0);
     r=&tube_flip_diag_records[5];
     assert(r->epoch==8 && r->serial==1 && !r->submit_us && !r->observed_us && r->blit_rc==-7);
     assert(r->gpu_waits==500 && !r->gpu_retired && r->flip_rc==INT32_MIN && !r->present_retired);
@@ -158,6 +218,9 @@ int main(void) {
     unsigned before_invalidations=invalidations;
     tube_flip_diag_pixels(luma,128,128,18,0);
     assert(invalidations==before_invalidations); /* Ring full: no pointless sampling. */
+    unsigned full_before=scanout_invalidations;
+    tube_flip_diag_scanout(scanout,1024,256,0,0,sizeof scanout);
+    assert(scanout_invalidations==full_before);
     assert(!logs && !opens);
     tube_flip_diag_active(0);
     assert(logs==1 && opens==1 && !tube_flip_diag_current);
@@ -188,6 +251,12 @@ with tempfile.TemporaryDirectory(prefix="flip-timing-diag-") as directory:
     assert records[1]["new_frame"] == "1" and records[2]["new_frame"] == "0"
     assert records[1]["status7"] == "88" and records[1]["pacer_drift_steps"] == "-1"
     assert records[2]["flip_arg"] == "45" and records[2]["pacer_pending"] == "0"
+    assert records[0]["scanout_valid"] == "1" # UI/no-source draws are sampled too.
+    assert records[1]["scanout_valid"] == "1" and records[1]["scanout_sample_us"] == "1"
+    assert records[1]["scanout_hash"] == records[2]["scanout_hash"]
+    assert records[1]["scanout_buffer"] == "1" and records[2]["scanout_buffer"] == "0"
+    assert records[5]["scanout_valid"] == "0" and records[5]["scanout_buffer"] == "-1"
+    assert records[1]["scanout_width"] == "1024" and records[1]["scanout_height"] == "256"
     assert records[1]["sample_valid"] == "1" and records[1]["source_y"] != "0"
     assert records[2]["source_luma_hash"] == records[1]["source_luma_hash"]
     assert records[1]["source_pitch"] == "128" and records[1]["source_width"] == "128"

@@ -1,5 +1,18 @@
 # Current implementation status
 
+Latest installed candidate: `f801bae`, the production font-upload fix and
+physical PS5 keyboard support. All 185 files matched after the installation
+persistence check. The subsequent owner replay still hitched in Chiaki-ng;
+that replay was not observed directly on the TV. Direct keyboard input and
+post-playback glyph recovery remain unconfirmed. Current title state is unknown.
+
+The earlier `6599c48` Afterglow diagnostic matched all 1,576 sampled render
+inputs to their decoded outputs; this establishes sampled source identity,
+not complete rendered pixels or HDMI/Remote Play presentation. The next
+offline probe checks the completed tiled backbuffer. See [handoff](HANDOFF.md).
+
+## Earlier playback evidence
+
 The owner replayed the installed `5a65588` production candidate and reports
 that the same 4K VP9 video still hitches. **Visual acceptance failed.** The
 regular retirement intervals measured on the diagnostic build do not establish
@@ -13,9 +26,9 @@ all presentations, including repeated pictures omitted by the previous trace.
 Reopen decode-to-display investigation;
 do not release this candidate as a fix for the visible hitch.
 
-Production candidate `5a65588` is installed on .30 with all 185 files verified
-after 120 seconds; error records are unchanged and the console is idle.
-It is available as a ZIP only and has not received a physical playback check.
+Production candidate `5a65588` was installed with all 185 files verified
+after 120 seconds and unchanged error records. Its later owner replay failed
+visual acceptance as recorded above; it has since been replaced.
 
 The final offline audit fixed background EOF return: only an automatically
 issued end-of-video pause resumes on return, while deliberate pause and seek

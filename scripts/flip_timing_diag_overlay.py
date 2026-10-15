@@ -20,6 +20,8 @@ struct tube_flip_diag_record {
     uint64_t source_y, source_luma_hash, sample_us;
     uint32_t source_width, source_height;
     int source_pitch, source_ten_bit, sample_valid;
+    uint64_t scanout_hash, scanout_sample_us;
+    int scanout_valid, scanout_width, scanout_height, scanout_hdr, scanout_buffer;
 };
 static struct tube_flip_diag_record tube_flip_diag_records[TUBE_FLIP_DIAG_CAPACITY];
 static struct tube_flip_diag_record *tube_flip_diag_current;
@@ -42,7 +44,7 @@ static void tube_flip_diag_dump(void)
         evo_boot_log("flip_diag: cannot write %s", TUBE_FLIP_DIAG_PATH);
         return;
     }
-    int failed = fprintf(file, "session,index,epoch,serial,pts_us,fetch_us,begin_us,suspend_enter_us,suspend_exit_us,gpu_done_us,submit_us,observed_us,return_us,flip_arg,backbuffer,gpu_waits,vblank_waits,gpu_retired,flip_rc,present_retired,status0,status1,status2,status3,status4,status5,status6,status7,have_source,new_frame,held,blit_rc,smoothing_active,present_enter_us,refresh_mode,pacer_active,pacer_pending,pacer_target_us,pacer_misses,pacer_drift_steps,buffer_pts_us,source_y,source_pitch,source_width,source_height,source_ten_bit,sample_valid,source_luma_hash,sample_us\n") < 0;
+    int failed = fprintf(file, "session,index,epoch,serial,pts_us,fetch_us,begin_us,suspend_enter_us,suspend_exit_us,gpu_done_us,submit_us,observed_us,return_us,flip_arg,backbuffer,gpu_waits,vblank_waits,gpu_retired,flip_rc,present_retired,status0,status1,status2,status3,status4,status5,status6,status7,have_source,new_frame,held,blit_rc,smoothing_active,present_enter_us,refresh_mode,pacer_active,pacer_pending,pacer_target_us,pacer_misses,pacer_drift_steps,buffer_pts_us,source_y,source_pitch,source_width,source_height,source_ten_bit,sample_valid,source_luma_hash,sample_us,scanout_valid,scanout_hash,scanout_sample_us,scanout_width,scanout_height,scanout_hdr,scanout_buffer\n") < 0;
     for (unsigned i = 0; i < tube_flip_diag_count && !failed; ++i) {
         const struct tube_flip_diag_record *r = &tube_flip_diag_records[i];
         failed = fprintf(file,
@@ -56,14 +58,16 @@ static void tube_flip_diag_dump(void)
             r->gpu_retired, r->flip_rc, r->present_retired) < 0;
         for (unsigned j = 0; j < 8 && !failed; ++j)
             failed = fprintf(file, ",%llu", (unsigned long long)r->status[j]) < 0;
-        if (!failed) failed = fprintf(file, ",%d,%d,%d,%d,%d,%llu,%d,%d,%d,%llu,%u,%d,%lld,%llu,%d,%u,%u,%d,%d,%llu,%llu\n",
+        if (!failed) failed = fprintf(file, ",%d,%d,%d,%d,%d,%llu,%d,%d,%d,%llu,%u,%d,%lld,%llu,%d,%u,%u,%d,%d,%llu,%llu,%d,%llu,%llu,%d,%d,%d,%d\n",
             r->have_source, r->new_frame, r->held, r->blit_rc, r->smoothing_active,
             (unsigned long long)r->present_enter_us, r->refresh_mode,
             r->pacer_active, r->pacer_pending, (unsigned long long)r->pacer_target_us,
             r->pacer_misses, r->pacer_drift_steps, (long long)r->buffer_pts_us,
             (unsigned long long)r->source_y, r->source_pitch, r->source_width, r->source_height,
             r->source_ten_bit, r->sample_valid, (unsigned long long)r->source_luma_hash,
-            (unsigned long long)r->sample_us) < 0;
+            (unsigned long long)r->sample_us, r->scanout_valid,
+            (unsigned long long)r->scanout_hash, (unsigned long long)r->scanout_sample_us,
+            r->scanout_width, r->scanout_height, r->scanout_hdr, r->scanout_buffer) < 0;
     }
     if (fclose(file) != 0) failed = 1;
     evo_boot_log("flip_diag: CPU observations session=%u rows=%u omitted=%u file=%s result=%s; raw status ABI unspecified",
@@ -133,6 +137,7 @@ void tube_flip_diag_begin(void)
     r->present_enter_us = tube_flip_diag_now_us();
     if (!r->begin_us) r->begin_us = r->present_enter_us;
     r->flip_rc = INT32_MIN; r->backbuffer = -1; r->buffer_pts_us = INT64_MIN;
+    r->scanout_buffer = -1;
     tube_flip_diag_current = r;
 }
 
@@ -199,6 +204,56 @@ void tube_flip_diag_finish(int retired)
 }
 '''
 
+
+SCANOUT_C = r"""
+/* Sparse raw tiled pixels identify rendered content, not HDMI scanout or complete frames. */
+static void tube_flip_diag_scanout(const void *pixels, int width, int height,
+    int hdr, int buffer, size_t extent)
+{
+    struct tube_flip_diag_record *r = tube_flip_diag_current;
+    if (!r || !r->gpu_retired) return;
+    const uint64_t begin = tube_flip_diag_now_us();
+    r->scanout_width = width; r->scanout_height = height;
+    r->scanout_hdr = !!hdr; r->scanout_buffer = buffer;
+    r->scanout_valid = 0; r->scanout_hash = 0;
+    size_t offsets[16u * 9u];
+    const uintptr_t base = (uintptr_t)pixels;
+    if (!pixels || (base & 63u) || width <= 0 || height <= 0 ||
+        buffer < 0 || buffer > 1 || extent < 64u ||
+        extent > (size_t)EVO_AGC_SCANOUT_STRIDE || extent > UINTPTR_MAX - base)
+        goto done;
+    /* Validate every address before invalidating/reading any cache line. */
+    for (unsigned gy = 0; gy < 9u; ++gy) {
+        const uint64_t y = ((uint64_t)height * (2u * gy + 1u)) / 18u;
+        for (unsigned gx = 0; gx < 16u; ++gx) {
+            const uint64_t x = ((uint64_t)width * (2u * gx + 1u)) / 32u;
+            const uint64_t word = (y / PS5_TILE_HEIGHT) * PS5_TILE_HEIGHT * (uint64_t)width
+                + (x / PS5_TILE_WIDTH) * PS5_TILE_SIZE
+                + PS5_tilemap[y % PS5_TILE_HEIGHT][x % PS5_TILE_WIDTH];
+            if (word > (extent - 4u) / 4u) goto done;
+            const size_t offset = (size_t)word * 4u;
+            if ((offset & ~(size_t)63u) > extent - 64u) goto done;
+            offsets[gy * 16u + gx] = offset;
+        }
+    }
+    uint64_t hash = UINT64_C(14695981039346656037);
+    for (unsigned i = 0; i < 16u * 9u; ++i) {
+        const uint8_t *address = (const uint8_t *)pixels + offsets[i];
+        evo_agc_runtime_cache_flush(address, sizeof(uint32_t));
+        uint32_t pixel;
+        memcpy(&pixel, address, sizeof(pixel));
+        for (unsigned b = 0; b < 4u; ++b) {
+            hash ^= (pixel >> (b * 8u)) & 255u;
+            hash *= UINT64_C(1099511628211);
+        }
+    }
+    r->scanout_hash = hash;
+    r->scanout_valid = 1;
+done:
+    r->scanout_sample_us = tube_flip_diag_now_us() - begin;
+}
+"""
+
 def apply(replace, player):
     header = player + "media/include/evo_agc_runtime.h"
     runtime = player + "media/src/evo_agc_runtime.c"
@@ -216,6 +271,13 @@ void tube_flip_diag_blit(int rc);
 void tube_flip_diag_begin(void);
 void tube_flip_diag_finish(int retired);''')
     replace(runtime, '#include <unistd.h>', DIAGNOSTIC_C + '\n#include <unistd.h>')
+    replace(runtime, 'void evo_agc_runtime_frame_end(void)',
+            SCANOUT_C + '\nvoid evo_agc_runtime_frame_end(void)')
+    replace(runtime, '                return; /* no flip, slot advance, source retirement or command reuse */\n            }',
+            '                return; /* no flip, slot advance, source retirement or command reuse */\n            }\n'
+            '            tube_flip_diag_scanout(g_agc_dev.scanout_buffers[g_agc_dev.active_backbuffer],\n'
+            '                g_agc_dev.width, g_agc_dev.height, g_agc_dev.is_hdr,\n'
+            '                g_agc_dev.active_backbuffer, scanout_tiled_bytes());')
     replace(runtime, 'void evo_agc_runtime_shutdown(void)\n{',
             'void evo_agc_runtime_shutdown(void)\n{\n    tube_flip_diag_active(0);')
     replace(runtime, '        int32_t sp_rc = sceAgcSuspendPoint();', '''        tube_flip_diag_suspend(1);
