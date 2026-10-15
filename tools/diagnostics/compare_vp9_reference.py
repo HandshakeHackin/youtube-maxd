@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare sampled luma identity; packet-byte equivalence must be established separately."""
+"""Compare sampled VP9 luma and optionally verify recorded compressed-packet prefixes."""
 import argparse
 from bisect import bisect_left
 from collections import Counter, defaultdict
@@ -8,14 +8,21 @@ import json
 from pathlib import Path
 
 
-def load(path):
+def load_csv(path):
     with Path(path).open(newline="") as stream:
-        rows = list(csv.DictReader(stream))
+        return list(csv.DictReader(stream))
+
+
+def load(path):
     result = []
-    for row in rows:
+    for row in load_csv(path):
         result.append({key: int(row[key]) for key in
             ("pts_us", "luma_hash", "hash_valid", "width", "height", "ten_bit")})
     return result
+
+
+def identity(row):
+    return tuple(row[key] for key in ("width", "height", "ten_bit", "luma_hash"))
 
 
 def compare(reference, native):
@@ -23,7 +30,7 @@ def compare(reference, native):
     for index, row in enumerate(reference):
         by_pts[row["pts_us"]].append(index)
         if row["hash_valid"]:
-            by_hash[row["luma_hash"]].append(index)
+            by_hash[identity(row)].append(index)
     occurrence = Counter()
     pairs = Counter()
     records = []
@@ -35,7 +42,7 @@ def compare(reference, native):
         indexes = by_pts[pts]
         expected = indexes[which] if which < len(indexes) else None
         record = {"native_index": index, "pts_us": pts, "pts_occurrence": which,
-                  "reference_index": expected, "nearest_hash_index": None, "offset": None, "hash_candidates": 0}
+                  "reference_index": expected, "nearest_hash_index": None, "offset": None, "hash_candidates": 0, "comparable": False}
         if expected is None:
             missing_pts += 1
         elif not row["hash_valid"] or not reference[expected]["hash_valid"]:
@@ -44,9 +51,12 @@ def compare(reference, native):
             target = reference[expected]
             if any(row[key] != target[key] for key in ("width", "height", "ten_bit")):
                 geometry_mismatch += 1
+                records.append(record)
+                continue
+            record["comparable"] = True
             same = row["luma_hash"] == target["luma_hash"]
             exact += same
-            candidates = by_hash[row["luma_hash"]]
+            candidates = by_hash[identity(row)]
             record["hash_candidates"] = len(candidates)
             ambiguous += len(candidates) > 1
             if candidates:
@@ -75,14 +85,14 @@ def compare(reference, native):
     back_intervals = Counter(str(b["native_index"]-a["native_index"]) for a,b in zip(backward,backward[1:]))
     unique_backward = [row for row in records if row["offset"] is not None and
                        row["offset"] < 0 and row["hash_candidates"] == 1]
-    native_hashes = {row["luma_hash"] for row in native if row["hash_valid"]}
-    expected_indexes = {row["reference_index"] for row in records if row["reference_index"] is not None}
+    native_hashes = {identity(row) for row in native if row["hash_valid"]}
+    expected_indexes = {row["reference_index"] for row in records if row["comparable"]}
     omitted = sorted(index for index in expected_indexes if reference[index]["hash_valid"] and
-                     reference[index]["luma_hash"] not in native_hashes)
+                     identity(reference[index]) not in native_hashes)
     omitted_intervals = Counter(str(b-a) for a,b in zip(omitted,omitted[1:]))
     return {
         "reference_frames": len(reference), "native_frames": len(native), "same_pts_occurrence_hash_matches": exact,
-        "same_pts_occurrence_hash_mismatches": len(native)-exact-invalid-missing_pts,
+        "same_pts_occurrence_hash_mismatches": len(native)-exact-invalid-missing_pts-geometry_mismatch,
         "missing_pts_occurrences": missing_pts, "invalid_hash_comparisons": invalid,
         "geometry_mismatches": geometry_mismatch, "ambiguous_hash_occurrences": ambiguous,
         "nearest_hash_offset_counts": dict(offsets), "mapped_adjacent_index_delta_counts": dict(pairs),
@@ -97,6 +107,57 @@ def compare(reference, native):
                    "Repeated hashes can represent static/repeated content; nearest matches are candidates, not unique proof.",
                    "Indices and PTS occurrence numbers are zero-based; frame order is never sorted or deduplicated."]
     }
+
+
+
+def compare_packets(reference, native):
+    """Strict recorded prefix identity, including packet occurrence order within epochs."""
+    def key(row):
+        digest = row["sha256"].lower()
+        if int(row["sha256_valid"]) != 1 or int(row["size"]) <= 0 or len(digest) != 64 or any(
+                char not in "0123456789abcdef" for char in digest):
+            return None
+        return int(row["pts_us"]), int(row["size"]), digest
+
+    reasons = []
+    if not reference or not native:
+        reasons.append("empty packet trace")
+    # The native recorder stops at 2048 rows; a full CSV cannot exclude an omitted tail.
+    if len(native) >= 2048:
+        reasons.append("native trace reached capacity; omitted tail cannot be excluded")
+    expected = [key(row) for row in reference]
+    if any(value is None for value in expected):
+        reasons.append("invalid reference packet hash or size")
+    if any(int(row["packet"]) != index+1 for index,row in enumerate(reference)):
+        reasons.append("reference packet sequence is not contiguous from one")
+    epochs = []
+    previous_epoch = None
+    for index,row in enumerate(native):
+        epoch = int(row["epoch"])
+        if int(row["packet"]) != index+1:
+            reasons.append("native packet sequence has an omission or reorder")
+        if epoch != previous_epoch:
+            if previous_epoch is not None and epoch <= previous_epoch:
+                reasons.append("native epoch order regresses or repeats")
+            epochs.append(dict(epoch=epoch, recorded_packets=0, invalid_rows=0, mismatching_positions=0))
+            previous_epoch = epoch
+        current = epochs[-1]
+        position = current["recorded_packets"]
+        if int(row["epoch_packet"]) != position+1:
+            reasons.append("native epoch packet sequence has an omission or reorder")
+        current["recorded_packets"] += 1
+        value = key(row)
+        if value is None:
+            current["invalid_rows"] += 1
+        if value is None or position >= len(expected) or value != expected[position]:
+            current["mismatching_positions"] += 1
+    for epoch in epochs:
+        epoch["recorded_prefix_identical"] = not reasons and not epoch["mismatching_positions"]
+    return dict(recorded_packet_prefix_identical=bool(epochs) and all(
+        epoch["recorded_prefix_identical"] for epoch in epochs),
+        reference_packets=len(reference), native_packets=len(native), epochs=epochs,
+        validation_errors=sorted(set(reasons)),
+        completeness="Only recorded prefixes are verified; CSV alone cannot establish an unreported tail or whole-stream completeness.")
 
 
 def self_test():
@@ -118,6 +179,29 @@ def self_test():
     assert result["missing_pts_occurrences"] == 2
     native[0]["hash_valid"] = 0
     assert compare(reference,native)["invalid_hash_comparisons"] == 1
+    wrong_geometry = compare([row(0,1)], [dict(row(0,1), width=256)])
+    assert wrong_geometry["geometry_mismatches"] == 1
+    assert wrong_geometry["same_pts_occurrence_hash_matches"] == 0
+    assert wrong_geometry["same_pts_occurrence_hash_mismatches"] == 0
+    assert wrong_geometry["expected_reference_hashes_absent_from_native"] == 0
+    assert wrong_geometry["first_offset_transitions"][0]["hash_candidates"] == 0
+    def packet(index, pts, digest, epoch=0, local=None):
+        return dict(packet=index, epoch=epoch, epoch_packet=local or index,
+                    pts_us=pts, size=12, sha256_valid=1, sha256=digest*64)
+    packets = [packet(1,0,"a"), packet(2,0,"b"), packet(3,42000,"c")]
+    assert compare_packets(packets,packets[:2])["recorded_packet_prefix_identical"]
+    epochs = packets[:2] + [packet(3,0,"a",1,1)]
+    assert compare_packets(packets,epochs)["recorded_packet_prefix_identical"]
+    for bad in ([packets[1]], [packets[0],packets[2]],
+                [dict(packets[0],sha256_valid=0)], [dict(packets[0],sha256="invalid")],
+                [dict(packets[0],size=13)], [dict(packets[0],sha256="b"*64)],
+                [dict(packets[0],pts_us=1)], [],
+                [packets[0],dict(packets[1],sha256="a"*64)]):
+        assert not compare_packets(packets,bad)["recorded_packet_prefix_identical"]
+    full = [packet(i+1,i,"a") for i in range(2048)]
+    assert not compare_packets(full,full)["recorded_packet_prefix_identical"]
+    assert not compare_packets([dict(packets[0],sha256_valid=0)],packets[:1])["recorded_packet_prefix_identical"]
+    print("Packet identity: ordered prefixes, equal PTS, epochs, omissions, invalid hashes and capacity: PASS")
     print("VP9 comparison occurrence preservation, repeated-hash ambiguity, missing/invalid rows: PASS")
 
 
@@ -126,6 +210,8 @@ def main():
     parser.add_argument("reference", nargs="?")
     parser.add_argument("native", nargs="?")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--reference-packets", type=Path)
+    parser.add_argument("--native-packets", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
@@ -133,7 +219,12 @@ def main():
         return
     if not args.reference or not args.native:
         parser.error("reference and native CSV paths are required")
-    result = json.dumps(compare(load(args.reference), load(args.native)), indent=2) + "\n"
+    if bool(args.reference_packets) != bool(args.native_packets):
+        parser.error("--reference-packets and --native-packets must be supplied together")
+    result = compare(load(args.reference), load(args.native))
+    if args.reference_packets:
+        result["packet_identity"] = compare_packets(load_csv(args.reference_packets), load_csv(args.native_packets))
+    result = json.dumps(result, indent=2) + "\n"
     if args.output:
         with args.output.open("x") as stream:
             stream.write(result)

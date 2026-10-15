@@ -34,6 +34,24 @@ Production `f801bae` was restored afterward; all 185 files matched again after
 120 seconds, the console remained idle, and error records were unchanged.
 No diagnostic build or private sample remains installed.
 
+The repository comparator can reproduce the compressed-input check with the
+paired `--reference-packets REFERENCE.csv --native-packets NATIVE.csv` options.
+It verifies recorded ordered prefixes, not unreported tails or whole-stream
+completeness; invalid hashes, sequence gaps, capacity saturation and geometry
+mismatches cannot establish input/content equivalence. Self-tests and the
+813-packet / 695-picture-mismatch result pass.
+
+Bounded offline disassembly and independent review established the optional
+VP9 `sceVideodec2GetPictureInfo` call layout in the local firmware library. It
+reads metadata from a validated output trailer into an 88-byte structure.
+Return status and metadata validity must be recorded separately, and raw
+64-bit fields remain unnamed until compared with actual input. A diagnostic
+can collect every output before hidden-frame filtering without altering the
+production FIFO. IDA remains useful for producer semantics but is no longer
+required to prepare this narrowly bounded diagnostic. No new ABI call has
+been made on hardware yet.
+
+
 ## Software-reference investigation (2026-10-15)
 
 A bounded software decode of the same resolved VP9 Profile 0 / 2160p24
