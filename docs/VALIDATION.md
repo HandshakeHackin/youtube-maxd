@@ -3,6 +3,22 @@
 Current packaging uses the title ZIP only. Mentions of `.ffpfsc` below record
 earlier builds and are retained as historical evidence.
 
+## Afterglow hitch diagnostic coverage ? 2026-10-15
+
+The owner still sees the 4K VP9 hitch on production `5a65588`, with smooth
+audio. Earlier timing cases forced Classic, whereas this replay used Afterglow.
+The owner requires fixing forward with Afterglow; switching interfaces is not
+an acceptance workaround.
+
+The opt-in buffered trace now records every presentation attempt, including
+repeated, held, UI-only and failed-blit frames. It includes source identity,
+submitted buffer PTS, smoothing, output mode and pacing state, with timestamps
+separating video/UI work from presentation. Storage is fixed at 8,192 rows;
+there are no added VideoOut calls, pixel readbacks or playback-time file writes.
+Isolated UBSan lifecycle/capacity/error checks and freshly generated hook checks
+pass. This extends diagnostic coverage; it is not a playback fix or proof of
+correct displayed pixels.
+
 ## First-release audit and background EOF return ? 2026-10-15
 
 The full offline runner completed 102 steps: 83 passed and 19 failed. Failures

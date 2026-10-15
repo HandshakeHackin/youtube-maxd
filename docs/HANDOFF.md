@@ -9,11 +9,13 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 The owner replayed the installed `5a65588` production candidate and reports
 that the same 4K VP9 video still hitches. **Visual acceptance failed.** The
 regular retirement intervals measured on the diagnostic build do not establish
-regular visible content or explain this failure. The owner confirms smooth audio. An idle-only log read confirms the production
-build, Afterglow interface, native 3840x2160 VP9/24, 608 published frames over
+regular visible content or explain this failure. The owner confirms smooth audio. An idle-only log read confirms
+the production build, Afterglow interface, native 3840x2160 VP9/24, 608 published frames over
 26.2 seconds, zero late drops and no decoder fatal. Earlier automated cadence
 cases forced Classic and restored the original settings, so their workload
-does not match this replay. A same-build Classic comparison is pending.
+does not match this replay. The owner requires fixing forward with Afterglow;
+no Classic comparison or interface change is requested. The next trace must retain Afterglow and record
+all presentations, including repeated pictures omitted by the previous trace.
 Reopen decode-to-display investigation;
 do not release this candidate as a fix for the visible hitch.
 
