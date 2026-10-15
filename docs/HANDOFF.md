@@ -25,12 +25,24 @@ trace peaked at five pending entries; this is a measured sample bound, not
 a universal stream guarantee. DVR restore and HDR format-selection review
 found no additional concrete defect.
 
-These follow-up guards are not yet built or tested on the console. The
+Both production and diagnostic builds of `c1b67a5` pass signed-container,
+helper and ZIP checks; all 185 archived files match their frozen candidates.
+They have not been tested on the console. The
 installed production candidate remains `6fc6d58` for the owner's TV replay;
 do not describe the failure-path guards as installed or hardware-verified.
 A private repeat-open/EOF/control case is prepared but not run. Its eight
 36-second replays cover reuse and control transitions, not uninterrupted
-five-minute streaming or audible/physical acceptance.
+five-minute streaming or audible/physical acceptance. A separate uninterrupted
+300-second public-network Afterglow case is prepared, also not run. Both
+private case host suites pass (eight tests); no console operations were made.
+
+Follow-up production ZIP SHA-256:
+`af78031002fa5ca1bad2117a2f6136d12a3349ce10f1a16c6c9d21c321d8d6bc`.
+Production eboot SHA-256:
+`198778f9bac5da6a0d176ffc5670a7f02ac2ff53ab68ec2b450d659969de4be9`.
+Diagnostic ZIP SHA-256:
+`41d3f5d78ad9d603acdfe306fb17182f7b3cda3bd35f6d91c2239ae9c786ea09`.
+These are build-validation results, not hardware acceptance.
 
 ## Identity fix passes full-sample console replay (2026-10-15)
 

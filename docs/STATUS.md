@@ -9,6 +9,13 @@ visible pictures match the software reference, with zero association errors.
 No launch followed the production installation. TV smoothness/audio sync,
 physical keyboard input and post-playback glyph recovery remain unconfirmed.
 
+Follow-up `c1b67a5` adds decoder-renewal failure quarantine and bounded
+refresh/HDR retries. Host sanitizer and mode-policy tests pass; production
+and diagnostic ZIPs are built and verified but not installed. Reuse/control
+and uninterrupted five-minute Afterglow network cases are prepared, not run.
+
+## Earlier investigation evidence (superseded by the identity fix above)
+
 The earlier `6599c48` Afterglow diagnostic matched all 1,576 sampled render
 inputs to their decoded outputs; this establishes sampled source identity,
 not complete rendered pixels or HDMI/Remote Play presentation. The subsequent `b9d3583` completed-buffer trace found no discordant sampled
