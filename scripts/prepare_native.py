@@ -497,6 +497,8 @@ static void run_command(const char *line)
     apply_agc_fence_overlay(replace, player)
     from agc_gpu_pool_overlay import apply_agc_gpu_pool_overlay
     apply_agc_gpu_pool_overlay(replace, player)
+    from gpu_bind_trace_overlay import apply as apply_gpu_bind_trace
+    apply_gpu_bind_trace(replace, player)
     from agc_frame_boundary_overlay import apply as apply_agc_frame_boundary_overlay
     apply_agc_frame_boundary_overlay(replace, player)
     from close_pending_start_overlay import apply as apply_close_pending_start_overlay
