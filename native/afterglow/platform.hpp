@@ -26,6 +26,13 @@ class Platform
     // take, 0 on failure.
     virtual std::uint32_t create_texture(int width, int height, const std::uint8_t *rgba) = 0;
     virtual void release_texture(std::uint32_t handle) = 0;
+    // Preserve the handle and earlier GPU uses. False retains the previous pixels;
+    // a backend using ordinary textures for glyph pages must implement this.
+    virtual bool update_texture(std::uint32_t handle, int width, int height, const std::uint8_t *rgba)
+    {
+        (void)handle; (void)width; (void)height; (void)rgba;
+        return false;
+    }
 
     // A square one-channel texture for a page of the text engine's glyph
     // atlas (size x size coverage bytes, top row first), and the whole page
@@ -37,11 +44,12 @@ class Platform
         (void)coverage;
         return 0;
     }
-    virtual void update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage)
+    virtual bool update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage)
     {
         (void)handle;
         (void)size;
         (void)coverage;
+        return false;
     }
     virtual void release_glyph_page(std::uint32_t handle, bool coverage)
     {

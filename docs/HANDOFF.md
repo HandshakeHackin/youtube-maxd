@@ -4,6 +4,31 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Keyboard and missing text follow-up (2026-10-15)
+
+The owner accidentally opened a different video during the `6599c48` visual
+comparison, then reported missing letters on Afterglow Search. The screenshot
+shows absent glyphs in the search field, keyboard and video titles while
+key outlines, numbers, icons and thumbnails remain visible. This is a shared
+font-upload investigation; the visual result for the same-clip cache-read
+diagnostic remains unknown. Keep Afterglow enabled.
+
+The requested keyboard forwarding means a physical keyboard connected to
+PS5. Local native-keyboard research provides a device-tested 96-byte report
+ABI; no IDA library needs reopening for this implementation. Host mapping and
+UI routing tests cannot replace a physical-keyboard check on the console.
+
+The fix retains pending atlas uploads across frame changes, retries allocation
+failures and replaces texture storage without changing the handle already used
+by glyph quads. Old GPU allocations retain the existing fenced retirement.
+Browser toast/dialog parts now upload their newly rasterized glyphs before
+drawing. The targeted ASan/UBSan regression uses the real text engine and
+extracted AGC texture methods to cover late uploads, slot reuse, allocation
+failure recovery and deferred frees. It passes. The real Search/TextSheet host
+regression also passes typing, live-result debounce, submit, input limits,
+UTF-8 backspace and hidden-page isolation. Console visual acceptance remains
+pending; this change does not claim to fix the 4K hitch.
+
 ## Final offline release audit (2026-10-15)
 
 Candidate `6599c48` completed a bounded same-clip replay with Afterglow

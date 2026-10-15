@@ -218,12 +218,13 @@ class HostPlatform final : public Platform
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
         return name;
     }
-    void update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage) override
+    bool update_glyph_page(std::uint32_t handle, int size, const std::uint8_t *coverage) override
     {
         glBindTexture(GL_TEXTURE_2D, handle);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RED, GL_UNSIGNED_BYTE, coverage);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        return glGetError() == GL_NO_ERROR;
     }
     void release_glyph_page(std::uint32_t handle, bool coverage) override
     {

@@ -191,6 +191,8 @@ Every source, version and licence is listed in
 - Two interfaces, Classic and Afterglow (preview), four themes and nine classic
   colour schemes, interface and grid scale, card text and the order of the
   video actions menu, per profile.
+- Physical PS5 keyboard typing in Afterglow search and text-entry dialogs,
+  including Shift/Caps Lock, Backspace, Enter and Escape (US layout).
 - The interface in 21 languages besides English, following the PS5 system
   language or **Interface language**. The player and its notices stay English.
 - Backup and restore in `/data/prosperotube/backup`, with an optional automatic

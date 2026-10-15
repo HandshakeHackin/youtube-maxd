@@ -798,6 +798,13 @@ class Search final : public Screen
 
     void handle(const InputFrame &input, UpdateContext &context)
     {
+        for (const char ch : context.typed)
+        {
+            if (ch == '\r') { submit(field_.text(), context); return; }
+            if (ch == '\x1b') { context.nav.back(); return; }
+            const bool changed = ch == '\b' ? field_.backspace() : field_.insert(std::string_view(&ch, 1));
+            if (changed) { edited(); keys_.set_length(field_.length()); }
+        }
         // The answer of "Clear recent searches?".
         if (*clear_answer_ != 0)
         {

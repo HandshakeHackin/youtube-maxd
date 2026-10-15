@@ -98,7 +98,7 @@ int PasswordSheet::update(const InputFrame &input, UpdateContext &context)
     if (busy_)
     {
         // The text is with the provider: only leaving is taken meanwhile.
-        if (pressed(input, Action::back))
+        if (pressed(input, Action::back) || context.typed.find('\x1b') != std::string_view::npos)
         {
             close();
             context.feedback.play(audio::Cue::modal_close);
@@ -106,12 +106,18 @@ int PasswordSheet::update(const InputFrame &input, UpdateContext &context)
         }
         return 0;
     }
-    const ui::Event event = keys_.handle(input, context.feedback);
+    ui::Event event = keys_.handle(input, context.feedback);
     bool edited = false;
     for (int i = 0; i < keys_.erased(); ++i)
         edited = field_.backspace() || edited;
     if (!keys_.typed().empty())
         edited = field_.insert(std::string_view(keys_.typed())) || edited;
+    for (const char ch : context.typed)
+    {
+        if (ch == '\r') { event = ui::Event::activated; break; }
+        if (ch == '\x1b') { event = ui::Event::cancelled; break; }
+        edited = (ch == '\b' ? field_.backspace() : field_.insert(std::string_view(&ch, 1))) || edited;
+    }
     if (edited && !field_.error().empty())
         field_.set_error({});
     keys_.set_length(field_.length());

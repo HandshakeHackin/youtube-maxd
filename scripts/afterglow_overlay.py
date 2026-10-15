@@ -160,7 +160,36 @@ def stage_kit(work):
     stamp.write_text(ui_kit.COMMIT + "\n", encoding="utf-8")
 
 
+ATLAS_UPDATE = r"""bool AgcBatch::update_texture(std::uint32_t handle, int width, int height, const std::uint8_t *rgba)
+{
+    if (!ok_ || handle == 0 || hui::gfx::is_font_handle(handle) ||
+        handle > textures_.size() || !textures_[handle - 1])
+        return false;
+    Texture *replacement = make_texture(width, height, 4, rgba);
+    if (!replacement)
+        return false;
+    // Earlier draws have copied the old descriptor; its allocation stays fenced.
+    Texture *previous = textures_[handle - 1];
+    textures_[handle - 1] = replacement;
+    pending_free_.push_back({previous, kFreeDelayFrames});
+    return true;
+}
+
+"""
+
+
+def apply_atlas_update(replace, player):
+    replace(player + "ui_kit/include/hui_agc_batch.hpp",
+            "    void release_texture(std::uint32_t handle);",
+            "    bool update_texture(std::uint32_t handle, int width, int height, const std::uint8_t *rgba);\n"
+            "    void release_texture(std::uint32_t handle);")
+    replace(player + "ui_kit/src/hui_agc_batch.cpp",
+            "void AgcBatch::release_texture(std::uint32_t handle)",
+            ATLAS_UPDATE + "void AgcBatch::release_texture(std::uint32_t handle)")
+
+
 def apply(root, work, replace, player):
+    apply_atlas_update(replace, player)
     evo = work / player
     kit = ui_kit.checkout()
     target = work / "third_party/ps5-homebrew-ui"
@@ -237,6 +266,10 @@ def apply(root, work, replace, player):
                 "        if (!tube_afterglow_shown() && tube_take_playlist_prompt(&prompt)) {")
 
     start_hooks(work, replace, player)
+    replace(player + "core/src/Application.cpp", "        evo_usb_remote_poll();\n",
+            "        evo_usb_remote_poll();\n        tube_afterglow_keyboard_poll(m_screenManager && m_screenManager->getCurrentScreenId() == ScreenId::EmbyBrowse);\n")
+    replace(player + "core/src/Application.cpp", "    m_shutdownDone = true;\n",
+            "    m_shutdownDone = true;\n    tube_afterglow_keyboard_close();\n")
     apply_sound(root, work, replace, player, kit)  # stage S
     player_mount(work, replace, player)  # package H
     stop_confirmation_focus(replace, player)  # H11

@@ -536,6 +536,18 @@ void TextSheet::handle(const InputFrame &input, UpdateContext &context)
 {
     if (!open_)
         return;
+    for (const char ch : context.typed)
+    {
+        if (ch == '\x1b') { finish(false, context); return; }
+        if (ch == '\r')
+        {
+            if (!text_.empty() || question_.may_be_empty) finish(true, context);
+            else refuse(context, input, nudge_);
+            return;
+        }
+        if (ch == '\b') drop_last_character(text_);
+        else text_.push_back(ch);
+    }
     if (pressed(input, Action::back))
     {
         finish(false, context);

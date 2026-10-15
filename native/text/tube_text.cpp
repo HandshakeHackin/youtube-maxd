@@ -490,6 +490,11 @@ const std::vector<AtlasUpdate> &Context::atlas_updates()
     return impl_->atlas.updates();
 }
 
+void Context::acknowledge_atlas_updates()
+{
+    impl_->atlas.clear_updates();
+}
+
 void Context::advance_frame()
 {
     Impl &impl = *impl_;

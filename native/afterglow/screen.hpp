@@ -211,6 +211,8 @@ struct UpdateContext
     // Move::zoom the rectangle and the address of the picture that travels.
     // Null where nothing moves (a cut, the first screen).
     const Phase *arriving = nullptr;
+    // Current physical keyboard edits: printable US text, Backspace, Enter, Escape.
+    std::string_view typed{};
 };
 
 // What draw() receives. world is the page ground's layer (ambient pictures,

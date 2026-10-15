@@ -72,7 +72,7 @@ class Frame final : private Nav
 
     // One step: time, data, pictures, input, screens. dt is seconds since the
     // previous call.
-    void update(const InputFrame &input, float dt);
+    void update(const InputFrame &input, float dt, std::string_view typed = {});
     // Builds the frame's two layers, back to front: world, then (after the
     // renderer has made its blurred copy of world, where it can) ui. glass is
     // that copy's texture, 0 where there is none: panels are then solid.

@@ -183,7 +183,6 @@ struct Mount
     unsigned asked = 0x80000000u;
     unsigned asked_player = 0x80000000u;
     unsigned toasted = 0x80000000u;
-    bool text_begun = false;
     bool video_eligible = false;
     std::string snapshot;
 };
@@ -657,11 +656,9 @@ player::Player &step(Mount &m, const ui::Fonts &fonts, float dt, unsigned frame,
     if (m.stepped == frame)
         return *m.player;
     m.stepped = frame;
-    m.text_begun = false;
     if (own_text && engine() != nullptr)
     {
         engine()->begin_frame();
-        m.text_begun = true;
     }
     const TubeUiPrefs *prefs = tube_ui_prefs();
     m.player->set_look(look_for_scheme(prefs != nullptr ? prefs->scheme : 0));
@@ -701,9 +698,10 @@ player::Player &step(Mount &m, const ui::Fonts &fonts, float dt, unsigned frame,
 }
 
 // After a part has laid its text out: what the engine rasterised reaches its texture.
-void finish(Mount &m)
+void finish()
 {
-    if (m.text_begun && engine() != nullptr)
+    // Browser-page overlays share its frame but still add glyphs after its upload.
+    if (engine() != nullptr)
         engine()->end_frame();
 }
 
@@ -887,7 +885,7 @@ bool player_draw_controls(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts,
     // A toast draws after the controls: while EVO draws one, the notice is that part's to draw.
     const bool toast = recent(m.toasted, frame);
     player.draw(list, list, 0, player::Player::kControls | (toast ? 0u : static_cast<unsigned>(player::Player::kNotice)));
-    finish(m);
+    finish();
     return true;
 }
 
@@ -897,7 +895,7 @@ bool player_draw_captions_picker(hui::gfx::DrawList &list, const hui::ui::Fonts 
     m.picked = frame;
     player::Player &player = step(m, fonts, dt, frame, true);
     player.draw(list, list, 0, player::Player::kControls);
-    finish(m);
+    finish();
     return true;
 }
 
@@ -907,7 +905,7 @@ bool player_draw_list(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, flo
     m.listed = frame;
     player::Player &player = step(m, fonts, dt, frame, true);
     player.draw(list, list, 0, player::Player::kControls);
-    finish(m);
+    finish();
     return true;
 }
 
@@ -920,7 +918,7 @@ bool player_draw_dialog(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, f
     m.asked_player = page ? 0x80000000u : frame;
     player::Player &player = step(m, fonts, dt, frame, !page);
     player.draw(list, list, 0, player::Player::kDialog);
-    finish(m);
+    finish();
     return true;
 }
 
@@ -935,7 +933,7 @@ bool player_draw_toast(hui::gfx::DrawList &list, const hui::ui::Fonts &fonts, fl
     player::Player &player = step(m, fonts, dt, frame, !page);
     const bool in_player = recent(m.controls, frame) || recent(m.listed, frame) || recent(m.picked, frame);
     player.draw(list, list, 0, in_player ? player::Player::kNotice : player::Player::kToast);
-    finish(m);
+    finish();
     return true;
 }
 

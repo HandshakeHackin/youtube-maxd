@@ -8,6 +8,7 @@
 // Console only: nothing here is compiled for the host.
 
 #include "afterglow/app/mount.hpp"
+#include "afterglow/app/physical_keyboard.hpp"
 
 #include "afterglow/app/afterglow.h"
 #include "afterglow/app/data_provider.hpp"
@@ -71,6 +72,10 @@ class AppPlatform final : public Platform
     std::uint32_t create_texture(int width, int height, const std::uint8_t *rgba) override
     {
         return batch_ != nullptr ? batch_->create_texture(width, height, rgba) : 0;
+    }
+    bool update_texture(std::uint32_t handle, int width, int height, const std::uint8_t *rgba) override
+    {
+        return batch_ != nullptr && batch_->update_texture(handle, width, height, rgba);
     }
     void release_texture(std::uint32_t handle) override
     {
@@ -318,6 +323,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     {
         m.frame->resume(); // the start ended without the player and without a failure of its own
     }
+    const bool continuous_input = m.last_render != 0.0 && now - m.last_render < 0.5;
     m.last_render = now;
 
     if (m.text)
@@ -333,7 +339,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     m.frame->set_background_playback(tube_background_play_active()
         ? (std::strlen(tube_background_play_title()) ? tube_background_play_title() : tr("Now playing")) : "",
         tube_background_play_paused()!=0);
-    m.frame->update(m.input, dt);
+    m.frame->update(m.input, dt, continuous_input ? keyboard::text() : std::string_view{});
     // stage S: what this step asked for is played and felt (the app's park and exit reach the sound through
     // tube_afterglow_sound.h, from EVO's application).
     sound::app_step(*m.frame, m.platform, dt);
@@ -479,6 +485,7 @@ extern "C" const char *tube_afterglow_snapshot(void)
 
 extern "C" void tube_afterglow_close(void)
 {
+    afterglow::keyboard::close();
     if (g_mount == nullptr)
         return;
     g_mount->frame.reset();

@@ -87,6 +87,7 @@ class TextEngine final : public gfx::Font::Shaper
     TextEngine(Platform &platform, std::unique_ptr<tube::text::Context> context);
     tube::text::Style style_of(const gfx::Font &font, float size, float tracking) const;
     void ensure_pages();
+    void collect_updates();
 
     Platform &platform_;
     std::unique_ptr<tube::text::Context> context_;
@@ -100,6 +101,7 @@ class TextEngine final : public gfx::Font::Shaper
     {
         std::uint32_t handle = 0;
         bool coverage = false; // a one-channel page of the platform; else RGBA made here
+        bool dirty = true;
     };
     std::vector<PageTexture> pages_;
     std::vector<std::uint8_t> rgba_;

@@ -140,31 +140,43 @@ tube::text::Style TextEngine::style_of(const gfx::Font &font, float size, float 
     return style;
 }
 
-// Every page has its texture before a frame lays text out: a quad names its page's texture.
+// Retain upload work independently of the text engine's frame-local dirty rectangles.
+void TextEngine::collect_updates()
+{
+    pages_.resize(static_cast<std::size_t>(context_->page_count()));
+    for (const tube::text::AtlasUpdate &update : context_->atlas_updates())
+        if (update.page < pages_.size())
+            pages_[update.page].dirty = true;
+    context_->acknowledge_atlas_updates();
+}
+
 void TextEngine::ensure_pages()
 {
     const int size = context_->page_size();
-    while (static_cast<int>(pages_.size()) < context_->page_count())
+    pages_.resize(static_cast<std::size_t>(context_->page_count()));
+    for (std::size_t index = 0; index < pages_.size(); ++index)
     {
-        const int index = static_cast<int>(pages_.size());
-        PageTexture page;
-        page.handle = platform_.create_glyph_page(size, context_->page_pixels(index));
+        PageTexture &page = pages_[index];
+        if (page.handle != 0)
+            continue;
+        const std::uint8_t *pixels = context_->page_pixels(static_cast<int>(index));
+        page.handle = platform_.create_glyph_page(size, pixels);
         page.coverage = page.handle != 0;
         if (page.handle == 0)
         {
-            // No one-channel pages here: the coverage is spread over the four channels of an ordinary texture.
-            const std::uint8_t *pixels = context_->page_pixels(index);
             rgba_.resize(static_cast<std::size_t>(size) * static_cast<std::size_t>(size) * 4u);
             for (std::size_t i = 0; i < static_cast<std::size_t>(size) * static_cast<std::size_t>(size); ++i)
                 std::memset(&rgba_[i * 4u], pixels[i], 4);
             page.handle = platform_.create_texture(size, size, rgba_.data());
         }
-        pages_.push_back(page);
+        page.dirty = page.handle == 0;
     }
 }
 
 void TextEngine::begin_frame()
 {
+    // A page overlay or a wrapping call may have rasterised after the last end_frame().
+    collect_updates();
     context_->advance_frame();
     ensure_pages();
     missing_ = 0;
@@ -172,31 +184,25 @@ void TextEngine::begin_frame()
 
 void TextEngine::end_frame()
 {
+    collect_updates();
+    ensure_pages();
     const int size = context_->page_size();
-    std::vector<bool> changed(static_cast<std::size_t>(context_->page_count()), false);
-    for (const tube::text::AtlasUpdate &update : context_->atlas_updates())
+    for (std::size_t index = 0; index < pages_.size(); ++index)
     {
-        if (update.page < changed.size())
-            changed[update.page] = true;
-    }
-    ensure_pages(); // a page that was made while this frame was laid out
-    for (std::size_t index = 0; index < changed.size() && index < pages_.size(); ++index)
-    {
-        if (!changed[index])
-            continue;
         PageTexture &page = pages_[index];
+        if (!page.dirty || page.handle == 0)
+            continue;
         const std::uint8_t *pixels = context_->page_pixels(static_cast<int>(index));
         if (page.coverage)
         {
-            platform_.update_glyph_page(page.handle, size, pixels);
+            page.dirty = !platform_.update_glyph_page(page.handle, size, pixels);
             continue;
         }
         rgba_.resize(static_cast<std::size_t>(size) * static_cast<std::size_t>(size) * 4u);
         for (std::size_t i = 0; i < static_cast<std::size_t>(size) * static_cast<std::size_t>(size); ++i)
             std::memset(&rgba_[i * 4u], pixels[i], 4);
-        if (page.handle != 0)
-            platform_.release_texture(page.handle);
-        page.handle = platform_.create_texture(size, size, rgba_.data());
+        // Quads already hold this handle; replacement must preserve it and any earlier GPU use.
+        page.dirty = !platform_.update_texture(page.handle, size, size, rgba_.data());
     }
 }
 

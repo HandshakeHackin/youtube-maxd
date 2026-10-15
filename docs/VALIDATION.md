@@ -1,5 +1,13 @@
 # Offline validation record — 0.1.0
 
+## Keyboard and font uploads (2026-10-15)
+
+- `python3 scripts/test_afterglow_atlas.py`: real shaping and AGC replacement/retirement methods pass ASan/UBSan lifecycle and allocation-failure regression.
+- `python3 scripts/test_physical_keyboard.py`: native report mapping and mocked polling lifecycle pass UBSan.
+- `bash scripts/test_afterglow_keyboard.sh --reuse-host`: actual Frame, Search and TextSheet integration passes after rebuilding the host.
+- Physical typing and the missing-letter screenshot require console acceptance; US layout only.
+
+
 Current packaging uses the title ZIP only. Mentions of `.ffpfsc` below record
 earlier builds and are retained as historical evidence.
 

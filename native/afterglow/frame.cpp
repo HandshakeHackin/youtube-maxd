@@ -520,7 +520,7 @@ void Frame::update_rail(const InputFrame &input)
     }
 }
 
-void Frame::update(const InputFrame &input, float dt)
+void Frame::update(const InputFrame &input, float dt, std::string_view typed)
 {
     const double started = now_ms();
     feedback_.clear();
@@ -604,7 +604,7 @@ void Frame::update(const InputFrame &input, float dt)
         return;
 
     // Attract mode: a press that ends it does nothing else.
-    const bool any = input.pressed != 0 || input.nav != Direction::none;
+    const bool any = input.pressed != 0 || input.nav != Direction::none || !typed.empty();
     InputFrame routed = input;
     if (any)
     {
@@ -614,6 +614,7 @@ void Frame::update(const InputFrame &input, float dt)
             attract_ = false;
             stack_.back()->screen->attract(false);
             routed = InputFrame{};
+            typed = {};
         }
     }
     else
@@ -634,11 +635,13 @@ void Frame::update(const InputFrame &input, float dt)
             feedback_.play(audio::Cue::back);
         }
         routed = InputFrame{};
+        typed = {};
     }
 
     const InputFrame none{};
     UpdateContext top = context(true);
     top.dt = dt;
+    top.typed = typed;
     UpdateContext under = context(false);
     under.dt = dt;
     if (outgoing_ != nullptr)

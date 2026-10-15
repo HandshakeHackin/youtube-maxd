@@ -24,6 +24,8 @@ int tube_afterglow_enabled(void);
  * its, and the classic browser underneath must not act. */
 int tube_afterglow_shown(void);
 /* The pad of this frame, in EVO's PadButtons bits. */
+void tube_afterglow_keyboard_poll(int browser_active);
+void tube_afterglow_keyboard_close(void);
 void tube_afterglow_input(uint32_t pressed, uint32_t held);
 /* 1 = a video was chosen: its row, title, whether it is live and where to
  * resume. The caller hands them to the player the classic browser uses. */

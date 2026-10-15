@@ -292,6 +292,8 @@ class Context
     // found none (the least recently used glyphs leave, others may move), starts a new budget,
     // rasterises what the last frame queued, forgets the updates handed out.
     void advance_frame();
+    // The caller has copied pending updates into its own upload queue.
+    void acknowledge_atlas_updates();
 
     int page_size() const;
     int page_count() const;
