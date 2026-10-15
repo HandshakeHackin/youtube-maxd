@@ -24,6 +24,13 @@ resource before decoding. A local-input case then captured all three traces
 with clean teardown and production restoration. No decoder fix or visual
 acceptance is claimed. See [handoff](HANDOFF.md).
 
+Returned metadata now isolates the FIFO error: the `77b77ee` identical-input
+trace maps every real-timestamp published picture to correct software content,
+while 61 stale outputs have the hidden-input timestamp sentinel and 61 real
+pictures are incorrectly discarded as FIFO-hidden. The fix must use verified
+completion identity; a tagged-input probe is next to cover duplicate/missing
+PTS safely. Production is restored. This is not yet a playback fix.
+
 ## Earlier playback evidence
 
 The owner replayed the installed `5a65588` production candidate and reports

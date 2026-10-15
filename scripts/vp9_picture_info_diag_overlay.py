@@ -129,8 +129,18 @@ static void tube_picture_diag_dump(evo_vdec_native *n)
 }
 """
 
+TAG_HOOK_C = """    /* Diagnostic identity: ordinal in bits63:1, shown/show-existing in bit0.
+     * Widen before addition so UINT32_MAX remains a nonzero unique tag. */
+    in.attached = n->desc->is_vp9 ? ((((uint64_t)n->dec_calls + 1u) << 1) | (uint64_t)!!present) : 0;"""
+
+
+def add_tag_hook(replace, native):
+    replace(native, '    in.attached = 0;', TAG_HOOK_C)
+
+
 def apply(replace, player):
     native = player + 'media/src/evo_vdec_native.c'
+    add_tag_hook(replace, native)
     replace(native, 'struct evo_vdec_native {', RECORD_C + '\nstruct evo_vdec_native {')
     replace(native, '    int tube_vp9_bsf_pending;', '    int tube_vp9_bsf_pending;' + FIELDS_C)
     replace(native, 'static void pts_push(', HELPERS_C + '\nstatic void pts_push(')

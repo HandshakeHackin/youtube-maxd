@@ -4,6 +4,39 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Output metadata isolates the VP9 association error (2026-10-15)
+
+Diagnostic `77b77ee` passed a bounded local-input Afterglow replay and clean
+teardown. All 814 accepted packets match the reference. All 872 returned
+metadata records passed slot/trailer/cache bounds, held a lease, and reported
+type 5 / metadata-valid 1. The raw field at trailer +0x10 tracks input PTS:
+750 published pictures with a real value match the software picture at that
+value exactly. Of those, 642 differ from the app FIFO's assigned timestamp.
+All 61 stale published pictures instead carry the AV_NOPTS_VALUE bit pattern.
+Conversely, 61 completions discarded by the FIFO as hidden carry real picture
+timestamps. Excluding the sentinel leaves 811 metadata timestamps in exactly
+the software reference's display order, without sorting or deduplication.
+
+This identifies incorrect association/filtering in the app's coded-AU FIFO.
+A count gate or fixed timestamp shift cannot fix it. Do not filter solely by
+NOPTS in production: visible inputs can have missing or duplicate timestamps.
+The next bounded diagnostic verifies unique input `attached` tags in trailer
++0x08, so a production change can classify hidden completions independently and
+associate shown/show-existing outputs with their own queued metadata by tag.
+
+IDA confirms the same trailer layout in the reopened library. Decode may
+return success without output retrieval after pipeline fill; Core supplies
+completion counts. Thus successful coded-AU count is not a completion identity.
+No further library is currently needed for the tag probe. The observed +0x08
+values remain zero, matching existing input attached=0; +0x18 is consistently
+UINT64_MAX, matching the input DTS sentinel. Nonzero tag propagation is not yet
+verified.
+
+Saved state and the production `f801bae` build were restored after the run;
+all 185 installed files matched after 120 seconds, the console stayed idle and
+error records were unchanged. No private sample remains. The bug is isolated,
+not fixed or visually accepted.
+
 ## Historical GPU-fault ownership review (2026-10-15)
 
 A targeted extract from the original teardown, drain and no-reset runs confirms
@@ -70,8 +103,10 @@ cache-line envelope inside the leased caller slot before reading. These raw
 fields remain unnamed until compared with actual input.
 
 The probe records every validated VP9 output before hidden-frame filtering,
-with fixed capacity and close-only file output. It never changes input tags,
-production FIFO behavior or frame fences. IDA remains useful for producer
+with fixed capacity and close-only file output. The initial probe left input
+tags zero; its follow-up encodes a unique submission ordinal and display bit
+in diagnostic-only attached tags, without changing PTS/DTS, the production
+FIFO or frame fences. IDA remains useful for producer
 semantics but is no longer required to prepare this bounded diagnostic. The
 firmware-specific offsets are investigative evidence, not a portable decoder
 contract. No new ABI call is introduced.
