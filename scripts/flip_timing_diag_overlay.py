@@ -175,12 +175,7 @@ void tube_flip_diag_finish(int retired);''')
             '        bool playbackActive = m_playbackController && m_playbackController->isActive();\n        tube_flip_diag_active(playbackActive);')
     replace(app, '            bool new_frame = have && (f.tube_epoch != tube_last_epoch || f.tube_serial != tube_last_serial);',
             '            bool new_frame = have && (f.tube_epoch != tube_last_epoch || f.tube_serial != tube_last_serial);\n            const uint64_t tube_diag_fetch_us = new_frame ? tube_flip_diag_now_us() : 0;')
-    replace(app, '''                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;
-                    tube_present_source=f;f.tube_lease=nullptr;''', '''                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;
-                    if (new_frame) tube_flip_diag_begin(f.tube_epoch, f.tube_serial, f.pts_us, tube_diag_fetch_us);
-                    tube_present_source=f;f.tube_lease=nullptr;''')
-    replace(app, '''            evo_agc_runtime_present();
-            // ProsperoTube hidden discard''', '''            evo_agc_runtime_present();
-            tube_flip_diag_finish(evo_agc_runtime_last_present_retired());
-            // ProsperoTube hidden discard''')
-
+    replace(app, '                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;',
+            '                    tube_frame_epoch = f.tube_epoch; tube_frame_serial = f.tube_serial;\n                    if (new_frame) tube_flip_diag_begin(f.tube_epoch, f.tube_serial, f.pts_us, tube_diag_fetch_us);')
+    replace(app, '            evo_agc_runtime_present();',
+            '            evo_agc_runtime_present();\n            tube_flip_diag_finish(evo_agc_runtime_last_present_retired());')

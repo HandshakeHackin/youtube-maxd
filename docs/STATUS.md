@@ -1,14 +1,55 @@
 # Current implementation status
 
-A presentation-deadline candidate now schedules low-rate video in a stable
-refresh interval after its existing GPU fence. It applies only to the verified
-120 Hz output mode when a source interval exceeds three refresh periods;
-other modes and faster playback retain the existing path. It adds roughly
-17-25 ms of preparation time, normalizes millisecond-rounded constant-rate
-PTS, and resets or recovers across pause, seek, stalls and clock drift without
-changing frame leases. Host models reproduce the old short/long refresh pairs
-and pass with the scheduler, including delayed GPU completion and audio drift.
-Console cadence and physical A/V acceptance are still pending.
+The `d26bfd0` presentation scheduler passed two independent .30 timing
+replays of the owner's native 3840x2160/24 VP9 clip. Each steady 25-second
+window changed from the baseline's 81 four-refresh / 440 five-refresh /
+78 six-refresh intervals to 3 / 596 / 0. The remaining four-refresh interval
+about every 8.34 seconds is expected for 24 fps on 119.88 Hz. Pictures remained
+ordered, and raw VideoOut status corroborated CPU-observed retirement timing.
+This fixes the measured cadence defect; physical TV smoothness and A/V sync
+still require owner acceptance. Median fetch-to-retirement latency rose from
+7.11 to 24.46 ms (about 17 ms).
+
+The scheduler applies only to low-rate video on the known 120 Hz output mode;
+other modes and faster playback retain the existing path. It preserves frame
+leases and GPU fences, handles rounded CFR timestamps, and resets or recovers
+across pause, seek, stalls and clock drift. Host checks cover 119.88 and true
+120 Hz, delayed GPU completion and audio drift. A separate .30 control case
+passed pause/resume and seek with 29 confirmed pictures in the new epoch;
+saved state was restored, the console left idle and error records unchanged.
+Two preceding case failures were private harness errors, with clean teardown.
+The extended control case then advanced 30.08 seconds in a 30.06-second
+post-seek watch, with 744 confirmed new-epoch pictures and clean teardown.
+Seeking included about five seconds of decoder preroll and two seconds of
+queue refill before continuous playback resumed. After that refill, 743
+consecutive pictures had 735 five-refresh and seven four-refresh intervals,
+with no longer gaps or retirement failures.
+
+A final control run gave resume its own 16-second watch, then watched another
+30 seconds after seek. Position advanced 16.04 and 30.04 seconds respectively;
+1,458 pictures were published with zero reported late drops. Transient long
+refresh gaps occurred only in the first three seconds after each transition.
+After five seconds, resume had 297 five-refresh / two four-refresh intervals,
+and post-seek had 617 / three, with no six-refresh intervals or retirement
+failures. This establishes bounded recovery, not an instantaneous transition
+or physical A/V acceptance. The console again closed cleanly and restored state.
+
+The same candidate then passed a 300-second public-network replay of that
+4K/24 clip: position advanced 299.77 seconds in 300.4 seconds, with 7,250
+published frames and zero reported late drops. Saved files were restored,
+services remained healthy, the title closed and error records were unchanged.
+The bounded timing trace covers only the first 2,048 pictures (about 85 seconds),
+while playback progress and final health checks cover the full run. Across the
+steady trace there were 1,916 five-refresh intervals, ten expected four-refresh
+corrections and no six-refresh intervals. This is bounded endurance evidence,
+not attribution of the historical GPU faults.
+
+Production `d26bfd0` is installed on .30: all 185 files matched after the
+120-second stored-byte check, with idle title state and unchanged error records.
+The diagnostic build supplied the timing/endurance evidence; the final binary
+has no development controls or timing capture and was not launched after this
+install. [Handoff](HANDOFF.md) records the ZIP path and exact hashes. TV motion
+and physical A/V acceptance remain pending; no public release was published.
 
 Local ZIP builds now apply the same permission normalization as CI before
 exporting the exact application archive. A real-candidate check preserved all
@@ -22,7 +63,7 @@ spanned four refresh ticks, 483 five ticks and 91 six ticks at approximately
 CPU observation with a 92-microsecond offset spread across the full trace.
 The field's ABI is still unnamed: it corroborates uneven retirement cadence,
 but is not an authenticated scanout timestamp or a TV smoothness verdict.
-Presentation scheduling and fence timing remain under investigation.
+The presentation scheduler above addresses this measured defect.
 
 Saved state was restored, the title closed, services remained healthy and error
 records were unchanged. The preceding attempt stopped on a truncated-title
@@ -262,16 +303,15 @@ counting a cached page. Unknown counts hide the badge, and unsupported remote
 mark-read actions are unavailable. Service, provider and board checks pass;
 real-account console acceptance remains pending.
 
-Updated 2026-10-13. Features are frozen for release 0.1.0. Full SmartTube
-equivalence stays the long-term target ([goal](../GOAL.md)); this page states
-what the first release contains, how far each part was checked, and what is
-left before it ships. **The application is self-sufficient**: its YouTube
-service runs inside the app ([decision](DECISIONS.md)), as Guest and, since
-2026-10-13, with YouTube accounts signed in on the console (host-tested only;
-no real account has signed in). The self-sufficient build passed one bounded
-console session on its Guest core path on 2026-10-13
-([hardware acceptance](HARDWARE_ACCEPTANCE.md)); what that session did not
-cover is listed under [Checked on a console](#checked-on-a-console).
+First-release work targets the standalone Guest alpha. Full SmartTube
+equivalence stays the long-term target ([goal](../GOAL.md)); optional account,
+phone and posting features are not evidence that the Guest release is ready.
+The YouTube service runs inside the app, and bounded PS5 sessions now cover
+Guest browsing, native playback, live DVR and parts of Afterglow. The current
+results and remaining limits are recorded above and in
+[hardware acceptance](HARDWARE_ACCEPTANCE.md). Real-account and phone tests
+remain outstanding; reading comments is in scope, writing them is not required
+for the initial alpha.
 
 Three levels of evidence are kept apart on this page:
 
@@ -307,9 +347,11 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   on the console; [assessment](VOICE_SEARCH.md)) and signed-in playback of
   videos that need the account (`account_playback`, off). Voice search still
   works against the development companion.
-- **Added 2026-10-13, host-tested only:** the update check and the in-place
-  self-update ([updates](UPDATES.md)). The check cannot answer while the
-  repository is private.
+- **Updates, host-tested:** the signed homebrew.page catalog check and
+  loader-started replacement helper ([updates](UPDATES.md)). Until a public
+  release ZIP has a signed catalog entry, the check reports the app as unlisted;
+  it does not query private GitHub releases. A complete console update remains
+  unverified.
 - **Added 2026-10-13, host-tested only:** the interface in 21 languages
   besides English ([localization](LOCALIZATION.md)): browser, preferences
   and messages follow the PS5 system language or the **Interface language**
@@ -318,19 +360,16 @@ the console is a hard requirement; the first MVP is Guest, standalone.
 - **Added 2026-10-13, host-tested only:** interface preferences per profile
   (interface and grid scale, card text, themes and classic colour schemes,
   the video actions menu, Circle rules) and the drawn seek preview.
-- **Afterglow, approved 2026-10-13, in progress:** the interface of the
-  [proposal](afterglow/design-notes.md) is being built on the UI kit
-  ([architecture](afterglow/ARCHITECTURE.md)), and the first release waits for
-  all of its screens ([decision](DECISIONS.md)). Built so far, host-tested
-  only: the frame (rail, hand-overs, toasts, dialog, attract mode), Home and
-  the opening, the reader, the data layer on the shipping provider, the text
-  engine for every script behind the kit's fonts, and the four looks, with 39
-  boards drawn and checked in each look (`scripts/test_afterglow.sh`). It is
-  linked into the PS5 package behind **Interface: Afterglow (preview)** under
-  YouTube preferences > Interface; **Classic** stays the default, and pages
-  Afterglow lacks say so. It has never run on a console. The browser's own
-  **Theme** preference (Afterglow by default, Onyx, Daybreak, High contrast)
-  and the new mark are in the classic interface.
+- **Afterglow, implemented with acceptance remaining:** every screen factory
+  now has an implementation, including search/results, channels, video details,
+  Library, comments, Settings and account/phone screens. Host boards cover the
+  four looks; bounded PS5 runs include Home, search, playback, navigation and
+  artwork/texture churn. It is offered as **Interface: Afterglow (preview)**;
+  Classic remains the default. Remaining player-layout, sound and screen
+  calibration checks are identified above. The earlier all-screen acceptance
+  [decision](DECISIONS.md) remains recorded; these bounded runs do not establish
+  acceptance of every proposed screen or make Afterglow the default. The
+  classic browser's Theme preference is separate from the interface choice.
 - **Deferred:** the remaining interface options (buttons at the top of the
   main window, card previews, playlists as rows), a translated player,
   languages that need other fonts, shaping or right-to-left layout.
@@ -376,26 +415,26 @@ the console is a hard requirement; the first MVP is Guest, standalone.
 
 ## Updates
 
-- `native/tube_update*.c`: the check against this repository's GitHub releases
-  (once a day and on request, answer kept in `/data/prosperotube/update`), the
-  ranged download with resume and cancel, size and SHA-256 against the release,
-  validated unpacking with every file read back, a journaled replacement of the
-  installed top-level entries, the previous version kept until the new one has
-  run, rollback after two failed starts. About lists **Check for updates**,
-  **Notify about updates**, the release notes, update, restart and skip.
-- It uses the app's HTTPS client in a client of its own on a worker thread and
-  does not need the JavaScript service. The console side exists only in the
-  package that carries the built-in service.
-- Host-tested (`scripts/test_update.sh`, `scripts/test_update_host.py`,
-  `scripts/test_release.py`): a loopback server over HTTP and HTTPS, a failure
-  and a power loss injected at every step, the About rows through the provider.
-  The PS5 objects compile and add no import the app did not already have.
-  **Never run on a console, and never against GitHub**; [updates](UPDATES.md)
-  lists what only a console can show.
-- `.github/workflows/build.yml` builds version tags and manual runs (pull
-  request builds are off), and publishes a tag as a pre-release with
-  `PPSA99142.zip` and `SHA256SUMS`. It has not run: the first run shows what a
-  hosted runner lacks.
+- `native/tube_update*.c` uses the pinned homebrew.page signed-catalog kit.
+  It checks once per launch and on request, verifies the signed entry and
+  artifact metadata, and offers notification, release-note and skip controls
+  in About. GitHub hosts the ZIP but does not authorize an update.
+- The packaged `self-updater.elf` starts through the loopback payload loader.
+  It verifies and stages the ZIP, waits for the app to close, replaces entries
+  in the existing folder installation and refreshes home-screen metadata.
+  Cancellation before applying leaves the installed files untouched. Downloads
+  restart on retry; the removed in-process updater's resumable-download,
+  startup-count and rollback-journal behavior no longer applies.
+- Host checks cover the pinned kit/helper, signatures, hashes, sequence replay,
+  cancellation, installation refusals and replacement recovery, plus About
+  integration and packaging. [Updates](UPDATES.md) describes the current
+  recovery contract and console limitations. A public signed catalog entry
+  and a complete console update/relaunch remain required for end-to-end
+  acceptance; publication is the owner's decision.
+- `.github/workflows/build.yml` builds version tags and manual runs and publishes
+  tags as prereleases with `PPSA99142.zip` and `SHA256SUMS`. Local builds and CI
+  both normalize ZIP permissions. Publishing a GitHub release alone does not
+  create an in-app update offer.
 
 ## Implemented and tested
 

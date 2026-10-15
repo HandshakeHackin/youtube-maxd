@@ -6,14 +6,61 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Latest 4K hitch investigation (2026-10-15)
 
-The next candidate adds a bounded presentation deadline after GPU completion,
-only for low-rate video on the verified 120 Hz output mode. It preserves the
-existing frame leases, accounts for rounded CFR timestamps and fractional
-refresh cadence, and handles pause/seek/stalls and slow clock drift. It adds
-roughly 17-25 ms of video preparation time, so physical A/V acceptance remains
-required. Host regression reproduces the old cadence defect and passes the
-new scheduler; do not treat that as a successful console or TV result.
-Local ZIP packaging also now normalizes archive permissions like CI.
+Candidate `d26bfd0` adds bounded presentation scheduling after GPU completion,
+only for low-rate video on the known 120 Hz output mode. Two .30 replays of the
+same 4K/24 clip independently measured 596 five-refresh and three four-refresh
+intervals, with no six-refresh intervals, in each steady 25-second window.
+The baseline was 440 / 81 / 78 respectively. The four-refresh correction about
+every 8.34 seconds is required for 24 fps on 119.88 Hz. CPU retirement and raw
+VideoOut status agree; the status timestamp ABI is still unnamed.
+
+The measured cadence defect is corrected, but **TV smoothness and physical
+A/V sync remain unaccepted**. Median fetch-to-retirement latency increased
+about 17 ms. Frame leases/fences are unchanged. Host tests cover 119.88/120 Hz,
+GPU stalls, clock drift, pause and seek. The separate `d26bfd0c` .30 control case
+passed pause/resume and +10-second seek, with 29 confirmed pictures in the new
+epoch. It restored saved state and closed with healthy services and unchanged
+error records. Two preceding case failures were private control-harness bugs
+(OSD auto-hide and wrong UI snapshot nesting), not product pause failures;
+both restored state and closed cleanly. A later extended case watched 30.06
+seconds after recovery, advancing 30.08
+seconds with 744 confirmed post-seek pictures and clean teardown. Seek preroll
+and queue refill initially took about seven seconds. Local ZIP packaging now
+normalizes
+archive permissions like CI, and local-save failures produce a visible notice.
+
+A final control run gave resume its own 16-second watch, then watched another
+30 seconds after seek. Position advanced 16.04 and 30.04 seconds respectively;
+1,458 pictures were published with zero reported late drops. Transient long
+refresh gaps occurred only in the first three seconds after each transition.
+After five seconds, resume had 297 five-refresh / two four-refresh intervals,
+and post-seek had 617 / three, with no six-refresh intervals or retirement
+failures. This establishes bounded recovery, not an instantaneous transition
+or physical A/V acceptance. The console again closed cleanly and restored state.
+
+The same candidate then passed a 300-second public-network replay of that
+4K/24 clip: position advanced 299.77 seconds in 300.4 seconds, with 7,250
+published frames and zero reported late drops. Saved files were restored,
+services remained healthy, the title closed and error records were unchanged.
+The bounded timing trace covers only the first 2,048 pictures (about 85 seconds),
+while playback progress and final health checks cover the full run. Across the
+steady trace there were 1,916 five-refresh intervals, ten expected four-refresh
+corrections and no six-refresh intervals. This is bounded endurance evidence,
+not attribution of the historical GPU faults.
+
+The production ZIP from `d26bfd0` is now installed on .30. All 185 files
+matched after the 120-second stored-byte verification; the console is idle and
+error records unchanged. It has no timing diagnostics or development controls.
+Production eboot SHA-256:
+`6f72ce284272c1c661a1379c63a1cc640981233a5b830e058925c045a11f9e6c`.
+ZIP SHA-256:
+`1c988284c8133d7b5e5c4cd5d8fc86034ac53b90228176e3efd53f0d71cfabdb`.
+Local release artifact:
+`C:\Users\denis\Documents\PS5\output\ProsperoTube-alpha-d26bfd0\PPSA99142.zip`.
+The timing and endurance runs above used the matching diagnostic build;
+the final production binary was verified in place but not launched. The new
+host regression and documentation edits after `d26bfd0` do not change its
+production behavior. No public release or catalog entry was published.
 
 The bounded `de96f13` timing run on .30 completed one 32-second Guest replay
 of the same 4K/24 clip. All 790 traced pictures had consecutive serials and
@@ -23,7 +70,7 @@ and six ticks 91 times at approximately 119.88 Hz. Raw VideoOut status word 1
 followed the same refresh lattice; its offset from the CPU observation varied
 by only 92 microseconds across the trace. Its ABI remains unnamed, so this is
 corroborating timing evidence, not a verified scanout timestamp or proof of TV
-smoothness. The next investigation is presentation scheduling and fence timing.
+smoothness. The candidate above addresses the measured scheduling defect.
 
 The run restored saved state, left .30 idle with healthy services and unchanged
 error records, and released its lock. An earlier attempt failed only because

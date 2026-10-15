@@ -4,12 +4,13 @@
 
 static const double refresh = 1001000.0 / 120.0;
 
-static double simulate(double fps, double ppm, int stall_frame, unsigned *misses, int *drift)
+static double simulate(double fps, double ppm, int stall_frame, double actual_refresh,
+    unsigned *misses, int *drift)
 {
     tube_frame_pacing p = {0};
     double previous = 0.0, busy_until = 0.0, worst_late = 0.0;
     const double interval = 1000000.0 / fps;
-    int frames = ppm == 0.0 ? 900 : 24 * 180;
+    int frames = ppm == 0.0 && actual_refresh == refresh ? 900 : 24 * 180;
     unsigned unusual = 0;
     for (int i = 0; i < frames; ++i) {
         double due = 1000000.0 + i * interval * (1.0 + ppm / 1000000.0);
@@ -23,23 +24,25 @@ static double simulate(double fps, double ppm, int stall_frame, unsigned *misses
         if (i == stall_frame) gpu += 100000.0;
         uint64_t wake = tube_frame_pacing_wait_until(&p, (uint64_t)ceil(gpu));
         double submit = fmax(gpu, (double)wake);
-        double event = ceil(submit / refresh) * refresh;
+        double event = ceil(submit / actual_refresh) * actual_refresh;
         double observed = event + 50.0 + (i * 17u % 40u);
         tube_frame_pacing_observe(&p, (uint64_t)llround(observed), 1);
         if (i > 10 && ppm == 0.0 && stall_frame < 0) {
-            double ticks = round((event - previous) / refresh);
-            if (ticks < floor(interval / refresh) || ticks > ceil(interval / refresh))
-                ++unusual;
+            double ticks = round((event - previous) / actual_refresh);
+            double expected = interval / actual_refresh;
+            if (fabs(expected - round(expected)) < 0.000001) {
+                if (ticks != round(expected)) ++unusual;
+            } else if (ticks < floor(expected) || ticks > ceil(expected)) ++unusual;
         }
         /* Publication can only advance after the first flip; duplicate redraw also occupies renderer. */
-        busy_until = event + refresh + 200.0;
-        tube_frame_pacing_observe(&p, (uint64_t)llround(event + refresh + 70.0), 1);
+        busy_until = event + actual_refresh + 200.0;
+        tube_frame_pacing_observe(&p, (uint64_t)llround(event + actual_refresh + 70.0), 1);
         if (i > 10 && (stall_frame < 0 || i > stall_frame + 10))
             worst_late = fmax(worst_late, event - due);
         previous = event;
     }
-    printf("fps=%.0f drift=%.0fppm stall=%d unusual=%u misses=%u steps=%d max steady latency=%.2fms\n",
-        fps, ppm, stall_frame, unusual, p.misses, p.drift_steps, worst_late / 1000.0);
+    printf("display=%.3fHz fps=%.0f drift=%.0fppm stall=%d unusual=%u misses=%u steps=%d max steady latency=%.2fms\n",
+        1000000.0 / actual_refresh, fps, ppm, stall_frame, unusual, p.misses, p.drift_steps, worst_late / 1000.0);
     assert(unusual == 0);
     *misses = p.misses; *drift = p.drift_steps;
     return worst_late;
@@ -111,12 +114,16 @@ int main(void)
     assert(!tube_frame_pacing_wait_until(&p,5044000) && !p.active);
     earliest_submit_control();
     unsigned misses; int drift;
-    assert(simulate(24.0,0.0,-1,&misses,&drift) < 4.0*refresh && !misses && !drift);
-    assert(simulate(30.0,0.0,-1,&misses,&drift) < 4.0*refresh && !misses && !drift);
-    assert(simulate(24.0,0.0,0,&misses,&drift) < 4.0*refresh && misses>0 && misses<=4 && !drift);
-    assert(simulate(24.0,0.0,100,&misses,&drift) < 4.0*refresh && misses>0 && misses<=4 && !drift);
-    assert(simulate(24.0,200.0,-1,&misses,&drift) < 5.0*refresh && drift>0 && drift<=5 && misses<=1);
-    assert(simulate(24.0,-200.0,-1,&misses,&drift) < 5.0*refresh && drift<0 && drift>=-5 && !misses);
+    assert(simulate(24.0,0.0,-1,refresh,&misses,&drift) < 4.0*refresh && !misses && !drift);
+    assert(simulate(30.0,0.0,-1,refresh,&misses,&drift) < 4.0*refresh && !misses && !drift);
+    assert(simulate(24.0,0.0,0,refresh,&misses,&drift) < 4.0*refresh && misses>0 && misses<=4 && !drift);
+    assert(simulate(24.0,0.0,100,refresh,&misses,&drift) < 4.0*refresh && misses>0 && misses<=4 && !drift);
+    assert(simulate(24.0,200.0,-1,refresh,&misses,&drift) < 5.0*refresh && drift>0 && drift<=5 && misses<=1);
+    assert(simulate(24.0,-200.0,-1,refresh,&misses,&drift) < 5.0*refresh && drift<0 && drift>=-5 && !misses);
+    /* Mode token 13 can be true 120 Hz: readback must track its phase without
+       interpreting the nominal 119.88 Hz period error as source-clock drift. */
+    assert(simulate(24.0,0.0,-1,1000000.0/120.0,&misses,&drift)
+        < 4.0*refresh && !misses && !drift);
     puts("Frame pacing deadlines, quantized PTS, reset, drift and backpressure: PASS");
     return 0;
 }

@@ -18,7 +18,7 @@ void evo_agc_frame_pacing_reset(void)
 void evo_agc_frame_pacing_begin(uint64_t epoch, uint64_t serial, int64_t pts,
     uint64_t fetch_us, double rate, double fps)
 {
-    /* Only refresh token 13 has a verified 119.88 Hz contract on this path. */
+    /* The low-rate scheduler is calibrated for the measured 120 Hz output path. */
     double refresh = evo_agc_runtime_get_refresh_rate() == 13 ? 1001000.0 / 120.0 : 0.0;
     tube_frame_pacing_begin(&tube_pacer, epoch, serial, pts, fetch_us, rate, fps, refresh);
 }
