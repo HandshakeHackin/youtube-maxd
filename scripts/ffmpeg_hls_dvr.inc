@@ -18,6 +18,15 @@ static int tube_dvr_pdt_has_timezone(const char *text)
            text[n - 1] >= '0' && text[n - 1] <= '9';
 }
 
+/* A live seek may cross the old stream's 60-second wrap reference. */
+static void tube_dvr_reset_wrap_reference(AVFormatContext *f)
+{
+    for (unsigned i = 0; i < f->nb_streams; ++i)
+        ffstream(f->streams[i])->pts_wrap_reference = AV_NOPTS_VALUE;
+    for (unsigned i = 0; i < f->nb_programs; ++i)
+        f->programs[i]->pts_wrap_reference = AV_NOPTS_VALUE;
+}
+
 static void tube_dvr_publish(HLSContext *c)
 {
     int64_t value[7] = {0};
@@ -133,12 +142,14 @@ static void tube_dvr_anchor(HLSContext *c, struct playlist *p)
         int kind;
         int64_t index, utc, pts;
         if (p->finished || p->dvr_bad || p->cur_seq_no != p->dvr_selected_seq ||
-            p->pkt->dts == AV_NOPTS_VALUE || p->pkt->pts != p->pkt->dts ||
+            p->pkt->dts == AV_NOPTS_VALUE ||
             p->n_segments < 2 || p->n_segments > 4096 || p->start_seq_no < 0 ||
             p->start_seq_no > INT64_MAX - p->n_segments || stream < 0 ||
             (unsigned)stream >= p->ctx->nb_streams) return;
         kind = p->ctx->streams[stream]->codecpar->codec_type;
         if (kind != AVMEDIA_TYPE_VIDEO && !(c->n_playlists == 2 && kind == AVMEDIA_TYPE_AUDIO)) return;
+        if (p->pkt->pts != p->pkt->dts &&
+            !(kind == AVMEDIA_TYPE_AUDIO && p->pkt->pts == AV_NOPTS_VALUE)) return;
         if (kind == AVMEDIA_TYPE_VIDEO && !(p->pkt->flags & AV_PKT_FLAG_KEY)) return;
         index = p->cur_seq_no - p->start_seq_no;
         if (index < 0 || index >= p->n_segments) return;
@@ -183,7 +194,11 @@ static void tube_dvr_observe(HLSContext *c, struct playlist *p)
         c->dvr_disabled = 1; tube_dvr_publish(c); return;
     }
     pts = av_rescale_q(p->pkt->dts, get_timebase(p), AV_TIME_BASE_Q);
-    if (p->pkt->pts != p->pkt->dts || pts < 0 || pts >= (1LL << 33) * AV_TIME_BASE / 90000 ||
+    if ((p->pkt->pts != p->pkt->dts &&
+         !(p->dvr_kind == AVMEDIA_TYPE_AUDIO &&
+           p->ctx->streams[stream]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO &&
+           p->pkt->pts == AV_NOPTS_VALUE)) ||
+        pts < 0 || pts >= (1LL << 33) * AV_TIME_BASE / 90000 ||
         (p->seek_timestamp == AV_NOPTS_VALUE && c->dvr_last_pts[p->index][stream] > 0 &&
          pts < c->dvr_last_pts[p->index][stream] - AV_TIME_BASE / 10)) {
         c->dvr_disabled = 1;

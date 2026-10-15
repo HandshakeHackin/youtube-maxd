@@ -9,15 +9,22 @@ source = (root / 'scripts/ffmpeg_hls_dvr.inc').read_text()
 start = source.index('static void tube_dvr_anchor(')
 end = source.index('\n}', start) + 2
 helper = source[start:end]
+start = source.index('static void tube_dvr_observe(')
+end = source.index('\n}', start) + 2
+observe = source[start:end]
+start = source.index('static void tube_dvr_reset_wrap_reference(')
+end = source.index('\n}', start) + 2
+wrap = source[start:end]
 scaffold = r"""
 #include <assert.h>
 #include <libavformat/avformat.h>
 #include <libavutil/mathematics.h>
+#include "libavformat/internal.h"
 struct segment { int64_t dvr_utc; };
-struct playlist { int finished,dvr_bad,n_segments,dvr_kind,dvr_seen,index; int64_t cur_seq_no,dvr_selected_seq,start_seq_no,dvr_first_pts,dvr_first_utc;
+struct playlist { int finished,dvr_bad,n_segments,dvr_kind,dvr_seen,index; int64_t cur_seq_no,dvr_selected_seq,start_seq_no,dvr_first_pts,dvr_first_utc,seek_timestamp;
     AVPacket *pkt;struct segment **segments;AVFormatContext *ctx; };
 typedef struct HLSContext {int tube_dvr,dvr_anchored,dvr_disabled,n_playlists,dvr_video_playlist;
-    int64_t dvr_offset,dvr_first_utc;struct playlist **playlists;} HLSContext;
+    int64_t dvr_offset,dvr_first_utc,dvr_last_pts[2][16];struct playlist **playlists;} HLSContext;
 static int published;
 static void tube_dvr_publish(HLSContext *c) { assert(c->dvr_anchored || c->dvr_disabled);++published; }
 static AVRational get_timebase(struct playlist *p) {(void)p;return (AVRational){1,90000};}
@@ -53,13 +60,26 @@ int main(void) {
     tube_dvr_anchor(&c,&p);assert(c.dvr_anchored && c.dvr_video_playlist==0 && published==2);
     a_track.dvr_seen=p.dvr_seen=0;audio.pts=audio.dts=630000;c=initial;c.n_playlists=2;c.playlists=pair;
     tube_dvr_anchor(&c,&a_track);tube_dvr_anchor(&c,&p);assert(!c.dvr_anchored && c.dvr_disabled);
+    audio.dts=541800;audio.pts=AV_NOPTS_VALUE;a_track.dvr_seen=p.dvr_seen=0;c=initial;c.n_playlists=2;c.playlists=pair;
+    tube_dvr_anchor(&c,&a_track);tube_dvr_anchor(&c,&p);assert(c.dvr_anchored && !c.dvr_disabled);
+    tube_dvr_observe(&c,&a_track);assert(!c.dvr_disabled);
+    audio.pts=audio.dts+1;a_track.dvr_seen=p.dvr_seen=0;c=initial;c.n_playlists=2;c.playlists=pair;
+    tube_dvr_anchor(&c,&a_track);tube_dvr_anchor(&c,&p);assert(!c.dvr_anchored);
+    audio.pts=audio.dts;p.pkt->pts=AV_NOPTS_VALUE;a_track.dvr_seen=p.dvr_seen=0;c=initial;c.n_playlists=2;c.playlists=pair;
+    tube_dvr_anchor(&c,&a_track);tube_dvr_anchor(&c,&p);assert(!c.dvr_anchored);
+    FFStream wrapped={0};wrapped.pts_wrap_reference=123;
+    AVProgram program={.pts_wrap_reference=456};
+    AVStream *wrap_streams[]={&wrapped.pub};AVProgram *programs[]={&program};
+    AVFormatContext wrap_format={.nb_streams=1,.streams=wrap_streams,.nb_programs=1,.programs=programs};
+    tube_dvr_reset_wrap_reference(&wrap_format);
+    assert(wrapped.pts_wrap_reference==AV_NOPTS_VALUE && program.pts_wrap_reference==AV_NOPTS_VALUE);
     return 0;
 }
 """
 ffmpeg = Path(os.environ['PROSPEROTUBE_DVR_FFMPEG_SOURCE'])
 with tempfile.TemporaryDirectory(prefix='tube-dvr-anchor-') as directory:
     test = Path(directory) / 'test.c'; binary = Path(directory) / 'test'
-    test.write_text(scaffold + helper + checks)
+    test.write_text(scaffold + helper + observe + wrap + checks)
     subprocess.run(['cc', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
                     '-I'+str(ffmpeg), str(test), str(ffmpeg/'libavutil/libavutil.a'), '-lm', '-pthread', '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=5)

@@ -80,6 +80,10 @@ static struct segment *current_segment'''),
         ('        pls->cur_seq_no = select_cur_seq_no(c, pls);\n        highest_cur_seq_no', '        pls->cur_seq_no = select_cur_seq_no(c, pls);\n        pls->dvr_selected_seq = pls->cur_seq_no;\n        highest_cur_seq_no'),
         ('        pls->read_buffer = av_malloc(INITIAL_BUFFER_SIZE);', '        pls->dvr_selected_seq = pls->cur_seq_no;\n        pls->read_buffer = av_malloc(INITIAL_BUFFER_SIZE);'),
         ('    /* set segment now so we do not need to search again below */', '    memset(c->dvr_last_pts, 0, sizeof(c->dvr_last_pts));\n    /* set segment now so we do not need to search again below */'),
+        ('        ff_read_frame_flush(pls->ctx);',
+         '        ff_read_frame_flush(pls->ctx);\n        if (c->tube_dvr && c->dvr_anchored) tube_dvr_reset_wrap_reference(pls->ctx);'),
+        ('    c->cur_timestamp = seek_timestamp;\n\n    return 0;',
+         '    if (c->tube_dvr && c->dvr_anchored) tube_dvr_reset_wrap_reference(s);\n    c->cur_timestamp = seek_timestamp;\n\n    return 0;'),
         ('    int64_t pos = c->first_timestamp == AV_NOPTS_VALUE ?\n                  0 : c->first_timestamp;', '''    int64_t pos = c->tube_dvr && c->dvr_anchored && !c->dvr_disabled ?
                   pls->segments[0]->dvr_utc + c->dvr_offset :
                   c->first_timestamp == AV_NOPTS_VALUE ? 0 : c->first_timestamp;'''),
