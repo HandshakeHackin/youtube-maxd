@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | production phone-pairing candidate `4d2fcbc` installed on .30 | idle checked before installation; all 185 files matched stored bytes after 120 seconds; still idle and error records unchanged | eboot SHA-256 `8f7387103428658d5b6a86bd5f91fcfd64ac6607a366526495b8019ff3384943` | private evidence `/home/denis/pt-console/phone-pairing-4d2fcbc-installed-production/result.json` | no launch or Chiaki-ng; installation verification only, real-phone acceptance pending.
+
 - 2026-10-15 | owner manual replay after installed VP9 identity fix `6fc6d58` | no noticeable hitching reported while viewing via RDP; audio seemed in sync, but remote-viewing delay made sync uncertain | subjective remote-viewing result only; direct-TV motion, precise A/V sync, duration and app closure not confirmed; sustained validation still pending.
 
 - 2026-10-15 | VP9 returned-identity fix, full 36-second local 2160p24 sample in Afterglow | `6fc6d58`, diagnostic eboot SHA-256 `2d5ba6285e7219e25fbd90ae449c2d5253e17f31e8563e82531ba876dae28f06` | pass: all 864 accepted packet identities and all 864 sampled visible-picture hashes match the software reference at original timestamps, with zero missing/shifted/backward pictures; all 929 coded-AU completion tags accounted for, including 65 hidden; natural EOF and clean Close | saved state restored, private sample removed, idle and unchanged error records | video-only bounded evidence; no full-pixel, physical motion/audio or longer-run claim. See [validation](VALIDATION.md).

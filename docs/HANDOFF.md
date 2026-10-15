@@ -4,7 +4,7 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
-## Offline phone-pairing fixes (2026-10-15)
+## Phone-pairing fixes installed for manual testing (2026-10-15)
 
 Fixed the provider/Afterglow state contract, enabled-state refresh, linked-phone
 feedback, and bounded transient reconnect without old command replay. Added
@@ -15,8 +15,15 @@ errors and supplies actual state/expiry facts. See [receiver details](REMOTE_SER
 Production `4d2fcbc` builds and passes signed-container/helper/ZIP checks;
 all 185 archived files match. Source and validation are pushed to GitHub.
 
-These changes are offline only: no console access, deployment or Chiaki-ng.
-The installed console build remains unchanged; real-phone acceptance is pending.
+At the owner's subsequent request, installed production `4d2fcbc` on .30 after
+checking that the console was idle. All 185 files matched after the 120-second
+stored-byte verification; the console remained idle and error records unchanged.
+No launch or Chiaki-ng was used. This includes the `c1b67a5` guards below,
+superseding their earlier uninstalled status. Real-phone acceptance is pending.
+Production eboot SHA-256:
+`8f7387103428658d5b6a86bd5f91fcfd64ac6607a366526495b8019ff3384943`.
+Next: owner launches Link a phone, links using the TV code in YouTube's phone
+app, and casts a video. Google account sign-in is a separate flow.
 
 ## Owner replay: no noticeable hitching via RDP (2026-10-15)
 

@@ -1,9 +1,11 @@
 # Current implementation status
 
-Latest installed candidate: `6fc6d58`, the production VP9 completion-identity
-fix, also retaining the font-upload fix and physical PS5 keyboard support.
+Latest installed candidate: `4d2fcbc`, the production phone-pairing fixes and
+failure-path guards, retaining the VP9 completion-identity fix, font-upload
+fix and physical PS5 keyboard support.
 All 185 files matched after the 120-second stored-byte check; at installation
-the title was idle and error records were unchanged. The diagnostic version completed the
+the title was idle and error records were unchanged. No launch was sent.
+The earlier `6fc6d58` diagnostic version completed the
 same-input 36-second 4K24 sample through EOF: all 864 packets and sampled
 visible pictures match the software reference, with zero association errors.
 On 2026-10-15 the owner reported no noticeable hitching in the subsequent
@@ -17,11 +19,12 @@ Phone pairing has offline fixes for stale Afterglow state, missing linked-device
 feedback and transient receiver recovery. The integration regression exercises
 delayed code delivery and cast admission with the pairing page mounted. Google
 sign-in storage failures now retain their actionable message. These changes
-are not installed; real-phone validation remains pending.
+are installed on .30; real-phone validation remains pending.
 
 Follow-up `c1b67a5` adds decoder-renewal failure quarantine and bounded
 refresh/HDR retries. Host sanitizer and mode-policy tests pass; production
-and diagnostic ZIPs are built and verified but not installed. Reuse/control
+and diagnostic ZIPs are built and verified. The guards are now installed in
+`4d2fcbc`, without hardware failure-path validation. Reuse/control
 and uninterrupted five-minute Afterglow network cases are prepared, not run.
 
 ## Earlier investigation evidence (superseded by the identity fix above)
