@@ -67,9 +67,11 @@ packaged Lapy helper passed. Executable SHA-256:
 `5107572b04f49e7a366a57e5d4860f55a0f52bd3d33b2fa91ccdd736b4201fc5`.
 ZIP SHA-256:
 `7a2881f8c4f6f5a5381bfeb3dbe6c6223a8eb9c1911f6bb0b94d77eaace8cb52`.
-The first read-only console check found another title running; nothing was
-installed or launched. Await owner idle confirmation before deployment, then
-verify the same 4K clip visually. Offline success does not establish smoothness.
+After the owner closed the prior title, the replacement was installed and
+verified again after 120 seconds: all 185 packaged files matched, executable
+hash matched, and the console remained idle. No launch was sent. The owner
+was asked to replay the same 4K clip, report smoothness/audio sync, then Close.
+That visual result is pending; installation does not establish smoothness.
 
 ## Playback continuation on 2026-10-14
 

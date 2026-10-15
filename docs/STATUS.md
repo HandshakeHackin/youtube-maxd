@@ -9,8 +9,10 @@ The integration regression checks actual generated send/receive/decode/drain
 and seek with the real queue limit: both the original overflow and the later
 equal-timestamp ordering defect reproduce, and the combined fix passes.
 Frame-lease tests still pass. The replacement production ZIP from `289e1c2`
-built and passed package and frozen-manifest checks. Another title was running
-at the first console check, so deployment and visual validation remain pending.
+built and passed package and frozen-manifest checks. After owner confirmation
+that the prior title was closed, it was installed and all 185 files matched
+after the 120-second settle check. The console remained idle; the requested
+same-clip visual replay remains pending.
 
 4K picture-order update, 2026-10-15: offline regression now reproduces a
 VP9 pipeline bug that timing counters missed. At decoder depth four, the old
