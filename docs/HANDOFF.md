@@ -13,6 +13,12 @@ packet identities and all 864 sparse luma fingerprints match the software
 reference at their original timestamps. No missing, shifted or backward
 pictures remain. All 929 coded-AU completion records are present, including
 65 hidden completions. The public API executes successfully on hardware.
+After five seconds, the trace has 733 five-refresh intervals and four
+four-refresh corrections, with no six-or-longer gap. All 1,475 adjacent
+source/render hash-change comparisons agree. Startup has brief disturbances
+within roughly 1.5 seconds. Coarse status snapshots undercounted one polling
+window; actual new-picture progression was 35.744 seconds wall versus 35.750
+seconds of media, so this is not sustained playback slowdown.
 
 The case restored saved state, deleted its private sample, closed cleanly and
 left error records unchanged. Production `6fc6d58` is installed: all 185 files matched stored bytes after
