@@ -34,7 +34,10 @@ A private repeat-open/EOF/control case is prepared but not run. Its eight
 36-second replays cover reuse and control transitions, not uninterrupted
 five-minute streaming or audible/physical acceptance. A separate uninterrupted
 300-second public-network Afterglow case is prepared, also not run. Both
-private case host suites pass (eight tests); no console operations were made.
+private case host suites pass (nine tests), including size/read/delete
+exceptions during trace cleanup. Both drivers attempt saved-state restoration
+even when private evidence cleanup throws; such a run still fails. No console
+operations were made.
 
 Follow-up production ZIP SHA-256:
 `af78031002fa5ca1bad2117a2f6136d12a3349ce10f1a16c6c9d21c321d8d6bc`.
