@@ -515,6 +515,8 @@ static void run_command(const char *line)
         shutil.copyfile(ROOT / "native/tube_luma_diag.h", WORK / player / "addons/include/tube_luma_diag.h")
         from luma_identity_diag_overlay import apply as apply_luma_identity_diag
         apply_luma_identity_diag(replace, player)
+        from vp9_packet_identity_diag_overlay import apply as apply_vp9_packet_identity_diag
+        apply_vp9_packet_identity_diag(replace, player)
         from flip_timing_diag_overlay import apply as apply_flip_timing_diag
         apply_flip_timing_diag(replace, player)
     from frame_pacing_overlay import apply as apply_frame_pacing

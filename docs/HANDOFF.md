@@ -4,6 +4,27 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Software-reference investigation (2026-10-15)
+
+A bounded software decode of the same resolved VP9 Profile 0 / 2160p24
+rendition provides packet SHA-256 and sparse luma fingerprints without raw
+frame dumps. Host golden tests validate packet bytes, sampled pixels, equal-PTS
+occurrences and duration bounds. The occurrence-preserving comparator finds
+115 matching same-PTS hashes in the 842-picture historical trace, 664 matching
+the following software picture, and 63 matching earlier pictures. Most backward
+jumps occur 11?12 pictures apart, and repeated caller-buffer contents are a
+specific lead. The reference has no show-existing frames; its hidden+shown
+superframes align with missing software pictures in the native trace. This is
+not yet decoder attribution: historical traces lack
+compressed-byte identity. The next diagnostic adds accepted pre-split packet
+SHA-256 and output metadata, without changing production decode behavior.
+
+Reproduce the reference with `scripts/test_vp9_reference.py` and
+`build/tests/vp9_reference INPUT FRAMES.csv PACKETS.csv 36`; compare with
+`tools/diagnostics/compare_vp9_reference.py REFERENCE.csv NATIVE.csv`.
+Media, signed URLs and raw evidence remain private. The packet trace shares
+the existing diagnostic build flag and writes only at decoder close.
+
 ## Completed-buffer trace result (2026-10-15)
 
 Diagnostic `b9d3583` passed one bounded 32-second same-clip Afterglow replay.

@@ -5,7 +5,7 @@ import csv
 import os
 import subprocess
 import tempfile
-from luma_identity_diag_overlay import RECORD_C, HELPERS_C, apply
+from luma_identity_diag_overlay import RECORD_C, HELPERS_C, apply, add_metadata_hooks
 
 root = Path(__file__).resolve().parents[1]
 work = Path(os.environ.get('PROSPEROTUBE_NATIVE_WORK', Path.home()/'.cache/prosperotube/native'))
@@ -16,6 +16,14 @@ if 'struct tube_luma_diag_record {' not in source:
         assert source.count(old) == 1, old
         source = source.replace(old, new)
     apply(replace, 'projects/evoplayer/')
+elif 'diagnostic_decode_call' not in source:
+    # Exercise new hooks against the previously generated diagnostic fixture;
+    # record/helper code below always comes from the current overlay.
+    def replace(_path, old, new):
+        global source
+        assert source.count(old) == 1, old
+        source = source.replace(old, new)
+    add_metadata_hooks(replace, 'projects/evoplayer/media/src/evo_vdec_native.c')
 
 def function(signature):
     start = source.index(signature)
@@ -28,6 +36,13 @@ def function(signature):
 
 harvest = function('static void ro_harvest(')
 assert harvest.index('tube_native_surface_valid(') < harvest.index('tube_frame_lease_hold(') < harvest.index('s->pts      = pts_take(n);') < harvest.index('tube_luma_diag_output(n, s, out);') < harvest.index('s->used     = 1;')
+decode = function('static int decode_one(')
+output = function('static void tube_native_output(')
+drain = function('static void drain_decoder(')
+assert decode.index('n->dec_calls++;') < decode.index('diagnostic_decode_call = n->dec_calls;') < decode.index('tube_native_output(n, &out)')
+assert 'diagnostic_show_existing = n->tube_luma_trigger_show_existing' in decode
+assert output.index('tube_luma_associated_decode_call =') < output.index('ro_harvest(n, out)')
+assert 'tube_luma_trigger_present = n->tube_luma_trigger_show_existing = -1' in drain
 close = function('void evo_vdec_native_close(')
 assert close.index('if (nwd_hung)') < close.index('tube_luma_diag_dump(v);') < close.index('ro_reset(v);')
 
@@ -43,7 +58,7 @@ program = r'''
 #include "tube_luma_diag.h"
 ''' + RECORD_C + r'''
 struct nat_slot { uint8_t *data; unsigned w,h,y_stride; int borrowed,is_10bit; int64_t pts; };
-typedef struct { const void *buffer; } SceVideodec2OutputInfo;
+typedef struct { const void *buffer; unsigned valid,picture_count; } SceVideodec2OutputInfo;
 struct desc { int is_vp9; };
 typedef struct evo_vdec_native {
     const struct desc *desc;
@@ -52,6 +67,8 @@ typedef struct evo_vdec_native {
     struct tube_luma_diag_record tube_luma_records[TUBE_LUMA_DIAG_CAPACITY];
     unsigned tube_luma_count,tube_luma_overflow;
     int tube_luma_dumped;
+    unsigned tube_luma_associated_decode_call;
+    int tube_luma_associated_show_existing,tube_luma_trigger_present,tube_luma_trigger_show_existing;
 } evo_vdec_native;
 static _Alignas(64) uint8_t pool[3][16384];
 static const uint8_t *checked_base,*first_sample;
@@ -77,11 +94,16 @@ static uint64_t fingerprint(unsigned pitch,unsigned width,unsigned height,int te
 static evo_vdec_native concurrent;
 static void *produce(void *unused) {
     (void)unused;
-    struct nat_slot s={pool[1],256,37,320,1,0,0};SceVideodec2OutputInfo out={pool[1]};
+    struct nat_slot s={pool[1],256,37,320,1,0,0};SceVideodec2OutputInfo out={pool[1],1,0};
     for(unsigned i=0;i<200;++i){s.pts=i;concurrent.dec_calls=i+1;tube_luma_diag_output(&concurrent,&s,&out);}
     return NULL;
 }
 int main(void) {
+    assert(tube_luma_diag_show_existing((const uint8_t*)"\x88",1)==1);
+    assert(tube_luma_diag_show_existing((const uint8_t*)"\x82",1)==0);
+    assert(tube_luma_diag_show_existing((const uint8_t*)"\xb4",1)==1);
+    assert(tube_luma_diag_show_existing(NULL,0)==-1);
+    assert(tube_luma_diag_show_existing((const uint8_t*)"\x08",1)==-1);
     for(unsigned i=0;i<sizeof pool;++i)((uint8_t*)pool)[i]=(uint8_t)(i*17u+(i>>8));
     uint64_t a=fingerprint(320,256,37,0),hash=0;
     assert(fingerprint(320,256,37,0)==a);
@@ -102,10 +124,15 @@ int main(void) {
     assert(!flushes);
     static evo_vdec_native n;
     static const struct desc vp9={1};n.desc=&vp9;n.frame_mem=pool[0];n.frame_size=sizeof pool[0];
-    struct nat_slot s={pool[1],256,37,320,1,0,1000};SceVideodec2OutputInfo out={pool[1]};
+    struct nat_slot s={pool[1],256,37,320,1,0,1000};SceVideodec2OutputInfo out={pool[1],1,0};
+    n.tube_luma_associated_decode_call=1;n.tube_luma_associated_show_existing=1;
+    n.tube_luma_trigger_present=0;n.tube_luma_trigger_show_existing=0;
     shape(320,256,37,0);n.dec_calls=4;tube_luma_diag_output(&n,&s,&out);
     assert(n.tube_luma_count==1 && flushes==144 && !logs);
     assert(n.tube_luma_records[0].slot==1 && n.tube_luma_records[0].valid);
+    assert(n.tube_luma_records[0].output_valid==1 && !n.tube_luma_records[0].picture_count);
+    assert(n.tube_luma_records[0].associated_decode_call==1 && n.tube_luma_records[0].associated_show_existing==1);
+    assert(!n.tube_luma_records[0].trigger_present && !n.tube_luma_records[0].trigger_show_existing);
     assert(n.tube_luma_records[0].hash==fingerprint(320,256,37,0));
     /* Equal content at distinct timestamps stays distinct metadata, not a false mutation. */
     s.pts=2000;n.dec_calls=5;shape(320,256,37,0);tube_luma_diag_output(&n,&s,&out);
@@ -140,6 +167,8 @@ with tempfile.TemporaryDirectory(prefix='tube-luma-identity-') as temporary:
     subprocess.run([str(exe)],check=True)
     with output.with_suffix('.csv.first').open() as stream:rows=list(csv.DictReader(stream))
     assert len(rows)==2 and [int(r['pts_us']) for r in rows]==[1000,2000]
+    assert rows[0]['output_valid']=='1' and rows[0]['picture_count']=='0' and rows[0]['associated_decode_call']=='1'
+    assert rows[0]['associated_show_existing']=='1' and rows[0]['trigger_present']=='0'
     assert rows[0]['luma_hash']==rows[1]['luma_hash'] and rows[0]['sequence']!=rows[1]['sequence']
     with output.open() as stream:snapshot=list(csv.DictReader(stream))
     assert 10<=len(snapshot)<=200
