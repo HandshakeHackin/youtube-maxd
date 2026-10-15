@@ -3,6 +3,22 @@
 Current packaging uses the title ZIP only. Mentions of `.ffpfsc` below record
 earlier builds and are retained as historical evidence.
 
+## Sparse picture-identity diagnostic ? 2026-10-15
+
+An opt-in diagnostic samples the same 16 by 9 grid of 64-byte luma spans at
+visible native VP9 output and immediately before rendering, while the source
+lease is held. It records pointer, PTS, visible geometry, pitch, bit depth,
+hash and sampling cost. Both record sets have a fixed 8,192-row bound and
+write only after playback. Decoder records are immutable once release-published;
+close reads an acquire snapshot so incomplete worker rows are excluded.
+
+ASan/UBSan checks cover padded pitch, 8/10-bit crops, invalid bounds, unchanged
+pixels, detected mutation, equal content at distinct timestamps, capacity,
+close-only output and concurrent completed-row publication. Generated hooks
+and independent review pass. Sparse hashes can detect sampled mutations;
+equality is not full-frame or scanout proof, and repeated source pictures
+require comparison with the same bitstream before being called a decoder bug.
+
 ## Afterglow hitch diagnostic coverage ? 2026-10-15
 
 The owner still sees the 4K VP9 hitch on production `5a65588`, with smooth
