@@ -1,5 +1,11 @@
 # Current implementation status
 
+Owner acceptance of installed `4d2fcbc` failed on 2026-10-15: no pairing code
+on page entry, a false Signed out label and missing account Library content,
+and an HLS app crash while seeking. Offline UI and null-segment fixes are in
+progress; account Library access and hardware acceptance remain unresolved.
+See the latest [handoff](HANDOFF.md).
+
 Latest installed candidate: `4d2fcbc`, the production phone-pairing fixes and
 failure-path guards, retaining the VP9 completion-identity fix, font-upload
 fix and physical PS5 keyboard support.

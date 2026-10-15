@@ -44,6 +44,7 @@ constexpr const char *kOptionRows[] = {"settings:remote:disconnect", "settings:r
 struct LinkPhoneProbe {
     Remote remote_;
     bool known_ = false;
+    bool pair_on_entry_ = true;
     unsigned ticket_ = 0;
     float poll_in_ = 0, code_age_ = 0;
     model::Load load_ = model::Load::idle;

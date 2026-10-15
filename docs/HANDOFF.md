@@ -4,6 +4,33 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Owner acceptance failures and offline repair (2026-10-15)
+
+The owner reports no TV code on entering Phone & casting, a Signed out account
+label after QR approval with missing Library content, and an app-only crash
+while moving playback forward. Read-only collection found .30 idle. The
+installed build was `4d2fcbc`; its new CE-108255-1 record and app log are
+preserved privately. No relaunch or Chiaki-ng was used.
+
+Opening LinkPhone required another confirm press before requesting a code;
+it now requests once on entry and reuses an existing code. Accounts consumed
+profile facts that the provider did not emit; the provider now supplies them.
+The saved state confirms one OAuth account with access/refresh credentials,
+and that account is selected. Thus approval/storage succeeded; the wrong label
+is confirmed, but the missing account Library content is not yet explained.
+
+The crash address resolves against the exact installed ELF to FFmpeg HLS
+read_data/read_from_url dereferencing a null current segment. A retained
+input could bypass the segment-opening checks. The reader now returns EOF
+when that segment is absent; an extracted real-callback sanitizer regression
+reproduces the old fault and verifies the guard and normal/ranged reads.
+The transition that produced this state is not established; do not attribute
+it to seeking beyond duration or to VP9/GPU ownership. The combined provider/picture suite, HLS callback regression and overlay
+checks pass ASan/UBSan. The actual sign-in handler and bounded diagnostic
+privacy checks also pass. Safe operation/error-category logging is added for
+the unresolved Library failure. Production rebuild and owner validation are
+next; installed `4d2fcbc` remains failed.
+
 ## Phone-pairing fixes installed for manual testing (2026-10-15)
 
 Fixed the provider/Afterglow state contract, enabled-state refresh, linked-phone

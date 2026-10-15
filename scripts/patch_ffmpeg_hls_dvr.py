@@ -11,6 +11,8 @@ def patch(source):
         if stamp in source: return source
         raise RuntimeError('DVR overlay changed; restore pristine pinned hls.c before applying')
     changes = [
+        ('    seg = current_segment(v);\n    ret = read_from_url(v, seg, buf, buf_size);',
+         '    seg = current_segment(v);\n    /* A retained input can outlive its playlist segment after seek/EOF. */\n    if (!seg) return AVERROR_EOF;\n    ret = read_from_url(v, seg, buf, buf_size);'),
         ('#include "libavutil/time.h"', '#include "libavutil/time.h"\n#include "libavutil/parseutils.h"\n#include "libavutil/thread.h"\n#include <stdlib.h>'),
         ('struct segment {\n', 'struct segment {\n    int64_t dvr_utc;\n'),
         ('    int finished;\n', '    int dvr_bad;\n    int64_t dvr_selected_seq;\n    int dvr_kind, dvr_seen;\n    int64_t dvr_first_pts, dvr_first_utc;\n    int finished;\n'),

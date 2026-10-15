@@ -560,6 +560,37 @@ int main()
         assert(source.pending() == 0);
     }
     {
+        // Real service profile rows must carry the facts Accounts and Library consume.
+        ProviderSource source;
+        Data data(source);
+        const char *profiles = R"({"state":"done","result":{"profiles":[{"id":"guest","name":"Guest","account_configured":false},{"id":"oauth_0123456789abcdef","name":"My account","account_configured":true}]}})";
+        const auto list_profiles = [&]() -> const Page & {
+            data.forget("library:profiles");
+            const Page *page = &data.catalog("library:profiles");
+            for (int i = 0; i < 12 && page->load == model::Load::loading; ++i) { data.pump(); serve(profiles); }
+            assert(page->load == model::Load::ready && page->rows.size() == 2);
+            return *page;
+        };
+        const Page &initial = list_profiles();
+        assert(initial.rows[0].has("guest") && initial.rows[0].has("selected") && !initial.rows[0].has("signed_in"));
+        assert(initial.rows[1].has("signed_in") && !initial.rows[1].has("guest") && !initial.rows[1].has("selected"));
+        const unsigned select = data.act("library:profile:oauth_0123456789abcdef");
+        for (int i = 0; i < 4; ++i) data.pump();
+        assert(data.action(select).load == model::Load::ready);
+        assert(source.profile().signed_in && !source.profile().guest);
+        const Page &selected = list_profiles();
+        assert(selected.rows[1].has("signed_in") && selected.rows[1].has("selected") && !selected.rows[0].has("selected"));
+        // The authenticated library requests must use the selected account, not Guest.
+        const Page *history = &data.catalog("library:history");
+        for (int i = 0; i < 12 && history->load == model::Load::loading; ++i) { data.pump(); serve(kSearch); }
+        assert(history->load == model::Load::ready);
+        assert(g_jobs.back().find("\"profile\":\"oauth_0123456789abcdef\"") != std::string::npos);
+        const unsigned guest = data.act("library:profile:guest");
+        for (int i = 0; i < 4; ++i) data.pump();
+        assert(data.action(guest).load == model::Load::ready && !source.profile().signed_in);
+        assert(list_profiles().rows[0].has("selected"));
+    }
+    {
         ProviderSource source;
         Data data(source);
         unsigned select = data.act("library:profile:bell-test");
@@ -681,8 +712,7 @@ int main()
         const std::string session = "0123456789abcdef0123456789abcdef";
         const std::string status = "{\"api_version\":1,\"state\":\"listening\",\"session\":\"" + session + "\"";
         frames();
-        assert(screen.state() == "off" && !screen.remote_.on && screen.remote_.code.empty());
-        screen.act(data, "settings:remote:pair"); frames();
+        // Merely entering LinkPhone requests a code: no extra confirm/action is required.
         assert(screen.state() == "connecting" && screen.remote_.on && screen.remote_.code.empty());
         tube_poll();
         const auto start = action_index("start");
@@ -698,6 +728,9 @@ int main()
         reply(pair, 1, 200, status + ",\"pairing_code\":\"123456789012\"}");
         frames(12);
         assert(screen.state() == "ready" && screen.remote_.code == "123456789012");
+        pairing_test::LinkPhoneProbe reopened;
+        for (int i = 0; i < 6; ++i) { data.pump(); reopened.update(data, 0.5f); }
+        assert(reopened.remote_.code == "123456789012" && reopened.ticket_ == 0 && !reopened.pair_on_entry_);
         assert(!std::strcmp(tube_row_fact_get("settings:remote:toggle", "selected"), "1"));
         assert(!std::strcmp(tube_row_fact_get("settings:remote:code", "value"), "123456789012"));
         int64_t phone_time = 1000000000000LL;

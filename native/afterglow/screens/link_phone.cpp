@@ -78,6 +78,7 @@ class LinkPhone final : public Screen
         age_ = 0.0f;
         load_ = model::Load::loading;
         known_ = false;
+        pair_on_entry_ = true;
         remote_ = Remote{};
         ticket_ = 0;
         sheet_open_ = false;
@@ -116,6 +117,13 @@ class LinkPhone final : public Screen
         else if (!known_)
         {
             load_ = model::Load::loading;
+        }
+        // Opening Link a phone is the pairing request; do not require a second confirm press.
+        if (known_ && pair_on_entry_)
+        {
+            pair_on_entry_ = false;
+            if (remote_.available && remote_.code.empty() && ticket_ == 0)
+                act(data, "settings:remote:pair");
         }
         // A row that was acted on answers with the catalog as it is now.
         if (ticket_ != 0)
@@ -714,6 +722,7 @@ class LinkPhone final : public Screen
     std::string error_;
     Remote remote_;
     bool known_ = false; // the catalog was answered at least once
+    bool pair_on_entry_ = true;
     float code_age_ = 10.0f;
     float poll_in_ = kPoll;
 

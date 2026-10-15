@@ -47,3 +47,14 @@ export function safeRemote(address) {
     throw new ServiceError('unsupported_origin', 'The resolver returned an unsupported media origin.');
   return String(address);
 }
+
+// Production diagnostics never include account identifiers, URLs, messages or response bodies.
+export function libraryDiagnostic(error, operation, action) {
+  const stage = ['execute', 'device', 'client', 'playback'].includes(operation) ? operation : 'other';
+  const task = ['history', 'library', 'playlists', 'watch_later', 'playlist', 'home', 'subscriptions',
+    'channels', 'notifications', 'notification_count', 'start', 'poll'].includes(action) ? action : 'other';
+  const type = error?.constructor?.name;
+  const category = ['TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'InnertubeError',
+    'ParsingError', 'OAuth2Error', 'SessionError', 'LibraryError', 'ServiceError'].includes(type) ? type : 'Error';
+  return `YouTube operation failed: stage=${stage} action=${task} category=${category}`;
+}

@@ -6,7 +6,7 @@ import { Innertube, Log, Player, UniversalCache } from 'youtubei.js';
 import { Library, LibraryError } from '../../companion/innertube/library.mjs';
 import { DeviceAuthorization, createProfileClient } from '../../companion/innertube/device_auth.mjs';
 import { DeviceAuth, Guards, OAuthProfiles } from './accounts.js';
-import { ServiceError, resolverError } from './errors.js';
+import { ServiceError, resolverError, libraryDiagnostic } from './errors.js';
 import { PLAYBACK_ORDER, SCRIPTLESS, extract } from './resolve.js';
 
 const host = globalThis.__host;
@@ -93,6 +93,7 @@ async function send(request, operation) {
     result = operation === 'device' ? await authorization.execute(request) : operation === 'playback' ? await catalog().playback(request) :
       operation === 'client' ? await catalog().client(request.profile) : await catalog().execute(request);
   } catch (error) {
+    console.error(libraryDiagnostic(error, operation, request.action));
     if (!(error instanceof LibraryError)) {
       if (host.getenv('TUBE_JS_TRACE')) console.error(error?.stack ?? error);
       throw new ServiceError('upstream_failure', 'YouTube could not complete this operation.', 502);

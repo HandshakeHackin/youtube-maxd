@@ -2332,8 +2332,26 @@ static int auth_row_fact(const char *row, int index, const char **name, const ch
     return 1;
 }
 int tube_row_fact_at(const char *row, int index, const char **name, const char **value) {
+    if (row && !strncmp(row, "library:profile:", 16)) {
+        if (index < 0) return 0;
+        if (index < 4) {
+            static const char *const keys[] = {"guest", "signed_in", "selected", "locked"};
+            const char *profile = row + 16;
+            int configured = g_auth.state == AUTH_AUTHORIZED && !strcmp(profile, g_auth.profile);
+            for (int i = 0; i < g_row_fact_used; ++i)
+                if (!strcmp(g_row_facts[i].row, row) && !strcmp(g_row_facts[i].name, "account_configured"))
+                    configured = !strcmp(g_row_facts[i].value, "1");
+            const int flags[] = {!strcmp(profile, "guest"), configured,
+                !strcmp(profile, g_library_profile), lock_find(profile) >= 0};
+            if (name) *name = keys[index];
+            if (value) *value = flags[index] ? "1" : "0";
+            return 1;
+        }
+        index -= 4;
+    }
     const int auth=auth_row_fact(row,index,name,value);
-    if (auth>=0) return auth;
+    if (auth == 1) return 1;
+    if (auth == 0) index -= 7;
     for (int i = 0; row && *row && index >= 0 && i < g_row_fact_used; ++i)
         if (!strcmp(g_row_facts[i].row, row) && !index--) {
             if (name) *name = g_row_facts[i].name;
@@ -4342,6 +4360,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             if (!strcmp(str(o, "id"), g_startup_lock)) waiting = 1;
             char id[64]; snprintf(id, sizeof id, "library:profile:%s", str(o, "id"));
             folder(&items[n++], id, str(o, "name"), boolean(o, "account_configured") ? g_embedded ? "Account signed in on this PS5" : "Account configured on the companion" : "Browse as guest");
+            tube_row_fact(id, "account_configured", boolean(o, "account_configured") ? "1" : "0");
         }
         if (!guest) {
             free(items); cJSON_Delete(root); tube_set_error("The companion profile list was invalid."); complete(r, 0); return;
