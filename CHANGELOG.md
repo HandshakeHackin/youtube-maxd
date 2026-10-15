@@ -9,11 +9,10 @@ bullet under 300 bytes and run the generator after editing this file.
 
 First release. It runs on the console by itself, as Guest or with YouTube
 accounts signed in on the console. Most of it was tested offline only, no real
-account has signed in, and the self-sufficient build has run on a console in
-one bounded Guest session only (browsing, direct 1080p AVC playback, seek,
-pause, stop, history and a clean close;
-[docs/HARDWARE_ACCEPTANCE.md](docs/HARDWARE_ACCEPTANCE.md));
-[docs/STATUS.md](docs/STATUS.md) records what was tested and where.
+account has signed in, and self-sufficient builds have passed bounded Guest
+console sessions including native 4K VP9 playback and 720p live DVR
+([hardware acceptance](docs/HARDWARE_ACCEPTANCE.md)).
+[Status](docs/STATUS.md) records what was tested and where.
 
 - Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. No computer is needed: the YouTube service runs inside the app.
 - Built-in service: a JavaScript engine running YouTube.js behind a loopback address, verified HTTPS to YouTube, video played directly from YouTube's servers, a new resolve when a link is refused.
@@ -35,4 +34,5 @@ pause, stop, history and a clean close;
 - Interface in 21 languages besides English, following the PS5 system language or the Interface language preference: browser, preferences and messages. The player and toasts stay English, as do languages that need other fonts or right-to-left layout.
 - Interface preferences per profile: interface and video grid scale, one to four title lines, scrolling titles, two-line subtitles, rounded or square cards, four themes (Afterglow by default) and nine classic colour schemes, the rows of the video actions menu and what Circle does on the main menu.
 - Preview while seeking: the thumbnail of the seek target above the seek bar, a single frame or a carousel of five, from YouTube's storyboard sheets. Off by default.
-- Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, a translated player, a few interface options (buttons at the top, card previews, playlists as rows), auto frame rate, HDR and background playback.
+- Automatic 60/120 Hz refresh switching and PQ/HLG HDR selection passed bounded PS5 scanout checks; TV-reported HDMI HDR remains unverified. Afterglow background audio while browsing is host-tested only.
+- Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, a translated player, and a few interface options (buttons at the top, card previews, playlists as rows).

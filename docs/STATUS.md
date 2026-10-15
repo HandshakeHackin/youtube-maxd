@@ -249,8 +249,7 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   and the new mark are in the classic interface.
 - **Deferred:** the remaining interface options (buttons at the top of the
   main window, card previews, playlists as rows), a translated player,
-  languages that need other fonts, shaping or right-to-left layout, auto
-  frame rate, HDR and background playback.
+  languages that need other fonts, shaping or right-to-left layout.
 
 ## The built-in service
 

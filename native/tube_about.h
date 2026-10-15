@@ -103,7 +103,7 @@ static inline const tube_about_credit *tube_about_credit_at(int index) {
         {"ps5-homebrew-ui", "The interface kit Afterglow and the player's controls are drawn with, by the same author. GPL-3.0-or-later.", "ps5-homebrew-ui"},
         {"HarfBuzz 9.0.0, FreeType 2.13.2 and GNU FriBidi 1.0.15", "Text shaping, glyphs and text direction. Old MIT, FreeType Project License and LGPL-2.1-or-later.", "HarfBuzz 9.0.0"},
         {"Inter, Montserrat and DejaVu Sans Mono", "The typefaces. SIL Open Font License 1.1; Bitstream Vera and DejaVu licences.", "Montserrat Medium (SIL Open Font License 1.1)"},
-        {"Interface sounds", "From ps5-homebrew-ui's sound sets, generated with ElevenLabs Sound Effects. GPL-3.0-or-later.", "ElevenLabs Sound Effects v2"},
+        {"Interface sounds", "Original procedural synthesis by BlackBearReloaded. GPL-3.0-or-later.", "original procedural synthesis by this project"},
         {"cJSON 1.7.19 and PS5-Lapy-JB-Daemon", "JSON reading and writing; the packaged one-shot storage helper. MIT.", "PS5-Lapy-JB-Daemon"},
         {"PS5 Payload SDK 0.42, Pacbrew 0.39 and MkPFS", "Toolchain, runtime libraries and package image. The SDK is GPL-3.0-or-later; the others keep their upstream licenses.", "PS5 Payload SDK v0.42"},
         {"ProsperoTV, ProsperoLight and ps5-native-app-boilerplate", "Elevation client, entropy reader, self-exit and the update kit, by the same author. GPL-3.0-or-later.", "ProsperoLight"},
