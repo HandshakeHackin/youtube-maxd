@@ -25,6 +25,21 @@ Reproduce the reference with `scripts/test_vp9_reference.py` and
 Media, signed URLs and raw evidence remain private. The packet trace shares
 the existing diagnostic build flag and writes only at decoder close.
 
+Diagnostic `dee3753` built, packaged and passed the 120-second installed-byte
+check. Its bounded Afterglow replay stopped at the provider's media-resource
+resolve failure, before decoder creation; no packet/output metadata was
+collected. Teardown restored saved files, left the console idle and found no
+new error records. Do not count this as a decoder test or retry identical
+bytes automatically. Production `f801bae` was restored and all 185 files
+matched again after 120 seconds; no launch followed, and errors were unchanged.
+
+The hidden-frame hypothesis is narrower than a missing picture-count guard:
+`tube_native_surface_valid` already requires one picture for VP9. The next
+input-verified trace must explain why stale caller-slot content passes that
+validation before replacing the coded-AU FIFO with visible-picture metadata.
+No production decoder behavior changed in this milestone.
+
+
 ## Completed-buffer trace result (2026-10-15)
 
 Diagnostic `b9d3583` passed one bounded 32-second same-clip Afterglow replay.

@@ -14,6 +14,15 @@ same-picture repeats across the two buffers. This argues against steady stale
 rendered content in that instrumented run, not full-frame or HDMI correctness.
 See [handoff](HANDOFF.md).
 
+The software reference now links all 63 distinguishably missing historical
+pictures to hidden-plus-shown VP9 superframes. All 62 unambiguous backward
+hash matches point seven reference pictures backward, usually recurring every
+11?12 native pictures. This is a concrete decoder-association lead, conditional
+on compressed-input equivalence. Diagnostic `dee3753` adds packet fingerprints
+and output metadata, but the bounded console replay failed to resolve the
+resource before decoding; clean teardown passed. No decoder fix or visual
+acceptance is claimed. See [handoff](HANDOFF.md).
+
 ## Earlier playback evidence
 
 The owner replayed the installed `5a65588` production candidate and reports
