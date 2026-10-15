@@ -10,9 +10,21 @@ Background EOF return now resumes only its automatic pause; explicit controls
 cancel that state, including worker-side stop through an atomic flag. Generated
 regressions and sanitizer/thread checks pass. The release-wide host audit also
 repaired stale fixtures, restored pinned dependencies and refreshed localization.
-See [Validation](VALIDATION.md) for exact counts and limits. A new production
-ZIP is being prepared; the d26bfd0 artifact below remains the last installed
-candidate until its replacement is explicitly recorded.
+See [Validation](VALIDATION.md) for exact counts and limits. Production candidate `5a65588` builds and packages successfully. Its ZIP
+passes CRC, all 200 archive permission checks and comparison against all 185
+frozen files. Signed-container integrity and the packaged helper pass.
+Executable SHA-256:
+`596def85881b976e793484ecd70fec1dfe087c20ecc868ae881e5d0a3e2b11f8`.
+ZIP SHA-256:
+`4de3afaaffa31a6edf1f574eb8e31ad619d259d43ba4c9b19b240811f31c026a`.
+Local release artifact:
+`C:\Users\denis\Documents\PS5\output\ProsperoTube-alpha-5a65588\PPSA99142.zip`.
+Installed on .30: all 185 files matched after the 120-second persistence
+check, error records were unchanged and the console remained idle. This
+production binary was not launched; no public release was published.
+
+The timing/endurance results below remain evidence for the unchanged d26bfd0
+scheduler; the background EOF change has host regression evidence.
 
 ## Latest 4K hitch investigation (2026-10-15)
 

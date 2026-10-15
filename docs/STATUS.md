@@ -1,5 +1,15 @@
 # Current implementation status
 
+Production candidate `5a65588` is installed on .30 with all 185 files verified
+after 120 seconds; error records are unchanged and the console is idle.
+It is available as a ZIP only and has not received a physical playback check.
+
+The final offline audit fixed background EOF return: only an automatically
+issued end-of-video pause resumes on return, while deliberate pause and seek
+commands retain control. The shared cancellation flag is atomic. Generated
+regressions, sanitizer checks and independent review pass; see
+[validation](VALIDATION.md) for the release-wide host-check record.
+
 The `d26bfd0` presentation scheduler passed two independent .30 timing
 replays of the owner's native 3840x2160/24 VP9 clip. Each steady 25-second
 window changed from the baseline's 81 four-refresh / 440 five-refresh /
