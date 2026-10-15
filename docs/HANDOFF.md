@@ -33,6 +33,19 @@ native frame-lease tests also pass. This is an offline fix, not yet evidence
 that the TV hitch is gone. Validate the same clip after installing the newly
 built candidate; do not infer smoothness from counters alone.
 
+**Do not deploy the `f4aaba6` ZIP.** A follow-up integration review found that
+the five-slot reorder queue retains four pictures between calls, while one
+split VP9 packet can return two delayed visible pictures. The second picture
+then overflows the queue and makes the corrected decoder fail. The initial
+mock test emptied the queue after every coded AU and missed this boundary.
+The replacement processes split packets incrementally and resumes after
+receive frees a slot. It also retains VP9 FIFO order when visible subframes
+share a timestamp; the old slot-index tie break could return a newer picture
+first. The new integration test executes generated send/receive code with the
+real five-slot limit, including eight-AU bursts, retries, EOF and seek. The
+previous candidate fails overflow; capacity-only processing fails picture
+order; the combined correction passes both. No console deployment occurred.
+
 The production ZIP was built offline from clean commit `f4aaba6` with no
 remote-control or timing-trace build flags:
 `/home/denis/pt-candidates/vp9-order-f4aaba6/PPSA99142.zip`.

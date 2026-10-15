@@ -65,6 +65,7 @@ typedef struct evo_vdec_native {
     int64_t pts_pool[PTS_POOL]; int pts_n;
     struct { int64_t pts; int present; } tube_vp9_pending[PTS_POOL];
     unsigned tube_vp9_head, tube_vp9_count;
+    int tube_vp9_bsf_pending;
 } evo_vdec_native;
 static int hardware[256], queued, latency = 4, fail_decode, fail_flush, no_output;
 static int bad_surface, harvest_fail, unaccepted, empty_picture;

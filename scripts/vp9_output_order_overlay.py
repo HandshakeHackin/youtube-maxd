@@ -5,7 +5,8 @@ def apply(replace, player):
     native = player + 'media/src/evo_vdec_native.c'
     replace(native, '    int     pts_n;', '''    int     pts_n;
     struct { int64_t pts; int present; } tube_vp9_pending[PTS_POOL];
-    unsigned tube_vp9_head, tube_vp9_count;''')
+    unsigned tube_vp9_head, tube_vp9_count;
+    int tube_vp9_bsf_pending;''')
     replace(native, 'static int decode_one(evo_vdec_native *n,', r'''/* VP9 produces one output per coded AU, including hidden alternate references. */
 static void tube_native_output(evo_vdec_native *n, const SceVideodec2OutputInfo *out)
 {
@@ -101,3 +102,82 @@ static void drain_decoder''')
         if (n->fatal) return;''')
     replace(native, '    v->pts_n          = 0;', '''    v->pts_n          = 0;
     v->tube_vp9_head = v->tube_vp9_count = 0;''')
+
+    replace(native, 'int evo_vdec_native_send(evo_vdec_native *v, const uint8_t *data, int size,', r'''/* A superframe can return several older visible pictures; stop before reorder fills. */
+static void tube_vp9_pump_bsf(evo_vdec_native *v)
+{
+    while (v->tube_vp9_bsf_pending && v->ro_count < RO_SLOTS && !v->fatal) {
+        int received = av_bsf_receive_packet(v->bsf, v->filt_pkt);
+        if (received < 0) {
+            v->tube_vp9_bsf_pending = 0;
+            if (received != (v->flushing ? AVERROR_EOF : AVERROR(EAGAIN)))
+                v->fatal = 1;
+            return;
+        }
+        int64_t pts = v->filt_pkt->pts == AV_NOPTS_VALUE ? INT64_MIN : v->filt_pkt->pts;
+        int decoded = decode_one(v, v->filt_pkt->data, v->filt_pkt->size, pts,
+                                 pkt_present(v, v->filt_pkt));
+        av_packet_unref(v->filt_pkt);
+        if (decoded < 0) v->fatal = 1;
+    }
+}
+
+static int tube_vp9_send(evo_vdec_native *v, const uint8_t *data, int size, int64_t pts)
+{
+    if (!v->bsf) { v->fatal = 1; return -1; }
+    tube_vp9_pump_bsf(v);
+    if (v->fatal) return -1;
+    if (v->tube_vp9_bsf_pending) return 1;
+    if (!data || size <= 0) {
+        if (v->flushing) return 0;
+        int sent = av_bsf_send_packet(v->bsf, NULL);
+        if (sent == AVERROR(EAGAIN)) return 1;
+        if (sent < 0 && sent != AVERROR_EOF) { v->fatal = 1; return -1; }
+        v->flushing = 1;
+    } else {
+        if (v->flushing) { v->fatal = 1; return -1; }
+        if (v->ro_count > EVO_VDEC_REORDER_DEPTH) return 1;
+        av_packet_unref(v->in_pkt);
+        if (av_new_packet(v->in_pkt, size) < 0) { v->fatal = 1; return -1; }
+        memcpy(v->in_pkt->data, data, (size_t)size);
+        v->in_pkt->pts = pts == INT64_MIN ? AV_NOPTS_VALUE : pts;
+        v->in_pkt->dts = AV_NOPTS_VALUE;
+        int sent = av_bsf_send_packet(v->bsf, v->in_pkt);
+        if (sent == AVERROR(EAGAIN)) return 1;
+        if (sent < 0) { v->fatal = 1; return -1; }
+    }
+    v->tube_vp9_bsf_pending = 1;
+    tube_vp9_pump_bsf(v);
+    if (v->flushing && !v->tube_vp9_bsf_pending) drain_decoder(v);
+    return v->fatal ? -1 : 0;
+}
+
+int evo_vdec_native_send(evo_vdec_native *v, const uint8_t *data, int size,''')
+    replace(native, '''    if (!v || v->fatal)
+        return -1;
+
+    if (!data || size <= 0) {''', '''    if (!v || v->fatal)
+        return -1;
+    if (v->desc->is_vp9) return tube_vp9_send(v, data, size, pts_us);
+
+    if (!data || size <= 0) {''')
+    replace(native, '''    if (v->flushing && !v->tube_drain_finished && !v->ro_count) {''', '''    if (v->desc->is_vp9) {
+        tube_vp9_pump_bsf(v);
+        if (v->fatal) return -1;
+    }
+    if (v->flushing && !v->tube_vp9_bsf_pending && !v->tube_drain_finished && !v->ro_count) {''')
+    replace(native, '    v->tube_vp9_head = v->tube_vp9_count = 0;',
+            '    v->tube_vp9_head = v->tube_vp9_count = 0;\n    v->tube_vp9_bsf_pending = 0;')
+
+    replace(native, '        if (!best) { best = &v->ro[i]; continue; }',
+            '        if (!best) { best = &v->ro[i]; if (v->desc->is_vp9) break; continue; }')
+    replace(native, '''    best->used = 0;
+    v->ro_count--;''', '''    if (v->desc->is_vp9) {
+        /* VP9 pictures are FIFO even when split subframes share a timestamp. */
+        struct nat_slot retired = *best;
+        retired.used = 0;
+        size_t following = (size_t)(&v->ro[RO_SLOTS - 1] - best);
+        memmove(best, best + 1, following * sizeof(*best));
+        v->ro[RO_SLOTS - 1] = retired;
+    } else best->used = 0;
+    v->ro_count--;''')

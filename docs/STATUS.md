@@ -1,5 +1,16 @@
 # Current implementation status
 
+VP9 packet-boundary update: the `f4aaba6` candidate was withdrawn before
+console deployment. One split packet could return multiple older visible
+pictures and overflow the five-slot reorder queue. Current source processes
+split packets incrementally and resumes after receive frees a slot. VP9
+output also preserves FIFO order for visible subframes sharing a timestamp.
+The integration regression checks actual generated send/receive/decode/drain
+and seek with the real queue limit: both the original overflow and the later
+equal-timestamp ordering defect reproduce, and the combined fix passes.
+Frame-lease tests still pass. A replacement ZIP and console validation remain
+required.
+
 4K picture-order update, 2026-10-15: offline regression now reproduces a
 VP9 pipeline bug that timing counters missed. At decoder depth four, the old
 code filtered a returned picture using the current input's show flag, although

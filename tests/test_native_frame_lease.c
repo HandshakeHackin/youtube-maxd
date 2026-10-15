@@ -20,7 +20,7 @@ enum{NAT_HEVC10=2,NAT_VP92=4};
 struct dec_slot{void*frame_mem;int owned,ready;uint32_t max_w,max_h;};
 struct desc{int idx,is_vp9;};
 struct nat_slot{uint8_t*data;size_t cap;int used,borrowed,nv12,is_10bit;int64_t pts;uint32_t w,h,coded_h,y_stride,c_stride;size_t u_off,v_off;};
-typedef struct{void*frame_mem;int fatal;size_t frame_size;const void*tube_received;int flushing,tube_drain_finished,ro_count,color_trc,nv12_out;uint32_t disp_w,disp_h;
+typedef struct{void*frame_mem;int fatal;size_t frame_size;const void*tube_received;int flushing,tube_drain_finished,tube_vp9_bsf_pending,ro_count,color_trc,nv12_out;uint32_t disp_w,disp_h;
  struct dec_slot*slot;struct desc*desc;void*dovi;struct nat_slot ro[RO_SLOTS];}evo_vdec_native;
 static int64_t fake_ms;
 static const void *release_while_waiting;
@@ -36,6 +36,7 @@ static int64_t pts_take(evo_vdec_native*n){(void)n;return 1000000;}
 static void blend_fields(const SceVideodec2OutputInfo*out,uint32_t pitch){(void)out;(void)pitch;assert(0);}
 static const evo_dovi_params*dovi_for_pts(evo_vdec_native*n,int64_t pts){(void)n;(void)pts;return NULL;}
 static void drain_decoder(evo_vdec_native*n){(void)n;}
+static void tube_vp9_pump_bsf(evo_vdec_native*n){assert(!n->tube_vp9_bsf_pending);}
 #include "native_surface.inc"
 #include "native_harvest.inc"
 #include "native_receive.inc"
