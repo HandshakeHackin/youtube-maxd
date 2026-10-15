@@ -1,8 +1,38 @@
 # ProsperoTube goal
 
-Implement a 1:1 equivalent SmartTube port for **PlayStation 5**. Stop only when
-the full objective is implemented and verified. This is the current user-approved
-goal, confirmed on 2026-10-09; the 0.1.0 prototype is an intermediate milestone.
+The long-term product goal is a 1:1 equivalent SmartTube port for
+**PlayStation 5**, originally confirmed on 2026-10-09. The active task is the
+first release under the owner's later priorities below. Full parity remains
+tracked separately and must not be claimed from an alpha release.
+
+## Current first-release priorities (owner decisions through 2026-10-15)
+
+The active release task is to finish essential engineering for the initial
+Guest alpha. Full SmartTube parity remains the long-term target; the older
+full-parity acceptance inventory below must not be treated as a requirement
+to implement every future feature before this first release.
+
+The owner's explicit playback priorities are live DVR rewind and position
+restore, automatic frame-rate switching, and HDR selection/output. Sustained
+4K reliability and the historical GPU faults require investigation, not just
+a request for human sign-off. Read-only comments are sufficient; writing
+comments is excluded. The missing-glyph and physical PS5 keyboard follow-ups
+are also part of the current candidate. Use Afterglow for fixes and tests;
+do not substitute Classic to avoid a modern-interface bug.
+
+Use only the currently authorized test console under the shared-console
+protocol, with a running-title check first. The owner has authorized bounded
+candidate tests; those later instructions supersede the older blanket ban on
+intermediate console candidates below. Never interrupt an unrelated title or
+replace a build during the owner's replay. Package ZIP only, without FFPFSC,
+and push current source/documentation to GitHub. Public release/tag/catalog
+publication is a separate owner decision.
+
+Current proof and remaining gaps live in [Status](docs/STATUS.md) and
+[Handoff](docs/HANDOFF.md). Preserve the distinction between an implementation,
+a bounded automated result, and physical acceptance. In particular, the
+36-second VP9 identity fix result is not proof of sustained playback, all
+stream formats, or the cause of every historical GPU fault.
 
 ## First release scope (owner decisions, 2026-10-11)
 

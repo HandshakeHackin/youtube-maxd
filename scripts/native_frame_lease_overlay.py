@@ -1,11 +1,50 @@
 """Protect native output pools through pp publication and completed GPU presentation."""
 import shutil
 
+RENEW_C = r"""static int slot_renew_decoder(struct dec_slot *s)
+{
+    if (!s->have_cfg || nwd_hung) goto unsafe;
+    if (s->decoder) {
+        nwd_start_once();
+        nwd_enter("DeleteDecoder (renew)", NWD_RESET_MS);
+        int rc = sceVideodec2DeleteDecoder(s->decoder);
+        nwd_leave();
+        if (rc != 0 || nwd_hung) {
+            note("EVO vdec native: renew DeleteDecoder failed rc=0x%08x; retaining decoder mappings",(unsigned)rc);
+            s->owned=1;s->ready=0;return rc ? rc : -1;
+        }
+        s->decoder = NULL;
+    }
+    SceVideodec2DecoderMemoryInfo mem = s->mem;
+    nwd_start_once();
+    nwd_enter("CreateDecoder (renew)", NWD_RESET_MS);
+    int rc = sceVideodec2CreateDecoder(&s->cfg, &mem, &s->decoder);
+    nwd_leave();
+    if (rc != 0 || !s->decoder || nwd_hung) {
+        /* Even an unsuccessful Create may return a handle owning these maps. */
+        s->owned=1;s->ready=0;return rc ? rc : -1;
+    }
+    nwd_enter("Reset (renew)", NWD_RESET_MS);
+    rc = sceVideodec2Reset(s->decoder);
+    nwd_leave();
+    if (rc != 0 || nwd_hung) {
+        s->owned=1;s->ready=0;return rc ? rc : -1;
+    }
+    return 0;
+unsafe:
+    s->owned=1;s->ready=0;return -1;
+}
+"""
+
 def apply(root,work,replace,player):
     for name in ('tube_frame_lease.c','tube_frame_lease.h'):
         shutil.copyfile(root/'native'/name,work/player/('addons/src' if name.endswith('.c') else 'addons/include')/name)
     replace(player+'Makefile','    addons/src/tube_backup.c','    addons/src/tube_backup.c \\\n    addons/src/tube_frame_lease.c')
     native=player+'media/src/evo_vdec_native.c'
+    source=(work/native).read_text();a=source.index('static int slot_renew_decoder(');b=source.index('\n}',a)+2
+    replace(native,source[a:b],RENEW_C.rstrip())
+    replace(native,'trip. Returns 0 on success; on failure the slot is left without a decoder.',
+        'trip. Returns 0 on success; failure retains uncertain handles and mappings\n * in an unavailable slot until process exit.')
     replace(native,'#include "evo_dovi.h"','#include "evo_dovi.h"\n#include "tube_frame_lease.h"')
     replace(native,'#define FRAME_POOL_SLOTS            8','#define FRAME_POOL_SLOTS            8\n_Static_assert(FRAME_POOL_SLOTS==TUBE_FRAME_POOL_SLOTS,"native lease pool size");')
     replace(native,'static void slot_teardown(struct dec_slot *s)',r"""static int tube_native_pool_idle(struct dec_slot *s) {
@@ -88,7 +127,7 @@ static void ro_reset(evo_vdec_native *n)""")
     replace(native,'    best->used = 0;', '    if(best->borrowed)v->tube_received=best->data;\n    best->used = 0;')
     replace(native,'void evo_vdec_native_close(evo_vdec_native *v)\n{',r"""/* Buffered decode work may still own AU and decoder maps after the last visible frame. */
 static int tube_native_drain_for_close(evo_vdec_native *n) {
-    if (!n->dec && n->dec_calls) goto unsafe;
+    if (!n->dec && (n->dec_calls || (n->slot && !n->slot->ready))) goto unsafe;
     if (!n->dec_calls || n->tube_drain_finished) return 1;
     const int64_t start=nwd_now_ms();
     for (int i=0;i<64 && !nwd_hung && nwd_now_ms()-start<NWD_DECODE_MS;i++) {

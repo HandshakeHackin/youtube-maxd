@@ -65,5 +65,10 @@ int main(void) {
     reset_state(); n.tube_drain_finished=0; n.dec=NULL; slot=(struct dec_slot){0,1};
     assert(tube_native_drain_for_close(&n)==0);
     assert(calls==0 && slot.owned && !slot.ready);
+    // Even a seek before the first AU must not release a failed-renew slot.
+    reset_state(); n.dec_calls=0; n.tube_drain_finished=1; slot=(struct dec_slot){1,0};
+    assert(tube_native_drain_for_close(&n)==0 && calls==0 && slot.owned && !slot.ready);
+    reset_state(); slot=(struct dec_slot){0,1};
+    assert(tube_native_drain_for_close(&n)==1 && calls==0);
     puts("PASS generated native close drain: complete, error, invalid, no slot and timeout");
 }

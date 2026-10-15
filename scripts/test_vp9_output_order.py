@@ -2,6 +2,7 @@
 """Replay delayed hidden completions with real identity/queue/decode/drain code."""
 from pathlib import Path
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -38,16 +39,18 @@ reset=function('void evo_vdec_native_flush(')
 a=reset.index('    v->pts_n');b=reset.index('    v->au_ring',a);reset=reset[a:b]
 assert 'v->tube_vp9_head = v->tube_vp9_count = 0;' in reset
 assert 'tube_vp9_identity_sequence' not in reset
-program=r"""
+# The real pending-identity capacity, including its dependencies, must govern the
+# delayed-hidden replay and saturation guard rather than an oversized test pool.
+constants='\n'.join(re.findall(r'^#define (?:PTS_POOL|EVO_VDEC_REORDER_DEPTH|PIPELINE_BUFFER_COUNT)\s+[^\n]+',source,re.M))+'\n'
+assert len(constants.splitlines())==3
+program=constants+r"""
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "sce/sce_videodec2.h"
-#define PTS_POOL 64
 #define INPUT_SLOT_BYTES 64
-#define PIPELINE_BUFFER_COUNT 4
 #define FRAME_POOL_SLOTS 8
 #define RO_SLOTS 64
 #define HEVC_NAL_IRAP_HI 23

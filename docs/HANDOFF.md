@@ -4,6 +4,34 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Release failure-path audit (2026-10-15)
+
+A subsequent current-code audit found three engineering gaps beyond the
+confirmed VP9 identity fix: seek renewal ignored failed decoder deletion;
+automatic refresh cached a refused switch as applied; and HDR disable could
+retry a refused output change every frame.
+
+The renewal patch retains uncertain handles and mappings and marks the slot
+unavailable on Delete/Create/Reset errors or watchdog timeouts. Close also
+retains that slot if the failure happened before the first decoded AU. The
+mode policies read actual runtime output state and bound each requested mode
+to three attempts, with one- and two-second retry delays. Existing playback
+menu mode retention and HDR-before-refresh ordering remain intact.
+
+Generated-code frame-lease, renewal, close and VP9 identity tests pass
+ASan/UBSan; output-mode refusal/recovery tests also pass. The VP9 regression
+now uses the actual 16-entry pending capacity. The full 36-second console
+trace peaked at five pending entries; this is a measured sample bound, not
+a universal stream guarantee. DVR restore and HDR format-selection review
+found no additional concrete defect.
+
+These follow-up guards are not yet built or tested on the console. The
+installed production candidate remains `6fc6d58` for the owner's TV replay;
+do not describe the failure-path guards as installed or hardware-verified.
+A private repeat-open/EOF/control case is prepared but not run. Its eight
+36-second replays cover reuse and control transitions, not uninterrupted
+five-minute streaming or audible/physical acceptance.
+
 ## Identity fix passes full-sample console replay (2026-10-15)
 
 Committed and pushed `6fc6d58` replaces coded-AU FIFO association with exact

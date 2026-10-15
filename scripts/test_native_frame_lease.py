@@ -15,6 +15,7 @@ assert 'if (rc != 0 && d->idx != NAT_VP9 && (w > 1920 || h > 1088))' in source
 assert 'int fslot = tube_native_claim_frame(' in source
 with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     temp=Path(temp)
+    (temp/'native_renew.inc').write_text(function(source,'static int slot_renew_decoder('))
     (temp/'native_claim.inc').write_text(function(source,'static int tube_native_claim_frame('))
     (temp/'native_close_drain.inc').write_text(function(source,'static int tube_native_drain_for_close('))
     (temp/'native_idle.inc').write_text(function(source,'static int tube_native_pool_idle('))
@@ -29,6 +30,9 @@ with tempfile.TemporaryDirectory(prefix='tube-native-lease-') as temp:
     subprocess.run([str(temp/'test')],check=True)
     subprocess.run(['cc',*flags,'-I'+str(temp),str(root/'tests/test_native_close_drain.c'),'-o',str(temp/'test_close')],check=True)
     subprocess.run([str(temp/'test_close')],check=True)
+    subprocess.run(['cc',*flags,'-I'+str(temp),str(root/'tests/test_native_decoder_renew.c'),'-o',str(temp/'test_renew')],check=True)
+    subprocess.run([str(temp/'test_renew')],check=True)
+
 
 app=(work/'core/src/Application.cpp').read_text()
 lease_overlay=(root/'scripts/native_frame_lease_overlay.py').read_text()
