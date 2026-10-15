@@ -604,3 +604,22 @@ import './channel_page.test.mjs';
 import './account_actions.test.mjs';
 import './live_shapes.test.mjs';
 import './card_facts.test.mjs';
+
+test('device authorization keeps credentials when account names fail and accepts the selected TV name', async () => {
+  let entries = [{ is_selected: false, account_name: { toString: () => 'Other' } },
+    { is_selected: true, account_name: { toString: () => 'My channel' } }];
+  let fail = false;
+  const engine = new DeviceAuthorization(async () => ({ session: { signIn: async credentials => assert(validCredentials(credentials)) },
+    account: { getInfo: async () => { if (fail) throw new Error('private upstream response'); return { contents: { contents: entries } }; } } }),
+    async () => new Response(JSON.stringify({ access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 3600 })), () => 1000);
+  const poll = { action: 'poll', client: oauthFixture.client, device_code: 'fixture-device' };
+  assert.equal((await engine.execute(poll)).name, 'My channel');
+  for (const label of ['', 'bad\nname', 'x'.repeat(151)]) {
+    entries = [{ is_selected: true, account_name: { toString: () => label } }];
+    const result = await engine.execute(poll);
+    assert.equal(result.name, undefined); assert(validCredentials(result.credentials));
+  }
+  fail = true;
+  const result = await engine.execute(poll);
+  assert.equal(result.name, undefined); assert(validCredentials(result.credentials));
+});

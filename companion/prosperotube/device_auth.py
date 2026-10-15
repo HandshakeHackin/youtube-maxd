@@ -257,7 +257,10 @@ class DeviceAuth:
             elif state == "authorized" and credentials_valid(result.get("credentials")):
                 if not self.capacity():
                     raise ServiceError("auth_profiles_full", "At most eight account profiles are supported.", 409)
-                profile = self.store.append(result["credentials"], session["name"])
+                name = result.get("name")
+                if session["name"] != "YouTube account" or not isinstance(name, str) or not 1 <= len(name) <= 150 or re.search(r"[\x00-\x1f\x7f]", name):
+                    name = session["name"]
+                profile = self.store.append(result["credentials"], name)
                 self.register(profile)  # Synchronous commit: cancellation cannot interleave with persistence.
                 session.update(state="authorized", profile={"id": profile["id"], "name": profile["name"]})
                 self.active = None

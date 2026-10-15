@@ -60,6 +60,10 @@ class Lounge:
         self.fail_pair, self.update, self.stream_status, self.instant_close = False, "ok", 200, False
         self.update_entered, self.update_release = threading.Event(), threading.Event()
         self.screens = 0
+        self.token, self.sid, self.gsid = "private-token", "private-SID", "private-gsession"
+        self.refresh_failure = False
+        self.hold_refresh = False
+        self.refresh_entered, self.refresh_release = threading.Event(), threading.Event()
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -109,20 +113,31 @@ class Lounge:
             return self.answer(handler, 200, f"screen-{self.screens}\n".encode(), "text/plain")
         if path == "/pairing/get_lounge_token_batch":
             self.expect(method == "POST" and list(form) == ["screen_ids"], f"token form {form}")
-            return self.answer(handler, 200, json.dumps({"screens": [{"screenId": form.get("screen_ids"), "loungeToken": "private-token"}]}).encode())
+            if self.hold_refresh:
+                self.refresh_entered.set()
+                self.refresh_release.wait(5)
+            if self.refresh_failure:
+                return self.answer(handler, 503)
+            try:
+                return self.answer(handler, 200, json.dumps({"screens": [{"screenId": form.get("screen_ids"), "loungeToken": self.token}]}).encode())
+            except (BrokenPipeError, ConnectionResetError):
+                if not self.hold_refresh:
+                    raise
+                return None  # The stop-race test deliberately cancels this held response.
+
         if path == "/pairing/get_pairing_code":
             self.expect(query == {"ctx": "pair"}, f"pair query {query}")
             if self.fail_pair:
                 return self.answer(handler, 503, b"private-token", "text/plain")
             return self.answer(handler, 200, b'{"code":"123456789012"}')
         self.expect(path == "/bc/bind", f"unknown path {path}")
-        self.expect(query.get("loungeIdToken") == "private-token" and query.get("device") == "LOUNGE_SCREEN" and query.get("VER") == "8" and
+        self.expect(query.get("loungeIdToken") == self.token and query.get("device") == "LOUNGE_SCREEN" and query.get("VER") == "8" and
                     re.fullmatch(r"[0-9a-f]{16}", query.get("zx", "")) is not None, f"bind query {query}")
         if query.get("TYPE") == "terminate":
-            self.expect(method == "GET" and query.get("SID") == "private-SID", "terminate")
+            self.expect(method == "GET" and query.get("SID") == self.sid, "terminate")
             return self.answer(handler, 200)
         if method == "GET":
-            self.expect(query.get("RID") == "rpc" and query.get("SID") == "private-SID" and query.get("gsessionid") == "private-gsession" and
+            self.expect(query.get("RID") == "rpc" and query.get("SID") == self.sid and query.get("gsessionid") == self.gsid and
                         query.get("CI") == "0" and query.get("TYPE") == "xmlhttp", f"back channel query {query}")
             if self.stream_status != 200:
                 return self.answer(handler, self.stream_status, b"private-token", "text/plain")
@@ -130,7 +145,7 @@ class Lounge:
         if form == {"count": "0"}:
             self.expect("SID" not in query and query.get("RID", "").isdigit(), f"first bind query {query}")
             return self.answer(handler, 200, wire(self.initial), "text/plain")
-        self.expect(query.get("SID") == "private-SID" and query.get("AID", "").isdigit(), f"report query {query}")
+        self.expect(query.get("SID") == self.sid and query.get("AID", "").isdigit(), f"report query {query}")
         if self.update == "hold":
             self.update_entered.set()
             self.update_release.wait(10)
@@ -249,7 +264,9 @@ class Service(base.Service):
 
     def finish(self, name):
         code, errors = self.stop()
-        same(f"clean shutdown ({name})", (code, errors.strip()), (0, ""))
+        # These cases intentionally request unusable playlist expansion; accept only its safe diagnostic.
+        expected = ["YouTube operation failed: stage=execute action=other category=LibraryError"] * {"registration": 1, "expansion": 2}.get(name, 0)
+        same(f"clean shutdown ({name})", (code, errors.strip().splitlines()), (0, expected))
         same(f"no Lounge secret in any answer ({name})", [body for body in self.seen if "private" in body], [])
         if self.lounge:
             same(f"the wire was as expected ({name})", self.lounge.errors, [])
@@ -307,9 +324,6 @@ def registration(binary):
         same("back channel continues after the registration answer", lounge.streams[0].query.get("AID"), "2")
         same("the same device never opens a second receiver", (s.remote(action="start", device_id=DEVICE), lounge.count("/pairing/get_lounge_token_batch")),
              ((200, started), 1))
-        same("pairing code", s.remote(action="pair", session=session), (200, {**started, "pairing_code": "123456789012"}))
-        same("pairing form", lounge.calls[-1][3], {"lounge_token": "private-token", "screen_id": "screen-1", "screen_name": "ProsperoTube PS5",
-                                                    "access_type": "permanent", "app": "lb-v4", "device_id": DEVICE, "qr": "1"})
         status, poll = s.poll(session, want=4)
         same("commands", (status, poll), (200, {**started, "ack": 0, "commands": [
             {"sequence": 1, "action": "getNowPlaying"},
@@ -356,6 +370,70 @@ def registration(binary):
         same("one back channel in all", len(lounge.streams), 1)
     finally:
         s.finish("registration")
+
+
+def post_pair(binary):
+    """A code refreshes the screen token/channel before linked devices and casting can arrive."""
+    lounge = Lounge()
+    s = Service(binary, lounge)
+    try:
+        started = s.start()
+        session = started["session"]
+        check("first listener opened", opened(lounge, 1))
+        same("initial command", s.poll(session, want=1)[1]["commands"], [{"sequence": 1, "action": "getNowPlaying"}])
+        s.poll(session, ack=1)
+        lounge.push([[3, ["play"]]])
+        same("pending pre-pair command", s.poll(session, ack=1, want=1)[1]["commands"], [{"sequence": 2, "action": "play"}])
+        lounge.token, lounge.sid, lounge.gsid = "private-token-new", "private-SID-new", "private-gsession-new"
+        phone = {"id": "phone-1", "name": "My phone", "type": "REMOTE_CONTROL"}
+        lounge.initial = [[0, ["c", lounge.sid]], [1, ["S", lounge.gsid]], [2, ["remoteConnected", phone]],
+                          [3, ["loungeStatus", {"devices": json.dumps([phone])}]]]
+        same("pair succeeds after refresh", s.remote(action="pair", session=session), (200, {**started, "pairing_code": "123456789012"}))
+        check("old listener closed", lounge.streams[0].closed.wait(3))
+        check("replacement listener opened", opened(lounge, 2))
+        same("screen identity is retained", lounge.count("/pairing/generate_screen_id"), 1)
+        same("token is refreshed", lounge.count("/pairing/get_lounge_token_batch"), 2)
+        same("fresh listener token", lounge.streams[1].query["loungeIdToken"], lounge.token)
+        form = next(call[3] for call in lounge.calls if call[1] == "/pairing/get_pairing_code")
+        same("pair used the original token", form, {"lounge_token": "private-token", "screen_id": "screen-1", "screen_name": "ProsperoTube PS5",
+                                                   "access_type": "permanent", "app": "lb-v4", "device_id": DEVICE, "qr": "1"})
+        lounge.push([[4, ["setPlaylist", {"videoId": VIDEO, "currentTime": "12.5"}]]])
+        commands = s.poll(session, ack=1, want=4)[1]["commands"]
+        same("native order survives upstream reset", [(c["sequence"], c["action"]) for c in commands],
+             [(2, "play"), (3, "remoteConnected"), (4, "loungeStatus"), (5, "setPlaylist")])
+        same("phone name", commands[1]["name"], "My phone")
+        same("cast position", commands[3]["position_sec"], 12.5)
+        same("retry retains commands", s.poll(session, ack=1)[1]["commands"], commands)
+        same("ack clears commands", s.poll(session, ack=5)[1]["commands"], [])
+        # Failure to refresh must not return a code backed by a dead listener.
+        lounge.refresh_failure = True
+        same("refresh failure is terminal", error(s.remote(action="pair", session=session)), (502, "remote_upstream"))
+        same("failed channel is unavailable", error(s.poll(session, ack=5)), (409, "remote_upstream"))
+        check("no old listener survives failure", lounge.streams[1].closed.wait(3))
+    finally:
+        s.finish("post_pair")
+
+
+def post_pair_stop(binary):
+    lounge = Lounge()
+    s = Service(binary, lounge)
+    answers = []
+    try:
+        session = s.start()["session"]
+        check("listener opened before stop race", opened(lounge, 1))
+        lounge.hold_refresh = True
+        pairing = threading.Thread(target=lambda: answers.append(s.remote(action="pair", session=session)))
+        pairing.start()
+        check("pair reached token refresh", lounge.refresh_entered.wait(3))
+        same("stop cancels refresh", s.remote(action="stop", session=session)[0], 200)
+        pairing.join(3)
+        check("pair completed after stop", not pairing.is_alive())
+        check("stopped pair cannot succeed", bool(answers) and answers[0][0] != 200)
+        same("stopped receiver stays gone", error(s.poll(session)), (404, "remote_session"))
+        same("no replacement listener after stop", len(lounge.streams), 1)
+    finally:
+        lounge.refresh_release.set()
+        s.finish("post_pair_stop")
 
 
 def commands(binary):
@@ -722,7 +800,7 @@ def main():
     if sys.argv[1:] == ["--serve"]:
         return serve()
     binary = sys.argv[1] if len(sys.argv) > 1 else str(ROOT / "build" / "tube_js")
-    only = sys.argv[2:] or ["offline", "registration", "commands", "refusals", "failures", "identity", "expansion"]
+    only = sys.argv[2:] or ["offline", "registration", "post_pair", "post_pair_stop", "commands", "refusals", "failures", "identity", "expansion"]
     for name in only:
         try:
             globals()[name](binary)

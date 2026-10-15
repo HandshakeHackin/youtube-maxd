@@ -34,6 +34,7 @@
 #include "tube_js_console.h"
 extern const unsigned char tube_js_bundle[], tube_js_ca_pem[];
 extern const size_t tube_js_bundle_length, tube_js_ca_pem_length;
+extern void evo_boot_log(const char *format, ...);
 #define TUBE_SERVICE_EMBEDDED 1
 /* The POSIX name is not part of the app's libc surface; EVO creates its own
  * folders the same way (src/evo_data_path.c). */
@@ -165,8 +166,14 @@ static JSValue host_write(JSContext *ctx, JSValueConst self, int argc, JSValueCo
   size_t size = 0;
   const char *text = JS_ToCStringLen(ctx, &size, argv[0]);
   if (!text) return JS_EXCEPTION;
+#ifdef TUBE_SERVICE_EMBEDDED
+  /* App stderr is not the durable console log; forward only the bounded diagnostic. */
+  if (magic && size < 256 && !strncmp(text, "YouTube operation failed: ", 26))
+    evo_boot_log("service: %.*s", (int)size, text);
+#else
   fwrite(text, 1, size, magic ? stderr : stdout);
   fputc('\n', magic ? stderr : stdout);
+#endif
   JS_FreeCString(ctx, text);
   return JS_UNDEFINED;
 }

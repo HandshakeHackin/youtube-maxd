@@ -3551,6 +3551,7 @@ static void auth_result(Request *r, const cJSON *result) {
         }
         g_auth.state = AUTH_AUTHORIZED;
         copy(g_auth.profile, sizeof g_auth.profile, id); copy(g_auth.name, sizeof g_auth.name, name);
+        ++g_accounts_revision; /* Refresh a cached profile list even when leaving approval with Back. */
     } else if (!strcmp(state, "canceled")) g_auth.state = AUTH_CANCELED;
     else if (!strcmp(state, "expired")) g_auth.state = AUTH_EXPIRED;
     else if (!strcmp(state, "denied")) g_auth.state = AUTH_DENIED;

@@ -4,6 +4,34 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Phone connection and account-list follow-up (2026-10-15)
+
+The owner confirms `139f8c1` now displays a TV code and the phone lists the TV.
+The console still reports no linked phone; casting was not confirmed. Account
+approval shows the generic label, but returning to Switch profile omits the
+account and Library remains empty. After owner Close, read-only inspection
+found two saved OAuth profiles with credentials and neither selected. No
+credential values were printed or saved in the diagnostic summary.
+
+Implemented fixes: refresh the Accounts data revision after
+approval so Back cannot restore a stale profile list; refresh the Lounge token
+and rebind its channel after code registration, matching cached SmartTube
+source while preserving native command sequence/ack. A best-effort TV account
+name lookup preserves credentials when unavailable. Existing generic labels
+are retained; no account is deleted or requires another sign-in to be listed.
+
+Production JS diagnostic messages previously went to stderr rather than the
+app log. The embedded callback now persists only bounded operation/category
+lines. Real Library access and phone casting remain unaccepted; protocol
+parity and offline fixtures are not substitutes for owner replay.
+
+Validation passes: real embedded-service startup with two synthetic saved
+accounts, native approval and Afterglow provider/picture integration under
+ASan/UBSan; 301 real QuickJS receiver checks in both plain and sanitizer
+builds; 76 Python remote/playlist checks; 26 Python account checks; worker
+name lookup/fallback checks; actual embedded diagnostic callback and privacy
+checks. No console launch or live-account requests were used for these tests.
+
 ## Owner acceptance failures and offline repair (2026-10-15)
 
 The owner reports no TV code on entering Phone & casting, a Signed out account

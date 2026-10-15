@@ -1,5 +1,10 @@
 # Current implementation status
 
+Latest owner replay (`139f8c1`): TV code appears and the phone lists the TV,
+but console connection feedback, returning to Switch profile, and account
+Library access still fail. Follow-up account-cache and receiver-rebind fixes
+are under validation; see [handoff](HANDOFF.md).
+
 Owner acceptance of previous candidate `4d2fcbc` failed on 2026-10-15: no pairing code
 on page entry, a false Signed out label and missing account Library content,
 and an HLS app crash while seeking. UI and null-segment fixes in `139f8c1`

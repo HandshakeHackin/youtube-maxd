@@ -571,6 +571,25 @@ int main()
             assert(page->load == model::Load::ready && page->rows.size() == 2);
             return *page;
         };
+        const char *saved_profiles = profiles;
+        profiles = R"({"state":"done","result":{"profiles":[{"id":"guest","name":"Guest","account_configured":false}]}})";
+        const Page *before = &data.catalog("library:profiles");
+        for (int i = 0; i < 12 && before->load == model::Load::loading; ++i) { data.pump(); serve(profiles); }
+        assert(before->load == model::Load::ready && before->rows.size() == 1);
+        const unsigned auth = data.act("auth:start");
+        const char *code = R"({"state":"done","result":{"session":"0123456789abcdef0123456789abcdef","state":"pending","user_code":"ABCD-EFGH","verification_url":"https://www.google.com/device","expires_in":900,"poll_after":0}})";
+        for (int i = 0; i < 12 && data.action(auth).load == model::Load::loading; ++i) { data.pump(); serve(code); }
+        assert(data.action(auth).load == model::Load::ready);
+        usleep(1100000);
+        tube_poll();
+        serve(R"({"state":"done","result":{"session":"0123456789abcdef0123456789abcdef","state":"authorized","profile":{"id":"oauth_0123456789abcdef","name":"My account"}}})");
+        data.pump();
+        // Back from approval must refresh Accounts even without Watch as or an explicit forget.
+        profiles = saved_profiles;
+        const Page *after = &data.catalog("library:profiles");
+        assert(after->load == model::Load::loading);
+        for (int i = 0; i < 12 && after->load == model::Load::loading; ++i) { data.pump(); serve(profiles); }
+        assert(after->load == model::Load::ready && after->rows.size() == 2 && source.profile().guest);
         const Page &initial = list_profiles();
         assert(initial.rows[0].has("guest") && initial.rows[0].has("selected") && !initial.rows[0].has("signed_in"));
         assert(initial.rows[1].has("signed_in") && !initial.rows[1].has("guest") && !initial.rows[1].has("selected"));

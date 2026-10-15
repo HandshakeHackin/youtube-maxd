@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define TEST_TOKEN "e2e-accounts-token-0123456789abcdef"
@@ -84,11 +85,27 @@ int main(void) {
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE", dir, 1));
     assert(getenv("TUBE_JS_FIXTURES") && getenv("TUBE_E2E_BUNDLE"));
     snprintf(store, sizeof store, "%s/accounts/oauth-profiles.json", dir);
+    /* Boot with existing credentials: catalog() must clone and list them without a YouTube request. */
+    char accounts_dir[600]; snprintf(accounts_dir, sizeof accounts_dir, "%s/accounts", dir);
+    assert(!mkdir(accounts_dir, 0700));
+    FILE *seed = fopen(store, "wb"); assert(seed);
+    fputs("{\"version\":1,\"profiles\":[", seed);
+    for (int i = 2; i <= 3; ++i)
+        fprintf(seed, "%s{\"id\":\"oauth_%016x\",\"name\":\"Saved account %d\",\"cookie\":\"\","
+            "\"oauth\":{\"access_token\":\"saved-access-%d\",\"refresh_token\":\"saved-refresh-%d\","
+            "\"expiry_date\":\"2099-01-01T00:00:00.000Z\",\"client\":{\"client_id\":\"fixture.apps.invalid\","
+            "\"client_secret\":\"fixture-secret\"}}}", i == 2 ? "" : ",", i, i, i, i);
+    fputs("]}", seed); assert(!fclose(seed));
     const evo_provider_t *p = &evo_provider_youtube;
     assert(evo_net_init() == 0);
     assert(!p->init() && tube_embedded_mode() && tube_service_running());
     unsigned port = 0;
     assert(sscanf(tube_embedded_address(), "127.0.0.1:%u", &port) == 1);
+
+    open_list(p, "library:profiles");
+    assert(last_ok && last_count == 3 && find("library:profile:guest") >= 0 &&
+        find("library:profile:oauth_0000000000000002") >= 0 && find("library:profile:oauth_0000000000000003") >= 0);
+    assert(strstr(upstream(port), "\"requests\":[]"));
 
     /* The first request reads what the service offers: sign-in is among it, so the account rows are there. */
     int calls = item_calls;
@@ -103,7 +120,7 @@ int main(void) {
     /* An account list as Guest is refused by the service, not hidden by the app. */
     open_list(p, "library:subscriptions");
     assert(!last_ok);
-    assert(!file_text(store));
+    assert(file_text(store) && strstr(file_text(store), "Saved account 2"));
     upstream(port);
 
     /* Sign in: the code and the address come from the service, the provider polls by itself. */
@@ -160,13 +177,14 @@ int main(void) {
     open_list(p, apply);
     assert(last_ok && last_count == 1 && !strcmp(last_items[0].title, "Account removed"));
     kept = file_text(store);
-    assert(kept && !strstr(kept, "token-1") && strstr(kept, "\"profiles\":[]"));
+    assert(kept && !strstr(kept, "token-1") && strstr(kept, "Saved account 2") && strstr(kept, "Saved account 3"));
     p->list_catalog("library", 0, items_cb, NULL);
     assert(last_ok && strstr(last_items[0].title, "guest") && find("account:remove") < 0 && find("auth:start") >= 0);
     open_list(p, "library:profiles");
-    assert(last_ok && last_count == 1 && !strcmp(last_items[0].id, "library:profile:guest"));
+    assert(last_ok && last_count == 3 && find("library:profile:guest") >= 0 &&
+        find("library:profile:oauth_0000000000000002") >= 0 && find("library:profile:oauth_0000000000000003") >= 0);
     assert(!strstr(upstream(port), "\"bearer\":true"));
-    puts("removed: Guest is the only profile");
+    puts("removed: Guest and both pre-existing profiles remain");
 
     p->shutdown();
     assert(!tube_service_running());

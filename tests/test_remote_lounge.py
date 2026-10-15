@@ -132,8 +132,6 @@ def test_registration_pairing_acknowledgment_retry_state_feedback_and_stop():
             await server.streams[0].entered.wait()
             assert await start(lounge) == status  # Same native device never opens a second receiver.
             assert len([call for call in server.calls if call[1] == "/pairing/get_lounge_token_batch"]) == 1
-            paired = await lounge.execute(RemoteRequest(action="pair", session=session))
-            assert paired["pairing_code"] == "123456789012"
             request = RemoteRequest(action="poll", session=session)
             poll = await lounge.execute(request)
             assert [item["action"] for item in poll["commands"]] == ["getNowPlaying", "setPlaylist", "pause", "seekTo"]
@@ -166,6 +164,65 @@ def test_registration_pairing_acknowledgment_retry_state_feedback_and_stop():
         finally:
             await cleanup(lounge)
         assert not lounge.receivers and server.streams[0].closed
+    asyncio.run(run())
+
+
+def test_pair_refreshes_channel_and_preserves_native_sequence():
+    async def run():
+        server = WireServer()
+        lounge = service(server)
+        try:
+            session = (await start(lounge))["session"]
+            await asyncio.sleep(0)
+            old = server.streams[0]
+            await old.entered.wait()
+            poll = await lounge.execute(RemoteRequest(action="poll", session=session))
+            assert poll["commands"] == [{"sequence": 1, "action": "getNowPlaying"}]
+            await lounge.execute(RemoteRequest(action="poll", session=session, ack=1))
+            phone = {"id": "phone", "name": "My phone", "type": "REMOTE_CONTROL"}
+            server.initial = [[0, ["c", "private-SID"]], [1, ["S", "private-gsession"]],
+                              [2, ["remoteConnected", phone]], [3, ["loungeStatus", {"devices": json.dumps([phone])}]],
+                              [4, ["setPlaylist", {"videoId": VIDEO, "currentTime": "12.5"}]]]
+            paired = await lounge.execute(RemoteRequest(action="pair", session=session))
+            assert paired["pairing_code"] == "123456789012" and old.closed
+            await asyncio.sleep(0)
+            assert len(server.streams) == 2
+            assert sum(call[1] == "/pairing/get_lounge_token_batch" for call in server.calls) == 2
+            poll = await lounge.execute(RemoteRequest(action="poll", session=session, ack=1))
+            assert [(c["sequence"], c["action"]) for c in poll["commands"]] == [(2, "remoteConnected"), (3, "loungeStatus"), (4, "setPlaylist")]
+            assert poll["commands"][0]["name"] == "My phone" and poll["commands"][2]["position_sec"] == 12.5
+            assert await lounge.execute(RemoteRequest(action="poll", session=session, ack=1)) == poll
+            assert (await lounge.execute(RemoteRequest(action="poll", session=session, ack=4)))["commands"] == []
+        finally:
+            await cleanup(lounge)
+    asyncio.run(run())
+
+
+def test_stop_during_post_pair_refresh_does_not_revive_receiver():
+    async def run():
+        server = WireServer()
+        lounge = service(server)
+        try:
+            session = (await start(lounge))["session"]
+            await asyncio.sleep(0)
+            entered, release = asyncio.Event(), asyncio.Event()
+            original = lounge.refresh_token
+            async def delayed(receiver):
+                entered.set()
+                await release.wait()
+                await original(receiver)
+            lounge.refresh_token = delayed
+            pairing = asyncio.create_task(lounge.execute(RemoteRequest(action="pair", session=session)))
+            await entered.wait()
+            stopping = asyncio.create_task(lounge.execute(RemoteRequest(action="stop", session=session)))
+            await asyncio.sleep(0)
+            release.set()
+            with pytest.raises(ServiceError):
+                await pairing
+            assert (await stopping)["state"] == "stopped"
+            assert session not in lounge.receivers and len(server.streams) == 1 and server.streams[0].closed
+        finally:
+            await cleanup(lounge)
     asyncio.run(run())
 
 

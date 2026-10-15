@@ -325,6 +325,35 @@ class Lounge:
                             receiver.full_playlist = None
                 receiver.aid = index
 
+    async def refresh_token(self, receiver):
+        body = await self.response("POST", "/pairing/get_lounge_token_batch", data={"screen_ids": receiver.screen_id})
+        info = strict_json(body)
+        screens = info.get("screens") if isinstance(info, dict) else None
+        if not isinstance(screens, list) or len(screens) > 16:
+            raise failure()
+        matching = [entry for entry in screens if isinstance(entry, dict) and entry.get("screenId") == receiver.screen_id]
+        if len(matching) != 1:
+            raise failure()
+        receiver.token = bounded_text(matching[0].get("loungeToken"), 4096, r"[A-Za-z0-9_.=-]+")
+
+    async def rebind(self, receiver):
+        # Pairing changes the screen registration: refresh the token and upstream channel.
+        if receiver.task is not None:
+            receiver.task.cancel()
+            await asyncio.gather(receiver.task, return_exceptions=True)
+        if receiver.error:
+            raise failure(receiver.error)
+        await self.refresh_token(receiver)
+        if receiver.error:
+            raise failure(receiver.error)
+        receiver.sid = receiver.gsid = ""
+        receiver.aid, receiver.rid, receiver.ofs = -1, 1, 0
+        await self.bind(receiver)
+        if receiver.error:
+            raise failure(receiver.error)
+        # Preserve native sequence/ack and commands across the new upstream SID.
+        receiver.task = asyncio.create_task(self.listen(receiver))
+
     async def bind(self, receiver):
         body = await self.response("POST", "/bc/bind", params=self.params(receiver), data={"count": "0"})
         self.accept(receiver, Frames().feed(body, final=True))
@@ -410,15 +439,7 @@ class Lounge:
                 if not receiver.screen_id:
                     raw = await self.response("GET", "/pairing/generate_screen_id")
                     receiver.screen_id = bounded_text(raw.decode().strip(), 128, r"[A-Za-z0-9_-]+")
-                body = await self.response("POST", "/pairing/get_lounge_token_batch", data={"screen_ids": receiver.screen_id})
-                info = strict_json(body)
-                screens = info.get("screens") if isinstance(info, dict) else None
-                if not isinstance(screens, list) or len(screens) > 16:
-                    raise failure()
-                matching = [entry for entry in screens if isinstance(entry, dict) and entry.get("screenId") == receiver.screen_id]
-                if len(matching) != 1:
-                    raise failure()
-                receiver.token = bounded_text(matching[0].get("loungeToken"), 4096, r"[A-Za-z0-9_.=-]+")
+                await self.refresh_token(receiver)
                 await self.bind(receiver)
             except ServiceError:
                 await self.stop(receiver)
@@ -471,6 +492,7 @@ class Lounge:
                     receiver.code = bounded_text(info.get("code"), 12, r"(?:[0-9]{9}|[0-9]{12})")
                     if receiver.error:
                         raise failure(receiver.error)
+                    await self.rebind(receiver)
                     return {**self.status(receiver), "pairing_code": receiver.code}
                 if payload.player is None or payload.update_id <= 0:
                     raise failure("remote_state", 400)

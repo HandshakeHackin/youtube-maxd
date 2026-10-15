@@ -9,4 +9,6 @@ assert.equal(libraryDiagnostic({ constructor: { name: 'secret token' }, message:
   'YouTube operation failed: stage=other action=other category=Error');
 assert.equal(libraryDiagnostic(null, 'device', 'poll'),
   'YouTube operation failed: stage=device action=poll category=Error');
+assert.equal(libraryDiagnostic(new TypeError(), 'execute', 'profiles'),
+  'YouTube operation failed: stage=execute action=profiles category=TypeError');
 console.log('PASS: bounded library failure diagnostics omit private inputs');

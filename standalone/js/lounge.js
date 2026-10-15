@@ -348,8 +348,34 @@ export class Lounge {
     }
   }
 
+  async refreshToken(receiver) {
+    const info = JSON.parse(new Utf8().feed(await this.response('POST', '/pairing/get_lounge_token_batch',
+      { data: { screen_ids: receiver.screen_id }, signal: receiver.abort.signal }), true));
+    const screens = record(info) ? info.screens : null;
+    if (!Array.isArray(screens) || screens.length > 16) throw failure();
+    const matching = screens.filter(entry => record(entry) && entry.screenId === receiver.screen_id);
+    if (matching.length !== 1) throw failure();
+    receiver.token = boundedText(matching[0].loungeToken, 4096, /^[A-Za-z0-9_.=-]+$/);
+  }
+
+  async rebind(receiver) {
+    // Pairing changes the screen registration: SmartTube refreshes its token and channel here.
+    receiver.abort.abort();
+    if (receiver.listening) await receiver.listening;
+    if (receiver.error) throw failure(receiver.error);
+    receiver.abort = new AbortController();
+    await this.refreshToken(receiver);
+    if (receiver.error) throw failure(receiver.error);
+    receiver.sid = receiver.gsid = '';
+    receiver.aid = -1; receiver.rid = 1; receiver.ofs = 0;
+    await this.bind(receiver);
+    if (receiver.error) throw failure(receiver.error);
+    // Native sequence/ack and pending commands survive; only upstream channel indices restart.
+    receiver.listening = this.listen(receiver);
+  }
+
   async bind(receiver) {
-    const body = await this.response('POST', '/bc/bind', { params: this.params(receiver), data: { count: '0' } });
+    const body = await this.response('POST', '/bc/bind', { params: this.params(receiver), data: { count: '0' }, signal: receiver.abort.signal });
     this.accept(receiver, new Frames().feed(body, true));
     if (!receiver.sid || !receiver.gsid) throw failure();
   }
@@ -429,12 +455,7 @@ export class Lounge {
           const raw = await this.response('GET', '/pairing/generate_screen_id');
           created.screen_id = boundedText(new Utf8().feed(raw, true).trim(), 128, /^[A-Za-z0-9_-]+$/);
         }
-        const info = JSON.parse(new Utf8().feed(await this.response('POST', '/pairing/get_lounge_token_batch', { data: { screen_ids: created.screen_id } }), true));
-        const screens = record(info) ? info.screens : null;
-        if (!Array.isArray(screens) || screens.length > 16) throw failure();
-        const matching = screens.filter(entry => record(entry) && entry.screenId === created.screen_id);
-        if (matching.length !== 1) throw failure();
-        created.token = boundedText(matching[0].loungeToken, 4096, /^[A-Za-z0-9_.=-]+$/);
+        await this.refreshToken(created);
         await this.bind(created);
       } catch (error) {
         await this.stop(created);
@@ -475,6 +496,7 @@ export class Lounge {
           if (!record(info)) throw failure();
           receiver.code = boundedText(info.code, 12, /^(?:[0-9]{9}|[0-9]{12})$/);
           if (receiver.error) throw failure(receiver.error);
+          await this.rebind(receiver);
           return { ...this.status(receiver), pairing_code: receiver.code };
         }
         if (payload.player === null || payload.update_id <= 0) throw failure('remote_state', 400);

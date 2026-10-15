@@ -296,3 +296,19 @@ def test_corrupt_profile_identity_has_fixed_configuration_error(tmp_path, identi
     original = path.read_bytes()
     with pytest.raises(ValueError): OAuthProfiles(tmp_path)
     assert path.read_bytes() == original
+
+@pytest.mark.parametrize("label,requested,expected", [
+    ("My channel", "YouTube account", "My channel"),
+    ("My channel", "Living room", "Living room"),
+    ("bad\nname", "YouTube account", "YouTube account"),
+    ("x" * 151, "YouTube account", "YouTube account"),
+])
+def test_authorized_display_name_preserves_custom_label_and_credentials(tmp_path, label, requested, expected):
+    async def run():
+        service, store, now, calls, profiles = flow(tmp_path, [{"state": "authorized", "credentials": TOKENS, "name": label}])
+        started = await service.start(requested)
+        now[0] = 5
+        done = await service.status(started["session"])
+        assert done["state"] == "authorized" and done["profile"]["name"] == expected
+        assert store.profiles[0]["oauth"] == TOKENS
+    asyncio.run(run())

@@ -92,10 +92,13 @@ int main(void) {
     code_done(890, 10); assert(tube_auth_revision() == revision); /* Preserve focus during pending polls. */
     clock_ms += 9999; tube_poll(); assert(!count);
     clock_ms++; tube_poll(); assert(count == 1);
+    const unsigned before_authorized = tube_accounts_revision();
     job_done("{\"state\":\"authorized\",\"session\":\"0123456789abcdef0123456789abcdef\",\"profile\":{\"id\":\"oauth_0123456789abcdef\",\"name\":\"Living room\"}}");
     p->list_catalog("auth:session", 0, list, NULL);
     assert(ok && rows == 2 && !strcmp(items[0].id, "library:profile:oauth_0123456789abcdef"));
     assert(!strcmp(items[0].subtitle, "Living room")); check_store();
+    assert(tube_accounts_revision() == before_authorized + 1);
+    assert(!strcmp(tube_browse_profile(), "guest")); /* Adding an account need not select it. */
     assert(!strcmp(tube_row_fact_get(items[0].id,"state"),"authorized"));
     assert(!strcmp(tube_row_fact_get(items[0].id,"name"),"Living room"));
     p->list_catalog(items[0].id, 0, list, NULL); assert(rows == 12 && !count);

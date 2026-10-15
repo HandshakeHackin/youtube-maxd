@@ -66,6 +66,20 @@ export class DeviceAuthorization {
     const credentials = { access_token: data.access_token, refresh_token: data.refresh_token,
       expiry_date: new Date(this.clock() + data.expires_in * 1000).toISOString(), client: input.client };
     if (!validCredentials(credentials)) throw new LibraryError('auth_response', 'The sign-in credentials are invalid.', 502);
-    return { state: 'authorized', credentials };
+    // A display-name lookup must never turn valid redeemed credentials into a failed sign-in.
+    let timer, name;
+    try {
+      name = await Promise.race([(async () => {
+        const client = await this.createClient();
+        await client.session.signIn(credentials);
+        const entries = (await client.account.getInfo()).contents?.contents ?? [];
+        const selected = entries.find(entry => entry.is_selected) ?? (entries.length === 1 ? entries[0] : null);
+        const label = selected?.account_name?.toString().trim();
+        return typeof label === 'string' && Array.from(label).length >= 1 && Array.from(label).length <= 150 &&
+          !/[\x00-\x1f\x7f]/.test(label) ? label : undefined;
+      })(), new Promise(resolve => { timer = setTimeout(resolve, 5000); })]);
+    } catch { /* Keep the caller's label if account information is unavailable. */ }
+    finally { clearTimeout(timer); }
+    return { state: 'authorized', credentials, ...(name ? { name } : {}) };
   }
 }

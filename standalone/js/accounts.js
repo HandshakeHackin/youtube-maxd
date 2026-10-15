@@ -170,7 +170,8 @@ export class DeviceAuth {
       } else if (['denied', 'expired'].includes(result?.state)) { session.state = result.state; this.active = null; }
       else if (result?.state === 'authorized' && validCredentials(result.credentials)) {
         // Stored and registered without a pause in between: a cancellation cannot fall between the two.
-        const profile = this.store.append(result.credentials, session.name);
+        const name = session.name === 'YouTube account' && validName(result.name) && !/[\x00-\x1f\x7f]/.test(result.name) ? result.name : session.name;
+        const profile = this.store.append(result.credentials, name);
         this.register(profile);
         session.state = 'authorized'; session.profile = { id: profile.id, name: profile.name };
         this.active = null;
