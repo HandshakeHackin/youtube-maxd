@@ -45,9 +45,9 @@ program = r'''
 #define NWD_DECODE_MS 100
 #define NWD_RESET_MS 100
 #define POST_FLUSH_ERR_TOLERANCE 5
-typedef struct { size_t size; void *au; uint64_t au_size, pts, dts; int attached; } SceVideodec2InputData;
+typedef struct { size_t size; void *au; uint64_t au_size, pts, dts, attached; } SceVideodec2InputData;
 typedef struct { size_t size, buffer_size; void *buffer; unsigned accepted; } SceVideodec2FrameBuffer;
-typedef struct { size_t size; void *buffer; unsigned valid, picture_count, error, width, height, pitch, pitch_bytes; } SceVideodec2OutputInfo;
+typedef struct { size_t size; void *buffer; unsigned valid, picture_count, error, width, height, pitch, pitch_bytes; uint64_t attached; } SceVideodec2OutputInfo;
 typedef struct { int is_vp9, codec_type, idx; } nat_codec_desc;
 typedef struct { struct { unsigned profile; } cfg; void *decoder; } dec_slot;
 #define AV_NOPTS_VALUE INT64_MIN
@@ -84,11 +84,12 @@ typedef struct evo_vdec_native {
     uint8_t *input_mem, *frame_mem;
     size_t frame_size;
     int64_t pts_pool[PTS_POOL]; int pts_n;
-    struct { int64_t pts; int present; } tube_vp9_pending[PTS_POOL];
+    struct { int64_t pts; int present; uint64_t tag; } tube_vp9_pending[PTS_POOL];
     unsigned tube_vp9_head, tube_vp9_count;
 } evo_vdec_native;
 static uint8_t pictures[256][2];
 static int hardware[256], queued;
+static uint64_t hardware_tags[256], tube_vp9_identity_sequence;
 static int decode_calls, overflows, peak_ro, bsf_receives;
 static void note(const char *format, ...) { (void)format; }
 #define nwd_start_once() ((void)0)
@@ -106,10 +107,14 @@ static void output(SceVideodec2OutputInfo *out) {
     out->valid = out->picture_count = 1;
     pictures[hardware[0]][0] = (uint8_t)hardware[0];
     out->buffer = pictures[hardware[0]];
+    out->attached = hardware_tags[0];
+    memmove(hardware_tags, hardware_tags + 1, (size_t)(queued-1) * sizeof hardware_tags[0]);
     memmove(hardware, hardware + 1, (size_t)--queued * sizeof hardware[0]);
 }
 static int sceVideodec2Decode(void *dec, SceVideodec2InputData *in, SceVideodec2FrameBuffer *fb, SceVideodec2OutputInfo *out) {
     (void)dec; decode_calls++;
+    assert(in->attached && ((in->attached & 1u) == !!(((uint8_t *)in->au)[0] & 2u)));
+    hardware_tags[queued] = in->attached;
     hardware[queued++] = ((uint8_t *)in->au)[1];
     if (queued >= 4) { output(out); fb->accepted = 1; }
     return 0;
@@ -125,6 +130,12 @@ program += r'''
 static int tube_native_surface_valid(const evo_vdec_native *n, const SceVideodec2OutputInfo *out, uint32_t pitch, int ten_bit) {
     (void)n; (void)pitch; (void)ten_bit;
     return out->valid && out->picture_count == 1 && !out->error && out->buffer;
+}
+/* ABI/cache/lease validation is covered by output-order and frame-lease tests;
+ * this double transports the exact accepted input identity through the hardware queue. */
+static int tube_vp9_output_tag(evo_vdec_native *n, const SceVideodec2OutputInfo *out, uint64_t *tag) {
+    assert(n->desc->is_vp9 && out->valid && out->picture_count==1 && out->attached);
+    *tag=out->attached; return 1;
 }
 static void ro_harvest(evo_vdec_native *n, const SceVideodec2OutputInfo *out) {
     for (int i = 0; i < RO_SLOTS; i++) if (!n->ro[i].used) {
@@ -161,7 +172,7 @@ static int sceVideodec2Reset(void *d) { (void)d; queued=0; return 0; }
 static void evo_dovi_parser_flush(void *d) { (void)d; }
 static const void *dovi_for_pts(evo_vdec_native *n,int64_t p) { (void)n; (void)p; return NULL; }
 '''
-for signature in ['static void tube_native_output(', 'static int decode_one(', 'static void drain_decoder(',
+for signature in ['static uint64_t tube_vp9_input_tag(', 'static void tube_native_output(', 'static int decode_one(', 'static void drain_decoder(',
                   'static int bitrd(', 'static int vp9_frame_is_shown(', 'static int pkt_present(',
                   'static void tube_vp9_pump_bsf(', 'static int tube_vp9_send(',
                   'int evo_vdec_native_send(', 'int evo_vdec_native_receive(',

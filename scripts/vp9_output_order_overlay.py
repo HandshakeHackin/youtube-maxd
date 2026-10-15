@@ -1,44 +1,151 @@
-"""Associate delayed VP9 outputs with their own coded-frame display policy."""
+"""Associate VP9 outputs by their returned identity, including delayed hidden AUs."""
 
 
-def apply(replace, player):
-    native = player + 'media/src/evo_vdec_native.c'
-    replace(native, '    int     pts_n;', '''    int     pts_n;
-    struct { int64_t pts; int present; } tube_vp9_pending[PTS_POOL];
-    unsigned tube_vp9_head, tube_vp9_count;
-    int tube_vp9_bsf_pending;''')
-    replace(native, 'static int decode_one(evo_vdec_native *n,', r'''/* VP9 produces one output per coded AU, including hidden alternate references. */
+ABI_C = r"""
+/* GetPictureInfo VP9 ABI verified in local Videodec2 binaries and on hardware. */
+struct tube_vp9_picture_info {
+    uint64_t size;
+    uint8_t valid, reserved[7];
+    uint64_t pts, dts, attached;
+    uint8_t codec_fields[0x58 - 0x28];
+};
+_Static_assert(sizeof(struct tube_vp9_picture_info) == 0x58, "VP9 picture-info size");
+extern int32_t sceVideodec2GetPictureInfo(const SceVideodec2OutputInfo *, void *, void *);
+/* Never reused by another decoder object or after seek. */
+static uint64_t tube_vp9_identity_sequence;
+"""
+
+IDENTITY_C = r"""
+static uint64_t tube_vp9_input_tag(int present)
+{
+    const uint64_t ordinal = __atomic_add_fetch(&tube_vp9_identity_sequence, 1u, __ATOMIC_RELAXED);
+    if (!ordinal || ordinal > UINT64_MAX / 2u) return 0;
+    return (ordinal << 1) | (uint64_t)!!present;
+}
+
+/* GetPictureInfo reads the VP9 trailer at buffer end-0xf8 through +0x53.
+ * Invalidate its complete cache envelope while the validated surface is held. */
+static int tube_vp9_output_tag(evo_vdec_native *n, const SceVideodec2OutputInfo *out, uint64_t *tag)
+{
+    if (out->codec != SCE_VIDEODEC2_CODEC_VP9 || out->picture_count != 1 ||
+        (out->size != 0x30u && out->size != 0x38u) ||
+        out->buffer_size <= 1024u || out->buffer_size > n->frame_size)
+        return 0;
+    const uintptr_t address = (uintptr_t)out->buffer;
+    if ((address & 255u) || n->frame_size > UINTPTR_MAX - address) return 0;
+    const uintptr_t end = address + (uintptr_t)out->buffer_size;
+    if (end > UINTPTR_MAX - 63u) return 0;
+    const uintptr_t begin = (end - 0xf8u) & ~(uintptr_t)63u;
+    const uintptr_t rounded_end = (end + 63u) & ~(uintptr_t)63u;
+    if (begin < address || rounded_end > address + n->frame_size ||
+        tube_frame_lease_hold(out->buffer) != 1)
+        return 0;
+    struct tube_vp9_picture_info picture __attribute__((aligned(16))) = {0};
+    picture.size = sizeof(picture);
+    evo_agc_runtime_cache_flush((const void *)begin, (size_t)(rounded_end - begin));
+    const int32_t rc = sceVideodec2GetPictureInfo(out, &picture, NULL);
+    tube_frame_lease_release(out->buffer);
+    if (rc || !picture.valid || !picture.attached) return 0;
+    *tag = picture.attached;
+    return 1;
+}
+"""
+
+OUTPUT_C = r"""
+/* Hidden completions can arrive 15/16 calls later, after newer shown pictures.
+ * Exact returned identities, not coded FIFO positions, select display policy. */
 static void tube_native_output(evo_vdec_native *n, const SceVideodec2OutputInfo *out)
 {
     if (n->desc->is_vp9) {
         int ten_bit = n->desc->idx == NAT_VP92;
         uint32_t pitch = out->pitch_bytes ? out->pitch_bytes : out->pitch;
         if (ten_bit && pitch < out->pitch * 2u) pitch = out->pitch * 2u;
+        uint64_t tag = 0;
         if (!n->tube_vp9_count || n->pts_n ||
-            !tube_native_surface_valid(n, out, pitch, ten_bit)) {
-            note("EVO vdec native: VP9 output lost coded-frame association");
+            !tube_native_surface_valid(n, out, pitch, ten_bit) ||
+            !tube_vp9_output_tag(n, out, &tag)) {
+            note("EVO vdec native: invalid VP9 completion identity");
             n->fatal = 1;
             return;
         }
-        unsigned head = n->tube_vp9_head;
-        n->tube_vp9_head = (head + 1u) % PTS_POOL;
+        unsigned match = 0;
+        for (; match < n->tube_vp9_count; ++match)
+            if (n->tube_vp9_pending[(n->tube_vp9_head + match) % PTS_POOL].tag == tag) break;
+        if (match == n->tube_vp9_count) {
+            note("EVO vdec native: unknown VP9 completion identity");
+            n->fatal = 1;
+            return;
+        }
+        unsigned head = (n->tube_vp9_head + match) % PTS_POOL;
+        if (n->tube_vp9_pending[head].present) {
+            for (unsigned i = 0; i < match; ++i) {
+                if (n->tube_vp9_pending[(n->tube_vp9_head + i) % PTS_POOL].present) {
+                    note("EVO vdec native: VP9 visible completion out of order");
+                    n->fatal = 1;
+                    return;
+                }
+            }
+            pts_push(n, n->tube_vp9_pending[head].pts);
+            int before = n->ro_count;
+            ro_harvest(n, out);
+            if (n->fatal || n->ro_count != before + 1 || n->pts_n) {
+                n->fatal = 1;
+                return;
+            }
+            n->frames_out++;
+        }
+        /* Remove only this completion; older hidden AUs remain matchable. */
+        for (unsigned i = match; i + 1u < n->tube_vp9_count; ++i)
+            n->tube_vp9_pending[(n->tube_vp9_head + i) % PTS_POOL] =
+                n->tube_vp9_pending[(n->tube_vp9_head + i + 1u) % PTS_POOL];
         n->tube_vp9_count--;
-        if (!n->tube_vp9_pending[head].present) return;
-        pts_push(n, n->tube_vp9_pending[head].pts);
-        int before = n->ro_count;
-        ro_harvest(n, out);
-        if (n->fatal || n->ro_count != before + 1 || n->pts_n) {
-            n->fatal = 1;
-            return;
-        }
-        n->frames_out++;
         return;
     }
     n->frames_out++;
     ro_harvest(n, out);
 }
+"""
 
-static int decode_one(evo_vdec_native *n,''')
+TAG_HOOK_C = r"""    in.attached = n->desc->is_vp9 ? tube_vp9_input_tag(present) : 0;
+    if (n->desc->is_vp9 && !in.attached) {
+        n->fatal = 1;
+        tube_frame_lease_release(n->frame_mem + (size_t)fslot * n->frame_size);
+        return -1;
+    }"""
+
+
+DRAIN_EOF_C = r"""            if (n->desc->is_vp9) {
+                for (unsigned i = 0; i < n->tube_vp9_count; ++i) {
+                    if (n->tube_vp9_pending[(n->tube_vp9_head + i) % PTS_POOL].present) {
+                        note("EVO vdec native: VP9 drain ended with pending visible frames");
+                        n->fatal = 1;
+                        return;
+                    }
+                }
+                n->tube_vp9_head = n->tube_vp9_count = 0;
+            }
+            n->tube_drain_finished = 1;
+            return;"""
+
+def apply(replace, player):
+    native = player + 'media/src/evo_vdec_native.c'
+    replace(native, """ * FRAME ORDER. SceVideodec2OutputInfo carries no PTS and no picture-detail
+ * hook is bound. This backend assumes DISPLAY-order emission + min-PTS pairing,
+ * with a small PTS-sorted reorder window as a safety net. If B-frame content
+ * misbehaves, build with -DEVO_VDEC_NATIVE_DECODE_ORDER=1 and a deeper
+ * -DEVO_VDEC_REORDER_DEPTH.
+""", """ * FRAME ORDER. VP9 matches GetPictureInfo's returned attached identity to its
+ * original AU, including delayed hidden completions, and preserves shown order.
+ * AVC/HEVC retain min-PTS pairing and the bounded PTS-sorted reorder window.
+""")
+    replace(native, '#include "tube_frame_lease.h"', '#include "tube_frame_lease.h"\n#include "evo_agc_runtime.h"')
+    replace(native, 'struct evo_vdec_native {', ABI_C + '\nstruct evo_vdec_native {')
+    replace(native, '    in.attached = 0;', TAG_HOOK_C)
+    replace(native, '    int     pts_n;', '''    int     pts_n;
+    struct { int64_t pts; int present; uint64_t tag; } tube_vp9_pending[PTS_POOL];
+    unsigned tube_vp9_head, tube_vp9_count;
+    int tube_vp9_bsf_pending;''')
+    replace(native, 'static int decode_one(evo_vdec_native *n,', IDENTITY_C + OUTPUT_C + '\nstatic int decode_one(evo_vdec_native *n,')
     replace(native, '    if (size <= 0 || (size_t)size > INPUT_SLOT_BYTES)\n        return -1;', '''    if (size <= 0 || (size_t)size > INPUT_SLOT_BYTES)
         return -1;
     if (n->desc->is_vp9 && n->tube_vp9_count >= PTS_POOL) {
@@ -69,6 +176,7 @@ static int decode_one(evo_vdec_native *n,''')
         unsigned tail = (n->tube_vp9_head + n->tube_vp9_count) % PTS_POOL;
         n->tube_vp9_pending[tail].pts = pts;
         n->tube_vp9_pending[tail].present = present;
+        n->tube_vp9_pending[tail].tag = in.attached;
         n->tube_vp9_count++;
     } else if (present) {
         if (n->dovi)
@@ -91,11 +199,7 @@ static void drain_decoder''', '''    tube_frame_lease_release(fb.buffer);
 static void drain_decoder''')
     replace(native, '        if (!(out.valid && out.picture_count)) {',
             '        if (!out.valid || (!n->desc->is_vp9 && !out.picture_count)) {')
-    replace(native, '            n->tube_drain_finished = 1;\n            return;', '''            if (n->desc->is_vp9 && n->tube_vp9_count) {
-                note("EVO vdec native: VP9 drain ended with pending coded frames");
-                n->fatal = 1;
-            } else n->tube_drain_finished = 1;
-            return;''')
+    replace(native, '            n->tube_drain_finished = 1;\n            return;', DRAIN_EOF_C)
     replace(native, '        ro_harvest(n, &out);\n        tube_frame_lease_release(fb.buffer);', '''        if (n->desc->is_vp9) tube_native_output(n, &out);
         else ro_harvest(n, &out);
         tube_frame_lease_release(fb.buffer);

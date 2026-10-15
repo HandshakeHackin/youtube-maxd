@@ -4,6 +4,29 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Returned tags verify completion identity (2026-10-15)
+
+Diagnostic `3892445` passed a bounded identical-input Afterglow replay and
+clean teardown. All 813 accepted compressed packets match the software
+reference. All 871 returned tags identify the correct submitted AU and its
+presentation flag, with no timestamp or tag discrepancies. The 811 shown
+completions follow the exact software display order. Shown completions arrive
+3?4 decode calls after submission; hidden completions arrive 15?16 calls later.
+The coded-AU FIFO therefore discarded 61 shown completions and published 60
+hidden completions containing stale pixels. Hidden completion omission/delay
+must not consume the visible-picture queue.
+
+The production fix uses public `GetPictureInfo` and unique process-wide input
+tags, preserving original timestamps even when missing or equal. Exact pending
+identity lookup retains delayed hidden entries while enforcing visible order.
+Generated-code ASan/UBSan regressions pass the observed delayed-hidden sequence,
+EOF, seek/object reuse, missing/equal timestamps, invalid metadata, queue bounds
+and unchanged backpressure/frame leases. Production and diagnostic preparation
+pass; console build and full-sample validation remain next. The diagnostic restored saved state, removed
+its private sample, closed cleanly and left error records unchanged. Production
+build `f801bae` was restored: all 185 files matched after 120 seconds,
+the console stayed idle, and error records were unchanged.
+
 ## Output metadata isolates the VP9 association error (2026-10-15)
 
 Diagnostic `77b77ee` passed a bounded local-input Afterglow replay and clean

@@ -28,8 +28,12 @@ Returned metadata now isolates the FIFO error: the `77b77ee` identical-input
 trace maps every real-timestamp published picture to correct software content,
 while 61 stale outputs have the hidden-input timestamp sentinel and 61 real
 pictures are incorrectly discarded as FIFO-hidden. The fix must use verified
-completion identity; a tagged-input probe is next to cover duplicate/missing
-PTS safely. Production is restored. This is not yet a playback fix.
+completion identity. The tagged `3892445` replay verifies all 871 returned tags:
+shown completions arrive after 3?4 calls, hidden completions after 15?16, and
+all 811 shown completions preserve software display order. A public-picture-info
+fix now passes generated-code sanitizer regressions, with duplicate/missing
+timestamps preserved. Console build and full-sample validation are next; this
+is not yet a visually accepted playback fix.
 
 ## Earlier playback evidence
 

@@ -110,8 +110,8 @@ def apply(replace, player):
 
 
 def add_metadata_hooks(replace, native):
-    replace(native, 'struct { int64_t pts; int present; } tube_vp9_pending[PTS_POOL];',
-            'struct { int64_t pts; int present; unsigned diagnostic_decode_call; int diagnostic_show_existing; } tube_vp9_pending[PTS_POOL];')
+    replace(native, 'struct { int64_t pts; int present; uint64_t tag; } tube_vp9_pending[PTS_POOL];',
+            'struct { int64_t pts; int present; uint64_t tag; unsigned diagnostic_decode_call; int diagnostic_show_existing; } tube_vp9_pending[PTS_POOL];')
     replace(native, '        n->tube_vp9_pending[tail].present = present;',
             '        n->tube_vp9_pending[tail].present = present;\n'
             '        n->tube_luma_trigger_present = present;\n'

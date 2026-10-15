@@ -12,7 +12,8 @@
 static const struct codec_desc { int is_vp9; } avc={0}, vp9={1};
 typedef struct evo_vdec_native {
     const struct codec_desc *desc;
-    unsigned tube_vp9_count;
+    unsigned tube_vp9_head, tube_vp9_count;
+    struct { int present; } tube_vp9_pending[PTS_POOL];
     int fatal, tube_drain_finished, ro_count, flushing;
     unsigned tube_drain_calls, au_ring;
     uint8_t *frame_mem;
@@ -22,7 +23,7 @@ typedef struct evo_vdec_native {
 static unsigned remaining, calls, fail_call, vp9_calls, hidden_call, association_errors;
 static int output_rejected, empty_picture;
 static void note(const char *message) {
-    assert(!strcmp(message,"EVO vdec native: VP9 drain ended with pending coded frames"));
+    assert(!strcmp(message,"EVO vdec native: VP9 drain ended with pending visible frames"));
     ++association_errors;
 }
 static int tube_native_claim_frame(evo_vdec_native*n,unsigned first){int slot=tube_frame_pool_claim(n->frame_mem,first);assert(slot>=0);return slot;}
@@ -34,12 +35,15 @@ static void ro_harvest(evo_vdec_native *n, const SceVideodec2OutputInfo *out) {
     assert(out->valid && out->picture_count && n->ro_count < RO_SLOTS);
     ++n->ro_count;
 }
-/* The real FIFO handler is covered by test_vp9_output_order.py; this verifies drain dispatch. */
+/* The real identity handler is covered by test_vp9_output_order.py; this verifies drain dispatch. */
 static void tube_native_output(evo_vdec_native *n, const SceVideodec2OutputInfo *out) {
     assert(n->desc->is_vp9 && out->valid && n->tube_vp9_count);
     ++vp9_calls;
     if (output_rejected) { n->fatal=1; return; }
     assert(out->picture_count==1);
+    const unsigned head=n->tube_vp9_head;
+    assert(!!n->tube_vp9_pending[head].present == (vp9_calls!=hidden_call));
+    n->tube_vp9_head=(head+1u)%PTS_POOL;
     --n->tube_vp9_count;
     if (vp9_calls!=hidden_call) ro_harvest(n,out);
 }
@@ -59,19 +63,33 @@ static evo_vdec_native fresh(void) {
     assert(tube_frame_pool_register(memory,16,FRAME_POOL_SLOTS));
     return (evo_vdec_native){.desc = &avc, .flushing = 1, .frame_mem = memory, .frame_size = 16, .dec = memory};
 }
+static void pending(evo_vdec_native *n,unsigned count,unsigned shown) {
+    assert(count<=PTS_POOL);
+    n->tube_vp9_count=count;
+    for(unsigned i=0;i<count;++i)
+        n->tube_vp9_pending[(n->tube_vp9_head+i)%PTS_POOL].present=!!(shown&(1u<<i));
+}
 static void test_vp9_dispatch(void) {
-    evo_vdec_native n=fresh(); n.desc=&vp9; n.tube_vp9_count=remaining=2; hidden_call=1;
+    evo_vdec_native n=fresh(); n.desc=&vp9; pending(&n,2,2); remaining=2; hidden_call=1;
     drain_decoder(&n);
     assert(vp9_calls==2 && calls==3 && !n.tube_vp9_count && n.ro_count==1 && n.tube_drain_finished);
     assert(!n.fatal && !association_errors && !tube_frame_pool_busy(n.frame_mem));
     assert(!evo_vdec_native_is_drained(&n)); n.ro_count=0; assert(evo_vdec_native_is_drained(&n));
-    n=fresh(); n.desc=&vp9; n.tube_vp9_count=2; remaining=1;
+    n=fresh(); n.desc=&vp9; pending(&n,2,3); remaining=1;
     drain_decoder(&n);
     assert(vp9_calls==1 && calls==2 && n.tube_vp9_count==1 && association_errors==1);
     assert(n.fatal && !n.tube_drain_finished && !evo_vdec_native_is_drained(&n));
     assert(!tube_frame_pool_busy(n.frame_mem));
+    /* A hidden completion may remain at native EOF; no visible picture is lost. */
+    n=fresh(); n.desc=&vp9; n.tube_vp9_head=PTS_POOL-1;
+    pending(&n,2,1); remaining=1;
+    drain_decoder(&n);
+    assert(vp9_calls==1 && calls==2 && !n.tube_vp9_count && !n.tube_vp9_head);
+    assert(!n.fatal && n.tube_drain_finished && n.ro_count==1 && !association_errors);
+    assert(!tube_frame_pool_busy(n.frame_mem));
+    n.ro_count=0; assert(evo_vdec_native_is_drained(&n));
     for (int malformed=0;malformed<2;++malformed) {
-        n=fresh(); n.desc=&vp9; n.tube_vp9_count=remaining=3;
+        n=fresh(); n.desc=&vp9; pending(&n,3,7); remaining=3;
         output_rejected=1; empty_picture=malformed;
         drain_decoder(&n);
         assert(vp9_calls==1 && calls==1 && remaining==2 && n.fatal && !n.tube_drain_finished);

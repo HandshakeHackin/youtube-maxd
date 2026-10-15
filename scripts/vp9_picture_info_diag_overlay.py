@@ -55,7 +55,7 @@ static uint32_t tube_picture_diag_read32(const uint8_t *p)
 /* Called after surface validation, before pending metadata or hidden filtering.
  * The decoder owns its completion until this function returns; explicitly hold
  * the registered surface while invalidating and reading its metadata trailer. */
-static void tube_picture_diag_output(evo_vdec_native *n, const SceVideodec2OutputInfo *out)
+static void tube_picture_diag_output(evo_vdec_native *n, const SceVideodec2OutputInfo *out, unsigned head)
 {
     const unsigned count = __atomic_load_n(&n->tube_picture_count, __ATOMIC_RELAXED);
     if (count >= TUBE_PICTURE_DIAG_CAPACITY) {
@@ -64,7 +64,6 @@ static void tube_picture_diag_output(evo_vdec_native *n, const SceVideodec2Outpu
     }
     struct tube_picture_diag_record *r = &n->tube_picture_records[count];
     memset(r, 0, sizeof(*r));
-    const unsigned head = n->tube_vp9_head;
     r->sequence = count + 1u; r->epoch = n->tube_picture_epoch;
     r->decode_calls = n->dec_calls;
     r->associated_decode_call = n->tube_vp9_pending[head].diagnostic_decode_call;
@@ -129,23 +128,13 @@ static void tube_picture_diag_dump(evo_vdec_native *n)
 }
 """
 
-TAG_HOOK_C = """    /* Diagnostic identity: ordinal in bits63:1, shown/show-existing in bit0.
-     * Widen before addition so UINT32_MAX remains a nonzero unique tag. */
-    in.attached = n->desc->is_vp9 ? ((((uint64_t)n->dec_calls + 1u) << 1) | (uint64_t)!!present) : 0;"""
-
-
-def add_tag_hook(replace, native):
-    replace(native, '    in.attached = 0;', TAG_HOOK_C)
-
-
 def apply(replace, player):
     native = player + 'media/src/evo_vdec_native.c'
-    add_tag_hook(replace, native)
     replace(native, 'struct evo_vdec_native {', RECORD_C + '\nstruct evo_vdec_native {')
     replace(native, '    int tube_vp9_bsf_pending;', '    int tube_vp9_bsf_pending;' + FIELDS_C)
     replace(native, 'static void pts_push(', HELPERS_C + '\nstatic void pts_push(')
-    replace(native, '        unsigned head = n->tube_vp9_head;',
-            '        tube_picture_diag_output(n, out);\n        unsigned head = n->tube_vp9_head;')
+    replace(native, '        unsigned head = (n->tube_vp9_head + match) % PTS_POOL;',
+            '        unsigned head = (n->tube_vp9_head + match) % PTS_POOL;\n        tube_picture_diag_output(n, out, head);')
     replace(native, '    tube_packet_diag_seek(v);',
             '    tube_packet_diag_seek(v);\n    ++v->tube_picture_epoch;')
     replace(native, '    ro_reset(v);\n    if (v->slot && !tube_native_pool_idle(v->slot)) return;',

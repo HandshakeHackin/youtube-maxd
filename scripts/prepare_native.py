@@ -84,6 +84,8 @@ def main():
         "pp/src/pp_clock.c", "pp/include/pp_clock.h",
         "include/evo_boot_trace.h", "sce_sys/param.json", "VERSION")]
     overlay_files += ["scripts/build-ffmpeg.sh", "scripts/package-app.sh", player+"shaders/agc"]
+    overlay_files += ["tools/native-app/stubs/prx/libSceVideodec2.syms",
+                      "tools/native-app/stubs/videodec2_link_stub.c"]
     # Restore all shader headers too: disabling a transform build must never
     # leave 48-byte shaders paired with the original 16/32-byte runtime.
     # Always start each overlay from its pinned sources. Build outputs remain
@@ -493,6 +495,18 @@ static void run_command(const char *line)
     apply_i18n_overlay(replace, player, WORK, ROOT)
     # The Afterglow interface: sources, fonts and its three hooks in EVO (scripts/afterglow_overlay.py).
     afterglow_overlay.apply(ROOT, WORK, replace, player)
+    replace("tools/native-app/stubs/prx/libSceVideodec2.syms",
+            "sceVideodec2Flush\n", "sceVideodec2Flush\nsceVideodec2GetPictureInfo\n")
+    replace("tools/native-app/stubs/videodec2_link_stub.c", "#include <stdint.h>",
+            """#include <stdint.h>
+
+int32_t sceVideodec2GetPictureInfo(const void *output, void *picture, void *second)
+{
+    (void)output;
+    (void)picture;
+    (void)second;
+    return -1;
+}""")
     from vp9_output_order_overlay import apply as apply_vp9_output_order
     apply_vp9_output_order(replace, player)
     from agc_fence_overlay import apply_agc_fence_overlay

@@ -39,10 +39,19 @@ still precede pixel reads and presentation.
 
 The local hardware-video-decoding research's implementation guide and
 `examples/common/memory_pipeline.cpp` require caller-slot pointer identity and
-retention through completed flip. Its VP9 packetization example also requires
-queued per-coded-frame display flags. The ownership change addresses the
-confirmed pool reuse race; it does not establish the cause or fix of the
-observed first-valid 4K VP9 GPU unmapped-read fault. That fault lacks a logged
+retention through completed flip. VP9 display policy is retained with each
+input's unique attached tag. Returned public picture metadata selects the
+matching pending input: hidden completions arrive much later than shown
+pictures and cannot be paired by coded-AU FIFO position. A shown completion
+must match the oldest pending shown input, preserving order and the original
+PTS even when equal or missing. Unknown identities fail closed. Metadata reads
+hold the surface lease and validate/cache-invalidate its bounded trailer;
+frame publication and GPU retirement keep their existing references.
+
+The ownership change addresses the confirmed pool reuse race; completion
+identity addresses the separately confirmed stale-picture association bug.
+Neither establishes the cause or fix of the observed first-valid 4K VP9 GPU
+unmapped-read fault. That fault lacks a logged
 source/pool/descriptor mapping in the failed case. Direct AGC descriptor
 alignment, pitch and visible crop remain unchanged pending concrete evidence.
 

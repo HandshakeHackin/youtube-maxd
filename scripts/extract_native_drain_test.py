@@ -6,7 +6,7 @@ import sys
 source = Path(sys.argv[1]).read_text()
 destination = Path(sys.argv[2])
 definitions = []
-for name in ("EVO_VDEC_REORDER_DEPTH", "FRAME_POOL_SLOTS", "RO_SLOTS", "NWD_DECODE_MS"):
+for name in ("EVO_VDEC_REORDER_DEPTH", "FRAME_POOL_SLOTS", "RO_SLOTS", "PIPELINE_BUFFER_COUNT", "PTS_POOL", "NWD_DECODE_MS"):
     matches = re.findall(r"^#define " + name + r"\s+([^\n]+)", source, re.M)
     if len(matches) != 1:
         raise RuntimeError(f"Expected one native constant: {name}")
