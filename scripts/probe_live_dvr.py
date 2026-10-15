@@ -75,6 +75,8 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
                             return stamp if key in zones else stamp.replace('+00:00', 'Z')
                         body += ''.join('#EXT-X-PROGRAM-DATE-TIME:' + pdt(i) +
                                         f'\n#EXTINF:2.000000,\n{track}{i}.ts\n' for i in range(start, start + 4))
+                    if key == 'discontinuity-sequence.m3u8':
+                        body = body.replace('#EXT-X-TARGETDURATION:2\n', '#EXT-X-TARGETDURATION:2\n#EXT-X-DISCONTINUITY-SEQUENCE:126\n', 1)
                     if key == 'empty-selected.m3u8': body = body.replace('source2.ts', 'empty2.ts')
                     if key == 'transport-reset.m3u8': body = body.replace('source', 'reset')
                     if key == 'missing-time.m3u8': body = '\n'.join(line for line in body.splitlines() if not line.startswith('#EXT-X-PROGRAM-DATE-TIME:')) + '\n'
@@ -129,7 +131,8 @@ def run(binary, *, ffmpeg='ffmpeg', diagnose=False, candidate=False, runtime=Fal
                     value = probe(key, target)
                     assert (key == 'empty-selected.m3u8' and not value['opened']) or (value['unseekable'] and value['seek_result'] < 0), value
                     additional[key] = value
-                for key in ('offset-utc.m3u8', 'offset-plus.m3u8', 'offset-minus.m3u8'):
+                for key in ('offset-utc.m3u8', 'offset-plus.m3u8', 'offset-minus.m3u8',
+                            'discontinuity-sequence.m3u8'):
                     value = probe(key, target)
                     assert not value['unseekable'] and value['seek_result'] >= 0 and abs(value['landed'] - origin) < .2, value
                     additional[key] = value

@@ -27,8 +27,8 @@ def patch(source):
                 c->dvr_disabled = c->dvr_anchored;
                 dvr_utc = AV_NOPTS_VALUE;
             } else dvr_utc = parsed;
-        } else if (av_strstart(line, "#EXT-X-DISCONTINUITY", &ptr) ||
-                   av_strstart(line, "#EXT-X-GAP", &ptr)) {
+        } else if (!strcmp(line, "#EXT-X-DISCONTINUITY") ||
+                   !strcmp(line, "#EXT-X-GAP")) {
             if (pls) pls->dvr_bad = 1;
             c->dvr_disabled = 1;
         } else if (av_strstart(line, "#EXTINF:", &ptr)) {'''),
