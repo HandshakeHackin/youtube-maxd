@@ -1,5 +1,16 @@
 # Current implementation status
 
+The owner replayed the installed `5a65588` production candidate and reports
+that the same 4K VP9 video still hitches. **Visual acceptance failed.** The
+regular retirement intervals measured on the diagnostic build do not establish
+regular visible content or explain this failure. The owner confirms smooth audio. An idle-only log read confirms the production
+build, Afterglow interface, native 3840x2160 VP9/24, 608 published frames over
+26.2 seconds, zero late drops and no decoder fatal. Earlier automated cadence
+cases forced Classic and restored the original settings, so their workload
+does not match this replay. A same-build Classic comparison is pending.
+Reopen decode-to-display investigation;
+do not release this candidate as a fix for the visible hitch.
+
 Production candidate `5a65588` is installed on .30 with all 185 files verified
 after 120 seconds; error records are unchanged and the console is idle.
 It is available as a ZIP only and has not received a physical playback check.

@@ -6,6 +6,17 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## Final offline release audit (2026-10-15)
 
+The owner replayed the installed `5a65588` production candidate and reports
+that the same 4K VP9 video still hitches. **Visual acceptance failed.** The
+regular retirement intervals measured on the diagnostic build do not establish
+regular visible content or explain this failure. The owner confirms smooth audio. An idle-only log read confirms the production
+build, Afterglow interface, native 3840x2160 VP9/24, 608 published frames over
+26.2 seconds, zero late drops and no decoder fatal. Earlier automated cadence
+cases forced Classic and restored the original settings, so their workload
+does not match this replay. A same-build Classic comparison is pending.
+Reopen decode-to-display investigation;
+do not release this candidate as a fix for the visible hitch.
+
 Background EOF return now resumes only its automatic pause; explicit controls
 cancel that state, including worker-side stop through an atomic flag. Generated
 regressions and sanitizer/thread checks pass. The release-wide host audit also
