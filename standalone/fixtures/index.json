@@ -36,6 +36,10 @@
    "file": "player_short.json"
   },
   {
+   "body_contains": "\"videoId\":\"fixtureMLT1\"",
+   "file": "player_multi.json"
+  },
+  {
    "body_contains": "\"videoId\":\"fxtRETRY001\"",
    "file": "player_retry_bad.json",
    "times": 2,
@@ -90,10 +94,22 @@
    "tag": "retry-start"
   }
  ],
- "GET www.youtube.com/api/timedtext": {
-  "file": "captions.vtt",
-  "type": "text/vtt"
- },
+ "GET www.youtube.com/api/timedtext": [
+  {
+   "url_contains": "tlang=fr",
+   "file": "captions_fr.vtt",
+   "type": "text/vtt"
+  },
+  {
+   "url_contains": "kind=asr",
+   "file": "captions_asr.vtt",
+   "type": "text/vtt"
+  },
+  {
+   "file": "captions.vtt",
+   "type": "text/vtt"
+  }
+ ],
  "GET suggestqueries-clients6.youtube.com/complete/search": {
   "url_contains": "q=canned",
   "file": "suggest.txt",

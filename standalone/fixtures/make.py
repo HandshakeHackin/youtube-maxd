@@ -6,6 +6,7 @@ and nothing copied from a live response. Run after changing a fixture here:
     python3 standalone/fixtures/make.py
 SPDX-License-Identifier: GPL-3.0-or-later
 """
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +17,7 @@ CHANNEL = "UC" + "f" * 22
 PLAYLIST = "PLfixture0001"
 VIDEO, LIVE, GONE, SHORT, DENIED, RETRY = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY", "fxtRETRY001"
 ZOO = "jNQXAC9IVRw"
+MULTI = "fixtureMLT1"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 
 
@@ -155,6 +157,52 @@ def player():
             "playerConfig": {"audioConfig": {"loudnessDb": -3.5}}}
 
 
+def xtags(**tags):
+    """YouTube's format tags (a protobuf of key/value pairs, base64url), as on dubbed and described audio."""
+    def field(number, payload):
+        return bytes([number << 3 | 2, len(payload)]) + payload
+    body = b"".join(field(1, field(1, key.encode()) + field(2, value.encode())) for key, value in tags.items())
+    return base64.b64encode(body).decode().replace("+", "-").replace("/", "_")
+
+
+def dubbed(itag, mime, average, rate, track, name, language, content, default=False):
+    return sound(itag, mime, average, rate, {"audioTrack": {"displayName": name, "id": track, "audioIsDefault": default},
+                                             "xtags": xtags(acont=content, lang=language)})
+
+
+def multi_player():
+    """A video with three audio tracks (the original, a dub, described audio), streams from 144p to
+    2160p in three codecs (18 in all: more than one resolve offers), automatic captions and translations."""
+    pictures = [picture(313, 'video/webm; codecs="vp9"', 3840, 2160, 30, 12000000, "2160p"),
+                picture(401, 'video/mp4; codecs="av01.0.12M.08"', 3840, 2160, 30, 10000000, "2160p"),
+                picture(271, 'video/webm; codecs="vp9"', 2560, 1440, 30, 6000000, "1440p"),
+                picture(400, 'video/mp4; codecs="av01.0.12M.08"', 2560, 1440, 30, 5000000, "1440p"),
+                picture(299, 'video/mp4; codecs="avc1.64002a"', 1920, 1080, 60, 4000000, "1080p60"),
+                picture(303, 'video/webm; codecs="vp9"', 1920, 1080, 60, 3000000, "1080p60"),
+                picture(399, 'video/mp4; codecs="av01.0.09M.08"', 1920, 1080, 60, 2000000, "1080p60")]
+    for itags, width, height, rate in (((136, 247, 398), 1280, 720, 1100000), ((135, 244, 397), 854, 480, 600000),
+                                       ((134, 243, 396), 640, 360, 400000)):
+        for itag, mime in zip(itags, ('video/mp4; codecs="avc1.4d401f"', 'video/webm; codecs="vp9"', 'video/mp4; codecs="av01.0.05M.08"')):
+            pictures.append(picture(itag, mime, width, height, 30, rate, f"{height}p"))
+    pictures += [picture(133, 'video/mp4; codecs="avc1.4d4015"', 426, 240, 30, 200000, "240p"),
+                 picture(160, 'video/mp4; codecs="avc1.4d400c"', 256, 144, 30, 100000, "144p")]
+    audio = [dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 129500, 44100, "en-US.4", "English (US) original", "en-US", "original", True),
+             dubbed(251, 'audio/webm; codecs="opus"', 135000, 48000, "en-US.4", "English (US) original", "en-US", "original", True),
+             dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 129000, 44100, "de.3", "German", "de", "dubbed"),
+             dubbed(251, 'audio/webm; codecs="opus"', 134000, 48000, "de.3", "German", "de", "dubbed"),
+             dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 128000, 44100, "en-US.2", "English (US) audio description", "en-US", "descriptive")]
+    captions = {"playerCaptionsTracklistRenderer": {
+        "captionTracks": [
+            {"baseUrl": f"https://www.youtube.com/api/timedtext?v={MULTI}&lang=en&kind=asr&signature=FIXTURE",
+             "name": {"simpleText": "English (auto-generated)"}, "vssId": "a.en", "languageCode": "en", "kind": "asr", "isTranslatable": True}],
+        "translationLanguages": [{"languageCode": "de", "languageName": {"simpleText": "German"}},
+                                 {"languageCode": "en", "languageName": {"simpleText": "English"}},
+                                 {"languageCode": "fr", "languageName": {"simpleText": "French"}}]}}
+    return {"playabilityStatus": {"status": "OK"}, "videoDetails": details(MULTI, "Fixture video in three languages"),
+            "streamingData": {"expiresInSeconds": "21540", "formats": [], "adaptiveFormats": pictures + audio},
+            "captions": captions}
+
+
 def short_player():
     """A portrait video of 23 seconds with a paid-promotion notice."""
     answer = {"playabilityStatus": {"status": "OK"}, "videoDetails": {**details(SHORT, "Fixture short"), "lengthSeconds": "23"},
@@ -192,6 +240,31 @@ https://manifest.googlevideo.com/api/manifest/hls_playlist/itag/270/playlist/ind
 #EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS="vp09.00.40.08,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=60,AUDIO="234",CLOSED-CAPTIONS=NONE
 https://manifest.googlevideo.com/api/manifest/hls_playlist/itag/614/playlist/index.m3u8
 """
+# YouTube's automatic tracks: each cue starts with the line that rolls up (one space in the first),
+# words carry their own timings, and a ten-millisecond cue repeats the finished line.
+VTT_ASR = """WEBVTT
+Kind: captions
+Language: de
+
+00:00:00.080 --> 00:00:02.550 align:start position:0%
+<SPACE>
+hallo<00:00:00.640><c> und</c><00:00:01.120><c> willkommen</c>
+
+00:00:02.550 --> 00:00:02.560 align:start position:0%
+hallo und willkommen
+<SPACE>
+
+00:00:02.560 --> 00:00:04.390 align:start position:0%
+hallo und willkommen
+zu<00:00:02.880><c> diesem</c><00:00:03.360><c> Video</c>
+""".replace("<SPACE>", " ")
+VTT_FR = """WEBVTT
+Kind: captions
+Language: fr
+
+00:00:01.200 --> 00:00:03.360
+Bonjour et bienvenue
+"""
 VTT = """WEBVTT
 Kind: captions
 Language: en
@@ -220,6 +293,7 @@ def main():
     write("player.json", player())
     write("player_live.json", live_player())
     write("player_short.json", short_player())
+    write("player_multi.json", multi_player())
     # The same video on a media host that refuses every read (links YouTube will not serve).
     denied = json.loads(json.dumps(player()).replace("rr1---sn-fixture", "rr2---sn-fixture").replace(VIDEO, DENIED))
     write("player_denied.json", denied)
@@ -236,6 +310,8 @@ def main():
     write("player_gone.json", {"playabilityStatus": {"status": "ERROR", "reason": "This video is unavailable"}})
     write("live.m3u8", MASTER)
     write("captions.vtt", VTT)
+    write("captions_asr.vtt", VTT_ASR)
+    write("captions_fr.vtt", VTT_FR)
     write("sheet.jpg", bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffd9"))
     # A segment index (ISO BMFF `sidx`, version 0): three fragments of 4, 6 and 5 seconds.
     references = [(1000, 4000), (2000, 6000), (1500, 5000)]
@@ -270,6 +346,7 @@ def main():
             {"body_contains": f'"videoId":"{VIDEO}"', "file": "player.json"},
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
             {"body_contains": f'"videoId":"{SHORT}"', "file": "player_short.json"},
+            {"body_contains": f'"videoId":"{MULTI}"', "file": "player_multi.json"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_bad.json", "times": 2, "tag": "retry-bad"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_good.json", "tag": "retry-good"},
             {"body_contains": f'"videoId":"{DENIED}"', "file": "player_denied.json"},
@@ -282,7 +359,10 @@ def main():
         "GET rr3---sn-fixture.googlevideo.com/videoplayback": [
             {"header_contains": "range: bytes=500000-565535", "status": 403, "tag": "retry-deep"},
             {"file": "sidx.bin", "status": 206, "type": "video/mp4", "tag": "retry-start"}],
-        "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
+        "GET www.youtube.com/api/timedtext": [
+            {"url_contains": "tlang=fr", "file": "captions_fr.vtt", "type": "text/vtt"},
+            {"url_contains": "kind=asr", "file": "captions_asr.vtt", "type": "text/vtt"},
+            {"file": "captions.vtt", "type": "text/vtt"}],
         "GET suggestqueries-clients6.youtube.com/complete/search": {"url_contains": "q=canned", "file": "suggest.txt", "type": "text/javascript"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},

@@ -65,7 +65,7 @@ typedef DIR import_dir;
 
 #define RECORDS 384
 #define REQUESTS 8
-#define CHOICES 8
+#define CHOICES 16 /* the built-in service lists up to 16 streams: every resolution, then the other codecs */
 #define SEGMENTS 128
 #define LOCAL_PAGE 24
 #define CHAT_HISTORY 256
@@ -157,7 +157,7 @@ static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
 static char g_secondary_caption_path[512], g_secondary_caption_language[33];
 #define CAPTION_TRACKS 256
-static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic, translated; } g_caption_tracks[CAPTION_TRACKS];
+static struct { char language[33], name[97], target[33], url[EVO_PROVIDER_MAX_URL]; int automatic, translated; } g_caption_tracks[CAPTION_TRACKS];
 static int g_caption_track_count;
 static unsigned g_caption_revision, g_caption_serial;
 static unsigned g_selection_serial;
@@ -499,7 +499,24 @@ static int g_pixel_mode;
 static struct { int phase, attempts, subtitles; double position;
     char source[512], token[128], profile[33], id[160];
     evo_stream_choice_t choice; ResolveQuality quality; } g_recovery;
-void tube_recovery_finish(void) { g_recovery.phase = 0; }
+/* The streams of the playing video as its last resolve listed them: the
+ * per-video quality and audio-track choices of the player (SmartTube's
+ * "Video quality" and "Audio language"). Nothing is remembered for the next
+ * video; a new video starts at Auto with YouTube's default audio track. */
+#define AUDIO_TRACKS 32
+static struct {
+    char id[16], profile[33];
+    evo_stream_choice_t choices[CHOICES]; int count;
+    int quality[CHOICES], qualities;        /* one row per resolution, frame rate and range: the best stream of each */
+    struct { char id[33], language[17], name[65]; int original, descriptive, dubbed; } audio[AUDIO_TRACKS];
+    int audio_count;
+    char audio_playing[33];                 /* the audio track the playing stream was built with */
+    char audio_wanted[33];                  /* the audio track asked for this video ("" = YouTube's default) */
+    int pinned;                             /* the quality row chosen in the player; -1 = Auto */
+    int switching;                          /* the next reopen takes the stream like `want` */
+    evo_stream_choice_t want;
+} g_streams = {.pinned = -1};
+void tube_recovery_finish(void) { g_recovery.phase = 0; g_streams.switching = 0; }
 static int recovery_scope(void) {
     return *g_recovery.id && !strcmp(g_recovery.id, g_active_id) &&
         !strcmp(g_recovery.profile, g_active_profile) && !strcmp(g_recovery.profile, g_library_profile) &&
@@ -3668,6 +3685,43 @@ static void stream_headers(char *out, size_t capacity, const char *value) {
     copy(out, capacity, value);
 }
 
+static int stream_id_valid(const char *id) {
+    const size_t length = strlen(id);
+    return length && length < 33 && strspn(id, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-") == length;
+}
+static int same_picture(const evo_stream_choice_t *a, const evo_stream_choice_t *b) {
+    return a->height == b->height && a->fps == b->fps && !strcmp(a->video_range, b->video_range);
+}
+static void streams_resolved(const Request *r, const cJSON *root) {
+    copy(g_streams.id, sizeof g_streams.id, r->parent); copy(g_streams.profile, sizeof g_streams.profile, r->profile);
+    memcpy(g_streams.choices, r->choices, sizeof g_streams.choices); g_streams.count = r->choice_count;
+    g_streams.qualities = 0;
+    for (int i = 0; i < g_streams.count; ++i) {
+        int seen = 0;
+        for (int j = 0; j < g_streams.qualities; ++j) seen |= same_picture(&g_streams.choices[g_streams.quality[j]], &g_streams.choices[i]);
+        if (!seen && g_streams.choices[i].height > 0) g_streams.quality[g_streams.qualities++] = i;
+    }
+    g_streams.audio_count = 0; g_streams.audio_playing[0] = 0;
+    const cJSON *c;
+    cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "audio_tracks")) {
+        const char *id = str(c, "id"), *language = str(c, "language"), *name = str(c, "name");
+        if (g_streams.audio_count >= AUDIO_TRACKS || !stream_id_valid(id) || strlen(language) >= 17) continue;
+        int duplicate = 0;
+        for (int i = 0; i < g_streams.audio_count; ++i) duplicate |= !strcmp(g_streams.audio[i].id, id);
+        if (duplicate) continue;
+        int i = g_streams.audio_count++;
+        copy(g_streams.audio[i].id, sizeof g_streams.audio[i].id, id);
+        copy(g_streams.audio[i].language, sizeof g_streams.audio[i].language, language);
+        copy(g_streams.audio[i].name, sizeof g_streams.audio[i].name, *name ? name : *language ? language : id);
+        g_streams.audio[i].original = boolean(c, "original");
+        g_streams.audio[i].descriptive = boolean(c, "descriptive");
+        g_streams.audio[i].dubbed = boolean(c, "dubbed");
+    }
+    const char *playing = str(root, "audio_track");
+    if (g_streams.audio_count > 1 && stream_id_valid(playing)) copy(g_streams.audio_playing, sizeof g_streams.audio_playing, playing);
+    else g_streams.audio_count = 0;
+}
+
 static void resolved(Request *r, const cJSON *root) {
     if (strcmp(str(root, "id"), r->parent)) {
         tube_set_error("The playback response belongs to another video."); complete(r, 0); return;
@@ -3695,6 +3749,7 @@ static void resolved(Request *r, const cJSON *root) {
         if (g_embedded) stream_headers(out->headers, sizeof out->headers, str(c, "headers"));
     }
     if (!r->choice_count) { tube_set_error(g_embedded ? "No supported playback choices were returned." : "The companion returned no supported playback choices."); complete(r, 0); return; }
+    streams_resolved(r, root);
     if (!tube_recovery_active()) {
         copy(g_paid_text, sizeof g_paid_text, str(root, "paid_content_text")); g_paid_shown = 0;
     }
@@ -3749,6 +3804,10 @@ static void resolved(Request *r, const cJSON *root) {
         copy(g_caption_tracks[i].url, sizeof g_caption_tracks[i].url, url);
         g_caption_tracks[i].automatic = boolean(c, "automatic");
         g_caption_tracks[i].translated = boolean(c, "translated");
+        const char *target = str(c, "target"); /* the language a machine translation is in */
+        copy(g_caption_tracks[i].target, sizeof g_caption_tracks[i].target,
+             g_caption_tracks[i].translated && strlen(target) < 33 &&
+             strspn(target, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(target) ? target : "");
     }
     if (retain_captions && caption_cached(primary_path, primary_language)) {
         copy(g_caption_path, sizeof g_caption_path, primary_path);
@@ -3789,7 +3848,10 @@ static void resolved(Request *r, const cJSON *root) {
     }
     if (captions_wanted(cached ? cached->item.parent_id : "") && !*g_caption_path) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
-            if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url"))) continue;
+            /* Every resolve lists the automatic tracks and the machine translations;
+             * only "Automatic captions: allowed" lets an automatic one start by itself. */
+            if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url")) ||
+                (boolean(c, "automatic") && !g_auto_captions)) continue;
             r->stage = 3;
             copy(r->caption_language, sizeof r->caption_language, str(c, "language"));
             int rc = evo_net_request_async("GET", str(c, "url"), NULL, NULL, 0, caption_response, r);
@@ -7267,9 +7329,13 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
         r->music_origin = g_launch_origin.music;
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     r->quality = recovering ? g_recovery.quality : (ResolveQuality){g_height,g_max_fps,g_codec};
+    if (!recovering) { g_streams.pinned = -1; g_streams.switching = 0; g_streams.audio_wanted[0] = 0; }
+    char audio_track[64] = "";
+    if (recovering && *g_streams.audio_wanted && !strcmp(g_streams.id, id))
+        snprintf(audio_track, sizeof audio_track, ",\"audio_track\":\"%s\"", g_streams.audio_wanted);
     snprintf(r->payload, sizeof r->payload,
-        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"max_fps\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\",\"automatic_captions\":%s,\"fresh\":%s}}",
-        id, g_library_profile, r->quality.height, r->quality.max_fps, r->quality.codec == 1 ? "avc" : r->quality.codec == 2 ? "vp9" : r->quality.codec == 3 ? "av1" : r->quality.codec == 4 ? "hevc" : "auto", g_language, g_audio_language, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
+        "{\"action\":\"resolve\",\"playback\":{\"id\":\"%s\",\"profile\":\"%s\",\"max_height\":%d,\"max_fps\":%d,\"codec\":\"%s\",\"caption_language\":\"%s\",\"audio_language\":\"%s\"%s,\"automatic_captions\":%s,\"fresh\":%s}}",
+        id, g_library_profile, r->quality.height, r->quality.max_fps, r->quality.codec == 1 ? "avc" : r->quality.codec == 2 ? "vp9" : r->quality.codec == 3 ? "av1" : r->quality.codec == 4 ? "hevc" : "auto", g_language, g_audio_language, audio_track, g_auto_captions ? "true" : "false", recovering ? "true" : "false");
     begin(r); return 0;
 }
 
@@ -7501,6 +7567,20 @@ const char *tube_caption_track_language(int i) { return i >= 0 && i < tube_capti
 const char *tube_caption_track_name(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].name : ""; }
 int tube_caption_track_automatic(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].automatic; }
 int tube_caption_track_translated(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].translated; }
+const char *tube_caption_track_target(int i) { return tube_caption_track_translated(i) ? g_caption_tracks[i].target : ""; }
+int tube_caption_track_translation_for(const char *tag) {
+    if (!tag || !*tag) return -1;
+    const size_t base = strcspn(tag, "-_");
+    int loose = -1;
+    for (int i = 0; i < tube_caption_track_count(); ++i) {
+        const char *target = tube_caption_track_target(i);
+        if (!*target) continue;
+        if (!strcasecmp(target, tag)) return i;
+        /* "pt-BR" takes "pt", "de" takes "de-DE": the same language first named. */
+        if (loose < 0 && strcspn(target, "-_") == base && !strncasecmp(target, tag, base)) loose = i;
+    }
+    return loose;
+}
 unsigned tube_caption_revision(void) { return g_caption_revision; }
 unsigned tube_caption_selection(void) { return caption_scope() ? g_selection_serial : 0; }
 void tube_caption_switch_cancel(void) {
@@ -8202,6 +8282,19 @@ int tube_take_recovery(evo_provider_item_t *item, double *position, int *subtitl
 
 int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
     if (!tube_recovery_active() || !choices || count < 1 || count > CHOICES) return -1;
+    if (g_streams.switching) {
+        const evo_stream_choice_t *want = &g_streams.want;
+        int found = -1;
+        g_streams.switching = 0;
+        for (int i = 0; i < count; ++i) {
+            const evo_stream_choice_t *c = &choices[i];
+            if (!companion_url(c->url) || !isfinite(c->fps) || !same_picture(c, want) || c->width != want->width ||
+                !!c->is_live != !!want->is_live || strcmp(c->container, want->container) || strcmp(c->video_codec, want->video_codec)) continue;
+            /* The same picture; its sound may come in another codec for another audio track. */
+            if (found < 0 || (!strcmp(c->audio_codec, want->audio_codec) && strcmp(choices[found].audio_codec, want->audio_codec))) found = i;
+        }
+        return found;
+    }
     const evo_stream_choice_t *old = &g_recovery.choice;
     int found = -1;
     for (int i = 0; i < count; ++i) {
@@ -8532,6 +8625,69 @@ static int player_reopen(double position, int live, int subtitles, ResolveQualit
     g_recovery.quality = quality; g_recovery.phase = 1;
     copy(g_player_fix.id, sizeof g_player_fix.id, g_recovery.id);
     g_player_fix.attempts = g_recovery.attempts; g_player_fix.relaxed = 1;
+    return 1;
+}
+/* ---- Per-video quality and audio track (see g_streams). ---- */
+static int streams_scope(void) {
+    return recovery_scope() && !strcmp(g_streams.id, g_active_id) && !strcmp(g_streams.profile, g_active_profile);
+}
+int tube_player_quality_count(void) { return streams_scope() && g_streams.qualities > 1 ? g_streams.qualities : 0; }
+int tube_player_quality_label(int index, char *out, size_t size) {
+    if (!out || !size) return 0;
+    out[0] = 0;
+    if (index < 0 || index >= tube_player_quality_count()) return 0;
+    const evo_stream_choice_t *c = &g_streams.choices[g_streams.quality[index]];
+    /* As YouTube names them: the frame rate only above 30 ("1080p60"). */
+    const int fps = (int)(c->fps + 0.5);
+    char rate[12] = "";
+    if (fps > 30 && fps <= 240) snprintf(rate, sizeof rate, "%d", fps);
+    snprintf(out, size, "%dp%s%s", c->height, rate, strcmp(c->video_range, "SDR") ? " HDR" : "");
+    return 1;
+}
+const char *tube_player_quality_detail(int index) {
+    return index >= 0 && index < tube_player_quality_count() ? g_streams.choices[g_streams.quality[index]].label : "";
+}
+int tube_player_quality_playing(void) {
+    for (int i = 0; i < tube_player_quality_count(); ++i)
+        if (same_picture(&g_streams.choices[g_streams.quality[i]], &g_recovery.choice)) return i;
+    return -1;
+}
+int tube_player_quality_pinned(void) { return tube_player_quality_count() ? g_streams.pinned : -1; }
+static int streams_reopen(const evo_stream_choice_t *want, double position, int live, int subtitles) {
+    if (g_recovery.phase || !streams_scope() || !isfinite(position) || position < 0 || position > 1000000 ||
+        !!live != !!g_recovery.choice.is_live || !companion_url(g_recovery.choice.url)) return 0;
+    g_streams.want = *want; g_streams.switching = 1;
+    g_player_fix.relaxed = 0;      /* the stream asked for, not the first one listed */
+    g_recovery.position = live ? 0 : position; g_recovery.subtitles = !!subtitles; g_recovery.phase = 1;
+    return 1;
+}
+int tube_player_quality_select(int index, double position, int live, int subtitles) {
+    if (index < -1 || index >= tube_player_quality_count() || !tube_player_quality_count()) return 0;
+    const int target = index < 0 ? 0 : index;
+    if (tube_player_quality_playing() == target) { g_streams.pinned = index; return 2; }
+    if (!streams_reopen(&g_streams.choices[g_streams.quality[target]], position, live, subtitles)) return 0;
+    g_streams.pinned = index;
+    return 1;
+}
+int tube_player_audio_count(void) { return streams_scope() ? g_streams.audio_count : 0; }
+const char *tube_player_audio_name(int index) { return index >= 0 && index < tube_player_audio_count() ? g_streams.audio[index].name : ""; }
+const char *tube_player_audio_language(int index) { return index >= 0 && index < tube_player_audio_count() ? g_streams.audio[index].language : ""; }
+int tube_player_audio_kind(int index) {
+    if (index < 0 || index >= tube_player_audio_count()) return 0;
+    return (g_streams.audio[index].original ? TUBE_AUDIO_ORIGINAL : 0) | (g_streams.audio[index].descriptive ? TUBE_AUDIO_DESCRIPTIVE : 0) |
+        (g_streams.audio[index].dubbed ? TUBE_AUDIO_DUBBED : 0);
+}
+int tube_player_audio_playing(void) {
+    for (int i = 0; i < tube_player_audio_count(); ++i) if (!strcmp(g_streams.audio[i].id, g_streams.audio_playing)) return i;
+    return -1;
+}
+int tube_player_audio_select(int index, double position, int live, int subtitles) {
+    if (index < 0 || index >= tube_player_audio_count()) return 0;
+    if (index == tube_player_audio_playing()) return 2;
+    char previous[33]; copy(previous, sizeof previous, g_streams.audio_wanted);
+    copy(g_streams.audio_wanted, sizeof g_streams.audio_wanted, g_streams.audio[index].id);
+    /* The picture stays as it is; only the sound changes. */
+    if (!streams_reopen(&g_recovery.choice, position, live, subtitles)) { copy(g_streams.audio_wanted, sizeof g_streams.audio_wanted, previous); return 0; }
     return 1;
 }
 int tube_player_reload(double position, int live, int subtitles) {

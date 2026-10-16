@@ -72,6 +72,8 @@ export function redact(address) {
   } catch { return '[unreadable address]'; }
 }
 
+// Streams one resolve offers: the player's quality choice and its fallbacks.
+export const CHOICE_LIMIT = 16;
 // Sessions.create: eligible video rows, best first.
 const RANK = { h264: 3, vp9: 2, hevc: 1, av1: 0 };
 const WANTED = { avc: 'h264', vp9: 'vp9', av1: 'av1', hevc: 'hevc' };
@@ -83,14 +85,39 @@ export function selectVideo(list, request = {}) {
     .sort((a, b) => number(b.height) - number(a.height) || RANK[formatCodec(b)] - RANK[formatCodec(a)] ||
       number(b.fps) - number(a.fps) || Number(isHdr(b)) - Number(isHdr(a)) || rate(b) - rate(a));
 }
-// Audio-only rows, best first: requested language, then the original mix
-// without dynamic-range compression, then AAC, then bitrate.
+// Audio-only rows, best first: the audio track chosen for this video, the
+// requested language, then the track in the content language (`hl`) and the
+// one YouTube marks as default, as YouTube itself picks a dub for a viewer,
+// then the original mix without dynamic-range compression, then AAC, then bitrate.
+const primary = tag => String(tag ?? '').split(/[-_]/)[0].toLowerCase();
 export function selectAudio(list, request = {}) {
-  const score = format => [request.audio_language && format.language === request.audio_language ? 1 : 0,
+  const score = format => [request.audio_track && format.audio_track?.id === request.audio_track ? 1 : 0,
+    request.audio_language && format.language === request.audio_language ? 1 : 0,
+    request.hl && format.language && !format.is_descriptive && primary(format.language) === primary(request.hl) ? 1 : 0,
+    format.audio_track?.audio_is_default ? 1 : 0,
     format.is_original !== false && !format.is_drc ? 1 : 0, formatCodec(format) === 'aac' ? 1 : 0, rate(format)];
   return list.filter(format => format.has_audio && !format.has_video && linkKind(format) !== 'none' &&
       ['aac', 'opus'].includes(formatCodec(format)) && !format.drm_families)
     .sort((a, b) => { const x = score(a), y = score(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return 0; });
+}
+// The audio tracks of a video that has several (dubs, the original, described
+// audio): one entry per YouTube audio track, the original first, then by
+// name; none for a video with one track.
+const TRACK_ID = /^[A-Za-z0-9._-]{1,32}$/;
+export function audioTracks(list) {
+  const tracks = new Map();
+  for (const format of selectAudio(list).sort((a, b) => list.indexOf(a) - list.indexOf(b))) {
+    const id = String(format.audio_track?.id ?? '');
+    if (!TRACK_ID.test(id)) continue;
+    const known = tracks.get(id);
+    if (known) { known.original ||= format.is_original === true; known.default ||= !!format.audio_track?.audio_is_default; continue; }
+    const language = LANGUAGE.test(format.language ?? '') ? format.language : '';
+    tracks.set(id, { id, language, name: text(String(format.audio_track?.display_name ?? '').trim() || language || id, 64),
+      original: format.is_original === true, default: !!format.audio_track?.audio_is_default,
+      descriptive: !!format.is_descriptive, dubbed: !!(format.is_dubbed || format.is_auto_dubbed) });
+  }
+  return tracks.size > 1 ? Array.from(tracks.values())
+    .sort((a, b) => Number(b.original) - Number(a.original) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).slice(0, 32) : [];
 }
 
 // ElementTree's escaping, so the text equals the Python generator's.
@@ -127,15 +154,21 @@ export function vttToSrt(source) {
     return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : whole;
   }).trim();
   const fix = value => (value.split(':').length === 2 ? `00:${value}` : value).replace('.', ',');
+  const seconds = value => value.split(':').reduce((total, part) => total * 60 + Number(part), 0);
   const lines = source.replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
   const cues = [];
   for (let i = 0; i < lines.length;) {
     const match = timing.exec(lines[i++].trim());
     if (!match) continue;
+    // A cue ends at an empty line. YouTube's automatic (speech recognition)
+    // tracks start most cues with a line holding one space, the line that
+    // rolls up, so a blank-looking line does not end the cue.
     const body = [];
-    while (i < lines.length && lines[i].trim()) body.push(plain(lines[i++]));
-    if (!body.some(Boolean)) continue;
-    cues.push(`${cues.length + 1}\n${fix(match[1])} --> ${fix(match[2])}\n${body.join('\n')}`);
+    while (i < lines.length && lines[i] !== '' && !timing.test(lines[i].trim())) body.push(plain(lines[i++]));
+    const shown = body.filter(Boolean);
+    // Those tracks also repeat the finished line in a cue of ten milliseconds between two others.
+    if (!shown.length || seconds(match[2]) - seconds(match[1]) < 0.05) continue;
+    cues.push(`${cues.length + 1}\n${fix(match[1])} --> ${fix(match[2])}\n${shown.join('\n')}`);
     if (cues.length > 50000) throw new ServiceError('captions_limit', 'The caption file contains too many cues.');
   }
   return cues.join('\n\n') + (cues.length ? '\n' : '');
@@ -166,6 +199,53 @@ export function captionMaps(info, translated) {
     }
   }
   return { subtitles, automatic };
+}
+
+// The caption list of a resolve, as SmartTube offers it whatever the
+// preferences: human tracks, YouTube's automatic (speech recognition,
+// `kind=asr`) tracks, and machine translations (`tlang=`, "Auto-translate") of
+// one source track into every language YouTube offers. The source is the
+// human track in the spoken language, else the first translatable one, else
+// the automatic track. `translated_captions` ("Unlock more subtitles") adds
+// translations of the other human tracks.
+// Keys: a human track is its language; an automatic track too, unless a
+// human track has that language (then `<language>-asr`); a translation is
+// `<target>-<source language>`. Order: human, automatic, translations, each
+// with the wanted language first; translations then by language name.
+const LANGUAGE = /^[A-Za-z0-9_-]{1,24}$/;
+export function captionList(info, request = {}) {
+  const tracks = (info.captions?.caption_tracks ?? []).filter(track => track.base_url && LANGUAGE.test(track.language_code ?? ''));
+  const languages = (info.captions?.translation_languages ?? []).filter(language => LANGUAGE.test(language?.language_code ?? ''));
+  const nameOf = value => String(value?.toString?.() ?? '').trim();
+  const address = (track, target) => {
+    const url = new URL(track.base_url, 'https://www.youtube.com');
+    url.searchParams.set('fmt', 'vtt');
+    if (target) url.searchParams.set('tlang', target);
+    return url.href;
+  };
+  const wanted = request.caption_language ?? '';
+  const wantedFirst = (list, code) => list.map((item, index) => [item, index])
+    .sort(([a, x], [b, y]) => Number(code(b) === wanted) - Number(code(a) === wanted) || x - y).map(([item]) => item);
+  const out = new Map();
+  const add = (key, entry) => { if (key.length <= 32 && !out.has(key)) out.set(key, entry); };
+  const human = tracks.filter(track => track.kind !== 'asr'), spoken = tracks.filter(track => track.kind === 'asr');
+  for (const track of wantedFirst(human, track => track.language_code))
+    add(track.language_code, { name: nameOf(track.name) || track.language_code, url: address(track), automatic: false, translated: false });
+  for (const track of wantedFirst(spoken, track => track.language_code))
+    add(out.has(track.language_code) ? `${track.language_code}-asr` : track.language_code,
+      { name: nameOf(track.name) || `${track.language_code} (auto-generated)`, url: address(track), automatic: true, translated: false });
+  const translatable = tracks.filter(track => track.is_translatable);
+  const source = translatable.find(track => track.kind !== 'asr' && track.language_code === spoken[0]?.language_code) ??
+    translatable.find(track => track.kind !== 'asr') ?? translatable[0];
+  const targets = wantedFirst(languages.map(language => ({ code: language.language_code, name: nameOf(language.language_name) || language.language_code }))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)), language => language.code);
+  const translate = track => {
+    for (const { code, name } of targets)
+      if (code !== track.language_code) add(`${code}-${track.language_code}`, { name, url: address(track, code), automatic: true, translated: true, target: code });
+  };
+  if (source) translate(source);
+  if (request.translated_captions) for (const track of translatable) if (track !== source && track.kind !== 'asr') translate(track);
+  return out;
 }
 
 // yt-dlp's chapters from a description: lines that begin with a timestamp.
@@ -346,13 +426,15 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
       .sort((a, b) => b.height - a.height || RANK[b.video_codec] - RANK[a.video_codec] || b.fps - a.fps || Number(isHdr(b)) - Number(isHdr(a)) || b.bitrate - a.bitrate);
     for (const variant of variants) {
       const key = `${variant.height}/${variant.video_codec}/${videoRange(variant)}`;
-      if (seen.has(key) || choices.length >= 8 || !variant.audio_codec) continue;
+      if (seen.has(key) || choices.length >= CHOICE_LIMIT || !variant.audio_codec) continue;
       seen.add(key);
       const name = `h${choices.length}.m3u8`;
       session.hls_manifests.set(name, variant.master);
       push({ url: `${prefix}/${name}`, container: 'hls' }, variant, variant.video_codec, variant.audio_codec, variant.fps);
     }
   }
+  // The audio tracks a DASH choice can be built with, and the one it was.
+  let audioChoices = [], playingTrack = '';
   if (!live && !choices.length) {
     // Since 2026-10-14 YouTube answers 403 to an open-ended or whole-file range
     // (`rqh=1` in the address; bounded ranges of a few megabytes are served), so
@@ -362,9 +444,20 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     const indexed = list.filter(format => format.init_range && format.index_range);
     const usable = ranged && selectVideo(indexed, request).some(format => !format.has_audio) && selectAudio(indexed, request).length ? indexed : list;
     const audios = selectAudio(usable, request);
+    audioChoices = audioTracks(usable);
+    // Every resolution keeps a stream (the player's quality choice lists them),
+    // the other codecs fill the remaining places; the order stays best first.
+    const candidates = [], keys = new Set();
     for (const video of selectVideo(usable, request)) {
+      const key = `${video.height}/${formatCodec(video)}/${video.has_audio}/${videoRange(video)}`;
+      if (keys.has(key) || (!video.has_audio && !(audios.length && duration))) continue;
+      keys.add(key); candidates.push(video);
+    }
+    const kept = new Set(), heights = new Set();
+    for (const video of candidates) if (!heights.has(number(video.height)) && kept.size < CHOICE_LIMIT) { heights.add(number(video.height)); kept.add(video); }
+    for (const video of candidates) if (kept.size < CHOICE_LIMIT) kept.add(video);
+    for (const video of candidates.filter(video => kept.has(video))) {
       const vcodec = formatCodec(video), key = `${video.height}/${vcodec}/${video.has_audio}/${videoRange(video)}`;
-      if (seen.has(key) || choices.length >= 8) continue;
       const fps = Math.max(0, number(video.fps));
       if (video.has_audio) {
         // A muxed file is not relayed: its address answers with a redirect.
@@ -383,26 +476,19 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
           return tracks.some(track => track.index) ? rangedManifest(duration, tracks) : classic;
         })());
         seen.add(key);
+        if (audioChoices.some(track => track.id === audio.audio_track?.id)) playingTrack = audio.audio_track.id;
         push({ url: `${prefix}/${name}`, container: 'dash' }, video, vcodec, formatCodec(audio), fps);
       }
     }
   }
   if (!choices.length) throw new ServiceError('unsupported_media', 'No compatible AVC/VP9/HEVC/AV1 stream was returned. This video may require a different runtime, token, transport, or quality setting.', 422);
 
-  const { subtitles, automatic } = captionMaps(info, request.translated_captions);
-  const human = new Set(subtitles.keys()), wanted = request.caption_language;
-  const order = (a, b) => { const x = [a !== wanted, !(wanted && a.startsWith(`${wanted}-`)), a], y = [b !== wanted, !(wanted && b.startsWith(`${wanted}-`)), b];
-    return x[0] - y[0] || x[1] - y[1] || (x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0); };
-  if (request.automatic_captions) { for (const [language, track] of automatic) if (!subtitles.has(language)) subtitles.set(language, track); }
-  else if (request.translated_captions)
-    for (const language of Array.from(automatic.keys()).filter(name => !subtitles.has(name) && automatic.get(name).translated).sort(order).slice(0, 128))
-      subtitles.set(language, automatic.get(language));
   const captions = [];
-  for (const language of Array.from(subtitles.keys()).sort(order).slice(0, 256)) {
-    const track = subtitles.get(language), name = `c${captions.length}.srt`;
+  for (const [language, track] of Array.from(captionList(info, request)).slice(0, 256)) {
+    const name = `c${captions.length}.srt`;
     try { session.tracks.set(name, { kind: 'caption', url: safeRemote(track.url) }); } catch { continue; }
     captions.push({ language: text(language, 32), name: text(track.name || language, 64), url: `${prefix}/${name}`,
-      automatic: !human.has(language), translated: track.translated });
+      automatic: track.automatic, translated: track.translated, ...(track.translated ? { target: text(track.target, 32) } : {}) });
   }
 
   // Seek-preview sheets: `$M` in the returned template is the sheet number.
@@ -432,7 +518,8 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     published: text(info.primary_info?.published, 64),
     duration_sec: duration, expires_in: ttl, choices, captions, chapters,
     paid_content_text: disclosure(source.facts?.paid), loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
-    is_short: isShort(info, list, source.facts), storyboards };
+    is_short: isShort(info, list, source.facts), storyboards,
+    audio_tracks: playingTrack ? audioChoices : [], audio_track: playingTrack };
 }
 
 // One ranged read straight from the media server; reports facts, keeps no data.

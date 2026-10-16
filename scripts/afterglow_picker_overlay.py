@@ -180,7 +180,8 @@ def apply(root, work, replace, player):
     }
     if (pressed & PadButtons::Up) {""")
     replace(subtitles, '        if (m_tracks[idx].trackId == kAutoSyncTrack) {', """        if (tube_afterglow_picker_active())
-            params.tracks[i].tag = m_tracks[idx].trackId <= -1000 && tube_caption_track_translated(-1000-m_tracks[idx].trackId) ? "TRANSLATED" : "";
+            params.tracks[i].tag = m_tracks[idx].trackId > -1000 ? "" : tube_caption_track_translated(-1000-m_tracks[idx].trackId) ? "TRANSLATED"
+                                 : tube_caption_track_automatic(-1000-m_tracks[idx].trackId) ? "AUTO" : "";
         if (m_tracks[idx].trackId == kAutoSyncTrack) {""")
     replace(subtitles, "    evo_rmlui_update_subtitles(&params);", """#if defined(EVO_AGC_DEVICE)
     tube_afterglow_caption_tab(m_afterglowTab,m_scrollOffset,total);

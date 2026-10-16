@@ -506,6 +506,9 @@ static void run_command(const char *line)
     apply_i18n_overlay(replace, player, WORK, ROOT)
     # The Afterglow interface: sources, fonts and its three hooks in EVO (scripts/afterglow_overlay.py).
     afterglow_overlay.apply(ROOT, WORK, replace, player)
+    # The quality and audio track of the playing video in both interfaces' playback options.
+    from stream_choice_overlay import apply as apply_stream_choice
+    apply_stream_choice(replace, player)
     replace("tools/native-app/stubs/prx/libSceVideodec2.syms",
             "sceVideodec2Flush\n", "sceVideodec2Flush\nsceVideodec2GetPictureInfo\n")
     replace("tools/native-app/stubs/videodec2_link_stub.c", "#include <stdint.h>",

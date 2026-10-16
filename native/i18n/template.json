@@ -134,6 +134,18 @@
    ]
   },
   {
+   "source": "AUDIO TRACK",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "AUTO",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "About DeArrow",
    "context": [
     "browser"
@@ -698,6 +710,12 @@
    "source": "Auto volume",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Auto-translate",
+   "context": [
+    "kit"
    ]
   },
   {
@@ -6518,6 +6536,12 @@
    ]
   },
   {
+   "source": "ProsperoTube picks the best quality available",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "ProsperoTube update",
    "context": [
     "afterglow"
@@ -6564,6 +6588,7 @@
   {
    "source": "QUALITY",
    "context": [
+    "kit",
     "toast"
    ]
   },
@@ -7612,6 +7637,12 @@
   },
   {
    "source": "STREAM STOPPED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "SWITCH FAILED",
    "context": [
     "toast"
    ]
@@ -9235,7 +9266,8 @@
   {
    "source": "Suggestions are not available",
    "context": [
-    "afterglow"
+    "afterglow",
+    "toast"
    ]
   },
   {
@@ -10854,6 +10886,12 @@
    ]
   },
   {
+   "source": "UP NEXT",
+   "context": [
+    "document"
+   ]
+  },
+  {
    "source": "UPDATE",
    "context": [
     "toast"
@@ -11047,7 +11085,8 @@
   {
    "source": "Up next",
    "context": [
-    "afterglow"
+    "afterglow",
+    "kit"
    ]
   },
   {
@@ -12243,6 +12282,12 @@
    ]
   },
   {
+   "source": "fewer languages",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "in your account's order",
    "context": [
     "afterglow"
@@ -12335,6 +12380,12 @@
    "source": "on this PS5 and on YouTube",
    "context": [
     "afterglow"
+   ]
+  },
+  {
+   "source": "other languages",
+   "context": [
+    "kit"
    ]
   },
   {

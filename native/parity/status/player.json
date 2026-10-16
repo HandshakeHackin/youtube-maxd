@@ -984,7 +984,7 @@
    "gaps": [],
    "offline_feasible": true,
    "size": "S",
-   "notes": "Triangle also cycles basic sizing modes."
+   "notes": "Sizing is in the playback options; Triangle opens the suggested videos (Up next) in both interfaces."
   },
   {
    "id": "extra.Button.Rotate",

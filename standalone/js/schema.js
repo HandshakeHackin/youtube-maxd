@@ -159,6 +159,7 @@ const RESOLVE = {
   profile: text('guest', undefined, PROFILE), max_height: integer(1080, 144, 2160), max_fps: integer(0, 0, 60),
   codec: choice('auto', ['auto', 'avc', 'vp9', 'av1', 'hevc']),
   caption_language: text('en', 16, /^[A-Za-z0-9_-]*$/), audio_language: text('', 16, /^[A-Za-z0-9_-]*$/),
+  audio_track: text('', 32, /^[A-Za-z0-9._-]*$/),
   automatic_captions: flag(false), translated_captions: flag(false), fresh: flag(false), hl: text('', 8)
 };
 export function resolveRequest(input) {
