@@ -408,32 +408,20 @@ bash scripts/test_afterglow.sh  # Afterglow's boards in the four looks
 
 ## GitHub Actions and releases
 
-The [Build workflow](.github/workflows/build.yml) runs for version tags
-(`v` + the content version, such as `v01.000.000`), pull requests and runs
-started by hand; a push to `main` builds nothing. It:
+The [Build workflow](.github/workflows/build.yml) runs for version tags and
+when started by hand; pushes and pull requests build nothing. It:
 
-1. restores the PS5 shader compiler from the Actions cache or the
-   `build-cache` snapshot, or compiles it (about three hours, only when its
-   pins change) and caches it at once;
-2. builds the app with `make zip`, through ccache, with the SDK, dav1d,
-   FFmpeg, Node and the pinned downloads cached, and runs `make test` beside it;
+1. checks out the source with its submodules;
+2. installs the Linux toolchain and Node;
 3. checks that a tag is `v` + the content version and that release notes exist;
-4. checks the ZIP (one `PPSA99142` folder, every entry stored 0777, `eboot.bin`,
-   the `sce_sys` files, the helpers, the version), runs `make verify` and
-   writes `SHA256SUMS`;
-5. attests the ZIP (public repository, not for pull requests) and uploads
-   `PPSA99142.zip` and `SHA256SUMS` as the run's artifact; and
-6. for a tag, publishes a pre-release with exactly those two files.
-
-A pull request's build is named `ProsperoTube-PR<number>-<commit>` and carries
-`build-label.txt` in its app folder. A run started by hand on `main` with
-**snapshot** ticked refreshes the cache snapshots, which
-[build-cache.yml](.github/workflows/build-cache.yml) publishes in the
-`build-cache` pre-release. Check a downloaded release with
-`gh attestation verify PPSA99142.zip -R blackbearreloaded/ProsperoTube`.
+4. restores or builds the PS5 SDK, dav1d, FFmpeg and the shader compiler
+   (the first run takes hours; later runs use the Actions cache);
+5. runs `make test` and `make zip`;
+6. checks the ZIP (one app folder, `eboot.bin`, every entry stored 0777, the
+   version) and writes `SHA256SUMS`; and
+7. for a tag, publishes a pre-release with `PPSA99142.zip` and `SHA256SUMS`.
 
 The workflow needs no secret and never replaces a ZIP a release already has.
-[Build](docs/BUILD.md#github-actions) has the details.
 
 ## Update an installed copy
 
