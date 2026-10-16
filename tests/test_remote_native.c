@@ -9,7 +9,7 @@
 #include <string.h>
 
 static unsigned diagnostics;
-void evo_bt(const char *format, ...) {
+void evo_boot_log(const char *format, ...) {
     char line[256], reason[40], tail; int kind, status;
     va_list args; va_start(args,format);
     int n=vsnprintf(line,sizeof line,format,args); va_end(args);

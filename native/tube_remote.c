@@ -9,12 +9,12 @@
 #include <string.h>
 
 enum { START = 1, PAIR, POLL, UPDATE, STOP };
-void evo_bt(const char *format, ...) __attribute__((weak));
+void evo_boot_log(const char *format, ...) __attribute__((weak));
 static unsigned diagnostic_count;
 static void diagnostic(const char *reason, int kind, int status) {
-    if (evo_bt && diagnostic_count < 16) {
+    if (evo_boot_log && diagnostic_count < 16) {
         ++diagnostic_count;
-        evo_bt("ProsperoTube phone receiver: reason=%s kind=%d status=%d", reason, kind, status);
+        evo_boot_log("ProsperoTube phone receiver: reason=%s kind=%d status=%d", reason, kind, status);
     }
 }
 typedef struct { int used, kind, update, ack; unsigned generation;
