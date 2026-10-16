@@ -9,7 +9,8 @@ resolution failing. That failure invalidates the receiver and clears linked
 phones. A real-provider regression reproduces the pairing-page refresh
 canceling that resolve; the exact status read now preserves pending requests
 and launch context. Explicit pairing actions retain cancellation. The real Afterglow/provider regression and native phone tests pass under
-ASan/UBSan; hardware replay of this fix is pending. See [handoff](HANDOFF.md).
+ASan/UBSan; `00f4345` is installed with all 185 stored files verified; hardware replay
+of this fix is pending. See [handoff](HANDOFF.md).
 
 Latest owner replay (`139f8c1`): TV code appears and the phone lists the TV,
 but console connection feedback, returning to Switch profile, and account
@@ -25,7 +26,8 @@ installed on .30 with all 185 stored files verified after 120 seconds. Account
 Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `f8617d2`, adding TV account-feed parsing,
+Latest installed candidate: `00f4345`, preserving cast resolution during pairing-page refreshes.
+It retains `f8617d2` TV account-feed parsing,
 correct page headers and bounded casting milestones. It retains earlier
 account, HLS, playback, font and physical keyboard fixes. All 185 stored files
 matched after 120 seconds, with unchanged error records. Install began idle

@@ -4,6 +4,17 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Cast refresh repair installed (2026-10-15)
+
+Production `00f4345` is installed on .30. ZIP CRC/content and helper checks pass.
+Install began idle; all 185 stored files match after 120 seconds and error
+records are unchanged. The final-idle assertion briefly failed; a subsequent
+read-only title check found idle. Classify installation partial-pass because
+that assertion failed; no launch or close was sent and real-phone replay is
+pending. Private evidence: `phone-pairing-00f4345-installed-production/post-install-state.json`.
+Eboot SHA-256: `483fa244947e120a3854b360681d93b860bf27669fddcc47a22bdd1d36ad52d6`.
+ZIP SHA-256: `276c69e4b0f1f60303ba34ed65a8606cda1d924628e68ae89adf5ff88614f1c4`.
+
 ## Owner feed acceptance and cast-resolution failure (2026-10-15)
 
 Owner replay of `f8617d2` confirms Library loads and the pairing heading overlap

@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `00f4345` cast-refresh repair installed | partial-pass: 185 files verified, errors unchanged; final idle assertion failed, follow-up idle | private evidence `phone-pairing-00f4345-installed-production/post-install-state.json` | owner cast replay pending.
+
 - 2026-10-15 | `f8617d2` owner replay | partial-pass: Library and heading accepted; cast delivered but resolve failed | private evidence `owner-phone-f8617d2/app.log` | offline resolver diagnosis; history/Home not accepted.
 
 - 2026-10-15 | `f8617d2` account-feed/header candidate installed on .30 | partial-pass: idle before upload, all 185 stored files match after 120 seconds and errors unchanged; another title running at final check | private evidence `phone-pairing-f8617d2-installed-production/post-install-state.json` | no launch/close or Chiaki-ng; functional owner acceptance pending.
