@@ -41,21 +41,21 @@ def apply_feed_prefetch_overlay(replace, player):
     replace(header, "    int m_tube_advance_from = -1;",
             "    int m_tube_advance_from = -1;\n    bool m_tube_prefetching = false;\n    bool m_tube_prefetch_stopped = false;\n"
             "    void TubePrefetch();")
-    replace(ui, "    m_is_usb_picker = false;\n    if (page == 0) {\n",
-            "    m_is_usb_picker = false;\n    if (page == 0) {\n        m_tube_prefetching = false; m_tube_prefetch_stopped = false;\n")
+    # Anchors stay clear of settings_pages_overlay's edits around them, which come first.
+    replace(ui, "    if (page == 0) {\n        m_model.rows.clear();",
+            "    if (page == 0) {\n        m_tube_prefetching = false; m_tube_prefetch_stopped = false;\n        m_model.rows.clear();")
     replace(ui, '    self->m_model.loading = false;\n    if (self->m_model_handle) self->m_model_handle.DirtyVariable("loading");\n\n'
             '    // ProsperoTube startup fallback',
             '    self->m_model.loading = false;\n    if (self->m_model_handle) self->m_model_handle.DirtyVariable("loading");\n'
             '    const bool tube_prefetched = self->m_tube_prefetching;\n    self->m_tube_prefetching = false;\n'
             '    if (tube_prefetched && (!ok || count == 0)) self->m_tube_prefetch_stopped = true; /* no reading ahead past it */\n\n'
             '    // ProsperoTube startup fallback')
-    replace(ui, "    self->ApplyItems(items, count, has_more);\n    if (self->m_model.chat && !refreshing_chat && count > 0) {",
+    replace(ui, "    self->ApplyItems(items, count, has_more);\n",
             "    /* Rows read ahead land behind the person: the page and the focused card stay. */\n"
             "    const int tube_keep = tube_prefetched && !self->m_advance_after_load ? self->FocusedRowIndex() : -1;\n"
             "    const size_t tube_offset = self->m_row_offset;\n"
             "    self->ApplyItems(items, count, has_more);\n"
-            "    if (tube_keep >= 0) self->SetPageOffset(tube_offset, tube_keep);\n"
-            "    if (self->m_model.chat && !refreshing_chat && count > 0) {")
+            "    if (tube_keep >= 0) self->SetPageOffset(tube_offset, tube_keep);\n")
     replace(ui, "    if (!m_has_more || m_model.loading || !m_model.query.empty()) return;\n    m_advance_after_load = true;",
             "    if (m_tube_prefetching) {   /* the next page is already on its way: move once it lands */\n"
             "        m_advance_after_load = true; m_advance_col = col; m_tube_advance_seen = m_all_rows.size(); return;\n    }\n"
