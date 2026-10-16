@@ -4,6 +4,30 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Live phone replay after refresh repair (2026-10-15)
+
+A requested redeploy of `00f4345` passed idle-first installation, all 185 stored
+files after 120 seconds, unchanged error records, and final idle. Live read-only
+log capture then confirmed this exact executable; the app remained open.
+Private evidence: `live-casting-00f4345/result.json` and `live-app.log`.
+
+The owner saw the received-video notification but no playback. The cast now
+resolves and opens AVC 1080p59.94 plus audio, then performs the requested
+6999.16-second startup seek in a 11510-second video. The owner confirms casting
+from the middle. DASH first-fragment probing fails after that seek, no pictures
+are decoded, and teardown clears the connection. This is beyond the repaired
+status-refresh cancellation; the log does not distinguish transport failure
+from DASH seek-state failure. A start-from-beginning comparison remains pending.
+Home and notification-count errors also persist independently. No Chiaki-ng,
+forced close, or credential replay was used.
+The capture ended after a read-only check found another title running; that title
+was left untouched. A service-generated AVC/AAC ranged-DASH fixture passes
+start/middle/near-end seek with both host FFmpeg 8.0.1 and rebuilt, patched
+7.1.1. This does not reproduce the owner failure. A future diagnostic needs
+URL-free reopen error/representation/range/initialization state before changing
+the player. No speculative playback patch was made.
+
+
 ## Cast refresh repair installed (2026-10-15)
 
 Production `00f4345` is installed on .30. ZIP CRC/content and helper checks pass.

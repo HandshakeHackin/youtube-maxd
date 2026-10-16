@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `00f4345` live cast | partial-pass: verified redeploy; phone delivery and resolve succeed, DASH startup seek fails with zero frames | private evidence `live-casting-00f4345/` | capture ended with other title untouched; offline reproduction pending.
+
 - 2026-10-15 | `00f4345` cast-refresh repair installed | partial-pass: 185 files verified, errors unchanged; final idle assertion failed, follow-up idle | private evidence `phone-pairing-00f4345-installed-production/post-install-state.json` | owner cast replay pending.
 
 - 2026-10-15 | `f8617d2` owner replay | partial-pass: Library and heading accepted; cast delivered but resolve failed | private evidence `owner-phone-f8617d2/app.log` | offline resolver diagnosis; history/Home not accepted.

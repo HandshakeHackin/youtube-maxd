@@ -1,5 +1,10 @@
 # Current implementation status
 
+Latest `00f4345` live cast passes pairing delivery and video resolution, but
+fails DASH fragment probing after a phone-requested mid-video startup seek.
+The owner sees the received-video toast and no playback. The refresh-cancel
+regression is repaired; casting is still not accepted. See [handoff](HANDOFF.md).
+
 Owner replay of `f8617d2` confirms account Library loads and the pairing
 header no longer overlaps. History is still reported empty; the main History
 tab is local, while Triangle opens account history. Personalized Home remains
