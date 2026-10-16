@@ -84,3 +84,18 @@ test('Subscriptions cards keep 16:9 or 4:3 pictures and give portrait ones the 1
   assert.equal(art.fixtureSU05,'https://i.ytimg.com/vi/fixtureSU05/mqdefault.jpg');
   assert.equal(art.fixtureSU03,'https://i.ytimg.com/vi/fixtureSU03/sddefault.jpg');
 });
+
+test('OAuth Subscriptions pages list every grid and shelf card once, no shelf folders, and end with the feed',async()=>{
+  const calls=[];
+  const library=new Library(account(calls),profiles);
+  const pages=[];
+  let page=await library.execute({action:'subscriptions',profile:'saved'});
+  for(;;) {
+    pages.push(page.items.map(item=>item.is_folder?'folder:'+item.title:item.id));
+    if(!page.has_more)break;
+    page=await library.execute({action:'continue',cursor:page.cursor,profile:'saved'});
+  }
+  assert.deepEqual(pages,[['fixtureSU01','fixtureSU02','fixtureSU03','fixtureSU04','fixtureSU05'],
+    ['fixtureSU06','fixtureSU07','fixtureSU08']]);
+  assert.equal(calls.filter(call=>call.continuation).length,1);
+});

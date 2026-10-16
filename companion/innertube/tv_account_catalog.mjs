@@ -36,6 +36,10 @@ export class TvAccountCatalog extends TopicCatalog {
     this.references = references;
   }
   folder(owner, section, client, title, image, source) {
+    // A shelf's cards are already on the page (feed below). Only a named Home shelf
+    // keeps a folder of its own; Subscriptions, History and untitled shelves would
+    // only add "More videos" tiles repeating cards, page after page.
+    if (source.row && (section !== 'home' || !String(title ?? '').trim())) return null;
     const browse = source.endpoint?.browseId;
     if (/^VL(?:WL|LL|[A-Za-z0-9_-]{10,100})$/.test(browse ?? ''))
       return { id: 'library:playlist:' + browse.slice(2), title: String(title ?? '').slice(0,192),
@@ -56,15 +60,18 @@ export class TvAccountCatalog extends TopicCatalog {
     return item;
   }
   feed(owner, section, client, raw, root = true, continued = false) {
-    const shelves = (find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation'))?.contents?.filter(row => row.shelfRenderer) ?? [];
-    root = root && shelves.length > 0;
+    const rows = (find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation'))?.contents ?? [];
+    root = root && rows.some(row => row?.shelfRenderer);
     const result = super.feed(owner, section, client, raw, root, continued);
     if (root) {
-      // Home needs video cards; each shelf also keeps its own continuation through a retained folder.
+      // Video cards of every grid and shelf, in page order (the TV Subscriptions page
+      // opens with a grid before its shelves); a named Home shelf also keeps a folder.
       const cards = [], seen = new Set();
-      for (const { shelfRenderer: shelf } of shelves) {
-        if (!shelf.content?.horizontalListRenderer) continue;
-        const row = super.feed(owner, section, client, shelf.content, false);
+      for (const value of rows) {
+        const content = value?.gridRenderer ? { gridRenderer: value.gridRenderer } :
+          value?.shelfRenderer?.content?.horizontalListRenderer || value?.shelfRenderer?.content?.gridRenderer ? value.shelfRenderer.content : null;
+        if (!content) continue;
+        const row = super.feed(owner, section, client, content, false);
         for (const item of row.catalog_items) if (!seen.has(item.id)) {
           seen.add(item.id); cards.push(item);
           if (cards.length > 4096) throw new this.Error('upstream_limit', 'The account feed exceeds the item limit.', 502);
