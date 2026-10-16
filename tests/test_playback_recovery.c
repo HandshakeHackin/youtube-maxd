@@ -15,7 +15,7 @@ static void resolution(const evo_provider_t *p, int fresh) {
     assert(p->resolve("abcdefghijk", recovery_resolved, NULL) == 0);
     assert(strstr(pending[0].body, fresh ? "\"fresh\":true" : "\"fresh\":false"));
     const int original = fresh || !quality_changed;
-    assert(strstr(pending[0].body,original ? "\"max_height\":1080" : "\"max_height\":2160"));
+    assert(strstr(pending[0].body,"\"max_height\":2160"));   /* the fixed ceiling since the cap was removed */
     assert(strstr(pending[0].body,original ? "\"max_fps\":30" : "\"max_fps\":60"));
     assert(strstr(pending[0].body,original ? "\"codec\":\"avc\"" : "\"codec\":\"vp9\""));
     poll_job("{\"state\":\"done\",\"result\":{\"id\":\"abcdefghijk\",\"title\":\"Recovery fixture\",\"duration_sec\":100,\"choices\":[{\"url\":\"http://127.0.0.1:8765/media/fresh/d0.mpd\",\"container\":\"dash\",\"width\":1920,\"height\":1080,\"fps\":29.97,\"video_codec\":\"avc\",\"audio_codec\":\"aac\",\"audio_channels\":2}]}}");

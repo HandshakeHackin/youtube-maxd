@@ -6,6 +6,7 @@ and nothing copied from a live response. Run after changing a fixture here:
     python3 standalone/fixtures/make.py
 SPDX-License-Identifier: GPL-3.0-or-later
 """
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -16,6 +17,7 @@ CHANNEL = "UC" + "f" * 22
 PLAYLIST = "PLfixture0001"
 VIDEO, LIVE, GONE, SHORT, DENIED, RETRY = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY", "fxtRETRY001"
 ZOO = "jNQXAC9IVRw"
+MULTI = "fixtureMLT1"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 
 
@@ -155,6 +157,52 @@ def player():
             "playerConfig": {"audioConfig": {"loudnessDb": -3.5}}}
 
 
+def xtags(**tags):
+    """YouTube's format tags (a protobuf of key/value pairs, base64url), as on dubbed and described audio."""
+    def field(number, payload):
+        return bytes([number << 3 | 2, len(payload)]) + payload
+    body = b"".join(field(1, field(1, key.encode()) + field(2, value.encode())) for key, value in tags.items())
+    return base64.b64encode(body).decode().replace("+", "-").replace("/", "_")
+
+
+def dubbed(itag, mime, average, rate, track, name, language, content, default=False):
+    return sound(itag, mime, average, rate, {"audioTrack": {"displayName": name, "id": track, "audioIsDefault": default},
+                                             "xtags": xtags(acont=content, lang=language)})
+
+
+def multi_player():
+    """A video with three audio tracks (the original, a dub, described audio), streams from 144p to
+    2160p in three codecs (18 in all: more than one resolve offers), automatic captions and translations."""
+    pictures = [picture(313, 'video/webm; codecs="vp9"', 3840, 2160, 30, 12000000, "2160p"),
+                picture(401, 'video/mp4; codecs="av01.0.12M.08"', 3840, 2160, 30, 10000000, "2160p"),
+                picture(271, 'video/webm; codecs="vp9"', 2560, 1440, 30, 6000000, "1440p"),
+                picture(400, 'video/mp4; codecs="av01.0.12M.08"', 2560, 1440, 30, 5000000, "1440p"),
+                picture(299, 'video/mp4; codecs="avc1.64002a"', 1920, 1080, 60, 4000000, "1080p60"),
+                picture(303, 'video/webm; codecs="vp9"', 1920, 1080, 60, 3000000, "1080p60"),
+                picture(399, 'video/mp4; codecs="av01.0.09M.08"', 1920, 1080, 60, 2000000, "1080p60")]
+    for itags, width, height, rate in (((136, 247, 398), 1280, 720, 1100000), ((135, 244, 397), 854, 480, 600000),
+                                       ((134, 243, 396), 640, 360, 400000)):
+        for itag, mime in zip(itags, ('video/mp4; codecs="avc1.4d401f"', 'video/webm; codecs="vp9"', 'video/mp4; codecs="av01.0.05M.08"')):
+            pictures.append(picture(itag, mime, width, height, 30, rate, f"{height}p"))
+    pictures += [picture(133, 'video/mp4; codecs="avc1.4d4015"', 426, 240, 30, 200000, "240p"),
+                 picture(160, 'video/mp4; codecs="avc1.4d400c"', 256, 144, 30, 100000, "144p")]
+    audio = [dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 129500, 44100, "en-US.4", "English (US) original", "en-US", "original", True),
+             dubbed(251, 'audio/webm; codecs="opus"', 135000, 48000, "en-US.4", "English (US) original", "en-US", "original", True),
+             dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 129000, 44100, "de.3", "German", "de", "dubbed"),
+             dubbed(251, 'audio/webm; codecs="opus"', 134000, 48000, "de.3", "German", "de", "dubbed"),
+             dubbed(140, 'audio/mp4; codecs="mp4a.40.2"', 128000, 44100, "en-US.2", "English (US) audio description", "en-US", "descriptive")]
+    captions = {"playerCaptionsTracklistRenderer": {
+        "captionTracks": [
+            {"baseUrl": f"https://www.youtube.com/api/timedtext?v={MULTI}&lang=en&kind=asr&signature=FIXTURE",
+             "name": {"simpleText": "English (auto-generated)"}, "vssId": "a.en", "languageCode": "en", "kind": "asr", "isTranslatable": True}],
+        "translationLanguages": [{"languageCode": "de", "languageName": {"simpleText": "German"}},
+                                 {"languageCode": "en", "languageName": {"simpleText": "English"}},
+                                 {"languageCode": "fr", "languageName": {"simpleText": "French"}}]}}
+    return {"playabilityStatus": {"status": "OK"}, "videoDetails": details(MULTI, "Fixture video in three languages"),
+            "streamingData": {"expiresInSeconds": "21540", "formats": [], "adaptiveFormats": pictures + audio},
+            "captions": captions}
+
+
 def short_player():
     """A portrait video of 23 seconds with a paid-promotion notice."""
     answer = {"playabilityStatus": {"status": "OK"}, "videoDetails": {**details(SHORT, "Fixture short"), "lengthSeconds": "23"},
@@ -245,6 +293,7 @@ def main():
     write("player.json", player())
     write("player_live.json", live_player())
     write("player_short.json", short_player())
+    write("player_multi.json", multi_player())
     # The same video on a media host that refuses every read (links YouTube will not serve).
     denied = json.loads(json.dumps(player()).replace("rr1---sn-fixture", "rr2---sn-fixture").replace(VIDEO, DENIED))
     write("player_denied.json", denied)
@@ -297,6 +346,7 @@ def main():
             {"body_contains": f'"videoId":"{VIDEO}"', "file": "player.json"},
             {"body_contains": f'"videoId":"{LIVE}"', "file": "player_live.json"},
             {"body_contains": f'"videoId":"{SHORT}"', "file": "player_short.json"},
+            {"body_contains": f'"videoId":"{MULTI}"', "file": "player_multi.json"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_bad.json", "times": 2, "tag": "retry-bad"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_good.json", "tag": "retry-good"},
             {"body_contains": f'"videoId":"{DENIED}"', "file": "player_denied.json"},

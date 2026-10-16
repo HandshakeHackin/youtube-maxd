@@ -341,6 +341,27 @@ int tube_player_set_quality(int height, int fps, int codec);
 int tube_player_remember_height(int height);
 /* Reopen the playing video at this position with the current limits. */
 int tube_player_reload(double position, int live, int subtitles);
+/* The quality and the audio track of the playing video, chosen in the player
+ * (both interfaces' playback options). Qualities are the resolutions, frame
+ * rates and ranges the resolve listed within the fixed 2160p ceiling, best
+ * first; -1 is Auto (the first). Audio tracks exist only for a video with
+ * several (dubs, the original, described audio). select: 0 = refused,
+ * 1 = the video reopens at `position` with that stream (stop playback and
+ * return to the browser, as for a reload), 2 = already playing. Nothing is
+ * kept for the next video. */
+int tube_player_quality_count(void);
+int tube_player_quality_label(int index, char *out, size_t size);   /* "1080p", "2160p60 HDR" */
+const char *tube_player_quality_detail(int index);                 /* the service's label: codecs */
+int tube_player_quality_playing(void);
+int tube_player_quality_pinned(void);
+int tube_player_quality_select(int index, double position, int live, int subtitles);
+enum { TUBE_AUDIO_ORIGINAL = 1, TUBE_AUDIO_DESCRIPTIVE = 2, TUBE_AUDIO_DUBBED = 4 };
+int tube_player_audio_count(void);
+const char *tube_player_audio_name(int index);
+const char *tube_player_audio_language(int index);
+int tube_player_audio_kind(int index);
+int tube_player_audio_playing(void);
+int tube_player_audio_select(int index, double position, int live, int subtitles);
 /* Error fixer (tube_player_extra.h): arms the bounded recovery for one error
  * and returns the TUBE_FIX_* action taken, 0 for none. While a reload asks
  * for another quality, the host takes its stream from tube_error_fix_choice(). */

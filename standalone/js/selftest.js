@@ -145,7 +145,7 @@ export async function selfTest() {
     same(libraryRequest({ action: 'search', query: 'x' }).sort, 'top');
     same(Object.keys(libraryRequest({ action: 'home' })).length, 43);
     same(resolveRequest({ id: 'jNQXAC9IVRw' }), { id: 'jNQXAC9IVRw', profile: 'guest', max_height: 1080, max_fps: 0, codec: 'auto',
-      caption_language: 'en', audio_language: '', automatic_captions: false, translated_captions: false, fresh: false, hl: '' });
+      caption_language: 'en', audio_language: '', audio_track: '', automatic_captions: false, translated_captions: false, fresh: false, hl: '' });
     same(jobRequest({ action: 'search', query: 'x', unknown: 1 }).page, 0);
     return refused(() => libraryRequest({ action: 'search' })) && refused(() => libraryRequest({ action: 'home', extra: 1 })) &&
       refused(() => libraryRequest({ action: 'channel', channel: 'nope' })) && refused(() => libraryRequest({ action: 'home', hl: 'xx' })) &&

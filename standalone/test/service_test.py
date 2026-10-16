@@ -335,7 +335,8 @@ def playback(s):
     status, play = s.job({"action": "resolve", "playback": {"id": VIDEO, "codec": "avc", "max_height": 1080}})
     same("resolve fields", (status, list(play)), (200, ["api_version", "id", "title", "channel", "channel_id", "channel_art_url", "views", "published",
                                                         "duration_sec", "expires_in", "choices", "captions", "chapters",
-                                                        "paid_content_text", "loudness_db", "is_short", "storyboards"]))
+                                                        "paid_content_text", "loudness_db", "is_short", "storyboards",
+                                                        "audio_tracks", "audio_track"]))
     token = re.fullmatch(re.escape(s.base) + r"/media/([A-Za-z0-9_-]{32})/d0\.mpd", play["choices"][0]["url"])
     check("manifest address", token is not None, play["choices"][0]["url"])
     prefix = f"{s.base}/media/{token[1]}"
@@ -355,7 +356,8 @@ def playback(s):
         "paid_content_text": "", "loudness_db": -3.5, "is_short": False,
         "storyboards": [{"width": 48, "height": 27, "columns": 10, "rows": 10, "count": 100, "sheets": 1, "interval_ms": 6350, "url": f"{prefix}/sb0-$M.jpg"},
                         {"width": 80, "height": 45, "columns": 10, "rows": 10, "count": 128, "sheets": 2, "interval_ms": 4961, "url": f"{prefix}/sb1-$M.jpg"},
-                        {"width": 160, "height": 90, "columns": 5, "rows": 5, "count": 128, "sheets": 6, "interval_ms": 4961, "url": f"{prefix}/sb2-$M.jpg"}]})
+                        {"width": 160, "height": 90, "columns": 5, "rows": 5, "count": 128, "sheets": 6, "interval_ms": 4961, "url": f"{prefix}/sb2-$M.jpg"}],
+        "audio_tracks": [], "audio_track": ""})
 
     status, headers, manifest = s.call("GET", play["choices"][0]["url"], token=None, raw=True)
     escaped = MEDIA.replace("&", "&amp;")
@@ -405,6 +407,26 @@ def playback(s):
     translated = s.job({"action": "resolve", "playback": {"id": VIDEO, "translated_captions": True}})[1]["captions"]
     same("translated captions", [(c["language"], c["translated"]) for c in translated],
          [("en", False), ("de", False), ("fr-en", True), ("es-en", True)])
+    # Several audio tracks and more streams than one resolve offers: every resolution keeps a stream for the
+    # player's quality choice, best first; YouTube's default audio track plays unless another is asked for.
+    status, multi = s.job({"action": "resolve", "playback": {"id": "fixtureMLT1", "max_height": 2160}})
+    same("every resolution in the choices", (status, [(c["height"], c["video_codec"]) for c in multi["choices"]]),
+         (200, [(2160, "vp9"), (2160, "av1"), (1440, "vp9"), (1440, "av1"), (1080, "h264"), (1080, "vp9"), (1080, "av1"),
+                (720, "h264"), (720, "vp9"), (720, "av1"), (480, "h264"), (480, "vp9"), (480, "av1"), (360, "h264"),
+                (240, "h264"), (144, "h264")]))
+    same("audio tracks, the original first", (multi["audio_track"], multi["audio_tracks"]), ("en-US.4", [
+        {"id": "en-US.4", "language": "en-US", "name": "English (US) original", "original": True, "default": True, "descriptive": False, "dubbed": False},
+        {"id": "en-US.2", "language": "en-US", "name": "English (US) audio description", "original": False, "default": False, "descriptive": True, "dubbed": False},
+        {"id": "de.3", "language": "de", "name": "German", "original": False, "default": False, "descriptive": False, "dubbed": True}]))
+    same("automatic captions and their translations without any preference", [(c["language"], c["automatic"], c["translated"]) for c in multi["captions"]],
+         [("en", True, False), ("fr-en", True, True), ("de-en", True, True)])
+    status, dub = s.job({"action": "resolve", "playback": {"id": "fixtureMLT1", "max_height": 2160, "audio_track": "de.3"}})
+    dubbed = s.call("GET", dub["choices"][0]["url"], token=None, raw=True)[2].decode()
+    same("the audio track asked for", (status, dub["audio_track"], len(dub["audio_tracks"]), 'lang="de"' in dubbed), (200, "de.3", 3, True))
+    same("the content language picks its dub", s.job({"action": "resolve", "playback": {"id": "fixtureMLT1", "hl": "de"}})[1]["audio_track"], "de.3")
+    same("never described audio by language", s.job({"action": "resolve", "playback": {"id": "fixtureMLT1", "hl": "en"}})[1]["audio_track"], "en-US.4")
+    same("an unknown audio track keeps the default", s.job({"action": "resolve", "playback": {"id": "fixtureMLT1", "audio_track": "xx.9"}})[1]["audio_track"], "en-US.4")
+    same("bad audio track", s.call("POST", "/v1/resolve", {"id": "fixtureMLT1", "audio_track": "a b"})[0], 422)
     same("frame-rate limit", s.job({"action": "resolve", "playback": {"id": VIDEO, "max_fps": 30}})[1]["choices"][0]["label"], "720p 30 fps H264 / AAC")
     same("codec that is not offered", s.job({"action": "resolve", "playback": {"id": VIDEO, "codec": "hevc"}})[1]["error"]["code"], "unsupported_media")
     same("unsupported media status", s.call("POST", "/v1/resolve", {"id": VIDEO, "codec": "hevc"})[0], 422)

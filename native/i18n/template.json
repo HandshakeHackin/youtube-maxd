@@ -128,6 +128,12 @@
    ]
   },
   {
+   "source": "AUDIO TRACK",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "AUTO",
    "context": [
     "kit"
@@ -6518,6 +6524,12 @@
    ]
   },
   {
+   "source": "ProsperoTube picks the best quality available",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "ProsperoTube update",
    "context": [
     "afterglow"
@@ -6564,6 +6576,7 @@
   {
    "source": "QUALITY",
    "context": [
+    "kit",
     "toast"
    ]
   },
@@ -7612,6 +7625,12 @@
   },
   {
    "source": "STREAM STOPPED",
+   "context": [
+    "toast"
+   ]
+  },
+  {
+   "source": "SWITCH FAILED",
    "context": [
     "toast"
    ]

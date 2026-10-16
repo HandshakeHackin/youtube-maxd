@@ -72,6 +72,8 @@ export function redact(address) {
   } catch { return '[unreadable address]'; }
 }
 
+// Streams one resolve offers: the player's quality choice and its fallbacks.
+export const CHOICE_LIMIT = 16;
 // Sessions.create: eligible video rows, best first.
 const RANK = { h264: 3, vp9: 2, hevc: 1, av1: 0 };
 const WANTED = { avc: 'h264', vp9: 'vp9', av1: 'av1', hevc: 'hevc' };
@@ -83,14 +85,39 @@ export function selectVideo(list, request = {}) {
     .sort((a, b) => number(b.height) - number(a.height) || RANK[formatCodec(b)] - RANK[formatCodec(a)] ||
       number(b.fps) - number(a.fps) || Number(isHdr(b)) - Number(isHdr(a)) || rate(b) - rate(a));
 }
-// Audio-only rows, best first: requested language, then the original mix
-// without dynamic-range compression, then AAC, then bitrate.
+// Audio-only rows, best first: the audio track chosen for this video, the
+// requested language, then the track in the content language (`hl`) and the
+// one YouTube marks as default, as YouTube itself picks a dub for a viewer,
+// then the original mix without dynamic-range compression, then AAC, then bitrate.
+const primary = tag => String(tag ?? '').split(/[-_]/)[0].toLowerCase();
 export function selectAudio(list, request = {}) {
-  const score = format => [request.audio_language && format.language === request.audio_language ? 1 : 0,
+  const score = format => [request.audio_track && format.audio_track?.id === request.audio_track ? 1 : 0,
+    request.audio_language && format.language === request.audio_language ? 1 : 0,
+    request.hl && format.language && !format.is_descriptive && primary(format.language) === primary(request.hl) ? 1 : 0,
+    format.audio_track?.audio_is_default ? 1 : 0,
     format.is_original !== false && !format.is_drc ? 1 : 0, formatCodec(format) === 'aac' ? 1 : 0, rate(format)];
   return list.filter(format => format.has_audio && !format.has_video && linkKind(format) !== 'none' &&
       ['aac', 'opus'].includes(formatCodec(format)) && !format.drm_families)
     .sort((a, b) => { const x = score(a), y = score(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return 0; });
+}
+// The audio tracks of a video that has several (dubs, the original, described
+// audio): one entry per YouTube audio track, the original first, then by
+// name; none for a video with one track.
+const TRACK_ID = /^[A-Za-z0-9._-]{1,32}$/;
+export function audioTracks(list) {
+  const tracks = new Map();
+  for (const format of selectAudio(list).sort((a, b) => list.indexOf(a) - list.indexOf(b))) {
+    const id = String(format.audio_track?.id ?? '');
+    if (!TRACK_ID.test(id)) continue;
+    const known = tracks.get(id);
+    if (known) { known.original ||= format.is_original === true; known.default ||= !!format.audio_track?.audio_is_default; continue; }
+    const language = LANGUAGE.test(format.language ?? '') ? format.language : '';
+    tracks.set(id, { id, language, name: text(String(format.audio_track?.display_name ?? '').trim() || language || id, 64),
+      original: format.is_original === true, default: !!format.audio_track?.audio_is_default,
+      descriptive: !!format.is_descriptive, dubbed: !!(format.is_dubbed || format.is_auto_dubbed) });
+  }
+  return tracks.size > 1 ? Array.from(tracks.values())
+    .sort((a, b) => Number(b.original) - Number(a.original) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).slice(0, 32) : [];
 }
 
 // ElementTree's escaping, so the text equals the Python generator's.
@@ -399,13 +426,15 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
       .sort((a, b) => b.height - a.height || RANK[b.video_codec] - RANK[a.video_codec] || b.fps - a.fps || Number(isHdr(b)) - Number(isHdr(a)) || b.bitrate - a.bitrate);
     for (const variant of variants) {
       const key = `${variant.height}/${variant.video_codec}/${videoRange(variant)}`;
-      if (seen.has(key) || choices.length >= 8 || !variant.audio_codec) continue;
+      if (seen.has(key) || choices.length >= CHOICE_LIMIT || !variant.audio_codec) continue;
       seen.add(key);
       const name = `h${choices.length}.m3u8`;
       session.hls_manifests.set(name, variant.master);
       push({ url: `${prefix}/${name}`, container: 'hls' }, variant, variant.video_codec, variant.audio_codec, variant.fps);
     }
   }
+  // The audio tracks a DASH choice can be built with, and the one it was.
+  let audioChoices = [], playingTrack = '';
   if (!live && !choices.length) {
     // Since 2026-10-14 YouTube answers 403 to an open-ended or whole-file range
     // (`rqh=1` in the address; bounded ranges of a few megabytes are served), so
@@ -415,9 +444,20 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     const indexed = list.filter(format => format.init_range && format.index_range);
     const usable = ranged && selectVideo(indexed, request).some(format => !format.has_audio) && selectAudio(indexed, request).length ? indexed : list;
     const audios = selectAudio(usable, request);
+    audioChoices = audioTracks(usable);
+    // Every resolution keeps a stream (the player's quality choice lists them),
+    // the other codecs fill the remaining places; the order stays best first.
+    const candidates = [], keys = new Set();
     for (const video of selectVideo(usable, request)) {
+      const key = `${video.height}/${formatCodec(video)}/${video.has_audio}/${videoRange(video)}`;
+      if (keys.has(key) || (!video.has_audio && !(audios.length && duration))) continue;
+      keys.add(key); candidates.push(video);
+    }
+    const kept = new Set(), heights = new Set();
+    for (const video of candidates) if (!heights.has(number(video.height)) && kept.size < CHOICE_LIMIT) { heights.add(number(video.height)); kept.add(video); }
+    for (const video of candidates) if (kept.size < CHOICE_LIMIT) kept.add(video);
+    for (const video of candidates.filter(video => kept.has(video))) {
       const vcodec = formatCodec(video), key = `${video.height}/${vcodec}/${video.has_audio}/${videoRange(video)}`;
-      if (seen.has(key) || choices.length >= 8) continue;
       const fps = Math.max(0, number(video.fps));
       if (video.has_audio) {
         // A muxed file is not relayed: its address answers with a redirect.
@@ -436,6 +476,7 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
           return tracks.some(track => track.index) ? rangedManifest(duration, tracks) : classic;
         })());
         seen.add(key);
+        if (audioChoices.some(track => track.id === audio.audio_track?.id)) playingTrack = audio.audio_track.id;
         push({ url: `${prefix}/${name}`, container: 'dash' }, video, vcodec, formatCodec(audio), fps);
       }
     }
@@ -477,7 +518,8 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
     published: text(info.primary_info?.published, 64),
     duration_sec: duration, expires_in: ttl, choices, captions, chapters,
     paid_content_text: disclosure(source.facts?.paid), loudness_db: typeof loudness === 'number' && Number.isFinite(loudness) && loudness >= -60 && loudness <= 60 ? loudness : null,
-    is_short: isShort(info, list, source.facts), storyboards };
+    is_short: isShort(info, list, source.facts), storyboards,
+    audio_tracks: playingTrack ? audioChoices : [], audio_track: playingTrack };
 }
 
 // One ranged read straight from the media server; reports facts, keeps no data.

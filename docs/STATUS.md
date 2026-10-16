@@ -620,7 +620,11 @@ accepted on hardware or equivalent to SmartTube in every edge case.
 - **Playback:** AVC, VP9, HEVC and AV1 in SDR; adaptive, progressive and HLS;
   captions in two languages, caption picker (YouTube's automatic tracks and
   Auto-translate into the interface language or any offered language are
-  always listed), style, translated tracks and per-channel memory; quality, frame-rate and codec limits and presets; speed
+  always listed), style, translated tracks and per-channel memory; quality,
+  frame-rate and codec limits and presets; a per-video quality (Auto or any
+  listed resolution up to 2160p) and audio track (dubs, the original,
+  described audio) in the playback options of both interfaces, reopening at
+  the position; speed
   memories; seeking modes and intervals; chapters and chapter notification;
   sizing, zoom, aspect, rotation and mirror; volume, auto volume and audio
   delay; sleep timer; screen dimming and screen off; in-player video actions,
