@@ -3,7 +3,7 @@
 Settings simplification, a fixed 2160p ceiling, and missing local-history artwork
 fallback are implemented. Update prompts move outside Settings to follow Eden's
 startup flow. Native regressions, updater sanitizer checks and Settings/About UI checks pass;
-ZIP packaging is in progress.
+ZIP `38d2840` builds successfully, is content-verified and frozen.
 The latest installed console candidate remains `47d007a`.
 
 Media-preflight diagnostics now record refused header/midpoint probes, attempt

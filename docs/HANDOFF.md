@@ -28,7 +28,12 @@ The regression fails without the fix and passes with ASan/UBSan, including resta
 Profile settings, player menu/extras, provider extras and simplified About tests
 pass. Updater sanitizer tests cover acceptance, cancellation, blocked builds,
 staged-on-start consent, apply failure and one-shot close. Settings home passes
-164 UI checks and About/Credits passes 50. Final ZIP packaging is in progress.
+164 UI checks and About/Credits passes 50. Candidate `38d2840` builds successfully
+with the real Afterglow mount integration. ZIP CRC and all 185 file contents
+match; packaged-helper checks pass and the candidate is frozen.
+Private evidence: `settings-38d2840-package.json` and `build-settings-38d2840.log`.
+Eboot SHA-256: `c2b432000b719108e2e95cb7e046f733a7b3e66074abc084d58efe3e0e80ddd8`.
+ZIP SHA-256: `7dd077aa99bd595047c1abb809fcaa412e6b2e288cbb6a90ada03c2cf8960889`.
 No console installation or visual hardware acceptance is claimed for these changes.
 
 ## Media preflight refusal diagnostics (2026-10-15)
