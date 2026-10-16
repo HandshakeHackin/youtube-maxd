@@ -4,7 +4,7 @@
   {
    "name": "link_phone-code",
    "fixture": "signed-in",
-   "route": {"screen": "link_phone"},
+   "route": {"screen": "link_phone", "title": "Phone & casting"},
    "settle": 4.75,
    "expect": {"screen": "link_phone", "focus": "code", "rail_open": 0,
               "state": {"load": "ready", "state": "ready", "code": "482913057261", "connection": "on", "devices": "1", "sheet": "0"},

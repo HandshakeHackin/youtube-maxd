@@ -29,6 +29,17 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const own = (object, key, fallback) => Object.hasOwn(object, key) ? object[key] : fallback;
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const playlistChange = entry => entry.action === 'setPlaylist' || entry.action === 'updatePlaylist';
+// First milestones only: never log phone names, IDs, codes, tokens or server bodies.
+const PHONE_EVENTS = ['remoteConnected', 'loungeStatus', 'setPlaylist'];
+const PHONE_STAGES = ['received', 'delivered', 'acknowledged'];
+function traceEvent(receiver, stage, action) {
+  const event = PHONE_EVENTS.indexOf(action), step = PHONE_STAGES.indexOf(stage);
+  if (event < 0 || step < 0) return;
+  const bit = 1 << (step * PHONE_EVENTS.length + event);
+  if (receiver.observed & bit) return;
+  receiver.observed |= bit;
+  console.error(`YouTube phone state: ${PHONE_STAGES[step]} ${PHONE_EVENTS[event]}`);
+}
 // What Python calls false: nothing, zero, and anything empty.
 const empty = value => !value || (Array.isArray(value) && !value.length) || (record(value) && !Object.keys(value).length);
 
@@ -259,7 +270,7 @@ const pause = (milliseconds, signal) => new Promise((resolve, reject) => {
 
 function newReceiver(session, device, name, screen, voice, profile, now) {
   return { session, device_id: device, name, screen_id: screen, token: '', sid: '', gsid: '', code: '', aid: -1, rid: 1, ofs: 0,
-    sequence: 0, delivered: 0, ack: 0, update_id: -1, last_player: null, error: '', queue: [], listening: null, abort: new AbortController(),
+    sequence: 0, delivered: 0, ack: 0, observed: 0, update_id: -1, last_player: null, error: '', queue: [], listening: null, abort: new AbortController(),
     lock: new Lock(), touched: now, voice_enabled: voice, full_playlist: null, profile, playlist_anchor: null, playlist_task: null, playlist_retry: 0 };
 }
 
@@ -327,6 +338,7 @@ export class Lounge {
             if (receiver.queue.length >= MAX_QUEUE) throw failure('remote_overflow');
             receiver.sequence += 1;
             receiver.queue.push({ sequence: receiver.sequence, ...typed });
+            traceEvent(receiver, 'received', typed.action);
             if (playlistChange(typed)) {
               this.retirePlaylist(receiver);
               const whole = Object.keys(queueState).length > 0;
@@ -378,6 +390,7 @@ export class Lounge {
     const body = await this.response('POST', '/bc/bind', { params: this.params(receiver), data: { count: '0' }, signal: receiver.abort.signal });
     this.accept(receiver, new Frames().feed(body, true));
     if (!receiver.sid || !receiver.gsid) throw failure();
+    console.error('YouTube phone state: channel ready');
   }
 
   fail(receiver, code) {
@@ -483,13 +496,16 @@ export class Lounge {
       if (payload.action === 'poll') {
         if (!(receiver.ack <= payload.ack && payload.ack <= receiver.delivered)) throw failure('remote_ack', 409);
         receiver.ack = payload.ack;
-        while (receiver.queue.length && receiver.queue[0].sequence <= payload.ack) receiver.queue.shift();
+        while (receiver.queue.length && receiver.queue[0].sequence <= payload.ack)
+          traceEvent(receiver, 'acknowledged', receiver.queue.shift().action);
         const commands = receiver.queue.slice(0, 32);
+        for (const entry of commands) traceEvent(receiver, 'delivered', entry.action);
         if (commands.length) receiver.delivered = Math.max(receiver.delivered, commands.at(-1).sequence);
         return { ...this.status(receiver), commands, ack: receiver.ack };
       }
       try {
         if (payload.action === 'pair') {
+          console.error('YouTube phone state: pairing code requested');
           const info = JSON.parse(new Utf8().feed(await this.response('POST', '/pairing/get_pairing_code', { params: { ctx: 'pair' },
             data: { lounge_token: receiver.token, screen_id: receiver.screen_id, screen_name: receiver.name, access_type: 'permanent',
               app: 'lb-v4', device_id: receiver.device_id, qr: '1' } }), true));
@@ -497,6 +513,7 @@ export class Lounge {
           receiver.code = boundedText(info.code, 12, /^(?:[0-9]{9}|[0-9]{12})$/);
           if (receiver.error) throw failure(receiver.error);
           await this.rebind(receiver);
+          console.error('YouTube phone state: pairing code ready');
           return { ...this.status(receiver), pairing_code: receiver.code };
         }
         if (payload.player === null || payload.update_id <= 0) throw failure('remote_state', 400);

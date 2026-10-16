@@ -11,7 +11,7 @@ for (const [name, browseId] of flatSections) sections.set(name, browseId);
 const likedMusicContinuation = '4qmFsgIWEhRGRW11c2ljX2xpa2VkX3ZpZGVvcw%3D%3D';
 const text = value => typeof value === 'string' ? value.slice(0, 192) :
   String(value?.simpleText ?? value?.runs?.map(run => run.text ?? '').join('') ?? '').replaceAll('\0', '').slice(0, 192);
-function find(node, name, all = false) {
+export function find(node, name, all = false) {
   const matches = [], stack = [[node, 0]];
   let remaining = 100000;
   while (stack.length) {
@@ -118,7 +118,7 @@ export class TopicCatalog {
     const title = text(metadata?.title);
     const image = header?.thumbnail?.thumbnails?.[0]?.url;
     const endpoint = tile.onSelectCommand?.browseEndpoint;
-    if (endpoint && (/^(VL[A-Za-z0-9_-]{10,100}|UC[A-Za-z0-9_-]{22})$/.test(endpoint.browseId ?? '') ||
+    if (endpoint && (/^(VL(?:WL|LL|[A-Za-z0-9_-]{10,100})|UC[A-Za-z0-9_-]{22})$/.test(endpoint.browseId ?? '') ||
         (section === 'movies' && endpoint.browseId === 'FEstorefront')) &&
         (!endpoint.params || (typeof endpoint.params === 'string' && endpoint.params.length <= 4096)))
       return this.folder(owner, section, client, title, image,

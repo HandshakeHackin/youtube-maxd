@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { validCredentials } from './device_auth.mjs';
 import { ChatReader } from './live_chat.mjs';
 import { TopicCatalog } from './topic_catalog.mjs';
+import { TvAccountCatalog } from './tv_account_catalog.mjs';
 import { remotePlaylist } from './remote_playlist.mjs';
 import { playbackNext } from './playback_next.mjs';
 import { channelWindow, channelPage, channelHome, mappedFeed } from './channel_window.mjs';
@@ -196,6 +197,7 @@ export class Library {
     this.account = new AccountActions(LibraryError,clock);
     this.chats = new ChatReader(LibraryError, text, imageUrl, clock);
     this.topics = new TopicCatalog(LibraryError, normalizeVideo, imageUrl, clock);
+    this.tvAccounts = new TvAccountCatalog(LibraryError, normalizeVideo, imageUrl, this.suggestionFilters, clock);
     this.kids = new KidsCatalog(LibraryError, node => normalizeVideo(node), clock);
     this.reminders = new StreamReminders(LibraryError, clock);
     this.playlistOrders = new PlaylistOrders(LibraryError, clock);
@@ -505,7 +507,13 @@ export class Library {
       return entry.result;
     }
     let feed;
-    switch (input.action) {
+    if (profile.oauth && ['home', 'history', 'library', 'playlists', 'subscriptions', 'watch_later', 'playlist'].includes(input.action)) {
+      feed = await this.tvAccounts.browse(owner, input.action, client, input.id ?? '');
+      if (input.action === 'home' && !feed.catalog_items)
+        feed = this.homeCatalog.root(owner, feed, client, true, !flags || flags.has('watched_home'));
+      if (input.action === 'subscriptions' && !feed.catalog_items)
+        extra.video = (node, item) => this.feedback.decorate(owner, node, item);
+    } else switch (input.action) {
       case 'home': feed = this.homeCatalog.root(owner,await client.getHomeFeed(),client,true,!flags || flags.has('watched_home')); break;
       case 'suggestions': {
         const info=await client.getInfo(input.id);

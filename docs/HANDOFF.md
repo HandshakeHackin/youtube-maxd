@@ -4,6 +4,36 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## TV account feeds and overlapping headers (2026-10-15)
+
+Owner `a9ba0c1` replay confirms the real account name and profile switching,
+but Library stays empty, Home recommendations do not appear personalized,
+and casting still fails at an unspecified stage. Screenshot confirms two
+headings overlap on Phone & casting. After owner Close, read-only log
+collection left another running title untouched; no launch or writes occurred.
+The durable service diagnostics show repeated notification_count InnertubeError,
+not a recorded sign-in or Library exception.
+
+The LinkPhone screen draws its own heading while the shared frame also draws
+the route title. Its header policy now suppresses the duplicate; the same
+pattern is fixed for SignIn. A titled-route host render reproduces the old
+clash and confirms the repaired layout. The account-feed investigation
+reproduces zero Home items from a public SmartTube TV response containing
+Tile renderers, which the pinned web-oriented Feed getter does not enumerate.
+Phone state diagnostics are fixed milestones and bounded event names only;
+no device/video identifiers, phone names, codes or tokens are logged.
+
+OAuth account feeds now use the existing bounded TV-card mapper and TV Home
+browse ID, retaining profile-owned pagination and legacy web-shaped handling.
+Validation: 232 real QuickJS account checks, seven authenticated TV/legacy
+shape and ownership regressions, 302 receiver checks in plain and sanitizer
+builds, 263 LinkPhone board checks and the actual embedded log-sink check pass.
+Public SmartTube Home, history and playlist fixtures map to nonempty pages.
+An older undated TV-history wrapper remains unsupported by the legacy parser;
+the owner's exact live response still needs replay. Notification-count errors
+are separate and remain unresolved. Casting has instrumentation, not a newly
+proven protocol fix in this revision.
+
 ## Phone connection and account-list follow-up (2026-10-15)
 
 Production `a9ba0c1` is installed on .30 for owner testing. The console was

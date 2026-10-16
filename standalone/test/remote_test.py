@@ -266,7 +266,17 @@ class Service(base.Service):
         code, errors = self.stop()
         # These cases intentionally request unusable playlist expansion; accept only its safe diagnostic.
         expected = ["YouTube operation failed: stage=execute action=other category=LibraryError"] * {"registration": 1, "expansion": 2}.get(name, 0)
-        same(f"clean shutdown ({name})", (code, errors.strip().splitlines()), (0, expected))
+        stages, events = ("received", "delivered", "acknowledged"), ("remoteConnected", "loungeStatus", "setPlaylist")
+        milestones = ("channel ready", "pairing code requested", "pairing code ready")
+        allowed = {"YouTube phone state: " + text for text in (*milestones, *(f"{stage} {event}" for stage in stages for event in events))}
+        lines = errors.strip().splitlines()
+        phone = [line for line in lines if line in allowed]
+        same(f"clean shutdown ({name})", (code, [line for line in lines if line not in allowed]), (0, expected))
+        if name == "post_pair":
+            from collections import Counter
+            want = ["YouTube phone state: " + text for text in ("channel ready", "channel ready", "pairing code requested", "pairing code requested", "pairing code ready")]
+            want += [f"YouTube phone state: {stage} {event}" for stage in stages for event in events]
+            same("bounded exact phone milestones; retries do not repeat events", Counter(phone), Counter(want))
         same(f"no Lounge secret in any answer ({name})", [body for body in self.seen if "private" in body], [])
         if self.lounge:
             same(f"the wire was as expected ({name})", self.lounge.errors, [])

@@ -75,6 +75,11 @@ class SignIn final : public Screen
         return ScreenId::sign_in;
     }
 
+    Header header() const override
+    {
+        return Header::clock;
+    }
+
     void enter(const Route &route, UpdateContext &context, bool restored) override
     {
         fonts_ = &context.services.fonts;

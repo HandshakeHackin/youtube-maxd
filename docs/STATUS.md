@@ -1,5 +1,9 @@
 # Current implementation status
 
+Owner replay of `a9ba0c1` confirms account naming and profile switching.
+Account Library/Home, casting and the overlapping pairing header still fail;
+TV-feed parsing and header fixes are under validation. See [handoff](HANDOFF.md).
+
 Latest owner replay (`139f8c1`): TV code appears and the phone lists the TV,
 but console connection feedback, returning to Switch profile, and account
 Library access still fail. Follow-up account-cache and receiver-rebind fixes

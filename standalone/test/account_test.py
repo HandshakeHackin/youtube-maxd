@@ -11,6 +11,7 @@ or network is involved. SPDX-License-Identifier: GPL-3.0-or-later
 """
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -190,7 +191,7 @@ def fixtures(extra_index=None, files=None):
         "POST www.youtube.com/o/oauth2/device/code": {"file": write("device.json", {
             "device_code": "device-code-1", "user_code": "ABCD-EFGH", "verification_url": "https://www.google.com/device", "expires_in": 1800, "interval": 5})},
         "POST www.youtube.com/youtubei/v1/browse": [
-            {"header_contains": signed, "body_contains": '"browseId":"FEwhat_to_watch"', "tag": "home", "file": write("a_home.json", grid([
+            {"header_contains": signed, "body_contains": '"browseId":"default"', "tag": "home", "file": write("a_home.json", grid([
                 video("homevideo01", "Recommended one", [feedback_item("NOT_INTERESTED", "private-not-interested"), feedback_item("REMOVE", "private-channel")]),
                 video("homevideo02", "Recommended two")]))},
             {"header_contains": signed, "body_contains": '"browseId":"FEsubscriptions"', "tag": "subscriptions", "file": write("a_subscriptions.json", grid([
@@ -306,7 +307,10 @@ class Service(base.Service):
 
     def finish(self, name):
         code, errors = self.stop()
-        same(f"clean shutdown ({name})", (code, errors.strip()), (0, ""))
+        diagnostic = re.compile(r"YouTube (?:browse shape: action=(?:home|history|library|playlists|subscriptions|watch_later|playlist) tiles=[0-9]+ mode=(?:tv|legacy)|operation failed: stage=(?:execute|device|client|playback|other) action=(?:history|library|playlists|watch_later|playlist|home|subscriptions|channels|notifications|notification_count|start|poll|other) category=(?:TypeError|ReferenceError|SyntaxError|RangeError|InnertubeError|ParsingError|OAuth2Error|SessionError|LibraryError|ServiceError|Error))")
+        unexpected = "\n".join(line for line in errors.splitlines() if not diagnostic.fullmatch(line))
+        same(f"clean shutdown ({name})", (code, unexpected.strip()), (0, ""))
+        same(f"no credentials in diagnostics ({name})", [secret for secret in SECRETS if secret in errors], [])
         leaked = [secret for secret in SECRETS if any(secret in body for body in self.seen)]
         same(f"no credential in any answer ({name})", leaked, [])
 
@@ -751,9 +755,26 @@ def lists_and_changes(binary):
     shutil.rmtree(directory)
 
 
+def tv_lists(binary):
+    raw = json.loads((ROOT.parent / "companion/innertube/fixtures/tv-home-shape.json").read_text())
+    directory = fixtures(files={name: raw for name in ["a_home.json", "a_history.json", "a_ll.json", "a_wl.json"]})
+    s = Service(binary, directory, stored=[profile(1)])
+    try:
+        for action, extra in [("home", {}), ("history", {}), ("playlist", {"id": "LL"}), ("watch_later", {})]:
+            status, page = s.post(action=action, profile=profile(1)["id"], **extra)
+            videos = [row for row in page.get("items", []) if not row.get("is_folder")]
+            same(f"TV {action} cards survive QuickJS", (status, [(row["id"], row["duration_sec"]) for row in videos]),
+                 (200, [("fixtureTV01", 123)]))
+            requests = [row for row in s.upstream() if "v1/browse" in row["key"]]
+            check(f"TV {action} uses the selected account", bool(requests) and all(row["bearer"] for row in requests))
+    finally:
+        s.finish("TV account lists")
+        shutil.rmtree(directory)
+
+
 def main():
     binary = sys.argv[1] if len(sys.argv) > 1 else str(ROOT / "build" / "tube_js")
-    only = sys.argv[2:] or ["sign_in", "sign_in_edges", "storage_failure", "refresh", "lists_and_changes"]
+    only = sys.argv[2:] or ["sign_in", "sign_in_edges", "storage_failure", "refresh", "lists_and_changes", "tv_lists"]
     try:
         for name in only:
             globals()[name](binary)

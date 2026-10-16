@@ -26,6 +26,10 @@ int main(void) {
  const char *safe="YouTube operation failed: stage=execute action=history category=TypeError";
  assert(host_write(NULL,NULL,1,&safe,1)==0);
  assert(strcmp(logged,"service: YouTube operation failed: stage=execute action=history category=TypeError")==0);
+ const char *browse="YouTube browse shape: tiles=2";host_write(NULL,NULL,1,&browse,1);
+ assert(strcmp(logged,"service: YouTube browse shape: tiles=2")==0);
+ const char *phone="YouTube phone state: channel ready";host_write(NULL,NULL,1,&phone,1);
+ assert(strcmp(logged,"service: YouTube phone state: channel ready")==0);
  logged[0]=0;host_write(NULL,NULL,1,&safe,0);assert(!logged[0]);
  const char *private="private exception token";host_write(NULL,NULL,1,&private,1);assert(!logged[0]);
  char large[300];memset(large,'a',sizeof large);memcpy(large,safe,strlen(safe));large[299]=0;

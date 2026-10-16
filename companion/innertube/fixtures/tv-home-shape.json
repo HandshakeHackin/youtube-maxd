@@ -1,0 +1,104 @@
+{
+  "contents": {
+    "tvBrowseRenderer": {
+      "content": {
+        "tvSurfaceContentRenderer": {
+          "content": {
+            "sectionListRenderer": {
+              "contents": [
+                {
+                  "shelfRenderer": {
+                    "content": {
+                      "horizontalListRenderer": {
+                        "items": [
+                          {
+                            "tileRenderer": {
+                              "style": "TILE_STYLE_YTLR_DEFAULT",
+                              "contentType": "TILE_CONTENT_TYPE_VIDEO",
+                              "contentId": "fixtureTV01",
+                              "onSelectCommand": {
+                                "watchEndpoint": {
+                                  "videoId": "fixtureTV01"
+                                }
+                              },
+                              "header": {
+                                "tileHeaderRenderer": {
+                                  "thumbnail": {
+                                    "thumbnails": [
+                                      {
+                                        "url": "https://i.ytimg.com/vi/fixtureTV01/hqdefault.jpg",
+                                        "width": 480,
+                                        "height": 360
+                                      }
+                                    ]
+                                  },
+                                  "thumbnailOverlays": [
+                                    {
+                                      "thumbnailOverlayTimeStatusRenderer": {
+                                        "text": {
+                                          "simpleText": "2:03"
+                                        },
+                                        "style": "DEFAULT"
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              "metadata": {
+                                "tileMetadataRenderer": {
+                                  "title": {
+                                    "simpleText": "Saved account recommendation"
+                                  },
+                                  "lines": [
+                                    {
+                                      "lineRenderer": {
+                                        "items": [
+                                          {
+                                            "lineItemRenderer": {
+                                              "text": {
+                                                "runs": [
+                                                  {
+                                                    "text": "Fixture channel"
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "headerRenderer": {
+                      "shelfHeaderRenderer": {
+                        "avatarLockup": {
+                          "avatarLockupRenderer": {
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "For you"
+                                }
+                              ]
+                            },
+                            "size": "AVATAR_LOCKUP_SIZE_SMALL"
+                          }
+                        }
+                      }
+                    },
+                    "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID_XL"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

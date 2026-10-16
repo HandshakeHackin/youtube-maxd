@@ -69,6 +69,11 @@ class LinkPhone final : public Screen
         return ScreenId::link_phone;
     }
 
+    Header header() const override
+    {
+        return Header::clock;
+    }
+
     void enter(const Route &route, UpdateContext &context, bool restored) override
     {
         fonts_ = &context.services.fonts;
