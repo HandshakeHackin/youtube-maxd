@@ -62,6 +62,12 @@
    ]
   },
   {
+   "source": "A code and an address appear here. Open the address on your phone or computer and enter the code; this screen carries on by itself.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "A code is good for a limited time. A new one starts over.",
    "context": [
     "afterglow"
@@ -104,19 +110,7 @@
    ]
   },
   {
-   "source": "A notice once per start when a newer version exists; the check itself runs once per launch",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "A private playlist on the selected account",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "A quality chosen in the player becomes the maximum for this profile",
    "context": [
     "browser"
    ]
@@ -504,6 +498,12 @@
    ]
   },
   {
+   "source": "An update is available. Open Settings, About to read what is new and update.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Announce a chapter when it starts; R1 skips it",
    "context": [
     "browser"
@@ -602,12 +602,6 @@
   },
   {
    "source": "Ask before stopping",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Ask now for a newer ProsperoTube; About lists the answer",
    "context": [
     "browser"
    ]
@@ -1368,12 +1362,6 @@
    ]
   },
   {
-   "source": "Check for updates",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "Check the chat before composing another message",
    "context": [
     "browser"
@@ -1398,18 +1386,18 @@
    ]
   },
   {
+   "source": "Checking and unpacking",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Checking and unpacking: {0}% - select to cancel",
    "context": [
     "browser"
    ],
    "pattern": true,
    "args": "n"
-  },
-  {
-   "source": "Checking...",
-   "context": [
-    "browser"
-   ]
   },
   {
    "source": "Chile",
@@ -1540,12 +1528,6 @@
   },
   {
    "source": "Choose inactivity duration; expiry pauses playback",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Choose maximum resolution from 144p to 2160p",
    "context": [
     "browser"
    ]
@@ -2108,13 +2090,13 @@
   {
    "source": "Could not reach the built-in service. Check that it is running and the LAN address is correct.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
    "source": "Could not reach the companion. Check that it is running and the LAN address is correct.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -2676,6 +2658,12 @@
    ]
   },
   {
+   "source": "Downloading",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Downloading: {0}% - select to cancel",
    "context": [
     "browser"
@@ -2704,19 +2692,25 @@
    ]
   },
   {
-   "source": "EVO vdec native: VP9 drain ended with pending coded frames",
+   "source": "EVO vdec native",
    "context": [
     "kit"
    ]
   },
   {
-   "source": "EVO vdec native: VP9 output lost coded-frame association",
+   "source": "EVO vdec native: VP9 drain ended with pending visible frames",
    "context": [
     "kit"
    ]
   },
   {
    "source": "EVO vdec native: VP9 pending coded-frame queue full",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "EVO vdec native: VP9 visible completion out of order",
    "context": [
     "kit"
    ]
@@ -3129,12 +3123,6 @@
    ]
   },
   {
-   "source": "Feedback",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "Fill",
    "context": [
     "browser",
@@ -3406,6 +3394,12 @@
    ]
   },
   {
+   "source": "Get a code here, then enter it on your phone or computer",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "Get a new TV code",
    "context": [
     "browser"
@@ -3456,7 +3450,8 @@
   {
    "source": "HDR",
    "context": [
-    "browser"
+    "browser",
+    "toast"
    ]
   },
   {
@@ -3890,30 +3885,6 @@
    "context": [
     "browser"
    ]
-  },
-  {
-   "source": "Installed {0} is the latest version",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
-   "source": "Installed {0}; latest {1} ({2})",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "sss"
-  },
-  {
-   "source": "Installed {0}; the latest version is not known yet",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
   },
   {
    "source": "Interaction reminder",
@@ -4442,12 +4413,6 @@
    ]
   },
   {
-   "source": "Links, feedback, credits and changes",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "List related videos, the queue and the playlist during playback",
    "context": [
     "browser"
@@ -4662,20 +4627,6 @@
   },
   {
    "source": "Marked in this version",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "Maximum quality: {0}p",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "n"
-  },
-  {
-   "source": "Maximum resolution for the next video",
    "context": [
     "browser"
    ]
@@ -5182,6 +5133,12 @@
    ]
   },
   {
+   "source": "No release notes were provided.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "No release was found.",
    "context": [
     "browser"
@@ -5448,12 +5405,6 @@
    "source": "Notifications could not be loaded",
    "context": [
     "afterglow"
-   ]
-  },
-  {
-   "source": "Notify about updates",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -6407,6 +6358,12 @@
    ]
   },
   {
+   "source": "Preparing the update...",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Press Circle again to close ProsperoTube",
    "context": [
     "toast"
@@ -6531,12 +6488,6 @@
    ]
   },
   {
-   "source": "Project links, each with a QR code to open on another device",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "Project page; open the address on another device",
    "context": [
     "browser"
@@ -6562,6 +6513,18 @@
   },
   {
    "source": "ProsperoTube listed no settings for this profile. Accounts and Phone still open.",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "ProsperoTube update",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "ProsperoTube will close when the update is ready. Wait for the update notification before reopening it.",
    "context": [
     "afterglow"
    ]
@@ -6825,12 +6788,6 @@
    ]
   },
   {
-   "source": "Releases and source code",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "Relevance",
    "context": [
     "afterglow",
@@ -6944,12 +6901,6 @@
    "context": [
     "browser",
     "kit"
-   ]
-  },
-  {
-   "source": "Remember chosen quality",
-   "context": [
-    "browser"
    ]
   },
   {
@@ -7364,12 +7315,6 @@
    ],
    "pattern": true,
    "args": "s"
-  },
-  {
-   "source": "Report a problem or ask for a feature",
-   "context": [
-    "browser"
-   ]
   },
   {
    "source": "Requesting YouTube sign-in code",
@@ -8391,13 +8336,13 @@
   {
    "source": "Set the built-in service LAN address in Options first.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
    "source": "Set the companion LAN address in Options first.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9504,7 +9449,7 @@
   {
    "source": "The account change was not confirmed. Check your account before repeating it.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9522,7 +9467,7 @@
   {
    "source": "The authorized profile response was invalid.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9562,7 +9507,7 @@
   {
    "source": "The built-in YouTube service did not answer. Retry.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9646,7 +9591,7 @@
   {
    "source": "The built-in service did not report what it offers. Check that it is running and retry.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9658,7 +9603,7 @@
   {
    "source": "The built-in service does not offer this action. Update it and enable its library worker.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9676,7 +9621,7 @@
   {
    "source": "The built-in service job response was invalid.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9700,7 +9645,7 @@
   {
    "source": "The built-in service request was cancelled or timed out. Retry.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9729,12 +9674,6 @@
   },
   {
    "source": "The catalog signature, hash or sequence could not be verified. No update was accepted.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The changes listed for the installed version",
    "context": [
     "browser"
    ]
@@ -9896,7 +9835,7 @@
   {
    "source": "The companion did not report what it offers. Check that it is running and retry.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9914,7 +9853,7 @@
   {
    "source": "The companion job response was invalid.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9938,7 +9877,7 @@
   {
    "source": "The companion request was cancelled or timed out. Retry.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -9963,6 +9902,12 @@
    "source": "The details response was invalid.",
    "context": [
     "status"
+   ]
+  },
+  {
+   "source": "The display did not accept HDR10 - playing tone-mapped",
+   "context": [
+    "toast"
    ]
   },
   {
@@ -10064,7 +10009,7 @@
   {
    "source": "The paired companion does not offer this action. Update it and enable its library worker.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -10200,7 +10145,7 @@
   {
    "source": "The request was cancelled or could not be completed.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -10270,9 +10215,15 @@
    ]
   },
   {
+   "source": "The sign-in request failed. Start a new session.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "The sign-in response was invalid.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -10318,13 +10269,7 @@
    ]
   },
   {
-   "source": "The update is ready. Select Restart to finish in About.",
-   "context": [
-    "browser"
-   ]
-  },
-  {
-   "source": "The updater is busy. Try again in a moment.",
+   "source": "The updater is busy or this copy cannot update itself.",
    "context": [
     "browser"
    ]
@@ -10386,7 +10331,7 @@
   {
    "source": "This action is not part of the built-in YouTube service yet.",
    "context": [
-    "status"
+    "browser"
    ]
   },
   {
@@ -10532,6 +10477,12 @@
    "source": "This release cannot be installed from here",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "This release cannot be installed from this copy.",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -11112,15 +11063,13 @@
    ]
   },
   {
-   "source": "Up to {0}p",
+   "source": "Upcoming",
    "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "n"
+    "afterglow"
+   ]
   },
   {
-   "source": "Upcoming",
+   "source": "Update now",
    "context": [
     "afterglow"
    ]
@@ -11138,6 +11087,12 @@
    ],
    "pattern": true,
    "args": "s"
+  },
+  {
+   "source": "Updating ProsperoTube",
+   "context": [
+    "afterglow"
+   ]
   },
   {
    "source": "Upload date",
@@ -11267,23 +11222,13 @@
    ]
   },
   {
+   "source": "Version",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
    "source": "Version {0}",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
-   "source": "Version {0} is available. Open Settings, About to read what is new and update.",
-   "context": [
-    "browser"
-   ],
-   "pattern": true,
-   "args": "s"
-  },
-  {
-   "source": "Version {0} is available. Settings, About has the release page.",
    "context": [
     "browser"
    ],
@@ -11297,6 +11242,12 @@
    ],
    "pattern": true,
    "args": "s"
+  },
+  {
+   "source": "Version, author and credits",
+   "context": [
+    "browser"
+   ]
   },
   {
    "source": "Video",
@@ -11714,12 +11665,6 @@
    ]
   },
   {
-   "source": "What changed in this version",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "What is new in {0}",
    "context": [
     "browser"
@@ -11731,6 +11676,12 @@
    "source": "What the (experimental) label on a row means",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "What's new",
+   "context": [
+    "afterglow"
    ]
   },
   {
@@ -12104,6 +12055,12 @@
    ]
   },
   {
+   "source": "YouTube sign-in could not be completed. Start a new session.",
+   "context": [
+    "browser"
+   ]
+  },
+  {
    "source": "YouTube sports shelves",
    "context": [
     "browser"
@@ -12280,7 +12237,25 @@
    ]
   },
   {
+   "source": "expected Media metadata: category 65536, badge 2, no gameIntent",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "in your account's order",
+   "context": [
+    "afterglow"
+   ]
+  },
+  {
+   "source": "invalid VP9 completion identity",
+   "context": [
+    "kit"
+   ]
+  },
+  {
+   "source": "is available.",
    "context": [
     "afterglow"
    ]
@@ -12452,12 +12427,6 @@
    ]
   },
   {
-   "source": "stopped; retry linking",
-   "context": [
-    "browser"
-   ]
-  },
-  {
    "source": "storage unavailable",
    "context": [
     "browser"
@@ -12526,9 +12495,9 @@
    ]
   },
   {
-   "source": "version unknown",
+   "source": "unknown VP9 completion identity",
    "context": [
-    "browser"
+    "kit"
    ]
   },
   {

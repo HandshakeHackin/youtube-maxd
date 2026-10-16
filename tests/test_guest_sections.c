@@ -39,6 +39,19 @@ int main(void) {
     assert(!strcmp(last_items[2].id,"discover") && !strcmp(last_items[3].id,"library") && !strcmp(last_items[3].title,"Accounts & library"));
     for(int i=0;i<4;++i)assert(last_items[i].is_folder);
     show(last_items[2].id);assert(find("Trending")>=0);show("library");assert(find("Sign in to YouTube")>=0 && !strcmp(row,"auth:start"));
+    /* A tester took a while to find signing in (Discover > Accounts & library, last row). A Guest finds it on the
+     * main menu beside the preferences, first in Accounts & library and first in the account settings, where
+     * Afterglow opens its sign-in screen from it; each says what happens. An account profile is not asked. */
+    show("");{const int at=find("Sign in to YouTube");
+        assert(at>=0 && at<8 && !strcmp(row,"auth:start") && !strcmp(last_items[at+1].id,"settings") && strstr(last_items[at].subtitle,"phone or computer"));}
+    show("library");assert(find("Sign in to YouTube")==1 && !strcmp(row,"auth:start") && strstr(last_items[1].subtitle,"enter it on your phone or computer"));
+    for(int i=2;i<last_count;++i)assert(strcmp(last_items[i].id,"auth:start"));
+    show("settings:accounts");assert(!strcmp(last_items[0].id,"auth:start") && !strcmp(last_items[0].title,"Sign in to YouTube"));
+    assert(!strcmp(tube_row_fact_get("auth:start","kind"),"link") && !strcmp(tube_row_fact_get("auth:start","screen"),"sign_in"));
+    show("library:profile:fixture");show("");assert(find("Sign in to YouTube")<0);
+    show("settings:accounts");assert(strcmp(last_items[0].id,"auth:start"));
+    show("library");assert(find("Sign in to YouTube")>1);
+    show("library:profile:guest");
     /* Recommendations, when YouTube sends them, are listed as before. */
     p->list_catalog("library:home",0,items_cb,NULL);poll_job(videos);
     assert(last_ok && last_count==1 && last_more && !strcmp(last_items[0].id,"abcdefghijk"));

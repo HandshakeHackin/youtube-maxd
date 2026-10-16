@@ -64,8 +64,12 @@ boards = [
     board("settings-phone-link", steps=P("down", "down", "cross") + W(0.7), expect={"screen": "link_phone"}),
     board("settings-accounts", argument="tile:accounts", expect={"focus": "row/link", "state": {"rows": "4", "kind": "link"}, "asked": ["settings:accounts"]}),
     board("settings-accounts-link", argument="tile:accounts", steps=P("cross") + W(0.7), expect={"screen": "accounts"}),
-    board("settings-accounts-guest", fixture="guest", argument="tile:accounts", steps=P("down", "down", "down"),
-          expect={"focus": "row/account:notice", "state": {"rows": "4", "kind": "info"}}),
+    board("settings-accounts-guest", fixture="guest", argument="tile:accounts", steps=P("down", "down", "down", "down"),
+          expect={"focus": "row/account:notice", "state": {"rows": "5", "kind": "info"}}),
+    # A Guest finds signing in first on the Accounts page, and it opens the sign-in screen.
+    board("settings-accounts-guest-sign-in", fixture="guest", argument="tile:accounts",
+          expect={"focus": "row/auth:start", "state": {"rows": "5", "kind": "link"}, "asked": ["settings:accounts"]}),
+    board("settings-accounts-guest-sign-in-open", fixture="guest", argument="tile:accounts", steps=P("cross") + W(0.7), expect={"screen": "sign_in"}),
     # ---- the form (board 32) ----
     board("settings-captions", argument=CAPTIONS, steps=DOWN5,
           expect={"focus": "row/subtitle-size", "state": {"kind": "slider", "value": "120 %", "preview": "captions", "defaults": "1", "rows": "8"}}),
@@ -100,6 +104,12 @@ boards = [
 
     board("settings-country-more", argument="settings:content-country", title="Content & language" + SEP + "Content country",
           steps=P("r2", "r2", "r2") + W(0.5) + P("r2", "r2", "r2") + W(0.5), expect={"focus": "row/content-country:MA", "state": {"rows": "48", "scroll": "2872"}}),
+    # A change on the second part of a long list: the row keeps the focus and the page its scroll while the list is read again.
+    board("settings-buttons-more", argument="settings:extra:buttons", title="Player" + SEP + "Player buttons", steps=P("r2") + W(0.5) + P("r2") + W(0.5),
+          expect={"focus": "row/button-next", "state": {"rows": "21", "scroll": "664"}}),
+    board("settings-buttons-changed", argument="settings:extra:buttons", title="Player" + SEP + "Player buttons",
+          steps=P("r2") + W(0.5) + P("r2") + W(0.5) + P("cross") + W(1.2),
+          expect={"focus": "row/button-next", "moving": 0, "state": {"rows": "21", "scroll": "664", "applied": "1", "waiting": "0"}, "asked": ["settings:button-next"]}),
     board("settings-languages-long", fixture="long-texts", argument="settings:languages", title="Untertitel" + SEP + "Sprache der Untertitel", steps=P("down"),
           expect={"focus": "row/lang:nl-BE", "state": {"rows": "4"}}),
     # ---- the previews ----

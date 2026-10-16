@@ -278,6 +278,10 @@ void Settings::read(Data &data)
             mark = mark_of(next.rows, mark);
             more = next.more;
         }
+        // A list read again (after a change) keeps what it shows until every part asked for is here again:
+        // a row on a later part keeps the focus and the page its scroll, instead of the first part alone standing in.
+        if (arrived < source.pages && more && source.load == model::Load::ready && !source.rows.empty())
+            continue;
         if (mark == source.mark && source.load == model::Load::ready)
         {
             source.more = more;
@@ -411,7 +415,9 @@ void Settings::rebuild()
             link.detail = tr(tile.link_detail);
             link.value = tile_summary(tile, main);
             link.kind = Kind::link;
-            items_.insert(items_.begin(), std::move(link));
+            // A Guest's "Sign in to YouTube" stays first; the tile's own screen follows it.
+            const bool sign_in_first = items_.front().row.id == "auth:start";
+            items_.insert(items_.begin() + (sign_in_first ? 1 : 0), std::move(link));
         }
     }
     else

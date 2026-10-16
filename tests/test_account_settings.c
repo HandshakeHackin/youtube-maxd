@@ -80,8 +80,9 @@ int main(void) {
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
     /* A new installation shares one settings set between all profiles. */
-    show("settings:accounts");assert(last_count==2 && !strcmp(last_items[0].id,"settings:separate-settings") && !strcmp(last_items[0].title,"Separate settings per account: off"));
-    assert(!strcmp(last_items[1].title,"Password protection (experimental)") && find("settings:lock:set")<0); /* Guest has no account to protect */
+    show("settings:accounts");assert(last_count==3 && !strcmp(last_items[0].id,"auth:start")); /* Guest: Sign in to YouTube first */
+    assert(!strcmp(last_items[1].id,"settings:separate-settings") && !strcmp(last_items[1].title,"Separate settings per account: off"));
+    assert(!strcmp(last_items[2].title,"Password protection (experimental)") && find("settings:lock:set")<0); /* Guest has no account to protect */
     show("settings:quality:720");assert(tube_player_set_hide_seconds(7) && tube_extra_set_volume(150) && tube_set_playback_speed(125));
     show("settings:hide:mixes");show("settings:content-language:de");
     assert(separate()==0 && height_of("*")==720 && height_of("guest")==-1);
