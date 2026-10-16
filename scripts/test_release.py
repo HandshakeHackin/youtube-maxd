@@ -64,18 +64,37 @@ copy_zip = 'cp "${work}/output/app/PPSA99142.zip" "${destination}/"'
 assert build.index(normalize) < build.index(copy_zip)
 assert "-name '*.zip'" not in build
 
+workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
+assert [path.name for path in workflows] == ["build-cache.yml", "build.yml"]
+for path in workflows:
+    text = path.read_text()
+    # Every workflow carries the licence header: project line, copyright, SPDX.
+    assert text.startswith("# ProsperoTube - "), path.name
+    assert "# Copyright (C) 2026 BlackBearReloaded\n# SPDX-License-Identifier: GPL-3.0-or-later\n" in text, path.name
+    uses = re.findall(r"uses: (\S+)", text)
+    assert all(re.fullmatch(r"actions/[a-z-]+(/[a-z-]+)?@[0-9a-f]{40}", action) for action in uses), uses
+    assert "secrets." not in text   # nothing but the run's own token
+    assert "ffpfsc" not in text     # no image files from CI
+
 workflow = (ROOT / ".github/workflows/build.yml").read_text()
 trigger = workflow[workflow.index("\non:\n"):workflow.index("\npermissions:")]
 # Pushes build nothing but version tags; pull requests and a manual run build.
-# Pull request builds stay off until a manual run has filled the toolchain caches.
-assert "branches" not in trigger and "pull_request:" not in trigger and "workflow_dispatch:" in trigger
+assert "branches" not in trigger and "pull_request:" in trigger and "workflow_dispatch:" in trigger
 assert re.findall(r'^\s+- "(.+)"$', trigger, re.M) == ["v[0-9][0-9].[0-9][0-9][0-9].[0-9][0-9][0-9]"]
-assert "schedule" not in trigger
-uses = re.findall(r"uses: (\S+)", workflow)
-assert uses and all(re.fullmatch(r"actions/[a-z-]+@[0-9a-f]{40}", action) for action in uses), uses
+assert "schedule" not in trigger and "snapshot:" in trigger
 assert "clang-tidy is a local check" in workflow and "tidy" not in workflow.replace("clang-tidy is a local check", "")
-assert "--prerelease" in workflow and "--verify-tag" in workflow and "--clobber" not in workflow and "delete-asset" not in workflow
+assert "--prerelease" in workflow and "--verify-tag" in workflow
+# The build never writes to a release that already has files; build-cache.yml replaces snapshots.
+assert "--clobber" not in workflow and "delete-asset" not in workflow and "gh release upload build-cache" not in workflow
 assert "zip_open_modes.py" in workflow and "make verify" in workflow and "make zip" in workflow
-assert "secrets." not in workflow   # nothing but the run's own token
-assert "ffpfsc" not in workflow     # no image files from CI
+assert '--label "$BUILD_LABEL"' in workflow and 'artifact=${GITHUB_REPOSITORY##*/}-PR$PR_NUMBER-$short' in workflow
+attest = workflow[workflow.index("- name: Attest the release ZIP"):]
+assert attest.startswith("- name: Attest the release ZIP\n        if: github.event_name != 'pull_request' && !github.event.repository.private\n"
+                         "        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2\n")
+assert workflow.index("- name: Label and check the release ZIP") < workflow.index("- name: Attest the release ZIP") < workflow.index("- name: Upload build")
+assert "id-token: write" in workflow and "attestations: write" in workflow
+for snapshot in ("ccache-snapshot", "shader-compiler-snapshot"):
+    assert f"name: {snapshot}\n" in workflow
+cache = (ROOT / ".github/workflows/build-cache.yml").read_text()
+assert "workflow_run:" in cache and 'workflows: ["Build"]' in cache and cache.count("--clobber") == 2
 print(f"PASS: release {title} {content} ({version}): tag, notes, ZIP entries 0777, workflow triggers and pinned actions")

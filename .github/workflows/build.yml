@@ -1,18 +1,30 @@
-# ProsperoTube application build and release.
+# ProsperoTube - Check, build and release the app.
+#
+# Pull requests, version tags (v + the content version) and runs started by
+# hand build; a push to a branch builds nothing. Job "shader-compiler" makes
+# the PS5 shader compiler available first and caches it the moment it exists,
+# so a later failure never repeats its hours of compiling. Jobs "build" (the
+# release ZIP) and "checks" (the offline host checks) then run side by side.
+# A tag also publishes: job "release" attaches the ZIP job "build" made, with
+# its checksum, to a GitHub pre-release. A release that already has a ZIP is
+# never changed.
 # Copyright (C) 2026 BlackBearReloaded
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Build
 
 on:
-  # A build on a branch is started by hand (Run workflow): pushes build nothing.
-  # A version tag builds and publishes a pre-release. Pull request builds stay
-  # off until the first manual run has filled the toolchain caches: that run
-  # compiles the shader compiler, dav1d and FFmpeg and takes hours.
+  # A build on main is started by hand (Run workflow): pushes to main build nothing.
   push:
     tags:
       - "v[0-9][0-9].[0-9][0-9][0-9].[0-9][0-9][0-9]"
+  pull_request:
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: "Also hand over this run's caches as the build-cache snapshots (run it on main)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,12 +34,118 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Check and build the release ZIP
+  shader-compiler:
+    name: PS5 shader compiler
     runs-on: ubuntu-24.04
-    # The first run with new pins compiles the PS5 shader compiler (LLVM), FFmpeg
-    # and dav1d; later runs take them from the caches below.
+    # Compiling it (LLVM, LLPC, PAL) takes hours on a hosted runner; it happens
+    # only when its pins change and no cache or snapshot holds it.
     timeout-minutes: 330
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      # The compiler is made from the pins in its recipe and a patch from EVO.
+      - name: Name the compiler
+        id: key
+        run: |
+          evo=$(git rev-parse HEAD:third_party/evo)
+          recipe=$(sha256sum scripts/build_ps5_shader_compiler.sh | cut -c 1-16)
+          echo "key=shader-compiler-$RUNNER_OS-$RUNNER_ARCH-$evo-$recipe" >> "$GITHUB_OUTPUT"
+
+      # Only the compiler and its library are kept (about 130 MB), not its sources
+      # and build tree (several GB).
+      - name: Restore the PS5 shader compiler
+        id: restore
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/shader-tools/bin
+            ~/.cache/prosperotube/shader-tools/lib
+            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
+          key: ${{ steps.key.outputs.key }}
+
+      # GitHub drops a cache nobody used for a week, and a pull request only sees main's.
+      # When nothing was restored, take the snapshot kept as a file of the build-cache
+      # release, if it is this same compiler.
+      - name: Fetch the compiler snapshot
+        id: snapshot
+        if: steps.restore.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ steps.key.outputs.key }}
+        run: |
+          tools=~/.cache/prosperotube/shader-tools
+          if gh release download build-cache --repo "$GITHUB_REPOSITORY" --pattern shader-compiler.tar.zst --dir "$RUNNER_TEMP" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/shader-snapshot"
+            tar -I zstd -xf "$RUNNER_TEMP/shader-compiler.tar.zst" -C "$RUNNER_TEMP/shader-snapshot"
+            if [ "$(cat "$RUNNER_TEMP/shader-snapshot/.ci-key")" = "$KEY" ]; then
+              mkdir -p "$tools"
+              cp -a "$RUNNER_TEMP/shader-snapshot/bin" "$RUNNER_TEMP/shader-snapshot/lib" \
+                "$RUNNER_TEMP/shader-snapshot/.prosperotube-recipe" "$tools/"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "::notice title=Shader compiler::Taken from the build-cache snapshot."
+            else
+              echo "The snapshot holds another compiler; building this one."
+            fi
+          fi
+
+      - name: Make room for the compiler build
+        if: steps.restore.outputs.cache-hit != 'true' && steps.snapshot.outputs.found != 'true'
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Install the toolchain
+        if: steps.restore.outputs.cache-hit != 'true' && steps.snapshot.outputs.found != 'true'
+        run: make host-deps
+
+      - name: Build the PS5 shader compiler
+        if: steps.restore.outputs.cache-hit != 'true' && steps.snapshot.outputs.found != 'true'
+        run: |
+          export PATH="/usr/lib/llvm-18/bin:$PATH"
+          PROSPEROTUBE_SHADER_JOBS=$(nproc) bash scripts/build_ps5_shader_compiler.sh
+
+      # Saved now, not at the end of the run: the next run starts from here even
+      # when a later job fails.
+      - name: Save the PS5 shader compiler
+        if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/shader-tools/bin
+            ~/.cache/prosperotube/shader-tools/lib
+            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Pack the compiler snapshot
+        if: github.event_name == 'workflow_dispatch' && inputs.snapshot
+        env:
+          KEY: ${{ steps.key.outputs.key }}
+        run: |
+          tools=~/.cache/prosperotube/shader-tools
+          printf '%s\n' "$KEY" > "$tools/.ci-key"
+          tar -I 'zstd -19 -T0' -cf "$RUNNER_TEMP/shader-compiler.tar.zst" -C "$tools" bin lib .prosperotube-recipe .ci-key
+
+      - name: Upload the compiler snapshot
+        if: github.event_name == 'workflow_dispatch' && inputs.snapshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shader-compiler-snapshot
+          path: ${{ runner.temp }}/shader-compiler.tar.zst
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  build:
+    name: Build the release ZIP
+    needs: shader-compiler
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
     # The two write entries are for the attestation step only: a signing identity for this run,
     # and storing the attestation. A pull request from a fork gets neither, whatever is asked.
     permissions:
@@ -36,7 +154,9 @@ jobs:
       attestations: write
     env:
       CCACHE_DIR: ${{ github.workspace }}/.deps/ccache
-      CCACHE_MAXSIZE: 500M
+      CCACHE_MAXSIZE: 1G
+    outputs:
+      artifact: ${{ steps.label.outputs.artifact }}
 
     steps:
       - name: Check out source
@@ -58,7 +178,7 @@ jobs:
             echo "The release tag must be v + the content version in scripts/prepare_native.py: v$content_version" >&2
             exit 2
           fi
-          # A tag needs its notes before an hour of building, not after.
+          # A tag needs its notes before the build, not after.
           python3 scripts/release_version.py --notes > /dev/null
           {
             echo "TITLE_ID=$title_id"
@@ -68,7 +188,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       # A pull request's build is named by its number and its own commit, on the
-      # artifact and inside the app folder; the version stays the release's.
+      # artifact and inside the app folder (build-label.txt); the version stays the release's.
       - name: Name this build
         id: label
         shell: bash
@@ -81,8 +201,18 @@ jobs:
             echo "artifact=${GITHUB_REPOSITORY##*/}-PR$PR_NUMBER-$short" >> "$GITHUB_OUTPUT"
             echo "BUILD_LABEL=PR $PR_NUMBER, $short" >> "$GITHUB_ENV"
           else
-            echo "artifact=prosperotube-release-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "artifact=${GITHUB_REPOSITORY##*/}-$CONTENT_VERSION-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Restore the PS5 shader compiler
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/shader-tools/bin
+            ~/.cache/prosperotube/shader-tools/lib
+            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
+          key: ${{ needs.shader-compiler.outputs.key }}
+          fail-on-cache-miss: true
 
       # The SDK prefix also receives the PS5 builds of dav1d and FFmpeg
       # (scripts/build_ps5.sh), so the key names everything they are built from.
@@ -92,28 +222,55 @@ jobs:
           path: ~/.cache/prosperotube/sdk
           key: sdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/bootstrap_sdk.sh', 'scripts/build_ps5.sh', 'scripts/patch_ffmpeg_dash_seek.py', 'scripts/patch_ffmpeg_hls_dvr.py', 'scripts/ffmpeg_hls_dvr.inc') }}
 
-      # Only the compiler and its library are kept (about 130 MB); its sources and
-      # build tree (several GB) are removed once it has passed its own check.
-      - name: Restore the PS5 shader compiler
-        id: shader
+      - name: Restore Node and the npm downloads
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
-            ~/.cache/prosperotube/shader-tools/bin
-            ~/.cache/prosperotube/shader-tools/lib
-            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
-          key: shader-compiler-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/build_ps5_shader_compiler.sh') }}
+            ~/.cache/prosperotube/node
+            ~/.npm
+          key: node-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/bootstrap_build_deps.sh', 'companion/innertube/package-lock.json') }}
+
+      # The Lapy helper's sources and SDK, the UI kit, QuickJS and the root certificates,
+      # each fetched at a pinned revision or checksum.
+      - name: Restore the pinned downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .deps/lapy
+            .deps/ui-kit
+            standalone/ps5/.cache
+          key: downloads-${{ runner.os }}-${{ hashFiles('scripts/build_lapy_helper.py', 'scripts/ui_kit.py', 'scripts/ui_kit.lock.json', 'standalone/ps5/fetch_quickjs.sh', 'standalone/ps5/fetch_cacert.sh') }}
 
       - name: Restore compiler cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .deps/ccache
-          key: ccache-${{ runner.os }}-${{ runner.arch }}-clang18-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-ps5-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ccache-${{ runner.os }}-${{ runner.arch }}-clang18-
+            ccache-${{ runner.os }}-${{ runner.arch }}-ps5-
 
-      - name: Run the offline checks
-        run: make test
+      # GitHub drops a cache nobody used for a week, and a pull request only sees main's. When
+      # nothing was restored, start from the snapshot kept as a file of the build-cache release;
+      # a manual run with "snapshot" ticked hands over a new one.
+      - name: Fetch the compiler cache snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(ls -A "$CCACHE_DIR" 2>/dev/null)" ]; then
+            if gh release download build-cache --repo "$GITHUB_REPOSITORY" --pattern ccache-ps5.tar --dir "$RUNNER_TEMP" 2>/dev/null; then
+              mkdir -p "$CCACHE_DIR"
+              tar -xf "$RUNNER_TEMP/ccache-ps5.tar" -C "$CCACHE_DIR"
+              rm "$RUNNER_TEMP/ccache-ps5.tar"
+              echo "::notice title=Compiler cache::Started from the build-cache snapshot."
+            fi
+          fi
+
+      # EVO's build scripts send every PS5 compile through ccache when it is installed
+      # (EVO_NO_CCACHE=1 would turn that off).
+      - name: Send the compilers through the cache
+        run: |
+          echo "USE_CCACHE=1" >> "$GITHUB_ENV"
+          ccache --zero-stats
 
       - name: Build the app
         run: make zip
@@ -122,20 +279,54 @@ jobs:
         if: always()
         run: ccache --show-stats || true
 
-      - name: Verify and archive the release
+      # ccache compresses what it stores, so the snapshot is a plain tar.
+      - name: Pack the compiler cache snapshot
+        if: github.event_name == 'workflow_dispatch' && inputs.snapshot
+        run: tar -cf "$RUNNER_TEMP/ccache-ps5.tar" -C "$CCACHE_DIR" .
+
+      - name: Upload the compiler cache snapshot
+        if: github.event_name == 'workflow_dispatch' && inputs.snapshot
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ccache-snapshot
+          path: ${{ runner.temp }}/ccache-ps5.tar
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      # The console only starts an app whose files are open to all, and some tools
+      # keep a ZIP's permissions when unpacking: every entry is stored as 0777.
+      - name: Label and check the release ZIP
         shell: bash
         run: |
           set -euo pipefail
-          cd dist
-          test -f "$TITLE_ID.zip"
-          # The console only starts an app whose files are open to all, and some tools
-          # keep a ZIP's permissions when unpacking: every entry is stored as 0777.
           if [[ -n "${BUILD_LABEL:-}" ]]; then
-            python3 ../scripts/zip_open_modes.py "$TITLE_ID.zip" --label "$BUILD_LABEL"
+            python3 scripts/zip_open_modes.py "dist/$TITLE_ID.zip" --label "$BUILD_LABEL"
           else
-            python3 ../scripts/zip_open_modes.py "$TITLE_ID.zip"
+            python3 scripts/zip_open_modes.py "dist/$TITLE_ID.zip"
           fi
-          cd ..
+          python3 - "dist/$TITLE_ID.zip" "$TITLE_ID" "$CONTENT_VERSION" <<'PY'
+          import json, sys, zipfile
+          path, title, version = sys.argv[1:4]
+          with zipfile.ZipFile(path) as archive:
+              entries = archive.infolist()
+              wrong = [i.filename for i in entries if (i.external_attr >> 16) & 0o777 != 0o777]
+              if not entries or wrong or archive.testzip() is not None:
+                  raise SystemExit(f"ZIP check failed: {len(entries)} entries, not 0777: {wrong[:5]}")
+              names = {i.filename for i in entries}
+              outside = [n for n in names if not n.startswith(title + "/")]
+              if outside:
+                  raise SystemExit(f"ZIP check failed: entries outside {title}/: {outside[:5]}")
+              for needed in ("eboot.bin", "sce_sys/param.json", "sce_sys/icon0.png", "sce_sys/pic0.dds",
+                             "sce_sys/pic1.dds", "sce_sys/snd0.at9", "sce_module/libc.prx", "lapy.elf",
+                             "lapy-manifest.json", "self-updater.elf"):
+                  if f"{title}/{needed}" not in names:
+                      raise SystemExit(f"ZIP check failed: {title}/{needed} is missing")
+              param = json.loads(archive.read(f"{title}/sce_sys/param.json"))
+              if param["titleId"] != title or param["contentVersion"] != version:
+                  raise SystemExit("ZIP check failed: param.json is not this title at this version")
+              print(f"{len(entries)} entries, all stored as 0777; {title} {version}")
+          PY
           make verify
           cat dist/SHA256SUMS
 
@@ -159,6 +350,66 @@ jobs:
           compression-level: 0
           retention-days: 14
 
+  checks:
+    name: Offline checks
+    needs: shader-compiler
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      # clang-tidy is a local check; it is not installed or run here.
+      - name: Install the toolchain
+        run: make host-deps
+
+      - name: Restore the PS5 shader compiler
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/shader-tools/bin
+            ~/.cache/prosperotube/shader-tools/lib
+            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
+          key: ${{ needs.shader-compiler.outputs.key }}
+          fail-on-cache-miss: true
+
+      # Read only: job "build" alone saves the SDK, after adding dav1d and FFmpeg to it.
+      # Without that cache (a first run) the checks fetch the SDK themselves.
+      - name: Read the EVO pin
+        run: echo "EVO_PIN=$(git rev-parse HEAD:third_party/evo)" >> "$GITHUB_ENV"
+
+      - name: Restore the PS5 SDK
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/prosperotube/sdk
+          key: sdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/bootstrap_sdk.sh', 'scripts/build_ps5.sh', 'scripts/patch_ffmpeg_dash_seek.py', 'scripts/patch_ffmpeg_hls_dvr.py', 'scripts/ffmpeg_hls_dvr.inc') }}
+
+      - name: Restore Node, npm and pip downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/node
+            ~/.npm
+            ~/.cache/pip
+          key: checks-node-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/bootstrap_build_deps.sh', 'companion/innertube/package-lock.json', 'companion/requirements.lock') }}
+
+      # The text engine's libraries and RmlUi for the host checks, built from pinned releases.
+      - name: Restore the host check libraries
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/prosperotube/text-deps
+            ~/.cache/prosperotube/rmlui
+            .deps/ui-kit
+            standalone/ps5/.cache
+          key: checks-libraries-${{ runner.os }}-${{ hashFiles('scripts/text_deps.sh', 'scripts/rmlui_host.sh', 'scripts/ui_kit.py', 'scripts/ui_kit.lock.json', 'standalone/ps5/fetch_quickjs.sh', 'standalone/ps5/fetch_cacert.sh') }}
+
+      - name: Run the offline checks
+        run: make test
+
       - name: Upload the check logs
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -171,7 +422,7 @@ jobs:
   release:
     name: GitHub pre-release
     if: github.ref_type == 'tag'
-    needs: build
+    needs: [build, checks]
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -191,10 +442,11 @@ jobs:
       - name: Download the verified build
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT: ${{ needs.build.outputs.artifact }}
         run: >-
           gh run download "$GITHUB_RUN_ID"
           --repo "$GITHUB_REPOSITORY"
-          --name "prosperotube-release-$GITHUB_SHA"
+          --name "$ARTIFACT"
           --dir release
 
       - name: Verify the release files
@@ -203,6 +455,7 @@ jobs:
           set -euo pipefail
           cd release
           test "$(find . -type f | wc -l)" -eq 2
+          test -f PPSA99142.zip
           sha256sum --check --strict SHA256SUMS
 
       - name: Prepare the release notes
