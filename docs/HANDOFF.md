@@ -20,6 +20,11 @@ shader compiler validation and final ZIP verification/checksum generation.
 Four focused regressions cover Make dependency ordering/failure, package
 validation, explicit host installation and fresh/cached dependency bootstrap.
 Release checks pass. No clean-machine Ubuntu/CI run or console test is claimed.
+Candidate `0235923` is built through `make zip`, ZIP CRC/identity/modes verified,
+all 185 packaged files match, and the title folder is frozen. Evidence:
+`publication-0235923-package.json`, `build-publication-0235923.log`.
+ZIP SHA-256: `967574fa9db1aaf81ff6baa8493990da7b9911bbb833d642955f4fbf79782afd`.
+No deployment or public release was performed.
 
 ## Owner repeated-cast replay (2026-10-16)
 
