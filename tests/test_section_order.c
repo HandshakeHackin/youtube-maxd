@@ -30,7 +30,8 @@ static int pins(const char *profile) {
     cJSON_ArrayForEach(entry,cJSON_GetObjectItem(store,"pinned_sections"))if(!strcmp(cJSON_GetObjectItem(entry,"profile")->valuestring,profile))++count;
     cJSON_Delete(store);return count;
 }
-#define ROOT_TAIL "settings app:settings app:exit "
+#define ROOT_TAIL "auth:start settings app:settings app:exit "  /* Guest: Sign in to YouTube beside the preferences */
+#define ACCOUNT_TAIL "settings app:settings app:exit "
 #define CHANNEL_A "channel:UCaaaaaaaaaaaaaaaaaaaaaa"
 int main(void) {
     char dir[]="/tmp/tube-section-order-XXXXXX",parent[80],id[160];tube_playlist_prompt_t prompt;
@@ -80,11 +81,11 @@ int main(void) {
     assert(cJSON_GetArraySize(sections)==22 && !strcmp(cJSON_GetObjectItem(cJSON_GetArrayItem(sections,0),"id")->valuestring,"history"));
     assert(cJSON_IsFalse(cJSON_GetObjectItem(cJSON_GetArrayItem(sections,0),"hidden")));cJSON_Delete(store);
     show("library:profile:alice");
-    assert(!strcmp(order(""),"discover history favorites queue subscriptions " ROOT_TAIL));
+    assert(!strcmp(order(""),"discover history favorites queue subscriptions " ACCOUNT_TAIL));
     assert(!strncmp(order("discover"),"library:home library search:science ",36) && last_count==15);
-    show("settings:section:4:toggle");assert(!strcmp(order(""),"discover history favorites subscriptions " ROOT_TAIL));
+    show("settings:section:4:toggle");assert(!strcmp(order(""),"discover history favorites subscriptions " ACCOUNT_TAIL));
     p->shutdown();assert(!p->init());
-    assert(!strcmp(order(""),"discover history favorites subscriptions " ROOT_TAIL));
+    assert(!strcmp(order(""),"discover history favorites subscriptions " ACCOUNT_TAIL));
     show("library:profile:guest");assert(!strcmp(order(""),"history search-history discover subscriptions queue " ROOT_TAIL));
     assert(!strncmp(order("discover"),"search:science library search:technology ",41) && last_count==14);
     /* Pin a channel from its menu: the title comes from the folder the menu was opened on. */
@@ -132,7 +133,7 @@ int main(void) {
     for(unsigned i=0;i<sizeof invalid/sizeof *invalid;++i)refused(invalid[i]);
     assert(pins("guest")==3);
     /* Pins belong to the profile; each profile holds at most 24. */
-    show("library:profile:alice");assert(at(CHANNEL_A)<0 && !strcmp(order(""),"discover history favorites subscriptions " ROOT_TAIL));
+    show("library:profile:alice");assert(at(CHANNEL_A)<0 && !strcmp(order(""),"discover history favorites subscriptions " ACCOUNT_TAIL));
     refused("settings:pin:renamed");
     show("settings:pin:add:" CHANNEL_A);assert(!strcmp(last_items[0].title,"Pinned: UCaaaaaaaaaaaaaaaaaaaaaa")); /* guest's noted title is not reused */
     for(int i=1;i<24;++i){snprintf(id,sizeof id,"settings:pin:add:channel:UC%022d",i);show(id);}
@@ -170,7 +171,7 @@ int main(void) {
     p->shutdown();store=read_store();cJSON_DeleteItemFromObject(store,"pinned_sections");
     cJSON *entry;cJSON_ArrayForEach(entry,cJSON_GetObjectItem(store,"profile_settings"))cJSON_DeleteItemFromObject(entry,"sections");
     write_store(store);cJSON_Delete(store);assert(!p->init());
-    assert(!strcmp(order(""),"discover history favorites queue subscriptions " ROOT_TAIL) && !pins("alice"));
+    assert(!strcmp(order(""),"discover history favorites queue subscriptions " ACCOUNT_TAIL) && !pins("alice"));
     show("library:profile:guest");assert(!strcmp(order(""),"discover search-history history favorites queue subscriptions " ROOT_TAIL));
     /* A source change returns to Guest and retires a noted folder. */
     assert(!*tube_folder_menu("library:playlist:PLfixture03","Noted list"));

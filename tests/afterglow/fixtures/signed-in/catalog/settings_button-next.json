@@ -1,0 +1,19 @@
+{
+ "items": [
+  {"id": "settings:button-like", "is_folder": true, "interface": true, "title": "Like: On", "subtitle": "Shown among the options in the player", "label": "Like", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-dislike", "is_folder": true, "interface": true, "title": "Dislike: On", "subtitle": "Shown among the options in the player", "label": "Dislike", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-subscribe", "is_folder": true, "interface": true, "title": "Subscribe: On", "subtitle": "Shown among the options in the player", "label": "Subscribe", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-playlist", "is_folder": true, "interface": true, "title": "Add to playlist: On", "subtitle": "Shown among the options in the player", "label": "Add to playlist", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-queue", "is_folder": true, "interface": true, "title": "Playback queue: On", "subtitle": "Shown among the options in the player", "label": "Playback queue", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-channel", "is_folder": true, "interface": true, "title": "Open channel: On", "subtitle": "Shown among the options in the player", "label": "Open channel", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-search", "is_folder": true, "interface": true, "title": "Search: On", "subtitle": "Shown among the options in the player", "label": "Search", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-description", "is_folder": true, "interface": true, "title": "Description: On", "subtitle": "Shown among the options in the player", "label": "Description", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-share", "is_folder": true, "interface": true, "title": "Share link: Off", "subtitle": "Shown among the options in the player", "label": "Share link", "kind": "switch", "value": "Off", "on": false, "section": "Player buttons"},
+  {"id": "settings:button-sponsorblock", "is_folder": true, "interface": true, "title": "SponsorBlock: On", "subtitle": "Shown among the options in the player", "label": "SponsorBlock", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-chat", "is_folder": true, "interface": true, "title": "Live chat: On", "subtitle": "Shown among the options in the player", "label": "Live chat", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-screen-off", "is_folder": true, "interface": true, "title": "Screen off: On", "subtitle": "Shown among the options in the player", "label": "Screen off", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-sound", "is_folder": true, "interface": true, "title": "Mute and volume: On", "subtitle": "Shown among the options in the player", "label": "Mute and volume", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-speed", "is_folder": true, "interface": true, "title": "Video speed: On", "subtitle": "Shown among the options in the player", "label": "Video speed", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"}
+ ],
+ "has_more": true
+}

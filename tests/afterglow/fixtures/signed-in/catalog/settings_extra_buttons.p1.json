@@ -1,0 +1,12 @@
+{
+ "items": [
+  {"id": "settings:button-zoom", "is_folder": true, "interface": true, "title": "Video zoom: On", "subtitle": "Shown among the options in the player", "label": "Video zoom", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-repeat", "is_folder": true, "interface": true, "title": "Playback mode: On", "subtitle": "Shown among the options in the player", "label": "Playback mode", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-next", "is_folder": true, "interface": true, "title": "Next video: On", "subtitle": "Shown among the options in the player", "label": "Next video", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-previous", "is_folder": true, "interface": true, "title": "Previous video: On", "subtitle": "Shown among the options in the player", "label": "Previous video", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-seek-interval", "is_folder": true, "interface": true, "title": "Seek interval: On", "subtitle": "Shown among the options in the player", "label": "Seek interval", "kind": "switch", "value": "On", "on": true, "section": "Player buttons"},
+  {"id": "settings:button-rotate", "is_folder": true, "interface": true, "title": "Rotate video: Off", "subtitle": "Shown among the options in the player", "label": "Rotate video", "kind": "switch", "value": "Off", "on": false, "section": "Player buttons"},
+  {"id": "settings:button-mirror", "is_folder": true, "interface": true, "title": "Mirror video: Off", "subtitle": "Shown among the options in the player", "label": "Mirror video", "kind": "switch", "value": "Off", "on": false, "section": "Player buttons"}
+ ],
+ "has_more": false
+}

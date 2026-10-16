@@ -497,6 +497,8 @@ static void run_command(const char *line)
     # Interface preferences restyle the finished browser host, so they follow the other overlays.
     from ui_prefs_overlay import apply_ui_prefs_overlay
     apply_ui_prefs_overlay(replace, player, host)
+    from settings_pages_overlay import apply_settings_pages_overlay
+    apply_settings_pages_overlay(replace, player)
     from feed_prefetch_overlay import apply_feed_prefetch_overlay
     apply_feed_prefetch_overlay(replace, player)
     from live_dvr_overlay import apply_live_dvr_overlay

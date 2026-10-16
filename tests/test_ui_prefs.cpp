@@ -316,6 +316,94 @@ int main(int argc,char**argv) {
     }
     choose("settings:ui:scheme:0"); open("history"); render(frame); assert(frame==plain);
 
+    /* YouTube preferences, the provider's own menus. A tester saw three pages, then a fourth and up to a
+     * seventh as he paged on: the menu arrives whole, so the count is right from the first page and paging
+     * stops on its last page, at every interface scale, with the pager on one line inside the screen. */
+    provider.list_catalog = evo_provider_youtube.list_catalog;
+    auto menu_total = [&](const char* id) {
+        static size_t total; static int more;
+        total = 0; more = 1;
+        for (int page = 0; more && page < 16; ++page)
+            evo_provider_youtube.list_catalog(id, page, [](int ok, const evo_provider_item_t*, int count, int has_more, void*) {
+                assert(ok); total += (size_t)count; more = has_more; }, nullptr);
+        return total;
+    };
+    auto open_levels = [&](const std::vector<std::string>& levels) {
+        host.m_stack = levels; host.m_crumbs.assign(levels.size(), "Preferences"); host.m_pos_stack.clear();
+        for (size_t i = 1; i < levels.size(); ++i) host.m_pos_stack.push_back({0, 0});
+        host.m_page = 0; host.RequestPage(levels.back().c_str(), 0); pump();
+    };
+    auto focused_id = [&]() { const EvoProviderRow* row = host.GetFocusedRow(); return std::string(row ? row->id.c_str() : ""); };
+    auto index_of = [&](const std::string& id) {
+        for (size_t i = 0; i < host.m_all_rows.size(); ++i) if (host.m_all_rows[i].id == id.c_str()) return (int)i;
+        return -1;
+    };
+    auto focus_row = [&](int index) {
+        const int page = (int)EVO_PROVIDER_PAGE_SIZE;
+        host.SetPageOffset((size_t)(index / page * page), index % page); pump();
+        assert(absolute() == index);
+    };
+    const size_t settings_total = menu_total("settings");
+    assert(settings_total > 24);                                   /* more than one page of the provider */
+    for (int u = 0; u < TUBE_UI_SCALES; ++u) {
+        choose("settings:ui:scale:" + std::to_string(u)); open_levels({"settings"});
+        const size_t page = EVO_PROVIDER_PAGE_SIZE; const int pages = (int)((settings_total + page - 1) / page);
+        if (host.m_all_rows.size() != settings_total || host.m_has_more || host.m_model.page_count != pages || host.m_model.page_current != 1) {
+            fprintf(stderr, "scale %d: settings shows %zu of %zu rows as page %d of %d (expected %d pages), more %d\n", g_tube_ui_scales[u],
+                host.m_all_rows.size(), settings_total, host.m_model.page_current, host.m_model.page_count, pages, host.m_has_more ? 1 : 0); assert(false);
+        }
+        for (int at = 1; at < pages; ++at) {
+            key(EvoRmlProviderHost::KeyPageDown);
+            assert(host.m_model.page_current == at + 1 && host.m_model.page_count == pages && host.m_all_rows.size() == settings_total);
+        }
+        /* The last page: R1 and Down from its last row stay on it, as on every other list. */
+        key(EvoRmlProviderHost::KeyPageDown); assert(host.m_model.page_current == pages && host.m_all_rows.size() == settings_total);
+        focus_row((int)settings_total - 1);
+        key(EvoRmlProviderHost::KeyDown);
+        assert(host.m_model.page_current == pages && host.m_model.page_count == pages && absolute() == (int)settings_total - 1);
+        char expected[64]; snprintf(expected, sizeof expected, "PAGE %d OF %d", pages, pages); assert(host.m_model.page_info == expected);
+        render(frame);
+        Rml::Element* pager = host.m_doc->GetElementById("tube-pager");
+        float x, y, w, h; box(pager, x, y, w, h);
+        assert(x >= 0 && x + w <= width + 0.5f && pager->GetScrollHeight() <= pager->GetClientHeight() + 1.0f && pager->GetScrollWidth() <= pager->GetClientWidth() + 1.0f);
+    }
+    choose("settings:ui:scale:10");
+
+    /* The same tester: a switch changed on a later page sent him back to page 1. A changed value keeps its
+     * page and its focus: a switch, a choice of a list and a step of a slider (which changes the page size). */
+    auto change = [&](const std::string& id) {
+        const int index = index_of(id); assert(index >= 0);
+        focus_row(index);
+        const size_t rows = host.m_all_rows.size(), depth = host.m_stack.size();
+        const Rml::String before = host.m_all_rows[(size_t)index].title + "|" + host.m_all_rows[(size_t)index].subtitle;
+        host.m_pending_activation = id; host.ApplyPendingActivation(); pump();
+        const size_t page = EVO_PROVIDER_PAGE_SIZE;
+        const bool kept = host.m_stack.size() == depth && host.m_all_rows.size() == rows && focused_id() == id && absolute() == index &&
+            host.m_row_offset == (size_t)index / page * page;
+        if (!kept || host.m_all_rows[(size_t)index].title + "|" + host.m_all_rows[(size_t)index].subtitle == before) {
+            fprintf(stderr, "scale %d: changing %s (row %d) left the focus on row %d '%s' at offset %zu, %zu of %zu rows\n", tube_ui_prefs()->ui_scale,
+                id.c_str(), index, absolute(), focused_id().c_str(), host.m_row_offset, host.m_all_rows.size(), rows); assert(false);
+        }
+    };
+    for (int u : {10, 0, TUBE_UI_SCALES - 1}) {
+        choose("settings:ui:scale:" + std::to_string(u));
+        for (const char* id : {"settings:ask-stream", "settings:account-on-boot", "settings:ask-stream", "settings:account-on-boot"}) {
+            open_levels({"settings"}); assert(index_of(id) >= 24);           /* beyond the provider's first page */
+            change(id);
+        }
+        open_levels({"settings", "settings:content-language"});
+        const int languages = (int)host.m_all_rows.size(); assert(languages > 24);
+        change(host.m_all_rows[(size_t)languages - 2].id.c_str());
+        assert(host.m_all_rows[(size_t)languages - 2].subtitle == "Selected");
+        change("settings:content-language:default");
+    }
+    choose("settings:ui:scale:10");
+    open_levels({"settings", "settings:ui", "settings:ui:scale"});
+    change("settings:ui:scale:" + std::to_string(TUBE_UI_SCALES - 2));
+    assert(tube_ui_prefs()->ui_scale == g_tube_ui_scales[TUBE_UI_SCALES - 2]);
+    change("settings:ui:scale:10");
+    assert(tube_ui_prefs()->ui_scale == 100 && EVO_PROVIDER_PAGE_SIZE == 8);
+
     host.m_doc->Close(); Rml::RemoveContext("ui-prefs"); host.m_context=nullptr; host.m_doc=nullptr; host.m_model_handle={};
     Rml::Shutdown(); evo_provider_youtube.shutdown(); unlink(evo_data_path("youtube.json")); rmdir(directory);
     puts("PASS: every interface and grid scale keeps cards, paging, D-pad and frame correct; card text, marquee, schemes and the default frame");

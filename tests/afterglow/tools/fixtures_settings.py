@@ -342,6 +342,13 @@ def about_rows():
     ]
 
 
+BUTTONS = [("like", "Like"), ("dislike", "Dislike"), ("subscribe", "Subscribe"), ("playlist", "Add to playlist"), ("queue", "Playback queue"),
+           ("channel", "Open channel"), ("search", "Search"), ("description", "Description"), ("share", "Share link"), ("sponsorblock", "SponsorBlock"),
+           ("chat", "Live chat"), ("screen-off", "Screen off"), ("sound", "Mute and volume"), ("speed", "Video speed"), ("zoom", "Video zoom"),
+           ("repeat", "Playback mode"), ("next", "Next video"), ("previous", "Previous video"), ("seek-interval", "Seek interval"),
+           ("rotate", "Rotate video"), ("mirror", "Mirror video")]
+
+
 def signed_in():
     f = "signed-in"
     profile(f, "mara", "Mara", False, True)
@@ -414,6 +421,13 @@ def signed_in():
             ("watched_notifications", "Watched videos in Notifications", False), ("shorts_subscriptions", "Shorts in Subscriptions", False),
             ("shorts_search", "Shorts in Search", False), ("shorts_home", "Shorts on Home", False), ("shorts_channel", "Shorts on channels", False),
             ("shorts_history", "Shorts in History", False), ("shorts_trending", "Shorts in Trending", False)]
+    # The player buttons arrive in two parts: a switch changed on the second part keeps its row and the scroll.
+    buttons = [switch("settings:button-" + key, name, key not in ("share", "rotate", "mirror"), "Shown among the options in the player", section="Player buttons")
+               for key, name in BUTTONS]
+    write(f, "settings:extra:buttons", buttons[:14], more=True)
+    write(f, "settings:extra:buttons", buttons[14:], page=1)
+    answer = copy.deepcopy(buttons[:14])  # what the provider answers a change with: the first part of the list
+    write(f, "settings:button-next", answer, more=True)
     hide_reset = [row("settings:hide:reset", "Restore the default", "reset", "Watched videos leave Home, nothing else is hidden",
                       confirm="Watched videos leave Home again and nothing else is hidden.")]
     write(f, "settings:hide", [switch("settings:hide:" + key, name, on, "Left out of newly loaded lists of this profile", section="Hide") for key, name, on in hide] + hide_reset)
@@ -509,6 +523,7 @@ def guest():
             r["confirm"] = r["confirm"].replace("for Mara", "for Guest")
     write(f, "settings", rows)
     write(f, "settings:accounts", [
+        row("auth:start", "Sign in to YouTube", "link", "Get a code here, then enter it on your phone or computer", screen="sign_in"),
         switch("settings:separate-settings", "Separate settings per account", False, "Off: every profile uses the same preferences; applies to this PS5"),
         row("account:notice", "Password protection", "info", "Select an account profile to protect it with a password", tag="Experimental"),
     ])
