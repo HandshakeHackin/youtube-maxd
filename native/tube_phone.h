@@ -50,6 +50,9 @@ int tube_phone_retry_waiting(void);
  * 3=waiting up to thirty seconds for a scoped playlist window refill. */
 int tube_phone_launch_unavailable(unsigned ticket, const char *video, int64_t now_ms);
 int tube_phone_launch_current(unsigned ticket);
+/* Read-only failure diagnostic: 0 valid, 1 phase, 2 ticket, 3 owner,
+ * 4 command, 5 interrupted wait, 6 previous owner, 7 cancelled, 8 cleared. */
+int tube_phone_launch_reason(unsigned ticket);
 int tube_phone_launch_bind(unsigned ticket, unsigned selection);
 int tube_phone_launch_finish(unsigned ticket, int success);
 /* Called only after the decoder/presentation engine proves natural EOF. */

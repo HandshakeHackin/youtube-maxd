@@ -19,6 +19,15 @@ media open and decoder startup, then the replacement player is interrupted with
 `AVERROR_EXIT` before producing frames. No new refused-media probe is recorded
 for those attempts. Private evidence: `owner-cast-switch-38d2840/app.log`.
 
+No playback fix is claimed yet. The real native phone/receiver fixture now
+covers a second setPlaylist while the old engine stops and the replacement
+open is held across eight poll cycles; bind, acknowledgement and ownership all
+pass under ASan/UBSan. New capped diagnostics record rejected launch reason,
+bind result and receiver failure category/status without video IDs, URLs or
+credentials. This will distinguish stale launch state from receiver rejection
+on the next console replay. Native receiver tests check diagnostic bounds and
+privacy grammar. Logs can be collected while the app stays open.
+
 ## Settings and thumbnail candidate installed (2026-10-15)
 
 `38d2840` is installed on .30. Idle-first deployment, all 185 stored files after

@@ -9,6 +9,14 @@
 #include <string.h>
 
 enum { START = 1, PAIR, POLL, UPDATE, STOP };
+void evo_bt(const char *format, ...) __attribute__((weak));
+static unsigned diagnostic_count;
+static void diagnostic(const char *reason, int kind, int status) {
+    if (evo_bt && diagnostic_count < 16) {
+        ++diagnostic_count;
+        evo_bt("ProsperoTube phone receiver: reason=%s kind=%d status=%d", reason, kind, status);
+    }
+}
 typedef struct { int used, kind, update, ack; unsigned generation;
     char source[512], token[128], session[33]; } RemoteRequest;
 static RemoteRequest requests[4];
@@ -253,6 +261,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     RemoteRequest *r = ud; cJSON *root = ok && status == 200 ? parse(body,size) : NULL;
     const int kind = r->kind, current = r->generation == generation && enabled;
     if (kind == STOP) { r->used = 0; cJSON_Delete(root); return; }
+    const char *reason = "response";
     char returned[33] = "";
     if (root) text(root,"session",returned,sizeof returned);
     if (!current) {
@@ -261,6 +270,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         cJSON_Delete(root); return;
     }
     if (!root || !safe_id(returned,32,1) || (kind != START && strcmp(returned,r->session))) goto failed;
+    reason = "state";
     char wire_state[16];
     if (!text(root,"state",wire_state,sizeof wire_state) || strcmp(wire_state,"listening")) goto failed;
     if (kind == START) {
@@ -272,21 +282,26 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
             /* A successful but invalid bind still belongs to this request.
              * If STOP failed, idempotent START can return the retired receiver;
              * accepting it with ack=0 could replay its old command queue. */
+            diagnostic("bind_identity",kind,status);
             invalidate(1); stop_request(r,returned); cJSON_Delete(root); return;
         }
         snprintf(device,sizeof device,"%s",new_device); snprintf(screen,sizeof screen,"%s",new_screen);
         memcpy(session,returned,sizeof session); state = TUBE_REMOTE_LISTENING; ++revision; next_poll = 0;
         stable_since = clock_ms; recovery_retired[0] = 0;
     } else if (kind == PAIR) {
+        reason = "pair_code";
         char new_code[13]; if (!text(root,"pairing_code",new_code,sizeof new_code) ||
             (strlen(new_code)!=9 && strlen(new_code)!=12) || strspn(new_code,"0123456789")!=strlen(new_code)) goto failed;
         snprintf(code,sizeof code,"%s",new_code); want_code = 0; ++revision;
     } else if (kind == POLL) {
+        reason = "poll_envelope";
         int confirmed;
         const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"commands"), *row;
         if (!integer(root,"ack",r->ack,r->ack,&confirmed) || !cJSON_IsArray(rows) || cJSON_GetArraySize(rows)>32) goto failed;
+        reason = "allocation";
         tube_remote_command *staged = calloc(32,sizeof *staged); if (!staged) goto failed;
         int n = 0, wire_index = 0, valid = 1;
+        reason = "poll_command";
         cJSON_ArrayForEach(row,rows) {
             if (r->ack > INT32_MAX - wire_index - 1 || !command(row,&staged[n],r->ack+wire_index+1)) { valid = 0; break; }
             ++wire_index;
@@ -294,10 +309,10 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         }
         /* Local application may advance ack while a poll is in flight. Ignore
          * its already-applied prefix, retaining the exact outstanding commands. */
-        if (n < count || memcmp(queue,staged,(size_t)count*sizeof *queue)) valid = 0;
+        if (valid && (n < count || memcmp(queue,staged,(size_t)count*sizeof *queue))) { reason = "poll_prefix"; valid = 0; }
         if (valid) {
             memcpy(queue,staged,(size_t)n*sizeof *queue); count = n;
-            cJSON_ArrayForEach(row,rows) if (!connection_update(row)) { valid = 0; break; }
+            cJSON_ArrayForEach(row,rows) if (!connection_update(row)) { reason = "poll_connection"; valid = 0; break; }
         }
         free(staged); if (!valid) goto failed;
         next_poll = clock_ms + 500;
@@ -305,6 +320,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (stable_since >= 0 && clock_ms - stable_since >= RECOVERY_STABLE_MS) recovery_attempts = 0;
     r->used = 0; cJSON_Delete(root); return;
 failed:
+    diagnostic(reason,kind,status);
     if (kind == START && safe_id(returned,32,1)) {
         cJSON_Delete(root); invalidate(1); stop_request(r,returned); return;
     }
@@ -323,6 +339,7 @@ void tube_remote_configure(const char *src, const char *bearer, const char *sele
     }
     if (enabled == !!active && !strcmp(src,source) && !strcmp(bearer,token) && !strcmp(selected,profile) &&
         !strcmp(saved_device,device) && !strcmp(saved_screen,screen)) return;
+    if (enabled && *session) diagnostic("scope_changed",0,0);
     invalidate(0);
     snprintf(source,sizeof source,"%s",src); snprintf(token,sizeof token,"%s",bearer);
     snprintf(profile,sizeof profile,"%s",selected); snprintf(device,sizeof device,"%s",saved_device); snprintf(screen,sizeof screen,"%s",saved_screen);
@@ -379,7 +396,7 @@ unsigned tube_remote_current_owner(void) { return enabled && state == TUBE_REMOT
 int tube_remote_command_current(unsigned owner, int sequence) { return tube_remote_owner_current(owner) && count && queue[0].sequence == sequence; }
 int tube_remote_finish(unsigned owner, int sequence, int applied) {
     if (owner != generation || !enabled || state != TUBE_REMOTE_LISTENING || !count || sequence != queue[0].sequence) return 0;
-    if (!applied) { invalidate(1); return 0; }
+    if (!applied) { diagnostic("command_rejected",0,0); invalidate(1); return 0; }
     ack = sequence; --count; memmove(queue,queue+1,(size_t)count*sizeof *queue); return 1;
 }
 int tube_remote_retire_launch(unsigned owner, int sequence) {

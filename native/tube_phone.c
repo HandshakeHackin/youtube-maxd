@@ -29,6 +29,7 @@ static int64_t refill_deadline, refill_not_before;
 static double refill_position, refill_duration;
 static tube_remote_command pending;
 static unsigned serial, ticket, caption_selection;
+static int retired_reason; /* Numeric diagnostic only; never controls launch state. */
 static int phase; /* 1 ready, 2 resolving/starting, 3 caption, 4 unavailable delay */
 static int64_t retry_deadline;
 static int interruptible_launch;
@@ -46,10 +47,12 @@ static void clear_queue(void) {
     memset(&last, 0, sizeof last); last_owner = 0;
 }
 void tube_phone_clear(void) {
+    retired_reason = 8;
     clear_queue(); remote_video[0] = 0; remote_selection = 0;
     fallback_context=NULL;fallback_lookup=NULL;fallback_cancel=NULL;
 }
 void tube_phone_cancel(void) {
+    retired_reason = 7;
     if (phase && pending.sequence) {
         if (phase == 4) tube_remote_retire_launch(pending.owner,pending.sequence);
         else tube_remote_finish(pending.owner, pending.sequence, 0);
@@ -62,11 +65,19 @@ static int launch_valid(void) {
 }
 static void prune(void);
 int tube_phone_launch_current(unsigned value) { prune(); return value && value == ticket && launch_valid(); }
+int tube_phone_launch_reason(unsigned value) {
+    if (phase != 2) return retired_reason ? retired_reason : 1;
+    if (!value || value != ticket) return 2;
+    if (!tube_remote_owner_current(pending.owner)) return 3;
+    if (pending.sequence && !tube_remote_command_current(pending.owner,pending.sequence)) return 4;
+    return 0;
+}
 static void prune(void) {
-    if(fallback.owner && (!tube_remote_owner_current(fallback.owner) || tube_remote_launch_interrupted(fallback.owner,0)))clear_queue();
-    if (refill.owner && (!tube_remote_owner_current(refill.owner) || tube_remote_launch_interrupted(refill.owner,0))) clear_queue();
-    if (interruptible_launch && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) clear_queue();
-    if ((phase && !launch_valid()) || (current.owner && !tube_remote_owner_current(current.owner))) clear_queue();
+    if(fallback.owner && (!tube_remote_owner_current(fallback.owner) || tube_remote_launch_interrupted(fallback.owner,0))) { retired_reason=5; clear_queue(); }
+    if (refill.owner && (!tube_remote_owner_current(refill.owner) || tube_remote_launch_interrupted(refill.owner,0))) { retired_reason=5; clear_queue(); }
+    if (interruptible_launch && phase && phase != 3 && launch_valid() && tube_remote_launch_interrupted(pending.owner,pending.sequence)) { retired_reason=5; clear_queue(); }
+    if (phase && !launch_valid()) { retired_reason=tube_remote_owner_current(pending.owner) ? 4 : 3; clear_queue(); }
+    if (current.owner && !tube_remote_owner_current(current.owner)) { retired_reason=6; clear_queue(); }
 }
 int tube_phone_launch_pending(void) { prune(); return phase == 1; }
 int tube_phone_retry_waiting(void) { prune(); return phase == 4 || refill.owner || fallback.owner; }
@@ -94,6 +105,7 @@ static PhoneQueue playlist(const tube_remote_command *c, const char *playing) {
     return q;
 }
 static void begin(const tube_remote_command *c, const PhoneQueue *q, double position) {
+    retired_reason = 0;
     pending = *c; proposed = *q; proposed.selection = 0; resume = position; phase = 1; retry_deadline = 0; interruptible_launch = 0;
     if (!++serial) ++serial;
     ticket = serial;

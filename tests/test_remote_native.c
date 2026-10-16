@@ -3,10 +3,21 @@
 #include "evo_net.h"
 #include "cJSON.h"
 #include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+static unsigned diagnostics;
+void evo_bt(const char *format, ...) {
+    char line[256], reason[40], tail; int kind, status;
+    va_list args; va_start(args,format);
+    int n=vsnprintf(line,sizeof line,format,args); va_end(args);
+    assert(n>0 && n<(int)sizeof line && ++diagnostics<=16);
+    assert(sscanf(line,"ProsperoTube phone receiver: reason=%39[a-z_] kind=%d status=%d%c",reason,&kind,&status,&tail)==3);
+    assert(kind>=0 && kind<=5);
+    assert(!strstr(line,"synthetic") && !strstr(line,"http") && !strstr(line,"screen-123"));
+}
 typedef struct { char body[8192], url[544], bearer[160]; evo_net_cb cb; void *ud; } Pending;
 static Pending pending[16]; static int count, reject, callback_error;
 int evo_net_callback_error(void) { return callback_error; }
@@ -299,4 +310,5 @@ int main(void) { test_commands_and_feedback(); test_scope_and_late_start_cleanup
     assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
     tube_remote_voice_available(1); assert(tube_remote_state()==TUBE_REMOTE_FAILED && count==0);
     tube_remote_shutdown();
+    assert(diagnostics>0 && diagnostics<=16);
     puts("Native Lounge scope, command delivery, feedback and shutdown passed"); return 0; }

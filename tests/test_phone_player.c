@@ -454,6 +454,44 @@ static void deliver_after_start(const char *commands) {
     }
     assert(delivered && tube_remote_state()==TUBE_REMOTE_LISTENING);
 }
+/* Decoder replacement stops the old source while the new command remains
+ * outstanding. Poll replay and inactive snapshots must not retire that launch. */
+static void test_switch_held_open(void) {
+    const char *first="[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[],\"playlist\":\"\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"}]";
+    const char *second="[{\"sequence\":2,\"action\":\"setPlaylist\",\"video_id\":\"zyxwvutsrqp\",\"video_ids\":[],\"playlist\":\"\",\"index\":0,\"position_sec\":5.04,\"ctt\":\"\"}]";
+    feed(first);tube_phone_tick(&controls);
+    started_video(take_start("abcdefghijk",0),"abcdefghijk");
+    tube_phone_tick(&controls);assert(tube_phone_owns_media());
+    deliver_after_start(second);tube_phone_tick(&controls);
+    unsigned value=take_start("zyxwvutsrqp",5.04);
+    assert(tube_phone_launch_reason(value)==0);
+    assert(tube_phone_launch_reason(value+1)==2);
+    active=0; /* startPlaybackSource stops the old engine before opening the new. */
+    for(int i=1;i<=8;++i) {
+        configure(1,"guest",identity,"screen-123");
+        tube_remote_tick(test_clock+5000+i*500);
+        if(count) {
+            cJSON *r=cJSON_Parse(pending[0].body);assert(r);
+            const char *action=cJSON_GetObjectItem(r,"action")->valuestring;
+            int polling=!strcmp(action,"poll");assert(polling || !strcmp(action,"update"));cJSON_Delete(r);
+            if(polling)poll_reply(1,second);else reply(0,200,accepted);
+        }
+        assert(tube_phone_launch_current(value));
+        assert(tube_phone_launch_reason(value)==0);
+    }
+    started_video(value,"zyxwvutsrqp");tube_phone_tick(&controls);
+    assert(tube_phone_owns_media() && tube_remote_state()==TUBE_REMOTE_LISTENING);
+    tube_remote_command c;assert(!tube_remote_take(&c));
+    /* Retain the numeric reason even when another read prunes stale ownership. */
+    feed(first);tube_phone_tick(&controls);value=take_start("abcdefghijk",0);
+    configure(1,"other-profile",identity,"screen-123");
+    assert(tube_phone_launch_reason(value)==3);
+    assert(!tube_phone_launch_current(value));
+    assert(tube_phone_launch_reason(value)==3);
+    feed(first);tube_phone_tick(&controls);value=take_start("abcdefghijk",0);
+    tube_phone_cancel();assert(tube_phone_launch_reason(value)==7);
+    tube_phone_clear();assert(tube_phone_launch_reason(value)==8);
+}
 static void test_eof_interruption(void) {
     const char *initial="[{\"sequence\":1,\"action\":\"setPlaylist\",\"video_id\":\"abcdefghijk\",\"video_ids\":[\"abcdefghijk\",\"zyxwvutsrqp\"],\"playlist\":\"PLeof\",\"index\":0,\"position_sec\":0,\"ctt\":\"\"}]";
     const char *interrupts[]={
@@ -635,7 +673,7 @@ static void test_recommendation_queue_updates(void) {
 }
 
 int main(void) {
-    remote_driver_test_main(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
+    remote_driver_test_main(); test_switch_held_open(); test_execution(); test_queue_and_eof(); test_retired_launch_and_failure(); test_duplicate_playlist_position(); test_gain(); test_disconnect_policy(); test_disconnect_close_policy(); test_deferred_caption(); test_retired_receiver_eof(); test_voice_controls(); test_windowed_duplicate_and_refresh(); cleanup();
     test_sparse_occurrences(); cleanup();
     test_unavailable_retry();test_unavailable_terminal_and_cancel();test_unavailable_interrupts();test_unavailable_eof_and_disconnect();test_unavailable_late_stop();test_unavailable_window_refill();test_eof_window_refill();test_eof_interruption();cleanup();
     test_recommendation_lifecycle();test_recommendation_commands();test_recommendation_queue_updates();cleanup();

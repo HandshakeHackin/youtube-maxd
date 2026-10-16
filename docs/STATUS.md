@@ -4,6 +4,8 @@ Owner confirms Home and Library > History thumbnails. The remaining About
 Check/Notify update controls and main-menu Notifications entry are removed;
 automatic update offers remain. Repeated casting is under investigation: the
 replacement media opens, then is interrupted before decoding any frames.
+The repeated-cast offline regression passes; capped launch/receiver diagnostics
+are added for the next replay. No repeated-cast fix is claimed yet.
 
 
 Settings simplification, a fixed 2160p ceiling, and missing local-history artwork
