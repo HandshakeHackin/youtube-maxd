@@ -298,14 +298,20 @@ export async function extract(yt, id, { order = PLAYBACK_ORDER, prepare = async 
     const sample = live ? null : playback ? selectVideo(usable, playback)[0] : list.find(format => format.has_video && format.url);
     if (sample?.url && fetch) {
       const reply = await fetch(safeRemote(sample.url), { headers: { Range: 'bytes=0-1023' }, max_bytes: 65536 }).catch(() => null);
-      if (reply && [401, 403, 410].includes(reply.status)) { refusedBy = client; failure = 'media_refused'; continue; }
+      if (reply && [401, 403, 410].includes(reply.status)) {
+        console.error(`YouTube media probe: phase=header attempt=${attempt + 1} status=${reply.status}`);
+        refusedBy = client; failure = 'media_refused'; continue;
+      }
       // A newly signed link can serve its header but refuse a seek into the
       // file. Check one bounded deep range before handing it to FFmpeg.
       const length = Number(sample.content_length);
       if (playback && Number.isSafeInteger(length) && length > 131072) {
         const first = Math.floor(length / 2), last = Math.min(length - 1, first + 65535);
         const deep = await fetch(safeRemote(sample.url), { headers: { Range: `bytes=${first}-${last}` }, max_bytes: 131072 }).catch(() => null);
-        if (deep && [401, 403, 410].includes(deep.status)) { refusedBy = client; failure = 'media_refused'; continue; }
+        if (deep && [401, 403, 410].includes(deep.status)) {
+          console.error(`YouTube media probe: phase=midpoint attempt=${attempt + 1} status=${deep.status}`);
+          refusedBy = client; failure = 'media_refused'; continue;
+        }
       }
     }
     // How long the signed addresses stay valid, as the answer says (about six hours).

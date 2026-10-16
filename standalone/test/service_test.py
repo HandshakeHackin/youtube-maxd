@@ -494,7 +494,29 @@ def main():
                 failures.append(f"{part.__name__}: {type(error).__name__}: {error}")
     finally:
         code, errors = service.stop()
-    same("clean shutdown", (code, errors.strip()), (0, ""))
+    probe_lines = [line for line in errors.splitlines() if line.startswith("YouTube media probe: ")]
+    same("refused media diagnostics: phases, retries and statuses", probe_lines, [
+        "YouTube media probe: phase=header attempt=1 status=403",
+        "YouTube media probe: phase=header attempt=2 status=403",
+        "YouTube media probe: phase=header attempt=3 status=403",
+        "YouTube media probe: phase=midpoint attempt=1 status=403",
+    ])
+    check("media probe diagnostics contain no identifiers or signed URLs", all(re.fullmatch(
+        r"YouTube media probe: phase=(header|midpoint) attempt=[1-3] status=(401|403|410)", line)
+        for line in probe_lines))
+    expected_library_errors = [
+        "YouTube operation failed: stage=device action=start category=TypeError",
+        *["YouTube operation failed: stage=execute action=other category=LibraryError"] * 3,
+        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError",
+        "YouTube operation failed: stage=execute action=other category=LibraryError",
+        "YouTube operation failed: stage=execute action=home category=LibraryError",
+        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError",
+    ]
+    library_errors = [line for line in errors.splitlines() if line.startswith("YouTube operation failed: ")]
+    same("expected fixture library diagnostics", library_errors, expected_library_errors)
+    other_errors = "\n".join(line for line in errors.splitlines()
+                             if line not in probe_lines and line not in expected_library_errors)
+    same("clean shutdown", (code, other_errors.strip()), (0, ""))
 
     # Defaults: a generated token kept private, SponsorBlock off, and a pairing code when the host asks for one.
     plain = Service(binary, "--pairing-code", "424242")

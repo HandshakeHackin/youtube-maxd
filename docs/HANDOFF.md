@@ -4,6 +4,22 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Media preflight refusal diagnostics (2026-10-15)
+
+The resolver now logs `YouTube media probe: phase=header|midpoint attempt=N status=S`
+only when the existing media preflight receives HTTP 401, 403 or 410. Values
+are fixed phase names and checked numbers; URLs, video/account identifiers,
+response bodies and credentials are excluded. The existing retry loop bounds
+output to three attempts per client. Selection and retry behavior are unchanged.
+The embedded stderr allowlist persists this prefix in the app log.
+
+The real service fixture passes 173 checks, including the three exhausted
+header attempts and one recoverable midpoint refusal with exact diagnostic
+content and privacy grammar. The actual embedded log callback test passes,
+including persistence and rejection of unrelated/stdout/oversized output.
+A new ZIP candidate is being prepared for idle-checked deployment. The source
+of the real media refusal and earlier DASH startup-seek failure remains unknown.
+
 ## Diagnostic replay blocked before DASH (2026-10-15)
 
 Read-only collection while ProsperoTube remained running confirms installed
@@ -13,8 +29,9 @@ No decoder or DASH probe/seek record occurred in this run. Private evidence:
 `owner-dash-seek-08ce71c/app.log`. The resolver produces this error after media
 probes receive 401/403/410 and its bounded retries are exhausted; the current
 log does not reveal which status or whether the header/deep-range probe failed.
-This attempt does not test the previous startup-seek failure. A short video
-cast from the beginning is requested for comparison. No close, deployment or
+This attempt does not test the previous startup-seek failure. The owner subsequently reports the same error on a different video and on
+a video started from the beginning. This media-access failure is therefore
+not confined to the original mid-video seek. No close, deployment or
 Chiaki-ng was used for collection.
 
 ## DASH diagnostic candidate installed (2026-10-15)

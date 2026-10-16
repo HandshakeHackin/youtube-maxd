@@ -30,6 +30,9 @@ int main(void) {
  assert(strcmp(logged,"service: YouTube browse shape: tiles=2")==0);
  const char *phone="YouTube phone state: channel ready";host_write(NULL,NULL,1,&phone,1);
  assert(strcmp(logged,"service: YouTube phone state: channel ready")==0);
+ const char *probe="YouTube media probe: phase=header attempt=1 status=403";host_write(NULL,NULL,1,&probe,1);
+ assert(strcmp(logged,"service: YouTube media probe: phase=header attempt=1 status=403")==0);
+ logged[0]=0;host_write(NULL,NULL,1,&probe,0);assert(!logged[0]);
  logged[0]=0;host_write(NULL,NULL,1,&safe,0);assert(!logged[0]);
  const char *private="private exception token";host_write(NULL,NULL,1,&private,1);assert(!logged[0]);
  char large[300];memset(large,'a',sizeof large);memcpy(large,safe,strlen(safe));large[299]=0;

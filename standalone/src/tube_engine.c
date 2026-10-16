@@ -169,7 +169,8 @@ static JSValue host_write(JSContext *ctx, JSValueConst self, int argc, JSValueCo
 #ifdef TUBE_SERVICE_EMBEDDED
   /* App stderr is not the durable console log; forward only the bounded diagnostic. */
   if (magic && size < 256 && (!strncmp(text, "YouTube operation failed: ", 26) ||
-      !strncmp(text, "YouTube browse shape: ", 22) || !strncmp(text, "YouTube phone state: ", 21)))
+      !strncmp(text, "YouTube browse shape: ", 22) || !strncmp(text, "YouTube phone state: ", 21) ||
+      !strncmp(text, "YouTube media probe: ", 21)))
     evo_boot_log("service: %.*s", (int)size, text);
 #else
   fwrite(text, 1, size, magic ? stderr : stdout);

@@ -1,5 +1,9 @@
 # Current implementation status
 
+Media-preflight diagnostics now record refused header/midpoint probes, attempt
+and HTTP status without URLs or identifiers. Real service and embedded log-sink
+tests pass; a new candidate is being prepared for deployment.
+
 Owner replay of `08ce71c` reaches phone-command delivery but fails media
 resolution before DASH playback, so no seek diagnostics were produced. Media
 probe refusal is inferred from the resolver error path; exact HTTP status is
