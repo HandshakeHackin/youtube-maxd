@@ -1,5 +1,11 @@
 # Current implementation status
 
+Owner reports successful repeated casting on `047e3fc`. The same session log
+contains an earlier receiver scope change and stale-owner launch rejection,
+then a successful setPlaylist acknowledgement. Keep the intermittent issue
+open; investigate the configuration change rather than bypassing owner checks.
+
+
 Owner confirms Home and Library > History thumbnails. The remaining About
 Check/Notify update controls and main-menu Notifications entry are removed;
 automatic update offers remain. Repeated casting is under investigation: the

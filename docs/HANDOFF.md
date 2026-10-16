@@ -4,6 +4,18 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Owner repeated-cast replay (2026-10-16)
+
+Owner reports the repeated-cast test worked perfectly on `047e3fc`. Read-only
+log collection while the app remained open confirms that build. The same
+session contains an earlier receiver `scope_changed`, immediately followed by
+launch rejection `reason=3 after=3 selection=1 bound=0 remote=1` (stale owner),
+then a later acknowledged setPlaylist. A subsequent `command_rejected` is also
+recorded. Thus the owner replay passes, but the intermittent issue is not yet
+considered fixed. Next investigation: identify which remote configuration field
+changes during launch; do not remove the owner guard. Private evidence:
+`owner-cast-switch-047e3fc/app.log`. No launch, close or Chiaki-ng was used.
+
 ## Settings follow-up and repeated casting (2026-10-15)
 
 Removed Check for updates and Notify about updates from About in every UI mode.
