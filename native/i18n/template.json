@@ -128,6 +128,12 @@
    ]
   },
   {
+   "source": "AUTO",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "About DeArrow",
    "context": [
     "browser"
@@ -692,6 +698,12 @@
    "source": "Auto volume",
    "context": [
     "browser"
+   ]
+  },
+  {
+   "source": "Auto-translate",
+   "context": [
+    "kit"
    ]
   },
   {
@@ -12239,6 +12251,12 @@
    ]
   },
   {
+   "source": "fewer languages",
+   "context": [
+    "kit"
+   ]
+  },
+  {
    "source": "in your account's order",
    "context": [
     "afterglow"
@@ -12331,6 +12349,12 @@
    "source": "on this PS5 and on YouTube",
    "context": [
     "afterglow"
+   ]
+  },
+  {
+   "source": "other languages",
+   "context": [
+    "kit"
    ]
   },
   {

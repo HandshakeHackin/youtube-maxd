@@ -157,7 +157,7 @@ static char g_caption_path[512], g_active_id[160], g_next_id[160];
 static char g_caption_language[33];
 static char g_secondary_caption_path[512], g_secondary_caption_language[33];
 #define CAPTION_TRACKS 256
-static struct { char language[33], name[97], url[EVO_PROVIDER_MAX_URL]; int automatic, translated; } g_caption_tracks[CAPTION_TRACKS];
+static struct { char language[33], name[97], target[33], url[EVO_PROVIDER_MAX_URL]; int automatic, translated; } g_caption_tracks[CAPTION_TRACKS];
 static int g_caption_track_count;
 static unsigned g_caption_revision, g_caption_serial;
 static unsigned g_selection_serial;
@@ -3739,6 +3739,10 @@ static void resolved(Request *r, const cJSON *root) {
         copy(g_caption_tracks[i].url, sizeof g_caption_tracks[i].url, url);
         g_caption_tracks[i].automatic = boolean(c, "automatic");
         g_caption_tracks[i].translated = boolean(c, "translated");
+        const char *target = str(c, "target"); /* the language a machine translation is in */
+        copy(g_caption_tracks[i].target, sizeof g_caption_tracks[i].target,
+             g_caption_tracks[i].translated && strlen(target) < 33 &&
+             strspn(target, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-") == strlen(target) ? target : "");
     }
     if (retain_captions && caption_cached(primary_path, primary_language)) {
         copy(g_caption_path, sizeof g_caption_path, primary_path);
@@ -3779,7 +3783,10 @@ static void resolved(Request *r, const cJSON *root) {
     }
     if (captions_wanted(cached ? cached->item.parent_id : "") && !*g_caption_path) {
         cJSON_ArrayForEach(c, cJSON_GetObjectItemCaseSensitive(root, "captions")) {
-            if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url"))) continue;
+            /* Every resolve lists the automatic tracks and the machine translations;
+             * only "Automatic captions: allowed" lets an automatic one start by itself. */
+            if (strcmp(str(c, "language"), g_language) || !companion_url(str(c, "url")) ||
+                (boolean(c, "automatic") && !g_auto_captions)) continue;
             r->stage = 3;
             copy(r->caption_language, sizeof r->caption_language, str(c, "language"));
             int rc = evo_net_request_async("GET", str(c, "url"), NULL, NULL, 0, caption_response, r);
@@ -7484,6 +7491,20 @@ const char *tube_caption_track_language(int i) { return i >= 0 && i < tube_capti
 const char *tube_caption_track_name(int i) { return i >= 0 && i < tube_caption_track_count() ? g_caption_tracks[i].name : ""; }
 int tube_caption_track_automatic(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].automatic; }
 int tube_caption_track_translated(int i) { return i >= 0 && i < tube_caption_track_count() && g_caption_tracks[i].translated; }
+const char *tube_caption_track_target(int i) { return tube_caption_track_translated(i) ? g_caption_tracks[i].target : ""; }
+int tube_caption_track_translation_for(const char *tag) {
+    if (!tag || !*tag) return -1;
+    const size_t base = strcspn(tag, "-_");
+    int loose = -1;
+    for (int i = 0; i < tube_caption_track_count(); ++i) {
+        const char *target = tube_caption_track_target(i);
+        if (!*target) continue;
+        if (!strcasecmp(target, tag)) return i;
+        /* "pt-BR" takes "pt", "de" takes "de-DE": the same language first named. */
+        if (loose < 0 && strcspn(target, "-_") == base && !strncasecmp(target, tag, base)) loose = i;
+    }
+    return loose;
+}
 unsigned tube_caption_revision(void) { return g_caption_revision; }
 unsigned tube_caption_selection(void) { return caption_scope() ? g_selection_serial : 0; }
 void tube_caption_switch_cancel(void) {

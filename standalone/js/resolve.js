@@ -127,15 +127,21 @@ export function vttToSrt(source) {
     return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : whole;
   }).trim();
   const fix = value => (value.split(':').length === 2 ? `00:${value}` : value).replace('.', ',');
+  const seconds = value => value.split(':').reduce((total, part) => total * 60 + Number(part), 0);
   const lines = source.replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
   const cues = [];
   for (let i = 0; i < lines.length;) {
     const match = timing.exec(lines[i++].trim());
     if (!match) continue;
+    // A cue ends at an empty line. YouTube's automatic (speech recognition)
+    // tracks start most cues with a line holding one space, the line that
+    // rolls up, so a blank-looking line does not end the cue.
     const body = [];
-    while (i < lines.length && lines[i].trim()) body.push(plain(lines[i++]));
-    if (!body.some(Boolean)) continue;
-    cues.push(`${cues.length + 1}\n${fix(match[1])} --> ${fix(match[2])}\n${body.join('\n')}`);
+    while (i < lines.length && lines[i] !== '' && !timing.test(lines[i].trim())) body.push(plain(lines[i++]));
+    const shown = body.filter(Boolean);
+    // Those tracks also repeat the finished line in a cue of ten milliseconds between two others.
+    if (!shown.length || seconds(match[2]) - seconds(match[1]) < 0.05) continue;
+    cues.push(`${cues.length + 1}\n${fix(match[1])} --> ${fix(match[2])}\n${shown.join('\n')}`);
     if (cues.length > 50000) throw new ServiceError('captions_limit', 'The caption file contains too many cues.');
   }
   return cues.join('\n\n') + (cues.length ? '\n' : '');
@@ -166,6 +172,53 @@ export function captionMaps(info, translated) {
     }
   }
   return { subtitles, automatic };
+}
+
+// The caption list of a resolve, as SmartTube offers it whatever the
+// preferences: human tracks, YouTube's automatic (speech recognition,
+// `kind=asr`) tracks, and machine translations (`tlang=`, "Auto-translate") of
+// one source track into every language YouTube offers. The source is the
+// human track in the spoken language, else the first translatable one, else
+// the automatic track. `translated_captions` ("Unlock more subtitles") adds
+// translations of the other human tracks.
+// Keys: a human track is its language; an automatic track too, unless a
+// human track has that language (then `<language>-asr`); a translation is
+// `<target>-<source language>`. Order: human, automatic, translations, each
+// with the wanted language first; translations then by language name.
+const LANGUAGE = /^[A-Za-z0-9_-]{1,24}$/;
+export function captionList(info, request = {}) {
+  const tracks = (info.captions?.caption_tracks ?? []).filter(track => track.base_url && LANGUAGE.test(track.language_code ?? ''));
+  const languages = (info.captions?.translation_languages ?? []).filter(language => LANGUAGE.test(language?.language_code ?? ''));
+  const nameOf = value => String(value?.toString?.() ?? '').trim();
+  const address = (track, target) => {
+    const url = new URL(track.base_url, 'https://www.youtube.com');
+    url.searchParams.set('fmt', 'vtt');
+    if (target) url.searchParams.set('tlang', target);
+    return url.href;
+  };
+  const wanted = request.caption_language ?? '';
+  const wantedFirst = (list, code) => list.map((item, index) => [item, index])
+    .sort(([a, x], [b, y]) => Number(code(b) === wanted) - Number(code(a) === wanted) || x - y).map(([item]) => item);
+  const out = new Map();
+  const add = (key, entry) => { if (key.length <= 32 && !out.has(key)) out.set(key, entry); };
+  const human = tracks.filter(track => track.kind !== 'asr'), spoken = tracks.filter(track => track.kind === 'asr');
+  for (const track of wantedFirst(human, track => track.language_code))
+    add(track.language_code, { name: nameOf(track.name) || track.language_code, url: address(track), automatic: false, translated: false });
+  for (const track of wantedFirst(spoken, track => track.language_code))
+    add(out.has(track.language_code) ? `${track.language_code}-asr` : track.language_code,
+      { name: nameOf(track.name) || `${track.language_code} (auto-generated)`, url: address(track), automatic: true, translated: false });
+  const translatable = tracks.filter(track => track.is_translatable);
+  const source = translatable.find(track => track.kind !== 'asr' && track.language_code === spoken[0]?.language_code) ??
+    translatable.find(track => track.kind !== 'asr') ?? translatable[0];
+  const targets = wantedFirst(languages.map(language => ({ code: language.language_code, name: nameOf(language.language_name) || language.language_code }))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)), language => language.code);
+  const translate = track => {
+    for (const { code, name } of targets)
+      if (code !== track.language_code) add(`${code}-${track.language_code}`, { name, url: address(track, code), automatic: true, translated: true, target: code });
+  };
+  if (source) translate(source);
+  if (request.translated_captions) for (const track of translatable) if (track !== source && track.kind !== 'asr') translate(track);
+  return out;
 }
 
 // yt-dlp's chapters from a description: lines that begin with a timestamp.
@@ -389,20 +442,12 @@ export async function createPlayback(source, request, prefix, session, ttl, rang
   }
   if (!choices.length) throw new ServiceError('unsupported_media', 'No compatible AVC/VP9/HEVC/AV1 stream was returned. This video may require a different runtime, token, transport, or quality setting.', 422);
 
-  const { subtitles, automatic } = captionMaps(info, request.translated_captions);
-  const human = new Set(subtitles.keys()), wanted = request.caption_language;
-  const order = (a, b) => { const x = [a !== wanted, !(wanted && a.startsWith(`${wanted}-`)), a], y = [b !== wanted, !(wanted && b.startsWith(`${wanted}-`)), b];
-    return x[0] - y[0] || x[1] - y[1] || (x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0); };
-  if (request.automatic_captions) { for (const [language, track] of automatic) if (!subtitles.has(language)) subtitles.set(language, track); }
-  else if (request.translated_captions)
-    for (const language of Array.from(automatic.keys()).filter(name => !subtitles.has(name) && automatic.get(name).translated).sort(order).slice(0, 128))
-      subtitles.set(language, automatic.get(language));
   const captions = [];
-  for (const language of Array.from(subtitles.keys()).sort(order).slice(0, 256)) {
-    const track = subtitles.get(language), name = `c${captions.length}.srt`;
+  for (const [language, track] of Array.from(captionList(info, request)).slice(0, 256)) {
+    const name = `c${captions.length}.srt`;
     try { session.tracks.set(name, { kind: 'caption', url: safeRemote(track.url) }); } catch { continue; }
     captions.push({ language: text(language, 32), name: text(track.name || language, 64), url: `${prefix}/${name}`,
-      automatic: !human.has(language), translated: track.translated });
+      automatic: track.automatic, translated: track.translated, ...(track.translated ? { target: text(track.target, 32) } : {}) });
   }
 
   // Seek-preview sheets: `$M` in the returned template is the sheet number.

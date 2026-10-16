@@ -102,8 +102,13 @@ int tube_caption_track_count(void);
 const char *tube_caption_track_language(int index);
 const char *tube_caption_track_name(int index);
 int tube_caption_track_automatic(int index);
-/* 1 for a machine translation ("Unlock more subtitles"). */
+/* 1 for a machine translation ("Auto-translate"; "Unlock more subtitles" adds more sources). */
 int tube_caption_track_translated(int index);
+/* The language a machine translation is in ("" for other tracks), and the
+ * translation into a language tag such as the interface's ("pt-BR" also
+ * takes "pt"); -1 when there is none. */
+const char *tube_caption_track_target(int index);
+int tube_caption_track_translation_for(const char *tag);
 /* "Remember subtitles per channel": whether captions start for this video
  * (the choice remembered for its channel, else the profile's setting), and
  * the player's report of captions turned on or off while watching it.

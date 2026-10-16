@@ -192,6 +192,31 @@ https://manifest.googlevideo.com/api/manifest/hls_playlist/itag/270/playlist/ind
 #EXT-X-STREAM-INF:BANDWIDTH=4000000,CODECS="vp09.00.40.08,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=60,AUDIO="234",CLOSED-CAPTIONS=NONE
 https://manifest.googlevideo.com/api/manifest/hls_playlist/itag/614/playlist/index.m3u8
 """
+# YouTube's automatic tracks: each cue starts with the line that rolls up (one space in the first),
+# words carry their own timings, and a ten-millisecond cue repeats the finished line.
+VTT_ASR = """WEBVTT
+Kind: captions
+Language: de
+
+00:00:00.080 --> 00:00:02.550 align:start position:0%
+<SPACE>
+hallo<00:00:00.640><c> und</c><00:00:01.120><c> willkommen</c>
+
+00:00:02.550 --> 00:00:02.560 align:start position:0%
+hallo und willkommen
+<SPACE>
+
+00:00:02.560 --> 00:00:04.390 align:start position:0%
+hallo und willkommen
+zu<00:00:02.880><c> diesem</c><00:00:03.360><c> Video</c>
+""".replace("<SPACE>", " ")
+VTT_FR = """WEBVTT
+Kind: captions
+Language: fr
+
+00:00:01.200 --> 00:00:03.360
+Bonjour et bienvenue
+"""
 VTT = """WEBVTT
 Kind: captions
 Language: en
@@ -236,6 +261,8 @@ def main():
     write("player_gone.json", {"playabilityStatus": {"status": "ERROR", "reason": "This video is unavailable"}})
     write("live.m3u8", MASTER)
     write("captions.vtt", VTT)
+    write("captions_asr.vtt", VTT_ASR)
+    write("captions_fr.vtt", VTT_FR)
     write("sheet.jpg", bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffd9"))
     # A segment index (ISO BMFF `sidx`, version 0): three fragments of 4, 6 and 5 seconds.
     references = [(1000, 4000), (2000, 6000), (1500, 5000)]
@@ -282,7 +309,10 @@ def main():
         "GET rr3---sn-fixture.googlevideo.com/videoplayback": [
             {"header_contains": "range: bytes=500000-565535", "status": 403, "tag": "retry-deep"},
             {"file": "sidx.bin", "status": 206, "type": "video/mp4", "tag": "retry-start"}],
-        "GET www.youtube.com/api/timedtext":{"file": "captions.vtt", "type": "text/vtt"},
+        "GET www.youtube.com/api/timedtext": [
+            {"url_contains": "tlang=fr", "file": "captions_fr.vtt", "type": "text/vtt"},
+            {"url_contains": "kind=asr", "file": "captions_asr.vtt", "type": "text/vtt"},
+            {"file": "captions.vtt", "type": "text/vtt"}],
         "GET suggestqueries-clients6.youtube.com/complete/search": {"url_contains": "q=canned", "file": "suggest.txt", "type": "text/javascript"},
         f"GET i.ytimg.com/sb/{VIDEO}/storyboard3_L1/M0.jpg": {"file": "sheet.jpg", "type": "image/jpeg"},
         f"GET sponsor.ajay.app/api/skipSegments/{prefix(VIDEO)}": {"file": "sponsor.json"},

@@ -346,7 +346,11 @@ def playback(s):
         "api_version": 1, "id": VIDEO, "title": "Fixture video", "channel": "Fixture channel", "channel_id": CHANNEL,
         "channel_art_url": "", "views": "12345", "published": "", "duration_sec": 635, "expires_in": 1800,
         "choices": [choice(0, "1080p 60 fps H264 / AAC", "h264", 1920, 1080, 60, 3248000), choice(1, "720p 30 fps H264 / AAC", "h264", 1280, 720, 30, 1100000)],
-        "captions": [{"language": "en", "name": "English", "url": f"{prefix}/c0.srt", "automatic": False, "translated": False}],
+        # Every resolve lists the automatic track and the machine translations of the human one, whatever the preferences.
+        "captions": [{"language": "en", "name": "English", "url": f"{prefix}/c0.srt", "automatic": False, "translated": False},
+                     {"language": "de", "name": "German (auto-generated)", "url": f"{prefix}/c1.srt", "automatic": True, "translated": False},
+                     {"language": "fr-en", "name": "French", "url": f"{prefix}/c2.srt", "automatic": True, "translated": True, "target": "fr"},
+                     {"language": "es-en", "name": "Spanish", "url": f"{prefix}/c3.srt", "automatic": True, "translated": True, "target": "es"}],
         "chapters": [{"title": "Opening", "start": 0, "end": 120}, {"title": "Main part", "start": 120, "end": 500}, {"title": "Credits", "start": 500, "end": 635}],
         "paid_content_text": "", "loudness_db": -3.5, "is_short": False,
         "storyboards": [{"width": 48, "height": 27, "columns": 10, "rows": 10, "count": 100, "sheets": 1, "interval_ms": 6350, "url": f"{prefix}/sb0-$M.jpg"},
@@ -372,6 +376,14 @@ def playback(s):
     status, headers, subtitles = s.call("GET", play["captions"][0]["url"], token=None, raw=True)
     same("caption file", (status, headers.get("content-type"), subtitles.decode()),
          (200, "application/x-subrip", "1\n00:00:01,200 --> 00:00:03,360\nAll right, so here we are\n\n2\n00:00:03,360 --> 00:00:05,000\nin front of the & fixture\n"))
+    # An automatic track as YouTube writes it: a blank-looking first line that rolls up, word timings,
+    # and a ten-millisecond cue repeating the finished line. Its translation is asked for with tlang.
+    status, headers, spoken = s.call("GET", play["captions"][1]["url"], token=None, raw=True)
+    same("automatic caption file", (status, spoken.decode()),
+         (200, "1\n00:00:00,080 --> 00:00:02,550\nhallo und willkommen\n\n2\n00:00:02,560 --> 00:00:04,390\n"
+               "hallo und willkommen\nzu diesem Video\n"))
+    status, headers, french = s.call("GET", play["captions"][2]["url"], token=None, raw=True)
+    same("translated caption file", (status, french.decode().splitlines()[2]), (200, "Bonjour et bienvenue"))
     status, headers, sheet = s.call("GET", play["storyboards"][1]["url"].replace("$M", "0"), token=None, raw=True)
     same("storyboard sheet", (status, headers.get("content-type"), sheet[:3]), (200, "image/jpeg", b"\xff\xd8\xff"))
     same("storyboard sheet upstream failure", s.call("GET", f"{prefix}/sb1-1.jpg", token=None)[2]["error"]["code"], "media_network")
@@ -386,13 +398,13 @@ def playback(s):
          (200, [("2160p 60 fps VP9 / AAC", "dash", 17174000, "SDR"),
                 ("2160p 30 fps VP9 / AAC HDR10", "dash", 18500000, "HDR10"),
                 ("1080p 60 fps VP9 / AAC", "dash", 2127000, "SDR")]))
-    same("automatic captions, wanted language first", [(c["language"], c["name"], c["automatic"], c["translated"]) for c in direct["captions"]],
-         [("de", "German (auto-generated)", True, False), ("en", "English", False, False), ("es", "Spanish", True, True), ("fr", "French", True, True)])
+    same("captions, human then automatic then translations", [(c["language"], c["name"], c["automatic"], c["translated"]) for c in direct["captions"]],
+         [("en", "English", False, False), ("de", "German (auto-generated)", True, False), ("fr-en", "French", True, True), ("es-en", "Spanish", True, True)])
     webm = s.call("GET", direct["choices"][0]["url"], token=None, raw=True)[2].decode()
     check("WebM video with MP4 audio", 'mimeType="video/webm" codecs="vp9"' in webm and 'mimeType="audio/mp4" codecs="mp4a.40.2"' in webm and "itag=315" in webm, webm[:300])
     translated = s.job({"action": "resolve", "playback": {"id": VIDEO, "translated_captions": True}})[1]["captions"]
     same("translated captions", [(c["language"], c["translated"]) for c in translated],
-         [("en", False), ("es", True), ("es-en", True), ("fr", True), ("fr-en", True)])
+         [("en", False), ("de", False), ("fr-en", True), ("es-en", True)])
     same("frame-rate limit", s.job({"action": "resolve", "playback": {"id": VIDEO, "max_fps": 30}})[1]["choices"][0]["label"], "720p 30 fps H264 / AAC")
     same("codec that is not offered", s.job({"action": "resolve", "playback": {"id": VIDEO, "codec": "hevc"}})[1]["error"]["code"], "unsupported_media")
     same("unsupported media status", s.call("POST", "/v1/resolve", {"id": VIDEO, "codec": "hevc"})[0], 422)

@@ -20,7 +20,7 @@ methods="\n".join(function(audio,f"{result} AudioTrackPickerScreen::{name}") for
     ("int","afterglowGroup("),("const char*","afterglowGroupTitle("),("std::string","afterglowChoiceLabel("),
     ("bool","afterglowCurrent("),("void","groupAfterglowTracks("),("void","navigate("),("bool","handleInput(")])
 methods += "\n"+"\n".join(function(sub,f"{result} SubtitlePickerScreen::{name}") for result,name in [
-    ("void","navigate("),("void","activateSecondary("),("void","cycleSize("),("bool","handleInput(")])
+    ("void","navigate("),("void","activateSecondary("),("void","cycleSize("),("bool","handleInput("),("void","toggleTubeTranslations(")])
 activation=function(audio,"void AudioTrackPickerScreen::activateSelection(")
 prefix=activation[:activation.index("    const Entry e =")]
 speed=function(activation,"else if (e.kind == KindSpeed)")

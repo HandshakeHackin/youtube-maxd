@@ -52,5 +52,5 @@ assert picker.count('tube_remember_captions(') == 1
 tags = picker.index('params.tracks[i].tag = m_tracks[idx].isSecondary ? "SECONDARY"')
 translated = picker.index('if (!*params.tracks[i].tag && m_tracks[idx].trackId <= -1000 && tube_caption_track_translated(-1000 - m_tracks[idx].trackId))', tags)
 assert picker.index('params.tracks[i].tag = "TRANSLATED";', translated) < picker.index('if (m_tracks[idx].trackId == kAutoSyncTrack) {', translated)
-assert picker.count('if (tube_caption_track_translated(i)) track.detail += " (translated)";') == 1
+assert picker.count('if (tube_caption_track_translated(i)) track.detail += " (auto-translated)";') == 1
 print('PASS: actual native picker snapshot exposes primary/secondary/translated tags, preserves focus semantics and remembers Off')
