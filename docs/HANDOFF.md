@@ -19,6 +19,15 @@ GitHub tag continue using the required padded content version. Release checks
 assert the correspondence and companion/package consistency. This is a naming
 change for the unreleased alpha, not a declaration of stable 1.0 quality.
 
+Candidate `72e68e4` builds through `make zip`; all 185 packaged files match.
+Native About, 90 UI checks, release/build tests and 173 real-service checks pass.
+Deployed after idle check: 185 stored files match after 120 seconds and error
+records are unchanged. Another title was running at the final idle check; it
+was left untouched. Classified partial-pass for the install-only run; visual
+acceptance remains pending. Evidence: `version-format-72e68e4-installed/result.json`
+and `version-format-72e68e4-package.json`.
+ZIP SHA-256: `b14ab9b578a41f923b7cd27365c7bc036dbebff90ff551f0a768e03775abc775`.
+
 ## Publication build and rail version (2026-10-16)
 
 The expanded Afterglow rail shows the canonical About version in smaller muted

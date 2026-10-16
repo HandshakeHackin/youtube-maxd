@@ -2,7 +2,9 @@
 
 Media category is implemented and deployed as `b6f5ce8`; stored bytes verified,
 owner launched that build. Standard display version is now `1.000.000`, keeping
-PS5 content version `01.000.000`. Version-format build/deployment is in progress.
+PS5 content version `01.000.000`. Version-format candidate `72e68e4` is installed:
+185 files verified after 120 seconds, errors unchanged; another title at final
+check was left untouched. Visual acceptance remains pending.
 
 The expanded rail now shows the app version. Publication builds use `make zip`
 with shared local/CI dependency setup and verified ZIP/checksum output. Host UI,
