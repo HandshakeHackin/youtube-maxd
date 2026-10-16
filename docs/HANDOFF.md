@@ -4,6 +4,33 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Owner feed acceptance and cast-resolution failure (2026-10-15)
+
+Owner replay of `f8617d2` confirms Library loads and the pairing heading overlap
+is fixed. History remains empty: the main History tab reads device-local history;
+Triangle opens signed-in YouTube history. The exact account-history outcome and
+personalized Home are not confirmed.
+
+After owner Close, read-only collection found the console idle. Private evidence:
+`owner-phone-f8617d2/app.log`. Fixed milestones show remoteConnected received,
+delivered and acknowledged. The final setPlaylist was received and delivered,
+then native provider resolution failed before acknowledgment. The existing
+failed-launch path invalidates the receiver and clears connected-device state,
+so the missing linked-phone display can follow the resolution failure. Do not
+claim a new upstream pairing or metadata defect from this replay. No console
+launch, installation, account request or Chiaki-ng was used for collection.
+
+The real Afterglow/provider regression reproduces a DELETE of the pending cast
+job during the page's two-second status refresh. The exact read-only
+`settings:remote` catalog now returns before cancellation and browsing-context
+mutations. Pairing actions retain their existing cancellation behavior. The
+regression holds a real resolve across repeated refreshes, completes playback
+resolution, checks launch acknowledgment/linked state, and checks explicit
+connection changes still cancel a pending request. The regression fails before
+the fix and passes afterward. Full Afterglow data/provider/picture tests and
+native phone provider, player and connection suites pass under ASan/UBSan.
+
+
 ## TV account feeds and overlapping headers (2026-10-15)
 
 Production `f8617d2` is installed on .30. ZIP CRC/content and packaged-helper

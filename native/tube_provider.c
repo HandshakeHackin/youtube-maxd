@@ -6726,6 +6726,10 @@ static int suggestion_row(const char *value) {
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    /* LinkPhone polls this read-only snapshot while a cast is resolving. Do not
+     * cancel that request or reset its launch context as an ordinary browse does. */
+    if (parent && !strcmp(parent, "settings:remote"))
+        return local_catalog(parent, page, cb, ud) ? 0 : -1;
     if (parent && !strcmp(parent, "library:notification-count")) {
         if (page || !strcmp(g_library_profile, "guest")) { cb(0, NULL, 0, 0, ud); return 0; }
         Request *r = request_new(17, ud); if (!r) return -1;

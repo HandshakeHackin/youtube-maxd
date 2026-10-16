@@ -772,6 +772,28 @@ int main()
         char video[12]; double position = 0;
         const unsigned ticket = tube_phone_take(video, &position);
         assert(ticket && browser_requests == 1 && !std::strcmp(video, "abcdefghijk") && position == 12.5);
+        // A phone launch resolves while LinkPhone is still mounted. Hold the real
+        // provider job across several automatic status refreshes before completing it.
+        struct ResolveResult { int calls = 0, ok = 0, count = 0; } resolved;
+        const auto resolved_cb = [](int ok, const evo_stream_choice_t *, int count, void *ud) {
+            auto &result = *static_cast<ResolveResult *>(ud);
+            ++result.calls; result.ok = ok; result.count = count;
+        };
+        const auto job_index = [&](const char *method, const char *suffix) {
+            for (std::size_t i = 0; i < g_pending.size(); ++i)
+                if (g_pending[i].method == method && g_pending[i].url.ends_with(suffix)) return i;
+            assert(false && "expected playback job request"); return std::size_t(0);
+        };
+        assert(p->resolve(video, resolved_cb, &resolved) == 0);
+        reply(job_index("POST", "/v1/jobs"), 1, 202, R"({"job":"phone_cast_fixture","state":"pending"})");
+        usleep(300000); tube_poll();
+        frames(12);
+        for (const auto &pending : g_pending)
+            assert(!(pending.method == "DELETE" && pending.url.ends_with("/v1/jobs/phone_cast_fixture")));
+        assert(resolved.calls == 0);
+        reply(job_index("GET", "/v1/jobs/phone_cast_fixture"), 1, 200,
+            R"({"state":"done","result":{"id":"abcdefghijk","choices":[{"url":"http://127.0.0.1:8765/media/cast.mpd","container":"dash","video_codec":"vp9","is_live":true}],"captions":[]}})");
+        assert(resolved.calls == 1 && resolved.ok && resolved.count == 1);
         assert(tube_phone_launch_bind(ticket, 17) && tube_phone_launch_finish(ticket, 1));
         frames();
         assert(screen.state() == "connected"); // Screen stays mounted throughout native launch admission.
@@ -792,8 +814,16 @@ int main()
         frames(12);
         assert(screen.state() == "stopped" && screen.remote_.code.empty() && screen.remote_.devices.empty());
         assert(!tube_remote_take(&command));
+        // A deliberate setting mutation still cancels a pending resolve.
+        resolved = {};
+        assert(p->resolve(video, resolved_cb, &resolved) == 0);
+        reply(job_index("POST", "/v1/jobs"), 1, 202, R"({"job":"phone_toggle_fixture","state":"pending"})");
+        usleep(300000); tube_poll();
         screen.act(data, "settings:remote:toggle"); frames();
         assert(screen.state() == "off" && !screen.remote_.on);
+        reply(job_index("DELETE", "/v1/jobs/phone_toggle_fixture"), 1, 200, "{}");
+        reply(job_index("GET", "/v1/jobs/phone_toggle_fixture"), 1, 200, "{}");
+        assert(resolved.calls == 1 && !resolved.ok);
         // Dispose the bounded stop request; no live network was used.
         while (!g_pending.empty()) reply(0, 1, 200, "{\"api_version\":1,\"state\":\"stopped\"}");
     }

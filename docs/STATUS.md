@@ -1,9 +1,15 @@
 # Current implementation status
 
-Owner replay of `a9ba0c1` confirms account naming and profile switching.
-Account Library/Home, casting and the overlapping pairing header still fail;
-TV-feed parsing and header fixes pass host validation and are installed as
-`f8617d2`; functional replay remains pending. See [handoff](HANDOFF.md).
+Owner replay of `f8617d2` confirms account Library loads and the pairing
+header no longer overlaps. History is still reported empty; the main History
+tab is local, while Triangle opens account history. Personalized Home remains
+unconfirmed. Phone casting still fails: the saved log shows remoteConnected
+received/delivered/acknowledged, then setPlaylist delivered and native video
+resolution failing. That failure invalidates the receiver and clears linked
+phones. A real-provider regression reproduces the pairing-page refresh
+canceling that resolve; the exact status read now preserves pending requests
+and launch context. Explicit pairing actions retain cancellation. The real Afterglow/provider regression and native phone tests pass under
+ASan/UBSan; hardware replay of this fix is pending. See [handoff](HANDOFF.md).
 
 Latest owner replay (`139f8c1`): TV code appears and the phone lists the TV,
 but console connection feedback, returning to Switch profile, and account
