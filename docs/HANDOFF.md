@@ -29,8 +29,10 @@ on the next console replay. Native receiver tests check diagnostic bounds and
 privacy grammar. Logs can be collected while the app stays open.
 
 Candidate `047e3fc` builds successfully. ZIP CRC and all 185 packaged files match
-the output directory; the candidate is frozen. No deployment or new hardware
-acceptance is claimed. Private evidence: `settings-cast-047e3fc-package.json`
+the output directory; the candidate is frozen. Installed on .30 after an idle
+check: all 185 files still match after 120 seconds, error records unchanged,
+and final idle. No launch or Chiaki-ng; owner repeated-cast replay remains pending.
+Private install evidence: `settings-cast-047e3fc-installed/result.json`. Package evidence: `settings-cast-047e3fc-package.json`
 and `build-settings-cast-047e3fc.log`.
 Eboot SHA-256: `ae97814639dcfd858fefe2e8be416948968d149c3c60816fda621a996320c10a`.
 ZIP SHA-256: `150ff03586b08cb8d57e3c3e0270211e302589ad96afcc096031fcfd90157243`.

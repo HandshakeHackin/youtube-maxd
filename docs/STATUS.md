@@ -6,7 +6,8 @@ automatic update offers remain. Repeated casting is under investigation: the
 replacement media opens, then is interrupted before decoding any frames.
 The repeated-cast offline regression passes; capped launch/receiver diagnostics
 are added for the next replay. No repeated-cast fix is claimed yet.
-ZIP `047e3fc` is built, content-verified and frozen, but not deployed.
+ZIP `047e3fc` is installed on .30: idle-first, 185 files verified after
+120 seconds, errors unchanged and final idle. Owner repeated-cast replay pending.
 
 
 Settings simplification, a fixed 2160p ceiling, and missing local-history artwork
