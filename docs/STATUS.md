@@ -2,7 +2,8 @@
 
 Media-preflight diagnostics now record refused header/midpoint probes, attempt
 and HTTP status without URLs or identifiers. Real service and embedded log-sink
-tests pass; a new candidate is being prepared for deployment.
+tests pass; `47d007a` is deployed to .30 with 185 stored files verified,
+unchanged error records and final idle. Owner replay is pending.
 
 Owner replay of `08ce71c` reaches phone-command delivery but fails media
 resolution before DASH playback, so no seek diagnostics were produced. Media
@@ -45,7 +46,8 @@ installed on .30 with all 185 stored files verified after 120 seconds. Account
 Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `08ce71c`, adding bounded DASH seek diagnostics
+Latest installed candidate: `47d007a`, adding media-probe refusal diagnostics
+and retaining the `08ce71c` bounded DASH seek diagnostics
 and retaining the `00f4345` cast-refresh repair.
 It retains `f8617d2` TV account-feed parsing,
 correct page headers and bounded casting milestones. It retains earlier

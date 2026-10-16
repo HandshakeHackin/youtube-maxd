@@ -17,8 +17,15 @@ The real service fixture passes 173 checks, including the three exhausted
 header attempts and one recoverable midpoint refusal with exact diagnostic
 content and privacy grammar. The actual embedded log callback test passes,
 including persistence and rejection of unrelated/stdout/oversized output.
-A new ZIP candidate is being prepared for idle-checked deployment. The source
-of the real media refusal and earlier DASH startup-seek failure remains unknown.
+Candidate `47d007a` is built, ZIP CRC/content verified and frozen. Idle-first
+deployment to .30 passes: all 185 stored files match after 120 seconds, error
+records unchanged and final idle. No launch, close or Chiaki-ng was used.
+Private evidence: `media-probe-47d007a-package.json` and
+`media-probe-47d007a-installed/result.json`.
+Eboot SHA-256: `61f15fc5dddb2091cc930a84889206bd1b7d53445d366217a74c5a01480d02d7`.
+ZIP SHA-256: `bb63b3e98ac01eab16798f248721e4eea8ae5385ee8e0f233acb78e0335a5f4b`.
+The source of the real media refusal and earlier DASH startup-seek failure
+remains unknown. Next: owner cast from 0:00, collect the new probe lines live.
 
 ## Diagnostic replay blocked before DASH (2026-10-15)
 
