@@ -307,7 +307,7 @@ class Service(base.Service):
 
     def finish(self, name):
         code, errors = self.stop()
-        diagnostic = re.compile(r"YouTube (?:browse shape: action=(?:home|history|library|playlists|subscriptions|watch_later|playlist) tiles=[0-9]+ mode=(?:tv|legacy)|operation failed: stage=(?:execute|device|client|playback|other) action=(?:history|library|playlists|watch_later|playlist|home|subscriptions|channels|notifications|notification_count|start|poll|other) category=(?:TypeError|ReferenceError|SyntaxError|RangeError|InnertubeError|ParsingError|OAuth2Error|SessionError|LibraryError|ServiceError|Error))")
+        diagnostic = re.compile(r"YouTube (?:browse shape: action=(?:home|history|library|playlists|subscriptions|watch_later|playlist) tiles=[0-9]+ mode=(?:tv items=[0-9]+|legacy)|browse shape: action=channels tabs=[0-9]+ channels=[0-9]+ mode=(?:tv|legacy)|operation failed: stage=(?:execute|device|client|playback|other) action=(?:history|library|playlists|watch_later|playlist|home|subscriptions|channels|notifications|notification_count|start|poll|other) category=(?:TypeError|ReferenceError|SyntaxError|RangeError|InnertubeError|ParsingError|OAuth2Error|SessionError|LibraryError|ServiceError|Error))")
         unexpected = "\n".join(line for line in errors.splitlines() if not diagnostic.fullmatch(line))
         same(f"clean shutdown ({name})", (code, unexpected.strip()), (0, ""))
         same(f"no credentials in diagnostics ({name})", [secret for secret in SECRETS if secret in errors], [])
@@ -575,8 +575,9 @@ def lists_and_changes(binary):
         status, page = s.library(action="topics", section="my_videos", profile=one)
         same("my videos", (status, [(row["id"], row["title"]) for row in page["items"]]), (200, [("uploaded001", "My upload")]))
         log = s.upstream()
+        # Subscribed channels read the TV Subscriptions page first; this web-shaped answer has no channel tabs.
         same("every account list was asked once, with the account's token", [(r["tag"] or r["key"].split("/")[-1], r["bearer"]) for r in log],
-             [(name, True) for name in ("home", "subscriptions", "channels", "history", "watch_later", "liked", "playlists", "get_unseen_count", "get_notification_menu", "my_videos")])
+             [(name, True) for name in ("home", "subscriptions", "subscriptions", "channels", "history", "watch_later", "liked", "playlists", "get_unseen_count", "get_notification_menu", "my_videos")])
         same("my videos need an account", s.library(action="topics", section="my_videos")[1]["error"]["code"], "account_required")
         # Public pages of an account profile are read without it; a playlist with it.
         same("search job in an account profile", (s.job({"action": "search", "query": "canned", "profile": one})[0], [r["bearer"] for r in s.upstream()][-1:]), (200, [False]))
