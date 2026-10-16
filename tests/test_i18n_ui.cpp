@@ -56,7 +56,7 @@ static int with_content(const char* parent, int page, evo_provider_items_cb cb, 
         snprintf(video.id, sizeof video.id, "abcdefghijk"); snprintf(video.title, sizeof video.title, "Subscriptions");
         snprintf(video.subtitle, sizeof video.subtitle, "History"); snprintf(video.overview, sizeof video.overview, "Watch later");
         video.kind = EVO_MEDIA_VIDEO;
-        if (ok) rows.push_back(video);
+        if (ok && !more) rows.push_back(video);   /* once, after the last page: a menu of preferences arrives whole */
         to->cb(ok, rows.data(), (int)rows.size(), more, to->ud);
     }, &context);
 }
@@ -169,6 +169,7 @@ int main(int argc, char** argv) {
             const auto& rows = host.m_all_rows; assert(rows.size() == english.rows[page].size());
             int changed = 0;
             for (size_t i = 0; i + 1 < rows.size(); ++i) {
+                if (rows[i].id == "settings:interface-language") { ++changed; continue; }   /* names the language in use */
                 assert(rows[i].title == translated(english.rows[page][i].title.c_str(), TUBE_I18N_LABELS).c_str());
                 assert(rows[i].subtitle == translated(english.rows[page][i].subtitle.c_str(), TUBE_I18N_LABELS).c_str());
                 changed += rows[i].title != english.rows[page][i].title;

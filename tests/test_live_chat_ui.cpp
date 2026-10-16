@@ -141,8 +141,7 @@ int main(int argc,char**argv) {
     host.ShowSetupScreen();assert(pending.size()==1);reply("{}");
     /* Settings choosers push a real folder; selection retains its parent level. */
     host.m_stack.push_back("settings"); host.m_crumbs.push_back("Preferences");
-    host.RequestPage("settings",0);pump();assert(host.m_has_more);
-    for(int page=1;host.m_has_more;++page){host.RequestPage("settings",page);pump();}
+    host.RequestPage("settings",0);pump();assert(!host.m_has_more);   /* a menu of preferences arrives whole */
     assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
         [](const EvoProviderRow& row){return row.id=="settings:clear-queue";}));
     for(int enabled=1;enabled>=0;--enabled) {
@@ -200,9 +199,7 @@ int main(int argc,char**argv) {
     assert(tube_player_ok_mode()==2 && tube_player_hide_ms()==0 && tube_sleep_minutes()==30);
     assert(tube_player_seek_mode()==2 && tube_player_seek_seconds()==7);
     assert(tube_player_zoom_percent()==100 && tube_player_aspect_mode()==10 && tube_player_pixel_mode()==5 && tube_player_rotation_degrees()==270);
-    host.RequestPage("settings:video-zoom",0);pump();assert(host.m_has_more);
-    host.RequestPage("settings:video-zoom",1);pump();assert(host.m_has_more);
-    host.RequestPage("settings:video-zoom",2);pump();assert(!host.m_has_more);
+    host.RequestPage("settings:video-zoom",0);pump();assert(!host.m_has_more && host.m_all_rows.size()>48);
     assert(std::any_of(host.m_all_rows.begin(),host.m_all_rows.end(),
         [](const EvoProviderRow& row){return row.id=="settings:zoom:300";}));
     assert(pending.empty());
