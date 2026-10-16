@@ -542,9 +542,9 @@ minute.
 | ![D-pad][dpad] left / right | Seek |
 | ![L1][l1] / ![R1][r1] | Previous / next chapter |
 | ![D-pad][dpad] up / down | Toggle captions / caption picker |
-| R2 | Playback options: quality, audio, speed and the video actions |
+| R2 | Playback options: quality, audio, speed, video size and the video actions |
 | L2 / ![Touchpad][touchpad] halves | Caption timing |
-| ![Triangle][triangle] | Video sizing |
+| ![Triangle][triangle] | Suggested videos (Up next) |
 | R3 | Jump to the next SponsorBlock highlight |
 | ![Square][square] / ![Options][options] | Media information / statistics |
 | ![Circle][circle] | Stop (confirmed) |

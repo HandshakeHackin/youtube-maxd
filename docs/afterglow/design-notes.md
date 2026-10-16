@@ -263,7 +263,7 @@ player swapped them: the design uses the kit's `Action::confirm` and
 | Results | Play | Details | Search again | Up: filters. Touchpad: Actions |
 | Channel | Play | | Search in channel | Section: previous / next. Touchpad: Actions |
 | Video page | Choose the action | | | R2: Comments. Touchpad: Actions |
-| Player | Pause / play | Up next | Captions | D-pad left / right: 10 s, hold to scrub. Options: playback options. Circle: back |
+| Player | Pause / play | Up next | Captions | D-pad left / right: 10 s, hold to scrub. Options: playback options (quality, audio, speed, video size). Circle: back |
 | Player, seeking | Play from here | | | Chapter: previous / next. Circle: cancel |
 | Player, a sheet | Choose | | | Circle: close |
 | Skip notice / next video | Undo / Play now | | | Circle: cancel the next video |

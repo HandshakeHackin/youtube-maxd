@@ -13,8 +13,9 @@ the code they are marked `// REQUEST:`.
 1. **The proposal's controller map in the player.** Implemented for Afterglow
    through `scripts/afterglow_controls_overlay.py`: Triangle opens the existing
    Up next / related-video list, Square opens Captions, and Options opens
-   grouped playback options. Down and R2 remain aliases. Classic retains its
-   bindings. Scrubbing, phone ownership, SponsorBlock asks/Undo and the next
+   grouped playback options. Down and R2 remain aliases. Classic keeps its
+   other bindings; its Triangle also opens Up next (its hint says UP NEXT)
+   and video sizing is in the playback options (R2). Scrubbing, phone ownership, SponsorBlock asks/Undo and the next
    video offer keep ownership ahead of these shortcuts. Media Details and
    Playback details (codec statistics) remain reachable from playback options.
    Mounted hints match the actual map; host fixtures carry the same proposal.

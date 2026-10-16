@@ -133,6 +133,20 @@ void PlayerScreen::onExit() {''')
         }
         // End ProsperoTube player exit.
         // Stop playback confirmation prompt''')
+    # Triangle lists the suggested videos (Up next) in both interfaces, as its hint says;
+    # video sizing moved to the playback options (R2).
+    replace(screen, '''    if (pressed & PadButtons::Triangle) {
+        /* Aspect ratio, as it has always been on this screen. */''', '''    // ProsperoTube Triangle: suggested videos (extracted by host tests).
+    if (pressed & PadButtons::Triangle) {
+        if (playback->isScrubbing()) return true;
+        if (tube_phone_owns_media() || !screenMgr) { toast("PLAYBACK", "Suggestions are not available"); return true; }
+        tube_extra_picker_request(TUBE_PICKER_SUGGESTIONS);
+        screenMgr->navigateTo(ScreenId::AudioTrackPicker);
+        return true;
+    }
+    // End ProsperoTube Triangle.
+    if (pressed & PadButtons::Triangle) {
+        /* Aspect ratio, as it has always been on this screen. */''')
     replace(screen, '''    /* Live TV has no timeline: seek and chapter keys are swallowed, not sent''', '''    // ProsperoTube D-pad actions (extracted by host tests).
     for (int axis = 0; axis < 2 && !playback->isScrubbing(); ++axis) {
         const uint32_t keys = pressed & (axis ? (PadButtons::Up | PadButtons::Down) : (PadButtons::Left | PadButtons::Right));
@@ -590,6 +604,11 @@ def apply_player_extra_overlay(replace, player):
             '    addons/src/tube_audio_tempo.c \\\n    addons/src/tube_player_extra.c')
     _audio(replace, player)
     _player_screen(replace, player)
+    # The Triangle hints name what Triangle does now: the suggested videos.
+    replace(player + 'assets/rml/playback.rml', '<span id="label-aspect" class="control-label">ASPECT: FIT</span>',
+            '<span id="label-upnext" class="control-label">UP NEXT</span>')
+    replace(player + 'ui_kit/src/evo_hui_osd.cpp', '    hints[n++] = {ui::Button::triangle, aspect};',
+            '    hints[n++] = {ui::Button::triangle, "Up next"};')
     _kit_hud(replace, player)
     _rml_hud(replace, player)
     _picker(replace, player)
