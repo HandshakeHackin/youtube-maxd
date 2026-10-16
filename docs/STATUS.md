@@ -2,7 +2,8 @@
 
 Owner replay of `a9ba0c1` confirms account naming and profile switching.
 Account Library/Home, casting and the overlapping pairing header still fail;
-TV-feed parsing and header fixes are under validation. See [handoff](HANDOFF.md).
+TV-feed parsing and header fixes pass host validation and are installed as
+`f8617d2`; functional replay remains pending. See [handoff](HANDOFF.md).
 
 Latest owner replay (`139f8c1`): TV code appears and the phone lists the TV,
 but console connection feedback, returning to Switch profile, and account
@@ -18,12 +19,12 @@ installed on .30 with all 185 stored files verified after 120 seconds. Account
 Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `a9ba0c1`, adding the post-code Lounge reconnect,
-account-list invalidation, best-effort names for new sign-ins and durable
-bounded service diagnostics. It retains the earlier HLS, playback, font and
-physical keyboard fixes.
-All 185 files matched after the 120-second stored-byte check; at installation
-the title was idle and error records were unchanged. No launch was sent.
+Latest installed candidate: `f8617d2`, adding TV account-feed parsing,
+correct page headers and bounded casting milestones. It retains earlier
+account, HLS, playback, font and physical keyboard fixes. All 185 stored files
+matched after 120 seconds, with unchanged error records. Install began idle
+but another title started during verification, so final idle was not confirmed.
+No launch or close was sent.
 The earlier `6fc6d58` diagnostic version completed the
 same-input 36-second 4K24 sample through EOF: all 864 packets and sampled
 visible pictures match the software reference, with zero association errors.

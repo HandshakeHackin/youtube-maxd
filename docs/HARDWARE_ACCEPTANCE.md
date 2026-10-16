@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `f8617d2` account-feed/header candidate installed on .30 | partial-pass: idle before upload, all 185 stored files match after 120 seconds and errors unchanged; another title running at final check | private evidence `phone-pairing-f8617d2-installed-production/post-install-state.json` | no launch/close or Chiaki-ng; functional owner acceptance pending.
+
 - 2026-10-15 | `a9ba0c1` receiver/account follow-up installed on .30 | pass: idle-first check, all 185 stored files match after 120 seconds, unchanged error records and still idle | private evidence `phone-pairing-a9ba0c1-installed-production/result.json` | no launch or Chiaki-ng; phone casting and existing-account Library acceptance pending.
 
 - 2026-10-15 | `139f8c1` production installed on .30 after owner closed other title | pass: idle-first check, all 185 stored files match after 120 seconds, error records unchanged and still idle | private evidence `phone-pairing-139f8c1-installed-production/result.json` | no launch or Chiaki-ng; functional pairing, Library and seek validation pending.

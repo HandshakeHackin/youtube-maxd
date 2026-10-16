@@ -6,6 +6,16 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 
 ## TV account feeds and overlapping headers (2026-10-15)
 
+Production `f8617d2` is installed on .30. ZIP CRC/content and packaged-helper
+checks passed. The console was idle before upload; all 185 stored files
+matched after 120 seconds and error records were unchanged. Another title
+started during the wait, so the final-idle assertion failed: classify this
+installation as partial-pass, not a completed idle handoff. No launch/close
+or Chiaki-ng was used; the running title was left untouched. Functional
+account-feed and casting acceptance remains pending.
+Eboot SHA-256: `713d4df78251ce4e389d6ff4f928926ca377233f8495afa6598c6f5da5fda450`.
+ZIP SHA-256: `46a4c3557baa58588998fd61030c0bfd7d834de20ee3214b8d894618e17c2ae0`.
+
 Owner `a9ba0c1` replay confirms the real account name and profile switching,
 but Library stays empty, Home recommendations do not appear personalized,
 and casting still fails at an unspecified stage. Screenshot confirms two
