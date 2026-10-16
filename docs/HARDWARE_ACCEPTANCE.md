@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `08ce71c` diagnostic deployed to .30 | pass: idle-first, all 185 files match after 120 seconds, errors unchanged, final idle | private evidence `dash-seek-08ce71c-installed/result.json` | no launch; mid-video cast replay pending.
+
 - 2026-10-15 | `00f4345` live cast | partial-pass: verified redeploy; phone delivery and resolve succeed, DASH startup seek fails with zero frames | private evidence `live-casting-00f4345/` | capture ended with other title untouched; offline reproduction pending.
 
 - 2026-10-15 | `00f4345` cast-refresh repair installed | partial-pass: 185 files verified, errors unchanged; final idle assertion failed, follow-up idle | private evidence `phone-pairing-00f4345-installed-production/post-install-state.json` | owner cast replay pending.

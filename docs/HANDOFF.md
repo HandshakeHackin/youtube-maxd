@@ -4,6 +4,13 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## DASH diagnostic candidate installed (2026-10-15)
+
+Diagnostic `08ce71c` is installed on .30. Idle-first check, all 185 stored files
+after 120 seconds, unchanged error records, and final idle all pass. Private
+evidence: `dash-seek-08ce71c-installed/result.json`. No launch, close or Chiaki-ng
+was used. Owner mid-video cast replay and diagnostic capture remain pending.
+
 ## Bounded DASH seek diagnostics (2026-10-15)
 
 The next candidate adds numeric-only `ProsperoTube DASH` records to the pinned

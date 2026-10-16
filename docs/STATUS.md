@@ -2,7 +2,8 @@
 
 Bounded, URL-free DASH seek/probe diagnostics pass sanitizer and real patched
 FFmpeg 7.1.1 loopback success/failure tests. Diagnostic ZIP `08ce71c` is built, content-verified and frozen;
-the console still has `00f4345`. No seek fix or new hardware acceptance is claimed.
+`08ce71c` is installed on .30 with all 185 files verified after 120 seconds,
+unchanged error records and final idle. No seek fix or new hardware acceptance is claimed.
 
 Latest `00f4345` live cast passes pairing delivery and video resolution, but
 fails DASH fragment probing after a phone-requested mid-video startup seek.
@@ -35,7 +36,8 @@ installed on .30 with all 185 stored files verified after 120 seconds. Account
 Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `00f4345`, preserving cast resolution during pairing-page refreshes.
+Latest installed candidate: `08ce71c`, adding bounded DASH seek diagnostics
+and retaining the `00f4345` cast-refresh repair.
 It retains `f8617d2` TV account-feed parsing,
 correct page headers and bounded casting milestones. It retains earlier
 account, HLS, playback, font and physical keyboard fixes. All 185 stored files
