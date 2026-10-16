@@ -363,40 +363,38 @@ port 9021 (most setups have it; ProsperoTube sends its bundled Lapy helper
 through it) or a resident Lapy service, and an internet connection.
 ProsperoTube stops at startup when it cannot get access to `/data/prosperotube`.
 
-To build, Linux or WSL. On Ubuntu or Debian:
-
-```bash
-sudo apt-get install clang-18 lld-18 llvm-18 cmake ninja-build make git \
-  python3 python3-venv pkg-config ccache wget curl unzip zip nasm yasm \
-  libssl-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev ffmpeg
-export PATH=/usr/lib/llvm-18/bin:$PATH
-git submodule update --init --recursive
-bash scripts/bootstrap_sdk.sh
-```
-
-The bootstrap fetches the PS5 Payload SDK and Pacbrew release assets into a
-user prefix under `~/.cache/prosperotube`. The first build of the PS5 shader
-compiler needs further packages; [Build](docs/BUILD.md) lists them and the
-pins. The offline checks also need Node (the workflow uses 24.10.0) and a
-Python virtual environment with `companion/requirements.lock`.
+To build, use x86_64 Ubuntu 24.04 or Ubuntu 24.04 in WSL. The first build
+needs internet access and compiles a large shader toolchain; later builds reuse
+its cache. No proprietary SDK is required.
 
 ## Build
 
 ```bash
-# Once: the PS5 shader compiler for the display transforms.
-bash scripts/build_ps5_shader_compiler.sh
-
-# The application, with the built-in YouTube service.
-bash scripts/build_ps5.sh
-
+git clone https://github.com/blackbearreloaded/ProsperoTube.git
+cd ProsperoTube
+make host-deps  # Once: install system packages using sudo.
+make zip        # Or simply make. Fetch dependencies, build, verify the ZIP.
 ```
 
-Outputs are written to:
+`make zip` initializes pinned recursive submodules, installs Node 24.10.0 and
+the PS5 SDK/Pacbrew in a user cache, installs the locked service dependencies,
+and builds the pinned shader compiler when needed. The native build fetches
+and builds its remaining dependencies, including dav1d, patched FFmpeg, QuickJS
+and the Lapy helper. System packages are installed only by `make host-deps`.
+Local builds and CI use the same Makefile and ZIP validation.
+
+Outputs:
 
 ```text
 dist/PPSA99142/        complete title folder
-dist/PPSA99142.zip     the folder as a ZIP
+dist/PPSA99142.zip     installable ZIP, with every entry stored as 0777
+dist/SHA256SUMS        verified ZIP checksum
 ```
+
+`make verify` checks an existing ZIP. `make deps` prepares build dependencies;
+`make test` also prepares the Python test environment and runs offline checks.
+See [Build](docs/BUILD.md) for pins, cache paths and overrides. These commands
+never deploy, launch the app, or publish a release.
 
 The offline checks:
 
@@ -415,7 +413,7 @@ when started by hand; pushes and pull requests build nothing. It:
 3. checks that a tag is `v` + the content version and that release notes exist;
 4. restores or builds the PS5 SDK, dav1d, FFmpeg and the shader compiler
    (the first run takes hours; later runs use the Actions cache);
-5. runs `bash scripts/test_all.sh` and builds the app;
+5. runs `make test` and `make zip`;
 6. checks the ZIP (one app folder, `eboot.bin`, every entry stored 0777, the
    version) and writes `SHA256SUMS`; and
 7. for a tag, publishes a pre-release with `PPSA99142.zip` and `SHA256SUMS`.
@@ -425,8 +423,8 @@ The workflow needs no secret and never replaces a ZIP a release already has.
 ## Update an installed copy
 
 The app checks homebrew.page's signed catalog once per launch. Once a public
-release is listed there, **Settings > About** offers **Update to ... now**
-and **Restart to finish updating**. The packaged helper requires the console's
+release is listed there, a startup prompt offers **Update now**, **What?s new**
+or **Skip**. Accepting shows download progress, then applies the update and closes the app. The packaged helper requires the console's
 payload loader on port 9021; it verifies and stages the release, then replaces
 the files after ProsperoTube closes. Wait for its completion notification
 before reopening the app. Integration is host-tested; a complete console update

@@ -44,21 +44,9 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24.10.0"
-
       # clang-tidy is a local check; it is not installed or run here.
       - name: Install the toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends clang-18 lld-18 llvm-18 cmake ninja-build make git \
-            python3 python3-venv pkg-config ccache wget curl ca-certificates unzip zip nasm yasm g++ \
-            libssl-dev libcurl4-openssl-dev zlib1g-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev \
-            ffmpeg libavformat-dev libavcodec-dev libavutil-dev libswresample-dev libswscale-dev \
-            glslang-tools spirv-tools openssl
-          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+        run: make host-deps
 
       - name: Read app identity and version
         shell: bash
@@ -102,10 +90,7 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/prosperotube/sdk
-          key: sdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/bootstrap_sdk.sh', 'scripts/build_ps5.sh', 'scripts/patch_ffmpeg_dash_seek.py') }}
-
-      - name: Install the PS5 SDK
-        run: bash scripts/bootstrap_sdk.sh
+          key: sdk-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/bootstrap_sdk.sh', 'scripts/build_ps5.sh', 'scripts/patch_ffmpeg_dash_seek.py', 'scripts/patch_ffmpeg_hls_dvr.py', 'scripts/ffmpeg_hls_dvr.inc') }}
 
       # Only the compiler and its library are kept (about 130 MB); its sources and
       # build tree (several GB) are removed once it has passed its own check.
@@ -116,18 +101,8 @@ jobs:
           path: |
             ~/.cache/prosperotube/shader-tools/bin
             ~/.cache/prosperotube/shader-tools/lib
+            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
           key: shader-compiler-${{ runner.os }}-${{ runner.arch }}-${{ env.EVO_PIN }}-${{ hashFiles('scripts/build_ps5_shader_compiler.sh') }}
-
-      - name: Build the PS5 shader compiler
-        if: steps.shader.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get install --yes --no-install-recommends build-essential python3-yaml python3-jinja2 python3-ruamel.yaml \
-            g++-multilib gcc-multilib libwayland-dev libx11-dev libx11-xcb-dev libxcb1-dev libxext-dev \
-            libxcb-dri3-dev libxcb-dri2-0-dev libxcb-present-dev libxcb-randr0-dev libxcb-sync-dev libxcb-shm0-dev \
-            libxcb-glx0-dev libxcb-xfixes0-dev libxshmfence-dev libxrandr-dev libdrm-dev x11proto-dri2-dev
-          PROSPEROTUBE_SHADER_JOBS="$(nproc)" bash scripts/build_ps5_shader_compiler.sh
-          tools="$HOME/.cache/prosperotube/shader-tools"
-          rm -rf "$tools/src" "$tools/build" "$tools/dxc" "$tools"/*.tar.gz
 
       - name: Restore compiler cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -137,20 +112,11 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-${{ runner.arch }}-clang18-
 
-      - name: Install the service bundle's dependencies
-        working-directory: companion/innertube
-        run: npm ci --ignore-scripts
-
-      - name: Install the host test environment
-        run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install -r companion/requirements.lock
-
       - name: Run the offline checks
-        run: bash scripts/test_all.sh
+        run: make test
 
       - name: Build the app
-        run: bash scripts/build_ps5.sh
+        run: make zip
 
       - name: Report compiler cache statistics
         if: always()
@@ -169,22 +135,9 @@ jobs:
           else
             python3 ../scripts/zip_open_modes.py "$TITLE_ID.zip"
           fi
-          python3 - "$TITLE_ID.zip" "$TITLE_ID" "$CONTENT_VERSION" <<'PY'
-          import json, sys, zipfile
-          archive, title, version = sys.argv[1:4]
-          with zipfile.ZipFile(archive) as z:
-              assert z.testzip() is None, "damaged ZIP entry"
-              names = z.namelist()
-              assert all(n.startswith(title + "/") for n in names), "entries outside the app folder"
-              assert title + "/eboot.bin" in names, "no eboot.bin"
-              wrong = [i.filename for i in z.infolist() if (i.external_attr >> 16) & 0o777 != 0o777]
-              assert not wrong, f"entries not stored as 0777: {wrong[:3]}"
-              meta = json.loads(z.read(title + "/sce_sys/param.json"))
-              assert meta["titleId"] == title and meta["contentVersion"] == version, meta
-              print(f"{archive}: {len(names)} entries, all 0777, version {version}")
-          PY
-          sha256sum "$TITLE_ID.zip" > SHA256SUMS
-          cat SHA256SUMS
+          cd ..
+          make verify
+          cat dist/SHA256SUMS
 
       # Signed provenance: this ZIP was built by this workflow from this commit. Anyone can check a
       # downloaded copy with `gh attestation verify <file> -R <owner>/<repo>`. Not for pull requests

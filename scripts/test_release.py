@@ -71,7 +71,7 @@ uses = re.findall(r"uses: (\S+)", workflow)
 assert uses and all(re.fullmatch(r"actions/[a-z-]+@[0-9a-f]{40}", action) for action in uses), uses
 assert "clang-tidy is a local check" in workflow and "tidy" not in workflow.replace("clang-tidy is a local check", "")
 assert "--prerelease" in workflow and "--verify-tag" in workflow and "--clobber" not in workflow and "delete-asset" not in workflow
-assert "zip_open_modes.py" in workflow and "sha256sum \"$TITLE_ID.zip\" > SHA256SUMS" in workflow
+assert "zip_open_modes.py" in workflow and "make verify" in workflow and "make zip" in workflow
 assert "secrets." not in workflow   # nothing but the run's own token
 assert "ffpfsc" not in workflow     # no image files from CI
 print(f"PASS: release {title} {content} ({version}): tag, notes, ZIP entries 0777, workflow triggers and pinned actions")

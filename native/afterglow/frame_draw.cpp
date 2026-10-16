@@ -2,6 +2,7 @@
 // Copyright (C) 2026 BlackBearReloaded
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "tube_about.h"
 #include "afterglow/frame.hpp"
 
 #include <algorithm>
@@ -235,6 +236,7 @@ void Frame::draw_rail(G &g, float arrive)
         g.l.push_opacity(tween::clamp01(open * 1.6f - 0.6f));
         const float w = text(g, g.f.display, "PROSPERO", 104.0f, 95.0f, 22.0f, k.ink2, gfx::Align::left, 5.0f);
         text(g, g.f.display, "TUBE", 104.0f + w + 5.0f, 95.0f, 22.0f, k.ink, gfx::Align::left, 5.0f);
+        text(g, g.f.regular, tube_about_version(), 104.0f, 123.0f, 18.0f, k.ink3);
         g.l.pop_opacity();
     }
 

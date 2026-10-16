@@ -1,27 +1,44 @@
 # Build and offline validation
 
-Use Linux/WSL. Keep the native cache on its Linux filesystem; scripts default
-to `$HOME/.cache/prosperotube`. Sources may be on `/mnt/c`.
+Use x86_64 Ubuntu 24.04, natively or in WSL. Keep the native cache on its
+Linux filesystem; sources may be on `/mnt/c`.
 
 ```sh
-git submodule update --init --recursive
-sudo apt-get install clang-18 lld-18 llvm-18 cmake ninja-build make git \
-  python3 python3-venv pkg-config ccache wget curl unzip zip nasm yasm \
-  libssl-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev ffmpeg
-export PATH=/usr/lib/llvm-18/bin:$PATH
-bash scripts/bootstrap_sdk.sh
-# Install the shader-toolchain dependencies listed below before its first build.
-bash scripts/build_ps5_shader_compiler.sh
-bash scripts/build_ps5.sh
+make host-deps  # Explicit sudo/apt installation, once on Ubuntu 24.04.
+make zip       # Default target; includes dependency bootstrap and ZIP verification.
+make test      # Also creates .venv and installs companion/requirements.lock.
 ```
 
-LLVM 18.1.8 was used. Package names vary by distribution. The bootstrap fetches
-release assets into an isolated user prefix. `PS5_PAYLOAD_SDK` selects an existing
-SDK, but the build installs libraries into it; use a dedicated copy.
-`PROSPEROTUBE_NATIVE_WORK` selects a dedicated generated work tree.
+`make zip` fetches recursive submodules, checksum-verified Node 24.10.0,
+SDK/Pacbrew, locked npm packages and the shader compiler. The existing native
+pipeline then builds its codec libraries and helper dependencies. The first
+shader compiler build can take hours; subsequent runs use its recipe-stamped
+cache. `make deps` stops before compiling the application. `make verify`
+checks ZIP identity/version, CRC, paths, permissions and executable presence,
+then writes `SHA256SUMS`. The ZIP is the only application package built.
+
+Host packages are never installed implicitly. `scripts/install_host_deps.sh`
+is the shared package list for local builds and CI; its automatic installation
+supports Ubuntu 24.04 only. Other Linux distributions need equivalent packages,
+Python 3.11+ and LLVM 18. The Makefile puts LLVM 18 and its cached Node on PATH.
+
+Overrides (environment or make command line):
+
+- `PS5_PAYLOAD_SDK`: dedicated SDK prefix, default `~/.cache/prosperotube/sdk`.
+  The build installs codec libraries into it; do not point it at a shared SDK.
+- `PROSPEROTUBE_NATIVE_WORK`: generated native tree, default
+  `~/.cache/prosperotube/native`.
+- `PROSPEROTUBE_SHADER_TOOLS`: compiler cache, default
+  `~/.cache/prosperotube/shader-tools`.
+- `PROSPEROTUBE_SHADER_JOBS`: compiler build parallelism, default 2.
+- `PROSPEROTUBE_NODE_HOME`: pinned Node installation directory.
+- `PROSPEROTUBE_PS5_DIST`: output directory, default `dist` in this checkout.
+
+The scripts remain usable directly for development; `make zip` is the
+publication build entry point. No Makefile target deploys or publishes.
 
 Pins: EVO `9715f6ee9bf9b53461d6fdf9a2e11b4c48357783`, UI
-`4bd942579dd981b3df9c740438489ca6a614ddc0`, SDK v0.42, Pacbrew v0.39,
+`bbe19054ee2e7ec069254775273aeb8846c4bd3e`, SDK v0.42, Pacbrew v0.39,
 FFmpeg 7.1.1 minimal, dav1d 1.5.1, cJSON 1.7.19, MkPFS
 `6cb8313dfe0c988ac52617794553f343243d3a56`. Upstream build scripts check
 source archive checksums. SDK/Pacbrew assets are release-tag pinned, not

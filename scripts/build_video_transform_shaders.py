@@ -93,7 +93,7 @@ def build(cache, compiler, library):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    tools = Path.home() / ".cache/prosperotube/shader-tools"
+    tools = Path(os.environ.get("PROSPEROTUBE_SHADER_TOOLS", Path.home() / ".cache/prosperotube/shader-tools"))
     parser.add_argument("--cache", type=Path, default=Path.home()/".cache/prosperotube/video-transform-compiled")
     parser.add_argument("--compiler", type=Path, default=tools/"bin/amdllpc")
     parser.add_argument("--spvgen", type=Path, default=tools/"lib/libspvgen.so")

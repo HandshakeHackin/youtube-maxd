@@ -74,3 +74,5 @@ python3 "$cache/probe-source/tools/build_agc_pipes.py" \
   --amdllpc "$cache/bin/amdllpc" --output-dir "$cache/probe" \
   "$root/third_party/evo/projects/evoplayer/shaders/agc/video_yuv_nv12.pipe"
 printf 'PS5 shader compiler validated: %s\n' "$cache/bin/amdllpc"
+
+sha256sum "$root/scripts/build_ps5_shader_compiler.sh" | cut -d ' ' -f 1 > "$cache/.prosperotube-recipe"
