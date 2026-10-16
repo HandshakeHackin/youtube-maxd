@@ -114,9 +114,22 @@ Picture settled(ImageCache &cache, TestPlatform &platform, const char *address, 
 
 int main(int argc, char **argv)
 {
-    assert(argc == 3);
+    assert(argc == 4);
     const std::string webp = read_file(argv[1]);
     const std::string jpeg = read_file(argv[2]);
+    {
+        // A 151 x 270 portrait WebP: swscale converts whole blocks of 8 pixels, so a tight
+        // 151-pixel row used to keep its last 7 pixels unconverted (and wider rows ran past it).
+        int w = 0;
+        int h = 0;
+        std::vector<std::uint8_t> portrait;
+        assert(decode_webp(read_file(argv[3]), &w, &h, &portrait) && w == 151 && h == 270 && portrait.size() == 151u * 270u * 4u);
+        for (const unsigned row : {0u, 135u, 269u})
+        {
+            const std::uint8_t *right = &portrait[(row * 151u + 150u) * 4u];
+            assert(right[0] > 200 && right[1] < 60 && right[2] < 60 && right[3] == 255);
+        }
+    }
     assert(is_webp(webp) && !is_webp(jpeg) && jpeg.size() > 100);
     // A search row's address, as the built-in service names it: .jpg and a signed query, WebP inside.
     const char *search = "https://i.ytimg.com/vi/aaaaaaaaaa1/hq720.jpg?sqp=-oaymwEnCNAFEJQDSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLfixture";

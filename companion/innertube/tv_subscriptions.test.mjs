@@ -65,3 +65,22 @@ test('OAuth Subscribed channels fall back to the web list when the TV page has n
     assert.deepEqual(logged,['YouTube browse shape: action=channels tabs=0 channels=0 mode=legacy']);
   } finally {console.error=error;}
 });
+
+test('Subscriptions cards keep 16:9 or 4:3 pictures and give portrait ones the 16:9 mqdefault',async()=>{
+  const {videoCardImage}=await import('./topic_catalog.mjs');
+  const sd={url:'https://i.ytimg.com/vi/fixtureSU01/sddefault.jpg',width:640,height:480};
+  const wide={url:'https://i.ytimg.com/vi/fixtureSU01/hq720.jpg',width:640,height:360};
+  const oar=[{url:'https://i.ytimg.com/vi/fixtureSU05/oardefault.jpg?sqp=x',width:203,height:360},
+    {url:'https://i.ytimg.com/vi/fixtureSU05/oardefault.jpg?sqp=y',width:405,height:720}];
+  assert.equal(videoCardImage([sd],'fixtureSU01'),sd.url);
+  assert.equal(videoCardImage([sd,wide],'fixtureSU01'),wide.url);
+  assert.equal(videoCardImage(oar,'fixtureSU05'),'https://i.ytimg.com/vi/fixtureSU05/mqdefault.jpg');
+  assert.equal(videoCardImage([{url:'https://i.ytimg.com/vi/fixtureSU05/frame0.jpg?usqp=CCk'}],'fixtureSU05'),
+    'https://i.ytimg.com/vi/fixtureSU05/mqdefault.jpg');
+  assert.equal(videoCardImage([],'fixtureSU05'),undefined);
+  const library=new Library(account([]),profiles);
+  const page=await library.execute({action:'subscriptions',profile:'saved'});
+  const art=Object.fromEntries(page.items.filter(item=>!item.is_folder).map(item=>[item.id,item.art_url]));
+  assert.equal(art.fixtureSU05,'https://i.ytimg.com/vi/fixtureSU05/mqdefault.jpg');
+  assert.equal(art.fixtureSU03,'https://i.ytimg.com/vi/fixtureSU03/sddefault.jpg');
+});
