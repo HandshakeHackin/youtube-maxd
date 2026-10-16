@@ -27,6 +27,21 @@ export function find(node, name, all = false) {
   }
   return all ? matches : null;
 }
+// The picture of a video card, which both interfaces draw at 16:9. TV tiles of
+// Subscriptions and Shorts carry 4:3 (sddefault, letterboxed: the card crops
+// it) or portrait pictures (oardefault, oar2, frame0: 202, 203 or 268 pixels
+// wide, checked on 2026-10-16). A portrait picture becomes the video's 16:9
+// mqdefault, which always exists and shows the whole frame pillarboxed.
+const portraitName = /\/vi(?:_webp)?\/[A-Za-z0-9_-]{11}\/(?:oardefault|oar\d|frame\d)\.(?:jpg|webp)(?:\?|$)/;
+export function videoCardImage(thumbnails, id) {
+  const list = (Array.isArray(thumbnails) ? thumbnails : []).filter(value => typeof value?.url === 'string');
+  const sized = value => Number.isFinite(value.width) && Number.isFinite(value.height) && value.width > 0 && value.height > 0;
+  const portrait = value => sized(value) ? value.width < value.height * 1.2 : portraitName.test(value.url);
+  const landscape = list.find(value => sized(value) && Math.abs(value.width / value.height - 16 / 9) < 0.08) ??
+    list.find(value => !portrait(value));
+  if (landscape) return landscape.url;
+  return list.length && /^[A-Za-z0-9_-]{11}$/.test(id ?? '') ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : list[0]?.url;
+}
 function continuation(node) {
   const value = node?.continuations?.[0]?.nextContinuationData?.continuation ??
     find(node, 'continuationItemRenderer')?.continuationEndpoint?.continuationCommand?.token;
@@ -136,7 +151,7 @@ export class TopicCatalog {
     const parts = /^\d{1,3}:\d{2}(?::\d{2})?$/.test(durationText) ? durationText.split(':').map(Number) : [];
     const duration = parts.length && parts.slice(1).every(value => value < 60) ? parts.reduce((n, v) => n * 60 + v, 0) : 0;
     return this.normalizeVideo({ id, title, author: { name: author, id: channel }, duration,
-      thumbnails: [{ url: image }], ...this.videoState(tile,overlays),
+      thumbnails: [{ url: videoCardImage(header?.thumbnail?.thumbnails, id) }], ...this.videoState(tile,overlays),
       is_short: tile.contentType === 'TILE_CONTENT_TYPE_SHORTS' || !!tile.onSelectCommand?.reelWatchEndpoint });
   }
   videoState(video, overlays) {

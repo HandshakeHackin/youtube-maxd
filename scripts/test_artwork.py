@@ -34,6 +34,19 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
+/* swscale writes from uninstrumented code, out of AddressSanitizer's sight:
+ * convert into a guarded copy and fail on any byte past the destination rows. */
+static int checked_sws_scale(SwsContext* c,const uint8_t* const src[],const int src_stride[],int y,int h,
+                             uint8_t* const dst[],const int dst_stride[]) {
+    std::vector<uint8_t> scratch((size_t)dst_stride[0]*481u+4096u,0xA5);
+    uint8_t* planes[4]={scratch.data(),nullptr,nullptr,nullptr};
+    const int rows=sws_scale(c,src,src_stride,y,h,planes,dst_stride);
+    const size_t used=rows>0?(size_t)rows*(size_t)dst_stride[0]:0;
+    for(size_t i=used;i<used+4096u;++i) assert(scratch[i]==0xA5 && "swscale wrote past the destination rows");
+    std::memcpy(dst[0],scratch.data(),used);
+    return rows;
+}
+#define sws_scale checked_sws_scale
 #define EVO_BUNDLE_MAX_TEXTURE_BYTES (32*1024*1024)
 #define PROV_LOG(...) ((void)0)
 static std::string cache_root;
@@ -97,7 +110,27 @@ int main(int argc,char** argv) {
         } else {
             assert((color>>24)==255 && (color&255)>240 && ((color>>16)&255)<10);
         }
-        if(std::strcmp(name,"large.webp")==0) assert(width==480 && height==32);
+        if(std::strcmp(name,"large.webp")==0) assert(width==480 && height==270); /* letterboxed on a 16:9 card */
+    }
+    /* Subscriptions thumbnails: every card picture is 16:9 (the Classic card box), the
+     * 4:3 one without its bars, the portrait ones of odd widths whole and pillarboxed. */
+    for(const char* name:{"letterboxed.jpg","portrait203.jpg","portrait268.jpg","portrait202.webp","portrait151.jpg"}) {
+        std::vector<uint32_t> pixels; int width=0,height=0;
+        assert(decode_image((root+"/"+name).c_str(),pixels,width,height));
+        assert(width==480 && height==270 && pixels.size()==size_t(width)*height);
+        if(std::strcmp(name,"portrait151.jpg")==0) {
+            /* Converted at its own size: swscale's 8-pixel blocks used to leave the last
+             * 7 columns of a tight 151-pixel row unconverted (transparent). */
+            const uint32_t right=pixels[size_t(height/2)*width+(480-151)/2+150];
+            assert((right>>24)==255 && (right&255)>200);
+        }
+        const uint32_t middle=pixels[size_t(height/2)*width+width/2],corner=pixels[0],side=pixels[size_t(height/2)*width];
+        assert((middle>>24)==255 && (middle&255)>200 && ((middle>>8)&255)<60);
+        if(std::strcmp(name,"letterboxed.jpg")==0) {                                            /* the bars are cropped */
+            const uint32_t inside=pixels[size_t(4)*width+4];
+            assert((inside>>24)==255 && (inside&255)>200);
+        }
+        else assert(side==0 && corner==0);                                                     /* transparent pillars */
     }
     { std::vector<uint32_t> pixels;int w=0,h=0;assert(decode_image(cached.c_str(),pixels,w,h)); }
     std::ofstream broken(root+"/broken.webp",std::ios::binary);
@@ -122,6 +155,15 @@ int main(int argc,char** argv) {
             raw=temp/'input.rgba';raw.write_bytes(bytes([255,0,0,alpha])*(width*height))
             subprocess.run(['ffmpeg','-v','error','-y','-f','rawvideo','-pixel_format','rgba','-video_size',f'{width}x{height}',
                             '-i',str(raw),'-frames:v','1','-c:v',codec,*extra,str(temp/name)],check=True)
+        # The shapes YouTube's TV Subscriptions tiles carry (checked on 2026-10-16): sddefault
+        # 640x480 with 60-pixel bars; oardefault 203x360 and 202x360; frame0 268x480; 4:2:0 JPEG.
+        for name,width,height,bars,codec in (('letterboxed.jpg',640,480,60,'mjpeg'),('portrait203.jpg',203,360,0,'mjpeg'),
+                                             ('portrait268.jpg',268,480,0,'mjpeg'),('portrait202.webp',202,360,0,'libwebp'),
+                                             ('portrait151.jpg',151,270,0,'mjpeg')):
+            row=bytes([230,20,20,255])*width
+            raw=temp/'input.rgba';raw.write_bytes(bytes(4*width)*bars+row*(height-2*bars)+bytes(4*width)*bars)
+            subprocess.run(['ffmpeg','-v','error','-y','-f','rawvideo','-pixel_format','rgba','-video_size',f'{width}x{height}',
+                            '-i',str(raw),'-frames:v','1','-c:v',codec,*(['-pix_fmt','yuvj420p'] if codec=='mjpeg' else []),str(temp/name)],check=True)
         cpp=temp/'test.cpp';cpp.write_text(preamble+state+decoder+'\n#define fwrite artwork_write\n#define fclose artwork_close\n'+download+'\n#undef fwrite\n#undef fclose\n'+request+test)
         flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','libavformat','libavcodec','libswscale','libavutil'],text=True))
         binary=temp/'test'

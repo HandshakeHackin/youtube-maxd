@@ -526,10 +526,15 @@ export class Library {
       case 'channels': {
         // The marker needs one extra guide request, so it is opt-in.
         const marks = input.new_content === true ? await channelMarks(client) : null;
-        feed = channelsFeed(await client.getChannelsFeed(), node => {
-          const item = normalizeChannel(node, imageUrl);
-          return item && marks?.has(item.channel_id) ? { ...item, has_new: marks.get(item.channel_id) } : item;
-        }, LibraryError); break;
+        const mark = item => item && marks?.has(item.channel_id) ? { ...item, has_new: marks.get(item.channel_id) } : item;
+        // A TV sign-in lists its channels from the TV Subscriptions page; the web
+        // list remains for cookie profiles and for a TV page without channel tabs.
+        const tv = profile.oauth ? await this.tvAccounts.channels(client) : null;
+        feed = tv?.feed.catalog_items.length ? { ...tv.feed, catalog_items: tv.feed.catalog_items.map(mark) } :
+          channelsFeed(await client.getChannelsFeed(), node => mark(normalizeChannel(node, imageUrl)), LibraryError);
+        // Counts only: why an account's list came back empty shows in the app log.
+        if (tv) console.error(`YouTube browse shape: action=channels tabs=${tv.tabs} channels=${feed.catalog_items.length} mode=${tv.feed.catalog_items.length ? 'tv' : 'legacy'}`);
+        break;
       }
       case 'notifications': feed = notificationsFeed(await client.getNotifications(), node=>normalizeVideo(node), LibraryError); break;
       // Subscriptions cards keep their private hide token behind a feedback reference.

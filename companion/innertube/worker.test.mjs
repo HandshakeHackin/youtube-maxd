@@ -604,6 +604,7 @@ import './channel_page.test.mjs';
 import './account_actions.test.mjs';
 import './live_shapes.test.mjs';
 import './card_facts.test.mjs';
+import './tv_subscriptions.test.mjs';
 
 test('device authorization keeps credentials when account names fail and accepts the selected TV name', async () => {
   let entries = [{ is_selected: false, account_name: { toString: () => 'Other' } },

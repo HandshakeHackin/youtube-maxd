@@ -1,0 +1,773 @@
+{
+ "page": {
+  "contents": {
+   "tvBrowseRenderer": {
+    "content": {
+     "tvSecondaryNavRenderer": {
+      "sections": [
+       {
+        "tvSecondaryNavSectionRenderer": {
+         "title": {
+          "runs": [
+           {
+            "text": "Subscriptions"
+           }
+          ]
+         },
+         "tabs": [
+          {
+           "tabRenderer": {
+            "endpoint": {
+             "browseEndpoint": {
+              "browseId": "FEsubscriptions"
+             }
+            },
+            "title": "All",
+            "selected": true,
+            "content": {
+             "tvSurfaceContentRenderer": {
+              "content": {
+               "sectionListRenderer": {
+                "contents": [
+                 {
+                  "gridRenderer": {
+                   "items": [
+                    {
+                     "tileRenderer": {
+                      "style": "TILE_STYLE_YTLR_DEFAULT",
+                      "header": {
+                       "tileHeaderRenderer": {
+                        "thumbnail": {
+                         "thumbnails": [
+                          {
+                           "url": "https://i.ytimg.com/vi/fixtureSU01/sddefault.jpg",
+                           "width": 640,
+                           "height": 480
+                          }
+                         ]
+                        },
+                        "thumbnailOverlays": [
+                         {
+                          "thumbnailOverlayTimeStatusRenderer": {
+                           "text": {
+                            "simpleText": "12:34"
+                           },
+                           "style": "DEFAULT"
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      "metadata": {
+                       "tileMetadataRenderer": {
+                        "title": {
+                         "simpleText": "Grid upload one"
+                        },
+                        "lines": [
+                         {
+                          "lineRenderer": {
+                           "items": [
+                            {
+                             "lineItemRenderer": {
+                              "text": {
+                               "runs": [
+                                {
+                                 "text": "Fixture channel A"
+                                }
+                               ]
+                              }
+                             }
+                            }
+                           ]
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      "onSelectCommand": {
+                       "watchEndpoint": {
+                        "videoId": "fixtureSU01"
+                       }
+                      },
+                      "contentType": "TILE_CONTENT_TYPE_VIDEO"
+                     }
+                    },
+                    {
+                     "tileRenderer": {
+                      "style": "TILE_STYLE_YTLR_DEFAULT",
+                      "header": {
+                       "tileHeaderRenderer": {
+                        "thumbnail": {
+                         "thumbnails": [
+                          {
+                           "url": "https://i.ytimg.com/vi/fixtureSU02/sddefault.jpg",
+                           "width": 640,
+                           "height": 480
+                          }
+                         ]
+                        },
+                        "thumbnailOverlays": [
+                         {
+                          "thumbnailOverlayTimeStatusRenderer": {
+                           "text": {
+                            "simpleText": "12:34"
+                           },
+                           "style": "DEFAULT"
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      "metadata": {
+                       "tileMetadataRenderer": {
+                        "title": {
+                         "simpleText": "Grid upload two"
+                        },
+                        "lines": [
+                         {
+                          "lineRenderer": {
+                           "items": [
+                            {
+                             "lineItemRenderer": {
+                              "text": {
+                               "runs": [
+                                {
+                                 "text": "Fixture channel B"
+                                }
+                               ]
+                              }
+                             }
+                            }
+                           ]
+                          }
+                         }
+                        ]
+                       }
+                      },
+                      "onSelectCommand": {
+                       "watchEndpoint": {
+                        "videoId": "fixtureSU02"
+                       }
+                      },
+                      "contentType": "TILE_CONTENT_TYPE_VIDEO"
+                     }
+                    }
+                   ]
+                  }
+                 },
+                 {
+                  "shelfRenderer": {
+                   "content": {
+                    "horizontalListRenderer": {
+                     "items": [
+                      {
+                       "tileRenderer": {
+                        "style": "TILE_STYLE_YTLR_DEFAULT",
+                        "header": {
+                         "tileHeaderRenderer": {
+                          "thumbnail": {
+                           "thumbnails": [
+                            {
+                             "url": "https://i.ytimg.com/vi/fixtureSU03/sddefault.jpg",
+                             "width": 640,
+                             "height": 480
+                            }
+                           ]
+                          },
+                          "thumbnailOverlays": [
+                           {
+                            "thumbnailOverlayTimeStatusRenderer": {
+                             "text": {
+                              "simpleText": "12:34"
+                             },
+                             "style": "DEFAULT"
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "metadata": {
+                         "tileMetadataRenderer": {
+                          "title": {
+                           "simpleText": "Shelf upload three"
+                          },
+                          "lines": [
+                           {
+                            "lineRenderer": {
+                             "items": [
+                              {
+                               "lineItemRenderer": {
+                                "text": {
+                                 "runs": [
+                                  {
+                                   "text": "Fixture channel A"
+                                  }
+                                 ]
+                                }
+                               }
+                              }
+                             ]
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "onSelectCommand": {
+                         "watchEndpoint": {
+                          "videoId": "fixtureSU03"
+                         }
+                        },
+                        "contentType": "TILE_CONTENT_TYPE_VIDEO"
+                       }
+                      },
+                      {
+                       "tileRenderer": {
+                        "style": "TILE_STYLE_YTLR_DEFAULT",
+                        "header": {
+                         "tileHeaderRenderer": {
+                          "thumbnail": {
+                           "thumbnails": [
+                            {
+                             "url": "https://i.ytimg.com/vi/fixtureSU04/sddefault.jpg",
+                             "width": 640,
+                             "height": 480
+                            }
+                           ]
+                          },
+                          "thumbnailOverlays": [
+                           {
+                            "thumbnailOverlayTimeStatusRenderer": {
+                             "text": {
+                              "simpleText": "12:34"
+                             },
+                             "style": "DEFAULT"
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "metadata": {
+                         "tileMetadataRenderer": {
+                          "title": {
+                           "simpleText": "Shelf upload four"
+                          },
+                          "lines": [
+                           {
+                            "lineRenderer": {
+                             "items": [
+                              {
+                               "lineItemRenderer": {
+                                "text": {
+                                 "runs": [
+                                  {
+                                   "text": "Fixture channel B"
+                                  }
+                                 ]
+                                }
+                               }
+                              }
+                             ]
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "onSelectCommand": {
+                         "watchEndpoint": {
+                          "videoId": "fixtureSU04"
+                         }
+                        },
+                        "contentType": "TILE_CONTENT_TYPE_VIDEO"
+                       }
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 },
+                 {
+                  "shelfRenderer": {
+                   "headerRenderer": {
+                    "shelfHeaderRenderer": {
+                     "avatarLockup": {
+                      "avatarLockupRenderer": {
+                       "title": {
+                        "runs": [
+                         {
+                          "text": "Most relevant"
+                         }
+                        ]
+                       }
+                      }
+                     }
+                    }
+                   },
+                   "content": {
+                    "horizontalListRenderer": {
+                     "items": [
+                      {
+                       "tileRenderer": {
+                        "style": "TILE_STYLE_YTLR_DEFAULT",
+                        "header": {
+                         "tileHeaderRenderer": {
+                          "thumbnail": {
+                           "thumbnails": [
+                            {
+                             "url": "https://i.ytimg.com/vi/fixtureSU01/sddefault.jpg",
+                             "width": 640,
+                             "height": 480
+                            }
+                           ]
+                          },
+                          "thumbnailOverlays": [
+                           {
+                            "thumbnailOverlayTimeStatusRenderer": {
+                             "text": {
+                              "simpleText": "12:34"
+                             },
+                             "style": "DEFAULT"
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "metadata": {
+                         "tileMetadataRenderer": {
+                          "title": {
+                           "simpleText": "Grid upload one"
+                          },
+                          "lines": [
+                           {
+                            "lineRenderer": {
+                             "items": [
+                              {
+                               "lineItemRenderer": {
+                                "text": {
+                                 "runs": [
+                                  {
+                                   "text": "Fixture channel A"
+                                  }
+                                 ]
+                                }
+                               }
+                              }
+                             ]
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "onSelectCommand": {
+                         "watchEndpoint": {
+                          "videoId": "fixtureSU01"
+                         }
+                        },
+                        "contentType": "TILE_CONTENT_TYPE_VIDEO"
+                       }
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 },
+                 {
+                  "shelfRenderer": {
+                   "headerRenderer": {
+                    "shelfHeaderRenderer": {
+                     "avatarLockup": {
+                      "avatarLockupRenderer": {
+                       "title": {
+                        "runs": [
+                         {
+                          "text": "Shorts"
+                         }
+                        ]
+                       }
+                      }
+                     }
+                    }
+                   },
+                   "content": {
+                    "horizontalListRenderer": {
+                     "items": [
+                      {
+                       "tileRenderer": {
+                        "style": "TILE_STYLE_YTLR_DEFAULT",
+                        "header": {
+                         "tileHeaderRenderer": {
+                          "thumbnail": {
+                           "thumbnails": [
+                            {
+                             "url": "https://i.ytimg.com/vi/fixtureSU05/oardefault.jpg?sqp=-synthetic&rs=synthetic360",
+                             "width": 203,
+                             "height": 360
+                            },
+                            {
+                             "url": "https://i.ytimg.com/vi/fixtureSU05/oardefault.jpg?sqp=-synthetic&rs=synthetic720",
+                             "width": 406,
+                             "height": 720
+                            }
+                           ]
+                          },
+                          "thumbnailOverlays": []
+                         }
+                        },
+                        "metadata": {
+                         "tileMetadataRenderer": {
+                          "title": {
+                           "simpleText": "A short"
+                          },
+                          "lines": [
+                           {
+                            "lineRenderer": {
+                             "items": [
+                              {
+                               "lineItemRenderer": {
+                                "text": {
+                                 "runs": [
+                                  {
+                                   "text": "Fixture channel A"
+                                  }
+                                 ]
+                                }
+                               }
+                              }
+                             ]
+                            }
+                           }
+                          ]
+                         }
+                        },
+                        "onSelectCommand": {
+                         "reelWatchEndpoint": {
+                          "videoId": "fixtureSU05"
+                         }
+                        },
+                        "contentType": "TILE_CONTENT_TYPE_SHORTS"
+                       }
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 }
+                ],
+                "continuations": [
+                 {
+                  "nextContinuationData": {
+                   "continuation": "synthetic-subscriptions-next"
+                  }
+                 }
+                ]
+               }
+              },
+              "header": {
+               "tvSurfaceHeaderRenderer": {
+                "avatar": {
+                 "avatarLockupRenderer": {
+                  "title": {
+                   "runs": [
+                    {
+                     "text": "All subscriptions"
+                    }
+                   ]
+                  }
+                 }
+                }
+               }
+              }
+             }
+            },
+            "tabIdentifier": "FEsubscriptions"
+           }
+          },
+          {
+           "tabRenderer": {
+            "endpoint": {
+             "browseEndpoint": {
+              "browseId": "FEsubscriptions",
+              "params": "igMaChhVQ2ZpeHR1cmVDaGFubmVsMDAwMDAwMEE%3D"
+             }
+            },
+            "title": "Fixture channel A",
+            "selected": false,
+            "content": {
+             "tvSurfaceContentRenderer": {
+              "continuation": {
+               "reloadContinuationData": {
+                "continuation": "synthetic-channel-tab"
+               }
+              }
+             }
+            },
+            "tabIdentifier": "FEsubscriptions",
+            "thumbnail": {
+             "thumbnails": [
+              {
+               "url": "//yt3.googleusercontent.com/synthetic-A=s48-c-k-c0x00ffffff-no-rj-mo",
+               "width": 48,
+               "height": 48
+              },
+              {
+               "url": "//yt3.googleusercontent.com/synthetic-A=s176-c-k-c0x00ffffff-no-rj-mo",
+               "width": 176,
+               "height": 176
+              }
+             ]
+            }
+           }
+          },
+          {
+           "tabRenderer": {
+            "endpoint": {
+             "browseEndpoint": {
+              "browseId": "FEsubscriptions",
+              "params": "igMaChhVQ2ZpeHR1cmVDaGFubmVsMDAwMDAwMEI%3D"
+             }
+            },
+            "title": "Fixture channel B",
+            "selected": false,
+            "content": {
+             "tvSurfaceContentRenderer": {
+              "continuation": {
+               "reloadContinuationData": {
+                "continuation": "synthetic-channel-tab"
+               }
+              }
+             }
+            },
+            "tabIdentifier": "FEsubscriptions",
+            "thumbnail": {
+             "thumbnails": [
+              {
+               "url": "//yt3.googleusercontent.com/synthetic-B=s48-c-k-c0x00ffffff-no-rj-mo",
+               "width": 48,
+               "height": 48
+              },
+              {
+               "url": "//yt3.googleusercontent.com/synthetic-B=s176-c-k-c0x00ffffff-no-rj-mo",
+               "width": 176,
+               "height": 176
+              }
+             ]
+            }
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   }
+  }
+ },
+ "continuation": {
+  "continuationContents": {
+   "sectionListContinuation": {
+    "contents": [
+     {
+      "shelfRenderer": {
+       "content": {
+        "horizontalListRenderer": {
+         "items": [
+          {
+           "tileRenderer": {
+            "style": "TILE_STYLE_YTLR_DEFAULT",
+            "header": {
+             "tileHeaderRenderer": {
+              "thumbnail": {
+               "thumbnails": [
+                {
+                 "url": "https://i.ytimg.com/vi/fixtureSU06/sddefault.jpg",
+                 "width": 640,
+                 "height": 480
+                }
+               ]
+              },
+              "thumbnailOverlays": [
+               {
+                "thumbnailOverlayTimeStatusRenderer": {
+                 "text": {
+                  "simpleText": "12:34"
+                 },
+                 "style": "DEFAULT"
+                }
+               }
+              ]
+             }
+            },
+            "metadata": {
+             "tileMetadataRenderer": {
+              "title": {
+               "simpleText": "Older upload six"
+              },
+              "lines": [
+               {
+                "lineRenderer": {
+                 "items": [
+                  {
+                   "lineItemRenderer": {
+                    "text": {
+                     "runs": [
+                      {
+                       "text": "Fixture channel B"
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 ]
+                }
+               }
+              ]
+             }
+            },
+            "onSelectCommand": {
+             "watchEndpoint": {
+              "videoId": "fixtureSU06"
+             }
+            },
+            "contentType": "TILE_CONTENT_TYPE_VIDEO"
+           }
+          },
+          {
+           "tileRenderer": {
+            "style": "TILE_STYLE_YTLR_DEFAULT",
+            "header": {
+             "tileHeaderRenderer": {
+              "thumbnail": {
+               "thumbnails": [
+                {
+                 "url": "https://i.ytimg.com/vi/fixtureSU07/sddefault.jpg",
+                 "width": 640,
+                 "height": 480
+                }
+               ]
+              },
+              "thumbnailOverlays": [
+               {
+                "thumbnailOverlayTimeStatusRenderer": {
+                 "text": {
+                  "simpleText": "12:34"
+                 },
+                 "style": "DEFAULT"
+                }
+               }
+              ]
+             }
+            },
+            "metadata": {
+             "tileMetadataRenderer": {
+              "title": {
+               "simpleText": "Older upload seven"
+              },
+              "lines": [
+               {
+                "lineRenderer": {
+                 "items": [
+                  {
+                   "lineItemRenderer": {
+                    "text": {
+                     "runs": [
+                      {
+                       "text": "Fixture channel A"
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 ]
+                }
+               }
+              ]
+             }
+            },
+            "onSelectCommand": {
+             "watchEndpoint": {
+              "videoId": "fixtureSU07"
+             }
+            },
+            "contentType": "TILE_CONTENT_TYPE_VIDEO"
+           }
+          }
+         ]
+        }
+       }
+      }
+     },
+     {
+      "shelfRenderer": {
+       "content": {
+        "horizontalListRenderer": {
+         "items": [
+          {
+           "tileRenderer": {
+            "style": "TILE_STYLE_YTLR_DEFAULT",
+            "header": {
+             "tileHeaderRenderer": {
+              "thumbnail": {
+               "thumbnails": [
+                {
+                 "url": "https://i.ytimg.com/vi/fixtureSU08/sddefault.jpg",
+                 "width": 640,
+                 "height": 480
+                }
+               ]
+              },
+              "thumbnailOverlays": [
+               {
+                "thumbnailOverlayTimeStatusRenderer": {
+                 "text": {
+                  "simpleText": "12:34"
+                 },
+                 "style": "DEFAULT"
+                }
+               }
+              ]
+             }
+            },
+            "metadata": {
+             "tileMetadataRenderer": {
+              "title": {
+               "simpleText": "Older upload eight"
+              },
+              "lines": [
+               {
+                "lineRenderer": {
+                 "items": [
+                  {
+                   "lineItemRenderer": {
+                    "text": {
+                     "runs": [
+                      {
+                       "text": "Fixture channel A"
+                      }
+                     ]
+                    }
+                   }
+                  }
+                 ]
+                }
+               }
+              ]
+             }
+            },
+            "onSelectCommand": {
+             "watchEndpoint": {
+              "videoId": "fixtureSU08"
+             }
+            },
+            "contentType": "TILE_CONTENT_TYPE_VIDEO"
+           }
+          }
+         ]
+        }
+       }
+      }
+     }
+    ]
+   }
+  }
+ }
+}

@@ -48,4 +48,6 @@ for source in "${root}/native/afterglow/images.cpp" "${root}/native/afterglow/ap
 done
 g++ "${sanitize[@]}" "${picture_objects[@]}" "${destination}/platform.o" "${destination}/draw_list.o" "${destination}/triangulate.o" \
     "${destination}/font.o" "${media[@]}" -lm -o "${destination}/picture_test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/picture_test" "${pictures}/red.webp" "${pictures}/red.jpg"
+# A portrait picture of a width that is no multiple of 8, as Subscriptions tiles carry.
+ffmpeg -v error -y -f lavfi -i "color=c=red:s=151x270" -frames:v 1 -c:v libwebp "${pictures}/portrait.webp"
+ASAN_OPTIONS=detect_leaks=1 "${destination}/picture_test" "${pictures}/red.webp" "${pictures}/red.jpg" "${pictures}/portrait.webp"

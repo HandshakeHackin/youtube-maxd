@@ -64,10 +64,18 @@ bool decode_webp(const std::string &bytes, int *width, int *height, std::vector<
                 scale = sws_getContext(w, h, static_cast<AVPixelFormat>(frame->format), w, h, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
                 if (scale != nullptr)
                 {
-                    rgba->assign(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4u, 0);
-                    std::uint8_t *planes[4] = {rgba->data(), nullptr, nullptr, nullptr};
-                    const int strides[4] = {w * 4, 0, 0, 0};
+                    // swscale's x86 converters write whole blocks of 8 pixels: a tight row whose width
+                    // is no multiple of 8 (portrait thumbnails are 151, 202 or 203 wide) either keeps
+                    // its last pixels unconverted or runs past its end. Convert into 64-byte rows.
+                    const int pitch = (w * 4 + 63) & ~63;
+                    std::vector<std::uint8_t> rows(static_cast<std::size_t>(pitch) * static_cast<std::size_t>(h), 0);
+                    std::uint8_t *planes[4] = {rows.data(), nullptr, nullptr, nullptr};
+                    const int strides[4] = {pitch, 0, 0, 0};
                     ok = sws_scale(scale, frame->data, frame->linesize, 0, h, planes, strides) == h;
+                    rgba->resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4u);
+                    for (int y = 0; ok && y < h; ++y)
+                        std::memcpy(rgba->data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(w) * 4u,
+                                    rows.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(pitch), static_cast<std::size_t>(w) * 4u);
                     *width = w;
                     *height = h;
                 }
