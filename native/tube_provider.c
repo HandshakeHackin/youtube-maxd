@@ -1808,6 +1808,8 @@ static void companion_forget(void) { memset(&g_companion, 0, sizeof g_companion)
  * rows are replaced by one explanation. Before its feature list was read, and whenever
  * the list names sign-in, accounts are offered as with a companion. */
 static int embedded_guest_only(void) { return g_embedded && companion_known() && !companion_has(COMPANION_DEVICE_AUTH); }
+/* A Guest is offered "Sign in to YouTube" on the main menu, first in Accounts & library and in the account settings. */
+static int sign_in_offered(void) { return !strcmp(g_library_profile, "guest") && !embedded_guest_only(); }
 /* The same rule for every other part: a built-in service that does not list it has no
  * row for it; before the list was read, the service the app carries is assumed. */
 static int embedded_lacks(unsigned feature) { return g_embedded && companion_known() && !companion_has(feature); }
@@ -3498,6 +3500,9 @@ static int auth_rows(evo_provider_items_cb cb, void *ud) {
         snprintf(rows[0].overview, sizeof rows[0].overview,
             "Open %s on your phone or computer and enter %s. Waiting for authorization; status checks are automatic. The code expires automatically if sign-in is not completed.",
             g_auth.url, g_auth.code);
+        /* The steps stay in view whichever row has the focus. */
+        copy(rows[1].overview, sizeof rows[1].overview, rows[0].overview);
+        copy(rows[2].overview, sizeof rows[2].overview, rows[0].overview);
     } else if (g_auth.state == AUTH_AUTHORIZED) {
         char id[64]; snprintf(id, sizeof id, "library:profile:%s", g_auth.profile);
         folder(&rows[n++], id, "Use authorized YouTube account", g_auth.name);
@@ -3508,9 +3513,14 @@ static int auth_rows(evo_provider_items_cb cb, void *ud) {
             g_auth.state == AUTH_DENIED ? "YouTube authorization denied" :
             g_auth.state == AUTH_STARTING ? "Requesting YouTube sign-in code" : "YouTube sign-in could not be completed";
         folder(&rows[n++], "auth:info", title, g_embedded ? "Account credentials stay in the app data on this PS5" : "Account credentials stay on the companion");
+        /* What comes next, before the code is here: no password is typed on the PS5. */
+        if (g_auth.state == AUTH_STARTING)
+            copy(rows[0].overview, sizeof rows[0].overview, "A code and an address appear here. Open the address on your phone or computer and enter the code; this screen carries on by itself.");
         if (g_auth.state == AUTH_FAILED && *g_auth.error) copy(rows[0].overview,sizeof rows[0].overview,g_auth.error);
-        if (g_auth.state != AUTH_STARTING)
+        if (g_auth.state != AUTH_STARTING) {
             folder(&rows[n++], "auth:start", "Start a new sign-in", "Authorize using your phone or computer");
+            copy(rows[n - 1].overview, sizeof rows[n - 1].overview, "A code and an address appear here. Open the address on your phone or computer and enter the code; this screen carries on by itself.");
+        }
     }
     if (cb) cb(1, rows, n, 0, ud);
     return 0;
@@ -5496,6 +5506,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         if (group == SECTION_ROOT) {
             for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, g_library_profile))
                 CATALOG_FOLDER( g_pins[i].id, g_pins[i].title, !strncmp(g_pins[i].id, "channel:", 8) ? "Pinned channel; Touchpad for actions" : "Pinned playlist; Touchpad for actions");
+            /* A Guest finds signing in where the menu is, once, beside the preferences. */
+            if (sign_in_offered()) CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Get a code here, then enter it on your phone or computer");
             CATALOG_FOLDER( "settings", "YouTube preferences", "Quality, codec, captions and SponsorBlock");
             CATALOG_FOLDER( "app:settings", "Player settings", "Display, audio and controller preferences");
             CATALOG_FOLDER( "app:exit", "Close ProsperoTube", "Release playback, then close from the PS5 switcher");
@@ -5533,6 +5545,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         char label[96]; snprintf(label, sizeof label, "Profile: %s", g_library_profile);
         CATALOG_FOLDER( "library:profiles", label, g_embedded ? "Guest, or an account signed in on this PS5" : "Choose an account configured on the companion");
+        if (sign_in_offered()) CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Get a code here, then enter it on your phone or computer");
         CATALOG_FOLDER( "library:home", "Home", "Recommendations for the selected profile");
         CATALOG_FOLDER( "library:subscriptions", "Subscriptions", "Videos from your YouTube subscriptions");
         CATALOG_FOLDER( "library:history", "YouTube history", "History from the selected account");
@@ -5543,7 +5556,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER( "library:notifications", "Notifications", "Videos your account was notified about");
         CATALOG_FOLDER( "section:my_videos", "My videos", "Uploads of the selected account");
         CATALOG_FOLDER( "playlist:prompt:create:", "Create YouTube playlist", "A private playlist on the selected account");
-        CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
+        if (!sign_in_offered()) CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Authorize on your phone or computer");
         if (strcmp(g_library_profile, "guest"))
             CATALOG_FOLDER( "account:remove", "Remove selected account", "Review before removing its saved sign-in");
     } else if (!strncmp(parent, "settings", 8)) {
@@ -6092,6 +6105,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         } else if (!strncmp(parent, "settings:lock:", 14)) {
             CATALOG_FOLDER( "account:notice", "Enter the password", "Circle returns to the account settings without changing it");
         } else if (!strcmp(parent, "settings:accounts") || !strcmp(parent, "settings:separate-settings")) {
+            if (sign_in_offered()) { /* first, for a Guest; Afterglow opens its sign-in screen from it */
+                CATALOG_FOLDER( "auth:start", "Sign in to YouTube", "Get a code here, then enter it on your phone or computer");
+                tube_row_fact("auth:start", "kind", "link"); tube_row_fact("auth:start", "screen", "sign_in");
+            }
             CATALOG_FOLDER( "settings:separate-settings", g_separate_settings ? "Separate settings per account: on" : "Separate settings per account: off",
                 "Off: every profile uses the same preferences. On: each profile keeps its own; applies to this PS5");
             if (!strcmp(g_library_profile, "guest"))

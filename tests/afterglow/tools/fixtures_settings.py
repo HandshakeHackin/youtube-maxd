@@ -523,6 +523,7 @@ def guest():
             r["confirm"] = r["confirm"].replace("for Mara", "for Guest")
     write(f, "settings", rows)
     write(f, "settings:accounts", [
+        row("auth:start", "Sign in to YouTube", "link", "Get a code here, then enter it on your phone or computer", screen="sign_in"),
         switch("settings:separate-settings", "Separate settings per account", False, "Off: every profile uses the same preferences; applies to this PS5"),
         row("account:notice", "Password protection", "info", "Select an account profile to protect it with a password", tag="Experimental"),
     ])

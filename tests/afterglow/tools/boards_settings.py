@@ -64,8 +64,12 @@ boards = [
     board("settings-phone-link", steps=P("down", "down", "cross") + W(0.7), expect={"screen": "link_phone"}),
     board("settings-accounts", argument="tile:accounts", expect={"focus": "row/link", "state": {"rows": "4", "kind": "link"}, "asked": ["settings:accounts"]}),
     board("settings-accounts-link", argument="tile:accounts", steps=P("cross") + W(0.7), expect={"screen": "accounts"}),
-    board("settings-accounts-guest", fixture="guest", argument="tile:accounts", steps=P("down", "down", "down"),
-          expect={"focus": "row/account:notice", "state": {"rows": "4", "kind": "info"}}),
+    board("settings-accounts-guest", fixture="guest", argument="tile:accounts", steps=P("down", "down", "down", "down"),
+          expect={"focus": "row/account:notice", "state": {"rows": "5", "kind": "info"}}),
+    # A Guest finds signing in first on the Accounts page, and it opens the sign-in screen.
+    board("settings-accounts-guest-sign-in", fixture="guest", argument="tile:accounts",
+          expect={"focus": "row/auth:start", "state": {"rows": "5", "kind": "link"}, "asked": ["settings:accounts"]}),
+    board("settings-accounts-guest-sign-in-open", fixture="guest", argument="tile:accounts", steps=P("cross") + W(0.7), expect={"screen": "sign_in"}),
     # ---- the form (board 32) ----
     board("settings-captions", argument=CAPTIONS, steps=DOWN5,
           expect={"focus": "row/subtitle-size", "state": {"kind": "slider", "value": "120 %", "preview": "captions", "defaults": "1", "rows": "8"}}),

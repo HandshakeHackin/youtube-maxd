@@ -269,7 +269,9 @@ int main(int argc, char** argv) {
     for (int index = 0; index < tube_i18n_language_count(); ++index, ++languages) check_language(tube_i18n_language_tag(index), english, plain);
     assert(languages >= 21);
     /* Scripts drawn: Latin with its marks, Cyrillic, Greek and Vietnamese. */
-    assert(letters.count(U'ñ') && letters.count(U'ß') && letters.count(U'ł') && letters.count(U'ő') && letters.count(U'ș') && letters.count(U'ğ'));
+    /* A Guest's main menu shows "Sign in to YouTube"; "Close ProsperoTube" (schließen) moved to its second page. */
+    assert(has_glyph(U'ß'));
+    assert(letters.count(U'ñ') && letters.count(U'ö') && letters.count(U'ł') && letters.count(U'ő') && letters.count(U'ș') && letters.count(U'ğ'));
     assert(letters.count(U'ж') && letters.count(U'ї') && letters.count(U'λ') && letters.count(U'ệ'));
 
     /* Interface language together with the interface preferences: scales, card text and colour schemes. */

@@ -415,7 +415,9 @@ void Settings::rebuild()
             link.detail = tr(tile.link_detail);
             link.value = tile_summary(tile, main);
             link.kind = Kind::link;
-            items_.insert(items_.begin(), std::move(link));
+            // A Guest's "Sign in to YouTube" stays first; the tile's own screen follows it.
+            const bool sign_in_first = items_.front().row.id == "auth:start";
+            items_.insert(items_.begin() + (sign_in_first ? 1 : 0), std::move(link));
         }
     }
     else

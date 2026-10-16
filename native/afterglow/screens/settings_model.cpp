@@ -167,6 +167,7 @@ constexpr Rule kRules[] = {
     {"settings:dearrow:about", "dearrow", "About"},
     {"settings:dearrow:status", "dearrow", "About"},
     // ---- Accounts ----
+    {"auth:start", "accounts", "YouTube sign-in", "settings:accounts"}, // a Guest's: first on the page
     {"settings:account-on-boot", "accounts", "On this PS5"},
     {"settings:separate-settings", "accounts", "On this PS5"},
     {"settings:lock:", "accounts", "Password of this profile"},
