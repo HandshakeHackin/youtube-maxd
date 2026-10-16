@@ -4,7 +4,8 @@ Settings simplification, a fixed 2160p ceiling, and missing local-history artwor
 fallback are implemented. Update prompts move outside Settings to follow Eden's
 startup flow. Native regressions, updater sanitizer checks and Settings/About UI checks pass;
 ZIP `38d2840` builds successfully, is content-verified and frozen.
-The latest installed console candidate remains `47d007a`.
+`38d2840` is installed on .30: 185 stored files verified after 120 seconds,
+unchanged error records and final idle. Owner acceptance remains pending.
 
 Media-preflight diagnostics now record refused header/midpoint probes, attempt
 and HTTP status without URLs or identifiers. Real service and embedded log-sink
@@ -52,7 +53,8 @@ installed on .30 with all 185 stored files verified after 120 seconds. Account
 Library access and functional hardware acceptance remain unresolved.
 See the latest [handoff](HANDOFF.md).
 
-Latest installed candidate: `47d007a`, adding media-probe refusal diagnostics
+Latest installed candidate: `38d2840`, adding simplified settings, fixed 2160p
+maximum and local-history thumbnail fallback, while retaining media-probe refusal diagnostics
 and retaining the `08ce71c` bounded DASH seek diagnostics
 and retaining the `00f4345` cast-refresh repair.
 It retains `f8617d2` TV account-feed parsing,

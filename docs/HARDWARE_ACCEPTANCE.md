@@ -1,5 +1,7 @@
 # Hardware acceptance — in progress
 
+- 2026-10-15 | `38d2840` settings/thumbnail candidate deployed to .30 | pass: idle-first, 185 files match after 120 seconds, errors unchanged, final idle | private evidence `settings-38d2840-installed/result.json` | no launch; owner acceptance pending.
+
 - 2026-10-15 | `47d007a` media-probe diagnostic deployed to .30 | pass: idle-first, 185 files match after 120 seconds, errors unchanged, final idle | private evidence `media-probe-47d007a-installed/result.json` | owner casting replay pending; no launch or Chiaki-ng.
 
 - 2026-10-15 | `08ce71c` diagnostic deployed to .30 | pass: idle-first, all 185 files match after 120 seconds, errors unchanged, final idle | private evidence `dash-seek-08ce71c-installed/result.json` | no launch; mid-video cast replay pending.

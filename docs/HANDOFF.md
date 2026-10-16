@@ -4,6 +4,13 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Settings and thumbnail candidate installed (2026-10-15)
+
+`38d2840` is installed on .30. Idle-first deployment, all 185 stored files after
+120 seconds, unchanged error records, and final idle pass. Private evidence:
+`settings-38d2840-installed/result.json`. No launch, close or Chiaki-ng was used.
+Owner Settings, thumbnail and playback acceptance remains pending.
+
 ## Simpler settings and local thumbnails (2026-10-15)
 
 Removed the Updates tile and manual update rows, plus About's Releases/source,
