@@ -4,7 +4,7 @@
 
 <h1 align="center">ProsperoTube</h1>
 
-> **In testing: 0.1.0 (content version `01.000.000`) has not been released yet.**
+> **In testing: 1.000.000 (content version `01.000.000`) has not been released yet.**
 > The self-sufficient build has passed bounded Guest sessions on a PS5, and the
 > new Afterglow interface has had its first runs there; accounts, phone casting
 > and updates have not been tried on a console yet. No version will be published
@@ -128,8 +128,8 @@ Every source, version and licence is listed in
 | --- | --- |
 | Shell title | `ProsperoTube` |
 | Title ID | `PPSA99142` |
-| Category | Game |
-| Version / content version | `0.1.0` / `01.000.000` (not released) |
+| Category | Media |
+| Version / content version | `1.000.000` / `01.000.000` (not released) |
 | Version source | [`scripts/prepare_native.py`](scripts/prepare_native.py), written into `sce_sys/param.json` |
 | Writable data | `/data/prosperotube` (Lapy access is required; there is no sandbox fallback) |
 
@@ -624,7 +624,7 @@ docs/                         status, validation, build, design and decisions
 ## Versioning
 
 The content version (`contentVersion="01.000.000"`) and the version shown to
-people (`0.1.0`) are set in [`scripts/prepare_native.py`](scripts/prepare_native.py),
+people (`1.000.000`) are set in [`scripts/prepare_native.py`](scripts/prepare_native.py),
 which writes them into `sce_sys/param.json`. `python3 scripts/release_version.py`
 prints the title, content version and version; `--tag` prints the tag, which is
 `v` + the content version.

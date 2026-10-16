@@ -4,6 +4,21 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Media category and standard version format (2026-10-16)
+
+ProsperoTube now uses Media metadata (category 65536, badge 2, no gameIntent).
+Candidate `b6f5ce8` was uploaded after an idle check; all 185 stored files matched
+after 120 seconds and error records were unchanged. The owner launched during
+verification, so final idle did not pass; read-only logs confirmed that exact
+build running. Evidence: `media-category-b6f5ce8-installed/result.json`.
+
+The displayed/release version is now `1.000.000`, aligned with the unchanged
+PS5 content version `01.000.000`. Rail, About/changelog, app VERSION, service,
+companion banner and source package names follow this format. The updater and
+GitHub tag continue using the required padded content version. Release checks
+assert the correspondence and companion/package consistency. This is a naming
+change for the unreleased alpha, not a declaration of stable 1.0 quality.
+
 ## Publication build and rail version (2026-10-16)
 
 The expanded Afterglow rail shows the canonical About version in smaller muted

@@ -37,7 +37,7 @@ def main():
     DIST.mkdir(exist_ok=True)
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     with tempfile.TemporaryDirectory(prefix="prosperotube-source-") as temporary:
-        with tarfile.open(DIST / "ProsperoTube-0.1.0-source.tar.gz", "w:gz") as result:
+        with tarfile.open(DIST / "ProsperoTube-1.000.000-source.tar.gz", "w:gz") as result:
             for directory, prefix in ((ROOT, ""), (ROOT / "third_party/evo", "third_party/evo/"),
                                       (ROOT / "third_party/evo/third_party/ps5-homebrew-ui", "third_party/evo/third_party/ps5-homebrew-ui/")):
                 archive = Path(temporary) / "source.tar"
@@ -46,14 +46,14 @@ def main():
                     for member in source:
                         member.name = "ProsperoTube/" + prefix + member.name
                         result.addfile(member, source.extractfile(member) if member.isfile() else None)
-    with zipfile.ZipFile(DIST / "ProsperoTube-0.1.0-companion-fixtures.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(DIST / "ProsperoTube-1.000.000-companion-fixtures.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for name, body in companion_entries(ROOT, revision):
             archive.writestr("ProsperoTube/" + name, body)
     artifacts = {}
     for path in sorted(DIST.iterdir()):
         if path.is_file() and path.suffix in {".zip", ".gz"}:
             artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
-    manifest = {"version": "0.1.0", "source_revision": revision, "title_id": "PPSA99142",
+    manifest = {"version": "1.000.000", "source_revision": revision, "title_id": "PPSA99142",
                 "validation": {"status": "Packaging records checksums; consult the validation record for test evidence.",
                                "ps5_hardware": "not tested", "live_youtube": "not tested"},
                 "artifacts": artifacts}

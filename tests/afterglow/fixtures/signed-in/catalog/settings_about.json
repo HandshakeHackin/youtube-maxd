@@ -1,6 +1,6 @@
 {
  "items": [
-  {"id": "account:notice:version", "is_folder": true, "interface": true, "title": "ProsperoTube 0.1.0", "subtitle": "A native YouTube client for PS5 homebrew; GPL-3.0-or-later", "label": "ProsperoTube 0.1.0", "kind": "info"},
+  {"id": "account:notice:version", "is_folder": true, "interface": true, "title": "ProsperoTube 1.000.000", "subtitle": "A native YouTube client for PS5 homebrew; GPL-3.0-or-later", "label": "ProsperoTube 1.000.000", "kind": "info"},
   {"id": "account:notice:author", "is_folder": true, "interface": true, "title": "Brought to you by BlackBearReloaded", "subtitle": "Not affiliated with or endorsed by YouTube or Google", "label": "Brought to you by BlackBearReloaded", "kind": "info"},
   {"id": "settings:about:credits", "is_folder": true, "interface": true, "title": "Credits", "subtitle": "What ProsperoTube builds on; the full notices ship with the package", "label": "Credits", "kind": "link", "screen": "reader"}
  ],

@@ -5,7 +5,7 @@ section lists one change per `- ` bullet; `scripts/generate_about.py` turns the
 bullets into the in-app changelog (`native/tube_about_data.h`), so keep every
 bullet under 300 bytes and run the generator after editing this file.
 
-## 0.1.0
+## 1.000.000
 
 First release. It runs on the console by itself, as Guest or with YouTube
 accounts signed in on the console. Most of it was tested offline only, no real

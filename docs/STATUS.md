@@ -1,5 +1,9 @@
 # Current implementation status
 
+Media category is implemented and deployed as `b6f5ce8`; stored bytes verified,
+owner launched that build. Standard display version is now `1.000.000`, keeping
+PS5 content version `01.000.000`. Version-format build/deployment is in progress.
+
 The expanded rail now shows the app version. Publication builds use `make zip`
 with shared local/CI dependency setup and verified ZIP/checksum output. Host UI,
 build orchestration and release checks pass; a real cached-toolchain build passes.

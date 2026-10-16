@@ -4,6 +4,7 @@ import os
 import re
 from pathlib import Path
 import uvicorn
+from . import __version__
 from .app import create_app
 from .extractor import Extractor
 
@@ -105,7 +106,7 @@ def main():
                          return_youtube_dislike=args.return_youtube_dislike)
         if args.proxy:
             print("Web proxy: enabled for YouTube resolution, the library worker and the media relay.")
-    print("ProsperoTube companion 0.1.0")
+    print(f"ProsperoTube companion {__version__}")
     print(f"Pairing code (valid for 10 minutes): {app.state.pairing_code}")
     print("On the PS5 enter the companion LAN address followed by # and that code.")
     print("Example: http://192.168.1.20:8765#123456")

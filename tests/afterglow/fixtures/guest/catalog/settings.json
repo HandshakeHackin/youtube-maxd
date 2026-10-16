@@ -48,7 +48,7 @@
   {"id": "settings:experimental", "is_folder": true, "interface": true, "title": "Experimental features", "subtitle": "What the Experimental mark on a row means", "label": "Experimental features", "kind": "page", "tag": "Experimental"},
   {"id": "settings:accounts", "is_folder": true, "interface": true, "title": "Account settings: Guest · no account on this PS5", "subtitle": "Separate settings per account and the profile password", "label": "Account settings", "kind": "page", "value": "Guest · no account on this PS5"},
   {"id": "settings:backup", "is_folder": true, "interface": true, "title": "Backup and restore: No backup yet", "subtitle": "Local backups, automatic backup and subscriptions import", "label": "Backup and restore", "kind": "page", "value": "No backup yet"},
-  {"id": "settings:about", "is_folder": true, "interface": true, "title": "About ProsperoTube", "subtitle": "Version, author and credits", "label": "About ProsperoTube", "kind": "page", "value": "ProsperoTube 0.1.0", "update": "0.1.0 is the latest version", "attention": false}
+  {"id": "settings:about", "is_folder": true, "interface": true, "title": "About ProsperoTube", "subtitle": "Version, author and credits", "label": "About ProsperoTube", "kind": "page", "value": "ProsperoTube 1.000.000", "update": "1.000.000 is the latest version", "attention": false}
  ],
  "has_more": false
 }

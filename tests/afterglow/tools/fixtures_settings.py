@@ -169,8 +169,8 @@ def main_list(o=None):
         row("settings:experimental", "Experimental features", "page", "What the Experimental mark on a row means", tag="Experimental"),
         row("settings:accounts", "Account settings", "page", "Separate settings per account and the profile password", "Mara · 2 profiles"),
         row("settings:backup", "Backup and restore", "page", "Local backups, automatic backup and subscriptions import", "Last backup today, 09:12"),
-        row("settings:about", "About ProsperoTube", "page", "Version, author and credits", "ProsperoTube 0.1.0",
-            update="0.2.0 is ready to install", attention=True),
+        row("settings:about", "About ProsperoTube", "page", "Version, author and credits", "ProsperoTube 1.000.000",
+            update="1.001.000 is ready to install", attention=True),
     ]
     for key, name in (("player", "Player"), ("captions", "Captions"), ("audio", "Audio"), ("content", "Content & language"),
                       ("interface", "Interface"), ("sponsorblock", "SponsorBlock"), ("dearrow", "DeArrow")):
@@ -336,7 +336,7 @@ def credits():
 
 def about_rows():
     return [
-        row("account:notice:version", "ProsperoTube 0.1.0", "info", "A native YouTube client for PS5 homebrew; GPL-3.0-or-later"),
+        row("account:notice:version", "ProsperoTube 1.000.000", "info", "A native YouTube client for PS5 homebrew; GPL-3.0-or-later"),
         row("account:notice:author", "Brought to you by BlackBearReloaded", "info", "Not affiliated with or endorsed by YouTube or Google"),
         row("settings:about:credits", "Credits", "link", "What ProsperoTube builds on; the full notices ship with the package", screen="reader"),
     ]
@@ -495,7 +495,7 @@ def guest():
         "settings:remote": {"value": "No phone linked"},
         "settings:accounts": {"value": "Guest · no account on this PS5"},
         "settings:backup": {"value": "No backup yet"},
-        "settings:about": {"update": "0.1.0 is the latest version", "attention": False},
+        "settings:about": {"update": "1.000.000 is the latest version", "attention": False},
         "settings:extra:captions": {"value": "100 % · player's own"},
         "settings:extra:audio": {"value": "100 %"},
         "settings:codec": {"value": "Automatic"},
@@ -551,7 +551,7 @@ def long_texts():
         "settings:accounts": {"value": "Maximiliane-Sophie · 2 Profile · Kennwortschutz"},
         "settings:remote": {"value": "Maximiliane-Sophies Smartphone ist verbunden"},
         "settings:backup": {"value": "Letzte Sicherung heute, 09:12, zehn Sicherungen aufbewahrt"},
-        "settings:about": {"value": "ProsperoTube 0.1.0", "update": "0.2.0 steht zur Installation bereit und wurde bereits heruntergeladen"},
+        "settings:about": {"value": "ProsperoTube 1.000.000", "update": "1.001.000 steht zur Installation bereit und wurde bereits heruntergeladen"},
     }
     write(f, "settings", main_list(o))
     write(f, "settings:extra:captions", [

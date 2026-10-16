@@ -15,7 +15,8 @@ pipeline then builds its codec libraries and helper dependencies. The first
 shader compiler build can take hours; subsequent runs use its recipe-stamped
 cache. `make deps` stops before compiling the application. `make verify`
 checks ZIP identity/version, CRC, paths, permissions and executable presence,
-then writes `SHA256SUMS`. The ZIP is the only application package built.
+then writes `SHA256SUMS`. Media metadata is required: category 65536, badge 2,
+without `gameIntent`. The ZIP is the only application package built.
 
 Host packages are never installed implicitly. `scripts/install_host_deps.sh`
 is the shared package list for local builds and CI; its automatic installation

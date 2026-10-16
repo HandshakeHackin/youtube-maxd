@@ -306,7 +306,7 @@ intents = v.get("gameIntent", {}).get("permittedIntents", [])
 if not any(i.get("intentType") == "launchActivity" for i in intents):
     raise SystemExit("game param.json must permit the launchActivity intent")''', '''if (v.get("applicationCategoryType"), v.get("contentBadgeType")) != (65536, 2) or "gameIntent" in v:
     raise SystemExit("expected Media metadata: category 65536, badge 2, no gameIntent")''')
-    (WORK / player / "VERSION").write_text("0.1.0\n")
+    (WORK / player / "VERSION").write_text("1.000.000\n")
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--short=8", "HEAD"], text=True).strip()
     # Dependency trees are regenerated from checked pins above, so their working
     # files do not contribute to this package. Avoid recursively scanning them.

@@ -17,6 +17,10 @@ def run(*arguments):
 
 title, content, version = run(ROOT / "scripts/release_version.py").split()
 assert title == "PPSA99142" and re.fullmatch(r"\d\d\.\d{3}\.\d{3}", content) and re.fullmatch(r"\d+\.\d+\.\d+", version)
+major, minor, patch = content.split(".")
+assert version == f"{int(major)}.{minor}.{patch}"
+assert f'__version__ = "{version}"' in (ROOT / "companion/prosperotube/__init__.py").read_text()
+assert f'version = "{version}"' in (ROOT / "pyproject.toml").read_text()
 assert run(ROOT / "scripts/release_version.py", "--tag").strip() == "v" + content
 # The version About shows and the one the release is named after are the same.
 assert f'#define TUBE_ABOUT_CHANGELOG_VERSION "{version}"' in (ROOT / "native/tube_about_data.h").read_text()

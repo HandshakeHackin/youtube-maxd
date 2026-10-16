@@ -49,7 +49,7 @@ typedef struct {
 
 static inline const char *tube_about_version(void) { return TUBE_ABOUT_VERSION; }
 
-/* "ProsperoTube 0.1.0". Returns 0, or -1 when it does not fit. */
+/* "ProsperoTube 1.000.000". Returns 0, or -1 when it does not fit. */
 static inline int tube_about_title(char *out, size_t size) {
     int written = out && size ? snprintf(out, size, "%s %s", TUBE_ABOUT_NAME, TUBE_ABOUT_VERSION) : -1;
     if (written < 0 || (size_t)written >= size) { if (out && size) out[0] = 0; return -1; }
