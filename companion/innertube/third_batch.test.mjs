@@ -240,6 +240,30 @@ test('video details summarize the pinned watch page for a details screen',async(
   await assert.rejects(library.execute({action:'video_details',id:pad(1)}),{code:'upstream_format',status:502});
 });
 
+// YouTube's "Ask" (YouChat) as the watch page advertises it to an eligible
+// session: the web's `PAyouchat` panel, a panel named only by identifier, and
+// the description's Ask section. Other panels and an absent answer say nothing.
+test('video details report Ask only when the watch page advertises it',async()=>{
+  const panel=fields=>({engagementPanelSectionListRenderer:{visibility:'ENGAGEMENT_PANEL_VISIBILITY_HIDDEN',...fields}});
+  const description=items=>panel({panelIdentifier:'video-description-ep-identifier',targetId:'engagement-panel-structured-description',
+    content:{structuredDescriptionContentRenderer:{items}}});
+  const youchat={videoDescriptionYouchatSectionView:{sectionTitle:{content:'Ask'},subHeaderText:{content:'Ask about this video'},
+    primaryButton:{buttonViewModel:{title:'Ask',style:'BUTTON_VIEW_MODEL_STYLE_MONO',type:'BUTTON_VIEW_MODEL_TYPE_OUTLINE'}}}};
+  const ordinary=[panel({panelIdentifier:'engagement-panel-comments-section',targetId:'engagement-panel-comments-section'}),
+    panel({panelIdentifier:'engagement-panel-macro-markers-description-chapters'}),description([])];
+  const details=async panels=>{
+    const info=new YT.VideoInfo([{data:playerData('d')},{data:{...watchNext([related(5)]),engagementPanels:panels}}],{session:{}},'nonce');
+    return new Library(async()=>({getInfo:async()=>info})).execute({action:'video_details',id});
+  };
+  for (const advertised of [[...ordinary,panel({targetId:'PAyouchat'})],[panel({panelIdentifier:'engagement-panel-youchat'})],
+    [...ordinary.slice(0,2),description([youchat])]])
+    assert.equal((await details(advertised)).ask_advertised,true);
+  for (const absent of [ordinary,[]]) assert.equal('ask_advertised' in await details(absent),false);
+  // Player metadata alone (no watch-next answer) never claims Ask.
+  const bare=new Library(async()=>({getInfo:async()=>({basic_info:{id}})}));
+  assert.equal('ask_advertised' in await bare.execute({action:'video_details',id}),false);
+});
+
 const commentThread=(n,extra={})=>({commentThreadRenderer:{commentViewModel:{commentViewModel:{commentId:'c'+n,commentKey:'k'+n,
   toolbarStateKey:'ts'+n,toolbarSurfaceKey:'tf'+n,commentSurfaceKey:'cs'+n,sharedKey:'sh'+n,...extra}}}});
 const command=action=>({innertubeCommand:{performCommentActionEndpoint:{action}}});

@@ -26,6 +26,21 @@ function describe(info,id,ErrorType,limit=LIMIT) {
 export async function videoDescription(client,input,ErrorType) {
   return {api_version:1,kind:'description',...describe(await client.getBasicInfo(input.id),input.id,ErrorType)};
 }
+// Whether the watch-next answer advertises YouTube's "Ask" (YouChat, Gemini)
+// for this video: its engagement panel (`PAyouchat` on the web) or the
+// description's Ask section. Read from what the request already returned;
+// nothing is sent and no command or token leaves this function. The app has
+// no Ask client yet (docs/ASK.md); the fact tells whether a profile's session
+// is offered it.
+const YOUCHAT=/youchat/i;
+export function askAdvertised(info) {
+  const panels=Array.from(info?.page?.[1]?.engagement_panels ?? []).slice(0,64);
+  return panels.some(panel=>{
+    if(YOUCHAT.test(String(panel?.target_id ?? '')) || YOUCHAT.test(String(panel?.panel_identifier ?? '')))return true;
+    const items=panel?.content?.type==='StructuredDescriptionContent'?Array.from(panel.content.items ?? []).slice(0,64):[];
+    return items.some(item=>item?.type==='VideoDescriptionYouchatSectionView');
+  });
+}
 // One watch-page request: player metadata plus the owner row, like count and
 // related list of the pinned VideoInfo.
 export async function videoDetails(client,input,ErrorType,imageUrl) {
@@ -45,5 +60,5 @@ export async function videoDetails(client,input,ErrorType,imageUrl) {
     published:base.published,views:base.views,like_count:base.like_count,
     description:base.description,description_truncated:base.truncated,
     duration_sec:Number.isFinite(duration) && duration>=0 && duration<=1000000?Math.floor(duration):0,
-    badges,has_related:related};
+    badges,has_related:related,...(askAdvertised(info)?{ask_advertised:true}:{})};
 }

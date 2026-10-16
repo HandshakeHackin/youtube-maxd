@@ -1506,9 +1506,17 @@ says whether `suggestions` for this video would list anything. The worker makes
 one pinned `getInfo` request (player + watch-next); a reply for another video
 fails with `upstream_format` (502).
 
+`"ask_advertised": true` is added only when that watch-next answer advertises
+YouTube's "Ask" (YouChat) for the selected profile: an engagement panel whose
+target or identifier names `youchat` (`PAyouchat` on the web), or the
+description's Ask section. It is read from the same answer (no extra request,
+no command or token copied) and no screen uses it yet; [ASK.md](ASK.md)
+explains why and how it settles whether the TV session is offered Ask.
+
 Without the library worker the action is answered from one yt-dlp extraction
 with the same shape: `channel.subscribers` is then a plain number string,
-`channel.art_url` is `""` and `has_related` is `false`.
+`channel.art_url` is `""`, `has_related` is `false` and `ask_advertised` is
+absent.
 
 ### Comments: state, count and posting
 

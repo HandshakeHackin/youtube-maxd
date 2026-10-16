@@ -352,6 +352,9 @@ What is planned, roughly in order. Nothing here has a date.
 - [ ] A web proxy setting.
 - [ ] Backup to Google Drive.
 - [ ] Video previews on focused cards.
+- [ ] YouTube's "Ask" about a video (Gemini): not possible yet; YouTube serves
+      it to signed-in web sessions (cookies), which a TV sign-in cannot open
+      ([details](docs/ASK.md)).
 
 The [parity table](docs/PARITY.md) tracks every SmartTube feature and how far
 ProsperoTube has come with it.
@@ -658,6 +661,7 @@ steps.
 | [Library service](docs/LIBRARY_SERVICE.md) | Account and library contracts |
 | [Remote service](docs/REMOTE_SERVICE.md) | The phone receiver |
 | [Voice search](docs/VOICE_SEARCH.md) | Why voice search is not in the release |
+| [Ask](docs/ASK.md) | Why YouTube's "Ask" about a video is not possible yet |
 | [Reference candidates](docs/REFERENCE_CANDIDATES.md) | Playback and service references |
 | [Afterglow design notes](docs/afterglow/design-notes.md) | The interface proposal and controller map |
 | [Afterglow architecture](docs/afterglow/ARCHITECTURE.md) | How Afterglow is built and tested |
