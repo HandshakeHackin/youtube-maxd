@@ -369,6 +369,41 @@ int main(int argc,char**argv) {
     }
     choose("settings:ui:scale:10");
 
+    /* The same tester: a switch changed on a later page sent him back to page 1. A changed value keeps its
+     * page and its focus: a switch, a choice of a list and a step of a slider (which changes the page size). */
+    auto change = [&](const std::string& id) {
+        const int index = index_of(id); assert(index >= 0);
+        focus_row(index);
+        const size_t rows = host.m_all_rows.size(), depth = host.m_stack.size();
+        const Rml::String before = host.m_all_rows[(size_t)index].title + "|" + host.m_all_rows[(size_t)index].subtitle;
+        host.m_pending_activation = id; host.ApplyPendingActivation(); pump();
+        const size_t page = EVO_PROVIDER_PAGE_SIZE;
+        const bool kept = host.m_stack.size() == depth && host.m_all_rows.size() == rows && focused_id() == id && absolute() == index &&
+            host.m_row_offset == (size_t)index / page * page;
+        if (!kept || host.m_all_rows[(size_t)index].title + "|" + host.m_all_rows[(size_t)index].subtitle == before) {
+            fprintf(stderr, "scale %d: changing %s (row %d) left the focus on row %d '%s' at offset %zu, %zu of %zu rows\n", tube_ui_prefs()->ui_scale,
+                id.c_str(), index, absolute(), focused_id().c_str(), host.m_row_offset, host.m_all_rows.size(), rows); assert(false);
+        }
+    };
+    for (int u : {10, 0, TUBE_UI_SCALES - 1}) {
+        choose("settings:ui:scale:" + std::to_string(u));
+        for (const char* id : {"settings:ask-stream", "settings:account-on-boot", "settings:ask-stream", "settings:account-on-boot"}) {
+            open_levels({"settings"}); assert(index_of(id) >= 24);           /* beyond the provider's first page */
+            change(id);
+        }
+        open_levels({"settings", "settings:content-language"});
+        const int languages = (int)host.m_all_rows.size(); assert(languages > 24);
+        change(host.m_all_rows[(size_t)languages - 2].id.c_str());
+        assert(host.m_all_rows[(size_t)languages - 2].subtitle == "Selected");
+        change("settings:content-language:default");
+    }
+    choose("settings:ui:scale:10");
+    open_levels({"settings", "settings:ui", "settings:ui:scale"});
+    change("settings:ui:scale:" + std::to_string(TUBE_UI_SCALES - 2));
+    assert(tube_ui_prefs()->ui_scale == g_tube_ui_scales[TUBE_UI_SCALES - 2]);
+    change("settings:ui:scale:10");
+    assert(tube_ui_prefs()->ui_scale == 100 && EVO_PROVIDER_PAGE_SIZE == 8);
+
     host.m_doc->Close(); Rml::RemoveContext("ui-prefs"); host.m_context=nullptr; host.m_doc=nullptr; host.m_model_handle={};
     Rml::Shutdown(); evo_provider_youtube.shutdown(); unlink(evo_data_path("youtube.json")); rmdir(directory);
     puts("PASS: every interface and grid scale keeps cards, paging, D-pad and frame correct; card text, marquee, schemes and the default frame");

@@ -100,6 +100,12 @@ boards = [
 
     board("settings-country-more", argument="settings:content-country", title="Content & language" + SEP + "Content country",
           steps=P("r2", "r2", "r2") + W(0.5) + P("r2", "r2", "r2") + W(0.5), expect={"focus": "row/content-country:MA", "state": {"rows": "48", "scroll": "2872"}}),
+    # A change on the second part of a long list: the row keeps the focus and the page its scroll while the list is read again.
+    board("settings-buttons-more", argument="settings:extra:buttons", title="Player" + SEP + "Player buttons", steps=P("r2") + W(0.5) + P("r2") + W(0.5),
+          expect={"focus": "row/button-next", "state": {"rows": "21", "scroll": "664"}}),
+    board("settings-buttons-changed", argument="settings:extra:buttons", title="Player" + SEP + "Player buttons",
+          steps=P("r2") + W(0.5) + P("r2") + W(0.5) + P("cross") + W(1.2),
+          expect={"focus": "row/button-next", "moving": 0, "state": {"rows": "21", "scroll": "664", "applied": "1", "waiting": "0"}, "asked": ["settings:button-next"]}),
     board("settings-languages-long", fixture="long-texts", argument="settings:languages", title="Untertitel" + SEP + "Sprache der Untertitel", steps=P("down"),
           expect={"focus": "row/lang:nl-BE", "state": {"rows": "4"}}),
     # ---- the previews ----
