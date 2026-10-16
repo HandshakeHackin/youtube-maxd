@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
+import tarfile
 import tempfile
 import unittest
 import warnings
@@ -87,6 +88,71 @@ class BuildTests(unittest.TestCase):
                 manifest.unlink(missing_ok=True)
                 with self.assertRaises(ValueError): verify(self.archive(fault))
                 self.assertFalse(manifest.exists())
+
+    def test_bootstrap_fetch_cache_and_recipe(self):
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        (self.root / "standalone").mkdir()
+        (self.root / "companion/innertube").mkdir(parents=True)
+        commands = self.root / "bin"
+        commands.mkdir()
+        # Toolchain commands are only probed; the SDK and compiler build scripts are stubs.
+        for name in ("git", "clang", "llvm-config", "ld.lld", "llvm-readelf-18", "llvm-objcopy-18",
+                     "wget", "unzip", "cmake", "ninja", "make", "meson", "nasm", "pkg-config"):
+            command = commands / name
+            command.write_text("#!/bin/bash\nexit 0\n")
+            command.chmod(0o755)
+        node_tree = self.root / "fixture/node-v24.10.0-linux-x64"
+        (node_tree / "bin").mkdir(parents=True)
+        for name, body in (("node", 'echo v24.10.0'),
+                           ("npm", 'printf "npm %s\\n" "$*" >> "$CALLS"')):
+            executable = node_tree / "bin" / name
+            executable.write_text("#!/bin/bash\n" + body + "\n")
+            executable.chmod(0o755)
+        archive = self.root / "node.tar.xz"
+        with tarfile.open(archive, "w:xz") as output:
+            output.add(node_tree, arcname=node_tree.name)
+        curl = commands / "curl"
+        curl.write_text('#!/bin/bash\nprintf "fetch\\n" >> "$CALLS"\ncp "$FIXTURE_ARCHIVE" "${@: -1}"\n')
+        curl.chmod(0o755)
+        (scripts / "bootstrap_sdk.sh").write_text('printf "sdk\\n" >> "$CALLS"\n')
+        (self.root / "standalone/build_bundle.sh").write_text('printf "bundle\\n" >> "$CALLS"\n')
+        shader = scripts / "build_ps5_shader_compiler.sh"
+        shader.write_text('''printf "shader\n" >> "$CALLS"
+mkdir -p "$PROSPEROTUBE_SHADER_TOOLS/bin" "$PROSPEROTUBE_SHADER_TOOLS/lib"
+printf '#!/bin/bash\nexit 0\n' > "$PROSPEROTUBE_SHADER_TOOLS/bin/amdllpc"
+chmod +x "$PROSPEROTUBE_SHADER_TOOLS/bin/amdllpc"
+touch "$PROSPEROTUBE_SHADER_TOOLS/lib/libspvgen.so"
+sha256sum "$0" | cut -d ' ' -f 1 > "$PROSPEROTUBE_SHADER_TOOLS/.prosperotube-recipe"
+''')
+        source = (ROOT / "scripts/bootstrap_build_deps.sh").read_text()
+        pinned = "2642f4428869aca32443660fd71b3918e2be1277a899bdcaeb64c93b54b5af17"
+        self.assertIn(pinned, source)
+        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        bootstrap = scripts / "bootstrap_build_deps.sh"
+        bootstrap.write_text(source.replace(pinned, digest))
+        node_home = self.root / "node"
+        env = dict(self.env, PATH=str(commands) + ":/usr/bin:/bin", FIXTURE_ARCHIVE=str(archive),
+                   PROSPEROTUBE_NODE_HOME=str(node_home), PROSPEROTUBE_SHADER_TOOLS=str(self.root / "shader"))
+        def run(expected):
+            self.log.unlink(missing_ok=True)
+            result = subprocess.run(["bash", str(bootstrap)], env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(self.log.read_text().splitlines(), expected)
+        run(["fetch", "sdk", "npm ci --ignore-scripts", "bundle", "shader"])
+        self.assertTrue((node_home / "bin/node").is_file())
+        run(["sdk", "npm ci --ignore-scripts", "bundle"])
+        shader.write_text(shader.read_text() + "# Changed compiler recipe\n")
+        run(["sdk", "npm ci --ignore-scripts", "bundle", "shader"])
+        # An invalid download must fail before extraction, SDK work, or npm execution.
+        shutil.rmtree(node_home)
+        bootstrap.write_text(source.replace(pinned, "0" * 64))
+        self.log.unlink()
+        result = subprocess.run(["bash", str(bootstrap)], env=env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.log.read_text().splitlines(), ["fetch"])
+        self.assertFalse(node_home.exists())
+        self.assertEqual(list(self.root.glob(".node-*")), [])
 
     def test_host_installer_is_explicit_and_rejects_other_distros(self):
         commands = self.root / "bin"

@@ -3,7 +3,7 @@
 set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="/usr/lib/llvm-18/bin:$PATH"
-for command in git python3 clang llvm-config ld.lld llvm-readelf-18 llvm-objcopy-18 curl wget tar xz unzip zip cmake ninja make meson nasm pkg-config flock; do
+for command in git python3 clang llvm-config ld.lld llvm-readelf-18 llvm-objcopy-18 curl wget tar xz unzip cmake ninja make meson nasm pkg-config flock; do
     command -v "$command" >/dev/null || { echo "Missing $command. On Ubuntu 24.04 run: make host-deps" >&2; exit 2; }
 done
 python3 -c 'import sys; assert sys.version_info >= (3, 11), "Python 3.11 or newer is required"'

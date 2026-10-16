@@ -4,6 +4,23 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Publication build and rail version (2026-10-16)
+
+The expanded Afterglow rail shows the canonical About version in smaller muted
+text beneath ProsperoTube. Host render inspected; focused board passes 40 checks.
+The root Makefile now provides `make host-deps`, `make zip` (default), `make deps`,
+`make test` and `make verify`. CI uses the same host-package list and build/ZIP
+verification entry points. Bootstrap fetches checksum-pinned Node, recursive
+submodules, SDK/Pacbrew, locked npm dependencies and the recipe-stamped shader
+compiler; existing native recipes handle codecs, QuickJS and helpers. Updated
+build documentation includes supported host requirements, pins and overrides.
+
+The real Makefile ZIP build passes using existing SDK/source caches, including
+shader compiler validation and final ZIP verification/checksum generation.
+Four focused regressions cover Make dependency ordering/failure, package
+validation, explicit host installation and fresh/cached dependency bootstrap.
+Release checks pass. No clean-machine Ubuntu/CI run or console test is claimed.
+
 ## Owner repeated-cast replay (2026-10-16)
 
 Owner reports the repeated-cast test worked perfectly on `047e3fc`. Read-only

@@ -1,5 +1,10 @@
 # Current implementation status
 
+The expanded rail now shows the app version. Publication builds use `make zip`
+with shared local/CI dependency setup and verified ZIP/checksum output. Host UI,
+build orchestration and release checks pass; a real cached-toolchain build passes.
+Clean-machine CI and console acceptance of this UI change remain pending.
+
 Owner reports successful repeated casting on `047e3fc`. The same session log
 contains an earlier receiver scope change and stale-owner launch rejection,
 then a successful setPlaylist acknowledgement. Keep the intermittent issue
