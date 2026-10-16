@@ -18,3 +18,8 @@ cc -std=c11 "${flags[@]}" -DUPDATE_CHECK_NO_NETWORK -I"${root}/native" -I"${kit}
     "${kit}/self_update.c" "${kit}/self_update_sha256.c" "${kit}/update_check.c" -pthread -o "${out}/test_update_adapter"
 ASAN_OPTIONS=detect_leaks=1 "${out}/test_update_adapter"
 python3 "${root}/scripts/test_update_provenance.py"
+
+g++ -std=c++17 "${flags[@]}" -I"${root}/native" -I"${kit}" "${root}/tests/test_update_prompt.cpp" -o "${out}/test_update_prompt"
+ASAN_OPTIONS=detect_leaks=1 "${out}/test_update_prompt"
+cc -std=c11 "${flags[@]}" -I"${root}/native" -I"${kit}" "${root}/tests/test_update_app_flow.c" "${root}/native/tube_update_app.c" -o "${out}/test_update_app_flow"
+ASAN_OPTIONS=detect_leaks=1 "${out}/test_update_app_flow"

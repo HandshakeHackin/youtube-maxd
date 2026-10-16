@@ -71,6 +71,9 @@ int main(void) {
     tube_phone_tick_at(&controls,1001);assert(tube_phone_owns_media());
     /* Default: phone-owned playback is recorded and reported like any other. */
     p->report_progress("abcdefghijk",12,100,EVO_PROVIDER_PLAY_UPDATE);assert(reports()==1);settle();
+    /* Cast-only records have no catalog artwork; both History and Continue watching use this catalog. */
+    show("history");assert(last_count==1 && !strcmp(last_items[0].id,"abcdefghijk"));
+    assert(!strcmp(last_items[0].art_url,"https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg") && tube_art_url_allowed(last_items[0].art_url));
     /* On: no local position or history time, and no account report, while the phone owns playback. */
     show("settings:remote:history");assert(saved() && position()==12);
     assert(!strcmp(preference(),"History for phone playback: off") && tube_phone_owns_media());
@@ -88,11 +91,17 @@ int main(void) {
     show("library:profile:guest");assert(saved() && !strcmp(preference(),"History for phone playback: off"));
     p->shutdown();while(pending_count)reply(0,1,200,"{\"api_version\":1,\"state\":\"stopped\"}");
     assert(!p->init());assert(saved() && !strcmp(preference(),"History for phone playback: off"));
+    show("library:profile:fixture");show("history");
+    assert(last_count==1 && !strcmp(last_items[0].art_url,"https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg"));
     p->shutdown();while(pending_count)reply(0,1,200,"{\"api_version\":1,\"state\":\"stopped\"}");
     root=read_store();cJSON_ReplaceItemInObject(root,"remote_disable_history",cJSON_CreateString("yes"));
-    cJSON_ReplaceItemInObject(root,"remote_enabled",cJSON_CreateFalse());write_store(root);cJSON_Delete(root);
+    cJSON_ReplaceItemInObject(root,"remote_enabled",cJSON_CreateFalse());
+    cJSON *entry=cJSON_GetArrayItem(cJSON_GetObjectItem(root,"records"),0);
+    cJSON_ReplaceItemInObject(entry,"art_url",cJSON_CreateString("https://i.ytimg.com/vi/abcdefghijk/hq1.jpg"));
+    write_store(root);cJSON_Delete(root);
     assert(!p->init());assert(!strcmp(preference(),"History for phone playback: on"));
     show("settings:captions");assert(!saved());
+    show("history");assert(last_count==1 && !strcmp(last_items[0].art_url,"https://i.ytimg.com/vi/abcdefghijk/hq1.jpg"));
     p->shutdown();while(pending_count)reply(0,1,200,"{\"api_version\":1,\"state\":\"stopped\"}");
     unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
     puts("PASS: remote-control history preference, phone ownership scope, unowned playback, device persistence and corrupt value");

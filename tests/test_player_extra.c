@@ -187,7 +187,7 @@ static void test_groups(void) {
         assert(!tube_extra_group_label(group, count, label, sizeof label) && !label[0]);
     }
     assert(total == 7 + 20 + 42 + 61 + 2 + 2 + 29 + 2 + 2 + 2 + 2 + 2 + 3 + 5 + 7 + 4 + 3 + 2 + 2 +
-                    2 + 2 + 2 + 2 + 4 + 19 + 12 + 17 + 10 + 2 * TUBE_BUTTON_COUNT);
+                    2 + 2 + 2 + 4 + 19 + 12 + 17 + 10 + 2 * TUBE_BUTTON_COUNT);
     /* Video buffer: SmartTube's four names, a row of the player screen and of the in-player options; a change is saved
      * and read by the next stream that opens. */
     static const char *const buffers[] = { "Low", "Medium", "High", "Highest" };
@@ -709,20 +709,20 @@ static void test_error_fixer(void) {
 static void test_presets(void) {
     char label[48];
     int height, fps, codec, seen = 0;
-    assert(tube_preset_count() == 39);
+    assert(tube_preset_count() == 5);
     assert(tube_preset_at(0, &height, &fps, &codec) && !height && !fps && codec == TUBE_CODEC_AUTO);
     assert(tube_preset_label(0, label, sizeof label) && !strcmp(label, "Disabled"));
     assert(tube_preset_label(1, label, sizeof label) && !strcmp(label, "2160p 60 fps VP9"));
-    assert(tube_preset_label(38, label, sizeof label) && !strcmp(label, "144p 30 fps AV1"));
-    assert(!tube_preset_at(39, &height, &fps, &codec) && !tube_preset_at(-1, &height, &fps, &codec) && !tube_preset_at(1, NULL, &fps, &codec));
-    assert(!tube_preset_label(39, label, sizeof label) && !label[0]);
+    assert(tube_preset_label(4, label, sizeof label) && !strcmp(label, "2160p 30 fps AV1"));
+    assert(!tube_preset_at(5, &height, &fps, &codec) && !tube_preset_at(-1, &height, &fps, &codec) && !tube_preset_at(1, NULL, &fps, &codec));
+    assert(!tube_preset_label(5, label, sizeof label) && !label[0]);
     for (int i = 1; i < tube_preset_count(); ++i) {
         assert(tube_preset_at(i, &height, &fps, &codec) && (fps == 30 || fps == 60) && codec >= TUBE_CODEC_AVC && codec <= TUBE_CODEC_AV1);
         assert(!(codec == TUBE_CODEC_AVC && height > 1080) && !(fps == 60 && height < 360));   /* SmartTube's table */
         assert(tube_preset_find(height, fps, codec) == i);
-        seen += height == 1080;
+        seen += height == 2160;
     }
-    assert(seen == 6);
+    assert(seen == 4);
     assert(!tube_preset_find(1080, 0, TUBE_CODEC_AUTO) && tube_preset_find(1080, 0, TUBE_CODEC_VP9) == -1);
     assert(tube_preset_find(1080, 60, TUBE_CODEC_HEVC) == -1 && tube_preset_find(2160, 30, TUBE_CODEC_AVC) == -1);
 }

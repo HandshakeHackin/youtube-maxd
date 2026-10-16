@@ -92,8 +92,6 @@ LANGUAGES = [("en", "English"), ("de", "Deutsch"), ("es", "Español"), ("fr", "F
              ("pl", "Polski"), ("pt", "Português"), ("sv", "Svenska"), ("da", "Dansk"), ("fi", "Suomi"), ("nb", "Norsk bokmål"),
              ("cs", "Čeština"), ("hu", "Magyar"), ("ro", "Română"), ("tr", "Türkçe"), ("uk", "Українська"), ("el", "Ελληνικά"),
              ("id", "Bahasa Indonesia"), ("vi", "Tiếng Việt"), ("ru", "Русский"), ("ca", "Català"), ("hr", "Hrvatski"), ("sk", "Slovenčina")]
-QUALITIES = ["Up to %dp" % h for h in (144, 240, 360, 480, 720, 1080, 1440, 2160)]
-QUALITY_IDS = [144, 240, 360, 480, 720, 1080, 1440, 2160]
 RATES = ["Automatic", "30 fps", "60 fps"]
 THEMES = ["Afterglow", "Onyx", "Daybreak", "High contrast"]
 THEME_FACTS = [{"look": "afterglow"}, {"look": "onyx"}, {"look": "daybreak"}, {"look": "contrast"}]
@@ -120,7 +118,6 @@ def main_list(o=None):
     """The catalog "settings" for Mara; `o` replaces facts of single rows."""
     o = o or {}
     rows = [
-        chosen("settings:quality", "Maximum quality", "list", "The highest resolution a video is played in", QUALITIES, 7),
         chosen("settings:frame-rate", "Frame rate", "list", "Videos above this rate are played in the next one below", RATES, 2),
         row("settings:codec", "Video codec", "cycle", "Automatic takes what the PS5 decodes in hardware; AV1 is decoded in software", "VP9"),
         row("settings:video-rotate", "Rotation", "list", "Clockwise, in quarter turns", "0 degrees", index=0, count=4),
@@ -172,7 +169,7 @@ def main_list(o=None):
         row("settings:experimental", "Experimental features", "page", "What the Experimental mark on a row means", tag="Experimental"),
         row("settings:accounts", "Account settings", "page", "Separate settings per account and the profile password", "Mara · 2 profiles"),
         row("settings:backup", "Backup and restore", "page", "Local backups, automatic backup and subscriptions import", "Last backup today, 09:12"),
-        row("settings:about", "About ProsperoTube", "page", "Links, feedback, credits and changes", "ProsperoTube 0.1.0",
+        row("settings:about", "About ProsperoTube", "page", "Version, author and credits", "ProsperoTube 0.1.0",
             update="0.2.0 is ready to install", attention=True),
     ]
     for key, name in (("player", "Player"), ("captions", "Captions"), ("audio", "Audio"), ("content", "Content & language"),
@@ -341,16 +338,7 @@ def about_rows():
     return [
         row("account:notice:version", "ProsperoTube 0.1.0", "info", "A native YouTube client for PS5 homebrew; GPL-3.0-or-later"),
         row("account:notice:author", "Brought to you by BlackBearReloaded", "info", "Not affiliated with or endorsed by YouTube or Google"),
-        row("link:about", "Releases and source code", "link", "Project links, each with a QR code to open on another device", screen="reader"),
-        row("link:feedback", "Feedback", "link", "Report a problem or ask for a feature", screen="reader"),
         row("settings:about:credits", "Credits", "link", "What ProsperoTube builds on; the full notices ship with the package", screen="reader"),
-        row("settings:about:changelog", "What changed in this version", "link", "The changes listed for the installed version", screen="reader"),
-        row("settings:update:check", "Check for updates", "action", "Installed 0.1.0; latest 0.2.0 (Afterglow)", "0.2.0 is available", done="0.2.0 is the latest version"),
-        switch("settings:update:notify", "Tell me about updates", True, "A notice once per start when a newer version exists"),
-        row("description:update", "What is new in 0.2.0", "link", "The release notes, as the developer wrote them", screen="reader"),
-        row("settings:update:install", "Update to 0.2.0 now", "action", "Downloads 48 MB, checks it against the release and prepares the new version", attention=True,
-            done="0.2.0 is downloading"),
-        row("settings:update:skip", "Skip version 0.2.0", "action", "No notice at start for this version; it stays listed here"),
     ]
 
 
@@ -381,7 +369,6 @@ def signed_in():
         switch("settings:player-suggestions", "Suggestions while watching", True, "Related videos, the queue and the playlist during playback"),
         switch("settings:chapter-notification", "Announce chapters", False, "Says a chapter's name when it starts"),
         switch("settings:error-fixer", "Recover from playback errors", True, "Reloads the stream or lowers its quality after decoder errors and long buffering"),
-        switch("settings:remember-quality", "Remember a chosen quality", False, "A quality chosen while watching becomes the maximum for this profile"),
         row("settings:video-buffer", "Read ahead", "list", "How far ahead of playback a video is loaded", "Medium", index=1, count=4),
         row("settings:extra:buttons", "Player buttons", "page", "The actions the options of the player show", "18 of 21 shown"),
         row("settings:extra:dimming", "Dimming and screen off", "page", "Dim the picture while idle", "Off"),
@@ -411,7 +398,6 @@ def signed_in():
                                                    facts=[{"number": n} for n in POSITION_NUMBERS], preview="caption.position", preview_art_url=PREVIEW_ART))
     write(f, "settings:languages", choices("settings:lang", [name for _, name in LANGUAGES], 0, "Captions in this language when a video offers them",
                                            ids=[code for code, _ in LANGUAGES]))
-    write(f, "settings:quality", choices("settings:quality", QUALITIES, 7, "Maximum resolution for the next video", ids=QUALITY_IDS))
     write(f, "settings:frame-rate", choices("settings:frame-rate", RATES, 2, "Videos above this rate play in the next one below", ids=[0, 30, 60]))
     write(f, "settings:ui:scheme", scheme_choices(0))
     write(f, "settings:ui:scale", choices("settings:ui:scale", UI_SCALES, 10, "The size of everything in the interface", facts=[{"number": n} for n in UI_SCALE_NUMBERS],
@@ -485,8 +471,6 @@ def signed_in():
     write(f, "settings:ui:title-lines:2", choices("settings:ui:title-lines", ["1", "2", "3", "4"], 2, "Lines a card keeps for its title",
                                                   facts=[{"number": n} for n in (1, 2, 3, 4)], preview="card.title_lines"))
     write(f, "settings:ui:rounded", interface_page({"settings:ui:rounded": {"value": "Off", "on": False}}))
-    # A choice of the quality list answers with the main list, as the provider does today.
-    write(f, "settings:quality:1440", main_list({"settings:quality": {"value": "Up to 1440p", "index": 6}}))
     write(f, "settings:lang:de", choices("settings:lang", [name for _, name in LANGUAGES], 1, "Captions in this language when a video offers them",
                                          ids=[code for code, _ in LANGUAGES]))
     keys = [key for key, _ in MENU]
@@ -514,7 +498,6 @@ def guest():
         "settings:about": {"update": "0.1.0 is the latest version", "attention": False},
         "settings:extra:captions": {"value": "100 % · player's own"},
         "settings:extra:audio": {"value": "100 %"},
-        "settings:quality": {"value": "Up to 1080p", "index": 5},
         "settings:codec": {"value": "Automatic"},
         "settings:dearrow": {"value": "Off"},
         "settings:sb": {"value": "Skipping sponsors"},
@@ -555,7 +538,6 @@ def long_texts():
     f = "long-texts"
     profile(f, "maximiliane", "Maximiliane-Sophie von Hohenlohe-Langenburg", False, True)
     o = {
-        "settings:quality": {"value": "Wiedergabegeschwindigkeit"},
         "settings:frame-rate": {"value": "Auflösung und Bildrate bis höchstens 60 Bilder pro Sekunde"},
         "settings:codec": {"value": "VP9 (Softwaredekodierung)"},
         "settings:languages": {"value": "Deutsch (Österreich)"},

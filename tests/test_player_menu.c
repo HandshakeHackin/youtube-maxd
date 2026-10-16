@@ -48,7 +48,7 @@ int main(void) {
     assert(!tube_player_action(TUBE_PLAYER_ACTIONS, label, sizeof label, detail, sizeof detail) && !*label);
     assert(tube_player_menu_begin(TUBE_PLAYER_ACTIONS) == TUBE_MENU_NOTHING && tube_player_menu_status() == -1);
     assert(!tube_player_reload(10, 0, 1) && !tube_error_fix_begin(TUBE_ERROR_BUFFERING, 10, 0, 1));
-    resolve_to("1080", "60", "vp9", "\"max_height\":1080"); start();
+    resolve_to("1080", "60", "vp9", "\"max_height\":2160"); start();
 
     /* Direct actions are the rows the actions menu offers for this video and profile. */
     assert(tube_player_action(TUBE_PLAYER_ACTIONS, label, sizeof label, detail, sizeof detail) && !strcmp(label, "Video actions"));
@@ -199,28 +199,32 @@ int main(void) {
 
     /* Quality limits behind the presets. */
     int height, fps, codec;
-    tube_player_quality(&height, &fps, &codec); assert(height == 1080 && !fps && !codec);
+    tube_player_quality(&height, &fps, &codec); assert(height == 2160 && !fps && !codec);
     assert(!tube_player_set_quality(721, 0, 0) && !tube_player_set_quality(720, 24, 0) && !tube_player_set_quality(720, 0, 5));
     assert(tube_player_set_quality(720, 60, TUBE_CODEC_VP9) && tube_player_set_quality(-1, -1, -1));
-    tube_player_quality(&height, &fps, &codec); assert(height == 720 && fps == 60 && codec == TUBE_CODEC_VP9);
+    tube_player_quality(&height, &fps, &codec); assert(height == 2160 && fps == 60 && codec == TUBE_CODEC_VP9);
     assert(tube_preset_find(height, fps, codec) > 0);
     assert(tube_player_remember_height(1012) && !tube_player_remember_height(0));
-    tube_player_quality(&height, &fps, &codec); assert(height == 1080 && fps == 60);
+    tube_player_quality(&height, &fps, &codec); assert(height == 2160 && fps == 60);
     assert(tube_player_remember_height(4000)); tube_player_quality(&height, NULL, NULL); assert(height == 2160);
     assert(tube_player_set_quality(720, 30, TUBE_CODEC_AVC));
-    p->shutdown(); assert(!p->init());                 /* saved for the profile */
-    tube_player_quality(&height, &fps, &codec); assert(height == 720 && fps == 30 && codec == TUBE_CODEC_AVC);
+    p->shutdown();
+    cJSON *legacy = read_store(); assert(legacy);
+    cJSON_ReplaceItemInObject(legacy, "max_height", cJSON_CreateNumber(720));
+    write_store(legacy); cJSON_Delete(legacy);
+    assert(!p->init()); /* Legacy root/profile caps cannot override the fixed maximum. */
+    tube_player_quality(&height, &fps, &codec); assert(height == 2160 && fps == 30 && codec == TUBE_CODEC_AVC);
 
     /* Apply now: the playing video reopens at its position with the new limits,
      * and its stream may differ from the one that was playing. */
     assert(tube_player_set_quality(1080, 0, 0));
-    resolve_to("1080", "60", "vp9", "\"max_height\":1080"); start();
+    resolve_to("1080", "60", "vp9", "\"max_height\":2160"); start();
     assert(tube_player_set_quality(720, 30, TUBE_CODEC_AVC));
     assert(!tube_player_reload(NAN, 0, 1) && !tube_player_reload(42.5, 1, 1));
     assert(tube_player_reload(42.5, 0, 1) && tube_recovery_pending() && !tube_player_reload(42.5, 0, 1));
     assert(!tube_error_fix_relaxed());                  /* not before the host took it */
     assert(tube_take_recovery(&item, &position, &subtitles) && position == 42.5 && subtitles == 1 && tube_error_fix_relaxed());
-    resolve_to("720", "30", "avc", "\"max_height\":720,\"max_fps\":30,\"codec\":\"avc\"");
+    resolve_to("720", "30", "avc", "\"max_height\":2160,\"max_fps\":30,\"codec\":\"avc\"");
     assert(tube_recovery_choice(offered, 1) == -1 && tube_error_fix_choice(offered, 1) == 0);
     assert(!tube_error_fix_relaxed() && tube_error_fix_choice(offered, 1) == -1);     /* taken once */
     start(); tube_recovery_finish();
@@ -246,7 +250,7 @@ int main(void) {
     assert(tube_error_fix_begin(TUBE_ERROR_BUFFERING, 14, 0, 0) == TUBE_FIX_NONE && !tube_queue_recovery(14, 0, 0));
     /* A new selection starts over; switched off, the fixer leaves everything alone. */
     assert(tube_player_set_quality(1440, 0, 0));
-    resolve_to("1440", "30", "vp9", "\"max_height\":1440"); start();
+    resolve_to("1440", "30", "vp9", "\"max_height\":2160"); start();
     assert(tube_extra_set_error_fixer(0) && tube_error_fix_begin(TUBE_ERROR_BUFFERING, 5, 0, 1) == TUBE_FIX_NONE && !tube_recovery_pending());
     assert(tube_extra_set_error_fixer(1) && tube_error_fix_begin(TUBE_ERROR_BUFFERING, 5, 0, 0) == TUBE_FIX_RELOAD);
     assert(tube_take_recovery(&item, &position, &subtitles));

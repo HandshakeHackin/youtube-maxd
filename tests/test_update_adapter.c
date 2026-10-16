@@ -81,7 +81,11 @@ int main(void) {
     assert(tube_update_app_rows(rows,12)==5);
     assert(!strcmp(tube_update_app_notes(),"A signed note"));
     assert(tube_update_app_action("skip")); tube_update_app_tick(1);
-    assert(strstr(tube_update_app_take_notice(),"01.000.010"));
+    tube_update_status offer;
+    assert(tube_update_app_offer(&offer) && !strcmp(offer.latest, "01.000.010"));
+    assert(tube_update_app_offer(&offer)); /* retained until an interface is ready */
+    tube_update_app_dismiss_offer();
+    assert(!tube_update_app_offer(&offer));
     tube_update_app_tick(1); assert(!tube_update_app_take_notice());
     assert(tube_update_notes_truncated(u));
     const char *retained = tube_update_notes(u);

@@ -328,8 +328,9 @@ int tube_player_launch_pending(void);
 int tube_player_take_launch(evo_provider_item_t *item);
 void tube_player_request_search(void);
 int tube_player_take_browse(char *parent, size_t parent_size, char *title, size_t title_size);
-/* Quality limits of the selected profile: height, frame rate (0 = any) and
- * codec (0 automatic, 1 AVC, 2 VP9, 3 AV1, 4 HEVC). A negative value keeps. */
+/* Fixed 2160p maximum, with profile frame rate (0 = any) and codec preferences
+ * (0 automatic, 1 AVC, 2 VP9, 3 AV1, 4 HEVC). Negative values keep preferences.
+ * Legacy height arguments remain accepted but cannot lower the maximum. */
 void tube_player_quality(int *height, int *fps, int *codec);
 int tube_player_set_quality(int height, int fps, int codec);
 int tube_player_remember_height(int height);

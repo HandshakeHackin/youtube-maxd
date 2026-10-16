@@ -81,11 +81,10 @@ int main(void) {
     /* About: reached from YouTube preferences under the name and version. */
     assert(!tube_about_title(title,sizeof title) && strstr(title,"ProsperoTube ")==title && strlen(title)>13);
     assert(offered("settings",title) && !strcmp(row,"settings:about"));
-    show("settings:about");assert(last_count==6 && !strcmp(last_items[0].title,title) && strstr(last_items[0].subtitle,"GPL-3.0-or-later"));
+    show("settings:about");assert(last_count==3 && !strcmp(last_items[0].title,title) && strstr(last_items[0].subtitle,"GPL-3.0-or-later"));
     assert(!strcmp(last_items[1].id,"account:notice:author") && !strcmp(last_items[1].title,"Brought to you by BlackBearReloaded") &&
         strstr(last_items[1].subtitle,"Not affiliated with or endorsed by YouTube or Google"));
-    assert(!strcmp(last_items[2].id,"link:about") && !strcmp(last_items[3].id,"link:feedback"));
-    assert(!strcmp(last_items[4].id,"settings:about:credits") && !strcmp(last_items[5].id,"settings:about:changelog"));
+    assert(!strcmp(last_items[2].id,"settings:about:credits"));
     links("link:about",3);
     for(int i=0;i<3;++i) {
         const tube_about_link *link=tube_about_link_at(i);
@@ -119,5 +118,5 @@ int main(void) {
     assert(total==tube_about_change_count(version) && total>0);
     p->list_catalog("settings:about:changelog",50,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
-    puts("PASS: link pages for videos, channels, playlists and project links; share rows; About version, links, feedback, credits and changelog");
+    puts("PASS: link pages for videos, channels, playlists and project links; share rows; simplified About version/author/credits; retained direct link and changelog routes");
 }

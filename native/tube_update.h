@@ -54,6 +54,11 @@ void tube_update_app_tick(int service_ready);
 int tube_update_app_rows(tube_update_row *rows, int capacity);
 /* A selected row's action ("check", "notify", "install", "cancel", "apply", "skip", "discard"). 1 = known. */
 int tube_update_app_action(const char *action);
+/* Startup offer is retained until the visible interface can present it. */
+int tube_update_app_offer(tube_update_status *status);
+void tube_update_app_dismiss_offer(void);
+void tube_update_app_classic_notice(void);
+int tube_update_app_progress(tube_update_status *status);
 /* Release notes for the reader, and the title of that page. "" = none. */
 const char *tube_update_app_notes(void);
 const char *tube_update_app_notes_title(void);

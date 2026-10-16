@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def screens():
     """Settings ids that open a list: the provider's own, then one per player-extras group."""
     groups = re.findall(r'\{ "(settings:[a-z-]+)", "', (ROOT / "native/tube_player_extra.c").read_text(encoding="utf-8"))
-    if len(groups) != 49 or len(set(groups)) != 49:
+    if len(groups) != 48 or len(set(groups)) != 48:
         raise RuntimeError("Player-extras groups changed: update the settings screens")
     return ["settings:extra:captions", "settings:extra:audio", "settings:extra:player", "settings:extra:buttons",
             "settings:extra:dimming", "settings:content-language",

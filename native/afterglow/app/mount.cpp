@@ -15,6 +15,7 @@
 #include "afterglow/app/picture_decode.hpp"
 #include "afterglow/app/play_start.hpp"
 #include "afterglow/frame.hpp"
+#include "afterglow/app/update_prompt.hpp"
 #include "afterglow/sound/app/sound_app.hpp" // stage S
 #include "afterglow/text_engine.hpp"
 
@@ -210,6 +211,7 @@ struct Mount
     ProviderSource source;
     std::unique_ptr<TextEngine> text;
     std::unique_ptr<Frame> frame;
+    UpdatePrompt update_prompt;
     gfx::DrawList world;
     gfx::DrawList ui;
     InputFrame input;
@@ -340,6 +342,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
         ? (std::strlen(tube_background_play_title()) ? tube_background_play_title() : tr("Now playing")) : "",
         tube_background_play_paused()!=0);
     m.frame->update(m.input, dt, continuous_input ? keyboard::text() : std::string_view{});
+    m.update_prompt.step(*m.frame);
     // stage S: what this step asked for is played and felt (the app's park and exit reach the sound through
     // tube_afterglow_sound.h, from EVO's application).
     sound::app_step(*m.frame, m.platform, dt);

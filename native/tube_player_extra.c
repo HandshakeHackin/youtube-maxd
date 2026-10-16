@@ -631,7 +631,6 @@ static const group_t groups[TUBE_EXTRA_GROUPS] = {
     { "settings:player-suggestions", "Suggestions in the player", "List related videos, the queue and the playlist during playback", G_SWITCH, F_SUGGESTIONS, 2, NULL, NULL, 0 },
     { "settings:chapter-notification", "Chapter notification", "Announce a chapter when it starts; R1 skips it", G_SWITCH, F_CHAPTER_NOTICE, 2, NULL, NULL, 0 },
     { "settings:error-fixer", "Fix playback errors", "Reload the stream or lower its quality after decoder errors and long buffering", G_SWITCH, F_ERROR_FIXER, 2, NULL, NULL, 0 },
-    { "settings:remember-quality", "Remember chosen quality", "A quality chosen in the player becomes the maximum for this profile", G_SWITCH, F_REMEMBER_QUALITY, 2, NULL, NULL, 0 },
     { "settings:video-buffer", "Video buffer", "How far ahead of playback a video is loaded; applies from the next video", G_LABELS, F_VIDEO_BUFFER, 4, buffer_labels, NULL, 0 },
     { "settings:dim-timeout", "Screen dimming", "Dim the picture while paused or browsing after this time without input", G_SECONDS, F_DIM_TIMEOUT, VALUES(dim_timeout_values) },
     { "settings:dim-amount", "Screen dimming amount", "How dark the dimmed picture is", G_PERCENT, F_DIM_AMOUNT, VALUES(dim_amount_values) },
@@ -899,8 +898,8 @@ double tube_buffer_seconds(int buffer, double base, int ring) {
 double tube_extra_read_ahead_seconds(double base, int ring) { return tube_buffer_seconds(prefs()->video_buffer, base, ring); }
 
 /* ---- Video presets. ---- */
-static const int preset_heights[] = { 2160, 1440, 1080, 720, 480, 360, 240, 144 };
-/* SmartTube's table without its HDR rows: AVC up to 1080p, 60 fps from 360p. */
+static const int preset_heights[] = { 2160 };
+/* Presets keep the full resolution cap; lower streams remain selectable per video. */
 static int preset_walk(int wanted, int *height, int *fps, int *codec) {
     int index = 1;
     for (int h = 0; h < (int)(sizeof preset_heights / sizeof *preset_heights); ++h)

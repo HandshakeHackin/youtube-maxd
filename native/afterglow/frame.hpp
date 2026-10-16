@@ -127,6 +127,11 @@ class Frame final : private Nav
         stats_.missing_glyphs = missing_glyphs;
     }
 
+    // Application-level update prompt uses the same modal as screen questions.
+    void app_question(Question question, std::function<void(int)> answered) { ask(std::move(question), std::move(answered)); }
+    void app_question_body(std::string body) { auto content = dialog_.content(); content.body = std::move(body); dialog_.set_content(std::move(content)); }
+    void app_question_close() { dialog_.dismiss(); question_answered_ = nullptr; }
+
     // Replaces the stack: what the app opens the interface with, and tests.
     void open(const Route &route, Move move = Move::cut);
     // The app's player closed and the interface is on screen again.

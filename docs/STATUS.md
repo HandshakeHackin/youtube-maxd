@@ -1,5 +1,11 @@
 # Current implementation status
 
+Settings simplification, a fixed 2160p ceiling, and missing local-history artwork
+fallback are implemented. Update prompts move outside Settings to follow Eden's
+startup flow. Native regressions, updater sanitizer checks and Settings/About UI checks pass;
+ZIP packaging is in progress.
+The latest installed console candidate remains `47d007a`.
+
 Media-preflight diagnostics now record refused header/midpoint probes, attempt
 and HTTP status without URLs or identifiers. Real service and embedded log-sink
 tests pass; `47d007a` is deployed to .30 with 185 stored files verified,

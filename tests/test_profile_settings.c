@@ -22,16 +22,15 @@ int main(void) {
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     const evo_provider_t *p=&evo_provider_youtube; assert(!p->init());
     SEPARATE_SETTINGS();
-    action("settings:quality"); assert(last_count==8);
+    /* Legacy quality actions must not lower the fixed cap. */
     const int heights[]={144,240,360,480,720,1080,1440,2160};
     for(int i=0;i<8;++i) {
         char id[64]; snprintf(id,sizeof id,"settings:quality:%d",heights[i]);action(id);
-        check(heights[i],1,0,0,0,0,"en");
+        check(2160,1,0,0,0,0,"en");
     }
     action("settings:quality:1080");action("settings:frame-rate");assert(last_count==3);
     action("settings:frame-rate:30");
-    const char *invalid[]={"settings:quality:","settings:quality:1080junk","settings:quality:9999999999999999999",
-        "settings:quality:1000","settings:frame-rate:","settings:frame-rate:30junk","settings:frame-rate:61"};
+    const char *invalid[]={"settings:frame-rate:","settings:frame-rate:30junk","settings:frame-rate:61"};
     for(unsigned i=0;i<sizeof invalid/sizeof *invalid;++i){p->list_catalog(invalid[i],0,items_cb,NULL);assert(!last_ok);}
     action("settings:remote:disconnect"); assert(tube_phone_stop_on_disconnect());
     action("settings:quality:1440"); action("settings:captions"); action("settings:sponsor");
@@ -40,8 +39,8 @@ int main(void) {
     action("settings:automatic"); action("settings:sb:paid"); action("settings:dearrow:titles");
     action("settings:dearrow:thumbnails"); action("settings:ask-stream"); action("settings:history:2");
     action("settings:sb:exclude:UCabcdefghijklmnopqrstuv");
-    check(1440,0,1,1,1,60,"fr");
-    action("library:profile:alice"); check(1080,1,0,0,0,0,"en");
+    check(2160,0,1,1,1,60,"fr");
+    action("library:profile:alice"); check(2160,1,0,0,0,0,"en");
     cJSON *fps_store=read_store();assert(cJSON_GetObjectItem(fps_store,"max_fps")->valueint==0);cJSON_Delete(fps_store);
     action("settings:frame-rate:60");
     assert(tube_phone_stop_on_disconnect());
@@ -49,7 +48,7 @@ int main(void) {
     action("settings:lang:es"); check(2160,1,0,0,0,120,"es");
     p->shutdown(); assert(!p->init()); action("library"); check(2160,1,0,0,0,120,"es");
     fps_store=read_store();assert(cJSON_GetObjectItem(fps_store,"max_fps")->valueint==60);cJSON_Delete(fps_store);
-    action("library:profile:guest"); check(1440,0,1,1,1,60,"fr");
+    action("library:profile:guest"); check(2160,0,1,1,1,60,"fr");
     cJSON *root=read_store(), *rows=cJSON_GetObjectItem(root,"profile_settings");
     cJSON *guest=cJSON_GetArrayItem(rows,0);
     assert(cJSON_GetObjectItem(guest,"codec")->valueint==4);
@@ -65,19 +64,19 @@ int main(void) {
     cJSON_Delete(root);
     /* Source change returns to the saved guest preferences; remote identity stays device-owned. */
     action("library:profile:alice"); assert(!p->set_source("http://127.0.0.1:8766"));
-    check(1440,0,1,1,1,60,"fr"); p->shutdown();
+    check(2160,0,1,1,1,60,"fr"); p->shutdown();
     root=read_store(); cJSON_DeleteItemFromObject(root,"profile_settings");
     cJSON *record=cJSON_CreateObject(); cJSON_AddStringToObject(record,"id","abcdefghijk");
     cJSON_AddStringToObject(record,"profile","alice"); cJSON_AddItemToArray(cJSON_GetObjectItem(root,"records"),record);
     write_store(root); cJSON_Delete(root); assert(!p->init());
-    action("library:profile:alice"); check(1440,0,1,1,1,60,"fr");
-    action("library:profile:fresh"); check(1080,1,0,0,0,0,"en"); p->shutdown();
+    action("library:profile:alice"); check(2160,0,1,1,1,60,"fr");
+    action("library:profile:fresh"); check(2160,1,0,0,0,0,"en"); p->shutdown();
     root=read_store(); cJSON_ReplaceItemInObject(root,"profile_settings",cJSON_Parse("["
         "{\"profile\":\"bad/profile\",\"max_height\":2160},"
         "{\"profile\":\"fresh\",\"max_height\":1440.5,\"codec\":-1,\"captions\":\"false\",\"sleep_timer_minutes\":31,\"language\":\"../x\"},"
         "{\"profile\":\"fresh\",\"max_height\":2160}]"));
     write_store(root); cJSON_Delete(root); assert(!p->init()); action("library");
-    check(1080,1,0,0,0,0,"en"); p->shutdown();
+    check(2160,1,0,0,0,0,"en"); p->shutdown();
     root=read_store(); cJSON *bounded=cJSON_CreateArray();
     for (int i=0;i<130;++i) {
         char id[20]; snprintf(id,sizeof id,"profile%d",i); cJSON *row=cJSON_CreateObject();
@@ -85,14 +84,14 @@ int main(void) {
         cJSON_AddItemToArray(bounded,row);
     }
     cJSON_ReplaceItemInObject(root,"profile_settings",bounded); write_store(root); cJSON_Delete(root);
-    assert(!p->init()); action("library:profile:profile125"); check(720,1,0,0,0,0,"en");
+    assert(!p->init()); action("library:profile:profile125"); check(2160,1,0,0,0,0,"en");
     p->list_catalog("library:profile:profile126",0,items_cb,NULL); assert(!last_ok);
-    check(720,1,0,0,0,0,"en"); action("library:profile:guest"); check(1080,1,0,0,0,0,"en");
+    check(2160,1,0,0,0,0,"en"); action("library:profile:guest"); check(2160,1,0,0,0,0,"en");
     root=read_store(); assert(cJSON_GetArraySize(cJSON_GetObjectItem(root,"profile_settings"))==128);
     cJSON_Delete(root); p->shutdown();
     /* Reinitializing a removed store must not retain the previous profile/settings/source. */
     unlink(evo_data_path("youtube.json")); assert(!p->init()); SEPARATE_SETTINGS(); action("settings:quality:1440");
-    check(1440,1,0,0,0,0,"en"); root=read_store();
+    check(2160,1,0,0,0,0,"en"); root=read_store();
     assert(!strcmp(cJSON_GetObjectItem(root,"library_profile")->valuestring,"guest"));
     assert(!*cJSON_GetObjectItem(root,"source")->valuestring); cJSON_Delete(root);
     action("settings:playback-mode");assert(last_count==7);
@@ -126,6 +125,7 @@ int main(void) {
     for(int page=0;boot_row<0 || account_row<0;++page) {
         p->list_catalog("settings",page,items_cb,NULL);assert(last_ok);
         for(int i=0;i<last_count;++i) {
+            assert(strcmp(last_items[i].id,"settings:quality"));
             if(!strcmp(last_items[i].id,"settings:boot-section")){boot_row=i;assert(!strcmp(last_items[i].title,"Start in: Music"));}
             if(!strcmp(last_items[i].id,"settings:account-on-boot")){account_row=i;assert(!strcmp(last_items[i].title,"Choose account at startup: on"));}
         }

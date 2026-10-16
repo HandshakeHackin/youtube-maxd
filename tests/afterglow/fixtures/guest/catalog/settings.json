@@ -1,6 +1,5 @@
 {
  "items": [
-  {"id": "settings:quality", "is_folder": true, "interface": true, "title": "Maximum quality: Up to 1080p", "subtitle": "The highest resolution a video is played in", "label": "Maximum quality", "kind": "list", "value": "Up to 1080p", "index": 5, "count": 8},
   {"id": "settings:frame-rate", "is_folder": true, "interface": true, "title": "Frame rate: 60 fps", "subtitle": "Videos above this rate are played in the next one below", "label": "Frame rate", "kind": "list", "value": "60 fps", "index": 2, "count": 3},
   {"id": "settings:codec", "is_folder": true, "interface": true, "title": "Video codec: Automatic", "subtitle": "Automatic takes what the PS5 decodes in hardware; AV1 is decoded in software", "label": "Video codec", "kind": "cycle", "value": "Automatic"},
   {"id": "settings:video-rotate", "is_folder": true, "interface": true, "title": "Rotation: 0 degrees", "subtitle": "Clockwise, in quarter turns", "label": "Rotation", "kind": "list", "value": "0 degrees", "index": 0, "count": 4},
@@ -49,7 +48,7 @@
   {"id": "settings:experimental", "is_folder": true, "interface": true, "title": "Experimental features", "subtitle": "What the Experimental mark on a row means", "label": "Experimental features", "kind": "page", "tag": "Experimental"},
   {"id": "settings:accounts", "is_folder": true, "interface": true, "title": "Account settings: Guest · no account on this PS5", "subtitle": "Separate settings per account and the profile password", "label": "Account settings", "kind": "page", "value": "Guest · no account on this PS5"},
   {"id": "settings:backup", "is_folder": true, "interface": true, "title": "Backup and restore: No backup yet", "subtitle": "Local backups, automatic backup and subscriptions import", "label": "Backup and restore", "kind": "page", "value": "No backup yet"},
-  {"id": "settings:about", "is_folder": true, "interface": true, "title": "About ProsperoTube", "subtitle": "Links, feedback, credits and changes", "label": "About ProsperoTube", "kind": "page", "value": "ProsperoTube 0.1.0", "update": "0.1.0 is the latest version", "attention": false}
+  {"id": "settings:about", "is_folder": true, "interface": true, "title": "About ProsperoTube", "subtitle": "Version, author and credits", "label": "About ProsperoTube", "kind": "page", "value": "ProsperoTube 0.1.0", "update": "0.1.0 is the latest version", "attention": false}
  ],
  "has_more": false
 }

@@ -21,7 +21,7 @@ static int g_owned;
 static int g_tried, g_checked, g_manual, g_restart, g_have_notice, g_watching;
 static long long g_started, g_refreshed;
 static unsigned g_listed;
-static int g_phase;
+static int g_phase, g_offer, g_accepted;
 static char g_notice[320], g_notes_title[120];
 
 static long long (*g_clock)(void);
@@ -33,10 +33,12 @@ static void adopt(tube_update *update) {
     tube_update_status status;
     g_update = update;
     g_checked = g_manual = g_restart = g_have_notice = g_watching = 0;
+    g_offer = g_accepted = 0;
     g_started = clock_now(); g_refreshed = 0;
     if (!update) return;
     tube_update_get(update, &status);
     g_phase = status.phase; g_listed = status.revision;
+    g_offer = status.phase == TUBE_UPDATE_STAGED;
 }
 
 void tube_update_app_use(tube_update *update) { adopt(update); g_tried = 1; g_owned = 0; }
@@ -78,18 +80,16 @@ void tube_update_app_tick(int service_ready) {
         else if (status.check == TUBE_UPDATE_UNKNOWN) notice("No release was found.");
     }
     if (status.phase != g_phase) {
-        if (status.phase == TUBE_UPDATE_STAGED) notice("The update is ready. Select Restart to finish in About.");
+        if (status.phase == TUBE_UPDATE_STAGED) g_offer = !g_accepted;
         else if (status.phase == TUBE_UPDATE_FAILED && *status.error) notice(status.error);
         g_phase = status.phase;
     }
-    /* A version that is already prepared has its own notice. */
-    if (status.phase != TUBE_UPDATE_STAGED && status.phase != TUBE_UPDATE_APPLIED && tube_update_take_offer(g_update)) {
-        tube_update_get(g_update, &status);
-        snprintf(g_notice, sizeof g_notice, status.check == TUBE_UPDATE_AVAILABLE && !status.blocked ?
-                 "Version %s is available. Open Settings, About to read what is new and update." :
-                 "Version %s is available. Settings, About has the release page.", status.latest);
-        g_have_notice = 1;
+    if (tube_update_take_offer(g_update)) g_offer = 1;
+    if (g_accepted && status.phase == TUBE_UPDATE_STAGED) {
+        g_accepted = 0;
+        tube_update_app_action("apply");
     }
+    if (status.phase == TUBE_UPDATE_FAILED) g_accepted = 0;
 }
 
 static tube_update_row *row(tube_update_row *rows, int *count, int capacity, const char *action, const char *title, const char *detail) {
@@ -167,8 +167,13 @@ int tube_update_app_action(const char *action) {
     tube_update_get(g_update, &s);
     if (!strcmp(action, "check")) { if (tube_update_check(g_update, 1)) g_manual = 1; }
     else if (!strcmp(action, "notify")) tube_update_set_notify(g_update, !s.notify);
-    else if (!strcmp(action, "install")) { if (!tube_update_download(g_update)) notice("The updater is busy. Try again in a moment."); }
-    else if (!strcmp(action, "cancel")) tube_update_cancel(g_update);
+    else if (!strcmp(action, "install")) {
+        g_offer = 0;
+        if (s.phase == TUBE_UPDATE_STAGED) { g_accepted = 1; }
+        else if (tube_update_download(g_update)) g_accepted = 1;
+        else notice("The updater is busy or this copy cannot update itself.");
+    }
+    else if (!strcmp(action, "cancel")) { g_accepted = 0; tube_update_cancel(g_update); }
     else if (!strcmp(action, "discard")) tube_update_discard(g_update);
     else if (!strcmp(action, "skip")) tube_update_skip(g_update, strcmp(s.skipped, s.latest) ? s.latest : "");
     else if (!strcmp(action, "apply")) {
@@ -181,6 +186,23 @@ int tube_update_app_action(const char *action) {
         }
     } else return !strcmp(action, "blocked");
     return 1;
+}
+
+int tube_update_app_offer(tube_update_status *status) {
+    if (!g_update) return 0;
+    tube_update_get(g_update, status);
+    return g_offer;
+}
+void tube_update_app_dismiss_offer(void) { g_offer = 0; }
+void tube_update_app_classic_notice(void) {
+    if (!g_update || !g_offer) return;
+    g_offer = 0;
+    notice("An update is available. Open Settings, About to read what is new and update.");
+}
+int tube_update_app_progress(tube_update_status *status) {
+    if (!g_update) return 0;
+    tube_update_get(g_update, status);
+    return g_accepted;
 }
 
 const char *tube_update_app_notes(void) { return g_update ? tube_update_notes(g_update) : ""; }

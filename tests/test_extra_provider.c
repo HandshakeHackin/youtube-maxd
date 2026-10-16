@@ -60,13 +60,13 @@ int main(void) {
     assert(!strcmp(last_items[3].id,"settings:more-subtitles") && !strcmp(last_items[4].id,"settings:caption-memory")); /* two switches of the provider */
     show("settings:extra:audio");assert(last_count==5 && !strcmp(last_items[0].title,"Player volume: 100%") && !strcmp(last_items[1].title,"Mute: Off"));groups+=last_count;
     /* Controls and keys fit one page, before the two further screens and the two provider switches. */
-    show("settings:extra:player");assert(last_count==20 && !last_more && !strcmp(last_items[11].id,"settings:player-suggestions"));groups+=last_count-4;
+    show("settings:extra:player");assert(last_count==19 && !last_more && !strcmp(last_items[11].id,"settings:player-suggestions"));groups+=last_count-4;
     assert(!strcmp(last_items[8].title,"Speed list: Long speed list") && !strcmp(last_items[10].title,"Remember position of short videos: On"));
-    assert(!strcmp(last_items[15].id,"settings:video-buffer") && !strcmp(last_items[15].title,"Video buffer: Medium") && strstr(last_items[15].subtitle,"next video"));
-    assert(!strcmp(last_items[16].id,"settings:extra:buttons") && !strcmp(last_items[16].title,"Player buttons"));
-    assert(!strcmp(last_items[17].id,"settings:extra:dimming") && !strcmp(last_items[17].title,"Screen dimming and screen off"));
-    assert(!strcmp(last_items[18].id,"settings:use-section-playlist") && !strcmp(last_items[19].id,"settings:dislikes"));
-    for(int i=0;i<16;++i)assert(strncmp(last_items[i].title,"Button: ",8) && tube_extra_group_screen(tube_extra_group_find(last_items[i].id))==2);
+    assert(!strcmp(last_items[14].id,"settings:video-buffer") && !strcmp(last_items[14].title,"Video buffer: Medium") && strstr(last_items[14].subtitle,"next video"));
+    assert(!strcmp(last_items[15].id,"settings:extra:buttons") && !strcmp(last_items[15].title,"Player buttons"));
+    assert(!strcmp(last_items[16].id,"settings:extra:dimming") && !strcmp(last_items[16].title,"Screen dimming and screen off"));
+    assert(!strcmp(last_items[17].id,"settings:use-section-playlist") && !strcmp(last_items[18].id,"settings:dislikes"));
+    for(int i=0;i<15;++i)assert(strncmp(last_items[i].title,"Button: ",8) && tube_extra_group_screen(tube_extra_group_find(last_items[i].id))==2);
     p->list_catalog("settings:extra:player",1,items_cb,NULL);assert(last_ok && !last_count && !last_more);
     /* Video buffer: Medium, the player's own read-ahead, until the profile chooses; the choice is saved for the next stream. */
     assert(tube_extra_buffer()==TUBE_BUFFER_MEDIUM && tube_extra_read_ahead_seconds(30.0,1)==30.0 && tube_extra_read_ahead_seconds(10.0,0)==10.0);
@@ -74,7 +74,7 @@ int main(void) {
     assert(!strcmp(last_items[2].title,"High") && !strcmp(last_items[3].title,"Highest") && !strcmp(last_items[3].id,"settings:video-buffer:3"));
     show("settings:video-buffer:2");assert(!strcmp(last_items[2].subtitle,"Selected") && tube_extra_buffer()==TUBE_BUFFER_HIGH && saved("guest","video_buffer")==TUBE_BUFFER_HIGH);
     assert(tube_extra_read_ahead_seconds(30.0,1)==50.0 && tube_extra_read_ahead_seconds(10.0,0)==10.0);
-    show("settings:extra:player");assert(!strcmp(last_items[15].title,"Video buffer: High"));
+    show("settings:extra:player");assert(!strcmp(last_items[14].title,"Video buffer: High"));
     refused("settings:video-buffer:4");refused("settings:video-buffer:x");assert(tube_extra_buffer()==TUBE_BUFFER_HIGH);
     show("settings:video-buffer:1");assert(tube_extra_buffer()==TUBE_BUFFER_MEDIUM && saved("guest","video_buffer")==TUBE_BUFFER_MEDIUM);
     assert(tube_extra_read_ahead_seconds(30.0,1)==30.0);

@@ -20,7 +20,7 @@ typedef struct {
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
-    ProfileSettings p = {0}; p.height = 1080; p.captions = p.search_history = p.section_playlist = 1;
+    ProfileSettings p = {0}; p.height = g_height; p.captions = p.search_history = p.section_playlist = 1;
     tube_player_extra_defaults(&p.extra); tube_ui_defaults(&p.ui);
     p.speed = p.last_speed = 100; p.speed_mode = 1;
     sections_default(p.section_order);
@@ -60,7 +60,7 @@ static ProfileSettings profile_settings_capture(void) {
 }
 static void profile_settings_apply(const ProfileSettings *p) {
     g_speed = p->speed; g_last_speed = p->last_speed; g_speed_mode = p->speed_mode;
-    g_height = p->height;
+    /* Resolution is fixed globally; legacy per-profile caps are ignored. */
     g_max_fps = p->max_fps;
     g_codec = p->codec;
     g_captions = p->captions;
@@ -186,7 +186,7 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->speed = valid_speed(speed) ? (int)speed : 100;
     p->last_speed = valid_speed(last) ? (int)last : 100;
     p->speed_mode = settings_integer(root,"speed_memory_mode",0,3,1);
-    p->height = settings_integer(root,"max_height",144,2160,1080);
+    p->height = g_height;
     p->max_fps = settings_integer(root,"max_fps",0,60,0);
     p->codec = settings_integer(root,"codec",0,4,0);
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"captions"))) p->captions = boolean(root,"captions");

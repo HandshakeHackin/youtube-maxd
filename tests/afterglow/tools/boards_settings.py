@@ -40,18 +40,18 @@ DOWN5 = P("down", "down", "down", "down", "down")
 boards = [
     # ---- the tiles (board 31) ----
     board("settings-home", steps=P("right"),
-          expect={"focus": "tile/captions", "rail_open": 0, "state": {"page": "home", "load": "ready", "tiles": "12"}, "asked": ["settings"]}),
-    board("settings-home-guest", fixture="guest", expect={"focus": "tile/player", "state": {"page": "home", "load": "ready", "tiles": "12"}}),
+          expect={"focus": "tile/captions", "rail_open": 0, "state": {"page": "home", "load": "ready", "tiles": "11"}, "asked": ["settings"]}),
+    board("settings-home-guest", fixture="guest", expect={"focus": "tile/player", "state": {"page": "home", "load": "ready", "tiles": "11"}}),
     board("settings-home-loading", source={"hold": True}, expect={"focus": "tile/player", "state": {"load": "loading"}}),
     board("settings-home-arriving", source={"delay": 30}, settle=0.62, expect={"focus": "tile/player", "state": {"load": "ready"}}),
     board("settings-home-offline", source={"offline": True}, steps=P("down", "right"), expect={"focus": "tile/sponsorblock", "state": {"load": "offline"}}),
-    board("settings-home-empty", fixture="empty", profile=MARA, expect={"focus": "tile/player", "state": {"load": "ready", "tiles": "12"}}),
-    board("settings-home-long", fixture="long-texts", steps=P("down", "right", "right"), expect={"focus": "tile/dearrow", "state": {"tiles": "12"}}),
+    board("settings-home-empty", fixture="empty", profile=MARA, expect={"focus": "tile/player", "state": {"load": "ready", "tiles": "11"}}),
+    board("settings-home-long", fixture="long-texts", steps=P("down", "right", "right"), expect={"focus": "tile/dearrow", "state": {"tiles": "11"}}),
     board("settings-home-edges", steps=P("up", "right", "right", "right", "right", "down", "down", "down"),
           expect={"focus": "tile/about", "rail_open": 0}),
     board("settings-home-rail", steps=P("left"), expect={"focus": "rail/settings", "rail_open": 1}),
-    board("settings-home-more", fixture="newer-provider", steps=P("down", "down", "down") + W(0.6),
-          expect={"focus": "tile/more", "state": {"tiles": "13", "scroll": "224"}}),
+    board("settings-home-more", fixture="newer-provider", steps=P("down", "down", "right", "right", "right") + W(0.6),
+          expect={"focus": "tile/more", "state": {"tiles": "12", "scroll": "0"}}),
     board("settings-home-reset", steps=P("right", "options"), expect={"dialog": 1}),
     board("settings-home-reset-done", steps=P("right", "options", "cross") + W(0.8),
           expect={"dialog": 0, "focus": "tile/captions", "state": {"applied": "1", "last_applied": "settings:reset:captions"}, "asked": ["settings:reset:captions"]}),
@@ -97,8 +97,7 @@ boards = [
           expect={"focus": "row/subtitle-style:4", "state": {"value": "off", "preview": "captions"}}),
     board("settings-style-chosen", argument=CAPTIONS, steps=DOWN5 + P("down", "cross") + W(0.7) + P("down", "cross") + W(1.3),
           expect={"focus": "row/subtitle-style", "moving": 0, "state": {"page": CAPTIONS}, "asked": ["settings:subtitle-style:3"]}),
-    board("settings-quality-list", argument="settings:quality", title="Player" + SEP + "Maximum quality", steps=P("up", "cross") + W(0.25),
-          expect={"focus": "row/quality:1440", "state": {"value": "on", "applied": "1", "rows": "8"}, "asked": ["settings:quality:1440"]}),
+
     board("settings-country-more", argument="settings:content-country", title="Content & language" + SEP + "Content country",
           steps=P("r2", "r2", "r2") + W(0.5) + P("r2", "r2", "r2") + W(0.5), expect={"focus": "row/content-country:MA", "state": {"rows": "48", "scroll": "2872"}}),
     board("settings-languages-long", fixture="long-texts", argument="settings:languages", title="Untertitel" + SEP + "Sprache der Untertitel", steps=P("down"),
@@ -144,9 +143,8 @@ boards = [
     board("settings-clear-queue", argument="tile:content", steps=P("r2", "down", "down", "cross"), expect={"dialog": 1}),
     board("settings-clear-queue-done", argument="tile:content", steps=P("r2", "down", "cross", "cross") + W(0.8),
           expect={"dialog": 0, "focus": "row/clear-history", "state": {"applied": "1", "kind": "action"}, "asked": ["settings:clear-history"]}),
-    board("settings-updates", argument="tile:updates", expect={"focus": "row/update:check", "state": {"rows": "5", "kind": "action"}}),
-    board("settings-about", argument="tile:about", steps=P("down", "down", "down", "down"), expect={"focus": "row/about:credits", "state": {"rows": "7", "kind": "link"}}),
-    board("settings-about-credits", argument="tile:about", steps=P("down", "down", "down", "down", "cross") + W(0.7), expect={"screen": "reader", "argument": "settings:about:credits"}),
+    board("settings-about", argument="tile:about", steps=P("down", "down"), expect={"focus": "row/about:credits", "state": {"rows": "4", "kind": "link"}}),
+    board("settings-about-credits", argument="tile:about", steps=P("down", "down", "cross") + W(0.7), expect={"screen": "reader", "argument": "settings:about:credits"}),
     board("settings-audio-disabled", argument="tile:audio", steps=P("r2", "cross"), expect={"focus": "row/audio-delay-enabled", "state": {"value": "off", "waiting": "0"}}),
     board("settings-player", argument="tile:player", steps=P("r2", "r2", "r2"), expect={"state": {"load": "ready"}}),
     board("settings-hide", argument="settings:hide", title="Content & language" + SEP + "Hide content", steps=P("down", "down", "down", "cross") + W(0.3),
@@ -161,7 +159,7 @@ boards = [
           expect={"focus": "action/back", "state": {"load": "ready", "rows": "0"}}),
 ]
 
-about = ("Settings: the twelve tiles (board 31), a tile's page as a form with its preview (board 32), the lists behind a row, "
+about = ("Settings: the eleven tiles (board 31), a tile's page as a form with its preview (board 32), the lists behind a row, "
          "changes on their way to the provider, confirmed and refused, and every state without rows.")
 with open(sys.argv[1], "w", encoding="utf-8", newline="\n") as out:
     out.write('{\n "about": %s,\n "boards": [\n' % json.dumps(about))

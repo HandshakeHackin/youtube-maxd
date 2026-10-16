@@ -4,6 +4,33 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Simpler settings and local thumbnails (2026-10-15)
+
+Removed the Updates tile and manual update rows, plus About's Releases/source,
+Feedback and installed-version changes entries. About keeps version, author and
+credits. Classic retains its existing updater fallback in About; modern Settings
+uses the simplified layout. The updater follows ProsperoEden's startup offer: Update now, What's
+new or Skip outside Settings; accepting shows cancellable progress and uses the
+existing validated helper to apply and close when ready. It does not silently
+install an update during playback. Development/blocked builds retain protections.
+
+New playback has a fixed 2160p ceiling, including older global/profile settings.
+The editable cap and remember-quality setting are removed, and video presets
+retain only full-cap choices. Explicit per-video stream selection and existing
+error recovery may still use lower resolutions. Actual source availability,
+codec and frame-rate constraints still determine which stream is selected.
+
+Local History and Continue watching share the native local-record catalog.
+Phone-origin records could have no artwork. Missing thumbnails now fall back to
+the standard YouTube image for the validated video ID; existing artwork and
+DeArrow handling remain intact. Old blank saved records work without migration.
+The regression fails without the fix and passes with ASan/UBSan, including restart.
+Profile settings, player menu/extras, provider extras and simplified About tests
+pass. Updater sanitizer tests cover acceptance, cancellation, blocked builds,
+staged-on-start consent, apply failure and one-shot close. Settings home passes
+164 UI checks and About/Credits passes 50. Final ZIP packaging is in progress.
+No console installation or visual hardware acceptance is claimed for these changes.
+
 ## Media preflight refusal diagnostics (2026-10-15)
 
 The resolver now logs `YouTube media probe: phase=header|midpoint attempt=N status=S`

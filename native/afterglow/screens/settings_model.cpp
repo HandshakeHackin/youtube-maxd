@@ -19,7 +19,7 @@ constexpr ScreenId kOwn = ScreenId::settings;
 // the main list holds a row no rule below knows.
 constexpr Tile kTiles[] = {
     {"player", "Player", Icon::play, kOwn, "", "", {"settings:extra:player", nullptr},
-     {"settings:quality", "settings:frame-rate", "settings:codec"}, "value", ""},
+     {"settings:frame-rate", "settings:codec"}, "value", ""},
     {"captions", "Captions", Icon::captions, kOwn, "", "", {"settings:extra:captions", nullptr},
      {"settings:languages", "settings:extra:captions", nullptr}, "value", ""},
     {"audio", "Audio", Icon::audio, kOwn, "", "", {"settings:extra:audio", nullptr}, {"settings:extra:audio", nullptr, nullptr}, "value", ""},
@@ -33,8 +33,6 @@ constexpr Tile kTiles[] = {
     {"phone", "Phone & casting", Icon::phone, ScreenId::link_phone, "Link a phone", "Play from the YouTube app on a phone to this PS5", {nullptr, nullptr},
      {"settings:remote", nullptr, nullptr}, "value", ""},
     {"backup", "Backup", Icon::backup, kOwn, "", "", {"settings:backup", nullptr}, {"settings:backup", nullptr, nullptr}, "value", ""},
-    {"updates", "Updates", Icon::update, kOwn, "", "", {"settings:about", nullptr}, {"settings:about", nullptr, nullptr}, "update",
-     "settings:about"},
     {"about", "About", Icon::info, kOwn, "", "", {"settings:about", nullptr}, {"settings:about", nullptr, nullptr}, "value", ""},
     {"more", "More", Icon::more, kOwn, "", "", {nullptr, nullptr}, {nullptr, nullptr, nullptr}, "value", ""},
 };
@@ -57,10 +55,8 @@ struct Rule
 };
 constexpr Rule kRules[] = {
     // ---- Player ----
-    {"settings:quality", "player", "Picture"},
     {"settings:frame-rate", "player", "Picture"},
     {"settings:codec", "player", "Picture"},
-    {"settings:remember-quality", "player", "Picture"},
     {"settings:ask-stream", "player", "Picture"},
     {"settings:video-buffer", "player", "Picture"},
     {"settings:error-fixer", "player", "Picture"},
@@ -182,16 +178,10 @@ constexpr Rule kRules[] = {
     {"settings:backup:auto", "backup", "Backup"},
     {"settings:backup:import", "backup", "Backup"},
     {"account:notice:backup-accounts", "backup", "Backup", "settings:backup"},
-    // ---- Updates ----
-    {"settings:update:", "updates", "Updates"},
-    {"description:update", "updates", "Updates"},
     // ---- About ----
     {"account:notice:version", "about", "About"},
     {"account:notice:author", "about", "About"},
-    {"link:about", "about", "About"},
-    {"link:feedback", "about", "About"},
     {"settings:about:credits", "about", "About"},
-    {"settings:about:changelog", "about", "About"},
     {"settings:experimental", "about", "About"},
 };
 

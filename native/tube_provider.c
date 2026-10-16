@@ -41,6 +41,7 @@
 void tube_update_app_init(void) __attribute__((weak));
 void tube_update_app_shutdown(void) __attribute__((weak));
 void tube_update_app_tick(int service_ready) __attribute__((weak));
+void tube_update_app_classic_notice(void) __attribute__((weak));
 int tube_update_app_rows(tube_update_row *rows, int capacity) __attribute__((weak));
 int tube_update_app_action(const char *action) __attribute__((weak));
 const char *tube_update_app_notes(void) __attribute__((weak));
@@ -174,7 +175,8 @@ static char g_active_profile[33], g_next_profile[33];
  * before asynchronous work; queue entries retain the origin of their insertion. */
 static int g_browse_music, g_browse_queue, g_resolved_music;
 static struct { char id[160], profile[33]; int music, automatic; } g_launch_origin;
-static int g_height = 1080, g_max_fps, g_codec, g_auto_captions, g_captions = 1;
+static const int g_height = 2160; /* Every new video may use the full supported resolution. */
+static int g_max_fps, g_codec, g_auto_captions, g_captions = 1;
 static int g_speed = 100;
 /* Modes: all videos, per channel, per video, this session only. */
 static int g_speed_mode = 1, g_last_speed = 100;
@@ -2484,7 +2486,7 @@ static int init_store(void) {
     if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(root,"pixel_ratio_mode")) && pixel>=0 && pixel<=5 && floor(pixel)==pixel)
         g_pixel_mode=(int)pixel;
     player_preferences_load(root);
-    g_height = settings_integer(root,"max_height",144,2160,1080);
+    /* Legacy max_height preferences do not restrict new video selections. */
     g_max_fps = settings_integer(root,"max_fps",0,60,0);
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
@@ -4580,6 +4582,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 
 void tube_poll(void) {
     if (tube_update_app_tick) tube_update_app_tick(!g_embedded || embedded_ready());
+    if (g_ui.interface_kind == TUBE_UI_INTERFACE_CLASSIC && tube_update_app_classic_notice) tube_update_app_classic_notice();
     caption_switch_tick();
     if (g_remote_enabled && tube_remote_state() == TUBE_REMOTE_LISTENING &&
         !strcmp(g_remote_device, tube_remote_device()) && *tube_remote_screen() &&
@@ -5706,11 +5709,6 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_speed_mode = 0;
             if (!strcmp(g_speed_session_profile,g_library_profile)) g_speed_session_id[0] = 0;
             tube_set_playback_speed((int)speed);
-        } else if (!strncmp(parent, "settings:quality:", 17)) {
-            char *end; long height = strtol(parent + 17, &end, 10);
-            if (!*(parent + 17) || *end || (height != 144 && height != 240 && height != 360 && height != 480 &&
-                height != 720 && height != 1080 && height != 1440 && height != 2160)) { cb(0,NULL,0,0,ud); return 1; }
-            g_height = (int)height; save();
         } else if (!strncmp(parent, "settings:frame-rate:", 20)) {
             char *end; long fps = strtol(parent + 20, &end, 10);
             if (!*(parent + 20) || *end || (fps != 0 && fps != 30 && fps != 60)) { cb(0,NULL,0,0,ud); return 1; }
@@ -5995,13 +5993,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "account:notice:version", title, TUBE_ABOUT_TAGLINE "; " TUBE_ABOUT_LICENSE);
             /* Written out, not TUBE_ABOUT_BROUGHT and TUBE_ABOUT_UNOFFICIAL: the texts of a row are found by the catalogs' extraction as literals. */
             CATALOG_FOLDER( "account:notice:author", "Brought to you by BlackBearReloaded", "Not affiliated with or endorsed by YouTube or Google");
-            CATALOG_FOLDER( "link:about", "Releases and source code", "Project links, each with a QR code to open on another device");
-            CATALOG_FOLDER( "link:feedback", "Feedback", "Report a problem or ask for a feature");
             CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");
-            CATALOG_FOLDER( "settings:about:changelog", "What changed in this version", "The changes listed for the installed version");
-            tube_update_row rows[10];
-            const int count = tube_update_app_rows ? tube_update_app_rows(rows, 10) : 0;
-            for (int i = 0; i < count; ++i) CATALOG_FOLDER( rows[i].id, rows[i].title, rows[i].detail);
+            /* Classic has no application modal; retain its update fallback only. */
+            if (g_ui.interface_kind == TUBE_UI_INTERFACE_CLASSIC && tube_update_app_rows) {
+                tube_update_row rows[10];
+                const int count = tube_update_app_rows(rows, 10);
+                for (int i = 0; i < count; ++i) CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);
+            }
         } else if (!strcmp(parent, "settings:about:credits")) {
             const tube_about_credit *credit;
             for (int i = page * LOCAL_PAGE; n < LOCAL_PAGE && (credit = tube_about_credit_at(i)) != NULL; ++i) {
@@ -6358,9 +6356,6 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( id, hidden ? "Show section" : "Hide section", hidden ? "Return it to its menu" : "Remove it from its menu; YouTube preferences can show it again");
             CATALOG_FOLDER( "settings:sections", "All sections", "Show, hide and order every section and pin");
             CATALOG_FOLDER( "settings:refresh", "Refresh section", "Reload the list this section was shown in");
-            tube_update_row updater[1];   /* SmartTube's section menu starts the update check too */
-            if (tube_update_app_rows && tube_update_app_rows(updater, 1))
-                CATALOG_FOLDER( "settings:update:check", "Check for updates", "Ask now for a newer ProsperoTube; About lists the answer");
         } else if (!strncmp(parent, "settings:pin:", 13)) {
             int verb; const char *target = pin_target(parent + 13, &verb);
             if (!target) { tube_set_error("Select a channel or playlist to pin."); cb(0,NULL,0,0,ud); return 1; }
@@ -6422,13 +6417,6 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             for(int i=0;i<BOOT_SECTIONS;++i) {
                 char id[64];snprintf(id,sizeof id,"settings:boot-section:%d",i);
                 CATALOG_FOLDER(id,g_boot_sections[i].label,boot_section_index(g_boot_section)==i?"Selected":"Open this section when ProsperoTube starts; saved for this profile");
-            }
-        } else if (!strcmp(parent,"settings:quality")) {
-            const int heights[] = {144,240,360,480,720,1080,1440,2160};
-            for (int i=0;i<8;++i) {
-                char id[64],label[64]; snprintf(id,sizeof id,"settings:quality:%d",heights[i]);
-                snprintf(label,sizeof label,"Up to %dp",heights[i]);
-                CATALOG_FOLDER(id,label,g_height==heights[i]?"Selected":"Maximum resolution for the next video");
             }
         } else if (!strcmp(parent,"settings:frame-rate")) {
             const int rates[]={0,30,60}; const char *labels[]={"Frame rate: automatic","Up to 30 fps","Up to 60 fps"};
@@ -6528,8 +6516,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     audio ? "Prefer this audio language when a video offers it" : "Use captions in this language when a video offers them");
             }
         } else {
-            char label[96]; snprintf(label, sizeof label, "Maximum quality: %dp", g_height);
-            CATALOG_FOLDER( "settings:quality", label, "Choose maximum resolution from 144p to 2160p");
+            char label[96];
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
@@ -6612,7 +6599,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:accounts", "Account settings", "Separate settings per account and profile password" EXPERIMENTAL);
             CATALOG_FOLDER( "settings:backup", "Backup and restore", "Local backups, automatic backup and subscriptions import");
             tube_about_title(label, sizeof label);
-            CATALOG_FOLDER( "settings:about", label, "Links, feedback, credits and changes");
+            CATALOG_FOLDER( "settings:about", label, "Version, author and credits");
         }
     } else if (!strcmp(parent, "subscriptions")) {
         /* Channels followed through one of their videos, most recent first, then the imported ones. */
@@ -6652,7 +6639,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         }
         for (int i = page * LOCAL_PAGE; i < total && n < LOCAL_PAGE; ++i) {
             Record *r = &g_records[indexes[i]];
-            out[n] = r->item; dearrow_item(&out[n], r); ++n;
+            out[n] = r->item;
+            /* Phone playback can create history without ever loading a catalog thumbnail. */
+            if (!*out[n].art_url)
+                snprintf(out[n].art_url, sizeof out[n].art_url, "https://i.ytimg.com/vi/%s/hqdefault.jpg", r->item.id);
+            dearrow_item(&out[n], r); ++n;
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
     } else return 0;
@@ -8499,7 +8490,7 @@ int tube_player_take_browse(char *parent, size_t parent_size, char *title, size_
     return kind;
 }
 
-/* Quality limits of the selected profile, for the in-player presets. */
+/* Resolution is fixed; frame-rate and codec preferences belong to the profile. */
 void tube_player_quality(int *height, int *fps, int *codec) {
     if (height) *height = g_height;
     if (fps) *fps = g_max_fps;
@@ -8511,14 +8502,12 @@ int tube_player_set_quality(int height, int fps, int codec) {
     if (codec < 0) codec = g_codec;
     if ((height != 144 && height != 240 && height != 360 && height != 480 && height != 720 && height != 1080 &&
          height != 1440 && height != 2160) || (fps != 0 && fps != 30 && fps != 60) || codec > 4) return 0;
-    if (height != g_height || fps != g_max_fps || codec != g_codec) { g_height = height; g_max_fps = fps; g_codec = codec; save(); }
+    if (fps != g_max_fps || codec != g_codec) { g_max_fps = fps; g_codec = codec; save(); }
     return 1;
 }
 int tube_player_remember_height(int height) {
-    static const int heights[] = {144, 240, 360, 480, 720, 1080, 1440, 2160};
-    if (height <= 0) return 0;
-    for (int i = 0; i < 8; ++i) if (height <= heights[i] || i == 7) return tube_player_set_quality(heights[i], -1, -1);
-    return 0;
+    /* A per-video choice must never lower the maximum for subsequent videos. */
+    return height > 0;
 }
 static int player_reopen(double position, int live, int subtitles, ResolveQuality quality) {
     g_recovery.position = live ? 0 : position; g_recovery.subtitles = !!subtitles;
