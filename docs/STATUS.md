@@ -1,5 +1,10 @@
 # Current implementation status
 
+Owner replay of `08ce71c` reaches phone-command delivery but fails media
+resolution before DASH playback, so no seek diagnostics were produced. Media
+probe refusal is inferred from the resolver error path; exact HTTP status is
+not recorded. The earlier seek failure remains unresolved.
+
 Bounded, URL-free DASH seek/probe diagnostics pass sanitizer and real patched
 FFmpeg 7.1.1 loopback success/failure tests. Diagnostic ZIP `08ce71c` is built, content-verified and frozen;
 `08ce71c` is installed on .30 with all 185 files verified after 120 seconds,

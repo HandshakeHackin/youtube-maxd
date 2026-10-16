@@ -4,6 +4,19 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Diagnostic replay blocked before DASH (2026-10-15)
+
+Read-only collection while ProsperoTube remained running confirms installed
+`08ce71c`. The phone connection and setPlaylist were delivered, but native
+resolution failed with "The media server could not provide this resource."
+No decoder or DASH probe/seek record occurred in this run. Private evidence:
+`owner-dash-seek-08ce71c/app.log`. The resolver produces this error after media
+probes receive 401/403/410 and its bounded retries are exhausted; the current
+log does not reveal which status or whether the header/deep-range probe failed.
+This attempt does not test the previous startup-seek failure. A short video
+cast from the beginning is requested for comparison. No close, deployment or
+Chiaki-ng was used for collection.
+
 ## DASH diagnostic candidate installed (2026-10-15)
 
 Diagnostic `08ce71c` is installed on .30. Idle-first check, all 185 stored files
