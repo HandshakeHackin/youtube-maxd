@@ -273,14 +273,6 @@ void Frame::draw_rail(G &g, float arrive)
             avatar(g, 60.0f, item.y, 24.0f, name, profile.id, Picture{});
         else
             icon(g, item.icon, 60.0f, item.y, 30.0f, ink);
-        if (item.screen == ScreenId::notifications && notification_unseen_ > 0)
-        {
-            // What is new since the last look, as the boards have it: a count on the bell.
-            char count[8];
-            std::snprintf(count, sizeof count, notification_unseen_ > 9 ? "9+" : "%d", notification_unseen_);
-            g.l.circle(77.0f, item.y - 15.0f, 12.0f, k.accent);
-            text(g, g.f.semibold, count, 77.0f, item.y - 9.5f, 15.0f, k.on_accent, gfx::Align::center);
-        }
         if (open > 0.01f)
         {
             g.l.push_opacity(tween::clamp01(open * 1.6f - 0.5f));
@@ -473,7 +465,7 @@ std::string Frame::snapshot_json() const
     out += "],";
     json_number(out, "moving", change_.running ? 1 : 0);
     json_number(out, "rail_open", rail_open_ ? 1 : 0);
-    json_number(out, "notification_unseen", notification_unseen_);
+    json_number(out, "notification_unseen", -1); // no background notification polling in the first release
     json_number(out, "attract", attract_ ? 1 : 0);
     json_number(out, "dialog", dialog_.is_open() ? 1 : 0);
     json_number(out, "sheet", sheet_.open() ? 1 : 0);

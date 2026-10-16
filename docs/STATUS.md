@@ -1,11 +1,18 @@
 # Current implementation status
 
+Owner confirms Home and Library > History thumbnails. The remaining About
+Check/Notify update controls and main-menu Notifications entry are removed;
+automatic update offers remain. Repeated casting is under investigation: the
+replacement media opens, then is interrupted before decoding any frames.
+
+
 Settings simplification, a fixed 2160p ceiling, and missing local-history artwork
 fallback are implemented. Update prompts move outside Settings to follow Eden's
 startup flow. Native regressions, updater sanitizer checks and Settings/About UI checks pass;
 ZIP `38d2840` builds successfully, is content-verified and frozen.
 `38d2840` is installed on .30: 185 stored files verified after 120 seconds,
-unchanged error records and final idle. Owner acceptance remains pending.
+unchanged error records and final idle. Thumbnail acceptance is confirmed;
+follow-up Settings and repeated-casting work is described above.
 
 Media-preflight diagnostics now record refused header/midpoint probes, attempt
 and HTTP status without URLs or identifiers. Real service and embedded log-sink

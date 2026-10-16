@@ -62,8 +62,7 @@ int main(void) {
     assert(strstr(tube_update_app_take_notice(),"not listed"));
     assert(!tube_update_download(u) && !tube_update_apply(u));
     tube_update_row rows[12];
-    assert(tube_update_app_rows(rows,12)==2);
-    assert(!strcmp(rows[0].id,"settings:update:check"));
+    assert(tube_update_app_rows(rows,12)==0);
     assert(tube_update_app_action("notify"));
     tube_update_skip(u,"01.000.010");
     snprintf(app,sizeof app,"{\"schema\":3,\"titleid\":\"PPSA99142\",\"name\":\"ProsperoTube\","
@@ -78,7 +77,8 @@ int main(void) {
     tube_update_set_notify(u,1);
     assert(tube_update_app_action("check")); wait_check(u); tube_update_app_tick(1);
     assert(!tube_update_app_take_notice()); /* skipped offer */
-    assert(tube_update_app_rows(rows,12)==5);
+    assert(tube_update_app_rows(rows,12)==3);
+    for (int i=0; i<3; ++i) assert(strcmp(rows[i].id,"settings:update:check") && strcmp(rows[i].id,"settings:update:notify"));
     assert(!strcmp(tube_update_app_notes(),"A signed note"));
     assert(tube_update_app_action("skip")); tube_update_app_tick(1);
     tube_update_status offer;

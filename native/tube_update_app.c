@@ -112,14 +112,6 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
     tube_update_get(g_update, &s);
     g_listed = s.revision; g_watching = 1;
     const int newer = s.check == TUBE_UPDATE_AVAILABLE || s.check == TUBE_UPDATE_NOT_INSTALLABLE;
-    if (s.phase == TUBE_UPDATE_CHECKING) snprintf(detail, sizeof detail, "Checking...");
-    else if (*s.error && s.manual && s.phase != TUBE_UPDATE_FAILED) snprintf(detail, sizeof detail, "%.199s", s.error);
-    else if (newer) snprintf(detail, sizeof detail, "Installed %s; latest %s (%.60s)", s.installed, s.latest, s.latest_name);
-    else if (s.check == TUBE_UPDATE_UP_TO_DATE) snprintf(detail, sizeof detail, "Installed %s is the latest version", s.installed);
-    else snprintf(detail, sizeof detail, "Installed %s; the latest version is not known yet", *s.installed ? s.installed : "version unknown");
-    row(rows, &n, capacity, "check", "Check for updates", detail);
-    row(rows, &n, capacity, "notify", s.notify ? "Notify about updates: on" : "Notify about updates: off",
-        "A notice once per start when a newer version exists; the check itself runs once per launch");
     if (!newer && s.phase != TUBE_UPDATE_STAGED && s.phase != TUBE_UPDATE_APPLIED) return n;
     if (*tube_update_notes(g_update)) {
         snprintf(title, sizeof title, "What is new in %.80s", *s.latest_name ? s.latest_name : s.latest);

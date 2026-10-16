@@ -314,9 +314,6 @@ class Frame final : private Nav
     std::vector<std::string> toast_log_; // the last few, for snapshots
     std::vector<std::string> toast_detail_log_; // ... and their second lines
 
-    std::string notification_profile_;
-    float notification_age_ = 60.0f;
-    int notification_unseen_ = -1; // unknown, including a failed or unsupported response
 
     FrameStats stats_;
     std::array<float, 120> frame_times_{};

@@ -5,7 +5,6 @@
 #include "afterglow/frame.hpp"
 
 #include <algorithm>
-#include <charconv>
 #include <chrono>
 #include <cmath>
 
@@ -103,7 +102,6 @@ void Frame::rail_destinations()
         {Icon::search, tr_mark("Search"), ScreenId::search, 384.0f},
         {Icon::subs, tr_mark("Subscriptions"), ScreenId::subscriptions, 468.0f},
         {Icon::library, tr_mark("Library"), ScreenId::library, 552.0f},
-        {Icon::bell, tr_mark("Notifications"), ScreenId::notifications, 636.0f},
         {Icon::settings, tr_mark("Settings"), ScreenId::settings, 884.0f},
         {Icon::user, tr_mark("Switch profile"), ScreenId::accounts, 980.0f},
     };
@@ -477,15 +475,14 @@ int Frame::active_destination() const
     case ScreenId::channels:
         return 2;
     case ScreenId::library:
-        return 3;
     case ScreenId::notifications:
-        return 4;
+        return 3;
     case ScreenId::settings:
-        return 5;
+        return 4;
     case ScreenId::accounts:
     case ScreenId::sign_in:
     case ScreenId::link_phone:
-        return 6;
+        return 5;
     default:
         return 0;
     }
@@ -534,34 +531,6 @@ void Frame::update(const InputFrame &input, float dt, std::string_view typed)
     stats_.worst_frame_ms = *std::max_element(frame_times_.begin(), frame_times_.end());
 
     data_.pump();
-    const model::Profile &notification_profile = data_.profile();
-    const std::string notification_owner = notification_profile.signed_in ? notification_profile.id : std::string();
-    if (notification_owner != notification_profile_)
-    {
-        notification_profile_ = notification_owner;
-        notification_unseen_ = -1;
-        notification_age_ = 60.0f;
-        data_.forget("library:notification-count");
-    }
-    if (!notification_owner.empty())
-    {
-        notification_age_ += dt;
-        if (notification_age_ >= 60.0f)
-        {
-            data_.forget("library:notification-count");
-            notification_age_ = 0.0f;
-        }
-        const Page &count = data_.catalog("library:notification-count");
-        notification_unseen_ = -1;
-        if (count.load == model::Load::ready && count.rows.size() == 1)
-        {
-            const std::string &value = count.rows[0].fact("unseen_count");
-            int total = -1;
-            const auto parsed = std::from_chars(value.data(), value.data() + value.size(), total);
-            if (parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size() && total >= 0)
-                notification_unseen_ = total;
-        }
-    }
     images_.pump(dt);
     change_.update(dt);
     if (!change_.running)

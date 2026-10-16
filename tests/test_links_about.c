@@ -5,6 +5,16 @@
 #undef main
 #include "tube_qr_page.h"
 #include "tube_about.h"
+#include "tube_update.h"
+static int actual_afterglow = 1;
+int tube_afterglow_enabled(void) { return actual_afterglow; }
+int tube_update_app_rows(tube_update_row *rows, int capacity) {
+    assert(capacity > 0);
+    snprintf(rows[0].id, sizeof rows[0].id, "settings:update:install");
+    snprintf(rows[0].title, sizeof rows[0].title, "Update now");
+    rows[0].detail[0] = 0;
+    return 1;
+}
 static const evo_provider_t *p;
 static char row[160];
 static void show(const char *id) {p->list_catalog(id,0,items_cb,NULL);assert(last_ok && !pending_count);}
@@ -85,6 +95,9 @@ int main(void) {
     assert(!strcmp(last_items[1].id,"account:notice:author") && !strcmp(last_items[1].title,"Brought to you by BlackBearReloaded") &&
         strstr(last_items[1].subtitle,"Not affiliated with or endorsed by YouTube or Google"));
     assert(!strcmp(last_items[2].id,"settings:about:credits"));
+    /* The rendered interface wins over a stored Classic preference / marker override. */
+    actual_afterglow = 0; show("settings:about"); assert(last_count == 4 && find("Update now") == 3);
+    actual_afterglow = 1; show("settings:about"); assert(last_count == 3 && find("Update now") < 0);
     links("link:about",3);
     for(int i=0;i<3;++i) {
         const tube_about_link *link=tube_about_link_at(i);

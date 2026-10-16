@@ -42,6 +42,7 @@ void tube_update_app_init(void) __attribute__((weak));
 void tube_update_app_shutdown(void) __attribute__((weak));
 void tube_update_app_tick(int service_ready) __attribute__((weak));
 void tube_update_app_classic_notice(void) __attribute__((weak));
+int tube_afterglow_enabled(void) __attribute__((weak));
 int tube_update_app_rows(tube_update_row *rows, int capacity) __attribute__((weak));
 int tube_update_app_action(const char *action) __attribute__((weak));
 const char *tube_update_app_notes(void) __attribute__((weak));
@@ -4582,7 +4583,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 
 void tube_poll(void) {
     if (tube_update_app_tick) tube_update_app_tick(!g_embedded || embedded_ready());
-    if (g_ui.interface_kind == TUBE_UI_INTERFACE_CLASSIC && tube_update_app_classic_notice) tube_update_app_classic_notice();
+    if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_classic_notice) tube_update_app_classic_notice();
     caption_switch_tick();
     if (g_remote_enabled && tube_remote_state() == TUBE_REMOTE_LISTENING &&
         !strcmp(g_remote_device, tube_remote_device()) && *tube_remote_screen() &&
@@ -5995,7 +5996,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "account:notice:author", "Brought to you by BlackBearReloaded", "Not affiliated with or endorsed by YouTube or Google");
             CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");
             /* Classic has no application modal; retain its update fallback only. */
-            if (g_ui.interface_kind == TUBE_UI_INTERFACE_CLASSIC && tube_update_app_rows) {
+            if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_rows) {
                 tube_update_row rows[10];
                 const int count = tube_update_app_rows(rows, 10);
                 for (int i = 0; i < count; ++i) CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);

@@ -159,7 +159,7 @@
    "fixture": "d-service-today",
    "route": {"screen": "notifications"},
    "steps": [{"press": "left"}, {"wait": 0.5}],
-   "expect": {"screen": "notifications", "focus": "rail/notifications", "rail_open": 1}
+   "expect": {"screen": "notifications", "focus": "rail/library", "rail_open": 1}
   },
   {
    "name": "notifications-reduced-motion",

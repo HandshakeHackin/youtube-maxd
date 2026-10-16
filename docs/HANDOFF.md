@@ -4,12 +4,28 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Settings follow-up and repeated casting (2026-10-15)
+
+Removed Check for updates and Notify about updates from About in every UI mode.
+The Classic updater fallback now checks the actual renderer, including override
+files, instead of relying only on the saved interface preference. Automatic
+startup update offers remain available. Removed the main-menu Notifications
+entry and its background badge polling; direct Library routing is preserved.
+About, updater and 24 UI boards pass (321 UI checks).
+
+Owner confirms the prior thumbnail fix on both Home and Library > History.
+Repeated casting remains under investigation: the live log reaches successful
+media open and decoder startup, then the replacement player is interrupted with
+`AVERROR_EXIT` before producing frames. No new refused-media probe is recorded
+for those attempts. Private evidence: `owner-cast-switch-38d2840/app.log`.
+
 ## Settings and thumbnail candidate installed (2026-10-15)
 
 `38d2840` is installed on .30. Idle-first deployment, all 185 stored files after
 120 seconds, unchanged error records, and final idle pass. Private evidence:
 `settings-38d2840-installed/result.json`. No launch, close or Chiaki-ng was used.
-Owner Settings, thumbnail and playback acceptance remains pending.
+Owner confirms thumbnails now appear on Home Continue watching and Library > History.
+The remaining About controls and repeated-cast failure are addressed in the follow-up below.
 
 ## Simpler settings and local thumbnails (2026-10-15)
 
