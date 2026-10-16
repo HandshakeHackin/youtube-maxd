@@ -1,5 +1,9 @@
 # Current implementation status
 
+Bounded, URL-free DASH seek/probe diagnostics pass sanitizer and real patched
+FFmpeg 7.1.1 loopback success/failure tests. A diagnostic ZIP is being prepared;
+the console still has `00f4345`. No seek fix or new hardware acceptance is claimed.
+
 Latest `00f4345` live cast passes pairing delivery and video resolution, but
 fails DASH fragment probing after a phone-requested mid-video startup seek.
 The owner sees the received-video toast and no playback. The refresh-cancel

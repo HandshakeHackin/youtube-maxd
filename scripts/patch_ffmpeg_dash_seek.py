@@ -78,8 +78,44 @@ def patch(source):
             } else {
                 av_log(v->parent, AV_LOG_WARNING, "Failed to open fragment of playlist\\n");
             }"""
-    for old,new in ((before,after),(old_seek,new_seek),(old_read,new_read),(old_field,new_field),(old_warning,new_warning)):
-        if new in source: continue
+    diagnostic_field = "    int prosperotube_forbidden_logged;"
+    diagnostic_fields = diagnostic_field + "\n    unsigned prosperotube_probe_logs, prosperotube_seek_logs;"
+    diagnostic_anchor = "static int reopen_demux_for_component(AVFormatContext *s, struct representation *pls)"
+    diagnostic_helper = '''/* Bounded numeric diagnostics: phase 0 = failed probe, 1 = seek result.
+ * Never include signed media addresses. */
+static void prosperotube_dash_diagnostic(struct representation *pls, int phase,
+                                       int ret, int64_t target_ms)
+{
+    unsigned *count = phase ? &pls->prosperotube_seek_logs : &pls->prosperotube_probe_logs;
+    if (*count >= (phase ? 8 : 4))
+        return;
+    ++*count;
+    av_log(pls->parent, phase ? AV_LOG_WARNING : AV_LOG_ERROR,
+           "ProsperoTube DASH phase=%d rc=%d stream=%d target_ms=%"PRId64
+           " seq=%"PRId64" count=%d offset=%"PRId64" size=%"PRId64
+           " read=%"PRId64" init=%u/%u io_error=%d pb_error=%d eof=%d exit=%d\\n",
+           phase, ret, pls->stream_index, target_ms, pls->cur_seq_no, pls->n_fragments,
+           pls->cur_seg ? pls->cur_seg->url_offset : (int64_t)-1,
+           pls->cur_seg ? pls->cur_seg->size : (int64_t)-1,
+           pls->cur_seg_offset, pls->init_sec_buf_read_offset, pls->init_sec_data_len,
+           pls->input ? pls->input->error : 0, pls->pb.pub.error,
+           pls->pb.pub.eof_reached, ret == AVERROR_EXIT);
+}
+
+''' + diagnostic_anchor
+    probe_old = '''    ret = av_probe_input_buffer(&pls->pb.pub, &in_fmt, "", NULL, 0, 0);
+    if (ret < 0) {'''
+    probe_new = probe_old + "\n        prosperotube_dash_diagnostic(pls, 0, ret, -1);"
+    single_old = "        return av_seek_frame(pls->ctx, -1, seek_pos_msec * 1000, flags);"
+    single_new = '''        ret = av_seek_frame(pls->ctx, -1, seek_pos_msec * 1000, flags);
+        prosperotube_dash_diagnostic(pls, 1, ret, seek_pos_msec);
+        return ret;'''
+    multi_old = "    ret = dry_run ? 0 : reopen_demux_for_component(s, pls);"
+    multi_new = multi_old + "\n    if (!dry_run) prosperotube_dash_diagnostic(pls, 1, ret, seek_pos_msec);"
+    for old,new in ((before,after),(old_seek,new_seek),(old_read,new_read),(old_field,new_field),(old_warning,new_warning),
+                    (diagnostic_field,diagnostic_fields),(diagnostic_anchor,diagnostic_helper),
+                    (probe_old,probe_new),(single_old,single_new),(multi_old,multi_new)):
+        if new in source or (old == old_field and diagnostic_fields in source): continue
         if source.count(old)!=1: raise RuntimeError('FFmpeg DASH source does not match the pinned overlay')
         source=source.replace(old,new,1)
     return source

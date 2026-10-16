@@ -4,6 +4,24 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Bounded DASH seek diagnostics (2026-10-15)
+
+The next candidate adds numeric-only `ProsperoTube DASH` records to the pinned
+FFmpeg patch. `phase=0` is a failed fragment probe; `phase=1` is the seek result.
+Records include return code, stream, target milliseconds, selected sequence and
+fragment count, range offset/size, bytes read, initialization read/length,
+underlying and virtual IO errors, EOF and whether the return is AVERROR_EXIT.
+The exit field is derived from the return code; no interrupt callback is invoked
+for logging. Limits are four failed probes and eight seek results per
+representation. Signed media URLs, identifiers and tokens are never included.
+
+The actual extracted helper passes ASan/UBSan null-state, maximum numeric length,
+privacy, severity and limit checks. The pinned patched host FFmpeg 7.1.1 passes
+real loopback service-generated ranged AVC/AAC seek and forced-fragment-refusal
+checks; both emit the expected records. Patch idempotence passes. Playback
+policy is unchanged. The build is being prepared offline; no console or
+Chiaki-ng use is needed. These diagnostics do not fix the seek failure.
+
 ## Live phone replay after refresh repair (2026-10-15)
 
 A requested redeploy of `00f4345` passed idle-first installation, all 185 stored
