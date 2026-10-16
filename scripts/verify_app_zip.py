@@ -28,6 +28,8 @@ def verify(archive):
         meta = json.loads(z.read(title + "/sce_sys/param.json"))
         if meta.get("titleId") != title or meta.get("contentVersion") != version:
             raise ValueError("ZIP identity/version differs from the source")
+        if (meta.get("applicationCategoryType"), meta.get("contentBadgeType")) != (65536, 2) or "gameIntent" in meta:
+            raise ValueError("ZIP must use Media category/badge without gameIntent")
     with archive.open("rb") as source:
         checksum = hashlib.file_digest(source, "sha256").hexdigest()
     (archive.parent / "SHA256SUMS").write_text(f"{checksum}  {archive.name}\n")

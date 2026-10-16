@@ -295,8 +295,17 @@ def main():
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
     param.update(titleId=TITLE, conceptId="99142", contentId=f"UP9000-{TITLE}_00-PROSPEROTUBE0000", contentVersion="01.000.000")
+    param["applicationCategoryType"] = 65536
+    param["contentBadgeType"] = 2
+    param.pop("gameIntent", None)
     param["localizedParameters"]["en-US"]["titleName"] = "ProsperoTube"
     param_path.write_text(json.dumps(param, indent=2) + "\n")
+    replace("scripts/package-app.sh", '''if (v.get("applicationCategoryType"), v.get("contentBadgeType")) != (0, 1):
+    raise SystemExit("expected a game module: applicationCategoryType 0, contentBadgeType 1")
+intents = v.get("gameIntent", {}).get("permittedIntents", [])
+if not any(i.get("intentType") == "launchActivity" for i in intents):
+    raise SystemExit("game param.json must permit the launchActivity intent")''', '''if (v.get("applicationCategoryType"), v.get("contentBadgeType")) != (65536, 2) or "gameIntent" in v:
+    raise SystemExit("expected Media metadata: category 65536, badge 2, no gameIntent")''')
     (WORK / player / "VERSION").write_text("0.1.0\n")
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--short=8", "HEAD"], text=True).strip()
     # Dependency trees are regenerated from checked pins above, so their working

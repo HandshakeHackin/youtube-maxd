@@ -63,7 +63,9 @@ class BuildTests(unittest.TestCase):
     def archive(self, fault=None):
         title, version, _ = identity()
         archive = self.root / f"{title}.zip"
-        meta = {"titleId": title, "contentVersion": "99.999.999" if fault == "version" else version}
+        meta = {"titleId": title, "contentVersion": "99.999.999" if fault == "version" else version,
+                "applicationCategoryType": 0 if fault == "category" else 65536, "contentBadgeType": 2}
+        if fault == "intent": meta["gameIntent"] = {}
         entries = [(f"{title}/eboot.bin", b"synthetic executable"),
                    (f"{title}/sce_sys/param.json", json.dumps(meta).encode())]
         if fault == "traversal": entries.append((f"{title}/../outside", b"bad"))
@@ -83,7 +85,7 @@ class BuildTests(unittest.TestCase):
         verify(archive)
         manifest = self.root / "SHA256SUMS"
         self.assertEqual(manifest.read_text(), f"{hashlib.sha256(archive.read_bytes()).hexdigest()}  {archive.name}\n")
-        for fault in ("version", "traversal", "permissions", "duplicate"):
+        for fault in ("version", "category", "intent", "traversal", "permissions", "duplicate"):
             with self.subTest(fault=fault):
                 manifest.unlink(missing_ok=True)
                 with self.assertRaises(ValueError): verify(self.archive(fault))
