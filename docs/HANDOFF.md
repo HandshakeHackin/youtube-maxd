@@ -19,8 +19,16 @@ The actual extracted helper passes ASan/UBSan null-state, maximum numeric length
 privacy, severity and limit checks. The pinned patched host FFmpeg 7.1.1 passes
 real loopback service-generated ranged AVC/AAC seek and forced-fragment-refusal
 checks; both emit the expected records. Patch idempotence passes. Playback
-policy is unchanged. The build is being prepared offline; no console or
-Chiaki-ng use is needed. These diagnostics do not fix the seek failure.
+policy is unchanged. Production-format diagnostic ZIP `08ce71c` is built and
+frozen. ZIP CRC and all 185 file contents match; the linked ELF contains the
+new numeric diagnostic strings, and packaged-helper validation passes.
+Private evidence: `dash-seek-08ce71c-package.json` and `build-dash-seek-08ce71c.log`.
+Eboot SHA-256: `17f48e6035544b8da09edbfeff408b5481694027dbae6ac631fca6cdbdd67f66`.
+ZIP SHA-256: `0ef5b72fafa9e0d62b8edc32db86c33a010994ed12ef061521e46033afe10da5`.
+No console deployment, launch or Chiaki-ng was used. These diagnostics do not
+fix the seek failure. Next case: repeat the same mid-video cast, collect
+`ProsperoTube DASH` records live without closing the app, then compare a cast
+from the beginning if needed.
 
 ## Live phone replay after refresh repair (2026-10-15)
 

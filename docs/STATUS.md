@@ -1,7 +1,7 @@
 # Current implementation status
 
 Bounded, URL-free DASH seek/probe diagnostics pass sanitizer and real patched
-FFmpeg 7.1.1 loopback success/failure tests. A diagnostic ZIP is being prepared;
+FFmpeg 7.1.1 loopback success/failure tests. Diagnostic ZIP `08ce71c` is built, content-verified and frozen;
 the console still has `00f4345`. No seek fix or new hardware acceptance is claimed.
 
 Latest `00f4345` live cast passes pairing delivery and video resolution, but
