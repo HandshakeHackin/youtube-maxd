@@ -552,11 +552,14 @@ def main():
         for line in probe_lines))
     expected_library_errors = [
         "YouTube operation failed: stage=device action=start category=TypeError",
-        *["YouTube operation failed: stage=execute action=other category=LibraryError"] * 3,
-        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError",
-        "YouTube operation failed: stage=execute action=other category=LibraryError",
-        "YouTube operation failed: stage=execute action=home category=LibraryError",
-        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError",
+        # The action and the service's own code name the failure; nothing else of it.
+        "YouTube operation failed: stage=execute action=continue category=LibraryError code=cursor_expired",
+        "YouTube operation failed: stage=execute action=search_suggestions category=LibraryError code=upstream_format",
+        "YouTube operation failed: stage=execute action=topic_videos category=LibraryError code=invalid_catalog",
+        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError code=account_required",
+        "YouTube operation failed: stage=execute action=other category=LibraryError code=account_required",
+        "YouTube operation failed: stage=execute action=home category=LibraryError code=unknown_profile",
+        "YouTube operation failed: stage=execute action=subscriptions category=LibraryError code=account_required",
     ]
     library_errors = [line for line in errors.splitlines() if line.startswith("YouTube operation failed: ")]
     same("expected fixture library diagnostics", library_errors, expected_library_errors)

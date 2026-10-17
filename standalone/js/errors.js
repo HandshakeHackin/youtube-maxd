@@ -52,9 +52,13 @@ export function safeRemote(address) {
 export function libraryDiagnostic(error, operation, action) {
   const stage = ['execute', 'device', 'client', 'playback'].includes(operation) ? operation : 'other';
   const task = ['profiles', 'history', 'library', 'playlists', 'watch_later', 'playlist', 'home', 'subscriptions',
-    'channels', 'notifications', 'notification_count', 'start', 'poll'].includes(action) ? action : 'other';
+    'channels', 'notifications', 'notification_count', 'start', 'poll', 'continue', 'search', 'search_suggestions',
+    'suggestions', 'suggestions_filter', 'channel', 'channel_search', 'video_details', 'description', 'comments',
+    'topics', 'topic_open', 'topic_videos'].includes(action) ? action : 'other';
   const type = error?.constructor?.name;
   const category = ['TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'InnertubeError',
     'ParsingError', 'OAuth2Error', 'SessionError', 'LibraryError', 'ServiceError'].includes(type) ? type : 'Error';
-  return `YouTube operation failed: stage=${stage} action=${task} category=${category}`;
+  // The service's own error code says why (cursor_expired, upstream_format, ...); nothing else of the error is shown.
+  const code = ['LibraryError', 'ServiceError'].includes(category) && typeof error?.code === 'string' && /^[a-z][a-z_]{0,39}$/.test(error.code) ? ` code=${error.code}` : '';
+  return `YouTube operation failed: stage=${stage} action=${task} category=${category}${code}`;
 }

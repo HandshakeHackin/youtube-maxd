@@ -265,7 +265,7 @@ class Service(base.Service):
     def finish(self, name):
         code, errors = self.stop()
         # These cases intentionally request unusable playlist expansion; accept only its safe diagnostic.
-        expected = ["YouTube operation failed: stage=execute action=other category=LibraryError"] * {"registration": 1, "expansion": 2}.get(name, 0)
+        expected = ["YouTube operation failed: stage=execute action=other category=LibraryError code=remote_playlist_unavailable"] * {"registration": 1, "expansion": 2}.get(name, 0)
         stages, events = ("received", "delivered", "acknowledged"), ("remoteConnected", "loungeStatus", "setPlaylist")
         milestones = ("channel ready", "pairing code requested", "pairing code ready")
         allowed = {"YouTube phone state: " + text for text in (*milestones, *(f"{stage} {event}" for stage in stages for event in events))}
