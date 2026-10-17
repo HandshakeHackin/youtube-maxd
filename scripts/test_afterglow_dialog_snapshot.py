@@ -43,7 +43,7 @@ struct Mount {
 };
 Mount &mount() { static Mount m; return m; }
 player::Player &step(Mount &m, const hui::ui::Fonts &, float, unsigned, bool) { return *m.player; }
-void finish(Mount &) {}
+void finish() {}
 '''+function('bool recent(unsigned stamp, unsigned frame)')+'\n'+function('bool player_draw_dialog(')+'\n'+function('const char *player_snapshot(')+r'''
 }
 int main() {
