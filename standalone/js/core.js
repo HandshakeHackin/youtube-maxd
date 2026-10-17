@@ -172,6 +172,11 @@ export function playbackClient(hl = '') {
   }
   return clients.get(lang);
 }
+// A new playback session (new visitor identity) in place of the one for `hl`.
+function renewPlaybackClient(hl = '') {
+  clients.delete(Object.hasOwn(LANGUAGE, hl) ? LANGUAGE[hl] : hl);
+  return playbackClient(hl);
+}
 export async function prepare(yt, client) {
   if (SCRIPTLESS.includes(client) || yt.session.player) return;
   if (!config.allow_player_script)
@@ -193,8 +198,21 @@ export async function extractVideo(id, { hl = '', fresh = false, order = PLAYBAC
     if (running >= 2) await new Promise(resolve => waiters.push(resolve));
     running++;
     try {
-      const yt = await playbackClient(hl).catch(() => { throw resolverError('resolver_network'); });
-      return await extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch, facts: rawPlayerFacts, playback, ranged });
+      const run = async session => {
+        const yt = await session.catch(() => { throw resolverError('resolver_network'); });
+        return extract(yt, id, { order, prepare: client => prepare(yt, client), fetch: mediaFetch, facts: rawPlayerFacts, playback, ranged });
+      };
+      try { return await run(playbackClient(hl)); }
+      catch (error) {
+        // Since 2026-10-16 YouTube can refuse every deep range of the links it
+        // hands one visitor identity (the header is served, the middle answers
+        // 403) while a new identity is served normally: seen live, where every
+        // video failed in a long-running session and a new process played them.
+        // The session the app keeps for its lifetime is replaced once and asked again.
+        if (!(error instanceof ServiceError) || error.code !== 'upstream_media') throw error;
+        console.error('YouTube playback session renewed after refused media');
+        return await run(renewPlaybackClient(hl));
+      }
     } finally { running--; waiters.shift()?.(); }
   })();
   const value = deadline(45000, work, () => new ServiceError('timeout', 'YouTube took too long to respond. Retry from the video screen.', 504));

@@ -1,6 +1,7 @@
 {
  "GET www.youtube.com/sw.js_data": {
-  "status": 404
+  "status": 404,
+  "tag": "visitor"
  },
  "POST www.youtube.com/youtubei/v1/config": {
   "file": "config.json"
@@ -51,6 +52,17 @@
    "tag": "retry-good"
   },
   {
+   "body_contains": "\"videoId\":\"fxtSESSION1\"",
+   "file": "player_session_bad.json",
+   "times": 3,
+   "tag": "session-bad"
+  },
+  {
+   "body_contains": "\"videoId\":\"fxtSESSION1\"",
+   "file": "player_session_good.json",
+   "tag": "session-good"
+  },
+  {
    "body_contains": "\"videoId\":\"fixtureDENY\"",
    "file": "player_denied.json"
   },
@@ -92,6 +104,19 @@
    "status": 206,
    "type": "video/mp4",
    "tag": "retry-start"
+  }
+ ],
+ "GET rr4---sn-fixture.googlevideo.com/videoplayback": [
+  {
+   "header_contains": "range: bytes=500000-565535",
+   "status": 403,
+   "tag": "session-deep"
+  },
+  {
+   "file": "sidx.bin",
+   "status": 206,
+   "type": "video/mp4",
+   "tag": "session-start"
   }
  ],
  "GET www.youtube.com/api/timedtext": [

@@ -18,6 +18,7 @@ PLAYLIST = "PLfixture0001"
 VIDEO, LIVE, GONE, SHORT, DENIED, RETRY = "fixtureVID1", "fixtureLIV1", "fixtureGONE", "fixtureSHT1", "fixtureDENY", "fxtRETRY001"
 ZOO = "jNQXAC9IVRw"
 MULTI = "fixtureMLT1"
+SESSION = "fxtSESSION1"
 MEDIA = "https://rr1---sn-fixture.googlevideo.com/videoplayback?expire=1999999999&c=VISIONOS&sig=FIXTURE&x=a%26b"
 
 
@@ -305,6 +306,14 @@ def main():
             fmt["url"] = fmt["url"].replace("rr1---sn-fixture", "rr3---sn-fixture")
     write("player_retry_bad.json", retry_bad)
     write("player_retry_good.json", json.loads(json.dumps(player()).replace(VIDEO, RETRY)))
+    # Links whose deep ranges are refused for one visitor identity (every answer
+    # of the first session), and a usable answer once a new session asks.
+    session_bad = json.loads(json.dumps(player()).replace(VIDEO, SESSION))
+    for fmt in session_bad["streamingData"]["adaptiveFormats"]:
+        if fmt["itag"] == 315:
+            fmt["url"] = fmt["url"].replace("rr1---sn-fixture", "rr4---sn-fixture")
+    write("player_session_bad.json", session_bad)
+    write("player_session_good.json", json.loads(json.dumps(player()).replace(VIDEO, SESSION)))
     write("next.json", watch_next())
     write("next_empty.json", {})
     write("player_gone.json", {"playabilityStatus": {"status": "ERROR", "reason": "This video is unavailable"}})
@@ -335,7 +344,7 @@ def main():
     write("branding.json", {ZOO: {"titles": [{"title": "The first > video", "original": False, "votes": 3, "locked": False}],
                                   "thumbnails": [{"timestamp": 7.5, "original": False, "votes": 0, "locked": True}]}})
     write("index.json", {
-        "GET www.youtube.com/sw.js_data": {"status": 404},
+        "GET www.youtube.com/sw.js_data": {"status": 404, "tag": "visitor"},
         "POST www.youtube.com/youtubei/v1/config": {"file": "config.json"},
         "POST www.youtube.com/youtubei/v1/search": {"file": "search.json"},
         "POST www.youtube.com/youtubei/v1/browse": [
@@ -349,6 +358,8 @@ def main():
             {"body_contains": f'"videoId":"{MULTI}"', "file": "player_multi.json"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_bad.json", "times": 2, "tag": "retry-bad"},
             {"body_contains": f'"videoId":"{RETRY}"', "file": "player_retry_good.json", "tag": "retry-good"},
+            {"body_contains": f'"videoId":"{SESSION}"', "file": "player_session_bad.json", "times": 3, "tag": "session-bad"},
+            {"body_contains": f'"videoId":"{SESSION}"', "file": "player_session_good.json", "tag": "session-good"},
             {"body_contains": f'"videoId":"{DENIED}"', "file": "player_denied.json"},
             {"body_contains": f'"videoId":"{GONE}"', "file": "player_gone.json"}],
         "POST www.youtube.com/youtubei/v1/next": [
@@ -359,6 +370,9 @@ def main():
         "GET rr3---sn-fixture.googlevideo.com/videoplayback": [
             {"header_contains": "range: bytes=500000-565535", "status": 403, "tag": "retry-deep"},
             {"file": "sidx.bin", "status": 206, "type": "video/mp4", "tag": "retry-start"}],
+        "GET rr4---sn-fixture.googlevideo.com/videoplayback": [
+            {"header_contains": "range: bytes=500000-565535", "status": 403, "tag": "session-deep"},
+            {"file": "sidx.bin", "status": 206, "type": "video/mp4", "tag": "session-start"}],
         "GET www.youtube.com/api/timedtext": [
             {"url_contains": "tlang=fr", "file": "captions_fr.vtt", "type": "text/vtt"},
             {"url_contains": "kind=asr", "file": "captions_asr.vtt", "type": "text/vtt"},

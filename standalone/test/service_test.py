@@ -436,7 +436,14 @@ def playback(s):
     began = time.time()
     same("refused links", s.call("POST", "/v1/resolve", {"id": "fixtureDENY"})[::2],
          (502, {"api_version": 1, "error": {"code": "upstream_media", "message": "The media server could not provide this resource."}}))
-    check("refused links are retried with pauses", 1.5 < time.time() - began < 10, time.time() - began)
+    check("refused links are retried with pauses", 3 < time.time() - began < 15, time.time() - began)
+    # Every deep range of the first session's links refused, a new session's served.
+    s.call("GET", "/v1/_upstream?clear=1")
+    status, _, renewed = s.call("POST", "/v1/resolve", {"id": "fxtSESSION1", "codec": "vp9", "max_height": 2160})
+    same("refused media plays from a new session", (status, renewed.get("choices", [{}])[0].get("label")), (200, "2160p 60 fps VP9 / AAC"))
+    tags = [row["tag"] for row in s.call("GET", "/v1/_upstream?clear=1")[2]["requests"] if row["tag"].startswith(("session-", "visitor"))]
+    same("a new visitor identity is fetched before the second round", tags,
+         ["session-bad", "session-start", "session-deep"] * 3 + ["visitor", "session-good"])
     s.call("GET", "/v1/_upstream?clear=1")
     status, _, avc = s.call("POST", "/v1/resolve", {"id": "fxtRETRY001", "codec": "avc", "max_height": 1080})
     same("unselected 4K refusal does not affect AVC", (status, avc["choices"][0]["label"]),
@@ -529,12 +536,17 @@ def main():
     finally:
         code, errors = service.stop()
     probe_lines = [line for line in errors.splitlines() if line.startswith("YouTube media probe: ")]
+    # A refused video is asked again once with a new session: three tries each.
     same("refused media diagnostics: phases, retries and statuses", probe_lines, [
-        "YouTube media probe: phase=header attempt=1 status=403",
-        "YouTube media probe: phase=header attempt=2 status=403",
-        "YouTube media probe: phase=header attempt=3 status=403",
+        *["YouTube media probe: phase=header attempt=1 status=403",
+          "YouTube media probe: phase=header attempt=2 status=403",
+          "YouTube media probe: phase=header attempt=3 status=403"] * 2,
+        "YouTube media probe: phase=midpoint attempt=1 status=403",
+        "YouTube media probe: phase=midpoint attempt=2 status=403",
+        "YouTube media probe: phase=midpoint attempt=3 status=403",
         "YouTube media probe: phase=midpoint attempt=1 status=403",
     ])
+    same("a new session after refused media, once per refused resolve", errors.count("YouTube playback session renewed after refused media"), 2)
     check("media probe diagnostics contain no identifiers or signed URLs", all(re.fullmatch(
         r"YouTube media probe: phase=(header|midpoint) attempt=[1-3] status=(401|403|410)", line)
         for line in probe_lines))
@@ -549,7 +561,8 @@ def main():
     library_errors = [line for line in errors.splitlines() if line.startswith("YouTube operation failed: ")]
     same("expected fixture library diagnostics", library_errors, expected_library_errors)
     other_errors = "\n".join(line for line in errors.splitlines()
-                             if line not in probe_lines and line not in expected_library_errors)
+                             if line not in probe_lines and line not in expected_library_errors and
+                             line != "YouTube playback session renewed after refused media")
     same("clean shutdown", (code, other_errors.strip()), (0, ""))
 
     # Defaults: a generated token kept private, SponsorBlock off, and a pairing code when the host asks for one.
