@@ -2710,30 +2710,6 @@
    ]
   },
   {
-   "source": "EVO vdec native",
-   "context": [
-    "kit"
-   ]
-  },
-  {
-   "source": "EVO vdec native: VP9 drain ended with pending visible frames",
-   "context": [
-    "kit"
-   ]
-  },
-  {
-   "source": "EVO vdec native: VP9 pending coded-frame queue full",
-   "context": [
-    "kit"
-   ]
-  },
-  {
-   "source": "EVO vdec native: VP9 visible completion out of order",
-   "context": [
-    "kit"
-   ]
-  },
-  {
    "source": "Each acts only when you select it or turn it on; your saved choices are kept",
    "context": [
     "browser"
@@ -12276,12 +12252,6 @@
    ]
   },
   {
-   "source": "expected Media metadata: category 65536, badge 2, no gameIntent",
-   "context": [
-    "kit"
-   ]
-  },
-  {
    "source": "fewer languages",
    "context": [
     "kit"
@@ -12291,12 +12261,6 @@
    "source": "in your account's order",
    "context": [
     "afterglow"
-   ]
-  },
-  {
-   "source": "invalid VP9 completion identity",
-   "context": [
-    "kit"
    ]
   },
   {
@@ -12542,12 +12506,6 @@
    "source": "total duration",
    "context": [
     "browser",
-    "kit"
-   ]
-  },
-  {
-   "source": "unknown VP9 completion identity",
-   "context": [
     "kit"
    ]
   },

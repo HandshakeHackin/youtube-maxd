@@ -31,6 +31,7 @@ SILENT = {
     "SetInnerRML", "QuerySelector", "strtok", "open", "access", "stat", "mkdir", "unlink", "dlsym", "tube_log", "trace",
     "channel_name_index", "count_label", "tube_extra_group_find", "evo_provider_set_enabled", "setPendingProvider",
     "has_key", "is_id", "id_is", "parent_is", "json", "field", "member", "LoadDocument", "load_font", "LoadFontFace",
+    "note", "SystemExit",      # the native decoder's diagnostics log; a build script's own failure
 }
 SILENT_PREFIXES = ("cJSON_", "evo_net_", "evo_log", "std::str", "sce", "pthread_", "av_", "avformat_", "tube_js_", "mbedtls_")
 # Calls whose literal arguments are shown: name -> (context, argument indexes that are identities or addresses).
