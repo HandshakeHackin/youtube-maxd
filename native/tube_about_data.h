@@ -4,31 +4,22 @@
 #define TUBE_ABOUT_DATA_H
 
 #define TUBE_ABOUT_CHANGELOG_VERSION "1.000.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 22
+#define TUBE_ABOUT_CHANGELOG_ROWS 13
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
-    {"1.000.000", "Native PS5 application on the EVO player: hardware and software decoding, its own storage under /data/prosperotube and a packaged elevation helper. No computer is needed: the YouTube service runs inside the app."}, \
-    {"1.000.000", "Built-in service: a JavaScript engine running YouTube.js behind a loopback address, verified HTTPS to YouTube, video played directly from YouTube's servers, a new resolve when a link is refused."}, \
-    {"1.000.000", "Guest search with options, suggestions and history; Home with filters, Discover sections, channels with their sections, playlists and related videos."}, \
-    {"1.000.000", "Playback in AVC, VP9, HEVC and AV1 (SDR) with captions in two languages at once, caption styling, quality, codec and frame-rate limits, audio language and 0.25x to 4x speed."}, \
-    {"1.000.000", "Seeking with confirmation modes, chapters, zoom, aspect, rotation and mirror, volume boost, auto volume, audio delay, a sleep timer, a video buffer choice and recovery after stream failures."}, \
-    {"1.000.000", "Profiles with their own favorites, watch history, resume positions, play queue and preferences; seven end-of-video modes; Next and Previous keep the playlist position."}, \
-    {"1.000.000", "SponsorBlock segment skipping with review and an optional alternative server, DeArrow titles and thumbnails, and dislike counts from Return YouTube Dislike for profiles that turn Show dislikes on (off by default; tested offline only)."}, \
-    {"1.000.000", "YouTube accounts on the console: sign-in with a device code, account profiles, subscriptions, history, Watch later, playlists, notifications, ratings and playlist editing. Tested offline only; no real account has signed in yet."}, \
-    {"1.000.000", "A signed-in profile plays videos as Guest does and reports watch history to the account. Sign-ins are kept as plain text in /data/prosperotube/accounts: the PS5 has no encrypted storage."}, \
-    {"1.000.000", "Comments with replies and comment rating, live chat and chat replay."}, \
-    {"1.000.000", "Video actions, a suggestions list, chapter notification and screen dimming in the player."}, \
-    {"1.000.000", "Channel blocking by ID or name, hide-content switches, content language and country, local backups and About with QR links."}, \
-    {"1.000.000", "Updates: a signed homebrew.page catalog check, notification and skip preferences, release notes, and a loader-started helper that verifies and installs the release after the app closes. Tested offline; a complete console update from a published release remains pending."}, \
-    {"1.000.000", "Import subscriptions from a NewPipe, PocketTube or GrayJay export file placed in /data/prosperotube/import; the file is read inside the app."}, \
-    {"1.000.000", "Phone casting (experimental): link the YouTube app with a TV code; play, pause, seek, queue, volume and captions from the phone. The receiver runs inside the app. Tested offline only; no real phone has been linked yet."}, \
-    {"1.000.000", "Guest Home explains itself and leads to Search and Discover; sections YouTube withholds from a Guest say so; a preferred codec a video lacks falls back to what it has."}, \
-    {"1.000.000", "Experimental, marked (experimental) and tested offline only: phone pairing, chat and comment posting, account-history controls, feedback actions and the profile password."}, \
-    {"1.000.000", "Interface in 21 languages besides English, following the PS5 system language or the Interface language preference: browser, preferences and messages. The player and toasts stay English, as do languages that need other fonts or right-to-left layout."}, \
-    {"1.000.000", "Interface preferences per profile: interface and video grid scale, one to four title lines, scrolling titles, two-line subtitles, rounded or square cards, four themes (Afterglow by default) and nine classic colour schemes, the rows of the video actions menu and what Circle does on the main menu."}, \
-    {"1.000.000", "Preview while seeking: the thumbnail of the seek target above the seek bar, a single frame or a carousel of five, from YouTube's storyboard sheets. Off by default."}, \
-    {"1.000.000", "Automatic 60/120 Hz refresh switching and PQ/HLG HDR selection passed bounded PS5 scanout checks; the owner confirmed audible audio, TV-reported HDR and playback menus without blackouts. Afterglow background audio while browsing is host-tested only."}, \
-    {"1.000.000", "Not included yet: videos that need the account itself (age-restricted, private, members-only), voice search, a translated player, and a few interface options (buttons at the top, card previews, playlists as rows)."}
+    {"1.000.000", "Self-sufficient: YouTube.js runs inside the app on QuickJS-NG, and video streams straight from YouTube's servers to the PS5 decoders. No computer, companion or API key."}, \
+    {"1.000.000", "Playback in AVC, VP9 and HEVC up to 2160p through the hardware decoders and AV1 in software, with HDR (PQ and HLG) and automatic frame-rate switching."}, \
+    {"1.000.000", "Per-video quality and audio track (dubs, original, described audio) in the playback options; switching keeps the position."}, \
+    {"1.000.000", "Captions including YouTube's auto-generated and auto-translated tracks, a second language at once and caption styles."}, \
+    {"1.000.000", "Live streams with rewind and a remembered position; Up next, chapters, seek preview, speed from 0.25x to 4x, a sleep timer and recovery after stream failures."}, \
+    {"1.000.000", "Search with suggestions while typing, Home with real video shelves for Guests, Discover, channels with their sections, playlists, comments and live chat. Feeds load more as you scroll."}, \
+    {"1.000.000", "Sign in to YouTube from the main menu with a code entered on a phone or computer: subscriptions, history, Watch later, playlists and notifications."}, \
+    {"1.000.000", "Two interfaces: Classic (default) and Afterglow (preview) with four looks and its own sounds; the interface in 21 languages besides English."}, \
+    {"1.000.000", "Profiles with their own history, resume points, favorites, followed channels and an ordered queue; backups and subscriptions import from NewPipe, PocketTube or GrayJay."}, \
+    {"1.000.000", "SponsorBlock with skip review and Undo, DeArrow titles and thumbnails, and optional Return YouTube Dislike counts."}, \
+    {"1.000.000", "Phone casting from the YouTube app with a TV code (experimental)."}, \
+    {"1.000.000", "Update offers and in-place self-update through the signed homebrew.page catalog."}, \
+    {"1.000.000", "Known limitations: videos that need the account (age-restricted, private, members-only) do not play yet, and the player's own controls stay in English."}
 
 #endif

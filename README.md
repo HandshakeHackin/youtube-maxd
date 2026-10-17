@@ -19,7 +19,7 @@
 </p>
 
 > [!NOTE]
-> **In testing.** Version 1.000.000 (content version `01.000.000`) is being tested on consoles and has not been released yet.
+> **First release: [1.000.000](https://github.com/blackbearreloaded/ProsperoTube/releases/tag/v01.000.000)** (content version `01.000.000`). An early release: please report problems through [GitHub issues](https://github.com/blackbearreloaded/ProsperoTube/issues).
 
 ![Afterglow's Home for a signed-in profile: a continue-watching hero above a shelf of video cards, with the navigation rail on the left](docs/images/afterglow-home.png)
 
@@ -66,7 +66,7 @@ The elevation client follows [ProsperoEden](https://github.com/blackbearreloaded
 | Shell title | `ProsperoTube` |
 | Title ID | `PPSA99142` |
 | Category | Media |
-| Version / content version | `1.000.000` / `01.000.000` (not released) |
+| Version / content version | `1.000.000` / `01.000.000` |
 | Writable data | `/data/prosperotube` |
 
 ## Features
@@ -142,7 +142,7 @@ ProsperoTube talks to YouTube as one client identity. When YouTube changes its s
 
 ### Install or update
 
-1. Download `PPSA99142.zip` from the release and check it against `SHA256SUMS`.
+1. Download `PPSA99142.zip` from the [latest release](https://github.com/blackbearreloaded/ProsperoTube/releases) and check it against `SHA256SUMS`.
 2. Fully close ProsperoTube if it is running.
 3. Extract the ZIP and copy the complete `PPSA99142` folder to `/data/homebrew/`, so that `/data/homebrew/PPSA99142/eboot.bin` exists.
 4. Start ProsperoTube.
