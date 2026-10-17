@@ -113,11 +113,11 @@ record and is not inferred from running the packager.
 ## Releasing
 
 A release is a tag. `.github/workflows/build.yml` builds tags `vNN.NNN.NNN`
-(`v` + the content version) and runs started by hand (**Run workflow**); a
-push to a branch builds nothing, and neither does a pull request: those builds
-stay off until a first manual run has filled the toolchain caches. A
-tag's build is published as a **pre-release** with `PPSA99142.zip` (every entry
-stored 0777) and `SHA256SUMS`. Installed copies find it after homebrew.page
+(`v` + the content version, the form the updater expects), pull requests and
+runs started by hand (**Run workflow**); a push to a branch, `main` included,
+builds nothing. A tag's build is published as a **pre-release** with
+`PPSA99142.zip` (every entry stored 0777) and `SHA256SUMS`, and nothing else.
+Installed copies find it after homebrew.page
 publishes its signed catalog entry ([updates](UPDATES.md)), which compares
 the listed content version with the running version.
 
@@ -136,18 +136,68 @@ the listed content version with the running version.
    version; `--tag` the tag; `--notes` the notes.
 5. Tag that commit `v<content version>` and push the tag. The workflow refuses
    a tag that is not the tree's content version, runs the offline checks,
-   builds, verifies the ZIP (one app folder, `eboot.bin`, 0777, the version)
-   and creates the pre-release. It never replaces a ZIP a release already has.
+   builds, verifies the ZIP (one app folder, `eboot.bin`, 0777, the version),
+   attests it and creates the pre-release. It never replaces a ZIP a release
+   already has.
 6. Have the public release listed in homebrew.page's signed catalog for
    `PPSA99142`, with the ZIP's size, SHA-256 and content version. A GitHub
    release alone is not accepted by the application as an update.
 
-The workflow needs no secret. Its first run, and any run after a pin changes,
-compiles the PS5 shader compiler, dav1d and FFmpeg (hours); they are then
-restored from the Actions cache, keyed by the EVO pin and the scripts that
-build them. Only the compiler and its library are cached, not its build tree.
 Until a public release and its signed catalog entry exist, the app reports
 that it cannot check the catalog or that ProsperoTube is not listed.
+
+### GitHub Actions
+
+The workflow needs no secret, only the run's own token. Its jobs:
+
+- **PS5 shader compiler** restores the compiler (`bin`, `lib` and the recipe
+  stamp of `~/.cache/prosperotube/shader-tools`, about 130 MB) from the Actions
+  cache, keyed by the EVO pin and the SHA-256 of
+  `scripts/build_ps5_shader_compiler.sh`. Without a cache it takes the
+  `shader-compiler.tar.zst` snapshot of the `build-cache` release when that was
+  made for the same key, and otherwise compiles it (`make host-deps`, then the
+  script with one job per CPU: about an hour on a hosted runner). It saves
+  the cache at once, so a failure further on never repeats that work.
+- **Build the release ZIP** (after the compiler) runs `make zip` with these
+  caches: the SDK prefix with the PS5 dav1d and FFmpeg (EVO pin and the scripts
+  that build them), Node and the npm downloads (`bootstrap_build_deps.sh` and
+  the lockfile), the pinned downloads (Lapy sources and SDK, UI kit, QuickJS,
+  root certificates) and ccache (`.deps/ccache`, a new key each run, restored
+  by prefix; EVO's build scripts compile through ccache when it is installed).
+  When no compiler cache was restored it starts from `ccache-ps5.tar` of the
+  `build-cache` release. It then labels a pull request's build, checks the ZIP
+  (one `PPSA99142/` folder, every entry 0777, `eboot.bin`, the `sce_sys`
+  branding files, `libc.prx`, the Lapy helper and its manifest, the update
+  helper, title and content version), runs `make verify`, attests the ZIP and
+  uploads `PPSA99142.zip` + `SHA256SUMS` as artifact
+  `ProsperoTube-<content version>-<commit>`.
+- **Offline checks** (beside the build) is the complete release pass: it
+  prepares the native tree (`PROSPEROTUBE_NATIVE_WORK`), builds the FFmpeg
+  check trees with `scripts/build_check_ffmpeg.sh` (cached by its recipe) and
+  runs `make test`; its logs are an artifact when it fails. clang-tidy is not
+  run in Actions.
+- **GitHub pre-release** (tags only, after both) downloads that artifact,
+  checks its two files and creates the pre-release. It never replaces a ZIP a
+  release already has.
+
+A pull request's artifact is `ProsperoTube-PR<number>-<7-character head
+commit>`, and its app folder carries `build-label.txt` (`PR <number>,
+<commit>`); the version stays the release's. A pull request only sees the
+Actions caches of `main`, so it usually starts from the snapshots.
+
+The attestation step ("Attest the release ZIP") runs for tags and manual runs
+in a public repository, never for pull requests; a downloaded ZIP is checked
+with `gh attestation verify PPSA99142.zip -R blackbearreloaded/ProsperoTube`.
+While the repository is private the step is skipped.
+
+**Snapshots.** GitHub drops a cache nobody used for a week. A run started by
+hand on `main` with **snapshot** ticked leaves its compiler cache and shader
+compiler as artifacts `ccache-snapshot` and `shader-compiler-snapshot`;
+`.github/workflows/build-cache.yml` then replaces `ccache-ps5.tar` and
+`shader-compiler.tar.zst` in the `build-cache` pre-release (tagged on the
+oldest commit; its name has no digit, so the catalog bot skips it). The build
+workflow itself never writes to a release that has files. Snapshots are read
+with the run's token, which works for a private repository too.
 
 ## The built-in service
 
@@ -232,6 +282,9 @@ isolated configured FFmpeg 7.1.1 tree with the current DVR patch and static
 archives, plus `PROSPEROTUBE_DVR_CANDIDATE=1`; see [live DVR](LIVE_DVR.md).
 Set `PROSPEROTUBE_DASH_SOURCE` to the pristine FFmpeg 7.1.1 `dashdec.c` for
 the standalone DASH patch regression (its explicit file argument also works).
+`bash scripts/build_check_ffmpeg.sh` builds both trees (pristine and DVR
+candidate, from the checksum-pinned 7.1.1 release) into
+`~/.cache/prosperotube/check-ffmpeg` and prints these three variables.
 The two DVR pytest checks explicitly skip without that configured source, so a
 release pass must provide it. Keep logs from the first pass before using the
 filtered runner: it replaces `build/test-logs/` on each invocation.

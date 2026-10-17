@@ -12,7 +12,7 @@ packages=(
     build-essential clang-18 lld-18 llvm-18 cmake ninja-build make git
     python3 python3-venv python3-yaml python3-jinja2 python3-ruamel.yaml python3-pil
     pkg-config ccache wget curl ca-certificates unzip zip tar xz-utils util-linux meson nasm yasm
-    libssl-dev libcurl4-openssl-dev zlib1g-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev
+    libssl-dev libcurl4-openssl-dev zlib1g-dev libfreetype-dev libzstd-dev libbz2-dev liblzma-dev libxml2-dev
     ffmpeg libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswresample-dev libswscale-dev
     glslang-tools spirv-tools openssl
     g++-multilib gcc-multilib libwayland-dev libx11-dev libx11-xcb-dev libxcb1-dev libxext-dev

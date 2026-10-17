@@ -1,0 +1,46 @@
+# ProsperoTube - Publish the build cache snapshots.
+# Copyright (C) 2026 BlackBearReloaded
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Build cache
+
+# Publishes the caches of a build as the snapshots that later builds start from:
+# ccache-ps5.tar (the compiler cache) and shader-compiler.tar.zst (the PS5 shader
+# compiler, with the cache key it was built for) of the build-cache release. It
+# runs after a "Build" run that was started by hand on main with "snapshot"
+# ticked (that run leaves the snapshots as artifacts). The build workflow itself
+# never writes to a release.
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: Publish the build cache snapshots
+    if: >-
+      github.event.workflow_run.event == 'workflow_dispatch' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Replace the snapshots in the build-cache release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name ccache-snapshot --dir snapshot; then
+            gh release upload build-cache "snapshot/ccache-ps5.tar" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            echo "That run kept no ccache-snapshot (the box was not ticked)."
+          fi
+          if gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name shader-compiler-snapshot --dir snapshot; then
+            gh release upload build-cache "snapshot/shader-compiler.tar.zst" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            echo "That run kept no shader-compiler-snapshot (the box was not ticked)."
+          fi
