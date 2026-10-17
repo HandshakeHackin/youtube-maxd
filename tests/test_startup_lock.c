@@ -7,7 +7,6 @@
 static const evo_provider_t *p;
 static char parent[80];
 static void show(const char *id) {p->list_catalog(id,0,items_cb,NULL);assert(last_ok && !pending_count);}
-static int find(const char *id) {for(int i=0;i<last_count;++i)if(!strcmp(last_items[i].id,id))return i;return -1;}
 static const char *saved_profile(void) {
     static char value[40];
     cJSON *store=read_store();snprintf(value,sizeof value,"%s",cJSON_GetObjectItem(store,"library_profile")->valuestring);
@@ -19,14 +18,10 @@ static const char *active(void) {
     static char value[64];
     show("library");assert(!strncmp(last_items[0].title,"Profile: ",9));snprintf(value,sizeof value,"%.60s",last_items[0].title+9);return value;
 }
-static int height(void) {
-    for(int page=0;page<3;++page) {
-        p->list_catalog("settings",page,items_cb,NULL);assert(last_ok);
-        int row=find("settings:quality"),value=0;
-        if(row>=0){assert(sscanf(last_items[row].title,"Maximum quality: %dp",&value)==1);return value;}
-    }
-    return -1;
-}
+/* The codec in use stands for a profile's own settings (0 automatic, the default; 1 AVC ... 4 HEVC).
+ * Until 38d2840 the maximum quality did; since then it is 2160p for every profile. */
+static int codec(void) {int value=-1,height=0;tube_player_quality(&height,NULL,&value);assert(height==2160);return value;}
+static void set_codec(int wanted) {for(int i=0;i<5 && codec()!=wanted;++i)show("settings:codec");assert(codec()==wanted);}
 static int favorites(void) {p->list_catalog("favorites",0,items_cb,NULL);assert(last_ok);return last_count;}
 /* Take the pending prompt and answer it; -2 when no prompt is pending. */
 static int answer(const char *text) {
@@ -42,8 +37,8 @@ int main(void) {
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
     p=&evo_provider_youtube;assert(!p->init());
     SEPARATE_SETTINGS();
-    /* alice: her own quality, startup section, a favorite and a password. */
-    show("library:profile:alice");show("settings:quality:720");show("settings:boot-section:2");assert(tube_toggle_favorite("abcdefghijk")==1);
+    /* alice: her own codec, startup section, a favorite and a password. */
+    show("library:profile:alice");set_codec(2);show("settings:boot-section:2");assert(tube_toggle_favorite("abcdefghijk")==1);
     assert(!strcmp(tube_boot_section(),"library:subscriptions") && !strcmp(tube_boot_section_title(),"Subscriptions"));
     show("settings:lock:set");assert(tube_take_playlist_prompt(&prompt) && !tube_submit_playlist_name(prompt.ticket,"secret",parent,sizeof parent) && locks()==1);
     assert(!strcmp(active(),"alice") && !waiting()); /* selected with the password known: no question in this session */
@@ -52,7 +47,7 @@ int main(void) {
     show("library:profile:alice");assert(answer("secret")==0);show(parent);assert(!strcmp(active(),"alice"));
     /* Restart: Guest is active, nothing of alice is listed, and the startup folder is her password prompt. */
     restart();
-    assert(waiting() && !strcmp(active(),"guest") && height()==1080 && !favorites());
+    assert(waiting() && !strcmp(active(),"guest") && codec()==0 && !favorites());
     show("settings:captions");assert(!strcmp(saved_profile(),"alice")); /* a save keeps the choice that waits */
     show(tube_boot_section());assert(last_count==1 && !strcmp(last_items[0].title,"Enter the password of this profile") && !strcmp(active(),"guest"));
     show(tube_boot_section());assert(answer("wrong")==-1 && !strcmp(tube_prompt_error(),"Wrong password.") && waiting() && !strcmp(active(),"guest"));
@@ -60,7 +55,7 @@ int main(void) {
     restart();assert(waiting() && !strcmp(active(),"guest") && !favorites() && !strcmp(saved_profile(),"alice"));
     show(tube_boot_section());assert(answer("secret")==0 && !strcmp(parent,"library:profile:alice") && waiting());
     show(parent);assert(last_count>3 && strstr(last_items[0].title,"alice") && !waiting());
-    assert(!strcmp(active(),"alice") && height()==720 && favorites()==1 && !strcmp(tube_boot_section(),"library:subscriptions"));
+    assert(!strcmp(active(),"alice") && codec()==2 && favorites()==1 && !strcmp(tube_boot_section(),"library:subscriptions"));
     /* Every start asks while she stays selected; choosing another profile ends the wait and becomes the saved choice. */
     restart();assert(waiting() && !strcmp(active(),"guest"));
     show("library:profile:guest");assert(!waiting() && !*tube_boot_section() && !strcmp(saved_profile(),"guest"));

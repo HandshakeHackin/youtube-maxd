@@ -292,12 +292,15 @@ void tube_player_menu_close(void) { ++menu.closes; menu.status=-1; menu.rows.cle
 void tube_player_request_search(void) { ++menu.searches; }
 static std::string failure;
 extern "C" int evo_failure_reason(char *out,size_t size) { std::snprintf(out,size,"%s",failure.c_str()); return !failure.empty(); }
-static int limitHeight=1080, limitFps=0, limitCodec=0, qualityResult=1, reloadResult=1, reloads=0, reloadSubtitles=-1;
+/* As the provider since 38d2840: the maximum resolution is fixed at 2160p and a preset's height
+ * cannot lower it; frame rate and codec are the profile's. */
+static const int limitHeight=2160;
+static int limitFps=0, limitCodec=0, qualityResult=1, reloadResult=1, reloads=0, reloadSubtitles=-1;
 static double reloadPosition=-1;
 void tube_player_quality(int *height,int *fps,int *codec) { if(height)*height=limitHeight; if(fps)*fps=limitFps; if(codec)*codec=limitCodec; }
-int tube_player_set_quality(int height,int fps,int codec) {
+int tube_player_set_quality(int,int fps,int codec) {
     if (!qualityResult) return 0;
-    limitHeight=height; limitFps=fps; limitCodec=codec; return 1;
+    limitFps=fps; limitCodec=codec; return 1;
 }
 int tube_player_reload(double position,int,int subtitles) { ++reloads; reloadPosition=position; reloadSubtitles=subtitles; return reloadResult; }
 static int prospero_subtitle_enabled=1;
@@ -372,7 +375,7 @@ static void offerAll() {
 }
 
 static void test_action_rows() {
-    tube_player_extra_select(nullptr); offerAll(); menu=Menu(); phoneOwns=false; limitHeight=1080; limitFps=limitCodec=0;
+    tube_player_extra_select(nullptr); offerAll(); menu=Menu(); phoneOwns=false; limitFps=limitCodec=0;
     Options options; options.enter();
     /* SmartTube's defaults: the queue, the share link and SponsorBlock wait for their switches. */
     const int expected[]={TUBE_PLAYER_ACTIONS,TUBE_PLAYER_LIKE,TUBE_PLAYER_DISLIKE,TUBE_PLAYER_SUBSCRIBE,TUBE_PLAYER_PLAYLIST_ADD,
@@ -406,7 +409,7 @@ static void test_action_rows() {
     assert(options.m_tracks.size()==1 && options.m_tracks[0].kind==KindPresetList);
     phoneOwns=false;
     limitFps=60; limitCodec=TUBE_CODEC_VP9; options.refreshTracks();
-    assert(options.m_tracks.back().label=="Video presets: 1080p 60 fps VP9");
+    assert(options.m_tracks.back().label=="Video presets: 2160p 60 fps VP9");
     limitCodec=TUBE_CODEC_HEVC; options.refreshTracks();
     assert(options.m_tracks.back().label=="Video presets: Custom limits");
     limitFps=limitCodec=0;
@@ -546,27 +549,28 @@ static void test_action_lists() {
 
 static void test_presets_and_screen_off() {
     tube_player_extra_select(nullptr); offerAll(); menu=Menu(); phoneOwns=false;
-    limitHeight=1080; limitFps=60; limitCodec=TUBE_CODEC_VP9; qualityResult=reloadResult=1; reloads=0;
+    limitFps=60; limitCodec=TUBE_CODEC_VP9; qualityResult=reloadResult=1; reloads=0;
     Options options; options.mock.position=42.5; options.enter();
     options.choose(KindPresetList);
     assert(options.m_tubeExtraGroup==-4 && static_cast<int>(options.m_tracks.size())==tube_preset_count() && !options.other);
-    const int current=tube_preset_find(1080,60,TUBE_CODEC_VP9);
-    assert(options.m_selectedIndex==current && options.m_tracks[current].badge=="SELECTED" && options.m_tracks[0].label=="Disabled");
+    const int current=tube_preset_find(2160,60,TUBE_CODEC_VP9);
+    assert(current==1 && options.m_selectedIndex==current && options.m_tracks[current].badge=="SELECTED" && options.m_tracks[0].label=="Disabled");
+    assert(tube_preset_find(1080,60,TUBE_CODEC_VP9)<0 && tube_preset_find(720,30,TUBE_CODEC_AVC)<0);   /* every preset keeps 2160p */
     assert(options.back() && options.m_tubeExtraGroup==-1 && options.m_tracks[options.m_selectedIndex].kind==KindPresetList);
     /* A preset is saved and applied at once: the video reopens at its position. */
     options.activate();
-    options.m_selectedIndex=tube_preset_find(720,30,TUBE_CODEC_AVC); options.activate();
-    assert(limitHeight==720 && limitFps==30 && limitCodec==TUBE_CODEC_AVC && reloads==1 && reloadPosition==42.5 && reloadSubtitles==1);
-    assert(options.mock.stops==1 && options.manager.returns==1 && !options.manager.backs && notice=="720p 30 fps AVC - reloading this video");
+    options.m_selectedIndex=tube_preset_find(2160,30,TUBE_CODEC_AV1); options.activate();
+    assert(limitFps==30 && limitCodec==TUBE_CODEC_AV1 && reloads==1 && reloadPosition==42.5 && reloadSubtitles==1);
+    assert(options.mock.stops==1 && options.manager.returns==1 && !options.manager.backs && notice=="2160p 30 fps AV1 - reloading this video");
     /* "Disabled" lifts the frame rate and codec and keeps the maximum quality. */
     reloadResult=0;
     options.m_selectedIndex=0; options.activate();
-    assert(limitHeight==720 && !limitFps && !limitCodec && options.mock.stops==1 && options.manager.backs==1);
+    assert(!limitFps && !limitCodec && options.mock.stops==1 && options.manager.backs==1);
     assert(notice=="Disabled - used from the next video");
     qualityResult=0; options.m_selectedIndex=1; options.activate();
-    assert(notice=="Unable to save this preset" && limitHeight==720 && reloads==2 && options.manager.backs==2);
+    assert(notice=="Unable to save this preset" && !limitFps && reloads==2 && options.manager.backs==2);
     qualityResult=1; phoneOwns=true; options.m_selectedIndex=1; options.activate();
-    assert(limitHeight==2160 && reloads==2 && options.mock.stops==1);            /* a phone session is not reopened */
+    assert(limitFps==60 && limitCodec==TUBE_CODEC_VP9 && reloads==2 && options.mock.stops==1);            /* a phone session is not reopened */
     phoneOwns=false; reloadResult=1;
 
     /* Screen off: at once, and the picker returns to the video. */
@@ -578,7 +582,7 @@ static void test_presets_and_screen_off() {
     assert(tube_extra_screen_is_off() && options.manager.backs==1 && options.manager.opened==static_cast<int>(ScreenId::Player) && !options.other);
     assert(tube_extra_dim_tick(10,TUBE_DIM_PLAYING)==100);
     tube_extra_dim_reset(0);
-    limitHeight=1080; limitFps=limitCodec=0;
+    limitFps=limitCodec=0;
     tube_player_extra_select(nullptr);
 }
 

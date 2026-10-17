@@ -163,7 +163,6 @@ int main(int argc,char**argv) {
             {"settings:player-hide","settings:player-hide:0"},
             {"settings:player-seek","settings:player-seek:2"},
             {"settings:seek-interval","settings:seek-interval:7"},
-            {"settings:quality","settings:quality:240"},
             {"settings:frame-rate","settings:frame-rate:30"},
             {"settings:time-display","settings:time-display:2"},
             {"settings:video-zoom","settings:zoom:100"},

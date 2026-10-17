@@ -17,20 +17,18 @@ static cJSON *profile_row(cJSON *store,const char *profile) {
         if(!strcmp(cJSON_GetObjectItem(row,"profile")->valuestring,profile))return row;
     return NULL;
 }
-/* Saved maximum quality of a settings row; -1 when the row does not exist. */
-static int height_of(const char *profile) {
+/* The video codec stands for a setting kept per profile. Until 38d2840 the maximum quality did;
+ * since then the maximum is fixed at 2160p for every profile. */
+/* Saved codec of a settings row; -1 when the row does not exist. */
+static int codec_of(const char *profile) {
     cJSON *store=read_store(),*row=profile_row(store,profile);
-    int value=row?cJSON_GetObjectItem(row,"max_height")->valueint:-1;
+    int value=row?cJSON_GetObjectItem(row,"codec")->valueint:-1;
     cJSON_Delete(store);return value;
 }
-static int height(void) {
-    for(int page=0;page<3;++page) {
-        p->list_catalog("settings",page,items_cb,NULL);assert(last_ok);
-        int row=find("settings:quality"),value=0;
-        if(row>=0){assert(sscanf(last_items[row].title,"Maximum quality: %dp",&value)==1);return value;}
-    }
-    return -1;
-}
+/* The codec in use: 0 automatic (the default), 1 AVC, 2 VP9, 3 AV1, 4 HEVC. */
+static int codec(void) {int value=-1,height=0;tube_player_quality(&height,NULL,&value);assert(height==2160);return value;}
+/* Choose a codec in Settings, where each selection moves to the next one. */
+static void set_codec(int wanted) {for(int i=0;i<5 && codec()!=wanted;++i)show("settings:codec");assert(codec()==wanted);}
 static const char *selected_profile(void) {
     static char value[40];
     cJSON *store=read_store();snprintf(value,sizeof value,"%s",cJSON_GetObjectItem(store,"library_profile")->valuestring);
@@ -83,53 +81,53 @@ int main(void) {
     show("settings:accounts");assert(last_count==3 && !strcmp(last_items[0].id,"auth:start")); /* Guest: Sign in to YouTube first */
     assert(!strcmp(last_items[1].id,"settings:separate-settings") && !strcmp(last_items[1].title,"Separate settings per account: off"));
     assert(!strcmp(last_items[2].title,"Password protection (experimental)") && find("settings:lock:set")<0); /* Guest has no account to protect */
-    show("settings:quality:720");assert(tube_player_set_hide_seconds(7) && tube_extra_set_volume(150) && tube_set_playback_speed(125));
+    set_codec(1);assert(tube_player_set_hide_seconds(7) && tube_extra_set_volume(150) && tube_set_playback_speed(125));
     show("settings:hide:mixes");show("settings:content-language:de");
-    assert(separate()==0 && height_of("*")==720 && height_of("guest")==-1);
+    assert(separate()==0 && codec_of("*")==1 && codec_of("guest")==-1);
     show("library:profile:alice");
-    assert(height()==720 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && tube_playback_speed()==125 && !strcmp(selected_profile(),"alice"));
+    assert(codec()==1 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && tube_playback_speed()==125 && !strcmp(selected_profile(),"alice"));
     show("settings:hide");assert(!strcmp(last_items[1].title,"Hide mixes: on"));
-    show("settings:quality:480");show("library:profile:guest");assert(height()==480 && height_of("alice")==-1);
+    set_codec(2);show("library:profile:guest");assert(codec()==2 && codec_of("alice")==-1);
     p->shutdown();assert(!p->init());
-    assert(height()==480 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && separate()==0);
-    show("library:profile:alice");assert(height()==480 && tube_extra_volume()==150);
+    assert(codec()==2 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && separate()==0);
+    show("library:profile:alice");assert(codec()==2 && tube_extra_volume()==150);
     /* Switched on, the selected profile keeps what is on screen and the others use their own sets. */
     show("settings:separate-settings");assert(!strcmp(last_items[0].title,"Separate settings per account: on") && separate()==1);
-    assert(height()==480 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && height_of("alice")==480);
-    show("settings:quality:1440");assert(tube_player_set_hide_seconds(2) && tube_extra_set_volume(50));
-    show("library:profile:guest");assert(height()==1080 && tube_player_hide_ms()==3000 && tube_extra_volume()==100 && tube_playback_speed()==100);
+    assert(codec()==2 && tube_player_hide_ms()==7000 && tube_extra_volume()==150 && codec_of("alice")==2);
+    set_codec(3);assert(tube_player_set_hide_seconds(2) && tube_extra_set_volume(50));
+    show("library:profile:guest");assert(codec()==0 && tube_player_hide_ms()==3000 && tube_extra_volume()==100 && tube_playback_speed()==100);
     show("settings:hide");assert(!strcmp(last_items[1].title,"Hide mixes: off"));
-    show("settings:quality:360");
-    show("library:profile:alice");assert(height()==1440 && tube_player_hide_ms()==2000 && tube_extra_volume()==50 && tube_playback_speed()==125);
-    p->shutdown();assert(!p->init());assert(height()==1440 && separate()==1);
-    show("library:profile:guest");assert(height()==360);
+    set_codec(4);
+    show("library:profile:alice");assert(codec()==3 && tube_player_hide_ms()==2000 && tube_extra_volume()==50 && tube_playback_speed()==125);
+    p->shutdown();assert(!p->init());assert(codec()==3 && separate()==1);
+    show("library:profile:guest");assert(codec()==4);
     /* Switched off again, everyone uses what the selected profile had on screen. */
-    show("library:profile:alice");show("settings:separate-settings");assert(separate()==0 && height()==1440 && tube_player_hide_ms()==2000 && tube_extra_volume()==50);
-    show("library:profile:guest");assert(height()==1440 && tube_player_hide_ms()==2000 && tube_extra_volume()==50);
-    show("settings:quality:2160");assert(height_of("*")==2160 && height_of("guest")==360 && height_of("alice")==1440); /* the own sets are kept */
-    show("library:profile:bob");assert(height()==2160);
-    show("library:profile:guest");show("settings:separate-settings");assert(separate()==1 && height()==2160 && height_of("guest")==2160);
-    show("library:profile:alice");assert(height()==1440 && tube_player_hide_ms()==2000);
-    show("library:profile:bob");assert(height()==1080); /* a profile without a set of its own starts at the defaults */
+    show("library:profile:alice");show("settings:separate-settings");assert(separate()==0 && codec()==3 && tube_player_hide_ms()==2000 && tube_extra_volume()==50);
+    show("library:profile:guest");assert(codec()==3 && tube_player_hide_ms()==2000 && tube_extra_volume()==50);
+    set_codec(1);assert(codec_of("*")==1 && codec_of("guest")==4 && codec_of("alice")==3); /* the own sets are kept */
+    show("library:profile:bob");assert(codec()==1);
+    show("library:profile:guest");show("settings:separate-settings");assert(separate()==1 && codec()==1 && codec_of("guest")==1);
+    show("library:profile:alice");assert(codec()==3 && tube_player_hide_ms()==2000);
+    show("library:profile:bob");assert(codec()==0); /* a profile without a set of its own starts at the defaults */
     /* A source change returns to Guest in either mode. */
-    assert(!p->set_source("http://127.0.0.1:8765"));assert(height()==2160 && !strcmp(selected_profile(),"guest"));
+    assert(!p->set_source("http://127.0.0.1:8765"));assert(codec()==1 && !strcmp(selected_profile(),"guest"));
     /* A store written before the switch existed keeps one set per profile; a corrupt switch reads the same way. */
     p->shutdown();cJSON *store=read_store();cJSON_DeleteItemFromObject(store,"separate_settings");write_store(store);cJSON_Delete(store);
-    assert(!p->init());assert(height()==2160);
-    show("settings:accounts");assert(!strcmp(last_items[0].title,"Separate settings per account: on"));
-    show("library:profile:alice");assert(height()==1440);
+    assert(!p->init());assert(codec()==1);
+    show("settings:accounts");assert(!strcmp(last_items[0].id,"auth:start") && !strcmp(last_items[1].title,"Separate settings per account: on")); /* Guest */
+    show("library:profile:alice");assert(codec()==3);
     p->shutdown();store=read_store();cJSON_ReplaceItemInObject(store,"separate_settings",cJSON_CreateString("off"));write_store(store);cJSON_Delete(store);
-    assert(!p->init());assert(height()==1440);
+    assert(!p->init());assert(codec()==3);
     show("settings:accounts");assert(!strcmp(last_items[0].title,"Separate settings per account: on"));
-    show("library:profile:guest");assert(height()==2160 && separate()==1);
+    show("library:profile:guest");assert(codec()==1 && separate()==1);
     /* A store that names the switch off but has no shared row starts the shared set at the defaults. */
     p->shutdown();store=read_store();cJSON_ReplaceItemInObject(store,"separate_settings",cJSON_CreateFalse());
     cJSON *rows=cJSON_GetObjectItem(store,"profile_settings");
     for(int i=cJSON_GetArraySize(rows)-1;i>=0;--i)
         if(!strcmp(cJSON_GetObjectItem(cJSON_GetArrayItem(rows,i),"profile")->valuestring,"*"))cJSON_DeleteItemFromArray(rows,i);
-    write_store(store);cJSON_Delete(store);assert(!p->init());assert(height()==1080);
-    show("library:profile:alice");assert(height()==1080);
-    show("settings:separate-settings");assert(separate()==1);show("library:profile:guest");assert(height()==2160);
+    write_store(store);cJSON_Delete(store);assert(!p->init());assert(codec()==0);
+    show("library:profile:alice");assert(codec()==0);
+    show("settings:separate-settings");assert(separate()==1);show("library:profile:guest");assert(codec()==1);
     /* Protect a profile: the password is asked for twice in the file's lifetime, and never stored. */
     refused("settings:lock:set");refused("settings:lock:change");refused("settings:lock:remove"); /* Guest */
     show("library:profile:alice");
@@ -145,13 +143,13 @@ int main(void) {
     refused("settings:lock:set");
     /* Selecting the protected profile asks first; a wrong text selects nothing. */
     show("library:profile:alice");assert(last_count>3 && answer("Password of this profile","x")==-2); /* already selected: no question */
-    show("library:profile:guest");assert(!strcmp(selected_profile(),"guest") && height()==2160);
+    show("library:profile:guest");assert(!strcmp(selected_profile(),"guest") && codec()==1);
     show("library:profile:alice");assert(last_count==1 && !strcmp(last_items[0].title,"Enter the password of this profile") && !strcmp(selected_profile(),"guest"));
     assert(answer("Password of this profile","correct")==-1 && !strcmp(tube_prompt_error(),"Wrong password.") && !strcmp(selected_profile(),"guest"));
-    show("library:profile:alice");assert(last_count==1 && height()==2160);
+    show("library:profile:alice");assert(last_count==1 && codec()==1);
     assert(answer("Password of this profile","correct horse")==0 && !strcmp(parent,"library:profile:alice") && !strcmp(tube_prompt_title(parent),"Accounts & library"));
     assert(!strcmp(selected_profile(),"guest")); /* the accepted text only permits the selection */
-    show(parent);assert(last_count>3 && strstr(last_items[0].title,"alice") && !strcmp(selected_profile(),"alice") && height()==1080);
+    show(parent);assert(last_count>3 && strstr(last_items[0].title,"alice") && !strcmp(selected_profile(),"alice") && codec()==0);
     /* The permission serves one selection and only the profile it was given for. */
     show("library:profile:guest");show("library:profile:alice");assert(last_count==1 && !strcmp(selected_profile(),"guest"));
     assert(answer("Password of this profile","correct horse")==0);
@@ -191,7 +189,7 @@ int main(void) {
     cJSON_AddStringToObject(row,"profile","carol");cJSON_AddStringToObject(row,"password",first);cJSON_AddItemToArray(list,row);
     row=cJSON_CreateObject();cJSON_AddStringToObject(row,"profile","carol");cJSON_AddStringToObject(row,"password",second);cJSON_AddItemToArray(list,row);
     cJSON_ReplaceItemInObject(store,"profile_locks",list);write_store(store);cJSON_Delete(store);
-    assert(!p->init());show("settings:quality:720");assert(locks(NULL)==1 && locks("carol")==1 && !file_contains("plain text"));
+    assert(!p->init());show("settings:codec");assert(locks(NULL)==1 && locks("carol")==1 && !file_contains("plain text"));
     show("library:profile:guest");show("library:profile:alice");assert(!strcmp(selected_profile(),"alice"));
     show("library:profile:carol");assert(last_count==1 && answer("Password of this profile","second")==-1);
     show("library:profile:carol");assert(answer("Password of this profile","first")==0);show(parent);assert(!strcmp(selected_profile(),"carol"));
