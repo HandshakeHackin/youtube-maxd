@@ -64,6 +64,7 @@ class Lounge:
         self.refresh_failure = False
         self.hold_refresh = False
         self.refresh_entered, self.refresh_release = threading.Event(), threading.Event()
+        self.on_pair = None   # called when a pairing code is handed out
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -129,6 +130,8 @@ class Lounge:
             self.expect(query == {"ctx": "pair"}, f"pair query {query}")
             if self.fail_pair:
                 return self.answer(handler, 503, b"private-token", "text/plain")
+            if self.on_pair:
+                self.on_pair()
             return self.answer(handler, 200, b'{"code":"123456789012"}')
         self.expect(path == "/bc/bind", f"unknown path {path}")
         self.expect(query.get("loungeIdToken") == self.token and query.get("device") == "LOUNGE_SCREEN" and query.get("VER") == "8" and
@@ -800,8 +803,15 @@ def serve():
     """The stand-in alone, for scripts/test_embedded_e2e.sh: prints its address, serves until its input closes."""
     lounge = Lounge()
     lounge.fragment = 5
-    lounge.incoming = wire([[3, ["setPlaylist", {"videoId": "fixtureVID1", "videoIds": "fixtureVID1," + OTHER, "currentTime": "12.5",
-                                                  "currentIndex": "0", "listId": "", "ctt": "opaque"}]], [4, ["pause"]]])
+    phone = wire([[2, ["setPlaylist", {"videoId": "fixtureVID1", "videoIds": "fixtureVID1," + OTHER, "currentTime": "12.5",
+                                        "currentIndex": "0", "listId": "", "ctt": "opaque"}]], [3, ["pause"]]])
+
+    def paired():
+        # A phone links with the TV code, so its commands arrive on the channel the receiver opens
+        # again after the code (a9ba0c1, as post_pair checks), which starts without a second getNowPlaying.
+        lounge.initial = lounge.initial[:2]
+        lounge.incoming = phone
+    lounge.on_pair = paired
     print(lounge.base, flush=True)
     sys.stdin.read()
 
