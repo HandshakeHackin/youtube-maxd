@@ -601,7 +601,7 @@ the console is a hard requirement; the first MVP is Guest, standalone.
   and a complete console update/relaunch remain required for end-to-end
   acceptance; publication is the owner's decision.
 - `.github/workflows/build.yml` builds version tags and manual runs and publishes
-  tags as prereleases with `PPSA99142.zip` and `SHA256SUMS`. Local builds and CI
+  tags as prereleases with `PPSA99012.zip` and `SHA256SUMS`. Local builds and CI
   both normalize ZIP permissions. Publishing a GitHub release alone does not
   create an in-app update offer.
 

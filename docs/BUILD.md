@@ -81,7 +81,7 @@ existing development command/status/UI instrumentation. The overlay scopes its
 files to `dev_command`, `dev_status` and `dev_ui.json`, and the diagnostic log
 to `console.log`, under `/data/prosperotube`. Startup requests filesystem access
 through Lapy and proves writable app storage before initializing services.
-The packaged one-shot helper targets only `PPSA99142`; a resident Lapy service
+The packaged one-shot helper targets only `PPSA99012`; a resident Lapy service
 gets the first bounded opportunity. Failed elevation stops startup rather than
 loading or saving transient state. Lapy's handshake markers still use
 `/download0`, as required by its protocol. The normal build leaves
@@ -96,7 +96,7 @@ The Lapy helper is built the way
 `scripts/build_lapy_helper.py` fetches the pinned
 [PS5-Lapy-JB-Daemon](https://github.com/blackbearreloaded/PS5-Lapy-JB-Daemon)
 commit, the Payload SDK v0.42 archive and the ps5log header (each checked by
-commit or SHA-256), runs upstream's own `make owned-helper TARGET_TITLE=PPSA99142`
+commit or SHA-256), runs upstream's own `make owned-helper TARGET_TITLE=PPSA99012`
 and checks the generated manifest (title, one-shot mode, no service, the
 root-layout retry feature, ELF and protocol hashes) before the helper is
 packaged. After packaging, `build_ps5.sh` checks the copy in the app folder
@@ -116,7 +116,7 @@ A release is a tag. `.github/workflows/build.yml` builds tags `vNN.NNN.NNN`
 (`v` + the content version, the form the updater expects), pull requests and
 runs started by hand (**Run workflow**); a push to a branch, `main` included,
 builds nothing. A tag's build is published as a **pre-release** with
-`PPSA99142.zip` (every entry stored 0777) and `SHA256SUMS`, and nothing else.
+`PPSA99012.zip` (every entry stored 0777) and `SHA256SUMS`, and nothing else.
 Installed copies find it after homebrew.page
 publishes its signed catalog entry ([updates](UPDATES.md)), which compares
 the listed content version with the running version.
@@ -140,7 +140,7 @@ the listed content version with the running version.
    attests it and creates the pre-release. It never replaces a ZIP a release
    already has.
 6. Have the public release listed in homebrew.page's signed catalog for
-   `PPSA99142`, with the ZIP's size, SHA-256 and content version. A GitHub
+   `PPSA99012`, with the ZIP's size, SHA-256 and content version. A GitHub
    release alone is not accepted by the application as an update.
 
 Until a public release and its signed catalog entry exist, the app reports
@@ -166,10 +166,10 @@ The workflow needs no secret, only the run's own token. Its jobs:
   by prefix; EVO's build scripts compile through ccache when it is installed).
   When no compiler cache was restored it starts from `ccache-ps5.tar` of the
   `build-cache` release. It then labels a pull request's build, checks the ZIP
-  (one `PPSA99142/` folder, every entry 0777, `eboot.bin`, the `sce_sys`
+  (one `PPSA99012/` folder, every entry 0777, `eboot.bin`, the `sce_sys`
   branding files, `libc.prx`, the Lapy helper and its manifest, the update
   helper, title and content version), runs `make verify`, attests the ZIP and
-  uploads `PPSA99142.zip` + `SHA256SUMS` as artifact
+  uploads `PPSA99012.zip` + `SHA256SUMS` as artifact
   `ProsperoTube-<content version>-<commit>`.
 - **Offline checks** (beside the build) is the complete release pass: it
   prepares the native tree (`PROSPEROTUBE_NATIVE_WORK`), builds the FFmpeg
@@ -187,7 +187,7 @@ Actions caches of `main`, so it usually starts from the snapshots.
 
 The attestation step ("Attest the release ZIP") runs for tags and manual runs
 in a public repository, never for pull requests; a downloaded ZIP is checked
-with `gh attestation verify PPSA99142.zip -R blackbearreloaded/ProsperoTube`.
+with `gh attestation verify PPSA99012.zip -R blackbearreloaded/ProsperoTube`.
 While the repository is private the step is skipped.
 
 **Snapshots.** GitHub drops a cache nobody used for a week. A run started by

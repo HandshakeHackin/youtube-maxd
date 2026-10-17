@@ -65,14 +65,14 @@ int main(void) {
     assert(tube_update_app_rows(rows,12)==0);
     assert(tube_update_app_action("notify"));
     tube_update_skip(u,"01.000.010");
-    snprintf(app,sizeof app,"{\"schema\":3,\"titleid\":\"PPSA99142\",\"name\":\"ProsperoTube\","
-        "\"version\":\"0.1.1\",\"artifact_url\":\"https://github.com/example/app/releases/download/v1/PPSA99142.zip\","
+    snprintf(app,sizeof app,"{\"schema\":3,\"titleid\":\"PPSA99012\",\"name\":\"ProsperoTube\","
+        "\"version\":\"0.1.1\",\"artifact_url\":\"https://github.com/example/app/releases/download/v1/PPSA99012.zip\","
         "\"sha256\":\"%064d\",\"status\":\"available\",\"content_version\":\"01.000.010\","
         "\"format\":\"zip\",\"size\":100,\"release_notes\":\"A signed note\",\"release_notes_truncated\":true}",0);
     self_update_sha256 hash; unsigned char bytes[32]; char digest[65];
     self_update_sha256_start(&hash); self_update_sha256_add(&hash,app,strlen(app));
     self_update_sha256_finish(&hash,bytes); self_update_sha256_hex(bytes,digest);
-    snprintf(manifest,sizeof manifest,"{\"schema\":3,\"sequence\":1,\"files\":{\"apps/PPSA99142.json\":\"%s\"}}",digest);
+    snprintf(manifest,sizeof manifest,"{\"schema\":3,\"sequence\":1,\"files\":{\"apps/PPSA99012.json\":\"%s\"}}",digest);
     offered=1;
     tube_update_set_notify(u,1);
     assert(tube_update_app_action("check")); wait_check(u); tube_update_app_tick(1);

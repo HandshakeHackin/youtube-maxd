@@ -15,7 +15,7 @@ _spec = importlib.util.spec_from_file_location("build_lapy_helper", ROOT / "scri
 helper = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(helper)
 
-TITLE = "PPSA99142"
+TITLE = "PPSA99012"
 ELF = b"\x7fELF\x02\x01" + bytes(64)
 
 
@@ -64,8 +64,8 @@ def test_build_uses_upstream_target_without_changes():
     for retired in ("diagnostic_source", "STOP_DIAGNOSTICS", "--result-file", "build_owned_daemon.py"):
         assert retired not in source, retired
     build = (ROOT / "scripts/build_ps5.sh").read_text()
-    assert 'build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy"' in build
-    assert 'build_lapy_helper.py" PPSA99142 --check-app "${work}/output/app/PPSA99142"' in build
+    assert 'build_lapy_helper.py" PPSA99012 "${work}/prosperotube-lapy"' in build
+    assert 'build_lapy_helper.py" PPSA99012 --check-app "${work}/output/app/PPSA99012"' in build
     assert "PROSPEROTUBE_LAPY_" not in build
     prepare = (ROOT / "scripts/prepare_native.py").read_text()
     for name in ("lapy.elf", "lapy-manifest.json", "Lapy-MIT.txt"):

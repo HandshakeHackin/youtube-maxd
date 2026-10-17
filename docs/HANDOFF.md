@@ -4,6 +4,18 @@ For the next person or agent who picks up ProsperoTube. Read this first, then
 [Status](STATUS.md), the [README](../README.md) roadmap and
 [Afterglow's architecture](afterglow/ARCHITECTURE.md). Written 2026-10-14.
 
+## Title ID corrected to PPSA99012 (2026-10-17)
+
+ProsperoTube's title ID is `PPSA99012`, the ID reserved for it in the
+homebrew.page catalog. Release 1.000.000 was first published as `PPSA99142`;
+the same day the title ID (and `conceptId`) were changed in the build, the
+updater, the Lapy helper target, tests and docs, and the release's ZIP and
+`SHA256SUMS` were replaced by a local build of the corrected tag. Entries
+below and in the hardware-acceptance and validation logs that name
+`PPSA99142` describe builds made before the change. A console that had the
+old build keeps it in `/data/homebrew/PPSA99142`; the new one installs to
+`/data/homebrew/PPSA99012`. The data folder `/data/prosperotube` is unchanged.
+
 ## Media category and standard version format (2026-10-16)
 
 ProsperoTube now uses Media metadata (category 65536, badge 2, no gameIntent).

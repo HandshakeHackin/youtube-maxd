@@ -10,7 +10,7 @@ import os
 import re
 from pathlib import Path
 
-TITLE = "PPSA99142"
+TITLE = "PPSA99012"
 DATA = "/data/prosperotube"
 CMD_FILE = f"{DATA}/dev_command"
 STATUS_FILE = f"{DATA}/dev_status"

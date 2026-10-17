@@ -30,7 +30,7 @@ test: test-deps
 	bash scripts/test_all.sh
 
 verify:
-	python3 scripts/verify_app_zip.py "$(PROSPEROTUBE_PS5_DIST)/PPSA99142.zip"
+	python3 scripts/verify_app_zip.py "$(PROSPEROTUBE_PS5_DIST)/PPSA99012.zip"
 
 help:
 	@printf '%s\n' 'make host-deps  Install Ubuntu 24.04 host packages (sudo)' 'make [zip]     Fetch pinned dependencies, build and verify the app ZIP' 'make deps      Prepare the SDK, shader compiler and service dependencies' 'make test      Prepare the host test environment and run offline checks' 'make verify    Verify the existing ZIP and write SHA256SUMS'

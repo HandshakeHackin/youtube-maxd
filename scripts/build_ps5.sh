@@ -52,7 +52,7 @@ if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
 fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
 # The exact-title upstream Lapy helper, built and verified as ProsperoEden does it.
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 "${work}/prosperotube-lapy"
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99012 "${work}/prosperotube-lapy"
 if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
     make -C "${root}/native/update/helper" OUTPUT="${work}/prosperotube-update/self-updater.elf"
 fi
@@ -85,10 +85,10 @@ for symbol in ff_hevc_decoder ff_hevc_mp4toannexb_bsf; do
     }
 done
 bash "${work}/scripts/package-app.sh" --zip "$@"
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99142 --check-app "${work}/output/app/PPSA99142"
-python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99142.zip"
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99012 --check-app "${work}/output/app/PPSA99012"
+python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99012.zip"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
-cp -a "${work}/output/app/PPSA99142" "${destination}/"
-cp "${work}/output/app/PPSA99142.zip" "${destination}/"
+cp -a "${work}/output/app/PPSA99012" "${destination}/"
+cp "${work}/output/app/PPSA99012.zip" "${destination}/"
 printf '%s\n' "ProsperoTube PS5 artifacts are in ${destination}. No console deployment performed."

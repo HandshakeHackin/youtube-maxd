@@ -64,7 +64,7 @@ The elevation client follows [ProsperoEden](https://github.com/blackbearreloaded
 | Identity | Value |
 | --- | --- |
 | Shell title | `ProsperoTube` |
-| Title ID | `PPSA99142` |
+| Title ID | `PPSA99012` |
 | Category | Media |
 | Version / content version | `1.000.000` / `01.000.000` |
 | Writable data | `/data/prosperotube` |
@@ -142,9 +142,9 @@ ProsperoTube talks to YouTube as one client identity. When YouTube changes its s
 
 ### Install or update
 
-1. Download `PPSA99142.zip` from the [latest release](https://github.com/blackbearreloaded/ProsperoTube/releases) and check it against `SHA256SUMS`.
+1. Download `PPSA99012.zip` from the [latest release](https://github.com/blackbearreloaded/ProsperoTube/releases) and check it against `SHA256SUMS`.
 2. Fully close ProsperoTube if it is running.
-3. Extract the ZIP and copy the complete `PPSA99142` folder to `/data/homebrew/`, so that `/data/homebrew/PPSA99142/eboot.bin` exists.
+3. Extract the ZIP and copy the complete `PPSA99012` folder to `/data/homebrew/`, so that `/data/homebrew/PPSA99012/eboot.bin` exists.
 4. Start ProsperoTube.
 
 Once a release is listed on homebrew.page, the app checks for updates at launch and offers **Update now**, **What's new** or **Skip**; accepting downloads, verifies and replaces the app after it closes. Settings, profiles and accounts in `/data/prosperotube` are kept. See [Updates](docs/UPDATES.md).
@@ -251,8 +251,8 @@ make test       # offline checks
 The first build compiles a large shader toolchain and takes a while; later builds reuse its cache. Outputs:
 
 ```text
-dist/PPSA99142/        complete title folder
-dist/PPSA99142.zip     installable ZIP
+dist/PPSA99012/        complete title folder
+dist/PPSA99012.zip     installable ZIP
 dist/SHA256SUMS        ZIP checksum
 ```
 
@@ -260,13 +260,13 @@ dist/SHA256SUMS        ZIP checksum
 
 ## GitHub Actions and releases
 
-The [Build workflow](.github/workflows/build.yml) runs for version tags (`v` + the content version, for example `v01.000.000`), pull requests and manual runs; pushes to `main` build nothing. It builds with `make zip` and runs the offline checks beside it, then checks the ZIP (one `PPSA99142` folder, every entry stored 0777, `eboot.bin`, `sce_sys`, the helpers, the version), runs `make verify`, attests the ZIP and uploads `PPSA99142.zip` with `SHA256SUMS`.
+The [Build workflow](.github/workflows/build.yml) runs for version tags (`v` + the content version, for example `v01.000.000`), pull requests and manual runs; pushes to `main` build nothing. It builds with `make zip` and runs the offline checks beside it, then checks the ZIP (one `PPSA99012` folder, every entry stored 0777, `eboot.bin`, `sce_sys`, the helpers, the version), runs `make verify`, attests the ZIP and uploads `PPSA99012.zip` with `SHA256SUMS`.
 
 - A pull request's build is named `ProsperoTube-PR<number>-<commit>` and carries `build-label.txt` in the app folder.
 - A tag publishes a pre-release with exactly those two files.
 - The PS5 shader compiler and the compiler cache come from the cache or the `build-cache` snapshot; a manual run on `main` with **snapshot** ticked refreshes them.
 
-Verify a downloaded release with `gh attestation verify PPSA99142.zip -R blackbearreloaded/ProsperoTube`. See [Build](docs/BUILD.md) for details.
+Verify a downloaded release with `gh attestation verify PPSA99012.zip -R blackbearreloaded/ProsperoTube`. See [Build](docs/BUILD.md) for details.
 
 ## Documentation
 
@@ -298,7 +298,7 @@ carries the donor-release and firmware 13.60 fixes of
 [PR #48](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/48) and
 [PR #49](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/49) and the guarded
 target-lifetime changes of [PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50),
-runs upstream's own exact-title helper build for `PPSA99142` without changing it, verifies
+runs upstream's own exact-title helper build for `PPSA99012` without changing it, verifies
 the generated manifest and ships the helper (MIT; its protocol header is LGPL-2.1-or-later)
 with its licence, as [ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) does.
 

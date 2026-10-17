@@ -924,7 +924,7 @@ def parse(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--host", default=os.environ.get("PS5_HOST"), help="console address (or PS5_HOST)")
     parser.add_argument("--lock-file", default=os.environ.get("PS5_LOCK"), help="this console's shared lock file (or PS5_LOCK)")
-    parser.add_argument("--candidate", required=True, help="frozen candidate: <dir>/PPSA99142/ and <dir>/SHA256SUMS")
+    parser.add_argument("--candidate", required=True, help="frozen candidate: <dir>/PPSA99012/ and <dir>/SHA256SUMS")
     parser.add_argument("--protocol", default=str(home / "ps5-homebrew-dev-protocol"))
     parser.add_argument("--out", default=str(home / "pt-console" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
     parser.add_argument("--root-row", default=r"\bDiscover\b", help="main-menu row to open (regular expression on its text)")

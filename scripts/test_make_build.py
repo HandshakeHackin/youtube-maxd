@@ -45,7 +45,7 @@ class BuildTests(unittest.TestCase):
                                         env=self.env, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(self.log.read_text().splitlines(),
-                                 ["deps", "build", f"verify {self.root}/dist/PPSA99142.zip"])
+                                 ["deps", "build", f"verify {self.root}/dist/PPSA99012.zip"])
         self.log.unlink()
         destination = self.root / "custom output"
         result = subprocess.run(["make", "--no-print-directory", "zip"], cwd=self.root,
@@ -53,7 +53,7 @@ class BuildTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.log.read_text().splitlines(),
-                         ["deps", "build", f"verify {destination}/PPSA99142.zip"])
+                         ["deps", "build", f"verify {destination}/PPSA99012.zip"])
         self.log.unlink()
         result = subprocess.run(["make", "--no-print-directory", "zip"], cwd=self.root,
                                 env=dict(self.env, DEPS_RC="17"), capture_output=True, text=True)

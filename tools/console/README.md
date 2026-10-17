@@ -1,7 +1,7 @@
 # Bounded console session
 
 `session.py` runs **one** hardware acceptance session of ProsperoTube
-(`PPSA99142`) on a PS5: one verified install, one launch, the core path, one
+(`PPSA99012`) on a PS5: one verified install, one launch, the core path, one
 clean close. It stops at the first anomaly, never repeats a launch or a close,
 and always runs the teardown and lock-release path. It follows
 [ps5-homebrew-dev-protocol](https://github.com/blackbearreloaded/ps5-homebrew-dev-protocol)
@@ -18,7 +18,7 @@ A console session needs the owner's word. The script refuses to start without
   (`--protocol`, default `~/ps5-homebrew-dev-protocol`).
 - A **frozen, instrumented** candidate: built with
   `scripts/build_ps5.sh --usb-remote --virtual-keyboard`, then frozen with the
-  protocol's `freeze-candidate.sh <dist>/PPSA99142 <frozen-dir>`. The session
+  protocol's `freeze-candidate.sh <dist>/PPSA99012 <frozen-dir>`. The session
   checks every file against `<frozen-dir>/SHA256SUMS` and refuses a build
   without the development interface. A release build cannot be driven.
 - An internet connection on the console. The application is self-sufficient:

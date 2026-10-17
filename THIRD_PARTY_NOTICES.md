@@ -23,7 +23,7 @@ YouTube is a trademark of Google LLC.
   licensed; its shared protocol header `source/lapy_elevation_protocol.h`
   (SHA-256 `bb02c4aa814eaba7a7a423a31b29ff41f786212c2953678cf29434e85fa0f869`)
   is LGPL-2.1-or-later. `scripts/build_lapy_helper.py` fetches that commit,
-  invokes upstream's unmodified `owned-helper` build for `PPSA99142`, verifies
+  invokes upstream's unmodified `owned-helper` build for `PPSA99012`, verifies
   the generated manifest and ships `lapy.elf`, `lapy-manifest.json` and the MIT
   licence (`Lapy-MIT.txt`) with the app, as
   [ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) does. The

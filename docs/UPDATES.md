@@ -64,7 +64,7 @@ overlay includes it at the app root before ZIP generation.
 ## Before the first release
 
 ProsperoTube needs a public release ZIP and a published signed catalog entry
-for title `PPSA99142`. Until then the check reports that the application is
+for title `PPSA99012`. Until then the check reports that the application is
 not listed; it does not fall back to unsigned releases or development offers.
 Publishing the repository, catalog entry or first release requires the owner's
 decision. No credentials are shipped to access a private repository.

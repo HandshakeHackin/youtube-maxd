@@ -10,7 +10,7 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[1]
 EVO = ROOT / "third_party/evo"
 PIN = "9715f6ee9bf9b53461d6fdf9a2e11b4c48357783"
-TITLE = "PPSA99142"
+TITLE = "PPSA99012"
 WORK = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache/prosperotube/native")))
 
 
@@ -294,7 +294,7 @@ def main():
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
-    param.update(titleId=TITLE, conceptId="99142", contentId=f"UP9000-{TITLE}_00-PROSPEROTUBE0000", contentVersion="01.000.000")
+    param.update(titleId=TITLE, conceptId="99012", contentId=f"UP9000-{TITLE}_00-PROSPEROTUBE0000", contentVersion="01.000.000")
     param["applicationCategoryType"] = 65536
     param["contentBadgeType"] = 2
     param.pop("gameIntent", None)

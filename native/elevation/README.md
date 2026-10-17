@@ -21,7 +21,7 @@ or writable storage.
 13.60 fixes of upstream PR #48 and #49, and the guarded target-lifetime and
 fail-closed accounting of
 [PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50)) with
-upstream's own `owned-helper` make target for `PPSA99142`, the official Payload
+upstream's own `owned-helper` make target for `PPSA99012`, the official Payload
 SDK v0.42 and the pinned ps5log header. Lapy's privileged source is neither
 copied nor changed. Before packaging, the build checks the generated manifest's
 title, one-shot mode, single request, no service, `root_layout_probe_retry`
