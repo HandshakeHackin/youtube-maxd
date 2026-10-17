@@ -99,3 +99,28 @@ test('OAuth Subscriptions pages list every grid and shelf card once, no shelf fo
     ['fixtureSU06','fixtureSU07','fixtureSU08']]);
   assert.equal(calls.filter(call=>call.continuation).length,1);
 });
+
+// A signed-in TV Home whose tiles carry command chains nested deeper than 40
+// levels (the console's Home failed on such an answer with a plain Error).
+test('OAuth Home reads its cards when command chains nest very deeply',async()=>{
+  const {find}=await import('./topic_catalog.mjs');
+  let chain={signalAction:{signal:'END'}};
+  for(let i=0;i<120;i++)chain={commandExecutorCommand:{commands:[chain]}};
+  const tile=n=>({tileRenderer:{contentType:'TILE_CONTENT_TYPE_VIDEO',contentId:`fixtureHM${String(n).padStart(2,'0')}`,
+    onSelectCommand:{watchEndpoint:{videoId:`fixtureHM${String(n).padStart(2,'0')}`}},onLongPressCommand:structuredClone(chain),
+    metadata:{tileMetadataRenderer:{title:{simpleText:`Home ${n}`},lines:[]}},header:{tileHeaderRenderer:{thumbnail:{thumbnails:[
+      {url:`https://i.ytimg.com/vi/fixtureHM${String(n).padStart(2,'0')}/hqdefault.jpg`,width:480,height:270}]}}}}});
+  const home={contents:{tvBrowseRenderer:{content:{tvSurfaceContentRenderer:{content:{sectionListRenderer:{contents:[
+    {shelfRenderer:{title:{simpleText:'Recommended'},content:{horizontalListRenderer:{items:[1,2,3].map(tile)}}}},
+    {shelfRenderer:{title:{simpleText:'Watch again'},content:{horizontalListRenderer:{items:[4,5].map(tile)}}}}]}}}}}}};
+  assert.equal(find(home,'tileRenderer',true).length,5);
+  const library=new Library(async()=>({session:{logged_in:true},actions:{execute:async(path,args)=>{
+    assert.equal(args.browseId,'default');return {success:true,status_code:200,data:structuredClone(home)};}}}),profiles);
+  const logged=[],error=console.error;console.error=line=>logged.push(String(line));
+  try {
+    const page=await library.execute({action:'home',profile:'saved'});
+    assert.deepEqual(page.items.filter(item=>!item.is_folder).map(item=>item.id),['fixtureHM01','fixtureHM02','fixtureHM03','fixtureHM04','fixtureHM05']);
+  } finally {console.error=error;}
+  // The work stays bounded: a structure of more nodes than the budget is refused.
+  assert.throws(()=>find({rows:Array.from({length:400001},()=>({}))},'tileRenderer',true),/exceeds limits/);
+});

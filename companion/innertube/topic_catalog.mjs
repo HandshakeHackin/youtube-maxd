@@ -11,13 +11,19 @@ for (const [name, browseId] of flatSections) sections.set(name, browseId);
 const likedMusicContinuation = '4qmFsgIWEhRGRW11c2ljX2xpa2VkX3ZpZGVvcw%3D%3D';
 const text = value => typeof value === 'string' ? value.slice(0, 192) :
   String(value?.simpleText ?? value?.runs?.map(run => run.text ?? '').join('') ?? '').replaceAll('\0', '').slice(0, 192);
+// A signed-in TV Home answer nests command chains (menus, feedback, sign-in
+// prompts) far deeper than any renderer read here, and since 2026-10-16 deeper
+// than the 40 levels this search once refused outright, which failed Home for
+// signed-in profiles. Levels below the limit are skipped, not fatal; the node
+// budget still bounds the work.
+const FIND_DEPTH = 64, FIND_NODES = 400000;
 export function find(node, name, all = false) {
   const matches = [], stack = [[node, 0]];
-  let remaining = 100000;
+  let remaining = FIND_NODES;
   while (stack.length) {
     const [current, depth] = stack.pop();
-    if (!current || typeof current !== 'object') continue;
-    if (--remaining < 0 || depth > 40) throw new Error('TV browse structure exceeds limits');
+    if (!current || typeof current !== 'object' || depth > FIND_DEPTH) continue;
+    if (--remaining < 0) throw new Error('TV browse structure exceeds limits');
     if (Object.hasOwn(current, name)) {
       matches.push(current[name]);
       if (!all) return current[name];
