@@ -5,7 +5,7 @@
 <h1 align="center">ProsperoTube</h1>
 
 <p align="center">
-  <strong>A native YouTube client for PlayStation 5 homebrew.</strong><br>
+  <strong>An unofficial port of SmartTube for PS5 homebrew.</strong><br>
   Browse, search and watch YouTube on the console with no computer involved.
 </p>
 
@@ -39,7 +39,7 @@
 ## Project foundation
 
 > [!IMPORTANT]
-> **Follows the approach of [SmartTube](https://github.com/yuliskov/SmartTube).** SmartTube's TV-first browsing and settings are the behaviour reference ([parity](docs/PARITY.md)). No SmartTube source is incorporated beyond its list of blocked live-chat author names.
+> **An unofficial port of [SmartTube](https://github.com/yuliskov/SmartTube).** ProsperoTube brings SmartTube's TV-first browsing, player and settings to the PS5 as a native app; [parity](docs/PARITY.md) tracks every SmartTube feature. It is written for the console rather than translated from SmartTube's Android code: no SmartTube source is incorporated beyond its list of blocked live-chat author names. Not affiliated with or endorsed by the SmartTube project.
 
 > [!IMPORTANT]
 > **Follows the approach of [FreeTube](https://github.com/FreeTubeApp/FreeTube).** Like FreeTube, ProsperoTube reads YouTube without an account or API key through YouTube.js. None of FreeTube's code or assets is included.
