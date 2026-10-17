@@ -525,6 +525,55 @@ static int recovery_scope(void) {
 int tube_recovery_active(void) { return g_recovery.phase == 2 && recovery_scope(); }
 int tube_recovery_pending(void) { return g_recovery.phase == 1 && recovery_scope(); }
 static char g_library_cursors[LIBRARY_PAGES][65];
+/* Paged lists besides the current one. A screen may page several lists at once
+ * (Afterglow Subscriptions: the feed and the channel strip; Home: its shelves),
+ * so listing one list's first page no longer forgets where another one was:
+ * the current list's cursors are kept aside and put back for its next page.
+ * Bounded: the list paged longest ago gives way. */
+#define LIBRARY_LISTS 4
+static void copy(char *out, size_t cap, const char *src);
+static struct { char parent[sizeof g_library_parent]; char cursors[LIBRARY_PAGES][65]; unsigned used; } g_library_lists[LIBRARY_LISTS];
+static unsigned g_library_list_clock;
+static void library_lists_forget(void) { for (int i = 0; i < LIBRARY_LISTS; ++i) g_library_lists[i].parent[0] = 0; }
+static int library_list_find(const char *parent) {
+    for (int i = 0; parent && *parent && i < LIBRARY_LISTS; ++i) if (!strcmp(g_library_lists[i].parent, parent)) return i;
+    return -1;
+}
+/* The current list goes aside (into its own place, an empty one, or the one paged longest ago). */
+static void library_list_keep(void) {
+    if (!*g_library_parent) return;
+    int slot = library_list_find(g_library_parent);
+    for (int i = 0; slot < 0 && i < LIBRARY_LISTS; ++i) if (!*g_library_lists[i].parent) slot = i;
+    if (slot < 0) { slot = 0; for (int i = 1; i < LIBRARY_LISTS; ++i) if (g_library_lists[i].used < g_library_lists[slot].used) slot = i; }
+    copy(g_library_lists[slot].parent, sizeof g_library_lists[slot].parent, g_library_parent);
+    memcpy(g_library_lists[slot].cursors, g_library_cursors, sizeof g_library_cursors);
+    g_library_lists[slot].used = ++g_library_list_clock;
+}
+/* The first page of a list: it becomes the current list, starting afresh. */
+static void library_open(const char *parent) {
+    if (strcmp(parent, g_library_parent)) library_list_keep();
+    const int kept = library_list_find(parent);
+    if (kept >= 0) g_library_lists[kept].parent[0] = 0;
+    copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors);
+}
+/* A later page of a list kept aside: it becomes the current list again. */
+static void library_recall(const char *parent) {
+    if (!parent || !*parent || !strcmp(parent, g_library_parent)) return;
+    const int slot = library_list_find(parent);
+    if (slot < 0) return;
+    static char cursors[LIBRARY_PAGES][65];
+    memcpy(cursors, g_library_lists[slot].cursors, sizeof cursors);
+    g_library_lists[slot].parent[0] = 0;
+    library_list_keep();
+    copy(g_library_parent, sizeof g_library_parent, parent);
+    memcpy(g_library_cursors, cursors, sizeof cursors);
+}
+/* Where an answer for `parent` keeps its next cursor: the current list or one kept aside. */
+static char (*library_cursors_of(const char *parent))[65] {
+    if (!strcmp(parent, g_library_parent)) return g_library_cursors;
+    const int slot = library_list_find(parent);
+    return slot >= 0 ? g_library_lists[slot].cursors : NULL;
+}
 static struct { char id[160], content[16385], rating[65], respond[65], profile[33]; unsigned rating_options; } g_comments[LOCAL_PAGE + 1];
 static struct { char id[160], content[16385]; } g_chat_messages[CHAT_HISTORY];
 static unsigned g_account_serial;
@@ -1918,7 +1967,7 @@ static void catalog_retire(void) {
     live_retire();
     if (!++g_playlist_scope) ++g_playlist_scope;
     memset(&g_selected_playlist, 0, sizeof g_selected_playlist);
-    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
+    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); library_lists_forget();
     g_search_feed.key[0] = 0; g_channel_list.complete = 0;
 }
 /* Channel page facts from the companion's first page. */
@@ -2312,7 +2361,7 @@ static void account_removed(void) {
     g_next_id[0] = 0; g_next_profile[0] = 0;
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
-    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
+    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); library_lists_forget();
     save();
     ++g_accounts_revision;
 }
@@ -2700,7 +2749,7 @@ static int set_source(const char *value) {
     memset(&g_account_intent, 0, sizeof g_account_intent);
     memset(&g_playlist_prompt, 0, sizeof g_playlist_prompt);
     memset(g_comments, 0, sizeof g_comments);
-    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors);
+    g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); library_lists_forget();
     if (strcmp(normalized, g_source)) { profile_settings_select("guest"); search_options_reset(); }
     if (strcmp(normalized, g_source) || *pin) {
         for (int i = 0; i < g_count; ++i) g_records[i].live_utc = 0;
@@ -2874,7 +2923,7 @@ static int request_decorate(Request *r) {
         cJSON_Delete(job); job = cJSON_CreateObject();
         cJSON_AddStringToObject(job, "action", "library"); cJSON_AddItemToObject(job, "library", page);
         r->kind = 3; r->channel_upgrade = 0; r->channel_page = 1;
-        copy(g_library_parent, sizeof g_library_parent, r->parent); memset(g_library_cursors, 0, sizeof g_library_cursors);
+        library_open(r->parent);
     }
     cJSON *target = !strcmp(str(job, "action"), "library") ? cJSON_GetObjectItemCaseSensitive(job, "library") :
         r->kind == 2 ? cJSON_GetObjectItemCaseSensitive(job, "playback") : job;
@@ -4373,7 +4422,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
                strcmp(str(result,"order"),g_account_intent.argument)) {
                 cJSON_Delete(root);tube_set_error("The companion did not confirm this playlist order. Reload the playlist to see it.");complete(r,0);return;
             }
-            g_library_parent[0]=0; /* the playlist is listed again in its new order */
+            g_library_parent[0]=0; library_lists_forget(); /* the playlist is listed again in its new order */
         }
         if(!strcmp(g_account_intent.action,"subscribe_notifications") &&
            (num(result,"api_version")!=1 || strcmp(str(result,"notifications"),g_account_intent.argument))) {
@@ -4460,8 +4509,8 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (more && !valid_cursor(cursor)) {
             free(items); cJSON_Delete(root); tube_set_error("The library pagination response was invalid."); complete(r, 0); return;
         }
-        if (!strcmp(r->parent, g_library_parent) && r->page + 1 < LIBRARY_PAGES)
-            copy(g_library_cursors[r->page + 1], sizeof g_library_cursors[0], more ? cursor : "");
+        char (*cursors)[65] = library_cursors_of(r->parent);
+        if (cursors && r->page + 1 < LIBRARY_PAGES) copy(cursors[r->page + 1], sizeof cursors[0], more ? cursor : "");
     }
     if (r->kind == 5) {
         memset(g_comments, 0, sizeof g_comments);
@@ -5597,7 +5646,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             sponsor_invalidate();
             g_next_id[0] = 0; g_next_profile[0] = 0;
             memset(g_comments, 0, sizeof g_comments);
-            g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); save();
+            g_library_parent[0] = 0; memset(g_library_cursors, 0, sizeof g_library_cursors); library_lists_forget(); save();
         }
         if (embedded_guest_only()) { /* this service bundle has no accounts: say so, instead of rows that cannot work */
             CATALOG_FOLDER( "account:notice", "Sign-in to YouTube arrives in a later version", "This version browses and plays as Guest, without an account");
@@ -6758,6 +6807,7 @@ static int search_feed_current(const char *parent) {
         !strcmp(g_search_feed.profile, g_library_profile);
 }
 static int library_search(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
+    if (page) library_recall(g_search_feed.key);
     if (page && (page >= LIBRARY_PAGES || strcmp(g_library_parent, g_search_feed.key) || !*g_library_cursors[page])) {
         tube_set_error("Search again to continue browsing these results."); cb(0, NULL, 0, 0, ud); return 0;
     }
@@ -6767,7 +6817,7 @@ static int library_search(const char *parent, int page, evo_provider_items_cb cb
         g_search_feed.serial = serial; snprintf(g_search_feed.key, sizeof g_search_feed.key, "search-feed:%u", serial);
         copy(g_search_feed.parent, sizeof g_search_feed.parent, parent);
         copy(g_search_feed.profile, sizeof g_search_feed.profile, g_library_profile); g_search_feed.scope = g_playlist_scope;
-        copy(g_library_parent, sizeof g_library_parent, g_search_feed.key); memset(g_library_cursors, 0, sizeof g_library_cursors);
+        library_open(g_search_feed.key);
     }
     Request *r = request_new(3, ud); if (!r) return -1;
     r->items_cb = cb; r->page = page; r->library_search = 1; r->search_rows = !page;
@@ -6797,6 +6847,7 @@ static int suggestion_row(const char *value) {
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if (page) library_recall(parent);
     /* LinkPhone polls this read-only snapshot while a cast is resolving. Do not
      * cancel that request or reset its launch context as an ordinary browse does. */
     if (parent && !strcmp(parent, "settings:remote"))
@@ -6995,7 +7046,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page >= LIBRARY_PAGES || (page && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload this channel section to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
         }
-        if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (!page) { library_open(parent); }
         Request *r = request_new(3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; r->channel_page = !searching; copy(r->parent, sizeof r->parent, parent);
         cJSON *operation = cJSON_CreateObject();
@@ -7095,7 +7146,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
             tube_set_error("Reload this section to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
         }
         if (!strcmp(section, "my_videos") && !strcmp(g_library_profile, "guest")) return account_notice(cb, ud);
-        if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (!page) { library_open(parent); }
         const char *key = parent + 8 + strlen(section);
         Request *r = request_new(3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; r->startup = startup; copy(r->parent, sizeof r->parent, parent);
@@ -7196,7 +7247,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload the playlist picker to continue."); cb(0, NULL, 0, 0, ud); return 0;
         }
-        if (!page) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (!page) { library_open(parent); }
         Request *r = request_new(7, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
         snprintf(r->payload, sizeof r->payload, "{\"action\":\"library\",\"library\":{\"action\":\"%s\",\"profile\":\"%s\",\"cursor\":\"%s\"}}",
@@ -7215,7 +7266,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload the discussion to continue reading."); cb(0, NULL, 0, 0, ud); return 0;
         }
-        if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (page == 0) { library_open(parent); }
         if (page == 0 && !replies) {
             memset(&g_comment_thread, 0, sizeof g_comment_thread); copy(g_comment_thread.video, sizeof g_comment_thread.video, identity);
             copy(g_comment_thread.profile, sizeof g_comment_thread.profile, g_library_profile); g_comment_thread.scope = g_playlist_scope;
@@ -7248,7 +7299,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
         if (page >= LIBRARY_PAGES || (page > 0 && (strcmp(parent, g_library_parent) || !*g_library_cursors[page]))) {
             tube_set_error("Reload this library screen to continue browsing."); cb(0, NULL, 0, 0, ud); return 0;
         }
-        if (page == 0) { copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors); }
+        if (page == 0) { library_open(parent); }
         Request *r = request_new(!strcmp(action, "profiles") ? 4 : 3, ud); if (!r) return -1;
         r->items_cb = cb; r->page = page; copy(r->parent, sizeof r->parent, parent);
         if (channels && !page) { channel_new_reset(); r->wants_health = r->new_content = 1; }
@@ -7280,6 +7331,7 @@ static int catalog(const char *parent, int page, evo_provider_items_cb cb, void 
          * action; otherwise the channel stays the plain catalog list. */
         r->channel_upgrade = r->wants_health = 1;
         if (!strcmp(parent, g_library_parent)) g_library_parent[0] = 0;
+        if (library_list_find(parent) >= 0) g_library_lists[library_list_find(parent)].parent[0] = 0;
     }
     cJSON *o = cJSON_CreateObject();
     int search = parent && !strncmp(parent, "search:", 7);
