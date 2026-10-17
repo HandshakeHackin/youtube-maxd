@@ -124,3 +124,15 @@ test('OAuth Home reads its cards when command chains nest very deeply',async()=>
   // The work stays bounded: a structure of more nodes than the budget is refused.
   assert.throws(()=>find({rows:Array.from({length:400001},()=>({}))},'tileRenderer',true),/exceeds limits/);
 });
+
+// A TV sign-in searches through the Guest session: its own TV session answers a
+// search in a layout the reader does not know, so every search came back empty.
+test('a TV sign-in searches through the Guest session',async()=>{
+  const asked=[];
+  const library=new Library(async profile=>({session:{logged_in:!!profile.oauth},
+    search:async query=>{asked.push([profile.id,query]);return {results:[],has_continuation:false};}}),profiles);
+  const page=await library.execute({action:'search',profile:'saved',query:'minecr'});
+  assert.deepEqual([asked,page.items],[[['guest','minecr']],[]]);
+  await library.execute({action:'search',query:'zoo'});
+  assert.deepEqual(asked.at(-1),['guest','zoo']);
+});

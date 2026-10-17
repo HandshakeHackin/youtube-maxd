@@ -521,8 +521,12 @@ export class Library {
           throw new LibraryError('upstream_format','YouTube returned suggestions for a different video.',502);
         feed=this.suggestionFilters.root(owner,info,client);break;
       }
-      case 'search': feed = searchFeed(await client.search(query, filters), node=>normalizeVideo(node), normalizePlaylist,
-        node=>normalizeChannel(node, imageUrl), LibraryError); break;
+      // A TV sign-in's own session answers a search in the TV layout, which the
+      // search reader does not know: every search of a signed-in profile came back
+      // empty (best matches while typing, results). Search results are public, so
+      // a TV sign-in searches through the Guest session.
+      case 'search': feed = searchFeed(await (profile.oauth ? await this.client('guest', where) : client).search(query, filters),
+        node=>normalizeVideo(node), normalizePlaylist, node=>normalizeChannel(node, imageUrl), LibraryError); break;
       case 'channels': {
         // The marker needs one extra guide request, so it is opt-in.
         const marks = input.new_content === true ? await channelMarks(client) : null;
