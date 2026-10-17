@@ -124,6 +124,7 @@ typedef struct Request {
     int page, music_origin, queue_origin, incognito;
     int search_rows, library_search, aggregate, typed_suggest;
     int wants_health, health_tried, channel_upgrade, channel_page, empty_pages, new_content, startup, codec_fallback;
+    int guest_retry;   /* a typed search of an account, asked once more as Guest */
     unsigned intent, requires;
     char parent[160];
     char profile[33];
@@ -3928,6 +3929,38 @@ int tube_resolve_unavailable(const char *id) {
 /* A companion without the library worker, or the offline fixture, cannot
  * filter: the same request continues as the plain video search, and later
  * searches skip the attempt until an option changes. */
+void evo_boot_log(const char *format, ...) __attribute__((weak));
+/* What the search screen asked while a text was typed, for the log; NULL for anything else. */
+static const char *typed_search_kind(const Request *r) {
+    if (r->kind == 16 && r->typed_suggest) return "suggestions";
+    if (!strncmp(r->parent, "search-preview:", 15)) return "best matches";
+    return NULL;
+}
+/* Completions and best matches are public. One that failed for an account profile (its own session
+ * may not answer a search the way the service reads it) is asked once more as Guest, so a failing
+ * account never leaves the search screen without either. The log says which failed and why, by the
+ * service's error code and the HTTP status only: never the text, the profile or an address. */
+static int typed_search_fallback(Request *r, const char *code, int status) {
+    const char *what = typed_search_kind(r);
+    if (!what) return 0;
+    const size_t length = code ? strlen(code) : 0;
+    const int named = length && length <= 40 && strspn(code, "abcdefghijklmnopqrstuvwxyz_") == length;
+    cJSON *job = r->guest_retry || status == 401 || status == 422 ? NULL : cJSON_Parse(r->payload);
+    cJSON *operation = cJSON_GetObjectItemCaseSensitive(job, "library");
+    if (!operation) operation = job;
+    const cJSON *profile = cJSON_GetObjectItemCaseSensitive(operation, "profile");
+    const int retry = cJSON_IsString(profile) && strcmp(profile->valuestring, "guest");
+    if (evo_boot_log)
+        evo_boot_log("ProsperoTube search: %s failed code=%s status=%d%s", what, named ? code : "none", status, retry ? " retry=guest" : "");
+    char *body = NULL;
+    if (retry && cJSON_ReplaceItemInObjectCaseSensitive(operation, "profile", cJSON_CreateString("guest")))
+        body = cJSON_PrintUnformatted(job);
+    cJSON_Delete(job);
+    if (!body || strlen(body) >= sizeof r->payload) { free(body); return 0; }
+    copy(r->payload, sizeof r->payload, body); free(body);
+    r->guest_retry = 1; r->job[0] = 0; r->deadline = now_ms() + 65000;
+    begin(r); return 1;
+}
 static int search_fallback(Request *r, const char *code) {
     if (!r->library_search || r->page || strcmp(r->parent, g_search_feed.key) ||
         (strcmp(code, "library_unavailable") && strcmp(code, "unknown_operation"))) return 0;
@@ -4278,6 +4311,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (r->stage == 6) { dislikes_result(r, ok && status == 200 ? root : NULL); cJSON_Delete(root); return; }
     if (!ok || status < 200 || status >= 300 || !root) {
         const cJSON *error = root ? cJSON_GetObjectItemCaseSensitive(root, "error") : NULL;
+        if (typed_search_fallback(r, str(error, "code"), status)) { cJSON_Delete(root); return; }
         if (status == 404 || status == 410) resolve_failure(r,error);
         auth_request_error(r, *str(error, "message") ? str(error, "message") : g_embedded ? "The built-in YouTube service did not answer. Retry." : "Could not reach the companion. Check that it is running and the LAN address is correct.");
         /* A refused field or a new pairing means the companion is not the one that was read. */
@@ -4316,6 +4350,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     if (strcmp(state, "done")) {
         const cJSON *error = cJSON_GetObjectItemCaseSensitive(root, "error");
         if (!strcmp(state,"failed") && search_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
+        if (typed_search_fallback(r, str(error, "code"), status)) { cJSON_Delete(root); return; }
         if (!strcmp(state,"failed") && codec_fallback(r,str(error,"code"))) { cJSON_Delete(root); return; }
         if (!strcmp(state,"failed") && r->kind == 3 && !r->page && !r->startup && r->items_cb && !strncmp(r->parent,"section:",8) &&
             !strcmp(str(error,"code"),"catalog_unavailable")) {
