@@ -95,13 +95,41 @@ test('duplicates and sparse source positions survive local pages and upstream co
   assert.deepEqual(c.items.map(item=>item.playback_context),[{playlist,index:40},{playlist,index:64}]);
   assert.equal(c.has_more,false);assert.equal(calls,1);
 });
-test('private watch-later and OAuth catalog entry points also retain occurrence context', async()=>{
-  const oauth={access_token:'synthetic',refresh_token:'synthetic',expiry_date:'2099-01-01T00:00:00.000Z',
-    client:{client_id:'synthetic',client_secret:'synthetic'}};
-  const library=new Library(async()=>({getPlaylist:async list=>({videos:[node(8,list)],has_continuation:false})}),
-    [{id:'signed',cookie:'',oauth}]);
-  const a=await library.execute({action:'watch_later',profile:'signed'});
-  assert.deepEqual(a.items[0].playback_context,{playlist:'WL',index:8});
-  const b=await library.playback({action:'catalog',kind:'playlist',id:playlist,profile:'signed'});
-  assert.deepEqual(b.items[0].playback_context,{playlist,index:8});
-});
+// Since f8617d2 a TV sign-in reads its lists from the TV browse page (/browse VL<list>): TV tiles,
+// or the web playlist layout through the pinned parser when the page has no tiles.
+// The tile is the one of fixtures/tv-home-shape.json (MediaServiceCore 7f36935), reduced.
+function accountPlaylist(shape, list) {
+  if(shape==='tv') {
+    const tile={contentType:'TILE_CONTENT_TYPE_VIDEO',contentId:id,onSelectCommand:{watchEndpoint:{videoId:id,playlistId:list,index:8}},
+      header:{tileHeaderRenderer:{thumbnail:{thumbnails:[{url:`https://i.ytimg.com/vi/${id}/hqdefault.jpg`,width:480,height:360}]},
+        thumbnailOverlays:[{thumbnailOverlayTimeStatusRenderer:{text:{simpleText:'0:10'},style:'DEFAULT'}}]}},
+      metadata:{tileMetadataRenderer:{title:{simpleText:'Repeated video'},
+        lines:[{lineRenderer:{items:[{lineItemRenderer:{text:{runs:[{text:'Channel'}]}}}]}}]}}};
+    return {contents:{tvBrowseRenderer:{content:{tvSurfaceContentRenderer:{content:{
+      twoColumnRenderer:{rightColumn:{playlistVideoListRenderer:{contents:[{tileRenderer:tile}]}}}}}}}}};
+  }
+  const card={videoId:id,title:{simpleText:'Repeated video',accessibility:{accessibilityData:{label:'Repeated video'}}},
+    index:{simpleText:'9'},shortBylineText:{runs:[{text:'Channel'}]},lengthSeconds:'10',isPlayable:true,
+    thumbnail:{thumbnails:[]},navigationEndpoint:{watchEndpoint:{videoId:id,playlistId:list,index:8}}};
+  return {contents:{twoColumnBrowseResultsRenderer:{tabs:[{tabRenderer:{selected:true,content:{sectionListRenderer:{contents:[
+    {itemSectionRenderer:{contents:[{playlistVideoListRenderer:{playlistId:list,contents:[{playlistVideoRenderer:card}]}}]}}]}}}}]}}};
+}
+for(const shape of ['tv','legacy'])
+  test(`private watch-later and OAuth catalog entry points also retain occurrence context (${shape} page)`, async()=>{
+    const oauth={access_token:'synthetic',refresh_token:'synthetic',expiry_date:'2099-01-01T00:00:00.000Z',
+      client:{client_id:'synthetic',client_secret:'synthetic'}};
+    const browsed=[];
+    const library=new Library(async()=>({session:{logged_in:true},actions:{execute:async(path,args)=>{
+      assert.equal(path,'/browse');assert.match(args.browseId,/^VL/);browsed.push(args.browseId);
+      return {success:true,status_code:200,data:accountPlaylist(shape,args.browseId.slice(2))};
+    }},
+    // A playlist opened for playback still goes through the pinned web getter.
+    getPlaylist:async list=>({videos:[node(8,list)],has_continuation:false})}),[{id:'signed',cookie:'',oauth}]);
+    const a=await library.execute({action:'watch_later',profile:'signed'});
+    assert.deepEqual(a.items[0].playback_context,{playlist:'WL',index:8});
+    const b=await library.playback({action:'catalog',kind:'playlist',id:playlist,profile:'signed'});
+    assert.deepEqual(b.items[0].playback_context,{playlist,index:8});
+    const c=await library.execute({action:'playlist',id:playlist,profile:'signed'});
+    assert.deepEqual(c.items[0].playback_context,{playlist,index:8});
+    assert.deepEqual(browsed,['VLWL','VL'+playlist]);
+  });
