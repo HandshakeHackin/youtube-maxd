@@ -260,7 +260,13 @@ dist/SHA256SUMS        ZIP checksum
 
 ## GitHub Actions and releases
 
-Builds on `main` run when started by hand; pull requests and version tags build automatically. A version tag publishes a pre-release with `PPSA99142.zip` and `SHA256SUMS`.
+The [Build workflow](.github/workflows/build.yml) runs for version tags (`v` + the content version, for example `v01.000.000`), pull requests and manual runs; pushes to `main` build nothing. It builds with `make zip` and runs the offline checks beside it, then checks the ZIP (one `PPSA99142` folder, every entry stored 0777, `eboot.bin`, `sce_sys`, the helpers, the version), runs `make verify`, attests the ZIP and uploads `PPSA99142.zip` with `SHA256SUMS`.
+
+- A pull request's build is named `ProsperoTube-PR<number>-<commit>` and carries `build-label.txt` in the app folder.
+- A tag publishes a pre-release with exactly those two files.
+- The PS5 shader compiler and the compiler cache come from the cache or the `build-cache` snapshot; a manual run on `main` with **snapshot** ticked refreshes them.
+
+Verify a downloaded release with `gh attestation verify PPSA99142.zip -R blackbearreloaded/ProsperoTube`. See [Build](docs/BUILD.md) for details.
 
 ## Documentation
 
