@@ -98,7 +98,7 @@ int main(void) {
     assert(pending_count==1 && strstr(pending[0].body,"\"parent\":\"channel:UCaaaaaaaaaaaaaaaaaaaaaa\""));drain();
     p->list_catalog(again,1,items_cb,NULL);assert(pending_count==1 && !strcmp(field("action"),"continue"));drain();
     p->list_catalog("library:home",0,items_cb,NULL);drain();
-    p->list_catalog(again,1,items_cb,NULL);assert(!last_ok && !pending_count && strstr(error_text,"Search again")); /* another library screen took the cursors */
+    p->list_catalog(again,1,items_cb,NULL);assert(pending_count==1 && !strcmp(field("action"),"continue"));drain(); /* another list in between keeps its own cursors */
     show("account:menu:abcdefghijk");assert(find("Block channel")>=0);show(row);
     assert(!p->list_catalog(again,0,items_cb,NULL) && !strcmp(field("type"),"video"));poll_job(mixed);
     assert(last_count==2 && !strcmp(last_items[0].id,"channel:UCaaaaaaaaaaaaaaaaaaaaaa") && !strcmp(last_items[1].id,"library:playlist:PLfixture01"));

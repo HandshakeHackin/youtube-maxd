@@ -533,6 +533,7 @@ static char g_library_cursors[LIBRARY_PAGES][65];
  * Bounded: the list paged longest ago gives way. */
 #define LIBRARY_LISTS 4
 static void copy(char *out, size_t cap, const char *src);
+static const char *channel_of(const char *parent);
 static struct { char parent[sizeof g_library_parent]; char cursors[LIBRARY_PAGES][65]; unsigned used; } g_library_lists[LIBRARY_LISTS];
 static unsigned g_library_list_clock;
 static void library_lists_forget(void) { for (int i = 0; i < LIBRARY_LISTS; ++i) g_library_lists[i].parent[0] = 0; }
@@ -555,6 +556,10 @@ static void library_open(const char *parent) {
     if (strcmp(parent, g_library_parent)) library_list_keep();
     const int kept = library_list_find(parent);
     if (kept >= 0) g_library_lists[kept].parent[0] = 0;
+    /* A channel shows one list at a time: a section of it replaces its other lists. */
+    char channel[25]; copy(channel, sizeof channel, channel_of(parent));
+    for (int i = 0; *channel && i < LIBRARY_LISTS; ++i)
+        if (*g_library_lists[i].parent && !strcmp(channel_of(g_library_lists[i].parent), channel)) g_library_lists[i].parent[0] = 0;
     copy(g_library_parent, sizeof g_library_parent, parent); memset(g_library_cursors, 0, sizeof g_library_cursors);
 }
 /* A later page of a list kept aside: it becomes the current list again. */
