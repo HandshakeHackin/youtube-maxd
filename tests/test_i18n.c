@@ -60,7 +60,7 @@ int main(void) {
         assert(tr("return to video", 0) && strcmp(out, "return to video"));
         assert(tr("Quality", 0) && tr("Second language", 0) && tr("Select quality, audio, playback speed or live chat", 0));
         /* Numbers and units pass through patterns. */
-        assert(tr("Up to 1440p", 0) && strstr(out, "1440"));
+        assert(tr("Frame rate: up to 60 fps", 0) && strstr(out, "60"));
         assert(tr("Zoom 150%", 0) && strstr(out, "150"));
         assert(tr("Speed for all videos: 1.25x", 0) && strstr(out, "1.25"));
         assert(tr("PAGE 2 OF 17", 0) && strstr(out, "2") && strstr(out, "17"));
@@ -68,12 +68,12 @@ int main(void) {
         assert(tr("Seek interval: 10 seconds", 0) && strstr(out, "10"));
         assert(tr("12 channels marked as watched", 0) && strstr(out, "12"));
         /* Lines the updater makes at run time: versions, percentages and names pass through, a known reason is translated. */
-        assert(tr("Version 1.2.3 is available. Open Settings, About to read what is new and update.", 0) && strstr(out, "1.2.3"));
+        assert(tr("Update to 1.2.3 now", 0) && strstr(out, "1.2.3"));
         assert(tr("Downloading: 37% - select to cancel", 0) && strstr(out, "37"));
-        assert(tr("Installed 0.1.0; latest 0.2.0 (ProsperoTube 0.2.0)", 0) && strstr(out, "0.1.0") && strstr(out, "ProsperoTube 0.2.0"));
+        assert(tr("3 of 12 MB; cancelling leaves the installed app untouched", 0) && strstr(out, "3") && strstr(out, "12"));
         assert(tr("What is new in ProsperoTube 0.2.0", 0) && strstr(out, "ProsperoTube 0.2.0") && strcmp(out, "What is new in ProsperoTube 0.2.0"));
         assert(tr("The catalog signature, hash or sequence could not be verified. No update was accepted.", 0));
-        assert(tr("Notify about updates: on", TUBE_I18N_LABELS) && tr("Theme: Teal (true black)", TUBE_I18N_LABELS));
+        assert(tr("Separate settings per account: on", TUBE_I18N_LABELS) && tr("Theme: Teal (true black)", TUBE_I18N_LABELS));
         char notice[256] = "ProsperoTube closes now. Wait for the update notification before opening it again.";        /* a toast's own buffer */
         tube_i18n_field(notice, sizeof notice, TUBE_I18N_LABELS);
         assert(strstr(notice, "ProsperoTube") && strcmp(notice, "ProsperoTube closes now. Wait for the update notification before opening it again."));
@@ -83,7 +83,7 @@ int main(void) {
 #ifdef TUBE_I18N_TEST_KIT
         /* The player interface path: whole lines and counted lines, never the two-part label rule. */
         assert(tube_i18n_language_kit((int)i) && tube_i18n_kit("Subscriptions", out, sizeof out) && tr("Subscriptions", TUBE_I18N_KIT));
-        assert(tube_i18n_kit("Up to 720p", out, sizeof out) && strstr(out, "720") && !tube_i18n_kit("Show dislikes: on", out, sizeof out));
+        assert(tube_i18n_kit("Frame rate: up to 30 fps", out, sizeof out) && strstr(out, "30") && !tube_i18n_kit("Show dislikes: on", out, sizeof out));
         assert(!tube_i18n_kit("Chat message by a viewer", out, sizeof out) && !tube_i18n_kit("", out, sizeof out) && !tube_i18n_kit("Subscriptions", out, 2));
 #else
         /* The player interface fonts hold ASCII and a few signs today: no catalog is drawn there. */
