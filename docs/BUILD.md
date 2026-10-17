@@ -156,7 +156,7 @@ The workflow needs no secret, only the run's own token. Its jobs:
   `scripts/build_ps5_shader_compiler.sh`. Without a cache it takes the
   `shader-compiler.tar.zst` snapshot of the `build-cache` release when that was
   made for the same key, and otherwise compiles it (`make host-deps`, then the
-  script with one job per CPU: about three hours on a hosted runner). It saves
+  script with one job per CPU: about an hour on a hosted runner). It saves
   the cache at once, so a failure further on never repeats that work.
 - **Build the release ZIP** (after the compiler) runs `make zip` with these
   caches: the SDK prefix with the PS5 dav1d and FFmpeg (EVO pin and the scripts
@@ -171,8 +171,11 @@ The workflow needs no secret, only the run's own token. Its jobs:
   helper, title and content version), runs `make verify`, attests the ZIP and
   uploads `PPSA99142.zip` + `SHA256SUMS` as artifact
   `ProsperoTube-<content version>-<commit>`.
-- **Offline checks** (beside the build) runs `make test`; its logs are an
-  artifact when it fails. clang-tidy is not run in Actions.
+- **Offline checks** (beside the build) is the complete release pass: it
+  prepares the native tree (`PROSPEROTUBE_NATIVE_WORK`), builds the FFmpeg
+  check trees with `scripts/build_check_ffmpeg.sh` (cached by its recipe) and
+  runs `make test`; its logs are an artifact when it fails. clang-tidy is not
+  run in Actions.
 - **GitHub pre-release** (tags only, after both) downloads that artifact,
   checks its two files and creates the pre-release. It never replaces a ZIP a
   release already has.
@@ -279,6 +282,9 @@ isolated configured FFmpeg 7.1.1 tree with the current DVR patch and static
 archives, plus `PROSPEROTUBE_DVR_CANDIDATE=1`; see [live DVR](LIVE_DVR.md).
 Set `PROSPEROTUBE_DASH_SOURCE` to the pristine FFmpeg 7.1.1 `dashdec.c` for
 the standalone DASH patch regression (its explicit file argument also works).
+`bash scripts/build_check_ffmpeg.sh` builds both trees (pristine and DVR
+candidate, from the checksum-pinned 7.1.1 release) into
+`~/.cache/prosperotube/check-ffmpeg` and prints these three variables.
 The two DVR pytest checks explicitly skip without that configured source, so a
 release pass must provide it. Keep logs from the first pass before using the
 filtered runner: it replaces `build/test-logs/` on each invocation.

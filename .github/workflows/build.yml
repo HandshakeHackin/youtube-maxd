@@ -407,6 +407,23 @@ jobs:
             standalone/ps5/.cache
           key: checks-libraries-${{ runner.os }}-${{ hashFiles('scripts/text_deps.sh', 'scripts/rmlui_host.sh', 'scripts/ui_kit.py', 'scripts/ui_kit.lock.json', 'standalone/ps5/fetch_quickjs.sh', 'standalone/ps5/fetch_cacert.sh') }}
 
+      - name: Restore the FFmpeg check sources
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/prosperotube/check-ffmpeg
+          key: check-ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/build_check_ffmpeg.sh', 'scripts/patch_ffmpeg_hls_dvr.py', 'scripts/ffmpeg_hls_dvr.inc') }}
+
+      - name: Fetch the build dependencies
+        run: make test-deps
+
+      # The complete release pass (docs/BUILD.md, Checks): the generated native tree
+      # that the overlay checks read, and the pinned FFmpeg trees of the DASH and DVR checks.
+      - name: Prepare the native tree and the FFmpeg check sources
+        run: |
+          echo "PROSPEROTUBE_NATIVE_WORK=$HOME/.cache/prosperotube/native" >> "$GITHUB_ENV"
+          PROSPEROTUBE_NATIVE_WORK=$HOME/.cache/prosperotube/native python3 scripts/prepare_native.py
+          bash scripts/build_check_ffmpeg.sh >> "$GITHUB_ENV"
+
       - name: Run the offline checks
         run: make test
 
