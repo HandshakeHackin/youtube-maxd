@@ -51,6 +51,10 @@ struct Application {
     Metadata* getMediaMetadataService() { return nullptr; }
 };
 static void tube_player_chat_tick_at(bool active,double pos) { chat_eligible=active; chat_position=pos; }
+/* background_play_overlay.py: a pause or a scrub of the viewer's own takes over from a
+ * background-play pause at the end of a video, and never resumes playback as a side effect. */
+static int background_pause_ends=0;
+static void tube_background_play_end_pause(int resume) { assert(resume==0); ++background_pause_ends; }
 struct PlaybackController {
     double getSeekIntervalSeconds() const;
     StateMachine<PlaybackState,PlaybackEvent> m_playbackFsm{PlaybackState::Stopped,"PlaybackFSM"};
@@ -124,7 +128,8 @@ int main() {
         assert(p.isScrubbing() && p.m_scrubTargetSeconds==50 && p.m_tubeScrubWasPaused==paused);
         assert(pb_scrub_hold==int(mode!=2)); assert(enginePaused==(paused || mode!=2));
         assert(p.isPaused()==enginePaused);
-        const auto pauseCount=pauses; p.beginScrub(); assert(pauses==pauseCount && p.m_tubeScrubWasPaused==paused);
+        const auto pauseCount=pauses; const int endsBefore=background_pause_ends;
+        p.beginScrub(); assert(pauses==pauseCount && p.m_tubeScrubWasPaused==paused && background_pause_ends==endsBefore+1);
         const int resumeBefore=resumes;
         now+=600; p.tickScrubAutoCommit();
         if (mode) { assert(p.isScrubbing() && !p.requests); assert(p.confirmScrub()); }
@@ -156,8 +161,8 @@ int main() {
         else { assert(released.isScrubbing()); released.cancelScrub(); }
         for (bool requestedPause:{false,true}) {
             PlaybackController external; reset(external,paused); external.moveScrub(10);
-            const auto externalResumes=resumes;
-            external.setPaused(requestedPause);
+            const auto externalResumes=resumes; const int endsBefore=background_pause_ends;
+            external.setPaused(requestedPause); assert(background_pause_ends>endsBefore);
             assert(!external.isScrubbing() && external.isPaused()==requestedPause);
             assert(!external.requests && !pb_scrub_hold && enginePaused==requestedPause);
             assert(external.getPositionSeconds()==40);
