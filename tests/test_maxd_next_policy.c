@@ -45,12 +45,22 @@ static void voice(void) {
     assert(!maxd_voice_command("play relaxing music").kind);
 }
 static void picture(void) {
+    assert(!tube_background_play_picture_active());
+    tube_background_play_picture(1);assert(!tube_background_play_picture_active());
     assert(!tube_background_play_begin(0,"guest"));assert(tube_background_play_begin(7,"guest"));
+    assert(!tube_background_play_picture_active());
     tube_background_play_picture(1);assert(tube_background_play_picture_active());
     assert(tube_background_play_matches(7,"guest") && !tube_background_play_matches(7,"child"));
     tube_video_destination_set(1392,730,480,270);tube_video_destination d;tube_video_destination_get(1920,1080,&d);
     assert(d.x==1392 && d.y==730 && d.w==480 && d.h==270);
+    /* A fresh browsing session must not inherit the previous PiP choice. */
+    assert(tube_background_play_begin(8,"child"));assert(!tube_background_play_picture_active());
+    tube_background_play_picture(1);assert(tube_background_play_picture_active());
+    tube_background_play_picture(0);assert(!tube_background_play_picture_active());
+    tube_background_play_picture(1);
     tube_background_play_clear();tube_video_destination_reset();assert(!tube_background_play_picture_active());
+    assert(tube_background_play_begin(9,"guest"));assert(!tube_background_play_picture_active());
+    tube_background_play_clear();
     tube_video_destination_get(1920,1080,&d);assert(!d.x && d.w==1920);
 }
 int main(void){transcript();sessions();voice();picture();puts("PASS: transcript parsing/persistence, optimal bounded sessions, strict voice commands and PiP lease/destination");}

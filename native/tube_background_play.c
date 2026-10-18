@@ -9,7 +9,7 @@ static int paused_state, resume_browser, picture;
 static int end_pause;
 int tube_background_play_begin(unsigned selection,const char *profile) {
     if (!selection || !profile || !*profile || strlen(profile)>=sizeof profile_id) return 0;
-    owner=selection;resume_browser=1;__atomic_store_n(&end_pause,0,__ATOMIC_RELAXED);snprintf(profile_id,sizeof profile_id,"%s",profile);return 1;
+    owner=selection;picture=0;resume_browser=1;__atomic_store_n(&end_pause,0,__ATOMIC_RELAXED);snprintf(profile_id,sizeof profile_id,"%s",profile);return 1;
 }
 int tube_background_play_active(void) { return owner!=0; }
 void tube_background_play_picture(int enabled) { picture=owner && enabled; }

@@ -5,6 +5,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* PiP defaults off for each session; enable only after an explicit user choice. */
 int tube_background_play_begin(unsigned selection,const char *profile);
 int tube_background_play_active(void);
 void tube_background_play_picture(int enabled);
