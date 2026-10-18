@@ -1,9 +1,12 @@
 # Catalog submission — YouTube Max’d
 
-**Status:** submitted as [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) by HandshakeHackin on
+**Status:** approved and merged as [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) on
 2026-10-18. Submission validation, the release scan and catalog tests passed.
-The request remains open and awaits maintainer review, merge and deployment.
-The source repository is public; no live store listing is claimed.
+The [YouTube Max’d store listing](https://prosperostore.net/app/PPSA99991/) is live
+and shows `1.2.0-preview.1`; verified on 2026-10-18.
+
+This listing uses the original preview. The six newer experience features remain
+in the development candidate and are not included in this store download.
 
 **Title ID:** PPSA99991
 
@@ -55,7 +58,8 @@ these features or endorsed this fork.
   content version and icon.
 - [x] [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) opened from HandshakeHackin, the owner of `source_repo`.
 - [x] Upstream submission validation, release scan and catalog tests passed.
-- [ ] Maintainer review, helper approval where required, merge and deployment.
+- [x] Maintainer approval and catalog merge.
+- [x] Live store deployment verified at `https://prosperostore.net/app/PPSA99991/`.
 
 Release: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1
 
@@ -85,8 +89,9 @@ it: **0 errors, 6 warnings and 1 summary notice**. The full report is
   `36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f`, is the
   retained inherited update payload. Its source is `native/update/helper/` and
   `native/update/kit/`. Automatic updates are disabled in this Max’d build.
-- Both helper hashes are absent from the current approved list. This
-  preparation does not edit `helpers/approved.json` or claim helper approval.
+- Both helper hashes were absent from the approved list at the checked
+  preparation revision. This preparation did not edit `helpers/approved.json`
+  or assert separate helper-whitelist approval.
 
 ## Validation and limits
 

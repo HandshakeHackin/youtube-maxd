@@ -6,7 +6,7 @@ App source: `014adc2d901518f47fb4d1fbc99eab15b41b79aa`.
 | Check | Result |
 | --- | --- |
 | Official offline catalog check, including proposed entry and existing catalog | Passed: 95 records, zero errors/warnings/notices |
-| Title ID | `PPSA99991` absent from checked upstream catalog; not reserved by this preparation |
+| Title ID | `PPSA99991` was unused at preparation; the app record is now merged |
 | Catalog record | Twelve fields; `video` category; version matches `v1.2.0-preview.1` |
 | App ZIP | 303 entries; CRCs, 0777 modes, identity and original SHA-256 verified |
 | Executable / voice model | Match the original preview's pinned hashes |
@@ -17,14 +17,15 @@ App source: `014adc2d901518f47fb4d1fbc99eab15b41b79aa`.
 | Published complete source | CI verified 4,388 manifest files; SHA-256 `5cee83a5d64f16be306ddefd08705220f2240b7ee6c77055b8ed56e955943d59` |
 | Public visibility | Confirmed public on 2026-10-18 |
 | Current online catalog verification | Passed against the public repository: zero errors/warnings; two informational notices for matching ZIP SHA-256 and contentVersion `01.002.000`; pinned icon verified |
-| Catalog submission | [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) submitted by HandshakeHackin; open, not merged |
+| Catalog submission | [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) submitted by HandshakeHackin; approved and merged on 2026-10-18 |
 | Upstream CI | Validate submission, Scan the release and Tests and offline check passed |
-| Store deployment | Pending maintainer review, merge and deployment; no live listing claimed |
+| Store deployment | [Live listing](https://prosperostore.net/app/PPSA99991/) verified on 2026-10-18; version `1.2.0-preview.1` |
 | PS5 hardware acceptance | Not performed; this exact integrated build remains experimental |
 
 The scanner's six warnings cover sandbox elevation, the local payload-loader
-address, two bundled payloads and the two helper hashes absent from the current
-approved list. Approval remains a catalog-maintainer task. See
+address, two bundled payloads and the two helper hashes absent from the approved
+list at the checked preparation revision. The catalog submission is now approved
+and merged; no separate helper-whitelist or hardware-acceptance claim is made. See
 [the complete report](../docs/releases/v1.2.0-preview.1/catalog-scan.txt).
 
 The ZIP was not rebuilt or altered for store naming. Its SHA-256 is

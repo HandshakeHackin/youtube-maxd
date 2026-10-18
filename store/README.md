@@ -3,7 +3,7 @@
 Catalog: [darkxex/ps5-homebrew-catalog](https://github.com/darkxex/ps5-homebrew-catalog).
 Store: [prosperostore.net](https://prosperostore.net/).
 
-The proposed listing is [PPSA99991.json](PPSA99991.json), category **Video & TV**.
+The catalog listing is [PPSA99991.json](PPSA99991.json), category **Video & TV**.
 It targets the existing experimental preview `v1.2.0-preview.1` and the exact
 original app ZIP, renamed `PPSA99991.zip` without changing its bytes.
 [SUBMISSION.md](SUBMISSION.md) contains provenance, helper disclosures and review details.
@@ -12,8 +12,13 @@ The GitHub preview now has all nine verified attachments, including the
 required app ZIP and complete source archive. The repository is now **public**.
 Official offline and online catalog checks pass with zero errors or warnings.
 The owner submitted [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397). Submission validation,
-the release scan and catalog tests passed. It remains open and awaits maintainer
-review, merge and deployment; no live store listing is claimed.
+the release scan and catalog tests passed. The PR was approved and merged on
+2026-10-18. The [store listing](https://prosperostore.net/app/PPSA99991/) is live
+with `1.2.0-preview.1`, verified on 2026-10-18.
+
+The six newer experience features remain in the development candidate. This
+store listing continues to use the original preview; no newer binary or catalog
+update has been published by the feature work.
 
 ## Prepared files
 
@@ -39,12 +44,12 @@ preparation do not change its version or executable.
 
 Requirements were checked against catalog commit
 `0c44e95fefd170ff4e5be4f941bae9cfd6f67f81` on 2026-10-18.
-The title ID was absent from that catalog; it is not reserved by this preparation.
+The title ID was absent at preparation; it is now listed by the merged record.
 
 The local ZIP scan passed with **0 errors, 6 warnings and 1 summary notice**.
 It reports sandbox elevation, the local loader address, Lapy and the retained
-self-updater payload. Both helper hashes need maintainer review. The catalog's
-approved-helper list is not changed. Read the full report; a static scan does
+self-updater payload. The helper hashes were not in the approved list at that preparation revision.
+This preparation did not change the catalog's approved-helper list. Read the full report; a static scan does
 not establish PS5 functionality or approve a helper.
 
 To check a fresh catalog checkout after copying the record into `apps/`:
@@ -74,12 +79,13 @@ succeeded. The app asset’s GitHub digest matches the proposed record; see the
 [Catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) was opened by **HandshakeHackin**, the source
 repository owner, on 2026-10-18. It adds only `apps/PPSA99991.json`.
 [Validate submission and Scan the release](https://github.com/darkxex/ps5-homebrew-catalog/actions/runs/39144729795) passed; the catalog
-Tests and offline check also passed. There are no submitted reviews yet.
+Tests and offline check also passed. The request was approved and merged on
+2026-10-18; the merged catalog record matches the prepared artifact URL and SHA-256.
 
-Maintainers decide whether the fork meets their distinct-app policy and review
-the disclosed helper warnings; no upstream refusal, endorsement or helper
-approval is claimed. Store availability follows maintainer merge and deployment.
+Maintainers approved the catalog submission; the disclosed scan warnings remain
+part of the review history. A live listing does not establish PS5 hardware
+acceptance, upstream endorsement or separate helper-whitelist approval.
 
-The one-record change is prepared on [HandshakeHackin:add-youtube-maxd-1.2.0-preview.1](https://github.com/HandshakeHackin/ps5-homebrew-catalog/tree/add-youtube-maxd-1.2.0-preview.1).
+The one-record change was prepared on [HandshakeHackin:add-youtube-maxd-1.2.0-preview.1](https://github.com/HandshakeHackin/ps5-homebrew-catalog/tree/add-youtube-maxd-1.2.0-preview.1).
 
-[Track the submitted catalog pull request](https://github.com/darkxex/ps5-homebrew-catalog/pull/397). The request is open; no duplicate submission is needed.
+[Track the submitted catalog pull request](https://github.com/darkxex/ps5-homebrew-catalog/pull/397). The request is merged and the listing is live; no duplicate submission is needed.
