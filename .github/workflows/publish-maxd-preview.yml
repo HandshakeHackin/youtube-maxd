@@ -1,3 +1,5 @@
+# YouTube Max’d - Publish the immutable original preview assets.
+# SPDX-License-Identifier: GPL-3.0-or-later
 name: Publish Max'd preview assets
 
 on:

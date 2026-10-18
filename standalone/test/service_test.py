@@ -141,7 +141,7 @@ def basics(s):
     status, headers, health = s.call("GET", "/v1/health", token=None)
     same("health status", (status, headers.get("content-type")), (200, "application/json"))
     same("health fields", {k: v for k, v in health.items() if k != "features"},
-         {"api_version": 1, "version": "1.002.000", "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
+         {"api_version": 1, "version": "1.003.000", "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
           "sponsorblock_alt": False, "proxy": False, "embedded": True, "account_playback": False})
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",

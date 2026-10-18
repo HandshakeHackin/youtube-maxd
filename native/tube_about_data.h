@@ -3,11 +3,19 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.002.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 20
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.003.000"
+#define TUBE_ABOUT_CHANGELOG_ROWS 28
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.003.000", "Transcript search with timestamp seeking and local, profile-owned bookmarks."}, \
+    {"1.003.000", "Optional in-app picture-in-picture in Afterglow. Off by default, enabled through R2 \342\206\222 Picture-in-picture for the current session; the choice is not saved."}, \
+    {"1.003.000", "Local push-to-talk playback commands for pause, resume, seek, captions, quality and queue additions."}, \
+    {"1.003.000", "Session builder selects unwatched videos to fit a chosen 15\342\200\223120-minute budget."}, \
+    {"1.003.000", "Four independent signed-out family profiles with parent PIN, approved-channel playback, optional search restrictions and daily viewing limits."}, \
+    {"1.003.000", "PS5-hosted LAN party queue with phone QR joining, expiring invitations, guest votes and host approval."}, \
+    {"1.003.000", "Content version raised to 01.003.000; title ID and data location retained."}, \
+    {"1.003.000", "Native compilation and host checks pass. PS5/live account testing remains outstanding; linked Google child-profile import remains research."}, \
     {"1.002.000", "YouTube Max\342\200\231d now uses the pinned standalone ProsperoTube/EVO foundation, keeping its own identity, icon and coral/pink/violet palette."}, \
     {"1.002.000", "Embedded YouTube.js and TV activation-code login replace the prototype's Google Cloud configuration requirement."}, \
     {"1.002.000", "Native AVC/VP9/HEVC and HDR paths, software AV1, captions, chapters, quality/audio switching and live DVR are included from upstream."}, \

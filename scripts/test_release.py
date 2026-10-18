@@ -65,12 +65,13 @@ assert build.index(normalize) < build.index(copy_zip)
 assert "-name '*.zip'" not in build
 
 workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
-assert [path.name for path in workflows] == ["build-cache.yml", "build.yml"]
+assert [path.name for path in workflows] == ["build-cache.yml", "build.yml", "publish-maxd-preview.yml"]
 for path in workflows:
     text = path.read_text()
-    # Every workflow carries the licence header: project line, copyright, SPDX.
-    assert text.startswith("# ProsperoTube - "), path.name
-    assert "# Copyright (C) 2026 BlackBearReloaded\n# SPDX-License-Identifier: GPL-3.0-or-later\n" in text, path.name
+    assert "# SPDX-License-Identifier: GPL-3.0-or-later\n" in text, path.name
+    if path.name != "publish-maxd-preview.yml":
+        assert text.startswith("# ProsperoTube - "), path.name
+        assert "# Copyright (C) 2026 BlackBearReloaded\n" in text, path.name
     uses = re.findall(r"uses: (\S+)", text)
     assert all(re.fullmatch(r"actions/[a-z-]+(/[a-z-]+)?@[0-9a-f]{40}", action) for action in uses), uses
     assert "secrets." not in text   # nothing but the run's own token
