@@ -74,10 +74,11 @@ jobs:
 
           repo = os.environ['GITHUB_REPOSITORY']
           tag = 'v1.3.0-preview.1'
+          release_id = 416643727
           def release():
-              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/releases/tags/{tag}']))
+              return json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/releases/{release_id}']))
           current = release()
-          if not current.get('prerelease'):
+          if current.get('tag_name') != tag or not current.get('prerelease'):
               raise SystemExit('Expected the experimental prerelease')
           existing = {asset['name']: asset for asset in current.get('assets', [])}
           expected = {}
