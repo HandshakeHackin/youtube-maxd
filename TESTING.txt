@@ -1,12 +1,12 @@
-YouTube Max’d 1.2.0 / v1.2.0-preview.1 — console testing guide
+YouTube Max’d 1.3.0 / v1.3.0-preview.1 — console testing guide
 Intended setup: PS5 firmware 11.00, ShadowMount+.
-Title: PPSA99991. Content version: 01.002.000.
+Title: PPSA99991. Content version: 01.003.000.
 
 This exact integrated build has not been tested on a PS5. The host checks do
 not establish hardware support. Keep a backup of app data before testing.
 
 INSTALL
-Extract PPSA99991.zip (or the identical YouTube-Maxd-PS5.zip). Copy the complete
+Extract PPSA99991.zip from the 1.3.0 preview release. Copy the complete
 PPSA99991 folder to the location scanned by ShadowMount+, commonly
 /data/homebrew/PPSA99991. Keep assets, the voice model, helper and manifest.
 Use the console's existing ELF loader on TCP 9021 or compatible resident Lapy.
@@ -39,6 +39,25 @@ CHECK ON THE CONSOLE
    This app does not control console chassis LEDs.
 9. Phone casting and background audio are experimental. Test their ownership,
    exit and interaction with voice/profile switching separately.
+
+NEW VIEWING FEATURES
+10. PiP must be off at startup. In Afterglow, select R2 -> Picture-in-picture;
+    browse/search, tap L3 to return, then change video/profile and restart.
+    Confirm it stays off until explicitly selected again. Test regular audio-
+    only background browsing separately. Check SDR/HDR and each codec in PiP.
+11. R2 -> Transcript & bookmarks: search available captions, seek to a result,
+    save/delete named timestamps, restart and check per-profile isolation.
+12. During playback hold L3: test pause, resume, forward 30 seconds, captions
+    off, quality 1080p and add to queue. Test cancellation and unknown commands.
+13. In YouTube preferences, build sessions for several 15-120-minute budgets.
+    Confirm total selected video runtime fits and watched videos are excluded.
+14. Test all four local family slots with a parent PIN, approved channel IDs,
+    search restriction and short viewing limit. Check resolved-channel denial
+    via search, queues, direct links and phone launch. Check PIN on exit,
+    restart persistence, separate histories/bookmarks and background/PiP usage.
+15. Start a party room, scan the QR on phones on the same LAN and test guest
+    suggestions/votes, host approval/rejection, removal, expiration and profile
+    change. Restart the app and confirm the room is off. No router forwarding.
 
 REPORT
 Include the version/build ID, firmware, launcher, interface, steps, actual

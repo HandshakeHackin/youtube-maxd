@@ -1,45 +1,65 @@
-# YouTube Max’d 1.2.0 — first standalone preview
+# YouTube Max’d 1.3.0 — viewing features preview
 
-The first YouTube Max’d preview combines a standalone PS5 YouTube client with local voice search, Smart playlists, Auto Max quality and the approved red-to-white Max’d identity. Intended setup: firmware 11.00 with ShadowMount+.
+Adds transcript tools, optional in-app PiP, voice controls, session building,
+local family profiles and a PS5-hosted party queue. Intended setup: PS5 firmware
+11.00 with ShadowMount+. **Experimental prerelease; PS5 testing is still needed.**
 
-## Added
+## Changes since v1.2.0-preview.1
 
-- Local multilingual voice search: hold L3, speak after Listening, then release. Whisper recognition runs on the console; Circle cancels and capture stops after six seconds.
-- Profile-owned Smart playlists with Home, Subscriptions, Favorites or Play queue sources, plus title, creator, duration, unwatched and live filters.
-- Optional Auto Max quality responds to sustained buffering/dropped frames and tries guarded upgrades after stable playback. Manual choices and saved resolution/FPS/codec limits take priority. Off by default.
-- Per-profile maximum-quality settings from 144p to 2160p.
-- Red-to-white M/play artwork and matching DualSense browsing, loading, sign-in, voice, play, pause and error effects.
-- Separate launcher/helper identity PPSA99991 and data under /data/youtube-maxd.
+- **Transcript search and bookmarks:** search available captions, jump to a
+  line and save named timestamps separately for each local profile.
+- **Optional in-app picture-in-picture:** watch in the bottom-right corner
+  while browsing in Afterglow. **Off by default.** Select **R2 → Picture-in-picture**
+  to activate it for the current session; tap L3 to return. The choice is not
+  saved for future sessions. PiP stays inside the app.
+- **Push-to-talk playback commands:** hold L3, speak after Listening and release
+  to pause/resume, seek, change available quality/captions or add to the queue.
+  Recognition runs locally; Circle cancels. No always-on microphone.
+- **Session builder:** choose a source and a 15–120-minute budget to create a
+  playlist of unwatched videos within that runtime.
+- **Local family profiles:** four independent signed-out slots, parent PIN,
+  approved-channel playback, optional search restriction and daily viewing
+  limits. These are local app controls; Google child profiles are not imported.
+- **Party queue:** optional LAN page hosted on the PS5, phone QR joining,
+  expiring invites, guest suggestions/votes and host approval. Off at startup;
+  no companion PC or Google Cloud project required.
+- **Update identity:** content version increases from `01.002.000` to
+  `01.003.000`. The title ID `PPSA99991` and `/data/youtube-maxd` data location
+  remain the same. Automatic in-app updating remains disabled.
 
-## Included foundation
+Existing local voice search, Smart playlists, optional Auto Max, red-to-white
+DualSense effects, Google TV-code sign-in, SponsorBlock and DeArrow remain included.
+See [feature instructions and limits](https://github.com/HandshakeHackin/youtube-maxd/blob/v1.3.0-preview.1/docs/MAXD_NEXT.md).
 
-- ProsperoTube/EVO browsing, subscriptions, library, device-code sign-in and native media playback. No companion PC/NAS or Google Cloud project is required.
-- Per-video formats and audio tracks; AVC, VP9 and HEVC native decoder paths, with AV1 software decoding. Returned streams determine available formats.
-- Optional SponsorBlock, DeArrow and dislike counts; captions, translations, chapters, seek previews, history, resume, queue and backups.
-- Classic and Afterglow interfaces. Classic remains the default. Casting and background audio remain experimental.
+## Install or update
 
-## Install
+Download **PPSA99991.zip** from this release. Close the app, back up
+`/data/youtube-maxd`, extract the ZIP and replace the complete `PPSA99991` app
+folder in your ShadowMount+ location, commonly `/data/homebrew/PPSA99991`.
+Keep all assets and helpers, including the bundled voice model.
 
-Download the app ZIP, extract it and copy the complete PPSA99991 folder to the location scanned by ShadowMount+, commonly /data/homebrew/PPSA99991. Close the previous app before replacement; keep all assets and helpers, including the local voice model. Back up app data before an update.
-
-Native startup needs your console-side ELF loader on TCP 9021 or a compatible resident Lapy service. Content version is 01.002.000. Avoid collisions with other homebrew using this development title ID. Automatic updates are disabled for this preview.
-
-[Download the app ZIP](https://github.com/HandshakeHackin/youtube-maxd/raw/refs/heads/downloads/YouTube-Maxd-PS5.zip). See the repository README for sign-in, controls, checksums and matching source. The icon and GitHub Source code ZIP are not installable app bundles.
+Startup needs a compatible console-side ELF loader on TCP 9021 or resident
+Lapy service. The app icon and GitHub's automatic Source code ZIP are not
+installable app bundles. **YouTube-Maxd-source.zip** contains the matching
+complete corresponding sources. Use **SHA256SUMS** to verify the attachments.
 
 ## Validation and limits
 
-Native compilation, executable/package checks, embedded service/account fixtures, local voice-model host tests, Smart playlist/Auto Max checks, controller-bridge checks and interface fixtures passed during development. This exact integrated build has not been tested on a PS5.
+Native PS5 compilation, signed-container integrity, package metadata/permissions,
+source manifest and host tests are checked for this revision. Recorded checks
+cover transcript/bookmark handling, session selection, voice commands, PiP
+defaults/ownership, family restrictions/isolation, party HTTP/queue behavior
+and background playback. Fixture checks do not establish live service behavior.
 
-Firmware 11.00 boot, live playback/sign-in, 4K/HDR/AV1 throughput, microphone routing/speed, physical lighting, casting and real Auto Max behavior need console acceptance. Auto Max can briefly rebuffer when changing format. Account-required playback is off by default. Ad removal is not guaranteed; internal YouTube APIs and community services may change.
+No PS5 is attached to the build environment. Boot, actual playback/sign-in,
+PiP codecs/HDR, microphone routing/latency and physical controller behavior
+still need console testing. Linked Google supervised-profile import remains
+research. Family controls are local, not YouTube Kids certification. Party
+rooms use HTTP on a trusted LAN. Ad removal is not guaranteed.
 
-See the README and MAXD_VALIDATION.md for the evidence and remaining tests. Report the build, firmware, launcher, steps and sanitized logs; never include tokens, cookies, passwords or account files.
+## Credits
 
-## Credits and source
-
-Based on ProsperoTube, copyright (C) 2026 BlackBearReloaded, pinned at 3446f364, and EVO Player pinned at 9715f6ee. The on-console service, account/UI/player foundation and existing integrations derive from their work. Additional credits include YouTube.js, QuickJS-NG, whisper.cpp/OpenAI Whisper, SponsorBlock/DeArrow by Ajay Ramachandran and community, the public PS5 toolchain, and Nuvio Max’d as the artwork reference.
-
-GPL-3.0-or-later; dependency licenses and corresponding sources are retained. The initial app corresponds to source commit 014adc2d901518f47fb4d1fbc99eab15b41b79aa. New documentation does not change the compiled app. Independent homebrew, unaffiliated with Google, YouTube or Sony.
-
-## Store delivery
-
-ProsperoStore catalog preparation is separate from the GitHub preview. It requires a public repository, an attached GitHub release ZIP and maintainer review/merge/deployment. No store listing or submission is claimed by these release notes.
+Built on **ProsperoTube by BlackBearReloaded and contributors** and **EVO Player**.
+Their player, embedded service and account/integration work remain credited.
+Additional acknowledgments and licenses ship with the app and matching sources.
+GPL-3.0-or-later; independent homebrew, unaffiliated with Google, YouTube or Sony.

@@ -1,47 +1,48 @@
-YouTube Max’d 1.2.0 — validation summary
-Application source: 014adc2d901518f47fb4d1fbc99eab15b41b79aa
+YouTube Max’d 1.3.0-preview.1 — validation summary
+Application build source: 78718a740137f1a111aa73926d74d22d8af8b1d4
+Content version: 01.003.000. Title: PPSA99991.
 Target: PS5 firmware 11.00 / ShadowMount+.
 
-RECORDED DEVELOPMENT CHECKS (2026-10-17/18)
-These are the existing development results, not new runs caused by assembling
-release notes. Full detail and caveats: docs/MAXD_VALIDATION.md.
+CHECKS REPEATED FOR THIS REVISION (2026-10-18)
+- Native feedback bridge and identity/storage/updater isolation: passed.
+- Release/version/workflow contract and generated in-app changelog: passed.
+- Updated embedded HTTP service fixtures: 186 checks passed, 0 failed.
+- ASan/UBSan policy checks: transcript parsing/bookmark persistence, optimal
+  bounded session selection, strict voice commands, PiP default off and reset,
+  ownership and destination: passed.
+- Real loopback party HTTP pairing/authentication, origin checks, suggestion/
+  vote/host approval, expiry and revocation: passed.
+- JavaScript party-page link validation: passed.
+- Generated background ownership/EOF/return/protected-input regression: passed
+  against the actual generated release tree; native PiP source matches the tree.
+- Official catalog unit suite: 176 tests passed, two skipped.
 
-- Native player and local voice sources compiled/linked with the public PS5
-  Payload SDK 0.42, PacBrew 0.39 and Clang 19.1.7; executable integrity checked.
-- Embedded service fixtures: 792 checks in normal and ASan/UBSan builds;
-  YouTube library/worker: 210 checks. These use mocked account responses.
-- Native quality/audio selection, profile persistence, codecs, SponsorBlock,
-  recovery, account settings/actions and identity/storage checks passed.
-- Local Whisper host recognition, silence/corrupt-model rejection, lifecycle,
-  cancellation, timeout, ownership and held-L3 dispatch checks passed.
-- Smart playlist and Auto Max policy/provider tests passed, including bounded
-  scans, filtered playback snapshots, profile isolation, manual overrides and
-  retained position/audio/captions after reopening.
-- Controller feedback bridge tests passed. No physical controller was measured.
-- Baseline Afterglow: 638 boards in four themes, 28,112 checks; new voice
-  fixtures: 408 checks; Smart/Auto Max fixtures: 400 checks. Host-rendered data.
+RECORDED DEVELOPMENT CHECKS
+The six-feature implementation previously passed native provider transcript,
+bookmark, session, family PIN/channel/time-limit and party queue tests; Smart
+playlist/Auto Max/protected-profile regressions; 393 JavaScript library checks,
+family isolation; 792 embedded-service fixture checks; and 356 new Afterglow
+board checks across four looks. These were not all repeated for the version
+bump. Details: docs/MAXD_NEXT_VALIDATION.md and docs/MAXD_VALIDATION.md.
 
-RELEASE PREPARATION
-The assembler verifies app ZIP CRCs, 0777 modes, identity, executable SHA-256,
-voice model hash, icon equality and every corresponding-source manifest hash.
-Exact files, digests and counts appear in native-validation.json and SHA256SUMS.
-
-Official catalog scanner, pinned at 0c44e95fefd170ff4e5be4f941bae9cfd6f67f81:
-0 errors, 6 warnings and 1 summary notice. The complete report is catalog-scan.txt.
-It read the archive without executing its contents. It flags sandbox elevation,
-the loopback payload-loader address, Lapy and the retained self-update helper;
-both helper hashes need catalog maintainer review. No helper approval is claimed.
-The app's automatic update flow is disabled.
+RELEASE ARTIFACT CHECKS
+Fresh PS5 compilation (312 objects) and signed-container integrity passed.
+The app ZIP has 305 entries with CRCs and 0777 modes verified.
+Official catalog scan: zero errors, six warnings and one summary notice.
+Release assembly verifies ZIP CRCs and 0777 modes, higher content
+version, icon/model hashes, helper hashes and every matching-source manifest
+entry. native-validation.json and SHA256SUMS record the exact resulting bytes.
+The official catalog scanner reads the archive without running it; see the
+attached catalog-scan.txt for its full findings. Static checks are not console
+or helper-whitelist approval. Automatic in-app updates remain disabled.
 
 NOT VERIFIED
-No PS5 was attached. There is no live Google consent, real YouTube extraction
-or PS5 media playback result from this workspace. A live network probe was
-blocked by the runner proxy. Firmware 11.00 boot, codecs/4K/HDR/AV1 throughput,
-mic routing/speed, physical colors, real feed/account behavior, Auto Max under
-real load, casting and background audio all need console acceptance.
+No PS5, live Google authorization or real YouTube playback was used. Boot,
+PiP codec/HDR behavior, microphone routing/latency and physical DualSense
+behavior still require console testing. Family controls are local; editing
+app data can bypass them. Linked Google child-profile import remains research.
+The LAN party page uses HTTP on a trusted network. Ad removal is not guaranteed.
 
-UPSTREAM CREDIT
-The pinned ProsperoTube/EVO foundation has its own testing history. Those
-results do not certify this integrated Max’d build. ProsperoTube copyright
-(C) 2026 BlackBearReloaded; GPL-3.0-or-later. Full component credits/notices are
-retained in the source and packaged app.
+CREDITS
+ProsperoTube by BlackBearReloaded and contributors, EVO Player and all retained
+dependencies. Full corresponding sources and licenses accompany the release.
