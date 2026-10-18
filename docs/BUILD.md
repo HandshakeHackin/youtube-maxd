@@ -78,6 +78,40 @@ The detailed original upstream build notes are preserved in
 [UPSTREAM_BUILD.md](UPSTREAM_BUILD.md). Their title IDs, release automation,
 cache defaults and shader policy describe the upstream project.
 
+## First-preview distribution
+
+The existing `v1.2.0-preview.1` app is already compiled. To assemble its
+Nuvio-style distribution from the verified files in `dist/`, run:
+
+```sh
+python3 scripts/assemble_maxd_preview.py
+```
+
+The output is `dist/release-v1.2.0-preview.1/`: `PPSA99991.zip`, matching full
+source, icon, release/testing notes, the static catalog scan, validation JSON
+and `SHA256SUMS`. The title-ID ZIP is byte-identical to `YouTube-Maxd-PS5.zip`.
+The assembler verifies the original app hash and each source-manifest entry;
+it does not rebuild the app or rerun the recorded development tests.
+
+The manually invoked **Publish Max'd preview assets** GitHub Actions workflow
+can attach these files to the existing preview. It checks out the original app
+source, restores exact dependency revisions from an accessible public mirror,
+packages matching source and reuses the pinned app ZIP from `downloads`. It
+does not change repository visibility or submit a store listing. Existing
+assets with conflicting digests are never replaced.
+
+The original UI-kit URL is currently unavailable. A fork containing both
+exact pinned revisions is `https://github.com/LedyBacer/ps5-homebrew-ui.git`.
+The README's clone command applies a URL override for recursive initialization;
+set `PROSPEROTUBE_UI_KIT` to that mirror or a local clone containing
+`bbe19054ee2e7ec069254775273aeb8846c4bd3e`. Pins and file-hash checks remain
+unchanged. A fresh rebuild still needs every other pinned input or its cache;
+the complete source distribution retains the matching source inputs.
+
+See [store preparation](../store/README.md) for catalog requirements and the
+prepared reviewer description. GitHub branch downloads do not substitute for
+an attached release asset in a store submission.
+
 ## YouTube Max’d local voice inputs
 
 The standalone `scripts/build_ps5.sh` also fetches checksum-pinned whisper.cpp

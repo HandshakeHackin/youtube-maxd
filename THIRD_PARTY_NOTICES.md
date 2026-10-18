@@ -11,7 +11,7 @@ Max’d's light-bar effect functions and native feedback bridge are GPL-3.0-or-l
 The original icon master and Nuvio Max’d reference provenance are in branding/;
 Nuvio Max’d is at https://github.com/HandshakeHackin/Nuvio-maxd-releases (GPL-3.0).
 No Nuvio executable is included. The native header M/play mark is drawn by this
-fork in the declared coral/pink/violet palette. Upstream splash/music assets
+fork in the declared red/soft-red/white palette. Upstream splash/music assets
 are omitted from the application package.
 
 The embedded JavaScript runtime dependencies include @bufbuild/protobuf 2.16.0
@@ -45,7 +45,7 @@ YouTube is a trademark of Google LLC.
   licensed; its shared protocol header `source/lapy_elevation_protocol.h`
   (SHA-256 `bb02c4aa814eaba7a7a423a31b29ff41f786212c2953678cf29434e85fa0f869`)
   is LGPL-2.1-or-later. `scripts/build_lapy_helper.py` fetches that commit,
-  invokes upstream's unmodified `owned-helper` build for `PPSA99012`, verifies
+  invokes upstream's unmodified `owned-helper` build for `PPSA99991`, verifies
   the generated manifest and ships `lapy.elf`, `lapy-manifest.json` and the MIT
   licence (`Lapy-MIT.txt`) with the app, as
   [ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) does. The
@@ -145,10 +145,11 @@ Native microphone AudioIn ABI and routing are based on the GPL-3.0-or-later
 [ps5-audio-decoding-research microphone proof of concept](https://github.com/blackbearreloaded/ps5-audio-decoding-research/tree/26be5a12f92b2cdc67f8a9e082fd69ae0e9a35a2/examples/native-audio-poc/microphone).
 Implementation: `native/tube_microphone.c`.
 
-Optional local speech recognition invokes whisper.cpp (MIT), v1.9.5 at
+Optional companion-host speech recognition invokes whisper.cpp (MIT), v1.9.5 at
 `d1be6fde11ac6e0407606b4e42fe72d34add8037`:
 https://github.com/ggml-org/whisper.cpp. Its executable and model are installed
-separately on the companion host; neither is bundled in the PS5 application.
+separately on the companion host in that mode. The default standalone Max’d
+build instead bundles the local engine and model described below.
 The setup script obtains the multilingual tiny GGML model through upstream's
 download script and checks SHA-256
 `be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`.

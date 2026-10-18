@@ -1,0 +1,14 @@
+{
+  "titleid": "PPSA99991",
+  "name": "YouTube Max’d",
+  "kind": "app",
+  "category": "video",
+  "description": "Standalone PS5 YouTube client based on ProsperoTube, with local voice search, Smart playlists, adaptive quality and red/white DualSense effects.",
+  "license": "GPL-3.0-or-later",
+  "author": "HandshakeHackin",
+  "version": "1.2.0-preview.1",
+  "source_repo": "https://github.com/HandshakeHackin/youtube-maxd",
+  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip",
+  "sha256": "6b40cce43ff9c70caae8ce308a1875ac8f55427d51f1b2579e5728021b48afb9",
+  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/df694f5aa53906fe84e26e857542076ceb807577/sce_sys/icon0.png"
+}

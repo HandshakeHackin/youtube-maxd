@@ -1,0 +1,88 @@
+name: Publish Max'd preview assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-maxd-v1.2.0-preview.1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out release tools and documentation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: release-tools
+          persist-credentials: false
+
+      - name: Check out the original application source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 014adc2d901518f47fb4d1fbc99eab15b41b79aa
+          path: app-source
+          persist-credentials: false
+
+      - name: Restore exact public dependency revisions
+        working-directory: app-source
+        env:
+          PROSPEROTUBE_UI_KIT: https://github.com/LedyBacer/ps5-homebrew-ui.git
+        run: |
+          set -euo pipefail
+          # The original author URL is unavailable; this public fork has the same commits.
+          git -c url.https://github.com/LedyBacer/.insteadOf=https://github.com/blackbearreloaded/ submodule update --init --recursive
+          python3 scripts/ui_kit.py
+
+      - name: Check out the verified app bundle
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: b0ea8d4fa73e48e8047934d2c977a80e1ae65b6e
+          path: downloads
+          persist-credentials: false
+
+      - name: Package corresponding source without rebuilding the app
+        working-directory: app-source
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp ../downloads/YouTube-Maxd-PS5.zip dist/PPSA99991.zip
+          python3 scripts/package_maxd_release.py
+
+      - name: Assemble and verify release files
+        run: |
+          set -euo pipefail
+          python3 release-tools/scripts/assemble_maxd_preview.py --dist app-source/dist --out release
+          cd release
+          sha256sum --check --strict SHA256SUMS
+
+      - name: Attach files without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          repo = os.environ['GITHUB_REPOSITORY']
+          tag = 'v1.2.0-preview.1'
+          release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/releases/tags/{tag}']))
+          if release.get('draft') or not release.get('prerelease'):
+              raise SystemExit('Expected the existing published experimental preview')
+          existing = {asset['name']: asset for asset in release.get('assets', [])}
+          for path in sorted(Path('release').iterdir()):
+              with path.open('rb') as source:
+                  digest = 'sha256:' + hashlib.file_digest(source, 'sha256').hexdigest()
+              if path.name in existing:
+                  if existing[path.name].get('digest') != digest:
+                      raise SystemExit(f'Refusing to replace existing release asset: {path.name}')
+                  print(f'Already attached with matching digest: {path.name}')
+                  continue
+              subprocess.run(['gh', 'release', 'upload', tag, str(path), '--repo', repo], check=True)
+          PY
