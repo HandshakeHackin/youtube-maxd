@@ -52,7 +52,7 @@ If clicking the app link opens a file page, use its **Download raw file** button
 
 The release’s **Assets** section contains the app ZIP, complete source ZIP, icon, SHA-256 checksums, release notes, testing guide/results, validation JSON and catalog scan report. The `downloads` branch keeps the byte-identical `YouTube-Maxd-PS5.zip` as an alternate download. GitHub’s automatically generated **Source code** archives omit recursive submodules and cannot be installed as the app; use the recursive clone below to rebuild it. The initial app bundle corresponds to source commit [`014adc2`](https://github.com/HandshakeHackin/youtube-maxd/tree/014adc2d901518f47fb4d1fbc99eab15b41b79aa).
 
-Automatic updates are disabled until a separate Max’d release feed is configured. Check this repository for new builds. Store submission preparation is tracked in [store/SUBMISSION.md](store/SUBMISSION.md); preparation does not mean the app is listed in the store.
+Automatic updates are disabled until a separate Max’d release feed is configured. Check this repository for new builds. ProsperoStore submission is open as [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397). Submission validation and the release scan passed; store availability awaits maintainer review, merge and deployment. See [submission details](store/SUBMISSION.md).
 
 ## Features
 
@@ -248,7 +248,7 @@ See the build guide for the wider inherited test suite and optional display-tran
 | [Build guide](docs/BUILD.md) | Toolchain, dependencies, source packaging and tests |
 | [Max’d validation](docs/MAXD_VALIDATION.md) | Completed local checks and remaining console tests |
 | [Release notes](docs/releases/v1.2.0-preview.1.md) | First release features, installation, validation and limits |
-| [Store submission](store/SUBMISSION.md) | Prospero catalog preparation and publication requirements |
+| [Store submission](store/SUBMISSION.md) | Catalog PR #397, validation and publication status |
 | [Fork changes](MAXD_CHANGES.md) | Max’d changes versus the pinned foundation |
 | [Source provenance](UPSTREAM.json) | App identity, upstream revision and EVO pin |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | Copyrights, licenses and corresponding sources |

@@ -1,8 +1,9 @@
-# Prepared catalog submission — YouTube Max’d
+# Catalog submission — YouTube Max’d
 
-**Status:** ready for submission; not submitted or listed. The source repository
-is public and the official online catalog verification passes with zero errors
-or warnings. The prepared catalog branch is linked in store/README.md.
+**Status:** submitted as [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) by HandshakeHackin on
+2026-10-18. Submission validation, the release scan and catalog tests passed.
+The request remains open and awaits maintainer review, merge and deployment.
+The source repository is public; no live store listing is claimed.
 
 **Title ID:** PPSA99991
 
@@ -52,7 +53,8 @@ these features or endorsed this fork.
   verified against the record. A raw Git branch download is not accepted instead.
 - [x] Full online catalog verification of the public repository, exact asset,
   content version and icon.
-- [ ] PR opened from HandshakeHackin, the owner of `source_repo`.
+- [x] [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) opened from HandshakeHackin, the owner of `source_repo`.
+- [x] Upstream submission validation, release scan and catalog tests passed.
 - [ ] Maintainer review, helper approval where required, merge and deployment.
 
 Release: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1

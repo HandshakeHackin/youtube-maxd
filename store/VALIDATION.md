@@ -17,7 +17,9 @@ App source: `014adc2d901518f47fb4d1fbc99eab15b41b79aa`.
 | Published complete source | CI verified 4,388 manifest files; SHA-256 `5cee83a5d64f16be306ddefd08705220f2240b7ee6c77055b8ed56e955943d59` |
 | Public visibility | Confirmed public on 2026-10-18 |
 | Current online catalog verification | Passed against the public repository: zero errors/warnings; two informational notices for matching ZIP SHA-256 and contentVersion `01.002.000`; pinned icon verified |
-| Catalog handoff | One-record branch prepared in the publisher’s fork; no upstream pull request or deployment performed |
+| Catalog submission | [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) submitted by HandshakeHackin; open, not merged |
+| Upstream CI | Validate submission, Scan the release and Tests and offline check passed |
+| Store deployment | Pending maintainer review, merge and deployment; no live listing claimed |
 | PS5 hardware acceptance | Not performed; this exact integrated build remains experimental |
 
 The scanner's six warnings cover sandbox elevation, the local payload-loader
@@ -28,4 +30,4 @@ approved list. Approval remains a catalog-maintainer task. See
 The ZIP was not rebuilt or altered for store naming. Its SHA-256 is
 `6b40cce43ff9c70caae8ce308a1875ac8f55427d51f1b2579e5728021b48afb9`.
 The prepared [catalog.patch](catalog.patch) changes only `apps/PPSA99991.json`;
-rebase/recheck against current upstream before submission.
+it matches the submitted pull request. Recheck against current upstream if it changes.
