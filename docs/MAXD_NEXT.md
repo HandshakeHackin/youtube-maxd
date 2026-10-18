@@ -1,8 +1,8 @@
-# YouTube Max’d — next experience build
+# YouTube Max’d — viewing features
 
-These additions are developed on `feature/maxd-next-experience`. The published
-`v1.2.0-preview.1` binary and pending Homebrew Store submission do not contain
-them. This branch is a test candidate, not a hardware-verified release.
+These additions ship in the experimental `v1.3.0-preview.1` release. The older
+`v1.2.0-preview.1` download does not contain them. PS5 hardware acceptance is
+still outstanding; this preview is not a hardware-verified release.
 
 | Addition | Use | Practical limit |
 | --- | --- | --- |

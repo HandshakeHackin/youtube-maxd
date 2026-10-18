@@ -2,6 +2,21 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.003.000
+
+Released as **v1.3.0-preview.1** (experimental preview, 2026-10-18).
+
+- Transcript search with timestamp seeking and local, profile-owned bookmarks.
+- Optional in-app picture-in-picture in Afterglow. **Off by default**, enabled through R2 → Picture-in-picture for the current session; the choice is not saved.
+- Local push-to-talk playback commands for pause, resume, seek, captions, quality and queue additions.
+- Session builder selects unwatched videos to fit a chosen 15–120-minute budget.
+- Four independent signed-out family profiles with parent PIN, approved-channel playback, optional search restrictions and daily viewing limits.
+- PS5-hosted LAN party queue with phone QR joining, expiring invitations, guest votes and host approval.
+- Content version raised to `01.003.000`; title ID and data location retained.
+- Native compilation and host checks pass. PS5/live account testing remains outstanding; linked Google child-profile import remains research.
+
+See [release notes](docs/releases/v1.3.0-preview.1.md) for installation, usage and limits.
+
 ## 1.002.000
 
 - YouTube Max’d now uses the pinned standalone ProsperoTube/EVO foundation, keeping its own identity, icon and coral/pink/violet palette.

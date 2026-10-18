@@ -17,20 +17,20 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
   <br><a href="docs/APP_GUIDE.md">Full guide</a>
 </p>
 
-**Experimental preview · v1.2.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
+**Experimental preview · v1.3.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
 
 ## How YouTube Max’d stands out
 
-**Current preview:** local voice search, Smart playlists, optional Auto Max quality adjustment, and matching red-to-white DualSense effects.
+**Also included:** local voice search, Smart playlists, optional Auto Max quality adjustment, and matching red-to-white DualSense effects.
 
 Also includes Google sign-in, subscriptions, playlists, captions, SponsorBlock, DeArrow, and video/audio selection from **144p to 4K**, where available.
 
-**Next build — implemented, awaiting PS5 testing:**
+**New in this preview:**
 
 - **Transcript search & bookmarks:** find and save video moments.
 - **In-app picture-in-picture:** optional viewing while browsing in Afterglow; off by default.
@@ -39,7 +39,7 @@ Also includes Google sign-in, subscriptions, playlists, captions, SponsorBlock, 
 - **Local family profiles:** PIN, approved-channel and viewing-time controls.
 - **Party queue:** phone QR joining, suggestions, votes and host approval.
 
-These six additions are in the [development build](https://github.com/HandshakeHackin/youtube-maxd/tree/feature/maxd-next-experience), outside the current download. [Details and limits](docs/MAXD_NEXT.md). Linked Google child-profile import remains research.
+[Feature instructions and limits](docs/MAXD_NEXT.md) · [Changelog](CHANGELOG.md). Linked Google child-profile import remains research.
 
 ## Install on PS5
 

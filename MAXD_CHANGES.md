@@ -1,16 +1,19 @@
-# YouTube Max’d 1.2.0 integration
+# YouTube Max’d integration
 
-## Unreleased — next experience branch
+## 1.3.0-preview.1 — 2026-10-18
 
 - Search available video captions and jump to a line; save named, profile-owned timestamp bookmarks.
-- Continue the same decoder in a bottom-right in-app PiP window while Afterglow browses.
+- Optional bottom-right in-app PiP while Afterglow browses. Off by default; explicitly select it per session.
 - Extend local hold-to-talk recognition with deterministic playback commands.
 - Build unwatched viewing sessions from a bounded feed scan and a chosen runtime budget.
 - Add four independent signed-out family slots with local names, parent PIN controls, approved-channel playback and daily viewing limits.
 - Host an opt-in LAN party page on the PS5, with expiring invites, guest votes and host-approved queue additions.
-- Keep linked Google supervised-profile discovery as research. No new store/release binary is published by these changes.
+- Raise the installable content version to `01.003.000` while retaining title ID `PPSA99991` and existing app data.
+- Keep linked Google supervised-profile discovery as research. This is an experimental preview; PS5 hardware acceptance remains outstanding.
 
 Usage and limits: [MAXD_NEXT.md](docs/MAXD_NEXT.md).
+
+## 1.2.0-preview.1 — original standalone preview
 
 This fork is based on ProsperoTube commit
 `3446f364172c299a17cecf29a3efcf23c8463f68`, copyright (C) 2026 BlackBearReloaded,
