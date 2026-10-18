@@ -1,0 +1,47 @@
+YouTube Max’d 1.2.0 — validation summary
+Application source: 014adc2d901518f47fb4d1fbc99eab15b41b79aa
+Target: PS5 firmware 11.00 / ShadowMount+.
+
+RECORDED DEVELOPMENT CHECKS (2026-10-17/18)
+These are the existing development results, not new runs caused by assembling
+release notes. Full detail and caveats: docs/MAXD_VALIDATION.md.
+
+- Native player and local voice sources compiled/linked with the public PS5
+  Payload SDK 0.42, PacBrew 0.39 and Clang 19.1.7; executable integrity checked.
+- Embedded service fixtures: 792 checks in normal and ASan/UBSan builds;
+  YouTube library/worker: 210 checks. These use mocked account responses.
+- Native quality/audio selection, profile persistence, codecs, SponsorBlock,
+  recovery, account settings/actions and identity/storage checks passed.
+- Local Whisper host recognition, silence/corrupt-model rejection, lifecycle,
+  cancellation, timeout, ownership and held-L3 dispatch checks passed.
+- Smart playlist and Auto Max policy/provider tests passed, including bounded
+  scans, filtered playback snapshots, profile isolation, manual overrides and
+  retained position/audio/captions after reopening.
+- Controller feedback bridge tests passed. No physical controller was measured.
+- Baseline Afterglow: 638 boards in four themes, 28,112 checks; new voice
+  fixtures: 408 checks; Smart/Auto Max fixtures: 400 checks. Host-rendered data.
+
+RELEASE PREPARATION
+The assembler verifies app ZIP CRCs, 0777 modes, identity, executable SHA-256,
+voice model hash, icon equality and every corresponding-source manifest hash.
+Exact files, digests and counts appear in native-validation.json and SHA256SUMS.
+
+Official catalog scanner, pinned at 0c44e95fefd170ff4e5be4f941bae9cfd6f67f81:
+0 errors, 6 warnings and 1 summary notice. The complete report is catalog-scan.txt.
+It read the archive without executing its contents. It flags sandbox elevation,
+the loopback payload-loader address, Lapy and the retained self-update helper;
+both helper hashes need catalog maintainer review. No helper approval is claimed.
+The app's automatic update flow is disabled.
+
+NOT VERIFIED
+No PS5 was attached. There is no live Google consent, real YouTube extraction
+or PS5 media playback result from this workspace. A live network probe was
+blocked by the runner proxy. Firmware 11.00 boot, codecs/4K/HDR/AV1 throughput,
+mic routing/speed, physical colors, real feed/account behavior, Auto Max under
+real load, casting and background audio all need console acceptance.
+
+UPSTREAM CREDIT
+The pinned ProsperoTube/EVO foundation has its own testing history. Those
+results do not certify this integrated Max’d build. ProsperoTube copyright
+(C) 2026 BlackBearReloaded; GPL-3.0-or-later. Full component credits/notices are
+retained in the source and packaged app.
