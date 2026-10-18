@@ -1,0 +1,93 @@
+{
+  "items": [
+    {
+      "id": "maxd:smart:run:1",
+      "title": "Open playlist",
+      "label": "Open playlist",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "value": "",
+      "screen": "grid",
+      "argument": "maxd:smart:run:1",
+      "subtitle": "Refresh matching feed videos"
+    },
+    {
+      "id": "settings:smart:1:name",
+      "title": "Name",
+      "label": "Name",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "Gaming tonight",
+      "text": "Gaming tonight"
+    },
+    {
+      "id": "settings:smart:1:source",
+      "title": "Source feed",
+      "label": "Source feed",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "Subscriptions"
+    },
+    {
+      "id": "settings:smart:1:keyword",
+      "title": "Title contains",
+      "label": "Title contains",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "gaming",
+      "text": "gaming"
+    },
+    {
+      "id": "settings:smart:1:creator",
+      "title": "Creator contains",
+      "label": "Creator contains",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "Studio",
+      "text": "Studio"
+    },
+    {
+      "id": "settings:smart:1:duration",
+      "title": "Duration",
+      "label": "Duration",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "10 to 30 minutes"
+    },
+    {
+      "id": "settings:smart:1:unwatched",
+      "title": "Unwatched only",
+      "label": "Unwatched only",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On"
+    },
+    {
+      "id": "settings:smart:1:live",
+      "title": "Hide live videos",
+      "label": "Hide live videos",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On"
+    },
+    {
+      "id": "settings:smart:1:delete",
+      "title": "Delete playlist",
+      "label": "Delete playlist",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": "",
+      "subtitle": "Review before deleting local rules"
+    }
+  ],
+  "has_more": false
+}

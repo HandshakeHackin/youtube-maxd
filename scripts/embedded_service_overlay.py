@@ -39,9 +39,6 @@ def enabled():
 
 
 def apply_host(replace, player, host):
-    # L3 starts voice search only with the PC companion; the built-in service has none yet.
-    replace(host, 'if (m_providerId == "youtube" && (pressed & PadButtons::L3)) {',
-            'if (m_providerId == "youtube" && !tube_embedded_mode() && (pressed & PadButtons::L3)) {')
     # First soft-close frame, before the park: requests cancelled, service stopped and joined.
     replace(player + "core/src/Application.cpp", 'evo_boot_log("soft close: media released");',
             'tube_embedded_stop();\n                evo_boot_log("soft close: media released");')
@@ -116,7 +113,8 @@ def apply_package(replace, player, work, root):
     replace(rml, "Connecting to your companion… Circle to cancel.", "Loading… Circle to cancel.")
     replace(rml, "Square to search. Triangle saves a video. Options pairs your companion.", "Square to search. Triangle saves a video.")
     replace(rml, '            <button id="tv-card-setup-url" class="tv-setup-card" data-if="!discussion" data-event-click="setup_url()">PAIR COMPANION</button>\n', "")
-    replace(rml, '            <span class="tube-key">HOLD L3</span> Voice search (experimental)\n', "")
+    replace(rml, '            <span class="tube-key">HOLD L3</span> Voice search (experimental)\n',
+            '            <span class="tube-key">HOLD L3</span> Voice search\n')
     replace(rml, '            <span class="tube-key">OPTIONS</span> Companion\n', "")
 
 

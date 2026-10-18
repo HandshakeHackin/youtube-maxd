@@ -1,7 +1,7 @@
 # Bounded console session
 
 `session.py` runs **one** hardware acceptance session of ProsperoTube
-(`PPSA99012`) on a PS5: one verified install, one launch, the core path, one
+(`PPSA99991`) on a PS5: one verified install, one launch, the core path, one
 clean close. It stops at the first anomaly, never repeats a launch or a close,
 and always runs the teardown and lock-release path. It follows
 [ps5-homebrew-dev-protocol](https://github.com/blackbearreloaded/ps5-homebrew-dev-protocol)
@@ -18,7 +18,7 @@ A console session needs the owner's word. The script refuses to start without
   (`--protocol`, default `~/ps5-homebrew-dev-protocol`).
 - A **frozen, instrumented** candidate: built with
   `scripts/build_ps5.sh --usb-remote --virtual-keyboard`, then frozen with the
-  protocol's `freeze-candidate.sh <dist>/PPSA99012 <frozen-dir>`. The session
+  protocol's `freeze-candidate.sh <dist>/PPSA99991 <frozen-dir>`. The session
   checks every file against `<frozen-dir>/SHA256SUMS` and refuses a build
   without the development interface. A release build cannot be driven.
 - An internet connection on the console. The application is self-sufficient:
@@ -62,7 +62,7 @@ is in its own result (`Afterglow PASS | PARTIAL | FAIL` on the last line).
 | --- | --- | --- |
 | 0 local | The candidate is the frozen one; both controllers build; the lock is ours | anything is missing; the lock exists |
 | 1 idle | **First console operation**, read-only: no title has a sandbox under `/mnt/sandbox` | any title runs, ours included: lock released, nothing else sent |
-| 2 snapshot | Copies of every state file in `/data/prosperotube` (hashes recorded), the installed folder's listing, the error-record baseline | a copy is short |
+| 2 snapshot | Copies of every state file in `/data/youtube-maxd` (hashes recorded), the installed folder's listing, the error-record baseline | a copy is short |
 | 3 install | Every file uploaded under a temporary name, read back, renamed (`ps5-console.py install`); watched for `--settle` seconds and compared again (`settle`) | any difference |
 | 4 launch | Idle again; services answer; ShadowMount mounts the installed folder; one launch payload; then the ladder: sandbox exists → status file written by **this build** → Lapy storage → frame loop advancing and browser drawn | another title appeared (lock released, nothing sent); any rung not observed in time |
 | 5 core path | See the table below: hard gates on what the engine reports, the rest observed and recorded | a hard gate is not observed within its limit |

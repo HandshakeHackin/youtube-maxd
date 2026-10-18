@@ -10,7 +10,7 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[1]
 EVO = ROOT / "third_party/evo"
 PIN = "9715f6ee9bf9b53461d6fdf9a2e11b4c48357783"
-TITLE = "PPSA99012"
+TITLE = "PPSA99991"
 WORK = Path(os.environ.get("PROSPEROTUBE_NATIVE_WORK", str(Path.home() / ".cache/prosperotube/native")))
 
 
@@ -61,7 +61,8 @@ def main():
     player = "projects/evoplayer/"
     overlay_files = [player + name for name in (
         "Makefile", "addons/src/evo_provider_mgr.c", "addons/src/evo_net.c", "addons/include/evo_provider.h", "src/evo_data_path.c", "include/evo_data_path.h",
-        "core/src/Application.cpp", "core/include/evo/Application.hpp", "core/src/screens/ProviderHostScreen.cpp",
+        "core/src/Application.cpp", "core/include/evo/Application.hpp",
+        "ui/src/evo_feedback.c", "ui/include/evo_feedback.h", "core/src/screens/ProviderHostScreen.cpp",
         "core/src/services/PlaybackController.cpp", "core/src/screens/PlayerScreen.cpp", "core/src/screens/SettingsScreen.cpp", "core/src/screens/AboutSupportScreen.cpp",
         "core/src/screens/ModalDialogScreen.cpp",
         "core/include/evo/screens/PlayerScreen.hpp", "core/include/evo/screens/ProviderHostScreen.hpp",
@@ -88,10 +89,11 @@ def main():
                       "tools/native-app/stubs/videodec2_link_stub.c"]
     # Restore all shader headers too: disabling a transform build must never
     # leave 48-byte shaders paired with the original 16/32-byte runtime.
-    # Always start each overlay from its pinned sources. Build outputs remain
-    # intact, and edits to generated files are never the project's source.
+    # Max'd rebrands the generated tree after upstream's overlays. Restore all
+    # pinned inputs before reapplying them, including files upstream normally
+    # leaves in its already-branded state. Compiled outputs remain intact.
     archive = ROOT / ".deps/evo-overlay-base.tar"
-    subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN, *overlay_files], check=True)
+    subprocess.run(["git", "-C", str(EVO), "archive", "--format=tar", "-o", str(archive), PIN], check=True)
     with tarfile.open(archive) as tar:
         tar.extractall(WORK, filter="data")
     for name in ("tube_provider.c", "tube_provider.h", "tube_sponsor.h", "tube_profile_settings.h", "tube_sponsor_draw.h", "tube_subtitles.h", "tube_caption_apply.h", "tube_audio_drain.h", "tube_frame_pacing.h", "tube_seek_timeline.h", "tube_hls_dvr.h", "tube_live_runtime.c", "tube_live_runtime.h", "tube_audio_seek.h", "tube_audio_tempo.c", "tube_audio_tempo.h", "tube_remote.c", "tube_remote.h", "tube_phone.c", "tube_phone.h", "tube_voice.c", "tube_voice.h", "tube_microphone.c", "tube_microphone.h", "tube_search_query.h", "tube_channel_name.h", "tube_name_case_data.h", "tube_volume.h", "tube_random.h", "tube_time_display.h", "tube_video_geometry.h", "tube_video_transform.h", "tube_player_extra.c", "tube_player_extra.h", "tube_ui_style.h", "tube_seek_sheets.c", "tube_seek_sheets.h", "tube_storyboard.h", "tube_audio_delay.h", "tube_password.h", "tube_qr.h", "tube_qr_page.h", "tube_about.h", "tube_about_data.h", "tube_backup.c", "tube_backup.h"):
@@ -128,9 +130,9 @@ def main():
     replace(player + "Makefile", "    addons/src/provider_stremio.c", "    addons/src/provider_stremio.c \\\n    addons/src/tube_provider.c \\\n    addons/src/tube_remote.c \\\n    addons/src/tube_phone.c \\\n    addons/src/tube_voice.c \\\n    addons/src/tube_microphone.c")
     replace(player + "addons/src/evo_provider_mgr.c", "extern const evo_provider_t evo_provider_iptv;", "extern const evo_provider_t evo_provider_youtube;\nextern const evo_provider_t evo_provider_iptv;")
     replace(player + "addons/src/evo_provider_mgr.c", "    &evo_provider_iptv,\n    &evo_provider_xtream,\n    &evo_provider_emby,\n    &evo_provider_jellyfin,     /* native screens; the web UI as an extra */\n    &evo_provider_stremio,      /* Stremio addons, native (provider_stremio.c) */\n    &evo_provider_nuvio,        /* web UI only - Stremio addons, debrid */", "    &evo_provider_youtube,")
-    replace(player + "src/evo_data_path.c", '"/data/evoplayer"', '"/data/prosperotube"', count=2)
-    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/download0/evoplayer"', '#define EVO_DATA_DIR "/data/prosperotube"')
-    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/data/evoplayer"', '#define EVO_DATA_DIR "/data/prosperotube"')
+    replace(player + "src/evo_data_path.c", '"/data/evoplayer"', '"/data/youtube-maxd"', count=2)
+    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/download0/evoplayer"', '#define EVO_DATA_DIR "/data/youtube-maxd"')
+    replace(player + "include/evo_data_path.h", '#define EVO_DATA_DIR "/data/evoplayer"', '#define EVO_DATA_DIR "/data/youtube-maxd"')
     replace(player + "src/evo_data_path.c", '''    if (!evo_jailbreak_is_open())
         return EVO_DATA_DIR;              /* "/download0/evoplayer" - transient */
 ''', "")
@@ -142,7 +144,7 @@ def main():
     replace(player + "Makefile", "CORE_SRCS := \\\n", "CORE_SRCS := \\\n    src/elevation/elevation.cpp \\\n    src/elevation/tube_jailbreak.cpp \\\n")
     replace(player + "core/src/Application.cpp", '#include "evo/screens/ProviderHostScreen.hpp"', '#include "evo/screens/ProviderHostScreen.hpp"\n#include "tube_provider.h"')
     replace(player + "core/src/Application.cpp", "    evo_jailbreak_self();", '''    if (!evo_jailbreak_self()) {
-        evo_bt("ProsperoTube requires writable /data/prosperotube; startup stopped");
+        evo_bt("ProsperoTube requires writable /data/youtube-maxd; startup stopped");
 #if defined(EVO_APP_MODULE)
         evo_bt_req notice{};
         std::snprintf(notice.msg, sizeof notice.msg,
@@ -294,7 +296,7 @@ def main():
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
-    param.update(titleId=TITLE, conceptId="99012", contentId=f"UP9000-{TITLE}_00-PROSPEROTUBE0000", contentVersion="01.000.000")
+    param.update(titleId=TITLE, conceptId="99991", contentId=f"UP9000-{TITLE}_00-TUBEDECK00000001", contentVersion="01.002.000")
     param["applicationCategoryType"] = 65536
     param["contentBadgeType"] = 2
     param.pop("gameIntent", None)
@@ -306,12 +308,12 @@ intents = v.get("gameIntent", {}).get("permittedIntents", [])
 if not any(i.get("intentType") == "launchActivity" for i in intents):
     raise SystemExit("game param.json must permit the launchActivity intent")''', '''if (v.get("applicationCategoryType"), v.get("contentBadgeType")) != (65536, 2) or "gameIntent" in v:
     raise SystemExit("expected Media metadata: category 65536, badge 2, no gameIntent")''')
-    (WORK / player / "VERSION").write_text("1.000.000\n")
+    (WORK / player / "VERSION").write_text("1.002.000\n")
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--short=8", "HEAD"], text=True).strip()
     # Dependency trees are regenerated from checked pins above, so their working
     # files do not contribute to this package. Avoid recursively scanning them.
     dirty = subprocess.run(["git", "-C", str(ROOT), "diff", "--ignore-submodules=all", "--quiet", "HEAD"], check=False).returncode
-    fingerprint = "prosperotube-" + revision + ("-dirty" if dirty else "")
+    fingerprint = "youtube-maxd-" + revision + ("-dirty" if dirty else "")
     replace("scripts/package-app.sh", 'BUILD_SHA="$(git -C "${EVO}" rev-parse --short=8 HEAD 2>/dev/null || echo unknown)"\n    git -C "${EVO}" diff --quiet -- "${EVO}" 2>/dev/null || BUILD_SHA="${BUILD_SHA}-dirty"', f'BUILD_SHA="{fingerprint}"')
     # Include helpers and notices before PFS and ZIP creation.
     replace("scripts/package-app.sh", 'begin "inspecting signed containers"', '''cp "${REPO_ROOT}/prosperotube-lapy/lapy.elf" "${APPDIR}/lapy.elf"
@@ -321,16 +323,16 @@ begin "inspecting signed containers"''')
     # Direct diagnostic/data paths must be independent too, including upstream
     # code reached by inherited settings and caption tools.
     for file in (WORK / player).rglob("*"):
-        if file.suffix not in (".c", ".cpp", ".h", ".hpp", ".rml", ".rcss"):
+        if not file.is_file() or file.suffix not in (".c", ".cpp", ".h", ".hpp", ".rml", ".rcss"):
             continue
         source = file.read_text()
-        updated = source.replace("/data/evoplayer", "/data/prosperotube").replace("/download0/evoplayer", "/data/prosperotube")
-        updated = updated.replace("/mnt/usb0/evo_compatibility_report.txt", "/data/prosperotube/compatibility_report.txt")
-        updated = updated.replace("/mnt/usb0/evo_%s_%s.bmp", "/data/prosperotube/evo_%s_%s.bmp")
-        updated = updated.replace("/mnt/usb0/evo.log", "/data/prosperotube/console.log").replace("QUIT EVO", "QUIT PROSPEROTUBE")
-        updated = updated.replace("/mnt/usb0/evo_cmd", "/data/prosperotube/dev_command")
-        updated = updated.replace("/mnt/usb0/evo_status", "/data/prosperotube/dev_status")
-        updated = updated.replace("/mnt/usb0/evo_ui.json", "/data/prosperotube/dev_ui.json")
+        updated = source.replace("/data/evoplayer", "/data/youtube-maxd").replace("/download0/evoplayer", "/data/youtube-maxd")
+        updated = updated.replace("/mnt/usb0/evo_compatibility_report.txt", "/data/youtube-maxd/compatibility_report.txt")
+        updated = updated.replace("/mnt/usb0/evo_%s_%s.bmp", "/data/youtube-maxd/evo_%s_%s.bmp")
+        updated = updated.replace("/mnt/usb0/evo.log", "/data/youtube-maxd/console.log").replace("QUIT EVO", "QUIT PROSPEROTUBE")
+        updated = updated.replace("/mnt/usb0/evo_cmd", "/data/youtube-maxd/dev_command")
+        updated = updated.replace("/mnt/usb0/evo_status", "/data/youtube-maxd/dev_status")
+        updated = updated.replace("/mnt/usb0/evo_ui.json", "/data/youtube-maxd/dev_ui.json")
         if source != updated:
             file.write_text(updated)
     # App modules can remain sandboxed. Resolve diagnostic paths through EVO's
@@ -344,11 +346,11 @@ begin "inspecting signed containers"''')
 {
     if (!evo_jailbreak_is_open())
         return;''')
-    replace(log, '#define EVO_LOG_PATH "/data/prosperotube/console.log"', '#define EVO_LOG_PATH evo_data_path("console.log")')
+    replace(log, '#define EVO_LOG_PATH "/data/youtube-maxd/console.log"', '#define EVO_LOG_PATH evo_data_path("console.log")')
     replace(log, 'EVO_LOG_PATH ".1"', 'evo_data_path("console.log.1")')
     remote = player + "src/evo_usb_remote.c"
     replace(remote, '#include "evo_usb_remote.h"', '#include "evo_usb_remote.h"\n#include "evo_data_path.h"')
-    replace(remote, '#define CMD_PATH    "/data/prosperotube/dev_command"', '''/* Separate buffers preserve both rename arguments; evo_data_path itself
+    replace(remote, '#define CMD_PATH    "/data/youtube-maxd/dev_command"', '''/* Separate buffers preserve both rename arguments; evo_data_path itself
  * returns one thread-local buffer. Resolve again if the sandbox root changes. */
 static const char* tube_dev_path(unsigned index) {
     static char paths[5][512];
@@ -357,9 +359,9 @@ static const char* tube_dev_path(unsigned index) {
     return paths[index];
 }
 #define CMD_PATH tube_dev_path(0)''')
-    replace(remote, '#define STATUS_PATH "/data/prosperotube/dev_status"', '#define STATUS_PATH tube_dev_path(1)\n#define STATUS_TMP_PATH tube_dev_path(4)')
-    replace(remote, '#define UI_PATH     "/data/prosperotube/dev_ui.json"', '#define UI_PATH tube_dev_path(2)')
-    replace(remote, '#define UI_TMP_PATH "/data/prosperotube/dev_ui.json.tmp"', '#define UI_TMP_PATH tube_dev_path(3)')
+    replace(remote, '#define STATUS_PATH "/data/youtube-maxd/dev_status"', '#define STATUS_PATH tube_dev_path(1)\n#define STATUS_TMP_PATH tube_dev_path(4)')
+    replace(remote, '#define UI_PATH     "/data/youtube-maxd/dev_ui.json"', '#define UI_PATH tube_dev_path(2)')
+    replace(remote, '#define UI_TMP_PATH "/data/youtube-maxd/dev_ui.json.tmp"', '#define UI_TMP_PATH tube_dev_path(3)')
     # Publish a complete status snapshot, including the GPU-park checkpoint.
     # A reader must retain the prior snapshot during writes and on I/O failure.
     replace(remote, '    FILE *sf = fopen(STATUS_PATH, "w");', '    FILE *sf = fopen(STATUS_TMP_PATH, "w");')
@@ -556,6 +558,8 @@ int32_t sceVideodec2GetPictureInfo(const void *output, void *picture, void *seco
     # EVO Player's own name and mark outside the credits: last, so that no overlay's anchor is renamed under it.
     import branding_overlay
     branding_overlay.apply(WORK, player)
+    import maxd_overlay
+    maxd_overlay.apply(ROOT, WORK, player)
     # Assert integration in generated inputs, rather than trusting patch counts:
     # a replacement can contain text that also exists elsewhere in the source.
     makefile = (WORK / player / "Makefile").read_text()

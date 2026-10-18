@@ -1,7 +1,7 @@
 """Opt-in raw VP9 completion metadata; no change to decoding or presentation."""
 RECORD_C = r"""
 #define TUBE_PICTURE_DIAG_CAPACITY 2048u
-#define TUBE_PICTURE_DIAG_PATH "/data/prosperotube/vp9_picture_info_diag.csv"
+#define TUBE_PICTURE_DIAG_PATH "/data/youtube-maxd/vp9_picture_info_diag.csv"
 struct tube_picture_diag_record {
     uint64_t sequence, decode_calls, output_y, buffer_size, sample_us;
     uint64_t raw_08, raw_10, raw_18, raw_28, raw_30;

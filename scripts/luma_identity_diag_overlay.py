@@ -2,7 +2,7 @@
 
 RECORD_C = r'''
 #define TUBE_LUMA_DIAG_CAPACITY 8192u
-#define TUBE_LUMA_DIAG_PATH "/data/prosperotube/decoder_luma_diag.csv"
+#define TUBE_LUMA_DIAG_PATH "/data/youtube-maxd/decoder_luma_diag.csv"
 struct tube_luma_diag_record {
     uint64_t sequence, decode_calls, output_y, source_y, hash, at_us, sample_us;
     int64_t pts;

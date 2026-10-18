@@ -695,6 +695,9 @@ def panel(playlist, rows, current, **more):
 def expansion(binary):
     """A partial phone queue grows through the library's WatchNext read after confirmed playback
     (tests/test_remote_playlist.py), with YouTube's answer canned."""
+    # Keep the retry window wider than the update burst on busy build hosts.
+    # Lease tests above retain their original 40x accelerated clock.
+    retry_clock = 10
     video = [f"0000000{n:04d}" for n in range(200)]
     directory = Path(tempfile.mkdtemp(prefix="tube_js-remote-fixtures-"))
     shutil.copytree(ROOT / "fixtures", directory, dirs_exist_ok=True)
@@ -710,7 +713,7 @@ def expansion(binary):
     index["POST www.youtube.com/youtubei/v1/next"] = entries + index["POST www.youtube.com/youtubei/v1/next"]
     (directory / "index.json").write_text(json.dumps(index))
     lounge = Lounge()
-    s = Service(binary, lounge, fixtures=directory, clock=CLOCK)
+    s = Service(binary, lounge, fixtures=directory, clock=retry_clock)
 
     def reads(tag):
         return sum(1 for request in s.call("GET", "/v1/_upstream")[2]["requests"] if request["tag"] == tag)
@@ -736,7 +739,7 @@ def expansion(binary):
         s.poll(session, ack=3)
         for update in (3, 4):
             s.remote(action="update", session=session, update_id=update, player={**state, "position_sec": 9 + update})
-        time.sleep(12 / CLOCK)
+        time.sleep(12 / retry_clock)
         s.remote(action="update", session=session, update_id=5, player={**state, "position_sec": 20})
         time.sleep(0.3)
         same("the same confirmed position is not read again", (reads("PLsyntheticqueue"), s.poll(session, ack=3)[1]["commands"]), (1, []))
@@ -761,7 +764,7 @@ def expansion(binary):
         time.sleep(0.2)
         same("an unusable answer is not asked for again at once", reads("PLbrokenqueue00"), 1)
         same("the receiver is healthy", s.poll(session, ack=6)[1]["commands"], [])
-        time.sleep(12 / CLOCK)
+        time.sleep(12 / retry_clock)
         s.remote(action="update", session=session, update_id=10, player={**broken, "position_sec": 30})
         check("it is asked again after the pause", until(lambda: reads("PLbrokenqueue00") == 2, 3))
         # A queue replaced while its read is out, and an ended last video with nothing after it.
@@ -774,7 +777,7 @@ def expansion(binary):
             "sequence": 8, "action": "updatePlaylist", "video_id": video[101], "playlist": "PLendedqueue000", "ctt": "", "index": 101, "position_sec": 0,
             "video_ids": [video[101]], "window_start": 101}])
         s.poll(session, ack=8)
-        time.sleep(12 / CLOCK)
+        time.sleep(12 / retry_clock)
         s.remote(action="update", session=session, update_id=12, player={**ended, "duration_sec": 5})
         time.sleep(0.3)
         same("and that confirmation does not loop", (reads("PLendedqueue000"), s.poll(session, ack=8)[1]["commands"]), (1, []))

@@ -15,4 +15,4 @@ cc -std=c11 -D_DEFAULT_SOURCE -DTUBE_EMBEDDED_SERVICE=1 -O1 -g -Wall -Wextra -We
   "${root}/native/tube_player_extra.c" "${root}/native/tube_backup.c" "${root}/native/tube_phone.c" \
   "${evo}/addons/src/cJSON.c" "${evo}/addons/src/evo_provider_mgr.c" "${evo}/src/evo_data_path.c" -lm \
   -o "${root}/build/tests/test_embedded_service"
-ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_embedded_service"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${root}/build/tests/test_embedded_service"

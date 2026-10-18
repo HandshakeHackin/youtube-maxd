@@ -47,6 +47,10 @@ void tube_update_app_set_clock(long long (*clock)(void)) { g_clock = clock; }
 void tube_update_app_init(void) {
     if (g_tried) return;
     g_tried = 1;
+    /* YouTube Max'd has no release catalog configured. Never consume upstream updates. */
+#ifndef TUBE_MAXD_ENABLE_SELF_UPDATE
+    return;
+#endif
 #if defined(TUBE_EMBEDDED_SERVICE) && defined(EVO_APP_MODULE)
     static char data[512];
     char title[10], installed[12];

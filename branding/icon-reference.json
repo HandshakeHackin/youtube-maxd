@@ -1,0 +1,9 @@
+{
+  "reference_project": "Nuvio Max’d",
+  "reference_url": "https://github.com/HandshakeHackin/Nuvio-maxd-releases/blob/main/sce_sys/icon0.png",
+  "reference_license": "GPL-3.0",
+  "design": "Faceted folded-ribbon M with a central play symbol, bold MAX’D lettering, and a small YOUTUBE edition label.",
+  "palette": "Red to white, with a soft red midpoint; shared with the controller light bar.",
+  "master": "branding/icon-master.png",
+  "colorway_updated": "2026-10-18"
+}

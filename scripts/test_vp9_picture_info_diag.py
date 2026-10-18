@@ -163,7 +163,7 @@ int main(void) {
 """
 with tempfile.TemporaryDirectory(prefix='tube-picture-diag-') as directory:
     temp=Path(directory);target=temp/'vp9_picture_info_diag.csv'
-    program=program.replace('/data/prosperotube/vp9_picture_info_diag.csv',str(target))
+    program=program.replace('/data/youtube-maxd/vp9_picture_info_diag.csv',str(target))
     (temp/'test.c').write_text(program)
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(work/'projects/evoplayer/media/include'),str(temp/'test.c'),'-o',str(temp/'test')],check=True)
     subprocess.run([str(temp/'test')],check=True)

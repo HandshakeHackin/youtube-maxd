@@ -1,3 +1,25 @@
+# YouTube Max’d fork notices
+
+This release is YouTube Max’d, based on the ProsperoTube revision in UPSTREAM.json.
+Original copyrights, credits and licenses below are retained. The local changes
+are listed in MAXD_CHANGES.md. Corresponding native-library source and notices
+are provided in runtime-sources/, and pinned EVO/UI source is included in the
+source distribution. PacBrew v0.39 SDL identifies itself as SDL-2.30.12-g0baf4ac49;
+that exact SDL source is included, with the PacBrew recipes and patches.
+
+Max’d's light-bar effect functions and native feedback bridge are GPL-3.0-or-later.
+The original icon master and Nuvio Max’d reference provenance are in branding/;
+Nuvio Max’d is at https://github.com/HandshakeHackin/Nuvio-maxd-releases (GPL-3.0).
+No Nuvio executable is included. The native header M/play mark is drawn by this
+fork in the declared coral/pink/violet palette. Upstream splash/music assets
+are omitted from the application package.
+
+The embedded JavaScript runtime dependencies include @bufbuild/protobuf 2.16.0
+(Apache-2.0 and Google BSD-3-Clause), fflate 0.8.3 (MIT) and meriyah 7.4.0
+(ISC). Their notices and matching inputs accompany the distribution in
+runtime-sources/. The protobuf-es source supplies its Apache license; Google's
+BSD notice is retained from the distributed varint implementation.
+
 # Third-party notices and corresponding source
 
 ProsperoTube: GPL-3.0-or-later. Original provider/service/UI/overlay copyright
@@ -170,3 +192,10 @@ V3, preserved at `native/licenses/Unicode-3.0.txt` and copied into native assets
   `assets/hui/afterglow/sfx/prosperotube`, with provenance in
   `assets/prosperotube-notices/afterglow-sounds.txt`. The bank and mixer remain
   from the pinned UI kit; its stock audio is not used by the Afterglow bank.
+* Local speech recognition uses whisper.cpp 1.9.5 (commit
+  `d1be6fde11ac6e0407606b4e42fe72d34add8037`) and its bundled GGML CPU code,
+  under the MIT license. The multilingual OpenAI Whisper tiny model is also
+  MIT licensed. Exact source/model URLs and hashes are in
+  `native/maxd/voice/manifest.json`; both MIT notices are retained there and
+  installed under `assets/voice`. The source archive retains the engine source,
+  model, build recipe and app integration needed to rebuild this combination.

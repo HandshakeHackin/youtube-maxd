@@ -19,7 +19,7 @@
 #define TUBE_ABOUT_TAGLINE "A native YouTube client for PS5 homebrew"
 #define TUBE_ABOUT_LICENSE "GPL-3.0-or-later"
 #define TUBE_ABOUT_AUTHOR "BlackBearReloaded"
-#define TUBE_ABOUT_BROUGHT "Brought to you by " TUBE_ABOUT_AUTHOR
+#define TUBE_ABOUT_BROUGHT "Based on ProsperoTube by " TUBE_ABOUT_AUTHOR
 #define TUBE_ABOUT_UNOFFICIAL "Not affiliated with or endorsed by YouTube or Google"
 #define TUBE_ABOUT_PROJECT_URL "https://github.com/blackbearreloaded/ProsperoTube"
 #ifdef EVO_PLAYER_VERSION
@@ -59,11 +59,11 @@ static inline int tube_about_title(char *out, size_t size) {
 /* Project links first (SmartTube's Releases and Sources), then feedback. */
 static inline const tube_about_link *tube_about_link_at(int index) {
     static const tube_about_link links[] = {
-        {"releases", "Releases", "Download new versions and read their notes", TUBE_ABOUT_PROJECT_URL "/releases", 0},
-        {"source", "Source code", "ProsperoTube is free software under GPL-3.0-or-later", TUBE_ABOUT_PROJECT_URL, 0},
+        {"releases", "Upstream releases", "ProsperoTube releases; Max’d updates are distributed separately", TUBE_ABOUT_PROJECT_URL "/releases", 0},
+        {"source", "Upstream source", "Max’d changes and matching source are included with its release", TUBE_ABOUT_PROJECT_URL, 0},
         {"notices", "Third-party notices", "Licenses and sources of everything ProsperoTube builds on",
          TUBE_ABOUT_PROJECT_URL "/blob/main/THIRD_PARTY_NOTICES.md", 0},
-        {"issues", "Report a problem", "Open the issue tracker to report a bug or ask for a feature",
+        {"issues", "Upstream issue tracker", "Report Max’d-specific problems to its distributor",
          TUBE_ABOUT_PROJECT_URL "/issues", 1},
     };
     return index >= 0 && (size_t)index < sizeof links / sizeof *links ? &links[index] : NULL;

@@ -29,7 +29,9 @@ ROOT = HERE.parent
 CHANNEL, VIDEO, PLAYLIST = base.CHANNEL, base.VIDEO, base.PLAYLIST
 OTHER, UPCOMING, AGED, BROKEN = "UC" + "g" * 22, "fixtureUPC1", "fixtureAGE1", "fixtureBRK1"
 MINE, THEIRS = "PLmine00000001", "PLtheirs000001"
-SPEED = 25   # the sign-in clock runs this much faster, so a five-second poll interval takes 0.2 s
+# Keep the first status request inside the no-poll window on busy build hosts.
+# This changes only the fixture clock; production polling intervals are unchanged.
+SPEED = 2
 CLIENT = {"client_id": "fixture-client.apps.invalid", "client_secret": "fixture-client-secret"}
 SECRETS = ["fixture-client-secret", "device-code-", "access-token-", "refresh-token-"]
 

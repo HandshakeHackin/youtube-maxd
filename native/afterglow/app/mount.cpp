@@ -28,6 +28,7 @@ extern "C"
 #include "evo_net.h"
 #include "tube_i18n.h"
 #include "tube_provider.h"
+#include "tube_voice.h"
 #include "tube_background_play.h"
 #include "tube_ui_style.h"
 }
@@ -500,4 +501,22 @@ extern "C" void tube_afterglow_close(void)
 extern "C" int tube_afterglow_background_return_allowed(void)
 {
     return g_mount && g_mount->frame && g_mount->frame->background_return_allowed();
+}
+
+extern "C" int tube_afterglow_voice_allowed(void)
+{
+    return g_mount && g_mount->frame && !g_mount->play_pending && !g_mount->start.starting() &&
+        g_mount->frame->voice_search_allowed();
+}
+
+extern "C" int tube_afterglow_submit_voice_query(const char *query)
+{
+    return tube_afterglow_voice_allowed() && query && g_mount->frame->submit_voice_query(query);
+}
+
+extern "C" void tube_afterglow_voice_status(int state)
+{
+    if (!g_mount || !g_mount->frame) return;
+    g_mount->frame->set_voice_status(state == TUBE_VOICE_RECORDING ? "Listening: release L3 to search; Circle cancels" :
+        state == TUBE_VOICE_TRANSCRIBING ? "Recognizing your search; Circle cancels" : "");
 }

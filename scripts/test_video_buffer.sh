@@ -14,4 +14,4 @@ cc -std=c11 -D_DEFAULT_SOURCE "${flags[@]}" -c "${root}/native/tube_player_extra
 cc -std=c11 -D_DEFAULT_SOURCE "${flags[@]}" -c "${evo}/addons/src/cJSON.c" -o "${out}/video_buffer_cjson.o"
 c++ -std=c++17 "${flags[@]}" -I"${out}" "${root}/tests/test_video_buffer.cpp" "${out}/video_buffer_extra.o" "${out}/video_buffer_cjson.o" \
   -lm -o "${out}/test_video_buffer"
-ASAN_OPTIONS=detect_leaks=1 "${out}/test_video_buffer"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${out}/test_video_buffer"

@@ -171,6 +171,24 @@ void Frame::open(const Route &route, Move move)
     start_move(arriving.move, {});
 }
 
+bool Frame::voice_search_allowed() const
+{
+    if (!background_return_allowed() || stack_.empty() || stack_.size() >= kStackLimit || request_ != Request::none)
+        return false;
+    const auto current = screen();
+    return current != ScreenId::opening && current != ScreenId::accounts && current != ScreenId::sign_in &&
+        current != ScreenId::settings && current != ScreenId::reader && current != ScreenId::link_phone;
+}
+
+bool Frame::submit_voice_query(std::string query)
+{
+    if (!voice_search_allowed() || query.empty() || query.size() > 800)
+        return false;
+    push(Route{ScreenId::results, std::move(query), {}}, Move::push, {});
+    apply_requests();
+    return true;
+}
+
 void Frame::resume()
 {
     idle_ = 0.0f;
@@ -573,7 +591,7 @@ void Frame::update(const InputFrame &input, float dt, std::string_view typed)
         return;
 
     // Attract mode: a press that ends it does nothing else.
-    const bool any = input.pressed != 0 || input.nav != Direction::none || !typed.empty();
+    const bool any = input.pressed != 0 || input.nav != Direction::none || !typed.empty() || !voice_status_.empty();
     InputFrame routed = input;
     if (any)
     {

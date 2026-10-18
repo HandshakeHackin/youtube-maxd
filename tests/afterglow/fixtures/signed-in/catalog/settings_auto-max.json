@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "settings:auto-max",
+      "title": "Auto Max quality",
+      "label": "Auto Max quality",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On",
+      "subtitle": "Adapt to buffering and dropped frames; manual quality overrides Auto Max"
+    }
+  ],
+  "has_more": false
+}

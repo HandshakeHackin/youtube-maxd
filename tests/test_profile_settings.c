@@ -84,9 +84,9 @@ int main(void) {
         cJSON_AddItemToArray(bounded,row);
     }
     cJSON_ReplaceItemInObject(root,"profile_settings",bounded); write_store(root); cJSON_Delete(root);
-    assert(!p->init()); action("library:profile:profile125"); check(2160,1,0,0,0,0,"en");
+    assert(!p->init()); action("library:profile:profile125"); check(720,1,0,0,0,0,"en");
     p->list_catalog("library:profile:profile126",0,items_cb,NULL); assert(!last_ok);
-    check(2160,1,0,0,0,0,"en"); action("library:profile:guest"); check(2160,1,0,0,0,0,"en");
+    check(720,1,0,0,0,0,"en"); action("library:profile:guest"); check(2160,1,0,0,0,0,"en");
     root=read_store(); assert(cJSON_GetArraySize(cJSON_GetObjectItem(root,"profile_settings"))==128);
     cJSON_Delete(root); p->shutdown();
     /* Reinitializing a removed store must not retain the previous profile/settings/source. */

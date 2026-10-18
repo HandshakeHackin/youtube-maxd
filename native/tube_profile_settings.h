@@ -4,7 +4,7 @@
 #define SETTINGS_PROFILES 128
 typedef struct {
     int height, max_fps, codec, captions, auto_captions, sponsor, autoplay, ask_stream, player_chat_mode, sleep_minutes, history_state, search_history, paid_notifications, dearrow_titles, dearrow_thumbnails;
-    int speed, last_speed, speed_mode;
+    int speed, last_speed, speed_mode, auto_max;
     int playback_mode;
     int queue_respects_mode;
     char language[16], audio_language[16], boot_section[24];
@@ -20,7 +20,7 @@ typedef struct {
 static struct { char profile[33]; ProfileSettings value; } g_profile_settings[SETTINGS_PROFILES];
 static int g_profile_settings_count;
 static ProfileSettings profile_settings_defaults(void) {
-    ProfileSettings p = {0}; p.height = g_height; p.captions = p.search_history = p.section_playlist = 1;
+    ProfileSettings p = {0}; p.height = 2160; p.captions = p.search_history = p.section_playlist = 1;
     tube_player_extra_defaults(&p.extra); tube_ui_defaults(&p.ui);
     p.speed = p.last_speed = 100; p.speed_mode = 1;
     sections_default(p.section_order);
@@ -36,6 +36,7 @@ static ProfileSettings profile_settings_capture(void) {
     p.more_subtitles = g_more_subtitles; p.caption_memory = g_caption_memory; p.dislikes = g_dislikes;
     p.speed = g_speed; p.last_speed = g_last_speed; p.speed_mode = g_speed_mode;
     p.height = g_height;
+    p.auto_max = g_auto_max;
     p.max_fps = g_max_fps;
     p.codec = g_codec;
     p.captions = g_captions;
@@ -60,7 +61,8 @@ static ProfileSettings profile_settings_capture(void) {
 }
 static void profile_settings_apply(const ProfileSettings *p) {
     g_speed = p->speed; g_last_speed = p->last_speed; g_speed_mode = p->speed_mode;
-    /* Resolution is fixed globally; legacy per-profile caps are ignored. */
+    g_height = maxd_height_valid(p->height) ? p->height : 2160;
+    g_auto_max = p->auto_max;
     g_max_fps = p->max_fps;
     g_codec = p->codec;
     g_captions = p->captions;
@@ -186,9 +188,11 @@ static void profile_settings_read(ProfileSettings *p, const cJSON *root) {
     p->speed = valid_speed(speed) ? (int)speed : 100;
     p->last_speed = valid_speed(last) ? (int)last : 100;
     p->speed_mode = settings_integer(root,"speed_memory_mode",0,3,1);
-    p->height = g_height;
+    p->height = settings_integer(root,"max_height",144,2160,2160);
+    if (!maxd_height_valid(p->height)) p->height=2160;
     p->max_fps = settings_integer(root,"max_fps",0,60,0);
     p->codec = settings_integer(root,"codec",0,4,0);
+    p->auto_max = boolean(root,"maxd_auto_max");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"captions"))) p->captions = boolean(root,"captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"automatic_captions"))) p->auto_captions = boolean(root,"automatic_captions");
     if (cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(root,"sponsorblock"))) p->sponsor = boolean(root,"sponsorblock");
@@ -268,6 +272,7 @@ static void profile_settings_write(cJSON *root) {
         cJSON_AddNumberToObject(row,"last_speed_percent",p->last_speed);
         cJSON_AddNumberToObject(row,"speed_memory_mode",p->speed_mode);
         cJSON_AddNumberToObject(row,"max_height",p->height);
+        cJSON_AddBoolToObject(row,"maxd_auto_max",p->auto_max);
         cJSON_AddNumberToObject(row,"max_fps",p->max_fps);
         cJSON_AddNumberToObject(row,"codec",p->codec);
         cJSON_AddBoolToObject(row,"captions",p->captions);

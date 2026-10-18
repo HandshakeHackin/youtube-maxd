@@ -161,7 +161,7 @@ int main(void) {
 with tempfile.TemporaryDirectory(prefix='tube-luma-identity-') as temporary:
     temp=Path(temporary);output=temp/'decoder_luma_diag.csv'
     test=temp/'test.c';exe=temp/'test'
-    test.write_text(program.replace('/data/prosperotube/decoder_luma_diag.csv',str(output)))
+    test.write_text(program.replace('/data/youtube-maxd/decoder_luma_diag.csv',str(output)))
     subprocess.run(['cc','-std=c11','-pthread','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',
         '-I'+str(root/'native'),str(test),'-o',str(exe)],check=True)
     subprocess.run([str(exe)],check=True)

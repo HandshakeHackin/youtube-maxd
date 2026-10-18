@@ -17,4 +17,4 @@ for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "$
   objects+=("$object")
 done
 cc "${flags[@]}" "${root}/tests/test_player_menu.c" "${objects[@]}" -lm -o "${destination}/test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test"

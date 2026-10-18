@@ -22,11 +22,24 @@ fi
 mkdir -p "${root}/.deps"
 exec 9>"${root}/.deps/native-build.lock"
 flock -n 9 || { echo 'Another ProsperoTube native build is already running.' >&2; exit 2; }
-# Every application package must include the renderer used by its display controls.
-# An explicit artifact is preflighted by prepare_native; otherwise compile/reuse
-# the complete verified set. A missing compiler or failed pipeline stops the build.
-if [[ -z "${PROSPEROTUBE_TRANSFORM_ARTIFACT:-}" ]]; then
-    PROSPEROTUBE_TRANSFORM_ARTIFACT="$(python3 "${root}/scripts/build_video_transform_shaders.py")"
+# Default builds verify the pinned EVO renderer and hide transform controls.
+# Opt-in transforms require the complete artifact, checked by prepare_native;
+# a missing compiler or failed optional pipeline stops that build.
+if [[ "${MAXD_ENABLE_DISPLAY_TRANSFORMS:-0}" != 1 ]]; then
+    unset PROSPEROTUBE_TRANSFORM_ARTIFACT
+elif [[ -z "${PROSPEROTUBE_TRANSFORM_ARTIFACT:-}" ]]; then
+    bundled="${root}/native/maxd/shader-artifact"
+    if [[ -f "${bundled}/manifest.json" && "${MAXD_REBUILD_SHADERS:-0}" != 1 ]]; then
+        python3 - "${root}/scripts" "${bundled}" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from install_video_transform_shaders import validate
+validate(sys.argv[2])
+PY
+        PROSPEROTUBE_TRANSFORM_ARTIFACT="${bundled}"
+    else
+        PROSPEROTUBE_TRANSFORM_ARTIFACT="$(python3 "${root}/scripts/build_video_transform_shaders.py")"
+    fi
     export PROSPEROTUBE_TRANSFORM_ARTIFACT
 fi
 # The package carries the built-in YouTube service unless told otherwise:
@@ -50,9 +63,13 @@ if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
     [[ -f "${bundle}" ]] || { echo "The service bundle ${bundle} is missing." >&2; exit 2; }
     printf 'Service bundle: %s  %s bytes  sha256 %s\n' "${bundle}" "$(stat -c %s "${bundle}")" "$(sha256sum "${bundle}" | cut -d ' ' -f 1)"
 fi
+if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
+    python3 "${root}/scripts/bootstrap_local_voice.py"
+    python3 "${root}/scripts/build_local_voice.py" --ps5
+fi
 work="$(python3 "${root}/scripts/prepare_native.py")"
 # The exact-title upstream Lapy helper, built and verified as ProsperoEden does it.
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99012 "${work}/prosperotube-lapy"
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99991 "${work}/prosperotube-lapy"
 if [[ "${TUBE_EMBEDDED_SERVICE}" == 1 ]]; then
     make -C "${root}/native/update/helper" OUTPUT="${work}/prosperotube-update/self-updater.elf"
 fi
@@ -85,10 +102,10 @@ for symbol in ff_hevc_decoder ff_hevc_mp4toannexb_bsf; do
     }
 done
 bash "${work}/scripts/package-app.sh" --zip "$@"
-python3 "${root}/scripts/build_lapy_helper.py" PPSA99012 --check-app "${work}/output/app/PPSA99012"
-python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99012.zip"
+python3 "${root}/scripts/build_lapy_helper.py" PPSA99991 --check-app "${work}/output/app/PPSA99991"
+python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99991.zip"
 destination="${PROSPEROTUBE_PS5_DIST:-${root}/dist}"
 mkdir -p "${destination}"
-cp -a "${work}/output/app/PPSA99012" "${destination}/"
-cp "${work}/output/app/PPSA99012.zip" "${destination}/"
+cp -a "${work}/output/app/PPSA99991" "${destination}/"
+cp "${work}/output/app/PPSA99991.zip" "${destination}/"
 printf '%s\n' "ProsperoTube PS5 artifacts are in ${destination}. No console deployment performed."

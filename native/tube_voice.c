@@ -5,6 +5,10 @@
 #include "tube_search_query.h"
 #include "evo_net.h"
 #include "cJSON.h"
+#ifdef TUBE_LOCAL_VOICE
+#include "local_asr.h"
+#include "maxd_voice_model.h"
+#endif
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +25,8 @@ static char source[512], token[128], profile[33], job[65], query[801];
 static unsigned generation = 1, scope = 1, owner;
 static int state, inflight, available, health_inflight;
 static int64_t clock_ms, deadline, next_poll, next_health;
+static int local_mode;
+static char failure[160];
 
 static void wipe(void *memory, size_t bytes) {
     volatile unsigned char *p = memory;
@@ -95,12 +101,39 @@ void tube_voice_cancel(void) {
     delete_current();
     if (!++generation) ++generation;
     tube_microphone_cancel(); tube_microphone_release();
+#ifdef TUBE_LOCAL_VOICE
+    maxd_asr_cancel(); maxd_asr_release();
+#endif
+    failure[0] = 0;
     wipe(query, sizeof query); owner = 0; inflight = 0; state = TUBE_VOICE_IDLE;
 }
-static void fail(void) {
+static void fail_with(const char *reason) {
+    char saved[sizeof failure]; snprintf(saved, sizeof saved, "%s", reason);
     tube_voice_cancel(); state = TUBE_VOICE_FAILED;
+    snprintf(failure, sizeof failure, "%s", saved);
+}
+static void fail(void) { fail_with("Voice search could not finish. Check the microphone and try again."); }
+void tube_voice_configure_local(const char *selected) {
+    if (!selected || !identifier(selected, 32)) selected = "guest";
+    if (local_mode && !strcmp(profile, selected)) return;
+    tube_voice_cancel();
+    if (!++scope) ++scope;
+    local_mode = 1; health_inflight = 0; next_health = 0;
+    source[0] = 0; wipe(token, sizeof token);
+    snprintf(profile, sizeof profile, "%s", selected);
+#ifdef TUBE_LOCAL_VOICE
+    available = maxd_asr_available(MAXD_VOICE_MODEL_PATH) ? 1 : -1;
+#else
+    available = -1;
+#endif
 }
 void tube_voice_configure(const char *src, const char *bearer, const char *selected) {
+    if (local_mode) {
+        tube_voice_cancel(); local_mode = 0;
+        source[0] = profile[0] = 0; wipe(token, sizeof token);
+        if (!++scope) ++scope;
+        health_inflight = 0; available = 0; next_health = 0;
+    }
     int valid = src && bearer && selected && strlen(src) < sizeof source &&
         strlen(bearer) < sizeof token && identifier(selected, 32) && printable(src) && printable(bearer) &&
         (!strncmp(src, "http://", 7) || !strncmp(src, "https://", 8));
@@ -117,13 +150,14 @@ void tube_voice_configure(const char *src, const char *bearer, const char *selec
     snprintf(profile, sizeof profile, "%s", selected);
 }
 int tube_voice_begin(unsigned remote_owner, int64_t now) {
-    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING || available != 1 || !*source || !*token ||
+    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING || available != 1 ||
+        (!local_mode && (!*source || !*token)) || (local_mode && remote_owner) ||
         now < 0 || now > INT64_MAX - 75000 || (remote_owner && !tube_remote_owner_current(remote_owner))) return 0;
     int available = 0; for (size_t i = 0; i < 4; ++i) if (!requests[i].used) available = 1;
     if (!available) return 0;
     tube_voice_cancel();
     if (tube_microphone_poll(NULL, NULL) != 0) tube_microphone_release();
-    if (!tube_microphone_begin(6000)) { state = TUBE_VOICE_FAILED; return 0; }
+    if (!tube_microphone_begin(6000)) { fail_with("The microphone could not start. Check its connection and mute button."); return 0; }
     owner = remote_owner; clock_ms = now; deadline = now + 75000;
     state = TUBE_VOICE_RECORDING; return 1;
 }
@@ -149,7 +183,7 @@ static char *payload(const int16_t *pcm, size_t samples) {
 }
 void tube_voice_tick(int64_t now) {
     clock_ms = now;
-    if (*source && *token && now >= 0 && now >= next_health && !health_inflight &&
+    if (!local_mode && *source && *token && now >= 0 && now >= next_health && !health_inflight &&
         (state == TUBE_VOICE_IDLE || state == TUBE_VOICE_FAILED)) {
         VoiceRequest *r = allocate();
         if (r && voice_send(r, HEALTH, NULL, NULL)) health_inflight = 1;
@@ -165,7 +199,16 @@ void tube_voice_tick(int64_t now) {
         const int16_t *pcm = NULL; size_t samples = 0;
         int captured = tube_microphone_poll(&pcm, &samples);
         if (!captured) return;
-        if (captured < 0) { fail(); return; }
+        if (captured < 0) { fail_with("No speech captured. Unmute the microphone and speak clearly, then retry."); return; }
+#ifdef TUBE_LOCAL_VOICE
+        if (local_mode) {
+            int started = maxd_asr_start(MAXD_VOICE_MODEL_PATH, pcm, samples);
+            tube_microphone_release();
+            if (!started) { fail_with(maxd_asr_error()); return; }
+            state = TUBE_VOICE_TRANSCRIBING;
+            return;
+        }
+#endif
         char *body = payload(pcm, samples);
         tube_microphone_release();
         VoiceRequest *r = body ? allocate() : NULL;
@@ -173,7 +216,17 @@ void tube_voice_tick(int64_t now) {
         if (body) { wipe(body, strlen(body)); free(body); }
         if (!sent) { fail(); return; }
         state = TUBE_VOICE_TRANSCRIBING; inflight = 1;
-    } else if (state == TUBE_VOICE_TRANSCRIBING && *job && !inflight && now >= next_poll) {
+    }
+#ifdef TUBE_LOCAL_VOICE
+    else if (local_mode && state == TUBE_VOICE_TRANSCRIBING) {
+        int recognized = maxd_asr_poll(query, sizeof query);
+        if (!recognized) return;
+        if (recognized < 0) { fail_with(maxd_asr_error()); return; }
+        if (!tube_search_query_valid(query)) { fail_with("No clear search recognized. Please try again."); return; }
+        maxd_asr_release(); state = TUBE_VOICE_READY;
+    }
+#endif
+    else if (state == TUBE_VOICE_TRANSCRIBING && *job && !inflight && now >= next_poll) {
         VoiceRequest *r = allocate();
         if (!r || !voice_send(r, POLL, job, NULL)) { fail(); return; }
         inflight = 1;
@@ -227,6 +280,11 @@ int tube_voice_state(void) { return state; }
 int tube_voice_available(void) { return available; }
 unsigned tube_voice_owner(void) { return owner; }
 const char *tube_voice_result(void) { return state == TUBE_VOICE_READY && (!owner || tube_remote_owner_current(owner)) ? query : ""; }
+const char *tube_voice_error(void) {
+    if (*failure) return failure;
+    return local_mode ? "Voice model is unavailable. Reinstall the complete app and restart it." :
+        "Enable local speech recognition on the paired companion first.";
+}
 int tube_voice_take(char *destination, size_t capacity) {
     if (state != TUBE_VOICE_READY || !destination || strlen(query) >= capacity ||
         (owner && !tube_remote_owner_current(owner))) return 0;
@@ -234,6 +292,10 @@ int tube_voice_take(char *destination, size_t capacity) {
 }
 void tube_voice_shutdown(void) {
     tube_voice_cancel(); tube_microphone_shutdown();
+#ifdef TUBE_LOCAL_VOICE
+    maxd_asr_shutdown();
+#endif
+    local_mode = 0;
     if (!++scope) ++scope;
     available = health_inflight = 0; next_health = 0;
     source[0] = profile[0] = 0; wipe(token, sizeof token);

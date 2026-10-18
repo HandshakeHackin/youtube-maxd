@@ -1,0 +1,11 @@
+{
+  "application": "YouTube Max’d",
+  "version": "1.2.0",
+  "content_version": "01.002.000",
+  "title_id": "PPSA99991",
+  "upstream": "https://github.com/blackbearreloaded/ProsperoTube",
+  "commit": "3446f364172c299a17cecf29a3efcf23c8463f68",
+  "evo_commit": "9715f6ee9bf9b53461d6fdf9a2e11b4c48357783",
+  "license": "GPL-3.0-or-later",
+  "fork_changes": "MAXD_CHANGES.md"
+}

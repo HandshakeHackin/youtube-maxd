@@ -16,7 +16,7 @@ def run(*arguments):
 
 
 title, content, version = run(ROOT / "scripts/release_version.py").split()
-assert title == "PPSA99012" and re.fullmatch(r"\d\d\.\d{3}\.\d{3}", content) and re.fullmatch(r"\d+\.\d+\.\d+", version)
+assert title == "PPSA99991" and re.fullmatch(r"\d\d\.\d{3}\.\d{3}", content) and re.fullmatch(r"\d+\.\d+\.\d+", version)
 major, minor, patch = content.split(".")
 assert version == f"{int(major)}.{minor}.{patch}"
 assert f'__version__ = "{version}"' in (ROOT / "companion/prosperotube/__init__.py").read_text()
@@ -59,8 +59,8 @@ with tempfile.TemporaryDirectory(prefix="tube-release-") as directory:
 # Local candidates must be installable by tools that retain ZIP permissions,
 # just like CI releases, and must not copy unrelated stale archives.
 build = (ROOT / "scripts/build_ps5.sh").read_text()
-normalize = 'python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99012.zip"'
-copy_zip = 'cp "${work}/output/app/PPSA99012.zip" "${destination}/"'
+normalize = 'python3 "${root}/scripts/zip_open_modes.py" "${work}/output/app/PPSA99991.zip"'
+copy_zip = 'cp "${work}/output/app/PPSA99991.zip" "${destination}/"'
 assert build.index(normalize) < build.index(copy_zip)
 assert "-name '*.zip'" not in build
 

@@ -1,0 +1,10 @@
+{
+  "name": "YouTube Max’d",
+  "slug": "youtube-maxd",
+  "version": "1.2.0",
+  "palette": {
+    "red": "#FF304F",
+    "soft_red": "#FFA5AA",
+    "white": "#FFFFFF"
+  }
+}

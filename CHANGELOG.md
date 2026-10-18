@@ -1,9 +1,16 @@
 # Changelog
 
-Notable changes to ProsperoTube, newest version first. Each `## version`
-section lists one change per `- ` bullet; `scripts/generate_about.py` turns the
-bullets into the in-app changelog (`native/tube_about_data.h`), so keep every
-bullet under 300 bytes and run the generator after editing this file.
+YouTube Max’d integration changes, followed by retained upstream release notes.
+
+## 1.002.000
+
+- YouTube Max’d now uses the pinned standalone ProsperoTube/EVO foundation, keeping its own identity, icon and coral/pink/violet palette.
+- Embedded YouTube.js and TV activation-code login replace the prototype's Google Cloud configuration requirement.
+- Native AVC/VP9/HEVC and HDR paths, software AV1, captions, chapters, quality/audio switching and live DVR are included from upstream.
+- Saved maximum quality per profile: 144p, 240p, 360p, 480p, 720p, 1080p, 1440p and 2160p.
+- Smooth native controller effects follow browsing, loading, playback, pause, sign-in and errors, using the existing pad and feedback switch.
+- State and helper identity are isolated to YouTube Max’d; upstream automatic updates are disabled for this fork.
+- Exact firmware 11.00 / ShadowMount+ playback, sign-in and physical-controller acceptance still require PS5 testing.
 
 ## 1.000.000
 

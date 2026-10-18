@@ -124,7 +124,7 @@ int main(void) {
     assert(!tube_playback_at_end(100, 0)); /* no known duration or active item */
     assert(evo_provider_mgr_init() == 1);
     assert(evo_provider_count() == 1 && !strcmp(evo_provider_at(0)->id, "youtube"));
-    assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && last_count == 9); /* Guest: Sign in to YouTube too */
+    assert(p->list_catalog("", 0, items_cb, NULL) == 0 && last_ok && last_count == 10); /* Guest, Smart playlists and sign-in */
     assert(p->set_source("http://127.0.0.1:8765#123456") == 0);
     assert(p->set_source("http://user:pass@127.0.0.1:8765") < 0);
     assert(p->set_source("http://127.0.0.1:8765#badcode") < 0);

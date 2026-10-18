@@ -1,6 +1,6 @@
 """What a release is called, read from the files that define it.
 
-    release_version.py           prints "PPSA99012 01.000.000 1.000.000": title, content version, version
+    release_version.py           prints "PPSA99991 01.000.000 1.000.000": title, content version, version
     release_version.py --tag     prints the tag a release of this tree carries: "v01.000.000"
     release_version.py --notes   prints the release notes: docs/releases/<content version>.md
                                  when it exists, else the CHANGELOG.md section of the version

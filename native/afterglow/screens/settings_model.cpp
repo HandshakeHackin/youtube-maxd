@@ -55,6 +55,9 @@ struct Rule
 };
 constexpr Rule kRules[] = {
     // ---- Player ----
+    {"settings:max-quality", "player", "Picture"},
+    {"settings:auto-max", "player", "Picture"},
+    {"settings:smart", "content", "Smart playlists"},
     {"settings:frame-rate", "player", "Picture"},
     {"settings:codec", "player", "Picture"},
     {"settings:ask-stream", "player", "Picture"},

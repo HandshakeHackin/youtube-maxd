@@ -53,7 +53,7 @@ cc -std=c11 "${flags[@]}" -c "${root}/native/vendor/cJSON/cJSON.c" -o "$destinat
 cc -std=c11 -D_DEFAULT_SOURCE -DTUBE_SEEK_SHEETS_NO_NET "${flags[@]}" "${ffmpeg_flags[@]}" -c "${root}/native/tube_seek_sheets.c" -o "$destination/tube_seek_sheets.o"
 cc -std=c11 -D_DEFAULT_SOURCE "${flags[@]}" "${root}/tests/test_seek_sheets.c" "$destination/tube_seek_sheets.o" \
     "$destination/tube_player_extra.o" "$destination/cJSON.o" "${ffmpeg_flags[@]}" -lm -o "$destination/sheets"
-ASAN_OPTIONS=detect_leaks=1 "$destination/sheets" "$destination/sheet.jpg" "$destination/sheet.webp" "$destination/sheet.png"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$destination/sheets" "$destination/sheet.jpg" "$destination/sheet.webp" "$destination/sheet.png"
 g++ -std=c++17 "${flags[@]}" -I"$destination" "${root}/tests/test_seek_preview_hud.cpp" "$destination/tube_seek_sheets.o" \
     "$destination/tube_player_extra.o" "$destination/cJSON.o" "${ffmpeg_flags[@]}" -lm -o "$destination/hud"
-ASAN_OPTIONS=detect_leaks=1 "$destination/hud"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$destination/hud"

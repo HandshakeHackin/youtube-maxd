@@ -30,4 +30,4 @@ coproc LOUNGE { python3 "${root}/standalone/test/remote_test.py" --serve; }
 trap 'kill "${LOUNGE_PID}" 2>/dev/null || true' EXIT
 read -r lounge <&"${LOUNGE[0]}"
 TUBE_JS_FIXTURES="${root}/standalone/fixtures" TUBE_E2E_BUNDLE="${root}/standalone/build/tube_js.bundle.js" TUBE_E2E_LOUNGE="${lounge}" \
-  ASAN_OPTIONS=detect_leaks=1 "${out}/test_embedded_e2e"
+  ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${out}/test_embedded_e2e"

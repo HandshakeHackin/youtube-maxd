@@ -10,6 +10,9 @@ enum { TUBE_VOICE_IDLE, TUBE_VOICE_RECORDING, TUBE_VOICE_TRANSCRIBING,
        TUBE_VOICE_READY, TUBE_VOICE_FAILED };
 /* Source/token must come from the provider's validated LAN configuration. */
 void tube_voice_configure(const char *source, const char *token, const char *profile);
+/* Embedded mode: local recognition, scoped to the selected browser profile.
+ * No network credentials are needed; remote microphone triggers are rejected. */
+void tube_voice_configure_local(const char *profile);
 /* owner=0 for local search, otherwise a current Lounge owner. */
 int tube_voice_begin(unsigned owner, int64_t now_ms);
 void tube_voice_finish(void);
@@ -21,6 +24,7 @@ int tube_voice_available(void);
 unsigned tube_voice_owner(void);
 /* Ready result remains owned until cancelled or consumed; main thread only. */
 const char *tube_voice_result(void);
+const char *tube_voice_error(void);
 /* Consumes the result only when the entire UTF-8 query fits the destination. */
 int tube_voice_take(char *query, size_t capacity);
 void tube_voice_shutdown(void);

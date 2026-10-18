@@ -138,7 +138,7 @@ and the three `pthread_condattr_*`.
 * Name lookup is EVO's `tools/native-app/stubs/evo_dns.c` (`getaddrinfo` on the
   console's resolver); libcurl's lookup threads use it as they are.
 * `sceHttp` is not an option: this app elevates through Lapy for
-  `/data/prosperotube`, and the owner's other apps found `sceHttp`/`sceSsl`
+  `/data/youtube-maxd`, and the owner's other apps found `sceHttp`/`sceSsl`
   fail on every public site once elevated, while PacBrew libcurl + OpenSSL
   works both elevated and sandboxed.
 

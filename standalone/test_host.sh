@@ -14,7 +14,7 @@ export TUBE_JS_SANITIZE=${TUBE_JS_SANITIZE:-1}
 [ "$TUBE_JS_SANITIZE" = 0 ] && unset TUBE_JS_SANITIZE
 "$here/build_host.sh" >/dev/null
 export TUBE_JS_FIXTURES="$here/fixtures"
-export ASAN_OPTIONS=detect_leaks=1:abort_on_error=0 UBSAN_OPTIONS=print_stacktrace=1
+export ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1:abort_on_error=0} UBSAN_OPTIONS=print_stacktrace=1
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 

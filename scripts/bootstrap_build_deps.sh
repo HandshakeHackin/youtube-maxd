@@ -32,7 +32,16 @@ bash "$root/scripts/bootstrap_sdk.sh"
 bash "$root/standalone/build_bundle.sh"
 tools="${PROSPEROTUBE_SHADER_TOOLS:-$HOME/.cache/prosperotube/shader-tools}"
 recipe=$(sha256sum "$root/scripts/build_ps5_shader_compiler.sh" | cut -d ' ' -f 1)
-if [[ ! -x "$tools/bin/amdllpc" || ! -f "$tools/lib/libspvgen.so" || ! -f "$tools/.prosperotube-recipe" ]] ||
+if [[ "${MAXD_ENABLE_DISPLAY_TRANSFORMS:-0}" != 1 ]]; then
+    printf 'Using pinned EVO video shaders; optional rotation/mirroring is disabled.\n'
+elif [[ -f "$root/native/maxd/shader-artifact/manifest.json" && "${MAXD_REBUILD_SHADERS:-0}" != 1 ]]; then
+    python3 - "$root/scripts" "$root/native/maxd/shader-artifact" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from install_video_transform_shaders import validate
+validate(sys.argv[2])
+PY
+elif [[ ! -x "$tools/bin/amdllpc" || ! -f "$tools/lib/libspvgen.so" || ! -f "$tools/.prosperotube-recipe" ]] ||
    [[ "$(cat "$tools/.prosperotube-recipe" 2>/dev/null)" != "$recipe" ]]; then
     bash "$root/scripts/build_ps5_shader_compiler.sh"
 fi

@@ -1098,6 +1098,12 @@ int main(int argc, char **argv)
                 cJSON_ArrayForEach(step, cJSON_GetObjectItemCaseSensitive(board, "steps"))
                 {
                     InputFrame input;
+                    if (cJSON_HasObjectItem(step, "voice_status")) frame.set_voice_status(text_of(step, "voice_status"));
+                    if (cJSON_HasObjectItem(step, "voice_query")) {
+                        const bool accepted = frame.submit_voice_query(text_of(step, "voice_query"));
+                        if (accepted != !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(step, "voice_rejected")))
+                            fail(results, name, look_id, "unexpected voice query acceptance");
+                    }
                     // "press": down and up at once; "hold": down for the whole wait of the step.
                     const std::string hold = text_of(step, "hold");
                     const std::string press = hold.empty() ? text_of(step, "press") : hold;

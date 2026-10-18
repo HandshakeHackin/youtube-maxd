@@ -1,3 +1,5 @@
+> Upstream updater design is preserved below. YouTube Max’d disables automatic update checks and installation until its own release feed is configured. Do not use the upstream feed to update this fork.
+
 # Updates
 
 ProsperoTube uses the same homebrew.page signed catalog and loader-started

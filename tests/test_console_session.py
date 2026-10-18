@@ -702,8 +702,8 @@ def test_afterglow_log_lines_say_look_output_size_and_capture_verdict():
     assert ob.ag_interface_up(log) == {"look": "afterglow", "width": 3840, "height": 2160} and ob.ag_interface_up("x") is None
     assert len(ob.ag_log_lines(log)) == 2 and ob.ag_text_engine_failed(log) is None
     assert ob.capture_verdict("[1] INFO  bc REMOTE_CMD shot\n") is None
-    assert ob.capture_verdict("[1] INFO  bc REMOTE_CMD shot\n[1] INFO  bc DEV_CAPTURE wrote /data/prosperotube/evo_shot_001.bmp 3840x2160\n") == \
-        ("wrote", "/data/prosperotube/evo_shot_001.bmp 3840x2160")
+    assert ob.capture_verdict("[1] INFO  bc REMOTE_CMD shot\n[1] INFO  bc DEV_CAPTURE wrote /data/youtube-maxd/evo_shot_001.bmp 3840x2160\n") == \
+        ("wrote", "/data/youtube-maxd/evo_shot_001.bmp 3840x2160")
     assert ob.capture_verdict("[1] INFO  bc DEV_CAPTURE failed cannot write /x.part\n") == ("failed", "cannot write /x.part")
     assert ob.capture_verdict("[1] INFO  bc REMOTE_CMD shot\n[1] INFO  bc REMOTE_CMD unknown\n")[0] == "unknown"
     assert ob.capture_verdict("[1] INFO  bc REMOTE_CMD shot\n[1] INFO  bc REMOTE_CMD key l1\n[1] INFO  bc REMOTE_CMD unknown\n")[0] == "unknown"

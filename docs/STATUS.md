@@ -1,3 +1,5 @@
+> Historical upstream status. For this fork’s completed checks and remaining console work, see [MAXD_VALIDATION.md](MAXD_VALIDATION.md).
+
 # Current implementation status
 
 Media category is implemented and deployed as `b6f5ce8`; stored bytes verified,

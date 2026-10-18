@@ -1,0 +1,26 @@
+{
+ "about": "Local voice status, normal results navigation, back stack and protected screens.",
+ "boards": [
+  {"name":"voice-listening", "fixture":"signed-in", "route":{"screen":"search"},
+   "steps":[{"voice_status":"Listening: release L3 to search; Circle cancels"}],
+   "expect":{"screen":"search","state":{"voice_status":"Listening: release L3 to search; Circle cancels","voice_allowed":"yes"}}},
+  {"name":"voice-recognizing", "fixture":"signed-in", "route":{"screen":"search"},
+   "steps":[{"voice_status":"Recognizing your search; Circle cancels"}],
+   "expect":{"screen":"search","state":{"voice_status":"Recognizing your search; Circle cancels"}}},
+  {"name":"voice-results", "fixture":"signed-in", "route":{"screen":"search"},
+   "steps":[{"voice_query":"aurora chasing","wait":1}],
+   "expect":{"screen":"results","state":{"query":"aurora chasing","load":"ready"},"asked":["search:aurora chasing"]}},
+  {"name":"voice-results-back", "fixture":"signed-in", "route":{"screen":"search"},
+   "steps":[{"voice_query":"aurora chasing","wait":1},{"press":"circle"}],
+   "expect":{"screen":"search","state":{"voice_status":"","voice_allowed":"yes"}}},
+  {"name":"voice-settings-protected", "fixture":"signed-in", "route":{"screen":"settings"},
+   "steps":[{"voice_query":"aurora chasing","voice_rejected":true}],
+   "expect":{"screen":"settings","state":{"voice_allowed":"no"},"unasked":["search:aurora chasing"]}},
+  {"name":"voice-account-protected", "fixture":"signed-in", "route":{"screen":"accounts"},
+   "steps":[{"voice_query":"aurora chasing","voice_rejected":true}],
+   "expect":{"screen":"accounts","state":{"voice_allowed":"no"},"unasked":["search:aurora chasing"]}},
+  {"name":"voice-cancel-indicator", "fixture":"signed-in", "route":{"screen":"search"},
+   "steps":[{"voice_status":"Listening: release L3 to search; Circle cancels"},{"voice_status":""}],
+   "expect":{"screen":"search","state":{"voice_status":""}}}
+ ]
+}

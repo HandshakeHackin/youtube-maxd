@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "abcdefghij1",
+      "title": "Gaming: a new adventure",
+      "subtitle": "Studio",
+      "duration_sec": 900,
+      "channel_id": "UCaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "abcdefghij2",
+      "title": "Gaming: the next chapter",
+      "subtitle": "Studio",
+      "duration_sec": 1800,
+      "channel_id": "UCaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "has_more": false
+}

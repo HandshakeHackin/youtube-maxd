@@ -10,8 +10,8 @@ import os
 import re
 from pathlib import Path
 
-TITLE = "PPSA99012"
-DATA = "/data/prosperotube"
+TITLE = "PPSA99991"
+DATA = "/data/youtube-maxd"
 CMD_FILE = f"{DATA}/dev_command"
 STATUS_FILE = f"{DATA}/dev_status"
 UI_FILE = f"{DATA}/dev_ui.json"
@@ -42,7 +42,7 @@ SCREEN_CLOSED = 32
 # row-N ids) is the other layout the build can draw.
 BROWSER_DOCS = ("youtube", "hui_provider")
 KEYBOARD_DOCS = ("keyboard", "hui_keyboard")
-BUILD_ID = re.compile(rb"prosperotube-[0-9a-f]{7,8}_\d{4}-\d{4}")
+BUILD_ID = re.compile(rb"(?:youtube-maxd|prosperotube)-[0-9a-f]{7,8}(?:-dirty)?_\d{4}-\d{4}")
 
 _INT = ("t", "scr", "be", "fatal", "eof", "complete", "active", "parked")
 _FLOAT = ("pos", "dur", "fps")

@@ -3,8 +3,8 @@ from pathlib import Path
 import json, os, subprocess, tempfile
 root=Path(__file__).resolve().parents[1]
 work=Path(os.environ['PROSPEROTUBE_NATIVE_WORK'])/'projects/evoplayer'
-screen=(work/'core/src/screens/PlayerScreen.cpp').read_text()
-audio=(work/'core/src/screens/AudioTrackPickerScreen.cpp').read_text()
+screen=(work/'core/src/screens/PlayerScreen.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
+audio=(work/'core/src/screens/AudioTrackPickerScreen.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
 def part(source,start,end):
  a=source.index(start);return source[a:source.index(end,a)]
 mapcode=part(screen,'#if defined(EVO_AGC_DEVICE)\n    // ProsperoTube H1:', '    // ProsperoTube D-pad actions')

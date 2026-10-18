@@ -32,7 +32,7 @@ cc "${candidate[@]}" -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,un
     "${source}/libswresample/libswresample.a" "${source}/libavutil/libavutil.a" \
     -lm -pthread -lxml2 -lssl -lcrypto -latomic -lz -lbz2 -llzma -o "${destination}/probe"
 if [[ "${PROSPEROTUBE_DVR_CANDIDATE:-0}" == 1 ]]; then python3 "${root}/tests/test_hls_dvr_anchor.py"; fi
-ASAN_OPTIONS=detect_leaks=1 python3 "${root}/scripts/probe_live_dvr.py" \
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} python3 "${root}/scripts/probe_live_dvr.py" \
     --binary "${destination}/probe" "${interrupt_binary[@]}" --result "${destination}/result.json" "$@"
 
 if [[ "${PROSPEROTUBE_DVR_RUNTIME:-0}" == 1 && -n "${PROSPEROTUBE_DVR_STOCK_SOURCE:-}" ]]; then
@@ -43,5 +43,5 @@ if [[ "${PROSPEROTUBE_DVR_RUNTIME:-0}" == 1 && -n "${PROSPEROTUBE_DVR_STOCK_SOUR
         "${stock}/libavformat/libavformat.a" "${stock}/libavcodec/libavcodec.a" \
         "${stock}/libswresample/libswresample.a" "${stock}/libavutil/libavutil.a" \
         -lm -pthread -lxml2 -lssl -lcrypto -latomic -lz -lbz2 -llzma -o "${destination}/missing-extension"
-    ASAN_OPTIONS=detect_leaks=1 "${destination}/missing-extension"
+    ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/missing-extension"
 fi

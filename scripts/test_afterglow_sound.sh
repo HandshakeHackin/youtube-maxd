@@ -18,7 +18,7 @@ sources+=("${root}/tests/afterglow/sound/sound_test.cpp")
 flags=(-std=c++20 -Wall -Wextra -Werror -I"${root}/native" -I"${kit}/src" -I"${kit}")
 g++ "${flags[@]}" -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer "${sources[@]}" -lm -o "${destination}/sound_test"
 g++ "${flags[@]}" -O2 -Wno-mismatched-new-delete -DAFTERGLOW_COUNT_ALLOCATIONS "${sources[@]}" -lm -o "${destination}/sound_test_plain"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/sound_test" "${root}"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/sound_test" "${root}"
 "${destination}/sound_test_plain" "${root}"
 # Every original asset the vocabulary names is present in package preparation.
 python3 - "${root}" "${kit}" "${destination}/sound_test" <<'PY'

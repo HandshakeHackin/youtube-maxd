@@ -1,3 +1,5 @@
+> These are inherited ProsperoTube hardware records. They do not validate YouTube Max’d or firmware 11.00. See [MAXD_VALIDATION.md](MAXD_VALIDATION.md).
+
 # Hardware acceptance — in progress
 
 - 2026-10-15 | `38d2840` settings/thumbnail candidate deployed to .30 | pass: idle-first, 185 files match after 120 seconds, errors unchanged, final idle | private evidence `settings-38d2840-installed/result.json` | no launch; owner acceptance pending.

@@ -194,6 +194,12 @@ void Frame::draw_header(G &g, const Entry &entry, float alpha)
 
 void Frame::draw_hints(G &g, const Entry &entry, float alpha)
 {
+    if (!voice_status_.empty())
+    {
+        const ui::Hint voice[] = {{ui::Button::circle, voice_status_.c_str()}};
+        hints(g, voice, 1, alpha);
+        return;
+    }
     if (sheet_.visible() || text_sheet_.visible())
         return; // a sheet of the frame's has its own row
     if (rail_amount_.value > 0.5f)
@@ -519,6 +525,8 @@ std::string Frame::snapshot_json() const
     Snapshot snapshot;
     snapshot.values.emplace_back("background_playback",background_title_.empty() ? "off" : background_paused_ ? "paused" : "playing");
     snapshot.values.emplace_back("background_return",background_title_.empty() ? "off" : background_return_allowed() ? "ready" : "blocked");
+    snapshot.values.emplace_back("voice_status", voice_status_);
+    snapshot.values.emplace_back("voice_allowed", voice_search_allowed() ? "yes" : "no");
     if (!stack_.empty())
         stack_.back()->screen->snapshot(snapshot);
     // The frame's sheets report beside the screen they were opened from.

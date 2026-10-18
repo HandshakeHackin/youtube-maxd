@@ -41,4 +41,4 @@ assert browser.count('!(id.rfind("settings:menu:", 0) == 0 && id != "settings:me
 PY
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"$destination" -I"${root}/native" "${root}/tests/test_ui_exit.cpp" -o "$destination/test"
-ASAN_OPTIONS=detect_leaks=1 "$destination/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$destination/test"

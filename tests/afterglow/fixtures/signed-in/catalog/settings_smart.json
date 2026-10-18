@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "id": "settings:smart:new",
+      "title": "Create smart playlist",
+      "label": "Create smart playlist",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": ""
+    },
+    {
+      "id": "settings:smart:1",
+      "title": "Gaming tonight",
+      "label": "Gaming tonight",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": ""
+    }
+  ],
+  "has_more": false
+}

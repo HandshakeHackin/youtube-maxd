@@ -45,7 +45,7 @@ class BuildTests(unittest.TestCase):
                                         env=self.env, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(self.log.read_text().splitlines(),
-                                 ["deps", "build", f"verify {self.root}/dist/PPSA99012.zip"])
+                                 ["deps", "build", f"verify {self.root}/dist/PPSA99991.zip"])
         self.log.unlink()
         destination = self.root / "custom output"
         result = subprocess.run(["make", "--no-print-directory", "zip"], cwd=self.root,
@@ -53,7 +53,7 @@ class BuildTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.log.read_text().splitlines(),
-                         ["deps", "build", f"verify {destination}/PPSA99012.zip"])
+                         ["deps", "build", f"verify {destination}/PPSA99991.zip"])
         self.log.unlink()
         result = subprocess.run(["make", "--no-print-directory", "zip"], cwd=self.root,
                                 env=dict(self.env, DEPS_RC="17"), capture_output=True, text=True)
@@ -141,8 +141,12 @@ sha256sum "$0" | cut -d ' ' -f 1 > "$PROSPEROTUBE_SHADER_TOOLS/.prosperotube-rec
             result = subprocess.run(["bash", str(bootstrap)], env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(self.log.read_text().splitlines(), expected)
-        run(["fetch", "sdk", "npm ci --ignore-scripts", "bundle", "shader"])
+        # Default builds use verified EVO headers and need no shader compiler.
+        env["MAXD_ENABLE_DISPLAY_TRANSFORMS"] = "0"
+        run(["fetch", "sdk", "npm ci --ignore-scripts", "bundle"])
         self.assertTrue((node_home / "bin/node").is_file())
+        env["MAXD_ENABLE_DISPLAY_TRANSFORMS"] = "1"
+        run(["sdk", "npm ci --ignore-scripts", "bundle", "shader"])
         run(["sdk", "npm ci --ignore-scripts", "bundle"])
         shader.write_text(shader.read_text() + "# Changed compiler recipe\n")
         run(["sdk", "npm ci --ignore-scripts", "bundle", "shader"])

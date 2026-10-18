@@ -273,7 +273,7 @@
    "status": "partial",
    "smarttube": "Radio: Default (system) + 47 languages (res/values/languages.xml); sets UI locale and YouTube hl, restarts.",
    "ps5_evidence": [
-    "native/tube_i18n.c, native/tube_i18n.h: settings:interface-language 'Interface language' in YouTube preferences (System default, English and 21 languages), one line in /data/prosperotube/interface-language for all profiles; otherwise the PS5 system language decides (tube_i18n_system_tag)",
+    "native/tube_i18n.c, native/tube_i18n.h: settings:interface-language 'Interface language' in YouTube preferences (System default, English and 21 languages), one line in /data/youtube-maxd/interface-language for all profiles; otherwise the PS5 system language decides (tube_i18n_system_tag)",
     "native/tube_provider.c: settings:content-language and settings:content-country (hl and gl sent with the requests)",
     "tests/test_i18n.c (language choice, the preference file and its rows), tests/test_i18n_provider.c (scripts/test_i18n.sh), tests/test_i18n_ui.cpp (scripts/test_i18n_ui.sh); docs/LOCALIZATION.md"
    ],
@@ -571,7 +571,7 @@
    "status": "partial",
    "smarttube": "Radio: Disabled / Show notification in sidebar / Notify via pop-up dialog.",
    "ps5_evidence": [
-    "native/tube_update_app.c: settings:update:notify 'Notify about updates: on / off' in About; the notice at start, once per start, when a newer version is listed (docs/UPDATES.md); the switch is kept in /data/prosperotube/update/check.json",
+    "native/tube_update_app.c: settings:update:notify 'Notify about updates: on / off' in About; the notice at start, once per start, when a newer version is listed (docs/UPDATES.md); the switch is kept in /data/youtube-maxd/update/check.json",
     "native/tube_update.c: the check against the project's GitHub releases, once a day and on request",
     "tests/test_update_provider.c, tests/test_update.c (scripts/test_update.sh), scripts/test_update_host.py"
    ],

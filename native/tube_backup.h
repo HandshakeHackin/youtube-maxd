@@ -11,7 +11,7 @@
 // PRIVACY: the state file contains the companion pairing token and the remote
 // device identity. Nothing is stripped from a backup, so a backup grants the
 // same companion access as the live file. Backups therefore stay inside the
-// application data directory (/data/prosperotube on the console) and this
+// application data directory (/data/youtube-maxd on the console) and this
 // module never writes anywhere else. Restoring an old backup also restores
 // the token it held; if the companion was paired again since, pair once more.
 //

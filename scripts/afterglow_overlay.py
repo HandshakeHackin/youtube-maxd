@@ -255,7 +255,7 @@ def apply(root, work, replace, player):
 
     # ---- the pad ----
     host = player + "core/src/screens/ProviderHostScreen.cpp"
-    if "tube_afterglow_shown" not in (work / host).read_text(encoding="utf-8"):
+    if "tube_afterglow_input(pressed, held)" not in (work / host).read_text(encoding="utf-8"):
         replace(host, "    if (m_streamPick) {\n        const int n = g_pending.choice_count;",
                 PAD + "    if (m_streamPick) {\n        const int n = g_pending.choice_count;")
         replace(host, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_afterglow.h"', count=1)

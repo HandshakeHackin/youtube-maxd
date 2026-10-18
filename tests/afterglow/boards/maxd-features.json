@@ -1,0 +1,164 @@
+{
+  "about": "YouTube Max\u2019d Smart playlists and Auto Max forms and navigation",
+  "boards": [
+    {
+      "name": "maxd-smart-library",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "library",
+        "argument": "smart"
+      },
+      "expect": {
+        "screen": "library",
+        "state": {
+          "tab": "smart",
+          "catalog": "settings:smart",
+          "items": "2"
+        }
+      }
+    },
+    {
+      "name": "maxd-smart-open-editor",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "library",
+        "argument": "smart"
+      },
+      "steps": [
+        {
+          "press": "right"
+        },
+        {
+          "press": "cross"
+        }
+      ],
+      "expect": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "state": {
+          "kind": "link"
+        }
+      }
+    },
+    {
+      "name": "maxd-smart-rules",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "title": "Gaming tonight"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "link"
+        }
+      }
+    },
+    {
+      "name": "maxd-smart-results",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "title": "Gaming tonight"
+      },
+      "steps": [
+        {
+          "press": "cross"
+        }
+      ],
+      "expect": {
+        "screen": "grid",
+        "argument": "maxd:smart:run:1"
+      }
+    },
+    {
+      "name": "maxd-smart-keyword",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "title": "Gaming tonight"
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "cross"
+        }
+      ],
+      "expect": {
+        "screen": "settings",
+        "typing": 1
+      }
+    },
+    {
+      "name": "maxd-auto-quality",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:auto-max",
+        "title": "Auto Max"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "cycle",
+          "value": "On"
+        }
+      }
+    },
+    {
+      "name": "maxd-smart-last-tab",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "library"
+      },
+      "steps": [
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "press": "r1"
+        },
+        {
+          "wait": 0.6
+        }
+      ],
+      "expect": {
+        "screen": "library",
+        "state": {
+          "tab": "smart",
+          "catalog": "settings:smart",
+          "items": "2"
+        }
+      }
+    }
+  ]
+}

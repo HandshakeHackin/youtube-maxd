@@ -31,6 +31,7 @@ static void resolve_video(const char *audio, const char *expect_audio_field) {
     poll_job(answer(audio));
     assert(last_ok && listed_count == 4);
 }
+#ifndef MAXD_STREAM_HELPERS_ONLY
 int main(void) {
     char temporary[] = "/tmp/prosperotube-streams-XXXXXX";
     assert(mkdtemp(temporary)); assert(setenv("EVO_DATA_DIR_OVERRIDE", temporary, 1) == 0);
@@ -102,3 +103,4 @@ int main(void) {
     puts("PASS: per-video qualities and audio tracks, reopen at the position with the stream chosen, Auto, nothing kept for the next video");
     return 0;
 }
+#endif

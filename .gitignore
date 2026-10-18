@@ -12,6 +12,9 @@ fixtures/generated/
 *.sqlite*
 .env*
 cookies.txt
+google-oauth.json
+google-tokens.json
+oauth-profiles.json
 *.log
 native/generated/
 node_modules/

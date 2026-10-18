@@ -281,7 +281,7 @@
    "fixture": "d-signed-in",
    "reduced_motion": true,
    "route": {"screen": "library"},
-   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"wait": 0.6}],
+   "steps": [{"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"press": "r1"}, {"wait": 0.6}],
    "expect": {"screen": "library", "focus": "favorites/0", "state": {"tab": "favorites"}}
   }
  ]

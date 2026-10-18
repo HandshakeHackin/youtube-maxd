@@ -1,0 +1,182 @@
+[
+  {
+    "name": "SDL2",
+    "url": "https://github.com/ps5-payload-dev/SDL/archive/0baf4ac49.tar.gz",
+    "file": "SDL2.tar.gz",
+    "sha256": "cdcf926356a494d43369da2ba204fe7b4d746bc99b324a88656f0beac1cd8e57"
+  },
+  {
+    "name": "FFmpeg",
+    "url": "https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz",
+    "file": "FFmpeg.tar.xz",
+    "sha256": "733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1"
+  },
+  {
+    "name": "dav1d",
+    "url": "https://github.com/videolan/dav1d/archive/refs/tags/1.5.1.tar.gz",
+    "file": "dav1d.tar.gz",
+    "sha256": "fa635e2bdb25147b1384007c83e15de44c589582bb3b9a53fc1579cb9d74b695"
+  },
+  {
+    "name": "FreeType",
+    "url": "https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz",
+    "file": "FreeType.tar.gz",
+    "sha256": "1ac27e16c134a7f2ccea177faba19801131116fd682efc1f5737037c5db224b5"
+  },
+  {
+    "name": "HarfBuzz",
+    "url": "https://github.com/harfbuzz/harfbuzz/releases/download/9.0.0/harfbuzz-9.0.0.tar.xz",
+    "file": "HarfBuzz.tar.xz",
+    "sha256": "a41b272ceeb920c57263ec851604542d9ec85ee3030506d94662067c7b6ab89e"
+  },
+  {
+    "name": "FriBidi",
+    "url": "https://github.com/fribidi/fribidi/releases/download/v1.0.15/fribidi-1.0.15.tar.xz",
+    "file": "FriBidi.tar.xz",
+    "sha256": "0bbc7ff633bfa208ae32d7e369cf5a7d20d5d2557a0b067c9aa98bcbf9967587"
+  },
+  {
+    "name": "libass",
+    "url": "https://github.com/libass/libass/releases/download/0.17.3/libass-0.17.3.tar.xz",
+    "file": "libass.tar.xz",
+    "sha256": "eae425da50f0015c21f7b3a9c7262a910f0218af469e22e2931462fed3c50959"
+  },
+  {
+    "name": "libxml2",
+    "url": "https://github.com/GNOME/libxml2/archive/refs/tags/v2.13.5.tar.gz",
+    "file": "libxml2.tar.gz",
+    "sha256": "87d681718760ba42e749a61482d71b34d1d566843e9ade39a73fea92caf8293b"
+  },
+  {
+    "name": "libsamplerate",
+    "url": "https://github.com/libsndfile/libsamplerate/releases/download/0.2.2/libsamplerate-0.2.2.tar.xz",
+    "file": "libsamplerate.tar.xz",
+    "sha256": "3258da280511d24b49d6b08615bbe824d0cacc9842b0e4caf11c52cf2b043893"
+  },
+  {
+    "name": "zlib",
+    "url": "https://zlib.net/zlib-1.3.2.tar.gz",
+    "file": "zlib.tar.gz",
+    "sha256": "bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16"
+  },
+  {
+    "name": "libpng",
+    "url": "https://download.sourceforge.net/libpng/libpng-1.6.43.tar.gz",
+    "file": "libpng.tar.gz",
+    "sha256": "fecc95b46cf05e8e3fc8a414750e0ba5aad00d89e9fdf175e94ff041caf1a03a"
+  },
+  {
+    "name": "bzip2",
+    "url": "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz",
+    "file": "bzip2.tar.gz",
+    "sha256": "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269"
+  },
+  {
+    "name": "XZ",
+    "url": "https://github.com/tukaani-project/xz/releases/download/v5.4.6/xz-5.4.6.tar.xz",
+    "file": "XZ.tar.xz",
+    "sha256": "b92d4e3a438affcf13362a1305cd9d94ed47ddda22e456a42791e630a5644f5c"
+  },
+  {
+    "name": "libiconv",
+    "url": "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz",
+    "file": "libiconv.tar.gz",
+    "sha256": "8f74213b56238c85a50a5329f77e06198771e70dd9a739779f4c02f65d971313"
+  },
+  {
+    "name": "curl",
+    "url": "https://curl.se/download/curl-8.18.0.tar.xz",
+    "file": "curl.tar.xz",
+    "sha256": "40df79166e74aa20149365e11ee4c798a46ad57c34e4f68fd13100e2c9a91946"
+  },
+  {
+    "name": "OpenSSL",
+    "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz",
+    "file": "OpenSSL.tar.gz",
+    "sha256": "c53a47e5e441c930c3928cf7bf6fb00e5d129b630e0aa873b08258656e7345ec"
+  },
+  {
+    "name": "libpsl",
+    "url": "https://github.com/rockdaboot/libpsl/releases/download/0.21.5/libpsl-0.21.5.tar.gz",
+    "file": "libpsl.tar.gz",
+    "sha256": "1dcc9ceae8b128f3c0b3f654decd0e1e891afc6ff81098f227ef260449dae208"
+  },
+  {
+    "name": "zstd",
+    "url": "https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz",
+    "file": "zstd.tar.gz",
+    "sha256": "8c29e06cf42aacc1eafc4077ae2ec6c6fcb96a626157e0593d5e82a34fd403c1"
+  },
+  {
+    "name": "OpenLibm",
+    "url": "https://github.com/JuliaMath/openlibm/archive/refs/tags/v0.8.6.tar.gz",
+    "file": "OpenLibm.tar.gz",
+    "sha256": "347998968cfeb2f9b91de6a8e85d2ba92dec0915d53500a4bc483e056f85b94c"
+  },
+  {
+    "name": "PacBrew",
+    "url": "https://github.com/ps5-payload-dev/pacbrew-repo/archive/refs/tags/v0.39.tar.gz",
+    "file": "PacBrew.tar.gz",
+    "sha256": "6e40a2a1697059af682a9bdc8e243b97575d562c209e0ca90976e87c602070b7"
+  },
+  {
+    "name": "PS5-Payload-SDK",
+    "url": "https://github.com/ps5-payload-dev/sdk/archive/refs/tags/v0.42.tar.gz",
+    "file": "PS5-Payload-SDK.tar.gz",
+    "sha256": "83bd06b5ca578b1d8bdeb1f4e9dcfe798a19a6f9fd31abc24801ea8859e113e0"
+  },
+  {
+    "name": "RmlUi",
+    "url": "https://github.com/mikke89/RmlUi/archive/refs/tags/6.2.tar.gz",
+    "file": "RmlUi.tar.gz",
+    "sha256": "814c3ff7b9666280338d8f0dda85979f5daf028d01c85fc8975431d1e2fd8e8b"
+  },
+  {
+    "name": "Lapy",
+    "commit": "57fcc19b7f57e46c823d6f2a6c6233ebf3288079",
+    "file": "Lapy-57fcc19.tar",
+    "sha256": "0525ce59a5a3f273d5e00f2b54623e00b46f2b5a383ad5c3d0a8ed152b6f2411"
+  },
+  {
+    "name": "ps5log",
+    "commit": "1ae1f9182abd2770c131b97419034fb85173c2dc",
+    "file": "ps5log.h",
+    "sha256": "394af67d0f8b60b3335deb53396e52855ea2daa50ca914a456ea7663f48900c6"
+  },
+  {
+    "name": "QuickJS-NG",
+    "version": "0.17.0",
+    "file": "quickjs-amalgam-v0.17.0.zip",
+    "sha256": "a0955463c74809173a253ff87365095e6972e8b171cfb6aa8a1e781adf35cfeb"
+  },
+  {
+    "name": "Mozilla CA certificates",
+    "url": "https://curl.se/ca/cacert-2026-09-25.pem",
+    "file": "cacert-2026-09-25.pem",
+    "sha256": "a41b5d356aea97a529fe27e0f7316d2f9d946d75927476cf9cf1b90637d00505"
+  },
+  {
+    "name": "YouTube.js and runtime dependencies",
+    "file": "YouTube-js-18.1.0-and-runtime-dependencies.tar.gz",
+    "sha256": "da8f65762e7c6d8b208220ee4aa7399c8ab95a0b5e6638ea2a72930e04b007e3"
+  },
+  {
+    "name": "protobuf-es",
+    "url": "https://github.com/bufbuild/protobuf-es/archive/refs/tags/v2.16.0.tar.gz",
+    "file": "protobuf-es.tar.gz",
+    "sha256": "159cad3f28403bb9b718bf5941b1b443a8ce9b208a06b6f81030753c25b42eb9"
+  },
+  {
+    "name": "whisper.cpp",
+    "commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037",
+    "url": "https://github.com/ggml-org/whisper.cpp/archive/d1be6fde11ac6e0407606b4e42fe72d34add8037.tar.gz",
+    "file": "whisper.cpp.tar.gz",
+    "sha256": "645445da884df6dbd52b30f82d7be7c01d1767c938714e477e786b88d529e9f4"
+  },
+  {
+    "name": "Whisper tiny model",
+    "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.bin",
+    "file": "../native/maxd/voice/ggml-tiny.bin",
+    "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21"
+  }
+]

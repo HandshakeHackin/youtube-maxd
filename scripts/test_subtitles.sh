@@ -12,4 +12,4 @@ cc -O1 -g -Wall -Wextra -Wno-unused-parameter \
   "${evo}/media/src/evo_subtitle.c" "${evo}/media/src/evo_subsync.c" \
   $(pkg-config --libs libavformat libavcodec libswresample libavutil) \
   -lpthread -lm -o "${out}/test_tube_subtitles"
-ASAN_OPTIONS=detect_leaks=1 "${out}/test_tube_subtitles" "${out}"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${out}/test_tube_subtitles" "${out}"

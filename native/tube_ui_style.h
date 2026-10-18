@@ -71,11 +71,11 @@ static const int g_tube_grid_scales[] = {50, 60, 70, 80, 90, 100, 110, 120, 125,
 #define TUBE_UI_CLASSIC TUBE_UI_THEMES      /* the first classic scheme: the look before the themes */
 #define TUBE_UI_SCHEMES 13
 static const struct { const char *id, *label; unsigned background, accent; int mono; } g_tube_schemes[TUBE_UI_SCHEMES] = {
-    {"afterglow", "Afterglow", 0x06070c, 0xff5a47, 0}, {"onyx", "Onyx", 0x000000, 0xf2c14e, 0},
+    {"afterglow", "Afterglow", 0x06070c, 0xff304f, 0}, {"onyx", "Onyx", 0x000000, 0xf2c14e, 0},
     {"daybreak", "Daybreak", 0xf3ede4, 0xe2533d, 0}, {"high-contrast", "High contrast", 0x000000, 0xffd60a, 0},
-    {"classic", "Classic ProsperoTube", 0x101116, 0xef3340, 0}, {"teal", "Teal", 0x16262b, 0x1fb5a3, 0},
-    {"dark-grey", "Dark grey", 0x212121, 0xef3340, 0}, {"red", "Red", 0x1f1414, 0xe53935, 0},
-    {"dark-grey-oled", "Dark grey (true black)", 0x000000, 0xef3340, 0}, {"teal-oled", "Teal (true black)", 0x000000, 0x1fb5a3, 0},
+    {"classic", "Classic ProsperoTube", 0x101116, 0xff304f, 0}, {"teal", "Teal", 0x16262b, 0x1fb5a3, 0},
+    {"dark-grey", "Dark grey", 0x212121, 0xff304f, 0}, {"red", "Red", 0x1f1414, 0xe53935, 0},
+    {"dark-grey-oled", "Dark grey (true black)", 0x000000, 0xff304f, 0}, {"teal-oled", "Teal (true black)", 0x000000, 0x1fb5a3, 0},
     {"dark-grey-mono", "Dark grey monochrome", 0x212121, 0x8a8a8a, 1}, {"dark-blue", "Dark blue", 0x0d1626, 0x3d8bff, 0},
     {"dark-blue-oled", "Dark blue (true black)", 0x000000, 0x3d8bff, 0}
 };
@@ -329,9 +329,9 @@ static inline double tube_ui_marquee(double elapsed_s, double overflow, int spee
 /* ---- Themes and colour schemes. ---- */
 enum { TUBE_UI_ROLE_BASE = 0, TUBE_UI_ROLE_ACCENT = 1, TUBE_UI_ROLE_TEXT = 2 };
 #define TUBE_UI_DEFAULT_BACKGROUND 0x06070cu     /* the sheet's own: Afterglow */
-#define TUBE_UI_DEFAULT_ACCENT 0xff5a47u
+#define TUBE_UI_DEFAULT_ACCENT 0xff304fu
 #define TUBE_UI_CLASSIC_BACKGROUND 0x101116u     /* what the classic schemes are measured from */
-#define TUBE_UI_CLASSIC_ACCENT 0xef3340u
+#define TUBE_UI_CLASSIC_ACCENT 0xff304fu
 static inline unsigned tube_ui_shift(unsigned from, unsigned reference, unsigned target, int grey) {
     unsigned result = 0; int offsets[3], mean = 0;
     for (int i = 0; i < 3; ++i) {

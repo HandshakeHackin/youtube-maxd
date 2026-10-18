@@ -19,13 +19,13 @@ static bool attempted, ready;
 static bool prove_storage(int &error)
 {
     error = 0;
-    const int made = evo_mkdir("/data/prosperotube");
+    const int made = evo_mkdir("/data/youtube-maxd");
     if (made != 0) {
         error = made;
         return false;
     }
     char path[128];
-    std::snprintf(path, sizeof path, "/data/prosperotube/.storage-probe-%ld",
+    std::snprintf(path, sizeof path, "/data/youtube-maxd/.storage-probe-%ld",
                   static_cast<long>(getpid()));
     const char token[] = "ProsperoTube storage\n";
     char actual[sizeof token] = {};

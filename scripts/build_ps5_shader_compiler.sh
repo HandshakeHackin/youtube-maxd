@@ -52,13 +52,17 @@ dxc_root="$cache/dxc/linux_dxc_2026_07_29.x86_x64"
 if [[ ! -x "$dxc_root/bin/dxc" ]]; then tar -xzf "$dxc" -C "$cache/dxc"; fi
 export PATH="$dxc_root/bin:$PATH"
 export LD_LIBRARY_PATH="$dxc_root/lib:${LD_LIBRARY_PATH:-}"
-cmake -G Ninja -S "$cache/src/drivers/xgl" -B "$cache/build" \
-  -DCMAKE_BUILD_TYPE=Release -DDXC_PATH="$dxc_root/bin/dxc" -DVKI_BUILD_TOOLS=ON -DVKI_RAY_TRACING=OFF -DLLPC_RAY_TRACING=OFF \
+# Build the compiler's supported standalone target; no desktop Vulkan driver or
+# Wayland/X11 development packages are needed to compile the PS5 pipelines.
+cmake -G Ninja -S "$cache/src/drivers/llpc" -B "$cache/llpc-build" \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DDXC_PATH="$dxc_root/bin/dxc" \
+  -DCMAKE_C_FLAGS_RELEASE="-O0 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O0 -DNDEBUG" \
+  -DLLPC_BUILD_TOOLS=ON -DLLPC_RAY_TRACING=OFF -DLLVM_TARGETS_TO_BUILD=AMDGPU \
   -DLLVM_PARALLEL_COMPILE_JOBS="$jobs" -DLLVM_PARALLEL_LINK_JOBS=1
-cmake --build "$cache/build" --target amdllpc spvgen -j"$jobs"
-compiler="$(find "$cache/build" -type f -name amdllpc -executable -print -quit)"
+cmake --build "$cache/llpc-build" --target amdllpc spvgen -j"$jobs"
+compiler="$(find "$cache/llpc-build" -type f -name amdllpc -executable -print -quit)"
 [[ -n "$compiler" ]] || { echo "No compiled amdllpc" >&2; exit 1; }
-spvgen="$(find "$cache/build" -type f -name 'spvgen.so' -print -quit)"
+spvgen="$(find "$cache/llpc-build" -type f -name 'spvgen.so' -print -quit)"
 [[ -n "$spvgen" ]] || { echo "No compiled spvgen" >&2; exit 1; }
 mkdir -p "$cache/bin" "$cache/lib"
 install -m755 "$compiler" "$cache/bin/amdllpc"

@@ -1,7 +1,7 @@
 """Opt-in identity of accepted VP9 packets, before superframe splitting."""
 RECORD_C = r"""
 #define TUBE_PACKET_DIAG_CAPACITY 2048u
-#define TUBE_PACKET_DIAG_PATH "/data/prosperotube/vp9_packet_diag.csv"
+#define TUBE_PACKET_DIAG_PATH "/data/youtube-maxd/vp9_packet_diag.csv"
 struct tube_packet_diag_record {
     uint64_t packet, epoch_packet, hash_us;
     int64_t pts;

@@ -97,6 +97,9 @@ class Frame final : private Nav
     {
         return !dialog_.is_open() && !sheet_.open() && !text_sheet_.open() && !launch_.active;
     }
+    bool voice_search_allowed() const;
+    bool submit_voice_query(std::string query);
+    void set_voice_status(std::string text) { voice_status_ = std::move(text); }
     void set_background_playback(std::string_view title, bool paused)
     {
         background_title_ = title;
@@ -217,6 +220,7 @@ class Frame final : private Nav
     const ui::Fonts &fonts_;
     FrameOptions options_;
     std::string background_title_;
+    std::string voice_status_;
     bool background_paused_ = false;
     const Look *look_;
     Data data_;

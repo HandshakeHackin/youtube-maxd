@@ -36,6 +36,9 @@
 #include "tube_qr_page.h"
 #include "tube_about.h"
 #include "tube_backup.h"
+#include "maxd/smart_rules.h"
+#include "maxd/auto_max.h"
+static MaxdSmartStore g_maxd_smart_store;
 #include "tube_update.h"
 /* Host tests link the provider without the updater: each use asks for the function first. */
 void tube_update_app_init(void) __attribute__((weak));
@@ -177,8 +180,15 @@ static char g_active_profile[33], g_next_profile[33];
  * before asynchronous work; queue entries retain the origin of their insertion. */
 static int g_browse_music, g_browse_queue, g_resolved_music;
 static struct { char id[160], profile[33]; int music, automatic; } g_launch_origin;
-static const int g_height = 2160; /* Every new video may use the full supported resolution. */
+static int g_height = 2160;
+static const int g_maxd_heights[] = {144,240,360,480,720,1080,1440,2160};
+static int maxd_height_valid(int height) {
+    for (unsigned i=0; i<sizeof g_maxd_heights/sizeof *g_maxd_heights; ++i)
+        if (height==g_maxd_heights[i]) return 1;
+    return 0;
+}
 static int g_max_fps, g_codec, g_auto_captions, g_captions = 1;
+static int g_auto_max;
 static int g_speed = 100;
 /* Modes: all videos, per channel, per video, this session only. */
 static int g_speed_mode = 1, g_last_speed = 100;
@@ -199,6 +209,11 @@ static int valid_speed(double speed) {
     return 0;
 }
 static void save(void);
+static void maxd_smart_cancel(void);
+static void maxd_smart_reset(void);
+static void maxd_smart_tick(void);
+static int maxd_smart_window(const char *,int,int);
+static int maxd_smart_prompt_submit(unsigned,const char *,char *,size_t);
 static int g_sponsor, g_autoplay, g_finished, g_ask_stream;
 static int g_playback_mode;
 static struct { int state,same_playlist; unsigned serial,scope,selection; char id[12],next[12],channel[25],channel_name[256]; PlaylistContext next_context; } g_recommendation={.state=-1};
@@ -307,7 +322,8 @@ static const struct { const char *id, *label, *detail; int group; } g_sections[]
     {"section:movies", "Movies", "YouTube movies and shows", SECTION_DISCOVER},
     {"section:trending", "Trending", "Videos trending on YouTube", SECTION_DISCOVER},
     {"section:shorts", "Shorts", "Short videos from YouTube", SECTION_DISCOVER},
-    {"section:kids", "Kids", "YouTube Kids categories", SECTION_DISCOVER}
+    {"section:kids", "Kids", "YouTube Kids categories", SECTION_DISCOVER},
+    {"settings:smart", "Smart playlists", "Saved rules for this profile; refresh matching feed videos", SECTION_ROOT}
 };
 #define SECTIONS ((int)(sizeof g_sections / sizeof *g_sections))
 #define SECTION_SLOTS 32
@@ -618,7 +634,7 @@ static struct {
  * passwords: lock 1 = give it to select target, 2 = set a new one, 3 = give it
  * to change it, 4 = give it to remove it. comment 1 = a new comment, 2 = a reply.
  * server = the alternative SponsorBlock server of the built-in service. */
-static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment, server;
+static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment, server, maxd_smart;
     char identity[101], profile[33], pin[119], target[33], cursor[65]; } g_playlist_prompt;
 /* First-release scope (GOAL.md): what ships before a console and live-service
  * check carries this suffix on its rows and this line where a row has an overview. */
@@ -1095,6 +1111,7 @@ int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt) {
 static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t capacity) {
     if (!g_playlist_prompt.active || ticket != g_playlist_prompt.prompt.ticket || !text ||
         !parent || capacity < 48 || strcmp(g_playlist_prompt.profile, g_library_profile)) return -1;
+    if (g_playlist_prompt.maxd_smart) return maxd_smart_prompt_submit(ticket,text,parent,capacity);
     while (*text && isspace((unsigned char)*text)) ++text;
     size_t length = strlen(text);
     while (length && isspace((unsigned char)text[length - 1])) --length;
@@ -1661,6 +1678,10 @@ static int comment_thread_current(void) {
 }
 /* Everything the profile kept on this PS5 beyond its library records. */
 static void profile_forget(const char *profile) {
+    for (int i = g_maxd_smart_store.count - 1; i >= 0; --i) if (!strcmp(g_maxd_smart_store.rules[i].profile, profile)) {
+        memmove(&g_maxd_smart_store.rules[i], &g_maxd_smart_store.rules[i + 1], (size_t)(g_maxd_smart_store.count - i - 1) * sizeof g_maxd_smart_store.rules[0]);
+        --g_maxd_smart_store.count;
+    }
     for (int i = g_channel_mark_count - 1; i >= 0; --i) if (!strcmp(g_channel_marks[i].profile, profile)) channel_mark_drop(i);
     for (int i = g_caption_memory_count - 1; i >= 0; --i) if (!strcmp(g_caption_memories[i].profile, profile)) {
         memmove(&g_caption_memories[i], &g_caption_memories[i + 1], (size_t)(g_caption_memory_count - i - 1) * sizeof g_caption_memories[0]);
@@ -2130,6 +2151,7 @@ static void save(void) {
     cJSON *root = cJSON_CreateObject(), *rows = cJSON_CreateArray();
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); storage_failed(); return; }
     profile_settings_write(root);
+    maxd_smart_write(&g_maxd_smart_store,root);
     cJSON *blocked=cJSON_AddArrayToObject(root,"blocked_channels");
     for(int i=0;i<g_blocked_count;++i) {
         cJSON *row=cJSON_CreateObject();
@@ -2483,6 +2505,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init_store(void) {
+    maxd_smart_reset();
     memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel(); g_startup_open = 1;
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
@@ -2561,7 +2584,8 @@ static int init_store(void) {
     if(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(root,"pixel_ratio_mode")) && pixel>=0 && pixel<=5 && floor(pixel)==pixel)
         g_pixel_mode=(int)pixel;
     player_preferences_load(root);
-    /* Legacy max_height preferences do not restrict new video selections. */
+    g_height = settings_integer(root,"max_height",144,2160,2160);
+    if (!maxd_height_valid(g_height)) g_height=2160;
     g_max_fps = settings_integer(root,"max_fps",0,60,0);
     double speed = num(root, "speed_percent");
     g_speed = valid_speed(speed) ? (int)speed : 100;
@@ -2702,6 +2726,7 @@ static int init_store(void) {
         r->queued_music = r->queued && boolean(o, "queued_music");
         r->subscribed = boolean(o, "subscribed");
     }
+    maxd_smart_read(&g_maxd_smart_store,root);
     profile_settings_load(root);
     cJSON_Delete(root); if (version == 1) save();
     /* A protected profile is not entered again without its password: browsing
@@ -3200,6 +3225,8 @@ static int playlist_window_begin_at(int target,int direction) {
     char playlist[101]; int index;
     if (!tube_playback_playlist_context(playlist,sizeof playlist,&index)) return 0;
     if (!valid_playback_group(playlist)) return 0;
+    int maxd_window=maxd_smart_window(playlist,index,target);
+    if(maxd_window>=0)return maxd_window;
     if (playlist_window_current() && g_playlist_window.state == 0) return 0;
     tube_playlist_window_cancel();
     Request *r=request_new(12,NULL); if (!r) return 0;
@@ -4743,6 +4770,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 }
 
 void tube_poll(void) {
+    maxd_smart_tick();
     if (tube_update_app_tick) tube_update_app_tick(!g_embedded || embedded_ready());
     if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_classic_notice) tube_update_app_classic_notice();
     caption_switch_tick();
@@ -4792,6 +4820,7 @@ static void ignored(int ok, int status, const char *body, size_t size, void *ud)
 }
 
 static void cancel_requests(int preserve_chat) {
+    maxd_smart_cancel();
     memset(&g_next_offer,0,sizeof g_next_offer);
     if(!++g_phone_next.serial)++g_phone_next.serial;
     g_phone_next.state=-1;
@@ -4942,7 +4971,9 @@ static int extra_group_parent(const char *parent, int *choice) {
 #define LINK_ROW(id, title, detail, url) do { \
     CATALOG_FOLDER(id,title,detail); copy(out[n-1].overview,sizeof out[n-1].overview,url); \
 } while (0)
+#include "maxd/smart_catalog.h"
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
+    if(maxd_smart_catalog(parent,page,cb,ud))return 1;
     evo_provider_item_t out[64]; int n = 0;
     if (parent && tube_i18n_select && !strncmp(parent, TUBE_I18N_SETTING, sizeof TUBE_I18N_SETTING - 1)) {
         /* Interface language: tube_i18n.c keeps the choice and names the rows. */
@@ -5874,6 +5905,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             g_speed_mode = 0;
             if (!strcmp(g_speed_session_profile,g_library_profile)) g_speed_session_id[0] = 0;
             tube_set_playback_speed((int)speed);
+        } else if (!strcmp(parent,"settings:auto-max")) { g_auto_max=!g_auto_max;save();
+        } else if (!strncmp(parent, "settings:max-quality:", 21)) {
+            char *end; long height = strtol(parent+21,&end,10);
+            if (!*(parent+21) || *end || height<144 || height>2160 || !maxd_height_valid((int)height)) {
+                cb(0,NULL,0,0,ud); return 1;
+            }
+            g_height=(int)height; save();
         } else if (!strncmp(parent, "settings:frame-rate:", 20)) {
             char *end; long fps = strtol(parent + 20, &end, 10);
             if (!*(parent + 20) || *end || (fps != 0 && fps != 30 && fps != 60)) { cb(0,NULL,0,0,ud); return 1; }
@@ -6587,6 +6625,13 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 char id[64];snprintf(id,sizeof id,"settings:boot-section:%d",i);
                 CATALOG_FOLDER(id,g_boot_sections[i].label,boot_section_index(g_boot_section)==i?"Selected":"Open this section when ProsperoTube starts; saved for this profile");
             }
+        } else if (!strcmp(parent,"settings:max-quality") || !strncmp(parent,"settings:max-quality:",21)) {
+            for (unsigned i=0;i<sizeof g_maxd_heights/sizeof *g_maxd_heights;++i) {
+                char id[64], label[80];
+                snprintf(id,sizeof id,"settings:max-quality:%d",g_maxd_heights[i]);
+                snprintf(label,sizeof label,"Up to %dp%s",g_maxd_heights[i],g_maxd_heights[i]==2160?" (4K)":"");
+                CATALOG_FOLDER(id,label,g_height==g_maxd_heights[i]?"Selected":"Maximum quality for the next video; saved for this profile");
+            }
         } else if (!strcmp(parent,"settings:frame-rate")) {
             const int rates[]={0,30,60}; const char *labels[]={"Frame rate: automatic","Up to 30 fps","Up to 60 fps"};
             for (int i=0;i<3;++i) {
@@ -6686,6 +6731,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             }
         } else {
             char label[96];
+            snprintf(label,sizeof label,"Maximum quality: %dp%s",g_height,g_height==2160?" (4K)":"");
+            CATALOG_FOLDER("settings:max-quality",label,"Choose a quality ceiling; change the current video from Playback options");
+            CATALOG_FOLDER("settings:auto-max",g_auto_max?"Auto Max quality: on":"Auto Max quality: off","Adapt to sustained buffering or dropped frames; manual quality overrides Auto Max");
+            tube_row_fact("settings:auto-max","kind","cycle");tube_row_fact("settings:auto-max","label","Auto Max quality");
+            tube_row_fact("settings:auto-max","value",g_auto_max?"On":"Off");
+            CATALOG_FOLDER("settings:smart","Smart playlists","Create profile-owned rules and refresh matching feed videos");
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
@@ -6887,6 +6938,11 @@ static int suggestion_row(const char *value) {
 
 static int catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if (!cb || page < 0 || page > 1000) return -1;
+    if(parent && !strncmp(parent,"maxd:smart:run:",15)) {
+        const char *action="";uint32_t id=maxd_smart_id(parent+15,&action);
+        if(!id || *action){cb(0,NULL,0,0,ud);return 0;}
+        return maxd_smart_run(id,page,cb,ud);
+    }
     if (page) library_recall(parent);
     /* LinkPhone polls this read-only snapshot while a cast is resolving. Do not
      * cancel that request or reset its launch context as an ordinary browse does. */
@@ -8791,6 +8847,7 @@ static int player_codec(const char *name) {
     return !strncmp(name, "avc", 3) || !strncmp(name, "h264", 4) ? TUBE_CODEC_AVC : !strncmp(name, "vp9", 3) || !strncmp(name, "vp09", 4) ? TUBE_CODEC_VP9 :
         !strncmp(name, "av1", 3) || !strncmp(name, "av01", 4) ? TUBE_CODEC_AV1 : !strncmp(name, "hev", 3) || !strncmp(name, "hvc", 3) || !strncmp(name, "h265", 4) ? TUBE_CODEC_HEVC : TUBE_CODEC_AUTO;
 }
+#include "maxd/auto_provider.h"
 int tube_error_fix_begin(int error, double position, int live, int subtitles) {
     if (g_recovery.phase || !recovery_scope()) return TUBE_FIX_NONE;
     const evo_stream_choice_t *playing = &g_recovery.choice;

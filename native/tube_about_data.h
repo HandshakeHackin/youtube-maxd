@@ -3,11 +3,18 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.000.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 13
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.002.000"
+#define TUBE_ABOUT_CHANGELOG_ROWS 20
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.002.000", "YouTube Max\342\200\231d now uses the pinned standalone ProsperoTube/EVO foundation, keeping its own identity, icon and coral/pink/violet palette."}, \
+    {"1.002.000", "Embedded YouTube.js and TV activation-code login replace the prototype's Google Cloud configuration requirement."}, \
+    {"1.002.000", "Native AVC/VP9/HEVC and HDR paths, software AV1, captions, chapters, quality/audio switching and live DVR are included from upstream."}, \
+    {"1.002.000", "Saved maximum quality per profile: 144p, 240p, 360p, 480p, 720p, 1080p, 1440p and 2160p."}, \
+    {"1.002.000", "Smooth native controller effects follow browsing, loading, playback, pause, sign-in and errors, using the existing pad and feedback switch."}, \
+    {"1.002.000", "State and helper identity are isolated to YouTube Max\342\200\231d; upstream automatic updates are disabled for this fork."}, \
+    {"1.002.000", "Exact firmware 11.00 / ShadowMount+ playback, sign-in and physical-controller acceptance still require PS5 testing."}, \
     {"1.000.000", "Self-sufficient: YouTube.js runs inside the app on QuickJS-NG, and video streams straight from YouTube's servers to the PS5 decoders. No computer, companion or API key."}, \
     {"1.000.000", "Playback in AVC, VP9 and HEVC up to 2160p through the hardware decoders and AV1 in software, with HDR (PQ and HLG) and automatic frame-rate switching."}, \
     {"1.000.000", "Per-video quality and audio track (dubs, original, described audio) in the playback options; switching keeps the position."}, \

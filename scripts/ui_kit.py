@@ -39,6 +39,9 @@ def sources():
     chosen = os.environ.get("PROSPEROTUBE_UI_KIT")
     if chosen:
         yield chosen
+    bundled = ROOT / "third_party/maxd-ui-kit-source"
+    if (bundled / ".git").exists():
+        yield str(bundled)
     home = pathlib.Path.home() / "ps5-homebrew-ui"
     if (home / ".git").exists():
         yield str(home)

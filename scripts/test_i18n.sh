@@ -40,10 +40,10 @@ mkdir -p "${destination}"
 flags=(-std=c11 -D_DEFAULT_SOURCE -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer
        -I"${root}/native" -I"${evo}/include" -I"${evo}/addons/include")
 cc "${flags[@]}" "${root}/tests/test_i18n.c" "${root}/native/tube_i18n.c" -pthread -o "${destination}/test_i18n"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test_i18n"
 # The same test with the player interface path forced on: no catalog uses it yet.
 cc "${flags[@]}" -DTUBE_I18N_TEST_KIT "${root}/tests/test_i18n.c" "${root}/native/tube_i18n.c" -pthread -o "${destination}/test_i18n_kit"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n_kit"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test_i18n_kit"
 # What prepare_native.py hands to the PS5 build is the module and tables tested here.
 for name in tube_i18n.h tube_i18n_data.h; do cmp "${root}/native/${name}" "${evo}/addons/include/${name}"; done
 cmp "${root}/native/tube_i18n.c" "${evo}/addons/src/tube_i18n.c"
@@ -59,4 +59,4 @@ for source in "${root}/native/tube_provider.c" "${root}/native/tube_remote.c" "$
   objects+=("${object}")
 done
 cc "${flags[@]}" -I"${root}/tests" "${root}/tests/test_i18n_provider.c" "${objects[@]}" -lm -pthread -o "${destination}/test_i18n_provider"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test_i18n_provider"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test_i18n_provider"

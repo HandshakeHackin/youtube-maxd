@@ -81,7 +81,7 @@ static FILE *diag_fopen(const char *path, const char *mode) {
 #define clock_gettime diag_clock_gettime
 #define fopen diag_fopen
 #define evo_boot_log(...) (++logs)
-''' + DIAGNOSTIC_C.replace('"/data/prosperotube/flip_timing_diag.csv"', '"records.csv"') + '\n#include "' + str(tilemap) + '"\n#define EVO_AGC_SCANOUT_STRIDE UINT64_C(0x04000000)\n' + SCANOUT_C + r'''
+''' + DIAGNOSTIC_C.replace('"/data/youtube-maxd/flip_timing_diag.csv"', '"records.csv"') + '\n#include "' + str(tilemap) + '"\n#define EVO_AGC_SCANOUT_STRIDE UINT64_C(0x04000000)\n' + SCANOUT_C + r'''
 static void begin_source(uint64_t epoch, uint64_t serial, int64_t pts, uint64_t fetch,
     int have, int fresh, int held, int smoothing, int blit)
 {

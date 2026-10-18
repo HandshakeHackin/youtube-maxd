@@ -71,4 +71,4 @@ cc -std=c11 "${flags[@]}" -c "${root}/native/tube_background_play.c" -o "$destin
 cc -std=c11 "${flags[@]}" -c "${root}/native/vendor/cJSON/cJSON.c" -o "$destination/cJSON.o"
 g++ -std=c++17 "${flags[@]}" -I"$destination" "${root}/tests/test_player_extra_overlay.cpp" \
     "$destination/tube_player_extra.o" "$destination/tube_background_play.o" "$destination/cJSON.o" -lm -o "$destination/test"
-ASAN_OPTIONS=detect_leaks=1 "$destination/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$destination/test"

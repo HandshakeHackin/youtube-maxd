@@ -17,4 +17,4 @@ end=source.index('    m_playbackFsm.postEvent',start)
 PY
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"$destination" "$root/tests/test_speed_switch.cpp" -o "$destination/test"
-ASAN_OPTIONS=detect_leaks=1 "$destination/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$destination/test"

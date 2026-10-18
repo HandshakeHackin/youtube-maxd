@@ -1,3 +1,5 @@
+> Historical upstream handoff. YouTube Max’d uses PPSA99991 and /data/youtube-maxd; see the current [README](../README.md).
+
 # Handoff notes
 
 For the next person or agent who picks up ProsperoTube. Read this first, then

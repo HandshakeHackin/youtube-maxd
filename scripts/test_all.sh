@@ -45,6 +45,7 @@ worker() (
     npm run build && npm test
 )
 
+step scripts/test_maxd.sh bash "${root}/scripts/test_maxd.sh"
 step fixtures fixtures
 step worker worker
 step pytest env PYTHONPATH="${root}/companion" "${py}" -m pytest -q

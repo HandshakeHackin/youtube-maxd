@@ -338,6 +338,10 @@ int tube_player_take_browse(char *parent, size_t parent_size, char *title, size_
  * Legacy height arguments remain accepted but cannot lower the maximum. */
 void tube_player_quality(int *height, int *fps, int *codec);
 int tube_player_set_quality(int height, int fps, int codec);
+/* Optional local adaptation; sample counters are snapshots from the player. */
+int tube_maxd_auto_enabled(void);
+int tube_maxd_auto_sample(uint64_t now,uint64_t frames,uint64_t dropped,int suppressed,int buffering,
+                         double position,int live,int subtitles);
 int tube_player_remember_height(int height);
 /* Reopen the playing video at this position with the current limits. */
 int tube_player_reload(double position, int live, int subtitles);

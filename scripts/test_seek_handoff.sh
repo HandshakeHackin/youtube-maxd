@@ -11,26 +11,26 @@ python3 "${root}/scripts/extract_seek_test.py" \
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" \
     "${root}/tests/test_seek_handoff.cpp" -pthread -o "${destination}/test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test"
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" -I"${root}/native" \
     "${root}/tests/test_resume_timeline.cpp" \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm \
     -o "${destination}/resume-test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/resume-test" \
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/resume-test" \
     "${root}/fixtures/generated/fixture.m3u8" "${root}/fixtures/generated/video.mp4"
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" -I"${root}/native" \
     "${root}/tests/test_audio_seek.cpp" \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm \
     -o "${destination}/audio-test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/audio-test" \
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/audio-test" \
     "${root}/fixtures/generated/audio.m4a" "${root}/fixtures/generated/audio.webm"
 cc -std=c11 -D_DEFAULT_SOURCE -O1 -g -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" -I"${root}/native" -I"${evo}/include" -I"${evo}/pp/include" \
     "${root}/tests/test_seek_process.c" "${evo}/pp/src/pp_playback.c" "${evo}/pp/src/pp_clock.c" "${root}/native/tube_frame_lease.c" \
     $(pkg-config --cflags --libs libavformat libavcodec libavutil) -lm -pthread \
     -o "${destination}/process-test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/process-test" \
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/process-test" \
     "${root}/fixtures/generated/audio.m4a" "${root}/fixtures/generated/audio.webm" \
     "${root}/fixtures/generated/fixture.m3u8"

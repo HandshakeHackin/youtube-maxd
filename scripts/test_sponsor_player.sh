@@ -8,4 +8,4 @@ python3 "${root}/scripts/extract_sponsor_test.py" \
 g++ -std=c++17 -DEVO_AGC_DEVICE=1 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I"${destination}" \
     "${root}/tests/test_sponsor_player.cpp" -o "${destination}/test"
-ASAN_OPTIONS=detect_leaks=1 "${destination}/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${destination}/test"

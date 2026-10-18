@@ -1,6 +1,6 @@
 # Filesystem access with upstream Lapy
 
-ProsperoTube gets its data folder, `/data/prosperotube`, the way
+ProsperoTube gets its data folder, `/data/youtube-maxd`, the way
 [ProsperoEden](https://github.com/blackbearreloaded/ProsperoEden) does
 (`headless/elevation`, compared at `971ad0a`, 2026-10-13). It uses
 [PS5-Lapy-JB-Daemon](https://github.com/ArkSama/PS5-Lapy-JB-Daemon), created by
@@ -21,7 +21,7 @@ or writable storage.
 13.60 fixes of upstream PR #48 and #49, and the guarded target-lifetime and
 fail-closed accounting of
 [PR #50](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon/pull/50)) with
-upstream's own `owned-helper` make target for `PPSA99012`, the official Payload
+upstream's own `owned-helper` make target for `PPSA99991`, the official Payload
 SDK v0.42 and the pinned ps5log header. Lapy's privileged source is neither
 copied nor changed. Before packaging, the build checks the generated manifest's
 title, one-shot mode, single request, no service, `root_layout_probe_retry`
@@ -54,7 +54,7 @@ are created after it. `elevation.cpp` then, as in ProsperoEden:
    prove itself again within one second.
 
 Only a proven `/data` counts. `tube_jailbreak.cpp` then creates
-`/data/prosperotube` and writes, reads back, closes and deletes a file there.
+`/data/youtube-maxd` and writes, reads back, closes and deletes a file there.
 The boot log (kernel log and `console.log`) gets `Lapy: requesting filesystem
 access` and then one line with the route, the status, the storage verdict and
 the user and group ids the process was left with.
@@ -78,8 +78,8 @@ the user and group ids the process was left with.
   differ. ProsperoTube does not use RADV; the ids are logged so a console run
   shows whether they differ.
 
-Old sandbox data is not copied into `/data/prosperotube`. Protocol markers use
-`/download0`; application data uses only `/data/prosperotube`.
+Old sandbox data is not copied into `/data/youtube-maxd`. Protocol markers use
+`/download0`; application data uses only `/data/youtube-maxd`.
 
 ## Tests
 

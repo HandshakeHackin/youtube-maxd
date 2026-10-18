@@ -37,4 +37,4 @@ cc -std=c11 -D_GNU_SOURCE -DTUBE_EMBEDDED_SERVICE=1 -O1 -g -Wall -Wextra -Werror
   -Wl,--wrap=tube_service_configure "${curl_flags[@]}" -lssl -lcrypto -lm -lpthread \
   -o "${out}/test_embedded_accounts"
 TUBE_JS_FIXTURES="${fixtures}" TUBE_E2E_BUNDLE="${root}/standalone/build/tube_js.bundle.js" \
-  ASAN_OPTIONS=detect_leaks=1 "${out}/test_embedded_accounts"
+  ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${out}/test_embedded_accounts"

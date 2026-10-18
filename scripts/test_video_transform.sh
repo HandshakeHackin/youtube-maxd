@@ -26,7 +26,7 @@ for family,vs in sources.items(): (out/(family+'.vert')).write_text(vs)
 PY
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
   -I"$root/native" -I"$work" "$root/tests/test_video_transform.cpp" -o "$work/test"
-ASAN_OPTIONS=detect_leaks=1 "$work/test"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "$work/test"
 for family in video upscale interp; do
   glslangValidator -V --target-env vulkan1.2 -o "$work/$family.spv" "$work/$family.vert"
   spirv-val --target-env vulkan1.2 "$work/$family.spv"

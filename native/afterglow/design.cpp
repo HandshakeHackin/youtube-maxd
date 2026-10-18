@@ -445,27 +445,21 @@ void qr_code(G &g, const Rect &r, std::string_view value, Color dark, Color ligh
     }
 }
 
+// YouTube Max'd: a compact M/play mark matching the launcher palette.
 void mark(G &g, float cx, float cy, float size, float amount, Color ink, Color glow)
 {
-    const float a = tween::clamp01(amount);
-    if (a <= 0.001f)
-        return;
-    const float outer = size * 0.5f;
-    const float draw = tween::cubic_out(a);
-    g.l.glow({cx - outer * 0.5f, cy - outer * 0.5f, outer, outer}, outer * 0.5f, size * 0.55f, glow.with_alpha(0.42f * draw));
-    // The mouth of the tube: a ring that does not quite close.
-    g.l.arc(cx, cy, outer, size * 0.105f, 0.95f, (6.2831853f - 1.15f) * draw, ink, true);
-    // The glass behind it, turned the other way.
-    const float inner = tween::cubic_out(tween::clamp01(a * 1.35f - 0.35f));
-    if (inner > 0.001f)
-        g.l.arc(cx, cy, size * 0.3f, size * 0.085f, 0.95f + 3.14159265f, (6.2831853f - 2.3f) * inner, ink.with_alpha(0.72f), true);
-    // The afterglow.
-    const float core = tween::back_out(tween::clamp01(a * 2.0f - 1.0f));
-    if (core > 0.001f)
-    {
-        g.l.glow({cx - size * 0.04f, cy - size * 0.04f, size * 0.08f, size * 0.08f}, size * 0.04f, size * 0.2f, glow.with_alpha(0.7f * core));
-        g.l.circle(cx, cy, size * 0.088f * core, glow);
-    }
+    const float a=tween::clamp01(amount);
+    if (a<=0.001f) return;
+    const float s=size*tween::cubic_out(a), w=s*0.16f;
+    const Color red=Color::rgb(0xff304f).with_alpha(a);
+    const Color soft_red=Color::rgb(0xffa5aa).with_alpha(a);
+    const Color white=Color::rgb(0xffffff).with_alpha(a);
+    g.l.glow({cx-s*0.5f,cy-s*0.5f,s,s},s*0.3f,s*0.35f,glow.with_alpha(a*0.24f));
+    g.l.line(cx-s*0.40f,cy+s*0.34f,cx-s*0.29f,cy-s*0.35f,w,red);
+    g.l.line(cx-s*0.29f,cy-s*0.35f,cx,cy+s*0.02f,w,soft_red);
+    g.l.line(cx,cy+s*0.02f,cx+s*0.29f,cy-s*0.35f,w,white);
+    g.l.line(cx+s*0.29f,cy-s*0.35f,cx+s*0.40f,cy+s*0.34f,w,white);
+    g.l.triangle({cx-s*0.11f,cy+s*0.04f,s*0.25f,s*0.24f},ink.with_alpha(a),0.0f,1.57079633f);
 }
 
 } // namespace afterglow

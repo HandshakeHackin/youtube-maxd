@@ -44,7 +44,7 @@
     "native/tube_provider.c: \"auth:start\" ('Sign in to YouTube'), auth_rows(), g_auth state machine",
     "scripts/device_auth_overlay.py",
     "tests/test_device_auth.py, tests/test_device_auth_native.c",
-    "Built-in service: standalone/js/accounts.js DeviceAuth (POST /v1/auth/start, /status, /cancel and the auth job; the sign-in is kept in /data/prosperotube/accounts/oauth-profiles.json); standalone/test/account_test.py, tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh)"
+    "Built-in service: standalone/js/accounts.js DeviceAuth (POST /v1/auth/start, /status, /cancel and the auth job; the sign-in is kept in /data/youtube-maxd/accounts/oauth-profiles.json); standalone/test/account_test.py, tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,
@@ -455,7 +455,7 @@
     "tests/test_device_auth.py, tests/test_device_auth_native.c, scripts/test_device_auth_native.sh",
     "native/tube_qr_page.h: TUBE_QR_PAGE_SIGN_IN turns the auth:info:code row into https://youtube.com/qr/activate/<code>; scripts/qr_overlay.py draws the code on the sign-in screen; tube_player_dim_blocked keeps the screen lit while a sign-in waits",
     "tests/test_qr_page.c, tests/test_qr_ui.cpp (scripts/test_qr_overlay.sh)",
-    "Built-in service: standalone/js/accounts.js DeviceAuth (POST /v1/auth/start, /status, /cancel and the auth job; the sign-in is kept in /data/prosperotube/accounts/oauth-profiles.json); standalone/test/account_test.py, tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh)"
+    "Built-in service: standalone/js/accounts.js DeviceAuth (POST /v1/auth/start, /status, /cancel and the auth job; the sign-in is kept in /data/youtube-maxd/accounts/oauth-profiles.json); standalone/test/account_test.py, tests/test_embedded_accounts.c (scripts/test_embedded_accounts.sh)"
    ],
    "gaps": [],
    "offline_feasible": true,

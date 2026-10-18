@@ -472,7 +472,7 @@ jobs:
           set -euo pipefail
           cd release
           test "$(find . -type f | wc -l)" -eq 2
-          test -f PPSA99012.zip
+          test -f PPSA99991.zip
           sha256sum --check --strict SHA256SUMS
 
       - name: Prepare the release notes
@@ -491,7 +491,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          assets=(release/PPSA99012.zip release/SHA256SUMS)
+          assets=(release/PPSA99991.zip release/SHA256SUMS)
           TAG=$GITHUB_REF_NAME
           # CI is the source of truth for release files: create the release, or fill one that
           # has no ZIP yet, and never replace a ZIP that is already published.

@@ -58,6 +58,7 @@ constexpr Tab kTabs[] = {
     {"liked", "library:playlist:LL", true, false, Icon::heart},
     {"queue", "queue", false, false, Icon::queue},
     {"favorites", "favorites", false, false, Icon::heart},
+    {"smart", "settings:smart", false, true, Icon::queue},
 };
 constexpr int kTabCount = static_cast<int>(sizeof kTabs / sizeof kTabs[0]);
 enum : int
@@ -68,6 +69,7 @@ enum : int
     kLiked = 3,
     kQueue = 4,
     kFavorites = 5,
+    kSmart = 6,
 };
 
 const char *tab_label(int index)
@@ -84,6 +86,8 @@ const char *tab_label(int index)
         return tr("Liked");
     case kQueue:
         return tr("Queue");
+    case kSmart:
+        return tr("Smart playlists");
     default:
         return tr("Favourites");
     }
@@ -623,7 +627,7 @@ class Library final : public Screen
                     cell.card.age = watched;
                 }
             }
-            else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:")))
+            else if (row.folder && (starts_with(row.id, "library:playlist:") || starts_with(row.id, "playlist:") || starts_with(row.id,"settings:smart:")))
             {
                 cell.kind = Kind::playlist;
                 const std::string owner = row.fact("owner").empty() ? row.subtitle : shown_fact(row, "owner");
@@ -848,7 +852,9 @@ class Library final : public Screen
             }
             if (const Cell &cell = pane.cells[static_cast<std::size_t>(pane.focus)]; cell.kind == Kind::playlist)
             {
-                context.nav.push(Route{ScreenId::grid, cell.id, cell.title}, Move::push);
+                if (starts_with(cell.id,"settings:smart:"))
+                    context.nav.push(Route{ScreenId::settings,cell.id=="settings:smart:new"?"settings:smart":cell.id,cell.title},Move::push);
+                else context.nav.push(Route{ScreenId::grid, cell.id, cell.title}, Move::push);
             }
             else if (context.services.data.play(cell.video))
             {

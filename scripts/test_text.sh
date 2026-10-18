@@ -16,7 +16,7 @@ text_engine asan "$out"
 scratch=$root/build/tests/text/scratch
 rm -rf "$scratch"
 mkdir -p "$scratch/preinst" "$scratch/sheet"
-export ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1
+export ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} UBSAN_OPTIONS=print_stacktrace=1
 "${CXX:-c++}" "${TEXT_FLAGS[@]}" "$root/tests/test_text.cpp" "${TEXT_OBJECTS[@]}" "${TEXT_LIBS[@]}" -o "$out/test_text"
 "$out/test_text" "$scratch"
 "${CXX:-c++}" "${TEXT_FLAGS[@]}" "$root/tests/text_sheet.cpp" "${TEXT_OBJECTS[@]}" "${TEXT_LIBS[@]}" -lz -o "$out/text_sheet"

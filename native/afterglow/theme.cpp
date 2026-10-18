@@ -85,7 +85,7 @@ Look make_afterglow()
     k.panel_solid = Color::rgb(0x12141e, 0.95f);
     k.raised = Color::rgb(0xffffff, 0.09f);
     k.hairline = Color::rgb(0xffffff, 0.14f);
-    k.accent = Color::rgb(0xff5a47);
+    k.accent = Color::rgb(0xff304f);
     k.on_accent = Color::rgb(0x1a0605);
     k.focus = Color::rgb(0xffffff);
     k.plate = Color::rgb(0xffffff);

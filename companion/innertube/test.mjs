@@ -14,7 +14,7 @@ try {
     bundle: true, platform: 'node', format: 'esm', target: 'node20', legalComments: 'inline',
     banner: { js: 'import { createRequire as tubeCreateRequire } from "node:module"; const require = tubeCreateRequire(import.meta.url);' } });
   const result = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['--test', output], { stdio: 'inherit' });
+    const child = spawn(process.execPath, ['--test', '--test-reporter=tap', output], { stdio: 'inherit' });
     child.once('error', reject);
     child.once('exit', (code, signal) => resolve(signal ? 1 : code ?? 1));
   });

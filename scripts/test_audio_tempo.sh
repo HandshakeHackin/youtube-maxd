@@ -12,4 +12,4 @@ fi
 cc -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"${root}/native" "${root}/native/tube_audio_tempo.c" "${root}/tests/test_audio_tempo.c" \
     "${flags[@]}" -lm -o "${root}/build/tests/test_audio_tempo"
-ASAN_OPTIONS=detect_leaks=1 "${root}/build/tests/test_audio_tempo"
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} "${root}/build/tests/test_audio_tempo"
