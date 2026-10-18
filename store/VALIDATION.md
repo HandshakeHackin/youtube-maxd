@@ -21,7 +21,9 @@ Catalog tooling revision: `c3e61941fda62b4624f088a0f5344ff729bcd051`.
 | Official static scan | Passed: 0 errors, 6 warnings, 1 summary notice; [full report](../docs/releases/v1.3.0-preview.1/catalog-scan.txt) |
 | Public GitHub release | Published; nine assets with matching GitHub digests/checksums; [publisher succeeded](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39157826519) |
 | Online catalog verification | Passed: zero errors/warnings; ZIP digest, tagged icon and contentVersion 01.003.000 verified |
-| Store pull request | Prepared branch pushed; creation blocked by GitHub integration permission (403); [prefilled form](SUBMISSION.md#submit-the-update) |
+| Store pull request | [PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417) approved and merged on 2026-10-18; merged record matches exactly |
+| Upstream submission checks | Tests/offline check, Validate submission, Scan the release and automatic release-bump checks passed |
+| Store deployment | [Build, signing and GitHub Pages publication](https://github.com/darkxex/ps5-homebrew-catalog/actions/runs/39162533006) passed; live page/API show 1.3.0-preview.1 and content 01.003.000 |
 | PS5/live YouTube/Google acceptance | Not performed; this remains an experimental prerelease |
 
 App SHA-256: `22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593`.
@@ -39,3 +41,6 @@ Original listing approval remains [PR #397](https://github.com/darkxex/ps5-homeb
 Published receipts: [release-assets.json](../docs/releases/v1.3.0-preview.1/release-assets.json)
 and [native-validation.json](../docs/releases/v1.3.0-preview.1/native-validation.json).
 All 4,442 published corresponding-source manifest entries were verified by CI.
+
+[Deployment receipt](../docs/releases/v1.3.0-preview.1/store-deployment.json) records
+the merged revision, published ZIP identity and live store API metadata.

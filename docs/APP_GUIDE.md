@@ -65,9 +65,9 @@ catalog scan report. GitHub’s automatically generated **Source code** archives
 omit recursive submodules and cannot be installed as the app. The `downloads`
 branch retains the original 1.2.0 preview; use the release attachment for 1.3.0.
 
-Automatic in-app updates remain disabled. The original 1.2.0 preview is already
-listed in [ProsperoStore](https://prosperostore.net/app/PPSA99991/). The 1.3.0
-catalog update requires maintainer review; see [submission status](../store/SUBMISSION.md).
+Automatic in-app updates remain disabled. **1.3.0-preview.1** is now live in
+[ProsperoStore](https://prosperostore.net/app/PPSA99991/); [catalog PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417)
+was approved and merged. See [submission status](../store/SUBMISSION.md).
 
 ## How YouTube Max’d stands out
 
@@ -293,7 +293,7 @@ See the build guide for the wider inherited test suite and optional display-tran
 | [Build guide](BUILD.md) | Toolchain, dependencies, source packaging and tests |
 | [Max’d validation](MAXD_VALIDATION.md) | Completed local checks and remaining console tests |
 | [Release notes](releases/v1.3.0-preview.1.md) | Current preview features, installation, validation and limits |
-| [Store submission](../store/SUBMISSION.md) | Catalog PR #397, validation and publication status |
+| [Store submission](../store/SUBMISSION.md) | Catalog PR #417, validation and live store status |
 | [Fork changes](../MAXD_CHANGES.md) | Max’d changes versus the pinned foundation |
 | [Source provenance](../UPSTREAM.json) | App identity, upstream revision and EVO pin |
 | [Third-party notices](../THIRD_PARTY_NOTICES.md) | Copyrights, licenses and corresponding sources |

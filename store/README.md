@@ -18,11 +18,11 @@ The new release remains experimental and has not been tested on PS5 hardware.
 - [Release notes](../docs/releases/v1.3.0-preview.1.md) and
   [testing evidence](../docs/releases/v1.3.0-preview.1/TEST_RESULTS.txt).
 
-The original `v1.2.0-preview.1` release and its attachments remain available.
-The new GitHub release is published with nine verified attachments. The catalog
-still lists 1.2.0-preview.1: automatic submission is blocked by the connected
-GitHub integration’s upstream pull-request permission (HTTP 403).
-**[Submit the prepared update](SUBMISSION.md#submit-the-update)**; the form is prefilled.
+The update was approved and merged in [PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417) on 2026-10-18.
+The [store page](https://prosperostore.net/app/PPSA99991/) and update API now
+serve **1.3.0-preview.1 / 01.003.000** with the verified release ZIP and digest.
+Submission checks and [website deployment](https://github.com/darkxex/ps5-homebrew-catalog/actions/runs/39162533006) passed.
+The original `v1.2.0-preview.1` release remains available on GitHub.
 A catalog merge or static scan does not establish PS5 functionality or separate
 helper-whitelist approval.
 

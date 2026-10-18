@@ -1,0 +1,28 @@
+{
+  "verified_on": "2026-10-18",
+  "pull_request": {
+    "number": 417,
+    "url": "https://github.com/darkxex/ps5-homebrew-catalog/pull/417",
+    "state": "MERGED",
+    "review": "APPROVED",
+    "author": "HandshakeHackin",
+    "merged_at": "2026-10-18T20:16:12Z",
+    "merge_commit": "16d557d1e6636fdbe5186f994108cb910426eda1"
+  },
+  "submission_run": "https://github.com/darkxex/ps5-homebrew-catalog/actions/runs/39162468746",
+  "deployment_run": "https://github.com/darkxex/ps5-homebrew-catalog/actions/runs/39162533006",
+  "deployment_status": "success",
+  "store_page": "https://prosperostore.net/app/PPSA99991/",
+  "store_page_http_status": 200,
+  "store_page_version_verified": "1.3.0-preview.1",
+  "store_api": "https://prosperostore.net/api/v1/apps/PPSA99991.json",
+  "store_api_metadata": {
+    "titleid": "PPSA99991",
+    "version": "1.3.0-preview.1",
+    "content_version": "01.003.000",
+    "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip",
+    "sha256": "22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593"
+  },
+  "merged_record_matches_prepared": true,
+  "ps5_hardware_tested": false
+}
