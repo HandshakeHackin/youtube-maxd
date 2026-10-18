@@ -5,13 +5,21 @@
 <h1 align="center">YouTube Max’d</h1>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Platform-PS5-003791?logo=playstation&amp;logoColor=white" alt="PlayStation 5">
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases"><img src="https://img.shields.io/github/v/release/HandshakeHackin/youtube-maxd?include_prereleases&amp;label=Preview&amp;color=FF304F" alt="Latest preview release"></a>
+  <img src="https://img.shields.io/badge/Service-On--console-FFFFFF" alt="On-console YouTube service">
+  <img src="https://img.shields.io/badge/UI-Classic%20%7C%20Afterglow-FFA5AA" alt="Classic and Afterglow interfaces">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-FFFFFF" alt="GPL-3.0-or-later license"></a>
+</p>
+
+<p align="center">
   YouTube for jailbroken PS5s. Runs on the console—no companion PC or Google Cloud setup.
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip"><strong>Download PS5 app</strong></a>
-  · <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1">Release notes & source</a>
-  · <a href="docs/APP_GUIDE.md">Full guide</a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
+  <br><a href="docs/APP_GUIDE.md">Full guide</a>
 </p>
 
 **Experimental preview · v1.2.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
