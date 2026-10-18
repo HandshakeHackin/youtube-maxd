@@ -43,11 +43,11 @@ these features or endorsed this fork.
   are verified. Content version is `01.002.000`.
 - [x] Proposed version `1.2.0-preview.1` matches the release tag without `v`.
 - [x] Twelve-field record uses the `video` category and a pinned 512×512 PNG.
-- [x] Source/provenance, GPL and dependency notices are retained. The source
-  archive includes matching dependency inputs; release assembly checks its manifest.
+- [x] Source/provenance, GPL and dependency notices are retained. The complete
+  source archive is attached; release assembly checked all 4,388 manifest files.
 - [x] Review policy read; helper behavior and console-testing limits disclosed.
 - [ ] Public source repository: currently private; visibility has not been changed.
-- [ ] `PPSA99991.zip` attached to the published release, with GitHub's digest
+- [x] `PPSA99991.zip` attached to the published release, with GitHub's digest
   verified against the record. A raw Git branch download is not accepted instead.
 - [ ] Full online catalog verification of the public repository, exact asset,
   content version and icon.

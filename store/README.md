@@ -8,10 +8,11 @@ It targets the existing experimental preview `v1.2.0-preview.1` and the exact
 original app ZIP, renamed `PPSA99991.zip` without changing its bytes.
 [SUBMISSION.md](SUBMISSION.md) is the prepared reviewer description.
 
-Preparation does not publish a listing. The repository is currently private;
-the catalog requires a public repository and an actual ZIP release asset,
-then publisher verification, maintainer review, merge and deployment.
-No visibility change or upstream submission is authorized by these files.
+The GitHub preview now has all nine verified attachments, including the
+required app ZIP and complete source archive. The repository is currently
+private; the catalog requires a public repository, then publisher verification,
+maintainer review, merge and deployment.
+Repository visibility has not been changed. No catalog pull request has been opened.
 
 ## Prepared files
 
@@ -63,6 +64,10 @@ not accepted for new listings. Pre-releases are accepted, so console testing
 status stays explicit rather than presenting this preview as a stable release.
 
 ## Handoff
+
+The [release publisher run](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39143346224)
+succeeded. The app asset’s GitHub digest matches the proposed record; see the
+[published asset receipt](../docs/releases/v1.2.0-preview.1/release-assets.json).
 
 Once publication prerequisites are satisfied, submit only `apps/PPSA99991.json`
 to the catalog from **HandshakeHackin**, the source repository owner. Use the

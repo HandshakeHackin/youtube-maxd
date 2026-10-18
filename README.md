@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/raw/refs/heads/downloads/YouTube-Maxd-PS5.zip"><strong>Download the PS5 app</strong></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip"><strong>Download the PS5 app</strong></a>
   · <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1">Preview release</a>
   · <a href="docs/BUILD.md">Build guide</a>
   · <a href="LICENSE">GPL-3.0-or-later</a>
@@ -35,21 +35,22 @@ The app is built and has passed host-side checks. Hardware boot, real YouTube si
 
 ## Download
 
-**[Download YouTube-Maxd-PS5.zip — about 95 MB](https://github.com/HandshakeHackin/youtube-maxd/raw/refs/heads/downloads/YouTube-Maxd-PS5.zip)**
+**[Download PPSA99991.zip — about 95 MB](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip)**
 
 This is the application bundle to extract for ShadowMount+. It includes the executable, assets, helpers and local voice model.
 
 | Item | Link |
 | --- | --- |
-| App ZIP file page | [YouTube-Maxd-PS5.zip](https://github.com/HandshakeHackin/youtube-maxd/blob/downloads/YouTube-Maxd-PS5.zip) |
+| Alternate app ZIP file page | [YouTube-Maxd-PS5.zip](https://github.com/HandshakeHackin/youtube-maxd/blob/downloads/YouTube-Maxd-PS5.zip) |
+| Complete corresponding source | [YouTube-Maxd-source.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/YouTube-Maxd-source.zip) |
 | Release notes | [v1.2.0-preview.1](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1) |
-| Launcher icon | [YouTube-Maxd-icon.png](https://github.com/HandshakeHackin/youtube-maxd/raw/refs/heads/downloads/YouTube-Maxd-icon.png) |
-| Download checksums | [SHA256SUMS](https://github.com/HandshakeHackin/youtube-maxd/blob/downloads/SHA256SUMS) |
+| Launcher icon | [YouTube-Maxd-icon.png](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/YouTube-Maxd-icon.png) |
+| Download checksums | [SHA256SUMS](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/SHA256SUMS) |
 | Application source | [`main`](https://github.com/HandshakeHackin/youtube-maxd/tree/main) · [build instructions](#build-from-source) |
 
 If clicking the app link opens a file page, use its **Download raw file** button. Sign into a GitHub account with repository access if GitHub asks. The icon is artwork; the app is the **ZIP**.
 
-The compiled bundle is stored on the dedicated `downloads` branch and linked from the release notes. GitHub’s automatically generated **Source code** archives omit recursive submodules and cannot be installed as the app; use the recursive clone below to rebuild it. The initial app bundle corresponds to source commit [`014adc2`](https://github.com/HandshakeHackin/youtube-maxd/tree/014adc2d901518f47fb4d1fbc99eab15b41b79aa).
+The release’s **Assets** section contains the app ZIP, complete source ZIP, icon, SHA-256 checksums, release notes, testing guide/results, validation JSON and catalog scan report. The `downloads` branch keeps the byte-identical `YouTube-Maxd-PS5.zip` as an alternate download. GitHub’s automatically generated **Source code** archives omit recursive submodules and cannot be installed as the app; use the recursive clone below to rebuild it. The initial app bundle corresponds to source commit [`014adc2`](https://github.com/HandshakeHackin/youtube-maxd/tree/014adc2d901518f47fb4d1fbc99eab15b41b79aa).
 
 Automatic updates are disabled until a separate Max’d release feed is configured. Check this repository for new builds. Store submission preparation is tracked in [store/SUBMISSION.md](store/SUBMISSION.md); preparation does not mean the app is listed in the store.
 
@@ -134,7 +135,7 @@ The inherited player includes HDR and display/frame-rate handling. **4K, HDR, 60
 
 You need a jailbroken PS5 with your compatible homebrew environment already configured. The intended setup is **firmware 11.00 with ShadowMount+**; this repository does not install a jailbreak.
 
-1. Download **[YouTube-Maxd-PS5.zip](https://github.com/HandshakeHackin/youtube-maxd/raw/refs/heads/downloads/YouTube-Maxd-PS5.zip)**.
+1. Download **[PPSA99991.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip)**.
 2. Close any previous Max’d instance. Back up its app folder and `/data/youtube-maxd` settings if you want rollback.
 3. Extract the ZIP. Copy the complete **`PPSA99991`** folder to a location scanned by ShadowMount+, commonly **`/data/homebrew/PPSA99991`**.
 4. Use your configured native homebrew startup environment. Startup requires the console-side ELF loader on **TCP 9021** or a compatible resident **Lapy** service. The packaged helper and manifest are bound to `PPSA99991`.
