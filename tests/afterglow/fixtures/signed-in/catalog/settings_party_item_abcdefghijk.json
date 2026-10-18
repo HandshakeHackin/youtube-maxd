@@ -1,0 +1,33 @@
+{
+  "items": [
+    {
+      "id": "account:notice",
+      "title": "A guest suggestion",
+      "label": "A guest suggestion",
+      "is_folder": true,
+      "interface": true,
+      "kind": "info",
+      "value": "",
+      "subtitle": "Video abcdefghijk | 3 votes | Guest-supplied label"
+    },
+    {
+      "id": "settings:party:approve:abcdefghijk",
+      "title": "Approve and add to play queue",
+      "label": "Approve and add to play queue",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": ""
+    },
+    {
+      "id": "settings:party:reject:abcdefghijk",
+      "title": "Reject suggestion",
+      "label": "Reject suggestion",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": ""
+    }
+  ],
+  "has_more": false
+}

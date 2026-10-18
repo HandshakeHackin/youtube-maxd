@@ -46,7 +46,7 @@ export async function deadline(milliseconds, work, onTimeout) {
 // cursor and retained feed it held, as restarting the worker process does.
 let library = null, removed = () => {};
 export const accounts = new OAuthProfiles(config.mode === 'serve' ? config.state_dir : '');
-export const hasProfile = identity => identity === 'guest' || accounts.has(identity);
+export const hasProfile = identity => identity === 'guest' || /^maxd_family_[1-4]$/.test(identity) || accounts.has(identity);
 export const onProfileRemoved = listener => { removed = listener; };
 const guards = new Guards(identity => accounts.has(identity));
 function rebuild() { library = null; guards.blockWatches(); }

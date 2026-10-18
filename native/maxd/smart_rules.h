@@ -12,7 +12,7 @@
 typedef struct {
     uint32_t id;
     char profile[33], name[81], keyword[129], creator[129];
-    int source, minimum, maximum, unwatched, hide_live;
+    int source, minimum, maximum, unwatched, hide_live, session_minutes;
 } MaxdSmartRule;
 typedef struct { MaxdSmartRule rules[MAXD_SMART_RULES]; int count; uint32_t serial; } MaxdSmartStore;
 static inline int maxd_smart_text(const char *value, size_t limit, int empty) {
@@ -37,8 +37,8 @@ static inline int maxd_smart_contains(const char *text,const char *part) {
 }
 static inline int maxd_smart_matches(const MaxdSmartRule *r,const char *title,const char *creator,
                                     int64_t duration,int played,int live,int upcoming) {
-    if ((r->unwatched && played) || upcoming || (r->hide_live && live)) return 0;
-    if ((r->minimum || r->maximum) && (duration<=0 || live)) return 0;
+    if (((r->unwatched || r->session_minutes) && played) || upcoming || (r->hide_live && live)) return 0;
+    if ((r->minimum || r->maximum || r->session_minutes) && (duration<=0 || live)) return 0;
     return duration>=r->minimum && (!r->maximum || duration<=r->maximum) &&
         maxd_smart_contains(title,r->keyword) && maxd_smart_contains(creator,r->creator);
 }
@@ -63,7 +63,7 @@ static inline void maxd_smart_write(const MaxdSmartStore *s,cJSON *root) {
         const MaxdSmartRule *r=&s->rules[i];cJSON *o=cJSON_CreateObject();
         cJSON_AddNumberToObject(o,"id",r->id);cJSON_AddStringToObject(o,"profile",r->profile);
         cJSON_AddStringToObject(o,"name",r->name);cJSON_AddStringToObject(o,"keyword",r->keyword);cJSON_AddStringToObject(o,"creator",r->creator);
-        cJSON_AddNumberToObject(o,"source",r->source);cJSON_AddNumberToObject(o,"minimum",r->minimum);cJSON_AddNumberToObject(o,"maximum",r->maximum);
+        cJSON_AddNumberToObject(o,"session_minutes",r->session_minutes);cJSON_AddNumberToObject(o,"source",r->source);cJSON_AddNumberToObject(o,"minimum",r->minimum);cJSON_AddNumberToObject(o,"maximum",r->maximum);
         cJSON_AddBoolToObject(o,"unwatched",r->unwatched);cJSON_AddBoolToObject(o,"hide_live",r->hide_live);cJSON_AddItemToArray(rows,o);
     }
 }
@@ -89,6 +89,7 @@ static inline void maxd_smart_read(MaxdSmartStore *s,const cJSON *root) {
         if(id>s->serial)s->serial=id;
         snprintf(r->profile,sizeof r->profile,"%s",profile);snprintf(r->name,sizeof r->name,"%s",name);
         snprintf(r->keyword,sizeof r->keyword,"%s",keyword);snprintf(r->creator,sizeof r->creator,"%s",creator);
+        r->session_minutes=(int)maxd_smart_integer(o,"session_minutes",120,0);
         r->source=(int)maxd_smart_integer(o,"source",3,0);r->minimum=(int)maxd_smart_integer(o,"minimum",86400,0);r->maximum=(int)maxd_smart_integer(o,"maximum",86400,0);
         if(r->maximum && r->maximum<r->minimum)r->minimum=r->maximum=0;
         r->unwatched=!cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(o,"unwatched"));r->hide_live=!cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(o,"hide_live"));

@@ -1,0 +1,95 @@
+{
+  "about": "Maxd local family, viewing sessions and LAN party room forms; fixture views, not PS5 captures",
+  "boards": [
+    {
+      "name": "maxd-next-session",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:session",
+        "title": "Session"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "text"
+        }
+      }
+    },
+    {
+      "name": "maxd-next-session-budget",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:2",
+        "title": "Session-Budget"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "link"
+        }
+      }
+    },
+    {
+      "name": "maxd-next-family",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:family",
+        "title": "Family"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "info"
+        }
+      }
+    },
+    {
+      "name": "maxd-next-party",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:party",
+        "title": "Party"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "page"
+        }
+      }
+    },
+    {
+      "name": "maxd-next-party-approval",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:party:item:abcdefghijk",
+        "title": "Party-Approval"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "kind": "info"
+        }
+      }
+    },
+    {
+      "name": "maxd-next-party-invite",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "reader",
+        "argument": "link:maxd-party",
+        "title": "Join the party queue"
+      },
+      "expect": {
+        "screen": "reader",
+        "state": {
+          "qr": "yes"
+        }
+      }
+    }
+  ]
+}

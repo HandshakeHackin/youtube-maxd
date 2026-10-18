@@ -181,6 +181,13 @@ export class Library {
         throw new LibraryError('invalid_profiles', 'The profile configuration is invalid.');
       this.profiles.set(profile.id, { ...profile, name: text(profile.name) });
     }
+    // Local family slots have independent signed-out sessions. They never borrow
+    // a parent's OAuth token or represent imported Google child profiles.
+    for (let index = 1; index <= 4; ++index) {
+      const id = `maxd_family_${index}`;
+      if (this.profiles.has(id)) throw new LibraryError('invalid_profiles', 'Reserved local family profile identity.');
+      this.profiles.set(id, { id, name: `Local family ${index}`, cookie: '', local_family: true });
+    }
     this.clients = new Map(); this.cursors = new Map(); this.threads = new Map(); this.watches = new Map();
     this.commentRatings = new Map();
     this.groups = new PlaybackGroups(LibraryError, feed => feed.catalog_items ?? [...Array.from(feed.videos ?? []).map(node=>normalizeVideo(node)), ...Array.from(feed.playlists ?? []).map(normalizePlaylist)].filter(Boolean), clock);

@@ -15,6 +15,8 @@ import signal
 import socket
 import subprocess
 import sys
+
+LOCAL_FAMILY = [{"id": f"maxd_family_{index}", "name": f"Local family {index}", "account_configured": False} for index in range(1, 5)]
 import tempfile
 import time
 import urllib.error
@@ -302,7 +304,7 @@ def library(s):
     status, listed = s.library(action="playlist", id=PLAYLIST)
     same("playlist page", (status, [r["playback_context"] for r in listed["items"]]),
          (200, [{"playlist": PLAYLIST, "index": n} for n in range(3)]))
-    same("profiles", s.library(action="profiles")[1], {"api_version": 1, "profiles": [{"id": "guest", "name": "Guest", "account_configured": False}]})
+    same("profiles", s.library(action="profiles")[1], {"api_version": 1, "profiles": [{"id": "guest", "name": "Guest", "account_configured": False}, *LOCAL_FAMILY]})
     # Account-only actions answer exactly as the companion does without an account.
     same("account action from the adapter", s.call("POST", "/v1/library", {"action": "subscriptions"})[::2],
          (401, {"api_version": 1, "error": {"code": "account_required", "message": "Configure an account profile on the companion first."}}))

@@ -131,13 +131,15 @@ int tube_maxd_ui_light_state(void) {
     maxd_features_overlay.apply(root, work, player)
     import local_voice_overlay
     local_voice_overlay.apply(root, work, player, os.environ.get("TUBE_EMBEDDED_SERVICE", "0") == "1")
+    import maxd_experience_overlay
+    maxd_experience_overlay.apply(root, work, player)
     # Include fork-specific instructions and provenance in every installable build.
     dest = app / "assets/prosperotube-notices"
     (dest / "MAXD-SHADERS.json").write_text(json.dumps(shader_info, indent=2) + "\n")
     for name in ("MAXD_CHANGES.md", "UPSTREAM.json"):
         shutil.copyfile(root / name, dest / name)
     shutil.copyfile(root / "README.md", dest / "YOUTUBE-MAXD-README.md")
-    for name in ("GOOGLE_LOGIN.md", "MAXD_VALIDATION.md", "VOICE_SEARCH.md", "MAXD_FEATURES.md"):
+    for name in ("GOOGLE_LOGIN.md", "MAXD_VALIDATION.md", "VOICE_SEARCH.md", "MAXD_FEATURES.md", "MAXD_NEXT.md", "MAXD_NEXT_VALIDATION.md"):
         shutil.copyfile(root / "docs" / name, dest / name)
     native_licenses = root / "runtime-sources/licenses"
     if native_licenses.is_dir():

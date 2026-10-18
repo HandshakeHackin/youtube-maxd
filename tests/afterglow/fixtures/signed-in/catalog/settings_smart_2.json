@@ -1,0 +1,103 @@
+{
+  "items": [
+    {
+      "id": "maxd:smart:run:2",
+      "title": "Open playlist",
+      "label": "Open playlist",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "value": "",
+      "screen": "grid",
+      "argument": "maxd:smart:run:2",
+      "subtitle": "Refresh matching feed videos"
+    },
+    {
+      "id": "settings:smart:2:budget",
+      "title": "Time budget",
+      "label": "Time budget",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "Up to 30 minutes",
+      "subtitle": "Unwatched videos whose total runtime fits the budget"
+    },
+    {
+      "id": "settings:smart:2:name",
+      "title": "Name",
+      "label": "Name",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "Gaming tonight",
+      "text": "Gaming tonight"
+    },
+    {
+      "id": "settings:smart:2:source",
+      "title": "Source feed",
+      "label": "Source feed",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "Subscriptions"
+    },
+    {
+      "id": "settings:smart:2:keyword",
+      "title": "Title contains",
+      "label": "Title contains",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "gaming",
+      "text": "gaming"
+    },
+    {
+      "id": "settings:smart:2:creator",
+      "title": "Creator contains",
+      "label": "Creator contains",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "Studio",
+      "text": "Studio"
+    },
+    {
+      "id": "settings:smart:2:duration",
+      "title": "Duration",
+      "label": "Duration",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "10 to 30 minutes"
+    },
+    {
+      "id": "settings:smart:2:unwatched",
+      "title": "Unwatched only",
+      "label": "Unwatched only",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On"
+    },
+    {
+      "id": "settings:smart:2:live",
+      "title": "Hide live videos",
+      "label": "Hide live videos",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On"
+    },
+    {
+      "id": "settings:smart:2:delete",
+      "title": "Delete playlist",
+      "label": "Delete playlist",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": "",
+      "subtitle": "Review before deleting local rules"
+    }
+  ],
+  "has_more": false
+}

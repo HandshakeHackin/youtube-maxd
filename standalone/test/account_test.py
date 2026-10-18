@@ -17,6 +17,8 @@ import shutil
 import stat
 import subprocess
 import sys
+
+LOCAL_FAMILY = [{"id": f"maxd_family_{index}", "name": f"Local family {index}", "account_configured": False} for index in range(1, 5)]
 import tempfile
 import time
 
@@ -339,7 +341,7 @@ def sign_in(binary):
         health = s.call("GET", "/v1/health", token=None)[2]
         check("health offers sign-in", "device_auth" in health["features"] and "library" in health["features"], health["features"])
         same("health: signed-in playback is off", health["account_playback"], False)
-        same("no account yet", s.post(action="profiles")[1]["profiles"], [{"id": "guest", "name": "Guest", "account_configured": False}])
+        same("no account yet", s.post(action="profiles")[1]["profiles"], [{"id": "guest", "name": "Guest", "account_configured": False}, *LOCAL_FAMILY])
         check("no credential file before a sign-in", not s.store().exists())
         same("start: extra field", s.call("POST", "/v1/auth/start", {"name": "A", "more": 1})[0], 422)
         same("start: long name", s.call("POST", "/v1/auth/start", {"name": "x" * 151})[0], 422)
@@ -388,7 +390,7 @@ def sign_in(binary):
         others = [p for p in Path(s.state).rglob("*") if p.is_file() and p != s.store()]
         check("tokens are in no other file", not any(b"-token-" in p.read_bytes() or b"fixture-client-secret" in p.read_bytes() for p in others), others)
         same("the account is a profile at once", s.post(action="profiles")[1]["profiles"],
-             [{"id": "guest", "name": "Guest", "account_configured": False}, {"id": first, "name": "Living room", "account_configured": True}])
+             [{"id": "guest", "name": "Guest", "account_configured": False}, {"id": first, "name": "Living room", "account_configured": True}, *LOCAL_FAMILY])
         same("and its lists answer", (s.post(action="subscriptions", profile=first)[1]["items"][0]["id"], s.sent("subscriptions")), ("subscribed1", 1))
 
         # The same through jobs, as the app does; a cancelled sign-in frees the slot.
@@ -436,7 +438,7 @@ def sign_in(binary):
     # A new start of the app: the accounts are there, the sign-in sessions are not.
     again = Service(binary, directory, state=s.state)
     try:
-        same("accounts survive a restart", [p["id"] for p in again.post(action="profiles")[1]["profiles"]], ["guest", first, other])
+        same("accounts survive a restart", [p["id"] for p in again.post(action="profiles")[1]["profiles"]], ["guest", first, other, *[p["id"] for p in LOCAL_FAMILY]])
         same("sign-in sessions do not", again.call("POST", "/v1/auth/status", {"session": session})[2]["error"]["code"], "auth_session")
         same("lists work after the restart", again.post(action="subscriptions", profile=first)[1]["items"][1]["id"], "subscribed2")
     finally:
@@ -468,7 +470,7 @@ def sign_in_edges(binary):
 
     full = Service(binary, directory, stored=[profile(n) for n in range(1, 9)])
     try:
-        same("eight accounts load", len(full.post(action="profiles")[1]["profiles"]), 9)
+        same("eight accounts load", len(full.post(action="profiles")[1]["profiles"]), 13)
         same("a ninth is refused before anything is asked", (full.call("POST", "/v1/auth/start", {})[::2], full.upstream()),
              ((409, {"api_version": 1, "error": {"code": "auth_profiles_full", "message": "At most eight account profiles are supported."}}), []))
     finally:
@@ -479,7 +481,7 @@ def sign_in_edges(binary):
                           ("extra field", json.dumps({"version": 1, "profiles": [{**profile(1), "note": "x"}]}).encode())):
         broken = Service(binary, directory, stored=content)
         try:
-            same(f"{name} store: Guest only", broken.post(action="profiles")[1]["profiles"], [{"id": "guest", "name": "Guest", "account_configured": False}])
+            same(f"{name} store: Guest only", broken.post(action="profiles")[1]["profiles"], [{"id": "guest", "name": "Guest", "account_configured": False}, *LOCAL_FAMILY])
             same(f"{name} store: sign-in says so", broken.call("POST", "/v1/auth/start", {})[::2], (507, {"api_version": 1, "error": {
                 "code": "auth_storage", "message": "The account store on this console could not be read and was left untouched."}}))
             same(f"{name} store: Guest still browses", broken.job({"action": "search", "query": "canned"})[0], 200)
@@ -507,7 +509,7 @@ def storage_failure(binary):
         same("storage failure is retained on status", s.call("POST", "/v1/auth/status", {"session": started["session"]})[2],
              {"session": started["session"], "state": "failed", "error": message})
         same("failed persistence never registers an account", s.post(action="profiles")[1]["profiles"],
-             [{"id": "guest", "name": "Guest", "account_configured": False}])
+             [{"id": "guest", "name": "Guest", "account_configured": False}, *LOCAL_FAMILY])
         same("failed session does not redeem twice", s.sent("oauth2/token"), 1)
         check("no credential file after failure", not s.store().exists())
     finally:
@@ -729,7 +731,7 @@ def lists_and_changes(binary):
         same("its playback session ended", s.call("GET", watch["choices"][0]["url"], token=None)[2]["error"]["code"], "expired_session")
         same("its finished jobs are gone", s.call("GET", "/v1/jobs/" + pending)[2]["error"]["code"], "expired_job")
         same("it is no profile any more", (s.error(action="home", profile=two), s.error(action="profile_remove", profile=two),
-             [p["id"] for p in s.post(action="profiles")[1]["profiles"]]), ((404, "unknown_profile"), (404, "unknown_profile"), ["guest", one]))
+             [p["id"] for p in s.post(action="profiles")[1]["profiles"]]), ((404, "unknown_profile"), (404, "unknown_profile"), ["guest", one, *[p["id"] for p in LOCAL_FAMILY]]))
         same("resolve for a removed account", s.job({"action": "resolve", "playback": {"id": VIDEO, "profile": two}})[1]["error"]["code"], "unknown_profile")
         s.upstream()
         same("the other account works on", (s.post(action="history", profile=one)[0], s.sent("history")), (200, 1))

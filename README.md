@@ -1,4 +1,5 @@
 <p align="center">
+
   <img src="native/branding/icon0.png" width="180" alt="YouTube Max’d red-to-white M and play icon">
 </p>
 
@@ -16,6 +17,13 @@
   · <a href="LICENSE">GPL-3.0-or-later</a>
 </p>
 
+Development: [six new experience features](docs/MAXD_NEXT.md) are implemented on
+[`feature/maxd-next-experience`](https://github.com/HandshakeHackin/youtube-maxd/tree/feature/maxd-next-experience): searchable transcripts and bookmarks, in-app PiP,
+voice playback commands, viewing sessions, local family profiles and a PS5-hosted
+party queue. [Validation and remaining PS5 tests](docs/MAXD_NEXT_VALIDATION.md).
+Linked Google child-profile import remains research. The published 1.2.0 preview
+and store submission continue to use the earlier binary.
+
 **Built on [ProsperoTube](https://github.com/LedyBacer/ProsperoTube), originally developed by BlackBearReloaded, and [EVO Player](https://github.com/sainsaji/EVO-PLAYER-PS5).** Their YouTube service, interfaces, account integration and native media player form this app’s foundation. Thank you to their developers and contributors. See [credits and licenses](#credits-and-licenses) for attribution and source provenance.
 
 | Current build | Details |
@@ -31,7 +39,7 @@ The app is built and has passed host-side checks. Hardware boot, real YouTube si
 
 ## On this page
 
-[Download](#download) · [Features](#features) · [Video formats](#video-formats-and-quality) · [Previews](#interface-previews) · [Install](#install-on-ps5) · [Sign-in](#google-sign-in-and-accounts) · [Controls](#controls-and-light-bar) · [Testing](#testing-and-current-limits) · [Build](#build-from-source) · [Documentation](#documentation) · [Contributing](#contributing-and-bug-reports) · [Credits](#credits-and-licenses)
+[Download](#download) · [What stands out](#how-youtube-maxd-stands-out) · [Features](#features) · [Video formats](#video-formats-and-quality) · [Previews](#interface-previews) · [Install](#install-on-ps5) · [Sign-in](#google-sign-in-and-accounts) · [Controls](#controls-and-light-bar) · [Testing](#testing-and-current-limits) · [Build](#build-from-source) · [Documentation](#documentation) · [Contributing](#contributing-and-bug-reports) · [Credits](#credits-and-licenses)
 
 ## Download
 
@@ -53,6 +61,37 @@ If clicking the app link opens a file page, use its **Download raw file** button
 The release’s **Assets** section contains the app ZIP, complete source ZIP, icon, SHA-256 checksums, release notes, testing guide/results, validation JSON and catalog scan report. The `downloads` branch keeps the byte-identical `YouTube-Maxd-PS5.zip` as an alternate download. GitHub’s automatically generated **Source code** archives omit recursive submodules and cannot be installed as the app; use the recursive clone below to rebuild it. The initial app bundle corresponds to source commit [`014adc2`](https://github.com/HandshakeHackin/youtube-maxd/tree/014adc2d901518f47fb4d1fbc99eab15b41b79aa).
 
 Automatic updates are disabled until a separate Max’d release feed is configured. Check this repository for new builds. ProsperoStore submission is open as [catalog PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397). Submission validation and the release scan passed; store availability awaits maintainer review, merge and deployment. See [submission details](store/SUBMISSION.md).
+
+## How YouTube Max’d stands out
+
+A PS5 viewing experience built around the controller, with search, extraction,
+playback and speech recognition running on the console. No companion PC, NAS,
+paid speech service or personal Google Cloud project is required.
+
+**The next build adds:**
+
+| Feature | What it brings to your couch |
+| --- | --- |
+| **Find the exact moment** | Search a video's available transcript, jump to a matching line and save named timestamp bookmarks for your profile. |
+| **Keep watching while you browse** | An in-app PiP window keeps the current video visible while you search, browse or manage your library in Afterglow. Tap L3 to return. |
+| **Talk to your player** | Hold L3 for local voice commands: pause, resume, seek, captions, available quality choices and adding the current video to your queue. |
+| **Make a session fit your evening** | Choose a 15–120-minute budget and source. Session builder finds unwatched videos whose combined runtime fits the time you have. |
+| **Give the family separate spaces** | Four local family profiles, independent signed-out sessions, local names, parent PIN controls, approved channels, search restrictions and daily viewing limits. |
+| **Let everyone help choose** | Scan the PS5-hosted party QR code on a phone, suggest YouTube videos and vote. The host approves additions and keeps control of playback. |
+
+**Already part of the Max’d preview:** local voice search, profile-owned Smart
+playlists, optional Auto Max quality adaptation, saved resolution limits and the
+red-to-white M/play identity with matching DualSense effects.
+
+Format/audio selection, Google sign-in and library tools, SponsorBlock, DeArrow,
+Return YouTube Dislike, captions, chapters and the core player build on
+**ProsperoTube, EVO Player and their contributors**. Community services retain
+their own attribution; these are not presented as Max’d inventions.
+
+**Build status:** the six additions are in the development candidate, not the
+published 1.2.0 preview. Host tests and native compilation do not establish PS5
+microphone, PiP/HDR or playback performance. Linked Google child-profile import
+remains research. [Usage, limits and console test checklist](docs/MAXD_NEXT.md).
 
 ## Features
 

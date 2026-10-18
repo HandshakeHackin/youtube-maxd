@@ -3,13 +3,21 @@ from pathlib import Path
 import os,subprocess,tempfile
 root=Path(__file__).resolve().parents[1]
 work=Path(os.environ['PROSPEROTUBE_NATIVE_WORK'])/'projects/evoplayer'
-app=(work/'core/src/Application.cpp').read_text()
-screen=(work/'core/src/screens/PlayerScreen.cpp').read_text()
-host=(work/'core/src/screens/ProviderHostScreen.cpp').read_text()
-picker=(work/'core/src/screens/AudioTrackPickerScreen.cpp').read_text()
-controller_source=(work/'core/src/services/PlaybackController.cpp').read_text()
+app=(work/'core/src/Application.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
+screen=(work/'core/src/screens/PlayerScreen.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
+host=(work/'core/src/screens/ProviderHostScreen.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
+picker=(work/'core/src/screens/AudioTrackPickerScreen.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
+controller_source=(work/'core/src/services/PlaybackController.cpp').read_text().replace('YouTube Max’d','ProsperoTube')
 def part(s,a,b):return s[s.index(a):s.index(b,s.index(a))]
 appcode=part(app,'        pp_video_frame tube_present_source{}','        // End ProsperoTube background ownership.')
+# Family time and controller feedback are tested independently. Keep the actual
+# lease/hidden-player code around the unchanged screen-manager update.
+a=appcode.index('        if(tube_maxd_family_tick(')
+b=appcode.index('        m_screenManager->update(frameDeltaMs);',a)
+appcode=appcode[:a]+appcode[b:]
+a=appcode.index('        // YouTube Max\'d: use the existing native pad')
+b=appcode.index('        // Browser screens do not tick PlayerScreen.',a)
+appcode=appcode[:a]+appcode[b:]
 retirement=part(app,'            if (tube_hidden_serial && evo_agc_runtime_last_present_retired())','            // End ProsperoTube hidden discard.')
 assert app.index(retirement)>app.index('            evo_agc_runtime_present();')
 eof=part(screen,'    if (tube_background_play_active()) {','    // End ProsperoTube background completion.')
@@ -21,7 +29,7 @@ back=part(host,'        if (tube_background_play_active() && pressed==PadButtons
 assert host.index('voice == TUBE_VOICE_RECORDING')<host.index(back)
 assert host.index('if (m_discovering) return true;')<host.index(back)
 update=part(screen,'void PlayerScreen::update(','void PlayerScreen::feedPerformanceHud')
-assert update.count('sm->returnFromPlayback();')==4
+assert update.count('sm->returnFromPlayback();')==5
 assert update.count('if (!tube_background_play_active()) sm->returnFromPlayback();')==4
 assert update.index(eof)<update.index('tube_completion_playback_state(')<update.index('tube_finish_drained_and_next(')
 assert 'if (!tube_background_play_active() && tube_queue_recovery(' in update
@@ -86,6 +94,7 @@ static bool present_retired=true;static int evo_agc_runtime_last_present_retired
 static void tick(){
 """+appcode+retirement+r"""
 }
+enum {KindBackgroundBrowse,KindMaxdPip};static struct{int kind=KindBackgroundBrowse;}e;
 static void enter(){auto playback=&controller;auto sm=&manager;
 """+entry+r"""
 }

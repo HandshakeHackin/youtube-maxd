@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "id": "settings:party:stop",
+      "title": "Stop party room",
+      "label": "Stop party room",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": "",
+      "subtitle": "Same local network; up to eight guests"
+    },
+    {
+      "id": "link:maxd-party",
+      "title": "Show invite QR code",
+      "label": "Show invite QR code",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "value": "",
+      "screen": "reader",
+      "argument": "link:maxd-party"
+    },
+    {
+      "id": "settings:party:item:abcdefghijk",
+      "title": "A guest suggestion",
+      "label": "A guest suggestion",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": "",
+      "subtitle": "3 votes | Needs host approval"
+    },
+    {
+      "id": "settings:party:address",
+      "title": "PS5 LAN address",
+      "label": "PS5 LAN address",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "192.168.1.20",
+      "text": "192.168.1.20"
+    }
+  ],
+  "has_more": false
+}

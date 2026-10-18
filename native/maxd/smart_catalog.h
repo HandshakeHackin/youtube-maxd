@@ -1,3 +1,4 @@
+#include "session.h"
 /* Smart playlists use existing catalog requests and local filtered snapshots.
  * Included in tube_provider.c; main thread only. GPL-3.0-or-later. */
 #define MAXD_SMART_ITEMS 128
@@ -79,6 +80,17 @@ static void maxd_smart_scanned(int ok,const evo_provider_item_t *items,int count
     }
     if(more && s->page<7 && cache->count<MAXD_SMART_ITEMS) { ++s->page;maxd_smart_scan_next(s);return; }
     cache->limited=more;
+    if(rule->session_minutes) {
+        int64_t durations[MAXD_SMART_ITEMS];unsigned char chosen[MAXD_SMART_ITEMS];
+        for(int i=0;i<cache->count;++i)durations[i]=cache->items[i].duration_sec;
+        if(maxd_session_pick(durations,cache->count,rule->session_minutes*60,chosen)<0) {
+            evo_provider_items_cb cb=s->callback;void *ud=s->data;memset(s,0,sizeof *s);if(cb)cb(0,NULL,0,0,ud);return;
+        }
+        int n=0;for(int i=0;i<cache->count;++i)if(chosen[i]) {
+            cache->items[n]=cache->items[i];cache->items[n].playback_index=n;++n;
+        }
+        cache->count=n;
+    }
     evo_provider_items_cb cb=s->callback;void *ud=s->data;memset(s,0,sizeof *s);
     if(cb)maxd_smart_rows(cache,0,cb,ud);
 }
@@ -150,10 +162,11 @@ static int maxd_smart_prompt_submit(unsigned ticket,const char *text,char *paren
        strcmp(g_maxd_smart_prompt.profile,g_library_profile))return -1;
     MaxdSmartRule *r=maxd_smart_find(&g_maxd_smart_store,g_maxd_smart_prompt.rule,g_library_profile);
     int field=g_maxd_smart_prompt.field;
-    if(field==0)r=maxd_smart_create(&g_maxd_smart_store,g_library_profile,text);
+    if(field==0 || field==4)r=maxd_smart_create(&g_maxd_smart_store,g_library_profile,text);
     else if(!r || !maxd_smart_text(text,field==1?80:128,field!=1))return -1;
     if(!r)return -1;
-    if(field==0 && strcmp(g_library_profile,"guest"))r->source=1;
+    if(field==4)r->session_minutes=30;
+    if((field==0 || field==4) && strcmp(g_library_profile,"guest") && strncmp(g_library_profile,"maxd_family_",12))r->source=1;
     if(field==1)copy(r->name,sizeof r->name,text);
     if(field==2)copy(r->keyword,sizeof r->keyword,text);
     if(field==3)copy(r->creator,sizeof r->creator,text);
@@ -175,9 +188,20 @@ static void maxd_smart_fact(const char *id,const char *kind,const char *label,co
     if(!strcmp(kind,"text"))tube_row_fact(id,"text",value);
 }
 static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb cb,void *ud) {
-    if(!parent || strncmp(parent,"settings:smart",14))return 0;
+    if(!parent || (strncmp(parent,"settings:smart",14) && strncmp(parent,"settings:session",16)))return 0;
     evo_provider_item_t out[32];int n=0;
     if(page) { cb(1,NULL,0,0,ud);return 1; }
+    if(!strcmp(parent,"settings:session")) {
+        CATALOG_FOLDER("settings:session:new","Create viewing session","Choose a time budget and source; builds an unwatched queue");
+        maxd_smart_fact(out[n-1].id,"text","Create viewing session","");
+        for(int i=0;i<g_maxd_smart_store.count;++i) {
+            const MaxdSmartRule *r=&g_maxd_smart_store.rules[i];if(!r->session_minutes || strcmp(r->profile,g_library_profile))continue;
+            char id[80],hint[100];snprintf(id,sizeof id,"settings:smart:%u",r->id);
+            snprintf(hint,sizeof hint,"Up to %d minutes; refresh to build a new session",r->session_minutes);
+            CATALOG_FOLDER(id,r->name,hint);maxd_smart_fact(id,"page",r->name,"");
+        }
+        cb(1,out,n,0,ud);return 1;
+    }
     if(!strcmp(parent,"settings:smart")) {
         CATALOG_FOLDER("settings:smart:new","Create smart playlist","Saved on this PS5, for the current profile");
         maxd_smart_fact(out[n-1].id,"text","Create smart playlist","");
@@ -191,14 +215,14 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
     }
     const char *action="";uint32_t id=!strncmp(parent,"settings:smart:",15)?maxd_smart_id(parent+15,&action):0;
     MaxdSmartRule *r=maxd_smart_find(&g_maxd_smart_store,id,g_library_profile);
-    int field=!strcmp(parent,"settings:smart:new")?0:!strcmp(action,"name")?1:!strcmp(action,"keyword")?2:!strcmp(action,"creator")?3:-1;
+    int field=!strcmp(parent,"settings:session:new")?4:!strcmp(parent,"settings:smart:new")?0:!strcmp(action,"name")?1:!strcmp(action,"keyword")?2:!strcmp(action,"creator")?3:-1;
     if(field>=0) {
-        if(field && !r){cb(0,NULL,0,0,ud);return 1;}
-        prompt_arm(field==0?"Name your smart playlist":field==1?"Playlist name":field==2?"Title contains (blank = any)":"Creator contains (blank = any)");
+        if(field!=0 && field!=4 && !r){cb(0,NULL,0,0,ud);return 1;}
+        prompt_arm(field==4?"Name your viewing session":field==0?"Name your smart playlist":field==1?"Playlist name":field==2?"Title contains (blank = any)":"Creator contains (blank = any)");
         g_playlist_prompt.maxd_smart=1;
         g_maxd_smart_prompt.ticket=g_playlist_prompt.prompt.ticket;g_maxd_smart_prompt.rule=id;g_maxd_smart_prompt.field=field;
         copy(g_maxd_smart_prompt.profile,sizeof g_maxd_smart_prompt.profile,g_library_profile);
-        if(field)copy(g_playlist_prompt.prompt.initial,sizeof g_playlist_prompt.prompt.initial,field==1?r->name:field==2?r->keyword:r->creator);
+        if(field!=0 && field!=4)copy(g_playlist_prompt.prompt.initial,sizeof g_playlist_prompt.prompt.initial,field==1?r->name:field==2?r->keyword:r->creator);
         CATALOG_FOLDER("account:notice","Enter your playlist rule","No YouTube account changes are made");cb(1,out,n,0,ud);return 1;
     }
     if(!r){tube_set_error("Reopen Smart playlists for this profile.");cb(0,NULL,0,0,ud);return 1;}
@@ -213,7 +237,12 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
         return maxd_smart_catalog("settings:smart",0,cb,ud);
     }
     int changed=0;
-    if(!strcmp(action,"source")){r->source=(r->source+1)%4;changed=1;}
+    if(!strcmp(action,"budget") && r->session_minutes) {
+        const int choices[]={15,30,45,60,90,120};int next=0;
+        for(int i=0;i<6;++i)if(r->session_minutes==choices[i])next=(i+1)%6;
+        r->session_minutes=choices[next];changed=1;
+    }
+    else if(!strcmp(action,"source")){r->source=(r->source+1)%4;changed=1;}
     else if(!strcmp(action,"unwatched")){r->unwatched=!r->unwatched;changed=1;}
     else if(!strcmp(action,"live")){r->hide_live=!r->hide_live;changed=1;}
     else if(!strcmp(action,"duration")) {
@@ -228,6 +257,10 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
 #define MAXD_SMART_ROW(key,title,detail,kind,shown) do { \
     snprintf(row,sizeof row,"settings:smart:%u:%s",id,key);CATALOG_FOLDER(row,title,detail);maxd_smart_fact(row,kind,title,shown); \
 } while(0)
+    if(r->session_minutes) {
+        snprintf(value,sizeof value,"Up to %d minutes",r->session_minutes);
+        MAXD_SMART_ROW("budget","Time budget",value,"cycle",value);
+    }
     MAXD_SMART_ROW("name","Name",r->name,"text",r->name);
     MAXD_SMART_ROW("source","Source feed",maxd_smart_source_names[r->source],"cycle",maxd_smart_source_names[r->source]);
     MAXD_SMART_ROW("keyword","Title contains",*r->keyword?r->keyword:"Any title","text",r->keyword);

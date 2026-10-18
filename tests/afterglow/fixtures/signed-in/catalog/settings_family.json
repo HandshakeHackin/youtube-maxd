@@ -1,0 +1,70 @@
+{
+  "items": [
+    {
+      "id": "account:notice",
+      "title": "Local controls for Sam",
+      "label": "Local controls for Sam",
+      "is_folder": true,
+      "interface": true,
+      "kind": "info",
+      "value": "",
+      "subtitle": "Independent local profile; Google profile import stays in research"
+    },
+    {
+      "id": "settings:family:enabled",
+      "title": "Family restrictions",
+      "label": "Family restrictions",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "On"
+    },
+    {
+      "id": "settings:family:search",
+      "title": "Allow search",
+      "label": "Allow search",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "Off"
+    },
+    {
+      "id": "settings:family:time",
+      "title": "Daily viewing limit",
+      "label": "Daily viewing limit",
+      "is_folder": true,
+      "interface": true,
+      "kind": "cycle",
+      "value": "30 minutes per UTC day"
+    },
+    {
+      "id": "settings:family:name",
+      "title": "Profile name",
+      "label": "Profile name",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "Sam",
+      "text": "Sam"
+    },
+    {
+      "id": "settings:family:channel",
+      "title": "Add approved channel ID",
+      "label": "Add approved channel ID",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": ""
+    },
+    {
+      "id": "settings:family:lock",
+      "title": "Lock parental controls now",
+      "label": "Lock parental controls now",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": ""
+    }
+  ],
+  "has_more": false
+}

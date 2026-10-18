@@ -7,6 +7,8 @@ extern "C" {
 #endif
 int tube_background_play_begin(unsigned selection,const char *profile);
 int tube_background_play_active(void);
+void tube_background_play_picture(int enabled);
+int tube_background_play_picture_active(void);
 int tube_background_play_take_browser_resume(void);
 int tube_background_play_matches(unsigned selection,const char *profile);
 void tube_background_play_clear(void);

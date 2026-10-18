@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "id": "settings:session:new",
+      "title": "Create viewing session",
+      "label": "Create viewing session",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": ""
+    },
+    {
+      "id": "settings:smart:2",
+      "title": "A short evening",
+      "label": "A short evening",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "value": ""
+    }
+  ],
+  "has_more": false
+}

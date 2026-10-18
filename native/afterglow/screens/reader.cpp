@@ -11,6 +11,7 @@
 // everything a screen does and nothing else.
 
 #include "afterglow/screen.hpp"
+#include "tube_qr_page.h"
 
 #include <algorithm>
 
@@ -40,6 +41,8 @@ class Reader final : public Screen
         if (restored)
             return; // back from a screen above: the text stays where it was
         route_ = route;
+        paragraphs_ = static_cast<std::size_t>(-1);
+        join_url_.clear();
         scroll_.snap(0.0f);
         age_ = 0.0f;
     }
@@ -101,6 +104,15 @@ class Reader final : public Screen
             icon(g, load_ == model::Load::offline ? Icon::offline : Icon::alert, kLeft + 22.0f, kPageTop + 20.0f, 44.0f, g.k.ink2);
             paragraph(g, g.f.regular, error_.empty() ? tr("This text could not be loaded.") : error_.c_str(), kLeft + 64.0f,
                       kPageTop + 30.0f, kTypeBody, kColumn - 64.0f, kLine, g.k.ink2, 4);
+            return;
+        }
+        if (!join_url_.empty())
+        {
+            text(g, g.f.semibold, tr("Join from your phone"), kLeft, kPageTop, kTypeShelf, g.k.ink);
+            qr_code(g, {kLeft, kPageTop + 54.0f, 416.0f, 416.0f}, join_url_, kBlack, kWhite);
+            paragraph(g, g.f.regular, tr("Scan the code on the same local network. Guests suggest and vote; you approve videos on the PS5."),
+                      kLeft + 468.0f, kPageTop + 88.0f, kTypeBody, 650.0f, kLine, g.k.ink2, 4);
+            paragraph(g, g.f.regular, join_url_, kLeft, kPageTop + 534.0f, kTypeBody, kColumn, kLine, g.k.ink2, 3);
             return;
         }
         g.l.push_clip({kLeft - 8.0f, kPageTop - 34.0f, kColumn + 16.0f, kPageBottom - kPageTop + 44.0f});
@@ -165,6 +177,7 @@ class Reader final : public Screen
     {
         out.set("catalog", route_.argument);
         out.set("paragraphs", static_cast<int>(blocks_.size()));
+        out.set("qr", !join_url_.empty() ? "yes" : "no");
         out.set("scroll", static_cast<int>(scroll_.target));
         out.set("load", load_ == model::Load::ready ? "ready" : load_ == model::Load::loading ? "loading" : load_ == model::Load::offline ? "offline" : "failed");
     }
@@ -183,6 +196,9 @@ class Reader final : public Screen
         blocks_.clear();
         height_ = 0.0f;
         paragraphs_ = page.rows.size();
+        join_url_.clear();
+        if (route_.argument == "link:maxd-party" && !page.rows.empty() && tube_qr_link_valid(page.rows.front().overview.c_str()))
+            join_url_ = page.rows.front().overview;
         for (const model::Row &row : page.rows)
         {
             Block block;
@@ -200,6 +216,7 @@ class Reader final : public Screen
     std::size_t paragraphs_ = static_cast<std::size_t>(-1);
     model::Load load_ = model::Load::idle;
     std::string error_;
+    std::string join_url_;
     float height_ = 0.0f;
     tween::Spring scroll_;
     float age_ = 0.0f;
