@@ -1,7 +1,8 @@
 # Prepared catalog submission — YouTube Max’d
 
-**Status:** preparation only; not submitted or listed. The source repository is
-private and public catalog verification is not yet possible.
+**Status:** ready for submission; not submitted or listed. The source repository
+is public and the official online catalog verification passes with zero errors
+or warnings. The prepared catalog branch is linked in store/README.md.
 
 **Title ID:** PPSA99991
 
@@ -46,10 +47,10 @@ these features or endorsed this fork.
 - [x] Source/provenance, GPL and dependency notices are retained. The complete
   source archive is attached; release assembly checked all 4,388 manifest files.
 - [x] Review policy read; helper behavior and console-testing limits disclosed.
-- [ ] Public source repository: currently private; visibility has not been changed.
+- [x] Public source repository: confirmed public on 2026-10-18.
 - [x] `PPSA99991.zip` attached to the published release, with GitHub's digest
   verified against the record. A raw Git branch download is not accepted instead.
-- [ ] Full online catalog verification of the public repository, exact asset,
+- [x] Full online catalog verification of the public repository, exact asset,
   content version and icon.
 - [ ] PR opened from HandshakeHackin, the owner of `source_repo`.
 - [ ] Maintainer review, helper approval where required, merge and deployment.

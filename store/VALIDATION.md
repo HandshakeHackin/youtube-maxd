@@ -15,8 +15,9 @@ App source: `014adc2d901518f47fb4d1fbc99eab15b41b79aa`.
 | Official static catalog ZIP scan | Passed: zero errors, six warnings and one summary notice; full report retained |
 | GitHub release publication | [Publisher succeeded](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39143346224); all nine assets attached; app URL and GitHub digest match the catalog record |
 | Published complete source | CI verified 4,388 manifest files; SHA-256 `5cee83a5d64f16be306ddefd08705220f2240b7ee6c77055b8ed56e955943d59` |
-| Current online catalog verification | Blocked: source_repo is private; no public-verification pass claimed |
-| Public submission / deployment | Not performed |
+| Public visibility | Confirmed public on 2026-10-18 |
+| Current online catalog verification | Passed against the public repository: zero errors/warnings; two informational notices for matching ZIP SHA-256 and contentVersion `01.002.000`; pinned icon verified |
+| Catalog handoff | One-record branch prepared in the publisher’s fork; no upstream pull request or deployment performed |
 | PS5 hardware acceptance | Not performed; this exact integrated build remains experimental |
 
 The scanner's six warnings cover sandbox elevation, the local payload-loader

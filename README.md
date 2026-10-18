@@ -48,7 +48,7 @@ This is the application bundle to extract for ShadowMount+. It includes the exec
 | Download checksums | [SHA256SUMS](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/SHA256SUMS) |
 | Application source | [`main`](https://github.com/HandshakeHackin/youtube-maxd/tree/main) · [build instructions](#build-from-source) |
 
-If clicking the app link opens a file page, use its **Download raw file** button. Sign into a GitHub account with repository access if GitHub asks. The icon is artwork; the app is the **ZIP**.
+If clicking the app link opens a file page, use its **Download raw file** button. Downloads are public; no GitHub account is required. The icon is artwork; the app is the **ZIP**.
 
 The release’s **Assets** section contains the app ZIP, complete source ZIP, icon, SHA-256 checksums, release notes, testing guide/results, validation JSON and catalog scan report. The `downloads` branch keeps the byte-identical `YouTube-Maxd-PS5.zip` as an alternate download. GitHub’s automatically generated **Source code** archives omit recursive submodules and cannot be installed as the app; use the recursive clone below to rebuild it. The initial app bundle corresponds to source commit [`014adc2`](https://github.com/HandshakeHackin/youtube-maxd/tree/014adc2d901518f47fb4d1fbc99eab15b41b79aa).
 
