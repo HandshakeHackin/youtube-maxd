@@ -33,7 +33,7 @@ Also includes Google sign-in, subscriptions, playlists, captions, SponsorBlock, 
 **Next build — implemented, awaiting PS5 testing:**
 
 - **Transcript search & bookmarks:** find and save video moments.
-- **In-app picture-in-picture:** keep watching while browsing in Afterglow.
+- **In-app picture-in-picture:** optional viewing while browsing in Afterglow; off by default.
 - **Voice controls:** pause, resume, seek and change playback options.
 - **Session builder:** fit unwatched videos into a chosen time budget.
 - **Local family profiles:** PIN, approved-channel and viewing-time controls.
