@@ -4,7 +4,7 @@ YouTube Max’d is already listed as **PPSA99991** in the **Video & TV** categor
 [store page](https://prosperostore.net/app/PPSA99991/).
 The original listing was approved in [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397).
 
-This directory prepares the **1.3.0-preview.1 update**, with the six viewing
+This directory tracks the **1.3.0-preview.1 update**, with the six viewing
 features and **PiP off by default**. Content version rises to `01.003.000` so
 consoles can detect the update; title ID and app data location stay the same.
 The new release remains experimental and has not been tested on PS5 hardware.
@@ -19,7 +19,10 @@ The new release remains experimental and has not been tested on PS5 hardware.
   [testing evidence](../docs/releases/v1.3.0-preview.1/TEST_RESULTS.txt).
 
 The original `v1.2.0-preview.1` release and its attachments remain available.
-The catalog currently lists that version until the update is merged/deployed.
+The new GitHub release is published with nine verified attachments. The catalog
+still lists 1.2.0-preview.1: automatic submission is blocked by the connected
+GitHub integration’s upstream pull-request permission (HTTP 403).
+**[Submit the prepared update](SUBMISSION.md#submit-the-update)**; the form is prefilled.
 A catalog merge or static scan does not establish PS5 functionality or separate
 helper-whitelist approval.
 

@@ -1,0 +1,66 @@
+{
+  "id": 416643727,
+  "tag_name": "v1.3.0-preview.1",
+  "html_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-10-18T19:15:16Z",
+  "target_commitish": "1435ccdbad5f2d815de8f3440c3765ab785319fe",
+  "publisher_run": "https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39157826519",
+  "assets": [
+    {
+      "name": "catalog-scan.txt",
+      "size": 5567,
+      "digest": "sha256:5212ddd980df9097eb26469d752833ea7d70e9e998d4b49d6c0842a36bbc74d2",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/catalog-scan.txt"
+    },
+    {
+      "name": "native-validation.json",
+      "size": 2190,
+      "digest": "sha256:e12f9541307742521207a536c80a5a3db0829f5dc88ada2d3887c81bc8047e9f",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/native-validation.json"
+    },
+    {
+      "name": "PPSA99991.zip",
+      "size": 99519618,
+      "digest": "sha256:22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip"
+    },
+    {
+      "name": "RELEASE_NOTES.md",
+      "size": 3811,
+      "digest": "sha256:2862267d91c97e211b5e732845f90d72b00640a48e70c09e25e8ad29f48e88e9",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/RELEASE_NOTES.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 674,
+      "digest": "sha256:97d5637b868456268960307c761dc7e4471b81641b882ebe07dd0f72441a89ce",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/SHA256SUMS"
+    },
+    {
+      "name": "TESTING.txt",
+      "size": 4481,
+      "digest": "sha256:0efabe773f92a50ad07f999cb15817cf3afb23ffa4c60edcfd0f4ca14f2be0a9",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/TESTING.txt"
+    },
+    {
+      "name": "TEST_RESULTS.txt",
+      "size": 2813,
+      "digest": "sha256:a74554bba27b0b6bc571e3a6331ee2dfbed466574d8c81591e50d67886ddcf37",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/TEST_RESULTS.txt"
+    },
+    {
+      "name": "YouTube-Maxd-icon.png",
+      "size": 249991,
+      "digest": "sha256:d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/YouTube-Maxd-icon.png"
+    },
+    {
+      "name": "YouTube-Maxd-source.zip",
+      "size": 474153253,
+      "digest": "sha256:fdc2607b64aa4ca80bf7ad499254c460aef4661459efe1d419f0827da49cee5f",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/YouTube-Maxd-source.zip"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "application": "YouTube Max’d",
+  "version": "1.3.0",
+  "release_tag": "v1.3.0-preview.1",
+  "title_id": "PPSA99991",
+  "content_version": "01.003.000",
+  "application_source_commit": "78718a740137f1a111aa73926d74d22d8af8b1d4",
+  "source_archive_commit": "1435ccdbad5f2d815de8f3440c3765ab785319fe",
+  "pip_default_enabled": false,
+  "linked_google_profiles": "research only",
+  "target": {
+    "firmware": "11.00",
+    "launcher": "ShadowMount+"
+  },
+  "hardware_tested": false,
+  "live_google_account_tested": false,
+  "live_youtube_playback_tested": false,
+  "app_zip": {
+    "file": "PPSA99991.zip",
+    "size": 99519618,
+    "sha256": "22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593",
+    "entries": 305,
+    "zip_crc_verified": true,
+    "identity_verified": true,
+    "entry_permissions": "0777"
+  },
+  "executable_sha256": "f539b2007b205c2623524c1946dc5cbc21b2a84070341a4f49e499a8a8c507f2",
+  "source_archive": {
+    "file": "YouTube-Maxd-source.zip",
+    "size": 474153253,
+    "sha256": "fdc2607b64aa4ca80bf7ad499254c460aef4661459efe1d419f0827da49cee5f",
+    "manifest_files_verified": 4442
+  },
+  "icon": {
+    "file": "YouTube-Maxd-icon.png",
+    "sha256": "d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+    "matches_app": true
+  },
+  "voice_model": {
+    "size": 77691713,
+    "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+    "verified": true
+  },
+  "helpers": [
+    {
+      "file": "PPSA99991/lapy.elf",
+      "sha256": "b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4"
+    },
+    {
+      "file": "PPSA99991/self-updater.elf",
+      "sha256": "36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f"
+    }
+  ],
+  "host_test_evidence": {
+    "kind": "Recorded development results; not rerun by release assembly",
+    "reference": "docs/MAXD_NEXT_VALIDATION.md",
+    "dates": [
+      "2026-10-17",
+      "2026-10-18"
+    ]
+  },
+  "catalog_scan": {
+    "file": "catalog-scan.txt",
+    "static_only": true,
+    "catalog_commit": "c3e61941fda62b4624f088a0f5344ff729bcd051"
+  },
+  "store_publication": "Catalog update submitted separately after immutable release publication"
+}

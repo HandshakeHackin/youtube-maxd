@@ -19,7 +19,9 @@ Catalog tooling revision: `c3e61941fda62b4624f088a0f5344ff729bcd051`.
 | Catalog record | Twelve fields; only version, artifact URL, SHA-256 and tagged icon URL change |
 | Full matching sources/checksums | Attached to the published release; exact verified manifest count in native-validation.json |
 | Official static scan | Passed: 0 errors, 6 warnings, 1 summary notice; [full report](../docs/releases/v1.3.0-preview.1/catalog-scan.txt) |
-| Online verification/publication | Performed after publishing the immutable GitHub release; submission status in SUBMISSION.md |
+| Public GitHub release | Published; nine assets with matching GitHub digests/checksums; [publisher succeeded](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39157826519) |
+| Online catalog verification | Passed: zero errors/warnings; ZIP digest, tagged icon and contentVersion 01.003.000 verified |
+| Store pull request | Prepared branch pushed; creation blocked by GitHub integration permission (403); [prefilled form](SUBMISSION.md#submit-the-update) |
 | PS5/live YouTube/Google acceptance | Not performed; this remains an experimental prerelease |
 
 App SHA-256: `22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593`.
@@ -33,3 +35,7 @@ The update does not modify the catalog's approved-helper list. The static report
 discloses sandbox elevation, the local loader and payload behavior; a passing
 scan/catalog merge is not PS5 acceptance or separate helper-whitelist approval.
 Original listing approval remains [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397).
+
+Published receipts: [release-assets.json](../docs/releases/v1.3.0-preview.1/release-assets.json)
+and [native-validation.json](../docs/releases/v1.3.0-preview.1/native-validation.json).
+All 4,442 published corresponding-source manifest entries were verified by CI.
