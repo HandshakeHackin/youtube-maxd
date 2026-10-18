@@ -1,34 +1,35 @@
-# Store preparation validation — 2026-10-18
+# Store update validation — 2026-10-18
 
-Catalog revision: `0c44e95fefd170ff4e5be4f941bae9cfd6f67f81`.
-App source: `014adc2d901518f47fb4d1fbc99eab15b41b79aa`.
+Release: **v1.3.0-preview.1** · title **PPSA99991** · content **01.003.000**.
+Native application source: `78718a740137f1a111aa73926d74d22d8af8b1d4`.
+Catalog tooling revision: `c3e61941fda62b4624f088a0f5344ff729bcd051`.
 
 | Check | Result |
 | --- | --- |
-| Official offline catalog check, including proposed entry and existing catalog | Passed: 95 records, zero errors/warnings/notices |
-| Title ID | `PPSA99991` was unused at preparation; the app record is now merged |
-| Catalog record | Twelve fields; `video` category; version matches `v1.2.0-preview.1` |
-| App ZIP | 303 entries; CRCs, 0777 modes, identity and original SHA-256 verified |
-| Executable / voice model | Match the original preview's pinned hashes |
-| Artwork / metadata | 512×512 icon and param.json match app bytes; metadata copies pushed at downloads commit `df694f5aa53906fe84e26e857542076ceb807577` |
-| Complete local source distribution | All 4,388 manifest file hashes and source archive CRCs verified |
-| Official static catalog ZIP scan | Passed: zero errors, six warnings and one summary notice; full report retained |
-| GitHub release publication | [Publisher succeeded](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39143346224); all nine assets attached; app URL and GitHub digest match the catalog record |
-| Published complete source | CI verified 4,388 manifest files; SHA-256 `5cee83a5d64f16be306ddefd08705220f2240b7ee6c77055b8ed56e955943d59` |
-| Public visibility | Confirmed public on 2026-10-18 |
-| Current online catalog verification | Passed against the public repository: zero errors/warnings; two informational notices for matching ZIP SHA-256 and contentVersion `01.002.000`; pinned icon verified |
-| Catalog submission | [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397) submitted by HandshakeHackin; approved and merged on 2026-10-18 |
-| Upstream CI | Validate submission, Scan the release and Tests and offline check passed |
-| Store deployment | [Live listing](https://prosperostore.net/app/PPSA99991/) verified on 2026-10-18; version `1.2.0-preview.1` |
-| PS5 hardware acceptance | Not performed; this exact integrated build remains experimental |
+| Native PS5 compilation and signed-program integrity | Passed; fresh build from the application source above |
+| App ZIP | 99,519,618 bytes; 305 entries; CRCs and 0777 modes verified |
+| Identity/content version | PPSA99991 / 01.003.000; higher than 01.002.000 |
+| Artwork/metadata | Exact packaged copies in store/sce_sys; 512×512 PNG |
+| PiP behavior | Defaults off; fresh session reset and explicit activation covered by ASan/UBSan tests |
+| New viewing policies and party HTTP/page checks | Passed |
+| Updated service HTTP fixtures | 186 passed, zero failed |
+| Release/version/generated About changelog checks | Passed |
+| Official catalog unit suite | 176 tests passed, two skipped |
+| Offline catalog check | 98 valid records, zero errors/warnings/notices |
+| Catalog record | Twelve fields; only version, artifact URL, SHA-256 and tagged icon URL change |
+| Full matching sources/checksums | Attached to the published release; exact verified manifest count in native-validation.json |
+| Official static scan | Passed: 0 errors, 6 warnings, 1 summary notice; [full report](../docs/releases/v1.3.0-preview.1/catalog-scan.txt) |
+| Online verification/publication | Performed after publishing the immutable GitHub release; submission status in SUBMISSION.md |
+| PS5/live YouTube/Google acceptance | Not performed; this remains an experimental prerelease |
 
-The scanner's six warnings cover sandbox elevation, the local payload-loader
-address, two bundled payloads and the two helper hashes absent from the approved
-list at the checked preparation revision. The catalog submission is now approved
-and merged; no separate helper-whitelist or hardware-acceptance claim is made. See
-[the complete report](../docs/releases/v1.2.0-preview.1/catalog-scan.txt).
+App SHA-256: `22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593`.
 
-The ZIP was not rebuilt or altered for store naming. Its SHA-256 is
-`6b40cce43ff9c70caae8ce308a1875ac8f55427d51f1b2579e5728021b48afb9`.
-The prepared [catalog.patch](catalog.patch) changes only `apps/PPSA99991.json`;
-it matches the submitted pull request. Recheck against current upstream if it changes.
+Retained helpers:
+
+- `lapy.elf`: `b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4`.
+- `self-updater.elf`: `36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f`.
+
+The update does not modify the catalog's approved-helper list. The static report
+discloses sandbox elevation, the local loader and payload behavior; a passing
+scan/catalog merge is not PS5 acceptance or separate helper-whitelist approval.
+Original listing approval remains [PR #397](https://github.com/darkxex/ps5-homebrew-catalog/pull/397).

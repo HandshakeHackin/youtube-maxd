@@ -1,0 +1,48 @@
+YouTube Max’d 1.3.0-preview.1 — validation summary
+Application build source: 78718a740137f1a111aa73926d74d22d8af8b1d4
+Content version: 01.003.000. Title: PPSA99991.
+Target: PS5 firmware 11.00 / ShadowMount+.
+
+CHECKS REPEATED FOR THIS REVISION (2026-10-18)
+- Native feedback bridge and identity/storage/updater isolation: passed.
+- Release/version/workflow contract and generated in-app changelog: passed.
+- Updated embedded HTTP service fixtures: 186 checks passed, 0 failed.
+- ASan/UBSan policy checks: transcript parsing/bookmark persistence, optimal
+  bounded session selection, strict voice commands, PiP default off and reset,
+  ownership and destination: passed.
+- Real loopback party HTTP pairing/authentication, origin checks, suggestion/
+  vote/host approval, expiry and revocation: passed.
+- JavaScript party-page link validation: passed.
+- Generated background ownership/EOF/return/protected-input regression: passed
+  against the actual generated release tree; native PiP source matches the tree.
+- Official catalog unit suite: 176 tests passed, two skipped.
+
+RECORDED DEVELOPMENT CHECKS
+The six-feature implementation previously passed native provider transcript,
+bookmark, session, family PIN/channel/time-limit and party queue tests; Smart
+playlist/Auto Max/protected-profile regressions; 393 JavaScript library checks,
+family isolation; 792 embedded-service fixture checks; and 356 new Afterglow
+board checks across four looks. These were not all repeated for the version
+bump. Details: docs/MAXD_NEXT_VALIDATION.md and docs/MAXD_VALIDATION.md.
+
+RELEASE ARTIFACT CHECKS
+Fresh PS5 compilation (312 objects) and signed-container integrity passed.
+The app ZIP has 305 entries with CRCs and 0777 modes verified.
+Official catalog scan: zero errors, six warnings and one summary notice.
+Release assembly verifies ZIP CRCs and 0777 modes, higher content
+version, icon/model hashes, helper hashes and every matching-source manifest
+entry. native-validation.json and SHA256SUMS record the exact resulting bytes.
+The official catalog scanner reads the archive without running it; see the
+attached catalog-scan.txt for its full findings. Static checks are not console
+or helper-whitelist approval. Automatic in-app updates remain disabled.
+
+NOT VERIFIED
+No PS5, live Google authorization or real YouTube playback was used. Boot,
+PiP codec/HDR behavior, microphone routing/latency and physical DualSense
+behavior still require console testing. Family controls are local; editing
+app data can bypass them. Linked Google child-profile import remains research.
+The LAN party page uses HTTP on a trusted network. Ad removal is not guaranteed.
+
+CREDITS
+ProsperoTube by BlackBearReloaded and contributors, EVO Player and all retained
+dependencies. Full corresponding sources and licenses accompany the release.

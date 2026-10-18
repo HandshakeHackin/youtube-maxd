@@ -1,4 +1,4 @@
-# Next experience validation
+# Viewing features validation
 
 Candidate branch: `feature/maxd-next-experience`.
 
@@ -35,4 +35,7 @@ Candidate implementation: `c9a90784dcd178d5f99b967f4fec7e22048830ba`.
 - App ZIP: 99527492 bytes; SHA-256 `e4b65696edf35c38c487b6ad19feedf60d73e14d002fb19d9a3255fbc5405b64`.
 - Executable: 55195628 bytes; SHA-256 `19d456d4ff3d4385adba01cbeb6747878b1732ccc299f5703ba1a3f07fd9cc46`.
 
-The candidate is a local build; it has not replaced the published preview or the store submission.
+These hashes describe the earlier local candidate, not the 1.3.0 release.
+The published revision raises contentVersion to `01.003.000`, includes the PiP
+default-off reset, and has its own [release evidence](releases/v1.3.0-preview.1/TEST_RESULTS.txt).
+Exact release hashes are attached in `native-validation.json` and `SHA256SUMS`.

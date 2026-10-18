@@ -6,9 +6,9 @@
   "description": "Standalone PS5 YouTube client based on ProsperoTube, with local voice search, Smart playlists, adaptive quality and red/white DualSense effects.",
   "license": "GPL-3.0-or-later",
   "author": "HandshakeHackin",
-  "version": "1.2.0-preview.1",
+  "version": "1.3.0-preview.1",
   "source_repo": "https://github.com/HandshakeHackin/youtube-maxd",
-  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.2.0-preview.1/PPSA99991.zip",
-  "sha256": "6b40cce43ff9c70caae8ce308a1875ac8f55427d51f1b2579e5728021b48afb9",
-  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/df694f5aa53906fe84e26e857542076ceb807577/sce_sys/icon0.png"
+  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip",
+  "sha256": "22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593",
+  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/v1.3.0-preview.1/store/sce_sys/icon0.png"
 }

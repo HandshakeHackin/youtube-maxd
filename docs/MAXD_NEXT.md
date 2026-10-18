@@ -88,7 +88,7 @@ need further research and a supported live test environment.
 ## Validation and acceptance
 
 See [MAXD_NEXT_VALIDATION.md](MAXD_NEXT_VALIDATION.md) for recorded host results.
-Before publishing a new installable release, test firmware 11.00 with ShadowMount+:
+Before a stable, hardware-verified release, test firmware 11.00 with ShadowMount+:
 
 1. Sign-in/profile changes, persistence, PIN lock on return/restart and account removal.
 2. H.264/VP9/HEVC/AV1, HDR/SDR PiP entry/exit, pause, seek, EOF, quality reopen and GPU/source retirement.
