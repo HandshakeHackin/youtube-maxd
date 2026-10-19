@@ -1,12 +1,14 @@
 # YouTube Max’d integration
 
-## Unreleased
+## 1.4.0 — 2026-10-19
 
-The next release is intended to be the first official build. PS5 acceptance
-testing is still outstanding; the current download remains an experimental preview.
-
-- Optional Ko-fi support under Settings → About, with a readable link and phone QR code in Classic and Afterglow. Uses the same `https://ko-fi.com/handshakehackin` destination as Nuvio Max’d.
-- Add the matching Ko-fi homepage badge and GitHub Sponsor link.
+- First official release label; console acceptance remains a separate, pending validation step.
+- Opt-in PS5-hosted Phone remote: QR pairing, search/text, TV navigation, pause/resume, seek, queue add/remove and play-next ordering.
+- One controlling phone, expiring one-use QR and session, strict local HTTP framing/origin/authentication checks, command deduplication and playback-selection guards.
+- Privacy-filtered bug-report capture, preview, download and deletion; typed technical schema, no account credentials, private URLs, identity or raw logs.
+- Optional in-app Ko-fi support link and QR for https://ko-fi.com/handshakehackin, matching Nuvio Max’d, plus a GitHub Sponsor button and homepage badge.
+- PiP remains off by default. Existing Google sign-in, playback, local profiles and party room features are retained.
+- Matching source package, release checksums, validation receipts and Homebrew Store update record.
 
 ## 1.3.0-preview.1 — 2026-10-18
 

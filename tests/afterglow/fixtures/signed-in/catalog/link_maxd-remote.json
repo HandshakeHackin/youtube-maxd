@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "link:maxd-remote",
+      "title": "Pair your phone",
+      "label": "Pair your phone",
+      "subtitle": "",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page",
+      "overview": "http://192.168.1.20:8767/#0123456789abcdef0123456789abcdef"
+    }
+  ],
+  "has_more": false
+}

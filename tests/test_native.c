@@ -16,7 +16,7 @@
 typedef struct { char method[16], url[2048], body[2048]; evo_net_cb cb; void *ud; } Pending;
 static Pending pending[32];
 static int pending_count, item_calls, resolve_calls, last_ok;
-static evo_provider_item_t last_items[24], lead_items[2];
+static evo_provider_item_t last_items[32], lead_items[2];
 static int last_count, search_lead;
 static char error_text[256];
 static int last_more;
@@ -45,12 +45,12 @@ static void reply(int index, int ok, int status, const char *body) {
 
 static void items_cb(int ok, const evo_provider_item_t *items, int count, int more, void *ud) {
     (void)ud; ++item_calls; last_ok = ok; last_count = count; last_more = more;
-    assert(count <= 26);
+    assert(count <= 34);
     /* A typed search leads with its Search options and Suggestions folders;
      * they are recorded apart so result assertions keep counting videos. */
     search_lead = count >= 2 && !strcmp(items[0].id, "settings:search") && !strcmp(items[1].id, "search-suggest") ? 2 : 0;
     if (search_lead) { memcpy(lead_items, items, sizeof lead_items); items += 2; last_count = count -= 2; }
-    assert(count <= 24);
+    assert(count <= (int)(sizeof last_items/sizeof last_items[0]));
     if (items) memcpy(last_items, items, (size_t)count * sizeof *items);
 }
 

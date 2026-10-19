@@ -40,6 +40,8 @@
 #include "maxd/auto_max.h"
 #include "maxd/experience.h"
 #include "maxd/party_server.h"
+#include "maxd/phone_remote.h"
+#include "maxd/diagnostics.h"
 static void maxd_party_sync(void);
 static char g_maxd_party_ip[32];
 #include "maxd/experience_store.h"
@@ -1125,6 +1127,10 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
         unsigned a,b,c,d;char tail;
         if(maxd_family_restricted(g_library_profile) || strlen(text)>15 || sscanf(text,"%u.%u.%u.%u%c",&a,&b,&c,&d,&tail)!=4 ||
            a>255 || b>255 || c>255 || d>255 || !((a==10)||(a==172 && b>=16 && b<=31)||(a==192 && b==168)))return -1;
+        if(g_playlist_prompt.maxd_party==2) {
+            /* Remote address is a session-only preference, separate from guest rooms. */
+            tube_maxd_remote_address(text);maxd_remote_stop();g_playlist_prompt.active=0;snprintf(parent,capacity,"settings:phone-remote");return 0;
+        }
         snprintf(g_maxd_party_ip,sizeof g_maxd_party_ip,"%u.%u.%u.%u",a,b,c,d);
         maxd_party_stop();g_playlist_prompt.active=0;snprintf(parent,capacity,"settings:party");return 0;
     }
@@ -2398,7 +2404,7 @@ static void remote_configure(void) {
         g_remote_device, g_remote_screen);
 }
 unsigned tube_phone_revision(void) { return tube_remote_revision(); }
-void tube_phone_sync_scope(void) { remote_configure(); }
+void tube_phone_sync_scope(void) { tube_maxd_remote_scope(); remote_configure(); }
 int tube_voice_scope(char *source, size_t source_capacity, char *token,
                      size_t token_capacity, char *profile, size_t profile_capacity) {
     if (source && source_capacity) source[0] = 0;
@@ -2548,7 +2554,7 @@ static int init_store(void) {
     memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel(); g_startup_open = 1;
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
-    maxd_party_stop(); tube_maxd_transcript_clear(); tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end();
+    maxd_party_stop(); maxd_remote_stop(); maxd_report_clear(NULL); tube_maxd_transcript_clear(); tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end();
     cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL;
     ProfileSettings defaults = profile_settings_defaults(); profile_settings_apply(&defaults);
     tube_player_extra_set_save_hook(extra_saved,NULL);
@@ -4820,6 +4826,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
 }
 
 void tube_poll(void) {
+    tube_maxd_remote_scope();
     maxd_party_sync();
     maxd_smart_tick();
     if (tube_update_app_tick) tube_update_app_tick(!g_embedded || embedded_ready());
@@ -5025,9 +5032,11 @@ static int extra_group_parent(const char *parent, int *choice) {
 #include "maxd/smart_catalog.h"
 #include "maxd/family_catalog.h"
 #include "maxd/party_catalog.h"
+#include "maxd/phone_remote_catalog.h"
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
     if(maxd_family_catalog(parent,page,cb,ud))return 1;
     if(maxd_party_catalog(parent,page,cb,ud))return 1;
+    if(maxd_remote_catalog(parent,page,cb,ud))return 1;
     if(maxd_smart_catalog(parent,page,cb,ud))return 1;
     evo_provider_item_t out[64]; int n = 0;
     if (parent && tube_i18n_select && !strncmp(parent, TUBE_I18N_SETTING, sizeof TUBE_I18N_SETTING - 1)) {
@@ -6803,6 +6812,8 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         CATALOG_FOLDER("settings:session","Session builder","Build an unwatched queue within a time budget");
         CATALOG_FOLDER("settings:family","Family profiles","Parent PIN, approved channels, search and daily viewing limits");
         CATALOG_FOLDER("settings:party","Party queue","Let nearby guests suggest videos and vote from their phones");
+        CATALOG_FOLDER("settings:phone-remote","Phone remote","Search, navigate, control playback and manage your queue from a phone");
+        CATALOG_FOLDER("settings:bug-report","Bug-report export","Capture technical details without account data or video URLs");
             if (g_max_fps) snprintf(label,sizeof label,"Frame rate: up to %d fps",g_max_fps);
             else copy(label,sizeof label,"Frame rate: automatic");
             CATALOG_FOLDER("settings:frame-rate",label,"Save a frame-rate limit for this profile");
@@ -8527,7 +8538,7 @@ int tube_recovery_choice(const evo_stream_choice_t *choices, int count) {
 }
 
 static void tube_shutdown(void) { live_retire(); if (tube_update_app_shutdown) tube_update_app_shutdown(); tube_embedded_stop(); tube_video_geometry_enable(0); tube_caption_switch_cancel(); g_caption_track_count = 0; ++g_caption_revision; tube_remote_shutdown(); tube_cancel(); tube_queue_retry_cancel(); save();
-    maxd_party_stop(); tube_maxd_transcript_clear(); tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end(); cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL; }
+    maxd_party_stop(); maxd_remote_stop(); maxd_report_clear(NULL); tube_maxd_transcript_clear(); tube_player_extra_set_save_hook(NULL,NULL); tube_extra_video_end(); cJSON_Delete(g_resolved_facts); g_resolved_facts = NULL; }
 const evo_provider_t evo_provider_youtube = {
     .id = "youtube", .name = "ProsperoTube", .icon = "icon_emby.png",
     .caps = EVO_PROVIDER_CAP_CATALOG | EVO_PROVIDER_CAP_SEARCH | EVO_PROVIDER_CAP_RESOLVE |

@@ -1,0 +1,39 @@
+YouTube Max’d v1.4.0 — console acceptance checklist
+Target: firmware 11.00 / ShadowMount+. No PS5 is attached to this build environment.
+
+1. Back up /data/youtube-maxd, close the old app, replace the full PPSA99991
+   folder and boot using the required console-side loader. Confirm version
+   1.004.000 / contentVersion 01.004.000 and preserved settings/history.
+2. Play known AVC/AAC, VP9/Opus, AV1 and HEVC samples where available. Check
+   pause/resume, audio, captions, seeking, format changes, live streams,
+   long playback and actual 1080p/4K/HDR output/performance.
+3. Sign in with a real Google TV device code; check library and persistence.
+   Test sign-out and app restart. Do not share credentials or raw logs.
+4. Confirm Phone remote is OFF at startup. Start it, scan QR with a phone
+   on the same LAN, and use phone Back to leave the TV QR/settings page.
+   Search normal text and the word "pause": both must be literal searches.
+   Navigate, play, pause/resume, seek -10/+30 and check paused seeking.
+5. Add a video ID and supported YouTube link to the queue. Re-add it (no
+   duplicate), move another entry to Play next and remove it. Verify TV
+   queue order and that the current video is not unexpectedly replaced.
+6. Confirm a second phone cannot reuse the QR. Try a five-minute-old invite,
+   stop/restart, changing profile and app exit; old control must be revoked.
+   Restricted profiles cannot start a remote. Session expires after two hours.
+7. During player startup, voice use, TV keyboard and YouTube-app casting,
+   incompatible remote commands must be refused rather than override ownership.
+   Search while playing, then return with L3 and verify background continuity.
+8. Capture a report during playback, preview every field and download JSON
+   on phone browsers. Confirm only technical fields, valid JSON and no token,
+   cookie, account/profile identity, IP, video ID/title, search, URL or raw log.
+   Check /data/youtube-maxd/bug-report.json, recapture overwrite and deletion.
+   Test full/unwritable storage. Nothing must upload automatically.
+9. Confirm PiP is OFF by default and R2 explicitly enables it for this session.
+   Test return, EOF, profile/casting changes and GPU/video lifetime with SDR/HDR.
+10. Retest local voice search/commands, bookmarks/transcripts, session budgets,
+    family PIN/channel/time limits, party approval/votes and controller cleanup.
+11. Open Settings > About > Support YouTube Max’d, scan the QR and confirm
+    https://ko-fi.com/handshakehackin. Donation is optional.
+
+Report only the behavior actually observed. Attach the reviewed exported JSON,
+firmware/runtime, video/format conditions and reproduction steps. Hardware tests
+are not established by a successful compile, fixture screenshot or store scan.

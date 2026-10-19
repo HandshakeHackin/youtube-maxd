@@ -1,0 +1,133 @@
+{
+  "about": "Phone remote, default-off settings, one-use QR and private report review; fixtures, not PS5 captures",
+  "boards": [
+    {
+      "name": "maxd-phone-settings",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:phone-remote",
+        "title": "Phone remote"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "rows": "5"
+        }
+      }
+    },
+    {
+      "name": "maxd-phone-off-default",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:phone-remote",
+        "title": "Phone remote"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "rows": "4"
+        }
+      }
+    },
+    {
+      "name": "maxd-phone-pair",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:phone-remote",
+        "title": "Phone remote"
+      },
+      "expect": {
+        "screen": "reader",
+        "argument": "link:maxd-remote",
+        "state": {
+          "qr": "yes",
+          "qr_kind": "remote"
+        }
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "cross"
+        },
+        {
+          "wait": 0.7
+        }
+      ]
+    },
+    {
+      "name": "maxd-phone-qr",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "reader",
+        "argument": "link:maxd-remote",
+        "title": "Phone remote"
+      },
+      "expect": {
+        "screen": "reader",
+        "state": {
+          "qr": "yes",
+          "qr_kind": "remote"
+        }
+      }
+    },
+    {
+      "name": "maxd-phone-reports",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:bug-report",
+        "title": "Bug-report export"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "rows": "5"
+        }
+      }
+    },
+    {
+      "name": "maxd-phone-review",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:bug-report",
+        "title": "Bug-report export"
+      },
+      "expect": {
+        "screen": "reader",
+        "argument": "settings:bug-report:preview",
+        "state": {
+          "qr": "no"
+        }
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "cross"
+        },
+        {
+          "wait": 0.7
+        }
+      ]
+    },
+    {
+      "name": "maxd-phone-tile",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "tile:phone_remote",
+        "title": "Phone remote"
+      },
+      "expect": {
+        "screen": "settings"
+      }
+    }
+  ]
+}

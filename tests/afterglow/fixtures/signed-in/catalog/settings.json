@@ -55,7 +55,9 @@
   {"id": "settings:reset:content", "is_folder": true, "interface": true, "title": "Defaults for Content & language", "subtitle": "Every setting of this part returns to its default", "label": "Defaults for Content & language", "kind": "reset", "confirm": "Every setting under Content & language returns to its default for Mara. Nothing else changes."},
   {"id": "settings:reset:interface", "is_folder": true, "interface": true, "title": "Defaults for Interface", "subtitle": "Every setting of this part returns to its default", "label": "Defaults for Interface", "kind": "reset", "confirm": "Every setting under Interface returns to its default for Mara. Nothing else changes."},
   {"id": "settings:reset:sponsorblock", "is_folder": true, "interface": true, "title": "Defaults for SponsorBlock", "subtitle": "Every setting of this part returns to its default", "label": "Defaults for SponsorBlock", "kind": "reset", "confirm": "Every setting under SponsorBlock returns to its default for Mara. Nothing else changes."},
-  {"id": "settings:reset:dearrow", "is_folder": true, "interface": true, "title": "Defaults for DeArrow", "subtitle": "Every setting of this part returns to its default", "label": "Defaults for DeArrow", "kind": "reset", "confirm": "Every setting under DeArrow returns to its default for Mara. Nothing else changes."}
+  {"id": "settings:reset:dearrow", "is_folder": true, "interface": true, "title": "Defaults for DeArrow", "subtitle": "Every setting of this part returns to its default", "label": "Defaults for DeArrow", "kind": "reset", "confirm": "Every setting under DeArrow returns to its default for Mara. Nothing else changes."},
+  {"id": "settings:phone-remote", "title": "Phone remote", "label": "Phone remote", "subtitle": "Search and control this PS5 from a phone", "is_folder": true, "interface": true, "kind": "page"},
+  {"id": "settings:bug-report", "title": "Bug-report export", "label": "Bug-report export", "subtitle": "Capture, review and download technical details", "is_folder": true, "interface": true, "kind": "page"}
  ],
  "has_more": false
 }

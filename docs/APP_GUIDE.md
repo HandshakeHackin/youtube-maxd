@@ -13,13 +13,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip"><strong>Download the PS5 app</strong></a>
-  · <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1">Preview release</a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/PPSA99991.zip"><strong>Download the PS5 app</strong></a>
+  · <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0">Release</a>
   · <a href="BUILD.md">Build guide</a>
   · <a href="../LICENSE">GPL-3.0-or-later</a>
 </p>
 
-The `v1.3.0-preview.1` release includes [six viewing features](MAXD_NEXT.md):
+The `v1.4.0` release adds a [Phone remote and private bug-report export](PHONE_REMOTE.md), optional [Ko-fi support](#optional-support), and retains [six viewing features](MAXD_NEXT.md):
 searchable transcripts/bookmarks, optional in-app PiP (off by default), voice
 playback commands, viewing sessions, local family profiles and a PS5-hosted
 party queue. [Validation and remaining PS5 tests](MAXD_NEXT_VALIDATION.md).
@@ -29,12 +29,12 @@ Linked Google child-profile import remains research.
 
 | Current build | Details |
 | --- | --- |
-| App / release | **1.3.0** / `v1.3.0-preview.1` |
+| App / release | **1.4.0** / `v1.4.0` |
 | Intended setup | Jailbroken PS5, firmware **11.00**, **ShadowMount+** |
 | Runtime | Search, extraction, playback and voice recognition run on the PS5 |
 | Companion / Google Cloud | No PC/NAS companion, API key or Google Cloud project required |
 | Launcher / data | `PPSA99991` · `/data/youtube-maxd` |
-| Status | Experimental preview; this exact integrated build has **not been tested on a PS5** |
+| Status | First official release; this exact integrated build has **not been tested on a PS5** |
 
 The app is built and has passed host-side checks. Hardware boot, real YouTube sign-in/playback, microphone routing, controller lighting and performance still need console testing. [Validation details](MAXD_VALIDATION.md) distinguish these checks from inherited upstream results.
 
@@ -44,17 +44,17 @@ The app is built and has passed host-side checks. Hardware boot, real YouTube si
 
 ## Download
 
-**[Download PPSA99991.zip — about 95 MB](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip)**
+**[Download PPSA99991.zip — about 95 MB](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/PPSA99991.zip)**
 
 This is the application bundle to extract for ShadowMount+. It includes the executable, assets, helpers and local voice model.
 
 | Item | Link |
 | --- | --- |
 | Previous preview | [v1.2.0-preview.1](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.2.0-preview.1) |
-| Complete corresponding source | [YouTube-Maxd-source.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/YouTube-Maxd-source.zip) |
-| Release notes | [v1.3.0-preview.1](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1) |
-| Launcher icon | [YouTube-Maxd-icon.png](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/YouTube-Maxd-icon.png) |
-| Download checksums | [SHA256SUMS](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/SHA256SUMS) |
+| Complete corresponding source | [YouTube-Maxd-source.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/YouTube-Maxd-source.zip) |
+| Release notes | [v1.4.0](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0) |
+| Launcher icon | [YouTube-Maxd-icon.png](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/YouTube-Maxd-icon.png) |
+| Download checksums | [SHA256SUMS](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/SHA256SUMS) |
 | Application source | [`main`](https://github.com/HandshakeHackin/youtube-maxd/tree/main) · [build instructions](#build-from-source) |
 
 If clicking the app link opens a file page, use its **Download raw file** button. Downloads are public; no GitHub account is required. The icon is artwork; the app is the **ZIP**.
@@ -63,11 +63,11 @@ The release’s **Assets** section contains the app ZIP, complete source ZIP, ic
 SHA-256 checksums, release notes, testing guide/results, validation JSON and
 catalog scan report. GitHub’s automatically generated **Source code** archives
 omit recursive submodules and cannot be installed as the app. The `downloads`
-branch retains the original 1.2.0 preview; use the release attachment for 1.3.0.
+branch retains the original 1.2.0 preview; use the release attachment for 1.4.0.
 
-Automatic in-app updates remain disabled. **1.3.0-preview.1** is now live in
-[ProsperoStore](https://prosperostore.net/app/PPSA99991/); [catalog PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417)
-was approved and merged. See [submission status](../store/SUBMISSION.md).
+Automatic in-app updates remain disabled. Get v1.4.0 from GitHub or the
+Homebrew Store after its catalog update is approved. See the current
+[submission status](../store/SUBMISSION.md).
 
 ## How YouTube Max’d stands out
 
@@ -75,10 +75,12 @@ A PS5 viewing experience built around the controller, with search, extraction,
 playback and speech recognition running on the console. No companion PC, NAS,
 paid speech service or personal Google Cloud project is required.
 
-**New in 1.3.0:**
+**Feature highlights:**
 
 | Feature | What it brings to your couch |
 | --- | --- |
+| **Control from your phone** | Scan a one-use QR for a PS5-hosted remote: search, TV navigation, pause/resume, seek and local queue management. |
+| **Share useful bug details** | Capture, review and download a technical report that excludes account data, private URLs and raw logs. |
 | **Find the exact moment** | Search a video's available transcript, jump to a matching line and save named timestamp bookmarks for your profile. |
 | **Keep watching while you browse** | Off by default; select R2 → Picture-in-picture. An in-app PiP window keeps the current video visible while you search, browse or manage your library in Afterglow. Tap L3 to return. |
 | **Talk to your player** | Hold L3 for local voice commands: pause, resume, seek, captions, available quality choices and adding the current video to your queue. |
@@ -95,7 +97,7 @@ Return YouTube Dislike, captions, chapters and the core player build on
 **ProsperoTube, EVO Player and their contributors**. Community services retain
 their own attribution; these are not presented as Max’d inventions.
 
-**Build status:** experimental 1.3.0 preview. Host tests and native compilation
+**Build status:** official 1.4.0 release; PS5 acceptance remains pending. Host tests and native compilation
 do not establish PS5 microphone, PiP/HDR or playback performance. Linked Google
 child-profile import remains research. [Usage, limits and console test checklist](MAXD_NEXT.md).
 
@@ -180,7 +182,7 @@ The inherited player includes HDR and display/frame-rate handling. **4K, HDR, 60
 
 You need a jailbroken PS5 with your compatible homebrew environment already configured. The intended setup is **firmware 11.00 with ShadowMount+**; this repository does not install a jailbreak.
 
-1. Download **[PPSA99991.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip)**.
+1. Download **[PPSA99991.zip](https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/PPSA99991.zip)**.
 2. Close any previous Max’d instance. Back up its app folder and `/data/youtube-maxd` settings if you want rollback.
 3. Extract the ZIP. Copy the complete **`PPSA99991`** folder to a location scanned by ShadowMount+, commonly **`/data/homebrew/PPSA99991`**.
 4. Use your configured native homebrew startup environment. Startup requires the console-side ELF loader on **TCP 9021** or a compatible resident **Lapy** service. The packaged helper and manifest are bound to `PPSA99991`.
@@ -242,7 +244,7 @@ Completed checks include native compilation and executable/ZIP integrity, embedd
 
 This exact integrated app still needs firmware 11.00 / ShadowMount+ acceptance for boot and clean exit, live search/playback, account consent, codecs/4K/HDR, microphone capture and speed, physical lighting, real Auto Max decisions, casting and background audio. Upstream’s console results apply to its tested revisions; they do not certify this fork.
 
-YouTube can change internal APIs or refuse a client, which may require an update. This is an experimental preview rather than a completed console launch. The next milestone is hardware acceptance of these existing features, including playback continuity, account persistence, voice cancellation and controller cleanup.
+YouTube can change internal APIs or refuse a client, which may require an update. This release label does not establish console compatibility. The next milestone is hardware acceptance of these existing features, including playback continuity, account persistence, voice cancellation and controller cleanup.
 
 ## Build from source
 
@@ -292,7 +294,7 @@ See the build guide for the wider inherited test suite and optional display-tran
 | [Smart playlists and Auto Max](MAXD_FEATURES.md) | Rules, quality behavior, limits and lighting |
 | [Build guide](BUILD.md) | Toolchain, dependencies, source packaging and tests |
 | [Max’d validation](MAXD_VALIDATION.md) | Completed local checks and remaining console tests |
-| [Release notes](releases/v1.3.0-preview.1.md) | Current preview features, installation, validation and limits |
+| [Release notes](releases/v1.4.0.md) | Current preview features, installation, validation and limits |
 | [Store submission](../store/SUBMISSION.md) | Catalog PR #417, validation and live store status |
 | [Fork changes](../MAXD_CHANGES.md) | Max’d changes versus the pinned foundation |
 | [Source provenance](../UPSTREAM.json) | App identity, upstream revision and EVO pin |
@@ -308,10 +310,8 @@ Console testing is especially useful for the gaps listed above. Describe the exa
 ## Optional support
 
 [Support HandshakeHackin on Ko-fi](https://ko-fi.com/handshakehackin), using the
-same donation page as Nuvio Max’d. Donations are optional. The next app update
-adds **Settings → About → Support YouTube Max’d**, with a phone QR code and
-readable address in Classic and Afterglow. The current 1.3.0 download predates
-this in-app option.
+same donation page as Nuvio Max’d. Donations are optional. Version 1.4.0 adds **Settings → About → Support YouTube Max’d**, with a phone QR code and
+readable address in Classic and Afterglow.
 
 ## Credits and licenses
 

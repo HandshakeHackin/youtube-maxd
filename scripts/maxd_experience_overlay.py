@@ -4,15 +4,17 @@ import shutil
 
 def apply(root, work, player):
     app = work / player
-    for name in ("experience.h", "experience_store.h", "experience_provider.h", "session.h", "family.h", "family_catalog.h", "voice_commands.h", "voice_playback.hpp", "party_server.h", "party_page.h", "party_catalog.h"):
+    for name in ("brand.h", "experience.h", "experience_store.h", "experience_provider.h", "session.h", "family.h", "family_catalog.h", "voice_commands.h", "voice_playback.hpp", "party_server.h", "party_page.h", "party_catalog.h", "phone_remote.h", "phone_remote_page.h", "phone_remote_catalog.h", "phone_remote_playback.hpp", "diagnostics.h"):
         shutil.copyfile(root / "native/maxd" / name, app / "addons/include/maxd" / name)
     shutil.copyfile(root / "native/maxd/party_server.c", app / "addons/src/maxd_party_server.c")
+    for source in ("phone_remote", "diagnostics"):
+        shutil.copyfile(root / "native/maxd" / (source + ".c"), app / ("addons/src/maxd_" + source + ".c"))
     def change(path, old, new):
         p = app / path
         text = p.read_text()
         assert text.count(old) == 1, (path, old[:100], text.count(old))
         p.write_text(text.replace(old, new))
-    change("Makefile", "    addons/src/maxd_lightbar.c", '    addons/src/maxd_lightbar.c \\\n    addons/src/maxd_party_server.c')
+    change("Makefile", "    addons/src/maxd_lightbar.c", '    addons/src/maxd_lightbar.c \\\n    addons/src/maxd_party_server.c \\\n    addons/src/maxd_phone_remote.c \\\n    addons/src/maxd_diagnostics.c')
     picker = "core/src/screens/AudioTrackPickerScreen.cpp"
     header = "core/include/evo/screens/AudioTrackPickerScreen.hpp"
     change(header, "KindBackgroundBrowse,", "KindBackgroundBrowse, KindMaxdPip, KindMaxdTools, KindMaxdSearch, KindMaxdSave, KindMaxdCue, KindMaxdBookmark,")
@@ -128,3 +130,19 @@ def apply(root, work, player):
 """)
 
     change(picker, 'params.title = m_tubeExtraGroup == -2 ?', 'params.title = m_tubeExtraGroup == -5 ? "TRANSCRIPT & BOOKMARKS" : m_tubeExtraGroup == -2 ?')
+
+    change("core/include/evo/screens/ProviderHostScreen.hpp", "    bool submitVoiceQuery(const char* query);", "    bool submitVoiceQuery(const char* query);\n    bool submitPhoneSearch(const char* query);")
+    change(host, "void ProviderHostScreen::openSearch()", """bool ProviderHostScreen::submitPhoneSearch(const char* query)
+{
+    // Phone text is always a query; never interpret it as a voice command.
+    if (m_providerId != "youtube" || !m_opened || m_picking || m_web || m_discovering ||
+        m_resolving || m_streamPick || !query || !*query || evo_keyboard_is_open() ||
+        evo_rmlui_provider_panel_open()) return false;
+    if(tube_afterglow_shown())return tube_afterglow_submit_voice_query(query)!=0;
+    OnSearchSubmitted(query,this);return true;
+}
+
+void ProviderHostScreen::openSearch()""")
+    change(appcpp, 'long long now_ms(void);\n}', 'long long now_ms(void);\n}\n#include "maxd/phone_remote_playback.hpp"')
+    change(appcpp, '        if (!m_softClose) tube_poll();', '        if (!m_softClose) tube_poll();\n        if(!m_softClose)maxd_phone_frame(*this,static_cast<int64_t>(now_ms()));\n        else maxd_remote_stop();')
+    change(appcpp, '    evo_boot_log("shutdown: begin");', '    maxd_remote_stop();\n    evo_boot_log("shutdown: begin");')

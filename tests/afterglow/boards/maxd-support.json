@@ -13,11 +13,14 @@
         "screen": "settings",
         "focus": "row/about:credits",
         "state": {
-          "rows": "5",
+          "rows": "6",
           "kind": "link"
         }
       },
       "steps": [
+        {
+          "press": "down"
+        },
         {
           "press": "down"
         },
@@ -56,6 +59,9 @@
           "press": "down"
         },
         {
+          "press": "down"
+        },
+        {
           "press": "cross"
         },
         {
@@ -74,11 +80,14 @@
       "expect": {
         "screen": "settings",
         "state": {
-          "rows": "5",
+          "rows": "6",
           "kind": "link"
         }
       },
       "steps": [
+        {
+          "press": "down"
+        },
         {
           "press": "down"
         },

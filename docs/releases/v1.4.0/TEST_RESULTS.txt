@@ -1,0 +1,34 @@
+YouTube Max’d v1.4.0 — software validation
+Date: 2026-10-19. Firmware 11.00 / ShadowMount+ is the intended target, not a
+claim of a performed hardware test. No PS5 is attached to the build environment.
+
+Recorded checks:
+- Real loopback HTTP remote listener under ASan/UBSan: passed. Covers local-only
+  binding policy, authentication, origin/duplicate-header/framing rejection,
+  one-use QR, five-minute invite/two-hour session expiry, restart revocation,
+  stale selection refusal, command sequence/deduplication, literal search,
+  queue command validation and protected report download.
+- Shipping C++ remote/player adapter under ASan/UBSan: passed. Pause/resume,
+  stale selection, paused seeking/clamping, live/keyboard/voice/casting/startup
+  refusal, literal search text, background return and queue routing.
+- Diagnostics under ASan/UBSan: passed. Closed 25-field allowlist, enum codecs,
+  numeric bounds/NaN/infinity handling, exact app version, atomic private-file
+  export/overwrite, clear and interrupted-write recovery.
+- Generated phone page consistency and Node tests: passed. Supported YouTube
+  IDs/links, hostile URL rejection, text-only DOM rendering, URL secret removal,
+  sessionStorage scope, credential omission, selection guard and Blob download.
+- Native lightbar bridge and fork title/storage/update isolation: passed.
+- Release identity/version consistency and generated About changelog: passed.
+- Afterglow regression: 25 fixture boards x 4 looks, 1,132 checks, zero failed.
+  The refreshed report-field fixtures are also checked in the final phone UI run.
+- Generated background playback lifecycle regression: passed. Ownership,
+  hidden-player update, fenced discard, EOF behavior, return and modal/voice guards.
+
+Final native/provider, service, package and static catalog-scan receipts are
+recorded in native-validation.json and catalog-scan.txt with the final build.
+
+LeakSanitizer is disabled for ASan/UBSan host checks because this execution
+sandbox does not support its process inspection; address/undefined checks run.
+Host mocks/fixtures and successful compilation do not prove live Google/YouTube
+behavior, PS5 LAN binding, real phone-browser downloads, microphone, lighting,
+codec performance, 4K/HDR or physical-console playback continuity. See TESTING.txt.

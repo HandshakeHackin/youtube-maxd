@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "id": "settings:bug-report:capture",
+      "title": "Capture bug report",
+      "label": "Capture bug report",
+      "subtitle": "Overwrites /data/youtube-maxd/bug-report.json with technical details only",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "settings:bug-report:preview",
+      "title": "Review captured report",
+      "label": "Review captured report",
+      "subtitle": "Ready; capture again to refresh",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "screen": "reader",
+      "argument": "settings:bug-report:preview"
+    },
+    {
+      "id": "settings:phone-remote",
+      "title": "Download on your phone",
+      "label": "Download on your phone",
+      "subtitle": "Enable Phone remote, scan its QR, then Capture & preview report",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "settings:bug-report:clear",
+      "title": "Delete captured report",
+      "label": "Delete captured report",
+      "subtitle": "Nothing is uploaded automatically",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "account:notice",
+      "title": "Privacy: technical fields only",
+      "label": "Privacy: technical fields only",
+      "subtitle": "No accounts, tokens, IP addresses, video IDs, titles, searches, URLs or raw logs",
+      "is_folder": true,
+      "interface": true,
+      "kind": "info"
+    }
+  ],
+  "has_more": false
+}

@@ -3,11 +3,17 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.003.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 28
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.000"
+#define TUBE_ABOUT_CHANGELOG_ROWS 34
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.004.000", "Add a PS5-hosted Phone remote: scan a one-use QR on a trusted local network to search, navigate the TV, pause/resume, seek and manage the local play queue. No companion PC or phone app required."}, \
+    {"1.004.000", "Keep Phone remote off by default. Pair one phone per session; QR codes expire after five minutes and sessions after two hours. Stop/restart, profile/source changes and app exit revoke control. Restricted family profiles cannot host a remote."}, \
+    {"1.004.000", "Add user-requested bug-report export, review and deletion. Capture a strict technical field allowlist; download JSON through the paired phone or retrieve /data/youtube-maxd/bug-report.json. Exclude accounts, tokens, IP addresses, video IDs/titles, searches, URLs and raw logs. No automatic uploads."}, \
+    {"1.004.000", "Add optional Ko-fi support for HandshakeHackin in About, using the same link as Nuvio Max\342\200\231d; include a phone QR and GitHub Sponsor link."}, \
+    {"1.004.000", "Preserve picture-in-picture off by default, existing profiles and app data. Raise content version to 01.004.000 with title ID PPSA99991 unchanged."}, \
+    {"1.004.000", "Remove the preview label. Software and packaging checks are documented separately from console acceptance: this exact build still requires PS5 boot, real sign-in/playback, LAN phone, microphone, lighting and 4K/HDR testing."}, \
     {"1.003.000", "Transcript search with timestamp seeking and local, profile-owned bookmarks."}, \
     {"1.003.000", "Optional in-app picture-in-picture in Afterglow. Off by default, enabled through R2 \342\206\222 Picture-in-picture for the current session; the choice is not saved."}, \
     {"1.003.000", "Local push-to-talk playback commands for pause, resume, seek, captions, quality and queue additions."}, \

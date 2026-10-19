@@ -1,0 +1,43 @@
+{
+  "items": [
+    {
+      "id": "settings:phone-remote:start",
+      "title": "Start Phone remote",
+      "label": "Start Phone remote",
+      "subtitle": "Off by default; one trusted phone on your local network",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "settings:phone-remote:address",
+      "title": "PS5 LAN address",
+      "label": "PS5 LAN address",
+      "subtitle": "Set manually if automatic discovery fails",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "",
+      "text": ""
+    },
+    {
+      "id": "settings:bug-report",
+      "title": "Bug-report export",
+      "label": "Bug-report export",
+      "subtitle": "Capture, review and download technical details",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "account:notice",
+      "title": "Use your trusted home network",
+      "label": "Use your trusted home network",
+      "subtitle": "Local HTTP; stopping or changing profile ends access",
+      "is_folder": true,
+      "interface": true,
+      "kind": "info"
+    }
+  ],
+  "has_more": false
+}

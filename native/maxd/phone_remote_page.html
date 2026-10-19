@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube Max’d · Phone remote</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui;background:#101014;color:#fff}*{box-sizing:border-box}body{max-width:620px;margin:auto;padding:20px}h1{font-size:1.6rem}h1 span{color:#ff304f}h2{font-size:1.1rem;margin-top:26px}button,input{font:inherit;border-radius:12px;padding:13px;border:1px solid #62626d;background:#22222a;color:white}button{cursor:pointer;min-height:48px}button:disabled{opacity:.4;cursor:wait}button:focus-visible,input:focus-visible{outline:3px solid #ff304f}input{width:100%;margin:8px 0}button.primary{background:#d51f3b;border:0}.row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}small,p{line-height:1.5;color:#c8c8d0}#status{padding:12px;background:#24242c;border-radius:10px}#status[data-error="true"]{border:1px solid #ff304f}.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#queue{padding:0;list-style:none}#queue li{border-bottom:1px solid #444;padding:12px 0}pre{overflow:auto;max-height:340px;padding:14px;background:#050507;border-radius:10px;font-size:12px;white-space:pre-wrap}a{color:white}[hidden]{display:none!important}
+</style>
+<body><h1>YouTube <span>Max’d</span></h1><p>Phone remote · runs on your PS5</p><p id="status" role="status" aria-live="polite">Connecting…</p>
+<main id="controls" hidden>
+<h2>Search on the TV</h2><p>Type here, then browse results on the TV with the controls below.</p>
+<form id="search"><label for="query">YouTube search</label><input id="query" maxlength="256" autocomplete="off" placeholder="What do you want to watch?"><button class="primary">Search on PS5</button></form>
+<h2>Playback</h2><p id="playback">No video playing</p><div class="row"><button data-action="pause">Pause</button><button data-action="resume">Play</button></div><div class="row"><button id="rewind">−10 seconds</button><button id="forward">+30 seconds</button></div>
+<h2>TV navigation</h2><div class="pad"><span></span><button data-key="UP" aria-label="Up">↑</button><span></span><button data-key="LEFT" aria-label="Left">←</button><button data-key="ENTER">Select</button><button data-key="RIGHT" aria-label="Right">→</button><button data-key="BACK">Back</button><button data-key="DOWN" aria-label="Down">↓</button></div>
+<h2>Play queue</h2><form id="add"><label for="video">YouTube video link or ID</label><input id="video" autocomplete="off" placeholder="https://youtu.be/…"><button>Add to queue</button></form><p>Play next moves a video to the front of the upcoming queue. Select it on the TV to start it now.</p><ol id="queue"></ol>
+<h2>Bug-report export</h2><p>Capture technical playback details. Reports exclude accounts, tokens, IP addresses, video IDs, titles, searches, video URLs and raw logs. Nothing is sent to us automatically.</p><button id="capture">Capture &amp; preview report</button><pre id="report" hidden></pre><button id="download" hidden>Download report (.json)</button><p>Review the report before attaching it to a GitHub issue. Delete it from Settings → Bug-report export on the PS5.</p>
+</main><p><small>Same trusted local network only. This page uses local HTTP. Stop Phone remote on the PS5 to disconnect. Switching profile also ends the session. No Google password is needed here.</small></p>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const invite=location.hash.slice(1);history.replaceState(null,'',location.pathname);
+let token='',state=null,chain=Promise.resolve(),working=false,reportText='';
+try{token=sessionStorage.getItem('maxd-remote')||'';}catch{}
+function message(text,error=false){$('status').textContent=text;$('status').dataset.error=String(error);}
+async function api(path,body={}){
+ const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;
+ const response=await fetch(path,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
+ const json=await response.json();
+ if(!response.ok){if(response.status===401){token='';try{sessionStorage.removeItem('maxd-remote');}catch{}$('controls').hidden=true;}throw Error(json.error||'Connection failed');}
+ return json;
+}
+function idFrom(input){
+ const text=input.trim();if(/^[A-Za-z0-9_-]{11}$/.test(text))return text;
+ try{const url=new URL(text);if(url.protocol!=='https:'||url.username||url.password||url.port)return '';
+ const host=url.hostname.toLowerCase();let id='';
+ if(host==='youtu.be')id=url.pathname.split('/')[1];
+ else if(['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com'].includes(host)){
+ if(url.pathname==='/watch')id=url.searchParams.get('v');else if(/^\/(shorts|live|embed)\//.test(url.pathname))id=url.pathname.split('/')[2];}
+ return /^[A-Za-z0-9_-]{11}$/.test(id||'')?id:'';}catch{return '';}
+}
+function clock(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
+function render(s){
+ state=s;$('controls').hidden=false;
+ $('playback').textContent=s.active?(s.paused?'Paused':'Playing')+' · '+clock(s.position)+(s.live?' · Live':' / '+clock(s.duration)):'No video playing';
+ for(const b of document.querySelectorAll('[data-action],#rewind,#forward'))b.disabled=!s.active||s.busy||((b.id==='rewind'||b.id==='forward')&&s.live);
+ const list=$('queue');list.replaceChildren();
+ for(const item of s.queue){const li=document.createElement('li'),label=document.createElement('div');label.textContent=item.title||item.id;li.append(label);
+ const row=document.createElement('div');row.className='row';for(const [action,name] of [['next','Play next'],['remove','Remove']]){const b=document.createElement('button');b.textContent=name;b.onclick=()=>command(action,item.id);row.append(b);}li.append(row);list.append(li);}
+ if(!s.queue.length){const li=document.createElement('li');li.textContent='Your queue is empty.';list.append(li);}
+}
+async function refresh(){if(!token||working)return;try{render(await api('/state'));}catch(e){message(e.message,true);}}
+function command(action,text='',seconds){
+ chain=chain.then(async()=>{working=true;try{
+  const s=await api('/state');render(s);
+  const body={action,text,sequence:s.sequence+1,selection:s.selection};
+  if(seconds!==undefined)body.seconds=typeof seconds==='function'?seconds(s):seconds;
+  const result=await api('/command',body);
+  if(!result.ok)throw Error('PS5 is busy or this control is unavailable. Close dialogs or return to browsing on the TV.');
+  if(action==='capture'){const report=await api('/report');reportText=JSON.stringify(report,null,2)+'\n';$('report').textContent=reportText;$('report').hidden=false;$('download').hidden=false;}
+  message(action==='search'?'Search opened on the TV.':action==='capture'?'Report ready. Review before sharing.':'Connected to your PS5');
+  render(await api('/state'));
+ }catch(e){message(e.message,true);}finally{working=false;}});return chain;
+}
+$('search').onsubmit=e=>{e.preventDefault();const text=$('query').value.trim();if(text)command('search',text);};
+$('add').onsubmit=e=>{e.preventDefault();const id=idFrom($('video').value);if(!id){message('Enter a YouTube video link or an 11-character video ID.',true);return;}command('add',id);};
+for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>command(b.dataset.action);
+for(const b of document.querySelectorAll('[data-key]'))b.onclick=()=>command('key',b.dataset.key);
+$('rewind').onclick=()=>command('seek','',s=>Math.max(0,s.position-10));
+$('forward').onclick=()=>command('seek','',s=>Math.min(Math.max(0,s.duration-.05),s.position+30));
+$('capture').onclick=()=>command('capture');
+$('download').onclick=()=>{if(!reportText)return;const url=URL.createObjectURL(new Blob([reportText],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='YouTube-Maxd-bug-report.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+(async()=>{try{if(invite){const paired=await api('/pair',{join:invite});token=paired.token;try{sessionStorage.setItem('maxd-remote',token);}catch{}}
+ if(!token)throw Error('Scan the QR code in PS5 Settings → Phone remote.');render(await api('/state'));message('Connected to your PS5');setInterval(refresh,1800);
+ }catch(e){message(e.message,true);}})();
+</script></body></html>

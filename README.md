@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-PS5-003791?logo=playstation&amp;logoColor=white" alt="PlayStation 5">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases"><img src="https://img.shields.io/github/v/release/HandshakeHackin/youtube-maxd?include_prereleases&amp;label=Preview&amp;color=FF304F" alt="Latest preview release"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases"><img src="https://img.shields.io/github/v/release/HandshakeHackin/youtube-maxd?label=Release&amp;color=FF304F" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/Service-On--console-FFFFFF" alt="On-console YouTube service">
   <img src="https://img.shields.io/badge/UI-Classic%20%7C%20Afterglow-FFA5AA" alt="Classic and Afterglow interfaces">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-FFFFFF" alt="GPL-3.0-or-later license"></a>
@@ -17,13 +17,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
   <a href="https://ko-fi.com/handshakehackin"><img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&amp;logo=kofi&amp;logoColor=white" alt="Optional support on Ko-fi"></a>
   <br><a href="docs/APP_GUIDE.md">Full guide</a>
 </p>
 
-**Experimental preview · v1.3.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
+**Official release · v1.4.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
 
 ## How YouTube Max’d stands out
 
@@ -31,8 +31,10 @@
 
 Also includes Google sign-in, subscriptions, playlists, captions, SponsorBlock, DeArrow, and video/audio selection from **144p to 4K**, where available.
 
-**New in this preview:**
+**Highlights:**
 
+- **Phone remote:** scan a QR to search, control playback and manage your queue.
+- **Bug-report export:** review and download technical details without account data or video URLs.
 - **Transcript search & bookmarks:** find and save video moments.
 - **In-app picture-in-picture:** optional viewing while browsing in Afterglow; off by default.
 - **Voice controls:** pause, resume, seek and change playback options.
@@ -40,7 +42,7 @@ Also includes Google sign-in, subscriptions, playlists, captions, SponsorBlock, 
 - **Local family profiles:** PIN, approved-channel and viewing-time controls.
 - **Party queue:** phone QR joining, suggestions, votes and host approval.
 
-[Feature instructions and limits](docs/MAXD_NEXT.md) · [Changelog](CHANGELOG.md). Linked Google child-profile import remains research.
+[Phone remote & reports](docs/PHONE_REMOTE.md) · [Feature instructions and limits](docs/MAXD_NEXT.md) · [Changelog](CHANGELOG.md). Linked Google child-profile import remains research.
 
 ## Install on PS5
 

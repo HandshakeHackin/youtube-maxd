@@ -1,0 +1,180 @@
+{
+  "items": [
+    {
+      "id": "link:row:maxd-report:0",
+      "title": "schema",
+      "is_folder": true,
+      "interface": true,
+      "overview": "1"
+    },
+    {
+      "id": "link:row:maxd-report:1",
+      "title": "app",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"YouTube Max'd\""
+    },
+    {
+      "id": "link:row:maxd-report:2",
+      "title": "version",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"1.4.0\""
+    },
+    {
+      "id": "link:row:maxd-report:3",
+      "title": "platform",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"PS5\""
+    },
+    {
+      "id": "link:row:maxd-report:4",
+      "title": "privacy",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"No accounts, tokens, IP addresses, video IDs, titles, searches, URLs or raw logs. Review before sharing.\""
+    },
+    {
+      "id": "link:row:maxd-report:5",
+      "title": "playing",
+      "is_folder": true,
+      "interface": true,
+      "overview": "true"
+    },
+    {
+      "id": "link:row:maxd-report:6",
+      "title": "paused",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:7",
+      "title": "live",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:8",
+      "title": "buffering",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:9",
+      "title": "hardware_decoder",
+      "is_folder": true,
+      "interface": true,
+      "overview": "true"
+    },
+    {
+      "id": "link:row:maxd-report:10",
+      "title": "captions",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:11",
+      "title": "picture_in_picture",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:12",
+      "title": "afterglow",
+      "is_folder": true,
+      "interface": true,
+      "overview": "true"
+    },
+    {
+      "id": "link:row:maxd-report:13",
+      "title": "auto_max",
+      "is_folder": true,
+      "interface": true,
+      "overview": "false"
+    },
+    {
+      "id": "link:row:maxd-report:14",
+      "title": "width",
+      "is_folder": true,
+      "interface": true,
+      "overview": "3840"
+    },
+    {
+      "id": "link:row:maxd-report:15",
+      "title": "height",
+      "is_folder": true,
+      "interface": true,
+      "overview": "2160"
+    },
+    {
+      "id": "link:row:maxd-report:16",
+      "title": "fps",
+      "is_folder": true,
+      "interface": true,
+      "overview": "59.94"
+    },
+    {
+      "id": "link:row:maxd-report:17",
+      "title": "position_seconds",
+      "is_folder": true,
+      "interface": true,
+      "overview": "120"
+    },
+    {
+      "id": "link:row:maxd-report:18",
+      "title": "duration_seconds",
+      "is_folder": true,
+      "interface": true,
+      "overview": "300"
+    },
+    {
+      "id": "link:row:maxd-report:19",
+      "title": "codec",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"hevc\""
+    },
+    {
+      "id": "link:row:maxd-report:20",
+      "title": "maximum_height",
+      "is_folder": true,
+      "interface": true,
+      "overview": "2160"
+    },
+    {
+      "id": "link:row:maxd-report:21",
+      "title": "maximum_fps",
+      "is_folder": true,
+      "interface": true,
+      "overview": "60"
+    },
+    {
+      "id": "link:row:maxd-report:22",
+      "title": "codec_preference",
+      "is_folder": true,
+      "interface": true,
+      "overview": "\"unknown\""
+    },
+    {
+      "id": "link:row:maxd-report:23",
+      "title": "decoded_frames",
+      "is_folder": true,
+      "interface": true,
+      "overview": "2150"
+    },
+    {
+      "id": "link:row:maxd-report:24",
+      "title": "dropped_frames",
+      "is_folder": true,
+      "interface": true,
+      "overview": "2"
+    }
+  ],
+  "has_more": false
+}

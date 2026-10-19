@@ -109,9 +109,11 @@ class Reader final : public Screen
         if (!qr_url_.empty())
         {
             const bool support = route_.argument == "link:maxd-support";
-            const char *heading = support ? tr("Support YouTube Max’d") : tr("Join from your phone");
+            const bool remote = route_.argument == "link:maxd-remote";
+            const char *heading = support ? tr("Support YouTube Max’d") : remote ? tr("Pair your phone remote") : tr("Join from your phone");
             const char *detail = support
                 ? tr("Support HandshakeHackin on Ko-fi. Scan with your phone to open the page. Donations are optional.")
+                : remote ? tr("Scan on your trusted home network. QR expires in five minutes. Use Back on your phone to leave this screen before searching.")
                 : tr("Scan the code on the same local network. Guests suggest and vote; you approve videos on the PS5.");
             text(g, g.f.semibold, heading, kLeft, kPageTop, kTypeShelf, g.k.ink);
             qr_code(g, {kLeft, kPageTop + 54.0f, 416.0f, 416.0f}, qr_url_, kBlack, kWhite);
@@ -183,7 +185,7 @@ class Reader final : public Screen
         out.set("catalog", route_.argument);
         out.set("paragraphs", static_cast<int>(blocks_.size()));
         out.set("qr", !qr_url_.empty() ? "yes" : "no");
-        out.set("qr_kind", qr_url_.empty() ? "none" : route_.argument == "link:maxd-support" ? "support" : "party");
+        out.set("qr_kind", qr_url_.empty() ? "none" : route_.argument == "link:maxd-support" ? "support" : route_.argument == "link:maxd-remote" ? "remote" : "party");
         out.set("scroll", static_cast<int>(scroll_.target));
         out.set("load", load_ == model::Load::ready ? "ready" : load_ == model::Load::loading ? "loading" : load_ == model::Load::offline ? "offline" : "failed");
     }
@@ -203,7 +205,7 @@ class Reader final : public Screen
         height_ = 0.0f;
         paragraphs_ = page.rows.size();
         qr_url_.clear();
-        if ((route_.argument == "link:maxd-party" || route_.argument == "link:maxd-support") &&
+        if ((route_.argument == "link:maxd-party" || route_.argument == "link:maxd-support" || route_.argument == "link:maxd-remote") &&
             !page.rows.empty() && tube_qr_link_valid(page.rows.front().overview.c_str()))
             qr_url_ = page.rows.front().overview;
         for (const model::Row &row : page.rows)

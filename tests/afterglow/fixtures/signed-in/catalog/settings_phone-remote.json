@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "id": "settings:phone-remote:stop",
+      "title": "Stop Phone remote",
+      "label": "Stop Phone remote",
+      "subtitle": "Off by default; one trusted phone on your local network",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "link:maxd-remote",
+      "title": "Show pairing QR code",
+      "label": "Show pairing QR code",
+      "subtitle": "One-use QR: five minutes; session: two hours",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "screen": "reader",
+      "argument": "link:maxd-remote"
+    },
+    {
+      "id": "settings:phone-remote:address",
+      "title": "PS5 LAN address",
+      "label": "PS5 LAN address",
+      "subtitle": "Set manually if automatic discovery fails",
+      "is_folder": true,
+      "interface": true,
+      "kind": "text",
+      "value": "192.168.1.20",
+      "text": "192.168.1.20"
+    },
+    {
+      "id": "settings:bug-report",
+      "title": "Bug-report export",
+      "label": "Bug-report export",
+      "subtitle": "Capture, review and download technical details",
+      "is_folder": true,
+      "interface": true,
+      "kind": "page"
+    },
+    {
+      "id": "account:notice",
+      "title": "Use your trusted home network",
+      "label": "Use your trusted home network",
+      "subtitle": "Local HTTP; stopping or changing profile ends access",
+      "is_folder": true,
+      "interface": true,
+      "kind": "info"
+    }
+  ],
+  "has_more": false
+}

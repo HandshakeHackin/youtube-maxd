@@ -2,6 +2,19 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.004.000
+
+Released as **v1.4.0**, the first official release (2026-10-19).
+
+- Add a PS5-hosted Phone remote: scan a one-use QR on a trusted local network to search, navigate the TV, pause/resume, seek and manage the local play queue. No companion PC or phone app required.
+- Keep Phone remote off by default. Pair one phone per session; QR codes expire after five minutes and sessions after two hours. Stop/restart, profile/source changes and app exit revoke control. Restricted family profiles cannot host a remote.
+- Add user-requested bug-report export, review and deletion. Capture a strict technical field allowlist; download JSON through the paired phone or retrieve `/data/youtube-maxd/bug-report.json`. Exclude accounts, tokens, IP addresses, video IDs/titles, searches, URLs and raw logs. No automatic uploads.
+- Add optional Ko-fi support for HandshakeHackin in About, using the same link as Nuvio Max’d; include a phone QR and GitHub Sponsor link.
+- Preserve picture-in-picture **off by default**, existing profiles and app data. Raise content version to `01.004.000` with title ID `PPSA99991` unchanged.
+- Remove the preview label. Software and packaging checks are documented separately from console acceptance: this exact build still requires PS5 boot, real sign-in/playback, LAN phone, microphone, lighting and 4K/HDR testing.
+
+See [release notes](docs/releases/v1.4.0.md) and [phone remote/report guide](PHONE_REMOTE.md).
+
 ## 1.003.000
 
 Released as **v1.3.0-preview.1** (experimental preview, 2026-10-18).
