@@ -70,7 +70,7 @@ assert build.index(normalize) < build.index(copy_zip)
 assert "-name '*.zip'" not in build
 
 workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
-assert [path.name for path in workflows] == ["build-cache.yml", "build.yml", "publish-maxd-preview.yml", "publish-maxd-revision.yml"]
+assert [path.name for path in workflows] == ["build-cache.yml", "build.yml", "publish-maxd-official.yml", "publish-maxd-preview.yml", "publish-maxd-revision.yml"]
 for path in workflows:
     text = path.read_text()
     assert "# SPDX-License-Identifier: GPL-3.0-or-later\n" in text, path.name
