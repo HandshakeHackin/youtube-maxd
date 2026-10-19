@@ -1,44 +1,45 @@
 **Title ID:** PPSA99991
-**New listing, update or reservation:** update
-**What the app does:** Native standalone PS5 YouTube client based on ProsperoTube/EVO. This preview adds six viewing tools and keeps PiP off by default.
+**Type:** existing app update, 1.3.0-preview.1 → 1.4.0
 **Category:** video
-**Fork or derivative of an app in the catalog?** Yes: ProsperoTube by BlackBearReloaded and contributors. Existing derivative listing approved in #397; source and licenses remain credited.
 
 ## Changes
 
-- Transcript search, timestamp seeking and local per-profile bookmarks.
-- Optional Afterglow in-app PiP, **off by default** and explicitly selected per session.
-- Local push-to-talk playback commands and time-budget session builder.
-- Four signed-out family profiles with PIN/channel/search/time controls.
-- PS5-hosted LAN party queue with QR joining, suggestions/votes and host approval.
-- Content version raised from `01.002.000` to `01.003.000`, retaining title/data identity.
+- First official release label; add a PS5-hosted Phone remote for typed search,
+  TV navigation, pause/resume, seek and local queue add/remove/play-next.
+- Opt-in local HTTP, one controlling phone, expiring one-use QR/session and
+  profile/source/shutdown revocation. Restricted profiles cannot host it.
+- Add user-requested bug-report capture, review, download and deletion with a
+  closed technical allowlist; no accounts, tokens, IPs, video identities, URLs
+  or raw logs, and no automatic uploads.
+- Include optional Ko-fi support for HandshakeHackin, matching Nuvio Max’d.
+- Keep PiP **off by default**. Preserve title ID/data and raise contentVersion
+  from `01.003.000` to `01.004.000`.
 
-Release/changelog: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1
+Release/changelog: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0
 
-Immutable ZIP: `PPSA99991.zip`, 99,519,618 bytes.
-SHA-256: `22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593`.
-The tag's `store/sce_sys` metadata/icon match the packaged app. Complete sources,
-checksums, testing instructions/results and the official static scan accompany
-the release. The old release assets remain untouched.
+Immutable ZIP: `PPSA99991.zip`, 99,530,570 bytes.
+SHA-256: `16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e`.
+Native application source: `1eb9b8b358087738bc8a331ee2e612d73391a14b`.
+The release tag's `store/sce_sys` metadata/icon match the archive. Complete
+matching sources, checksums, software test evidence and static scan accompany it.
+Original public release assets remain untouched.
 
-This exact build has **not** been tested on PS5 hardware or a live Google account.
-Boot, real playback/sign-in, PiP codecs/HDR, microphone latency/routing and
-physical controller behavior still need acceptance. Linked Google child-profile
-import remains research. Local family limits are not YouTube Kids certification;
-the party page uses HTTP on a trusted LAN.
+Based on **ProsperoTube** by BlackBearReloaded/contributors and **EVO Player**;
+existing derivative listing approved in #397, previous update merged in #417.
+GPL source, dependency pins and notices are retained. No upstream endorsement
+is claimed.
 
-The app retains its disclosed Lapy/elevation and self-updater payloads; automatic
-updating remains disabled. Scan: 0 errors, 6 warnings and 1 summary notice; full findings and helper hashes are attached.
-This request does not change `helpers/approved.json` or claim helper approval.
+The native build (314 objects) and host HTTP/provider/player/UI tests pass.
+This exact build has **not** been tested on PS5 hardware or with a live Google
+account. Firmware 11.00 / ShadowMount+ is the intended target; console boot,
+real playback/sign-in, phone-browser LAN/download behavior, microphone, lighting,
+PiP/4K/HDR and long-session acceptance remain pending. Linked Google child
+profiles remain research. Local family controls do not imply YouTube Kids
+certification.
 
-- [x] Native PS5 app with its own eboot.bin and sce_sys; not a payload or PS4 package.
-- [x] Submitted by HandshakeHackin, owner of source_repo.
-- [x] Artifact is the app-folder ZIP for PPSA99991.
-- [x] Published experimental GitHub release, matching tag/version and exact ZIP digest.
-- [x] Asset remains immutable; original release remains available.
-- [x] Higher, matching contentVersion is committed at the release tag.
-- [x] Video category, original license and app identity retained.
-- [x] Distribution rights, corresponding sources and dependency notices retained.
-- [x] Existing distinct-app listing; review policy read, no upstream endorsement claimed.
+The disclosed Lapy/elevation and self-updater helpers are retained; automatic
+in-app updating remains disabled. This request does not modify helper approvals
+or claim that static scanning establishes hardware functionality.
 
-Only `apps/PPSA99991.json` changes, limited to the four release-bump fields.
+Only `apps/PPSA99991.json` changes, limited to version, artifact_url, sha256 and
+icon_url. Record supplied by HandshakeHackin, owner of source_repo.

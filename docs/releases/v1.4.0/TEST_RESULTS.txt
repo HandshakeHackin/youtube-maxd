@@ -24,8 +24,26 @@ Recorded checks:
 - Generated background playback lifecycle regression: passed. Ownership,
   hidden-player update, fenced discard, EOF behavior, return and modal/voice guards.
 
-Final native/provider, service, package and static catalog-scan receipts are
-recorded in native-validation.json and catalog-scan.txt with the final build.
+- Actual generated provider ASan/UBSan integration: passed. Remote settings/QR,
+  idempotent queue add/remove/play-next, 25-field TV report review, capture/clear,
+  profile isolation and shutdown. Existing support, transcript/bookmark/session,
+  family/PIN/channel/time and party HTTP/queue integration checks also pass.
+- Embedded service plain host fixtures: self-test 21; HTTP 186; accounts 232;
+  subscription import 51; existing phone receiver 302. All pass, zero failed.
+- Final phone UI fixtures: 7 boards x 4 looks, 400 checks, zero failed, including
+  the full per-field report reader. These are fixture renders, not PS5 captures.
+
+- Final native PS5 build: passed, 314 objects. Signed plaintext FSELF integrity
+  is valid; executable SHA-256 is recorded in release-plan.json/native-validation.json.
+- App ZIP: 99,530,570 bytes, 305 entries. CRCs, PPSA99991 / 01.004.000 identity,
+  retained model/helpers/icon and 0777 entry permissions verified.
+- Catalog format: 108 valid records, zero errors/warnings/notices.
+- Catalog static scan: passed, zero errors, six warnings and one notice.
+  Warnings disclose the existing elevation/loopback loader and two retained
+  helpers lacking separate helper-list approval. Full report: catalog-scan.txt.
+
+Final archive/source checksums and matching-source manifest counts are recorded
+in native-validation.json and SHA256SUMS after release assembly.
 
 LeakSanitizer is disabled for ASan/UBSan host checks because this execution
 sandbox does not support its process inspection; address/undefined checks run.

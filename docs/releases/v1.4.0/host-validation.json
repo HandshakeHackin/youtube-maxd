@@ -1,0 +1,47 @@
+{
+  "application_source_commit": "1eb9b8b358087738bc8a331ee2e612d73391a14b",
+  "date_utc": "2026-10-19",
+  "host_only": true,
+  "hardware_tested": false,
+  "checks": {
+    "remote_http_asan_ubsan": "passed",
+    "remote_player_adapter_asan_ubsan": "passed",
+    "diagnostics_allowlist_export_asan_ubsan": "passed",
+    "phone_page_node": "passed",
+    "generated_provider_integration": "passed",
+    "background_play_lifecycle": "passed",
+    "lightbar_identity": "passed",
+    "release_version_about": "passed",
+    "afterglow_regression": {
+      "boards": 25,
+      "looks": 4,
+      "checks": 1132,
+      "failed": 0
+    },
+    "afterglow_final_phone": {
+      "boards": 7,
+      "looks": 4,
+      "checks": 400,
+      "failed": 0
+    },
+    "embedded_service_plain": {
+      "selftest": 21,
+      "service": 186,
+      "accounts": 232,
+      "import": 51,
+      "remote": 302,
+      "failed": 0
+    }
+  },
+  "sanitizers": {
+    "address": true,
+    "undefined": true,
+    "leaks": false,
+    "reason": "Sandbox does not support LeakSanitizer process inspection"
+  },
+  "limitations": [
+    "No console boot or real YouTube/Google account test",
+    "No physical LAN phone browser/control/download test",
+    "No PS5 codec, microphone, lighting, PiP/HDR or long-session verification"
+  ]
+}

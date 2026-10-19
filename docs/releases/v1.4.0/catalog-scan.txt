@@ -1,0 +1,59 @@
+## Release scan: PPSA99991
+
+**This app can leave the sandbox.** Review how, below, before listing it.
+
+Archive: 305 entries, 144,959,884 bytes unpacked, sha256 `16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e`. Nothing from it was run.
+
+| Level | Finding |
+| --- | --- |
+| warning | `PPSA99991/eboot.bin` asks a resident jailbreak service to lift its sandbox (`elevate_proc`) |
+| warning | `PPSA99991/eboot.bin` holds the loader's address (127.0.0.1 and its port) as data |
+| warning | `PPSA99991/lapy.elf` is a payload: code the payload loader runs outside the sandbox (sha256 `b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4`) |
+| warning | `PPSA99991/self-updater.elf` is a payload: code the payload loader runs outside the sandbox (sha256 `36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f`) |
+| warning | `PPSA99991/lapy.elf` is NOT on the approved helper list (sha256 `b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4`): read its source before listing, then add it to `helpers/approved.json` |
+| warning | `PPSA99991/self-updater.elf` is NOT on the approved helper list (sha256 `36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f`): read its source before listing, then add it to `helpers/approved.json` |
+| notice | `PPSA99991/eboot.bin` names system folders: `/system/`, `/system_ex/`, `/preinst/` |
+| notice | `PPSA99991/eboot.bin` mentions jailbreak tools or the loader by name: `etaHEN`, `payload loader`, `ps5-payload`, `Lapy`, `lapy`, `jailbreak` |
+| notice | `PPSA99991/lapy.elf`, as a payload: contains the payload SDK's kernel read/write routines; can change a process's credentials (authority ID, capabilities, jail or root directory); names system folders; mentions jailbreak tools or the loader by name |
+| notice | `PPSA99991/self-updater.elf`, as a payload: contains the payload SDK's kernel read/write routines; can change a process's credentials (authority ID, capabilities, jail or root directory); names system folders; mentions jailbreak tools or the loader by name |
+
+### `PPSA99991/eboot.bin` (title executable, 55,229,820 bytes)
+
+- Links to: libSceAgc, libSceAgcDriver, libSceAudioIn, libSceAudioOut, libSceAudiodec, libSceCommonDialog, libSceImeDialog, libSceKeyboard, libSceLibcInternal, libSceNet, libScePad, libScePosixForWebKit, libSceSysmodule, libSceSystemService, libSceUserService, libSceVideoOut, libSceVideodec2, libSceWebBrowserDialog, libkernel
+- Imports 376 system function(s)
+  - loads code at run time: `dlopen`, `dlsym`, `sceKernelDlsym`, `sceKernelLoadStartModule`
+  - makes memory executable: `mprotect`
+  - network: `accept`, `bind`, `connect`, `listen`, `recvfrom`, `sceNetConnect`, `sceNetSend`, `sceNetSocket`, `send`, `sendto`, `socket`
+  - starts or controls processes: `sceSystemServiceLoadExec`
+  - system state: `ioctl`, `sysctl`, `sysctlbyname`
+- Hosts named in URLs: 127.0.0.1, a.example, blackbearreloaded.github.io, cami-youtubei.sandbox.googleapis.com, curl.se, dashif.org, dearrow-thumb.ajay.app, dearrow.ajay.app, dejavu-fonts.github.io, dejavu.sourceforge.net, esm.sh, example.com and 46 more
+
+### `PPSA99991/lapy.elf` (payload, 155,032 bytes)
+
+- Links to: libkernel_web.sprx, libSceLibcInternal.sprx, libSceNet.sprx
+- Imports 39 system function(s)
+  - network: `connect`, `send`, `socket`
+  - starts or controls processes: `kill`
+
+### `PPSA99991/self-updater.elf` (payload, 839,328 bytes)
+
+- Links to: libkernel_web.sprx, libSceLibcInternal.sprx, libSceNet.sprx
+- Imports 102 system function(s); none on the watch list
+- Hosts named in URLs: blackbearreloaded.github.io, homebrew.page
+
+### `PPSA99991/sce_module/libc.prx` (module, 1,284,674 bytes)
+
+- Links to: libSceLibcInternalExt, libSceSysmodule, libkernel
+- Imports 102 system function(s); none on the watch list
+
+A scan like this can't prove an app is harmless: code can hide from every check here. It shows what honest code does, in the same way for every release.
+
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/eboot.bin asks a resident jailbreak service to lift its sandbox (elevate_proc)
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/eboot.bin holds the loader's address (127.0.0.1 and its port) as data
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/lapy.elf is a payload: code the payload loader runs outside the sandbox (sha256 b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4)
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/self-updater.elf is a payload: code the payload loader runs outside the sandbox (sha256 36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f)
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/lapy.elf is NOT on the approved helper list (sha256 b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4): read its source before listing, then add it to helpers/approved.json
+warning: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: PPSA99991/self-updater.elf is NOT on the approved helper list (sha256 36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f): read its source before listing, then add it to helpers/approved.json
+notice: /workspace/youtube-maxd/build/release-v1.4.0/PPSA99991.zip: release scan: this app can leave the sandbox; the full report is in the job summary
+Release scan passed (0 error(s), 6 warning(s), 1 notice(s)).
+Scanned.
