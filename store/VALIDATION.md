@@ -18,7 +18,9 @@ Catalog tooling: `54e7f5a7cdc95e5ad589dcec4efead6f3f57bb12`.
   retained elevation/loader/helpers and do not grant helper approval.
 - Only four release-bump fields change in the catalog record.
 - Full source/checksum and static scan evidence are shipped with the release.
-- Online verification follows publication; actual state is in SUBMISSION.md.
+- Published asset digests and all nine attachments verified. Online catalog
+  verification passed with zero errors/warnings and two notices.
+- Actual submission/deployment state is in SUBMISSION.md.
 - No PS5, live Google account or live YouTube acceptance testing performed.
 
 Helper SHA-256 values:

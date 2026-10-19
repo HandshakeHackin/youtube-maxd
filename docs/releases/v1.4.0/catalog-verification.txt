@@ -1,0 +1,4 @@
+notice: apps/PPSA99991.json: release asset matches sha256 (99,530,570 bytes, not downloaded)
+notice: apps/PPSA99991.json: contentVersion 01.004.000 (from store/sce_sys/param.json)
+Catalog verification passed (0 error(s), 0 warning(s), 2 notice(s)).
+1 record(s) verified.

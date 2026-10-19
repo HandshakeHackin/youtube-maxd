@@ -1,11 +1,24 @@
 # 1.4.0 store update status
 
-Prepared for publication/submission on 2026-10-19. The GitHub release must be
-published and its remote digests verified before submitting this record.
+**GitHub release published; catalog update prepared and verified, not yet submitted.**
+Checked 2026-10-19. [Download/release](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0).
+The published app digest, tagged metadata, icon and online catalog verification all match.
 
-The record changes only the four release-bump fields for PPSA99991. App ZIP,
-content version, tagged icon, matching source and test/scan evidence accompany
-the release. The previous store version is 1.3.0-preview.1 / 01.003.000 (#417).
+The one-record update is pushed to
+[`HandshakeHackin:update-youtube-maxd-1.4.0`](https://github.com/HandshakeHackin/ps5-homebrew-catalog/tree/update-youtube-maxd-1.4.0),
+commit `3849244`. It changes only version, artifact_url, sha256 and icon_url.
 
-Do not treat this preparation record as proof of a submitted or deployed update.
-Final submission/deployment status is recorded after publication.
+[Open the prepared submission](https://github.com/darkxex/ps5-homebrew-catalog/compare/main...HandshakeHackin:update-youtube-maxd-1.4.0?expand=1&title=Update%20YouTube%20Max%E2%80%99d%20to%20official%20v1.4.0&body=Update%20PPSA99991%20from%201.3.0-preview.1%20to%20official%201.4.0%3B%20contentVersion%2001.004.000.%0A%0AAdds%20a%20PS5-hosted%20Phone%20remote%20%28typed%20search%2C%20TV%20navigation%2C%20playback%20controls%20and%20queue%20management%29%2C%20private%20bug-report%20capture%2Freview%2Fdownload%2C%20and%20optional%20Ko-fi%20support.%20PiP%20stays%20off%20by%20default.%20Existing%20data%2Ftitle%20identity%20and%20ProsperoTube%2FEVO%20attribution%20are%20retained.%0A%0ARelease%2Fchangelog%20and%20matching%20sources%3A%20https%3A%2F%2Fgithub.com%2FHandshakeHackin%2Fyoutube-maxd%2Freleases%2Ftag%2Fv1.4.0%0AZIP%3A%20PPSA99991.zip%2C%2099%2C530%2C570%20bytes.%0ASHA-256%3A%2016a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e%0A%0ANative%20compile%20%28314%20objects%29%2C%20container%20integrity%2C%20ZIP%20modes%2FCRCs%2C%20source%20manifest%2C%20host%20HTTP%2Fprovider%2Fplayer%2FUI%20tests%20and%20online%20catalog%20verification%20pass.%20Static%20scan%3A%200%20errors%2C%206%20warnings%2C%201%20notice.%20The%20warnings%20disclose%20the%20retained%20jailbreak%20loader%2Felevation%20and%20two%20helpers%20without%20separate%20helper-list%20approval%3B%20this%20PR%20does%20not%20change%20helper%20approvals.%0A%0ANo%20PS5%2Flive%20Google%20or%20YouTube%20test%20was%20performed.%20Firmware%2011.00%20%2F%20ShadowMount%2B%20remains%20the%20intended%20target%3B%20actual%20hardware%2FLAN%20phone%20acceptance%20is%20pending.%20Linked%20Google%20child%20profiles%20remain%20research.%0A%0AOnly%20apps%2FPPSA99991.json%20changes%2C%20limited%20to%20version%2C%20artifact_url%2C%20sha256%20and%20icon_url.%20Submitted%20by%20HandshakeHackin%2C%20source_repo%20owner.%20Previous%20listing%2Fupdate%3A%20%23397%20and%20%23417.%0A), then select **Create pull request**.
+The body is prefilled with the changes, digest, validation and hardware limits.
+The complete PR text is also in [PULL_REQUEST.md](PULL_REQUEST.md).
+
+Both the connected GitHub API and GitHub CLI rejected automatic upstream PR
+creation with HTTP 403 / “Resource not accessible by integration”. No duplicate
+request was created. This is a connection permission limit, not a failed build
+or catalog validation, and no additional app testing was presented as completed.
+
+The currently deployed store release remains **1.3.0-preview.1 / 01.003.000**,
+from [PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417).
+The new catalog request still needs submission, checks/review, merge and website
+deployment before the store offers 1.4.0. This document will record the actual
+request/deployment result when available.

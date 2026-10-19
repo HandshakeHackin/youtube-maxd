@@ -1,0 +1,73 @@
+{
+  "application": "YouTube Max’d",
+  "version": "1.4.0",
+  "release_tag": "v1.4.0",
+  "title_id": "PPSA99991",
+  "content_version": "01.004.000",
+  "application_source_commit": "1eb9b8b358087738bc8a331ee2e612d73391a14b",
+  "source_archive_commit": "86704eaa2dfe271b021f3ed66e756a9733c1917a",
+  "release_channel": "official",
+  "phone_remote_default_enabled": false,
+  "report_schema": 1,
+  "automatic_report_upload": false,
+  "pip_default_enabled": false,
+  "linked_google_profiles": "research only",
+  "target": {
+    "firmware": "11.00",
+    "launcher": "ShadowMount+"
+  },
+  "hardware_tested": false,
+  "live_google_account_tested": false,
+  "live_youtube_playback_tested": false,
+  "app_zip": {
+    "file": "PPSA99991.zip",
+    "size": 99530570,
+    "sha256": "16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e",
+    "entries": 305,
+    "zip_crc_verified": true,
+    "identity_verified": true,
+    "entry_permissions": "0777"
+  },
+  "executable_sha256": "6d72a89d81475c9e1cd9d99117f64a5bc11a287baa54dbeb4d7456ac6ddec6ec",
+  "native_container_integrity": "valid (plaintext FSELF; native converter inspection)",
+  "compiled_objects": 314,
+  "source_archive": {
+    "file": "YouTube-Maxd-source.zip",
+    "size": 474221306,
+    "sha256": "089eefcc5e2349af672bca156fbf36a1529b1007f3117cb5459ff7817e985f94",
+    "manifest_files_verified": 4484
+  },
+  "icon": {
+    "file": "YouTube-Maxd-icon.png",
+    "sha256": "d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+    "matches_app": true
+  },
+  "voice_model": {
+    "size": 77691713,
+    "sha256": "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
+    "verified": true
+  },
+  "helpers": [
+    {
+      "file": "PPSA99991/lapy.elf",
+      "sha256": "b0623679f92298f08983b2b61bbf322b6bfa032a12befdc1b3661b76fa5bc1a4"
+    },
+    {
+      "file": "PPSA99991/self-updater.elf",
+      "sha256": "36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f"
+    }
+  ],
+  "host_test_evidence": {
+    "kind": "Recorded development results; not rerun by release assembly",
+    "reference": "docs/releases/v1.4.0/TEST_RESULTS.txt",
+    "dates": [
+      "2026-10-19"
+    ]
+  },
+  "catalog_scan": {
+    "file": "catalog-scan.txt",
+    "static_only": true,
+    "catalog_commit": "54e7f5a7cdc95e5ad589dcec4efead6f3f57bb12"
+  },
+  "store_publication": "Catalog update submitted separately after immutable release publication"
+}

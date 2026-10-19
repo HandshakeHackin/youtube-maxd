@@ -1,0 +1,68 @@
+{
+  "release_id": 417812688,
+  "tag": "v1.4.0",
+  "url": "https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0",
+  "draft": false,
+  "prerelease": false,
+  "immutable": false,
+  "published_at": "2026-10-19T22:23:26Z",
+  "source_tag_commit": "86704eaa2dfe271b021f3ed66e756a9733c1917a",
+  "publisher_run": "https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39334411887",
+  "assets": [
+    {
+      "name": "PPSA99991.zip",
+      "size": 99530570,
+      "sha256": "16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/PPSA99991.zip"
+    },
+    {
+      "name": "RELEASE_NOTES.md",
+      "size": 4368,
+      "sha256": "db91d850e505f89c48a6c97e7c04796c99977267259e11d845e9d65213877f2d",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/RELEASE_NOTES.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 674,
+      "sha256": "f600776b9b437f941f7056fcd515b93318589d3300e6c2db294f42158a9ed591",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/SHA256SUMS"
+    },
+    {
+      "name": "TESTING.txt",
+      "size": 2786,
+      "sha256": "cb5620bf800c111cadc7501cdf95e95f679e9d23c830bb5f162adede1ec1c35a",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/TESTING.txt"
+    },
+    {
+      "name": "TEST_RESULTS.txt",
+      "size": 3545,
+      "sha256": "64cf8e8f8ad54ecc451f710a044c8ba2a67636bfbf81371be05adcb72ebd141a",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/TEST_RESULTS.txt"
+    },
+    {
+      "name": "YouTube-Maxd-icon.png",
+      "size": 249991,
+      "sha256": "d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/YouTube-Maxd-icon.png"
+    },
+    {
+      "name": "YouTube-Maxd-source.zip",
+      "size": 474221306,
+      "sha256": "089eefcc5e2349af672bca156fbf36a1529b1007f3117cb5459ff7817e985f94",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/YouTube-Maxd-source.zip"
+    },
+    {
+      "name": "catalog-scan.txt",
+      "size": 5497,
+      "sha256": "906c936ae1f44b44bb9c9a9b24ff706e2a745d07df4cfff2ae3e19aac7c08f4b",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/catalog-scan.txt"
+    },
+    {
+      "name": "native-validation.json",
+      "size": 2416,
+      "sha256": "877dedd8a3ba67eb82ea0d7ea2c81c25864d0f5d8ccf4f8fc169dd8f4beed11c",
+      "download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.0/native-validation.json"
+    }
+  ],
+  "old_release_assets_unchanged": true
+}
