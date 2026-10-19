@@ -1,71 +1,39 @@
-YouTube Max’d 1.3.0 / v1.3.0-preview.1 — console testing guide
-Intended setup: PS5 firmware 11.00, ShadowMount+.
-Title: PPSA99991. Content version: 01.003.000.
+YouTube Max’d v1.4.0 — console acceptance checklist
+Target: firmware 11.00 / ShadowMount+. No PS5 is attached to this build environment.
 
-This exact integrated build has not been tested on a PS5. The host checks do
-not establish hardware support. Keep a backup of app data before testing.
+1. Back up /data/youtube-maxd, close the old app, replace the full PPSA99991
+   folder and boot using the required console-side loader. Confirm version
+   1.004.000 / contentVersion 01.004.000 and preserved settings/history.
+2. Play known AVC/AAC, VP9/Opus, AV1 and HEVC samples where available. Check
+   pause/resume, audio, captions, seeking, format changes, live streams,
+   long playback and actual 1080p/4K/HDR output/performance.
+3. Sign in with a real Google TV device code; check library and persistence.
+   Test sign-out and app restart. Do not share credentials or raw logs.
+4. Confirm Phone remote is OFF at startup. Start it, scan QR with a phone
+   on the same LAN, and use phone Back to leave the TV QR/settings page.
+   Search normal text and the word "pause": both must be literal searches.
+   Navigate, play, pause/resume, seek -10/+30 and check paused seeking.
+5. Add a video ID and supported YouTube link to the queue. Re-add it (no
+   duplicate), move another entry to Play next and remove it. Verify TV
+   queue order and that the current video is not unexpectedly replaced.
+6. Confirm a second phone cannot reuse the QR. Try a five-minute-old invite,
+   stop/restart, changing profile and app exit; old control must be revoked.
+   Restricted profiles cannot start a remote. Session expires after two hours.
+7. During player startup, voice use, TV keyboard and YouTube-app casting,
+   incompatible remote commands must be refused rather than override ownership.
+   Search while playing, then return with L3 and verify background continuity.
+8. Capture a report during playback, preview every field and download JSON
+   on phone browsers. Confirm only technical fields, valid JSON and no token,
+   cookie, account/profile identity, IP, video ID/title, search, URL or raw log.
+   Check /data/youtube-maxd/bug-report.json, recapture overwrite and deletion.
+   Test full/unwritable storage. Nothing must upload automatically.
+9. Confirm PiP is OFF by default and R2 explicitly enables it for this session.
+   Test return, EOF, profile/casting changes and GPU/video lifetime with SDR/HDR.
+10. Retest local voice search/commands, bookmarks/transcripts, session budgets,
+    family PIN/channel/time limits, party approval/votes and controller cleanup.
+11. Open Settings > About > Support YouTube Max’d, scan the QR and confirm
+    https://ko-fi.com/handshakehackin. Donation is optional.
 
-INSTALL
-Extract PPSA99991.zip from the 1.3.0 preview release. Copy the complete
-PPSA99991 folder to the location scanned by ShadowMount+, commonly
-/data/homebrew/PPSA99991. Keep assets, the voice model, helper and manifest.
-Use the console's existing ELF loader on TCP 9021 or compatible resident Lapy.
-Avoid overwriting another app with the same development title ID.
-
-CHECK ON THE CONSOLE
-1. Launch, browse as Guest, search and cleanly exit. Confirm saved settings
-   survive restart under /data/youtube-maxd. Try Classic and Afterglow.
-2. Play public videos at 720p/1080p first. Seek, pause, resume and switch video
-   formats and audio tracks with R2. Test higher resolutions/codecs separately;
-   record the actual format, frame rate, HDR mode and duration tested.
-3. Enable captions, chapters, SponsorBlock and DeArrow separately. Confirm
-   originals/undo remain available where offered. Test a live/DVR stream.
-4. Sign in through Google's TV activation page, view subscriptions/library,
-   restart and confirm refresh. Review account writes before sending them.
-   Removing a local account does not revoke its Google authorization.
-5. Connect and unmute the DualSense microphone. Hold L3, wait for Listening,
-   speak and release. Test Circle cancellation, silence, six-second auto-stop,
-   repeated queries, mute/reconnect, profile change and exit during recognition.
-   Record recognition time and memory/performance symptoms.
-6. Create/edit/reopen/delete a Smart playlist. Test account and local sources,
-   matching rules, restart persistence, unwatched markers, profile isolation,
-   slow refreshes and next/previous inside the filtered playback snapshot.
-7. Auto Max is off by default. Enable it, then test sustained buffering and
-   decoding pressure. Confirm saved limits and manual selections win, live
-   streams are excluded and audio/captions/position survive a format change.
-   A short rebuffer is possible. Repeat with it disabled.
-8. Check red/white DualSense effects in menus, loading, listening, playing,
-   pause and errors; test the feedback switch, reconnect and exit cleanup.
-   This app does not control console chassis LEDs.
-9. Phone casting and background audio are experimental. Test their ownership,
-   exit and interaction with voice/profile switching separately.
-
-NEW VIEWING FEATURES
-10. PiP must be off at startup. In Afterglow, select R2 -> Picture-in-picture;
-    browse/search, tap L3 to return, then change video/profile and restart.
-    Confirm it stays off until explicitly selected again. Test regular audio-
-    only background browsing separately. Check SDR/HDR and each codec in PiP.
-11. R2 -> Transcript & bookmarks: search available captions, seek to a result,
-    save/delete named timestamps, restart and check per-profile isolation.
-12. During playback hold L3: test pause, resume, forward 30 seconds, captions
-    off, quality 1080p and add to queue. Test cancellation and unknown commands.
-13. In YouTube preferences, build sessions for several 15-120-minute budgets.
-    Confirm total selected video runtime fits and watched videos are excluded.
-14. Test all four local family slots with a parent PIN, approved channel IDs,
-    search restriction and short viewing limit. Check resolved-channel denial
-    via search, queues, direct links and phone launch. Check PIN on exit,
-    restart persistence, separate histories/bookmarks and background/PiP usage.
-15. Start a party room, scan the QR on phones on the same LAN and test guest
-    suggestions/votes, host approval/rejection, removal, expiration and profile
-    change. Restart the app and confirm the room is off. No router forwarding.
-
-REPORT
-Include the version/build ID, firmware, launcher, interface, steps, actual
-video ID/codec/resolution and sanitized logs. Do not post passwords, tokens,
-cookies, private account files or authenticated stream URLs.
-https://github.com/HandshakeHackin/youtube-maxd/issues
-
-LIMITS
-Private/age-restricted/members-only/paid playback is off by default; sign-in
-does not guarantee it. 4K/HDR/AV1 throughput and microphone routing are unverified.
-YouTube or community APIs may change. Automatic updates are disabled.
+Report only the behavior actually observed. Attach the reviewed exported JSON,
+firmware/runtime, video/format conditions and reproduction steps. Hardware tests
+are not established by a successful compile, fixture screenshot or store scan.

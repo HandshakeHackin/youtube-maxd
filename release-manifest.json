@@ -1,23 +1,13 @@
 {
-  "application": "YouTube Max’d",
-  "version": "1.3.0",
-  "release_tag": "v1.3.0-preview.1",
-  "title_id": "PPSA99991",
-  "content_version": "01.003.000",
-  "application_source_commit": "78718a740137f1a111aa73926d74d22d8af8b1d4",
-  "source_archive_commit": "1435ccdbad5f2d815de8f3440c3765ab785319fe",
-  "hardware_tested": false,
-  "app_zip": {
-    "file": "PPSA99991.zip",
-    "size": 99519618,
-    "sha256": "22b4bf2c8b7fa67f3e11198645fab9746f7381170b12dfc82ce709814792e593",
-    "entries": 305,
-    "zip_crc_verified": true,
-    "identity_verified": true,
-    "entry_permissions": "0777"
-  },
-  "executable_sha256": "f539b2007b205c2623524c1946dc5cbc21b2a84070341a4f49e499a8a8c507f2",
-  "pip_default_enabled": false,
+  "tag": "v1.4.0",
+  "application_source_commit": "1eb9b8b358087738bc8a331ee2e612d73391a14b",
+  "app_sha256": "16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e",
+  "app_bytes": 99530570,
+  "executable_sha256": "6d72a89d81475c9e1cd9d99117f64a5bc11a287baa54dbeb4d7456ac6ddec6ec",
+  "app_entries": 305,
+  "compiled_objects": 314,
+  "native_container_integrity": "valid (plaintext FSELF; native converter inspection)",
+  "catalog_commit": "54e7f5a7cdc95e5ad589dcec4efead6f3f57bb12",
   "helpers": [
     {
       "file": "lapy.elf",
@@ -27,5 +17,13 @@
       "file": "self-updater.elf",
       "sha256": "36a230285f413a51cfb18a0b38eb37501c24caab35abdaf40a7b2f9dcbb6dd4f"
     }
-  ]
+  ],
+  "catalog_scan": {
+    "errors": 0,
+    "warnings": 6,
+    "notices": 1,
+    "passed": true
+  },
+  "source_archive_commit": "86704eaa2dfe271b021f3ed66e756a9733c1917a",
+  "purpose": "Verified binary transport for GitHub Actions publication; authoritative attachments are on the tagged release."
 }

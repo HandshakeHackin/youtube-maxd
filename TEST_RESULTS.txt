@@ -1,48 +1,52 @@
-YouTube Max’d 1.3.0-preview.1 — validation summary
-Application build source: 78718a740137f1a111aa73926d74d22d8af8b1d4
-Content version: 01.003.000. Title: PPSA99991.
-Target: PS5 firmware 11.00 / ShadowMount+.
+YouTube Max’d v1.4.0 — software validation
+Date: 2026-10-19. Firmware 11.00 / ShadowMount+ is the intended target, not a
+claim of a performed hardware test. No PS5 is attached to the build environment.
 
-CHECKS REPEATED FOR THIS REVISION (2026-10-18)
-- Native feedback bridge and identity/storage/updater isolation: passed.
-- Release/version/workflow contract and generated in-app changelog: passed.
-- Updated embedded HTTP service fixtures: 186 checks passed, 0 failed.
-- ASan/UBSan policy checks: transcript parsing/bookmark persistence, optimal
-  bounded session selection, strict voice commands, PiP default off and reset,
-  ownership and destination: passed.
-- Real loopback party HTTP pairing/authentication, origin checks, suggestion/
-  vote/host approval, expiry and revocation: passed.
-- JavaScript party-page link validation: passed.
-- Generated background ownership/EOF/return/protected-input regression: passed
-  against the actual generated release tree; native PiP source matches the tree.
-- Official catalog unit suite: 176 tests passed, two skipped.
+Recorded checks:
+- Real loopback HTTP remote listener under ASan/UBSan: passed. Covers local-only
+  binding policy, authentication, origin/duplicate-header/framing rejection,
+  one-use QR, five-minute invite/two-hour session expiry, restart revocation,
+  stale selection refusal, command sequence/deduplication, literal search,
+  queue command validation and protected report download.
+- Shipping C++ remote/player adapter under ASan/UBSan: passed. Pause/resume,
+  stale selection, paused seeking/clamping, live/keyboard/voice/casting/startup
+  refusal, literal search text, background return and queue routing.
+- Diagnostics under ASan/UBSan: passed. Closed 25-field allowlist, enum codecs,
+  numeric bounds/NaN/infinity handling, exact app version, atomic private-file
+  export/overwrite, clear and interrupted-write recovery.
+- Generated phone page consistency and Node tests: passed. Supported YouTube
+  IDs/links, hostile URL rejection, text-only DOM rendering, URL secret removal,
+  sessionStorage scope, credential omission, selection guard and Blob download.
+- Native lightbar bridge and fork title/storage/update isolation: passed.
+- Release identity/version consistency and generated About changelog: passed.
+- Afterglow regression: 25 fixture boards x 4 looks, 1,132 checks, zero failed.
+  The refreshed report-field fixtures are also checked in the final phone UI run.
+- Generated background playback lifecycle regression: passed. Ownership,
+  hidden-player update, fenced discard, EOF behavior, return and modal/voice guards.
 
-RECORDED DEVELOPMENT CHECKS
-The six-feature implementation previously passed native provider transcript,
-bookmark, session, family PIN/channel/time-limit and party queue tests; Smart
-playlist/Auto Max/protected-profile regressions; 393 JavaScript library checks,
-family isolation; 792 embedded-service fixture checks; and 356 new Afterglow
-board checks across four looks. These were not all repeated for the version
-bump. Details: docs/MAXD_NEXT_VALIDATION.md and docs/MAXD_VALIDATION.md.
+- Actual generated provider ASan/UBSan integration: passed. Remote settings/QR,
+  idempotent queue add/remove/play-next, 25-field TV report review, capture/clear,
+  profile isolation and shutdown. Existing support, transcript/bookmark/session,
+  family/PIN/channel/time and party HTTP/queue integration checks also pass.
+- Embedded service plain host fixtures: self-test 21; HTTP 186; accounts 232;
+  subscription import 51; existing phone receiver 302. All pass, zero failed.
+- Final phone UI fixtures: 7 boards x 4 looks, 400 checks, zero failed, including
+  the full per-field report reader. These are fixture renders, not PS5 captures.
 
-RELEASE ARTIFACT CHECKS
-Fresh PS5 compilation (312 objects) and signed-container integrity passed.
-The app ZIP has 305 entries with CRCs and 0777 modes verified.
-Official catalog scan: zero errors, six warnings and one summary notice.
-Release assembly verifies ZIP CRCs and 0777 modes, higher content
-version, icon/model hashes, helper hashes and every matching-source manifest
-entry. native-validation.json and SHA256SUMS record the exact resulting bytes.
-The official catalog scanner reads the archive without running it; see the
-attached catalog-scan.txt for its full findings. Static checks are not console
-or helper-whitelist approval. Automatic in-app updates remain disabled.
+- Final native PS5 build: passed, 314 objects. Signed plaintext FSELF integrity
+  is valid; executable SHA-256 is recorded in release-plan.json/native-validation.json.
+- App ZIP: 99,530,570 bytes, 305 entries. CRCs, PPSA99991 / 01.004.000 identity,
+  retained model/helpers/icon and 0777 entry permissions verified.
+- Catalog format: 108 valid records, zero errors/warnings/notices.
+- Catalog static scan: passed, zero errors, six warnings and one notice.
+  Warnings disclose the existing elevation/loopback loader and two retained
+  helpers lacking separate helper-list approval. Full report: catalog-scan.txt.
 
-NOT VERIFIED
-No PS5, live Google authorization or real YouTube playback was used. Boot,
-PiP codec/HDR behavior, microphone routing/latency and physical DualSense
-behavior still require console testing. Family controls are local; editing
-app data can bypass them. Linked Google child-profile import remains research.
-The LAN party page uses HTTP on a trusted network. Ad removal is not guaranteed.
+Final archive/source checksums and matching-source manifest counts are recorded
+in native-validation.json and SHA256SUMS after release assembly.
 
-CREDITS
-ProsperoTube by BlackBearReloaded and contributors, EVO Player and all retained
-dependencies. Full corresponding sources and licenses accompany the release.
+LeakSanitizer is disabled for ASan/UBSan host checks because this execution
+sandbox does not support its process inspection; address/undefined checks run.
+Host mocks/fixtures and successful compilation do not prove live Google/YouTube
+behavior, PS5 LAN binding, real phone-browser downloads, microphone, lighting,
+codec performance, 4K/HDR or physical-console playback continuity. See TESTING.txt.

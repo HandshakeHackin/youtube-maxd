@@ -1,9 +1,10 @@
-# YouTube Max’d 1.3.0 release bundle
+# YouTube Max’d v1.4.0 — verified binary transport
 
-Verified app ZIP transport for the GitHub release publisher. The installable
-release, matching complete source, checksums and changelog are published at:
-https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1
+The official download is [PPSA99991.zip on the v1.4.0 release](https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0).
+This branch transports the verified app to the publishing workflow. Both ZIP
+names contain the same app bytes. Corresponding complete source is assembled
+from commit 86704eaa2dfe271b021f3ed66e756a9733c1917a and attached to the release;
+it is not omitted or replaced by GitHub's automatic source snapshot.
 
-PPSA99991 / contentVersion 01.003.000. PiP is off by default.
-Experimental preview; PS5 hardware testing remains outstanding.
-See release-manifest.json for the exact build source and artifact digest.
+See RELEASE_NOTES.md, TESTING.txt and TEST_RESULTS.txt. PS5 hardware acceptance
+is still pending. Phone remote is opt-in and PiP remains off by default.
