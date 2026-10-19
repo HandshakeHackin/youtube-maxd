@@ -42,7 +42,7 @@ class Reader final : public Screen
             return; // back from a screen above: the text stays where it was
         route_ = route;
         paragraphs_ = static_cast<std::size_t>(-1);
-        join_url_.clear();
+        qr_url_.clear();
         scroll_.snap(0.0f);
         age_ = 0.0f;
     }
@@ -106,13 +106,18 @@ class Reader final : public Screen
                       kPageTop + 30.0f, kTypeBody, kColumn - 64.0f, kLine, g.k.ink2, 4);
             return;
         }
-        if (!join_url_.empty())
+        if (!qr_url_.empty())
         {
-            text(g, g.f.semibold, tr("Join from your phone"), kLeft, kPageTop, kTypeShelf, g.k.ink);
-            qr_code(g, {kLeft, kPageTop + 54.0f, 416.0f, 416.0f}, join_url_, kBlack, kWhite);
-            paragraph(g, g.f.regular, tr("Scan the code on the same local network. Guests suggest and vote; you approve videos on the PS5."),
+            const bool support = route_.argument == "link:maxd-support";
+            const char *heading = support ? tr("Support YouTube Max’d") : tr("Join from your phone");
+            const char *detail = support
+                ? tr("Support HandshakeHackin on Ko-fi. Scan with your phone to open the page. Donations are optional.")
+                : tr("Scan the code on the same local network. Guests suggest and vote; you approve videos on the PS5.");
+            text(g, g.f.semibold, heading, kLeft, kPageTop, kTypeShelf, g.k.ink);
+            qr_code(g, {kLeft, kPageTop + 54.0f, 416.0f, 416.0f}, qr_url_, kBlack, kWhite);
+            paragraph(g, g.f.regular, detail,
                       kLeft + 468.0f, kPageTop + 88.0f, kTypeBody, 650.0f, kLine, g.k.ink2, 4);
-            paragraph(g, g.f.regular, join_url_, kLeft, kPageTop + 534.0f, kTypeBody, kColumn, kLine, g.k.ink2, 3);
+            paragraph(g, g.f.regular, qr_url_, kLeft, kPageTop + 534.0f, kTypeBody, kColumn, kLine, g.k.ink2, 3);
             return;
         }
         g.l.push_clip({kLeft - 8.0f, kPageTop - 34.0f, kColumn + 16.0f, kPageBottom - kPageTop + 44.0f});
@@ -177,7 +182,8 @@ class Reader final : public Screen
     {
         out.set("catalog", route_.argument);
         out.set("paragraphs", static_cast<int>(blocks_.size()));
-        out.set("qr", !join_url_.empty() ? "yes" : "no");
+        out.set("qr", !qr_url_.empty() ? "yes" : "no");
+        out.set("qr_kind", qr_url_.empty() ? "none" : route_.argument == "link:maxd-support" ? "support" : "party");
         out.set("scroll", static_cast<int>(scroll_.target));
         out.set("load", load_ == model::Load::ready ? "ready" : load_ == model::Load::loading ? "loading" : load_ == model::Load::offline ? "offline" : "failed");
     }
@@ -196,9 +202,10 @@ class Reader final : public Screen
         blocks_.clear();
         height_ = 0.0f;
         paragraphs_ = page.rows.size();
-        join_url_.clear();
-        if (route_.argument == "link:maxd-party" && !page.rows.empty() && tube_qr_link_valid(page.rows.front().overview.c_str()))
-            join_url_ = page.rows.front().overview;
+        qr_url_.clear();
+        if ((route_.argument == "link:maxd-party" || route_.argument == "link:maxd-support") &&
+            !page.rows.empty() && tube_qr_link_valid(page.rows.front().overview.c_str()))
+            qr_url_ = page.rows.front().overview;
         for (const model::Row &row : page.rows)
         {
             Block block;
@@ -216,7 +223,7 @@ class Reader final : public Screen
     std::size_t paragraphs_ = static_cast<std::size_t>(-1);
     model::Load load_ = model::Load::idle;
     std::string error_;
-    std::string join_url_;
+    std::string qr_url_;
     float height_ = 0.0f;
     tween::Spring scroll_;
     float age_ = 0.0f;

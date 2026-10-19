@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "link:row:maxd-support",
+      "title": "Support YouTube Max’d",
+      "label": "Support YouTube Max’d",
+      "is_folder": true,
+      "interface": true,
+      "kind": "link",
+      "subtitle": "Optional Ko-fi donations to HandshakeHackin",
+      "overview": "https://ko-fi.com/handshakehackin"
+    }
+  ],
+  "has_more": false
+}

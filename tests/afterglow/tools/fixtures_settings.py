@@ -339,6 +339,8 @@ def about_rows():
         row("account:notice:version", "ProsperoTube 1.000.000", "info", "A native YouTube client for PS5 homebrew; GPL-3.0-or-later"),
         row("account:notice:author", "Brought to you by BlackBearReloaded", "info", "Not affiliated with or endorsed by YouTube or Google"),
         row("settings:about:credits", "Credits", "link", "What ProsperoTube builds on; the full notices ship with the package", screen="reader"),
+        row("link:maxd-support", "Support YouTube Max’d", "link", "Optional Ko-fi donations to HandshakeHackin",
+            screen="reader", argument="link:maxd-support"),
     ]
 
 
@@ -398,6 +400,8 @@ def signed_in():
     ])
     write(f, "settings:backup", backup_rows())
     write(f, "settings:about", about_rows())
+    write(f, "link:maxd-support", [row("link:row:maxd-support", "Support YouTube Max’d", "link",
+        "Optional Ko-fi donations to HandshakeHackin", overview="https://ko-fi.com/handshakehackin")])
     # ---- lists of choices ----
     write(f, "settings:subtitle-size", size_choices(11))
     write(f, "settings:subtitle-style", style_choices(2))

@@ -190,6 +190,7 @@ constexpr Rule kRules[] = {
     {"account:notice:author", "about", "About"},
     {"settings:about:credits", "about", "About"},
     {"settings:experimental", "about", "About"},
+    {"link:maxd-support", "about", "Support"},
 };
 
 bool starts_with(std::string_view text, std::string_view prefix)

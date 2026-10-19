@@ -5041,7 +5041,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         /* Addresses to open on another device: a row's overview is its link,
          * which the screen shows as text and as a QR code. */
         char url[TUBE_QR_PAYLOAD_SIZE];const char *value=parent+5;
-        if(!page && !strncmp(value,"video:",6) && valid_id(value+6)) {
+        if(!page && !strcmp(value,"maxd-support")) {
+            LINK_ROW("link:row:maxd-support", "Support YouTube Max’d",
+                "Optional Ko-fi donations to HandshakeHackin", TUBE_MAXD_SUPPORT_URL);
+        } else if(!page && !strncmp(value,"video:",6) && valid_id(value+6)) {
             const Record *video=record(value+6,0);const int occurrence=video_occurrence(value+6);
             if(!tube_qr_video_url(value+6,0,url,sizeof url))LINK_ROW("link:row:video","Video link",url,url);
             snprintf(url,sizeof url,"https://www.youtube.com/embed/%s",value+6);
@@ -6253,6 +6256,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             /* Written out, not TUBE_ABOUT_BROUGHT and TUBE_ABOUT_UNOFFICIAL: the texts of a row are found by the catalogs' extraction as literals. */
             CATALOG_FOLDER( "account:notice:author", "Brought to you by BlackBearReloaded", "Not affiliated with or endorsed by YouTube or Google");
             CATALOG_FOLDER( "settings:about:credits", "Credits", "What ProsperoTube builds on; the full notices ship with the package");
+            CATALOG_FOLDER( "link:maxd-support", "Support YouTube Max’d", "Optional Ko-fi donations to HandshakeHackin");
+            maxd_smart_fact("link:maxd-support", "link", "Support YouTube Max’d", "");
+            tube_row_fact("link:maxd-support", "screen", "reader");
+            tube_row_fact("link:maxd-support", "argument", "link:maxd-support");
             /* Classic has no application modal; retain its update fallback only. */
             if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_rows) {
                 tube_update_row rows[10];

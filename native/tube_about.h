@@ -22,6 +22,7 @@
 #define TUBE_ABOUT_BROUGHT "Based on ProsperoTube by " TUBE_ABOUT_AUTHOR
 #define TUBE_ABOUT_UNOFFICIAL "Not affiliated with or endorsed by YouTube or Google"
 #define TUBE_ABOUT_PROJECT_URL "https://github.com/blackbearreloaded/ProsperoTube"
+#define TUBE_MAXD_SUPPORT_URL "https://ko-fi.com/handshakehackin"
 #ifdef EVO_PLAYER_VERSION
 #define TUBE_ABOUT_VERSION EVO_PLAYER_VERSION
 #else

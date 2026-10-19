@@ -1,0 +1,141 @@
+{
+  "about": "Optional Ko-fi support and QR navigation; fixture checks, not PS5 captures",
+  "boards": [
+    {
+      "name": "maxd-support-settings",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "tile:about",
+        "title": "Support YouTube Max’d"
+      },
+      "expect": {
+        "screen": "settings",
+        "focus": "row/about:credits",
+        "state": {
+          "rows": "5",
+          "kind": "link"
+        }
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        }
+      ]
+    },
+    {
+      "name": "maxd-support-open",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "tile:about",
+        "title": "Support YouTube Max’d"
+      },
+      "expect": {
+        "screen": "reader",
+        "argument": "link:maxd-support",
+        "state": {
+          "qr": "yes",
+          "qr_kind": "support"
+        }
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "cross"
+        },
+        {
+          "wait": 0.7
+        }
+      ]
+    },
+    {
+      "name": "maxd-support-return",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "settings",
+        "argument": "tile:about",
+        "title": "Support YouTube Max’d"
+      },
+      "expect": {
+        "screen": "settings",
+        "state": {
+          "rows": "5",
+          "kind": "link"
+        }
+      },
+      "steps": [
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "down"
+        },
+        {
+          "press": "cross"
+        },
+        {
+          "wait": 0.7
+        },
+        {
+          "press": "circle"
+        },
+        {
+          "wait": 0.7
+        }
+      ]
+    },
+    {
+      "name": "maxd-support-guest",
+      "fixture": "guest",
+      "route": {
+        "screen": "reader",
+        "argument": "link:maxd-support",
+        "title": "Support YouTube Max’d"
+      },
+      "expect": {
+        "screen": "reader",
+        "state": {
+          "qr": "yes",
+          "qr_kind": "support"
+        }
+      }
+    },
+    {
+      "name": "maxd-support-party-regression",
+      "fixture": "signed-in",
+      "route": {
+        "screen": "reader",
+        "argument": "link:maxd-party",
+        "title": "Support YouTube Max’d"
+      },
+      "expect": {
+        "screen": "reader",
+        "state": {
+          "qr": "yes",
+          "qr_kind": "party"
+        }
+      }
+    }
+  ]
+}

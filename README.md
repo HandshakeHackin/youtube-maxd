@@ -19,6 +19,7 @@
 <p align="center">
   <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.3.0-preview.1/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
   <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.3.0-preview.1"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
+  <a href="https://ko-fi.com/handshakehackin"><img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&amp;logo=kofi&amp;logoColor=white" alt="Optional support on Ko-fi"></a>
   <br><a href="docs/APP_GUIDE.md">Full guide</a>
 </p>
 

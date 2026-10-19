@@ -153,7 +153,7 @@ boards = [
     board("settings-clear-queue", argument="tile:content", steps=P("r2", "down", "down", "cross"), expect={"dialog": 1}),
     board("settings-clear-queue-done", argument="tile:content", steps=P("r2", "down", "cross", "cross") + W(0.8),
           expect={"dialog": 0, "focus": "row/clear-history", "state": {"applied": "1", "kind": "action"}, "asked": ["settings:clear-history"]}),
-    board("settings-about", argument="tile:about", steps=P("down", "down"), expect={"focus": "row/about:credits", "state": {"rows": "4", "kind": "link"}}),
+    board("settings-about", argument="tile:about", steps=P("down", "down"), expect={"focus": "row/about:credits", "state": {"rows": "5", "kind": "link"}}),
     board("settings-about-credits", argument="tile:about", steps=P("down", "down", "cross") + W(0.7), expect={"screen": "reader", "argument": "settings:about:credits"}),
     board("settings-audio-disabled", argument="tile:audio", steps=P("r2", "cross"), expect={"focus": "row/audio-delay-enabled", "state": {"value": "off", "waiting": "0"}}),
     board("settings-player", argument="tile:player", steps=P("r2", "r2", "r2"), expect={"state": {"load": "ready"}}),

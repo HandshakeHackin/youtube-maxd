@@ -305,6 +305,14 @@ Report reproducible problems through [this repository’s issues](https://github
 
 Console testing is especially useful for the gaps listed above. Describe the exact build and conditions tested so results can be recorded without implying support for untested formats or firmware. Keep credits, source pins and dependency notices intact in contributions and redistributed builds.
 
+## Optional support
+
+[Support HandshakeHackin on Ko-fi](https://ko-fi.com/handshakehackin), using the
+same donation page as Nuvio Max’d. Donations are optional. The next app update
+adds **Settings → About → Support YouTube Max’d**, with a phone QR code and
+readable address in Classic and Afterglow. The current 1.3.0 download predates
+this in-app option.
+
 ## Credits and licenses
 
 **ProsperoTube deserves the primary credit for the YouTube client foundation.** Original provider/service/UI/overlay copyright **(C) 2026 BlackBearReloaded**. Max’d builds on that work and preserves the upstream history, notices and GPL source. The embedded service, TV sign-in, catalogs/accounts, Classic/Afterglow foundation, player integration, captions, SponsorBlock and DeArrow derive from ProsperoTube and its dependencies.

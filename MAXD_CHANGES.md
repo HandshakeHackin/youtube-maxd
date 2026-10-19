@@ -1,5 +1,13 @@
 # YouTube Max’d integration
 
+## Unreleased
+
+The next release is intended to be the first official build. PS5 acceptance
+testing is still outstanding; the current download remains an experimental preview.
+
+- Optional Ko-fi support under Settings → About, with a readable link and phone QR code in Classic and Afterglow. Uses the same `https://ko-fi.com/handshakehackin` destination as Nuvio Max’d.
+- Add the matching Ko-fi homepage badge and GitHub Sponsor link.
+
 ## 1.3.0-preview.1 — 2026-10-18
 
 - Search available video captions and jump to a line; save named, profile-owned timestamp bookmarks.
