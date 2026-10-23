@@ -70,6 +70,69 @@ def relabel(original, destination, label):
                 after.writestr(info, body)
 
 
+def finish_draft(remote):
+    """Address drafts by release ID: their final tag URL does not exist yet."""
+    result = json.loads(command("gh", "api", "--method", "PATCH",
+                                f"repos/{REPO}/releases/{remote['id']}",
+                                "-F", "draft=false", "-F", "prerelease=false",
+                                "-f", "make_latest=true"))
+    if result["draft"] or result["tag_name"] != TAG:
+        raise RuntimeError("Release was not published as expected")
+    print(result["html_url"])
+
+
+def resume_draft(downloads, candidate):
+    """Finalize the inspected draft without replacing or regenerating its assets."""
+    remote = api(f"repos/{REPO}/releases/421455164")
+    if (not remote["draft"] or remote["tag_name"] != TAG
+            or remote["target_commitish"] != candidate
+            or candidate != "41924844e499fc7bd73ecf17682540c3183a68bc"):
+        raise RuntimeError("Draft identity changed")
+    expected = {
+        "native-validation.json": "2f2c56902014077a9ec1afa79e371ff3f1df6821b6d22cd921d4a480636765a2",
+        "PPSA99991.zip": "18cecdfb565a13decd42046d2bc112aafa729ea53d00fdfc149a2ae4cf0fc003",
+        "RELEASE_NOTES.md": "d2c6b2883bf63853d4c4b2790a9add727e1fa0c966d7de8506e7e428efdf7f7f",
+        "SHA256SUMS": "ce3426a7243dc2a8e70e05ebcaa8b3ff0b74c434408fe083db805bd54de2606e",
+        "TEST_RESULTS.md": "9d594f18838198f5cd49160d607a916d27c5b994b41253d7630138ae70d0aa48",
+        "YouTube-Maxd-icon.png": "d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+        "YouTube-Maxd-source.zip": "cec44c61bec720a2391dc445408a2c000a654ba642a6a14af3cfba300e9dc1a8",
+    }
+    assets = {a["name"]: a for a in remote["assets"]}
+    if set(assets) != set(expected) or len(assets) != len(remote["assets"]):
+        raise RuntimeError("Draft inventory changed")
+    destination = downloads / "inspected-draft"
+    destination.mkdir(exist_ok=True)
+    for name, digest in expected.items():
+        asset = assets[name]
+        if asset["state"] != "uploaded" or asset["digest"] != "sha256:" + digest:
+            raise RuntimeError("Draft digest changed: " + name)
+        with (destination / name).open("wb") as stream:
+            subprocess.run(["gh", "api", "-H", "Accept: application/octet-stream",
+                            f"repos/{REPO}/releases/assets/{asset['id']}"], stdout=stream, check=True)
+        if sha(destination / name) != digest:
+            raise RuntimeError("Downloaded draft digest mismatch: " + name)
+    recorded = dict((line.split()[1], line.split()[0]) for line in
+                    (destination / "SHA256SUMS").read_text().splitlines())
+    if recorded != {k: v for k, v in expected.items() if k != "SHA256SUMS"}:
+        raise RuntimeError("Draft manifest differs from uploaded assets")
+    metadata = json.loads((destination / "native-validation.json").read_text())
+    original = downloads / "PPSA99991.zip"
+    if (metadata["source_commit"] != candidate
+            or metadata["ci_package_sha256"] != sha(original)
+            or metadata["release_package_sha256"] != expected["PPSA99991.zip"]
+            or metadata["ps5_hardware_tested"] is not False):
+        raise RuntimeError("Draft provenance mismatch")
+    with zipfile.ZipFile(original) as before, zipfile.ZipFile(destination / "PPSA99991.zip") as after:
+        if before.namelist() != after.namelist() or after.testzip() is not None:
+            raise RuntimeError("Draft package inventory or CRC mismatch")
+        for info in after.infolist():
+            if ((info.external_attr >> 16) & 0o777) != 0o777:
+                raise RuntimeError("Draft package mode mismatch")
+            if info.filename != "PPSA99991/build-label.txt" and before.read(info.filename) != after.read(info):
+                raise RuntimeError("Draft changed compiled payload: " + info.filename)
+    finish_draft(remote)
+
+
 def publish(source, downloads, candidate, run):
     source, downloads = source.resolve(), downloads.resolve()
     if command("git", "rev-parse", "HEAD", cwd=source) != candidate:
@@ -149,18 +212,18 @@ def publish(source, downloads, candidate, run):
     subprocess.run(["gh", "release", "create", TAG, "--repo", REPO, "--target", candidate,
                     "--draft", "--title", "YouTube Max’d 1.4.1", "--notes-file", str(release / "RELEASE_NOTES.md"),
                     *all_assets], check=True)
-    remote = api(f"repos/{REPO}/releases/tags/{TAG}")
+    remote = next(r for r in api(f"repos/{REPO}/releases?per_page=100") if r["tag_name"] == TAG)
     uploaded = {a["name"]: a for a in remote["assets"]}
     for path in release.iterdir():
         if path.is_file() and uploaded.get(path.name, {}).get("digest") != "sha256:" + sha(path):
             raise RuntimeError("Uploaded asset digest mismatch: " + path.name)
-    subprocess.run(["gh", "release", "edit", TAG, "--repo", REPO, "--draft=false", "--prerelease=false", "--latest"], check=True)
+    finish_draft(remote)
     print(f"Published https://github.com/{REPO}/releases/tag/{TAG}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("select", "publish"))
+    parser.add_argument("mode", choices=("select", "publish", "resume"))
     parser.add_argument("--source", type=Path)
     parser.add_argument("--downloads", type=Path)
     parser.add_argument("--candidate")
@@ -168,6 +231,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.mode == "select":
         select()
+    elif args.mode == "resume":
+        if not all((args.downloads, args.candidate)):
+            parser.error("resume requires downloads and candidate")
+        resume_draft(args.downloads, args.candidate)
     else:
         if not all((args.source, args.downloads, args.candidate, args.run)):
             parser.error("publish requires source, downloads, candidate and run")

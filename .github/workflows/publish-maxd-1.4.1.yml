@@ -1,5 +1,5 @@
 # Publish the user-authorized 1.4.1 build with matching source and validation notes.
-# Replace the existing CI label without adding a duplicate archive entry.
+# Finalize the inspected draft by release ID after checking every uploaded byte.
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: Publish Max'd 1.4.1
 
@@ -72,4 +72,4 @@ jobs:
         env:
           CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
           BUILD_RUN: ${{ steps.candidate.outputs.run }}
-        run: python3 scripts/publish_maxd_141.py publish --source app-source --downloads downloads --candidate "$CANDIDATE_SHA" --run "$BUILD_RUN"
+        run: python3 scripts/publish_maxd_141.py resume --source app-source --downloads downloads --candidate "$CANDIDATE_SHA" --run "$BUILD_RUN"
