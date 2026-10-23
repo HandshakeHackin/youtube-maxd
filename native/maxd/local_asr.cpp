@@ -12,7 +12,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <sys/stat.h>
 
 namespace {
 std::thread worker;
@@ -114,9 +113,14 @@ void recognize() {
 }
 
 extern "C" int maxd_asr_available(const char *model) {
-    if (!model || std::strlen(model) > 511) return 0;
-    struct stat info{};
-    return stat(model, &info) == 0 && S_ISREG(info.st_mode) && info.st_size == MAXD_VOICE_MODEL_SIZE;
+    if (!model || !*model || std::strlen(model) > 511) return 0;
+    /* Probe the same file API used by verification and Whisper. A metadata
+     * lookup can be refused by console launchers even when the asset opens.
+     * This is only a cheap availability check; verify_model() hashes every
+     * byte on the worker before inference. Never read 74 MiB on the UI thread. */
+    std::unique_ptr<FILE, int (*)(FILE *)> file(std::fopen(model, "rb"), std::fclose);
+    return file && std::fseek(file.get(), 0, SEEK_END) == 0 &&
+           std::ftell(file.get()) == static_cast<long>(MAXD_VOICE_MODEL_SIZE);
 }
 extern "C" int maxd_asr_start(const char *model, const int16_t *pcm, size_t samples) {
     if (active && completed.load(std::memory_order_acquire) == 0) return 0;

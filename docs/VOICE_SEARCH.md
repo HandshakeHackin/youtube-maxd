@@ -50,6 +50,20 @@ model, exercises cancellation/retry, and checks hold-versus-tap handling.
 The driver tests check local ownership/profile retirement and the existing
 optional companion flow. A host pass does not establish console functionality.
 
+The local model preflight opens and seeks the packaged model instead of
+depending on a filesystem metadata query. Its expected size is checked before
+capture, and the worker still verifies the complete SHA-256 before loading.
+Each L3 start request refreshes availability, so a failed launch-time probe no
+longer disables voice for the rest of the profile session. If the model becomes
+accessible later, retry L3. A missing or incomplete model still requires a
+complete app installation.
+
+`scripts/test_voice_model_probe.py` checks readable files with denied metadata
+and rejects absent, empty, truncated and oversized models. The local driver
+regression checks recovery within the same profile and removal of a previously
+available model before capture. See `docs/issue-1-voice-investigation.md` for
+the issue-specific evidence and remaining console verification.
+
 For console acceptance, check built-in mic mute/unmute, recording/release,
 auto-stop, cancellation at every stage, quiet input, language detection,
 search/back navigation in both interfaces, background playback, profile switch,

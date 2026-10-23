@@ -9,6 +9,7 @@ from the first of these that has it:
   PROSPEROTUBE_UI_KIT   a local clone or a git address (optional)
   ~/ps5-homebrew-ui     the owner's clone, when it exists
   the kit's GitHub address, with whatever credentials git has
+  the public LedyBacer mirror, at the same commit and file hashes
 
 `python3 scripts/ui_kit.py` prints the directory of the checked kit.
 `python3 scripts/ui_kit.py --lock` writes the lock file again after a pin change.
@@ -46,6 +47,7 @@ def sources():
     if (home / ".git").exists():
         yield str(home)
     yield ADDRESS
+    yield "https://github.com/LedyBacer/ps5-homebrew-ui.git"
 
 
 def has_commit(clone):

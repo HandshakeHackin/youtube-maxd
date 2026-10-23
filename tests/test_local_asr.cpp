@@ -25,6 +25,8 @@ static int wait_for(char *out, size_t capacity) {
 int main(int argc, char **argv) {
     assert(argc == 4);
     const char *model = argv[1], *sample = argv[2], *bad_model = argv[3];
+    assert(!maxd_asr_available(nullptr) && !maxd_asr_available(""));
+    assert(!maxd_asr_available(std::string(512, 'x').c_str()));
     MaxdVoiceGesture g{};
     assert(maxd_voice_gesture(&g,1,1,0,0,100)==MAXD_VOICE_WAIT);
     assert(maxd_voice_gesture(&g,0,1,0,0,449)==MAXD_VOICE_WAIT);

@@ -47,7 +47,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Restore pinned dependencies
+        run: bash scripts/restore_submodules.sh
 
       # The compiler is made from the pins in its recipe and a patch from EVO.
       - name: Name the compiler
@@ -162,7 +165,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Restore pinned dependencies
+        run: bash scripts/restore_submodules.sh
 
       # clang-tidy is a local check; it is not installed or run here.
       - name: Install the toolchain
@@ -360,7 +366,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Restore pinned dependencies
+        run: bash scripts/restore_submodules.sh
 
       # clang-tidy is a local check; it is not installed or run here.
       - name: Install the toolchain
