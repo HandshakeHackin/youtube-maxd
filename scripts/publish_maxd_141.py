@@ -57,6 +57,19 @@ def select():
     print(f"Selected candidate {candidate}, successful package run {run['id']}")
 
 
+def relabel(original, destination, label):
+    """Replace the existing label in place in the ZIP inventory, never append it."""
+    label_path = "PPSA99991/build-label.txt"
+    with zipfile.ZipFile(original) as before:
+        names = before.namelist()
+        if len(names) != len(set(names)) or names.count(label_path) != 1:
+            raise RuntimeError("Expected one unique CI build-label entry")
+        with zipfile.ZipFile(destination, "w") as after:
+            for info in before.infolist():
+                body = (label + "\n").encode() if info.filename == label_path else before.read(info)
+                after.writestr(info, body)
+
+
 def publish(source, downloads, candidate, run):
     source, downloads = source.resolve(), downloads.resolve()
     if command("git", "rev-parse", "HEAD", cwd=source) != candidate:
@@ -84,8 +97,7 @@ def publish(source, downloads, candidate, run):
     candidate_zip = dist / "PPSA99991.zip"
     shutil.copyfile(original, candidate_zip)
     # Only replace the text build label; retain the built executable and assets.
-    subprocess.run([sys.executable, str(source / "scripts/zip_open_modes.py"), str(candidate_zip),
-                    "--label", f"YouTube Max’d 1.4.1, {candidate}"], check=True)
+    relabel(original, candidate_zip, f"YouTube Max’d 1.4.1, {candidate}")
     verify(candidate_zip)
     with zipfile.ZipFile(original) as before, zipfile.ZipFile(candidate_zip) as after:
         if set(before.namelist()) != set(after.namelist()):
