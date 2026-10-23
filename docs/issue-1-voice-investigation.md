@@ -3,6 +3,23 @@
 This is separate from the Cyrillic playback-title defect. The reporter's
 follow-up supplies the message, but no console logs or installation inventory.
 
+## Feedback after 1.4.1
+
+On October 23 the reporter confirmed that Russian playback titles now display
+correctly, but L3 still reports model unavailability. The retry and stdio probe
+therefore did not resolve this console's voice failure. Its cause remains
+unconfirmed; no microphone or transcription failure can be inferred from a
+preflight rejection.
+
+The next diagnostic change distinguishes invalid paths, failed opens, failed
+seeks, failed size queries and wrong-size files. Open/seek/size-query errors
+include the captured errno; size mismatches show actual and expected byte
+counts. The voice UI forwards this result instead of hiding it behind a
+generic unavailable message or an earlier timeout. It exposes no account data.
+Host tests inject seek/size-query failures and cover missing/truncated files,
+recovery and driver propagation. Full model SHA verification is unchanged.
+This is diagnostic work, not a confirmed fix for the remaining console issue.
+
 ## Evidence and correction
 
 The public v1.4.0 `PPSA99991.zip` contains

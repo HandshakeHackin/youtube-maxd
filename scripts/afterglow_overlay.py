@@ -209,10 +209,11 @@ def apply(root, work, replace, player):
     shutil.copyfile(root / "native/afterglow/app/afterglow.h", evo / "addons/include/tube_afterglow.h")
     for source_name, asset in FONTS:
         shutil.copyfile(kit / "third_party/fonts" / source_name, evo / "assets/fonts" / asset)
-    # Classic playback and engine-initialization fallback use the baked display
-    # face. Bundle Cyrillic glyphs there too; UTF-8 decoding alone cannot draw them.
-    playback_title_font.stage(kit, evo / "assets/hui/fonts/montserrat-medium.huifont",
-                              root / "build/playback-title-font")
+    # Classic title, chapter, toast and diagnostic text use different baked
+    # faces. Give all four Cyrillic coverage, including engine-failure fallback.
+    for name in playback_title_font.FACES:
+        playback_title_font.stage(kit, evo / "assets/hui/fonts" / name,
+                                  root / "build/playback-title-font", name)
     notices = evo / "assets/prosperotube-notices"
     notices.mkdir(exist_ok=True)
     for name in FONT_LICENSES:

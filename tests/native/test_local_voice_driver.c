@@ -63,7 +63,12 @@ int main(void) {
     assert(tube_voice_state() == TUBE_VOICE_FAILED); fail_start = 0;
     tube_voice_cancel(); transcribe(); tube_voice_tick(75100);
     assert(tube_voice_state() == TUBE_VOICE_FAILED);
+    /* A later model failure must replace an earlier microphone/timeout error. */
+    model = 0;
+    assert(!tube_voice_begin(0, 100));
+    assert(strstr(tube_voice_error(), "Synthetic recognition failure"));
     model = 0; tube_voice_configure_local("missing-model");
+    assert(strstr(tube_voice_error(), "Synthetic recognition failure"));
     assert(tube_voice_available() == -1 && !tube_voice_begin(0, 100));
     /* A failed startup probe must not disable L3 for the entire profile.
      * Model visibility can change after the app's launch/access transition. */

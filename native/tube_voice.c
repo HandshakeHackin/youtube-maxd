@@ -288,6 +288,9 @@ int tube_voice_available(void) { return available; }
 unsigned tube_voice_owner(void) { return owner; }
 const char *tube_voice_result(void) { return state == TUBE_VOICE_READY && (!owner || tube_remote_owner_current(owner)) ? query : ""; }
 const char *tube_voice_error(void) {
+#ifdef TUBE_LOCAL_VOICE
+    if (local_mode && available != 1) return maxd_asr_error();
+#endif
     if (*failure) return failure;
     return local_mode ? "Voice model is unavailable. Reinstall the complete app and restart it." :
         "Enable local speech recognition on the paired companion first.";

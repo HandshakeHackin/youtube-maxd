@@ -1,4 +1,4 @@
-"""Bake Cyrillic coverage into the playback display atlas, without changing kit inputs."""
+"""Bake Cyrillic coverage into playback/UI atlases, without changing kit inputs."""
 import hashlib
 import os
 from pathlib import Path
@@ -9,14 +9,20 @@ import subprocess
 import sys
 
 NAME = "montserrat-medium.huifont"
+FACES = {
+    NAME: "Montserrat-Medium.ttf",
+    "inter-regular.huifont": "Inter-Regular.ttf",
+    "inter-semibold.huifont": "Inter-SemiBold.ttf",
+    "dejavu-sans-mono.huifont": "DejaVuSansMono.ttf",
+}
 
 
-def stage(kit, destination, cache):
+def stage(kit, destination, cache, name=NAME):
     kit, destination, cache = Path(kit), Path(destination), Path(cache)
     inputs = [kit / path for path in (
         "tools/font-baker/bake_font.cpp", "third_party/stb/stb_truetype.h",
-        "src/gfx/font_format.hpp", "third_party/fonts/Montserrat-Medium.ttf")]
-    original = (kit / "assets/fonts" / NAME).read_bytes()
+        "src/gfx/font_format.hpp", "third_party/fonts/" + FACES[name])]
+    original = (kit / "assets/fonts" / name).read_bytes()
     pixel, spread = struct.unpack_from("<ff", original, 12)
     # The pinned baker's european set includes А–я and Ё/ё. Its larger atlas
     # keeps the original pixel size and SDF spread (and thus text metrics).
@@ -26,12 +32,12 @@ def stage(kit, destination, cache):
     for path in inputs:
         digest.update(path.read_bytes())
     folder = cache / digest.hexdigest()
-    baked = folder / NAME
+    baked = folder / name
     if not baked.exists():
         folder.mkdir(parents=True, exist_ok=True)
         executable = folder / "bake-font"
         subprocess.run([*compiler, "-std=c++17", "-O2", str(inputs[0]), "-o", str(executable)], check=True, stdout=sys.stderr)
-        temporary = folder / (NAME + ".tmp")
+        temporary = folder / (name + ".tmp")
         subprocess.run([str(executable), str(inputs[-1]), str(temporary), *args], check=True, stdout=sys.stderr)
         data = temporary.read_bytes()
         count = struct.unpack_from("<I", data, 32)[0]
