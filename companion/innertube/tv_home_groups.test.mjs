@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import fixture from './fixtures/tv-home-shape.json' with {type:'json'};
 import {Log} from 'youtubei.js';
 import {Library,LibraryError,normalizeVideo,imageUrl} from './library.mjs';
 import {TvAccountCatalog} from './tv_account_catalog.mjs';
 import {SuggestionFilters} from './suggestions.mjs';
 import {hides} from './content_filters.mjs';
 Log.setLevel(Log.Level.NONE);
-const fixture=JSON.parse(readFileSync(new URL('./fixtures/tv-home-shape.json',import.meta.url)));
 const source=fixture.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents[0].shelfRenderer;
 const seed=source.content.horizontalListRenderer.items[0].tileRenderer;
 const id=n=>String(n).padStart(11,'0');
