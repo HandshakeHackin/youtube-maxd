@@ -1,10 +1,8 @@
 # ProsperoTube - Check, build and release the app.
 #
-# Pull requests, version tags (v + the content version) and runs started by
-# hand build; a push to a branch builds nothing. Job "shader-compiler" makes
-# the PS5 shader compiler available first and caches it the moment it exists,
-# so a later failure never repeats its hours of compiling. Jobs "build" (the
-# release ZIP) and "checks" (the offline host checks) then run side by side.
+# Pull requests, version tags and manual runs build the app and run checks.
+# Normal builds use the checked, pinned EVO shaders. The optional shader-tool
+# snapshot is built only when explicitly requested by a manual snapshot run.
 # A tag also publishes: job "release" attaches the ZIP job "build" made, with
 # its checksum, to a GitHub pre-release. A release that already has a ZIP is
 # never changed.
@@ -36,6 +34,7 @@ concurrency:
 jobs:
   shader-compiler:
     name: PS5 shader compiler
+    if: github.event_name == 'workflow_dispatch' && inputs.snapshot
     runs-on: ubuntu-24.04
     # Compiling it (LLVM, LLPC, PAL) takes hours on a hosted runner; it happens
     # only when its pins change and no cache or snapshot holds it.
@@ -146,7 +145,6 @@ jobs:
 
   build:
     name: Build the release ZIP
-    needs: shader-compiler
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     # The two write entries are for the attestation step only: a signing identity for this run,
@@ -210,15 +208,6 @@ jobs:
             echo "artifact=${GITHUB_REPOSITORY##*/}-$CONTENT_VERSION-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Restore the PS5 shader compiler
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cache/prosperotube/shader-tools/bin
-            ~/.cache/prosperotube/shader-tools/lib
-            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
-          key: ${{ needs.shader-compiler.outputs.key }}
-          fail-on-cache-miss: true
 
       # The SDK prefix also receives the PS5 builds of dav1d and FFmpeg
       # (scripts/build_ps5.sh), so the key names everything they are built from.
@@ -358,7 +347,6 @@ jobs:
 
   checks:
     name: Offline checks
-    needs: shader-compiler
     runs-on: ubuntu-24.04
     timeout-minutes: 150
 
@@ -375,15 +363,6 @@ jobs:
       - name: Install the toolchain
         run: make host-deps
 
-      - name: Restore the PS5 shader compiler
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cache/prosperotube/shader-tools/bin
-            ~/.cache/prosperotube/shader-tools/lib
-            ~/.cache/prosperotube/shader-tools/.prosperotube-recipe
-          key: ${{ needs.shader-compiler.outputs.key }}
-          fail-on-cache-miss: true
 
       # Read only: job "build" alone saves the SDK, after adding dav1d and FFmpeg to it.
       # Without that cache (a first run) the checks fetch the SDK themselves.
