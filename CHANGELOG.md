@@ -2,6 +2,13 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.004.001
+
+- Add Russian Cyrillic glyphs, including Ё/ё, to the fallback PS5 playback title display font.
+- Retry local voice-model availability when starting L3 voice search and probe readable model files through stdio. Full model SHA verification is retained.
+- Preserve TV Home shelf grouping, omit empty filtered categories while retaining pagination, and apply the primary Home watched preference.
+- Restore unchanged build dependency pins through public mirrors and keep normal builds on checked EVO shaders.
+
 ## 1.004.000
 
 Released as **v1.4.0**, the first official release (2026-10-19).

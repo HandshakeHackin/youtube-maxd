@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     assert(tube_about_title(tiny, sizeof tiny) == -1 && !*tiny && tube_about_title(NULL, 0) == -1);
 
     /* Who it is brought to you by, and what it is not: the words About shows. */
-    assert(!strcmp(TUBE_ABOUT_BROUGHT, "Brought to you by BlackBearReloaded"));
+    assert(!strcmp(TUBE_ABOUT_BROUGHT, "Based on ProsperoTube by BlackBearReloaded"));
     assert(!strcmp(TUBE_ABOUT_UNOFFICIAL, "Not affiliated with or endorsed by YouTube or Google"));
 
     /* Links: the project's own pages, unique ids, row-sized text, QR-sized URLs. */

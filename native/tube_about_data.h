@@ -3,11 +3,15 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 34
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.001"
+#define TUBE_ABOUT_CHANGELOG_ROWS 38
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.004.001", "Add Russian Cyrillic glyphs, including \320\201/\321\221, to the fallback PS5 playback title display font."}, \
+    {"1.004.001", "Retry local voice-model availability when starting L3 voice search and probe readable model files through stdio. Full model SHA verification is retained."}, \
+    {"1.004.001", "Preserve TV Home shelf grouping, omit empty filtered categories while retaining pagination, and apply the primary Home watched preference."}, \
+    {"1.004.001", "Restore unchanged build dependency pins through public mirrors and keep normal builds on checked EVO shaders."}, \
     {"1.004.000", "Add a PS5-hosted Phone remote: scan a one-use QR on a trusted local network to search, navigate the TV, pause/resume, seek and manage the local play queue. No companion PC or phone app required."}, \
     {"1.004.000", "Keep Phone remote off by default. Pair one phone per session; QR codes expire after five minutes and sessions after two hours. Stop/restart, profile/source changes and app exit revoke control. Restricted family profiles cannot host a remote."}, \
     {"1.004.000", "Add user-requested bug-report export, review and deletion. Capture a strict technical field allowlist; download JSON through the paired phone or retrieve /data/youtube-maxd/bug-report.json. Exclude accounts, tokens, IP addresses, video IDs/titles, searches, URLs and raw logs. No automatic uploads."}, \

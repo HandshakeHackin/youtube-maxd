@@ -141,7 +141,7 @@ def basics(s):
     status, headers, health = s.call("GET", "/v1/health", token=None)
     same("health status", (status, headers.get("content-type")), (200, "application/json"))
     same("health fields", {k: v for k, v in health.items() if k != "features"},
-         {"api_version": 1, "version": "1.004.000", "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
+         {"api_version": 1, "version": re.search(r'__version__ = "([^"]+)"', (ROOT.parent / "companion/prosperotube/__init__.py").read_text()).group(1), "service": "ProsperoTube", "mode": "youtube", "sponsorblock": True,
           "sponsorblock_alt": False, "proxy": False, "embedded": True, "account_playback": False})
     features = health["features"]
     check("health offers what exists", {"search", "library", "dash", "captions", "storyboards", "channel_pages", "content_filters",

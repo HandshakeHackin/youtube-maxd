@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Account adapters do not require the PS5/UI-kit submodules.
 name: Account feed checks
 
