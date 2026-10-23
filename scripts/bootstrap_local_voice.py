@@ -41,12 +41,17 @@ def download(url, path, expected=None):
 
 
 def header(path):
+    from release_version import identity
+    title, _, _ = identity()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f'''/* Generated from pinned Whisper inputs; GPL-3.0-or-later. */
 #pragma once
 #define MAXD_VOICE_MODEL_SHA256 "{MODEL_SHA}"
 #define MAXD_VOICE_MODEL_SIZE {MODEL_SIZE}u
 #define MAXD_VOICE_MODEL_PATH "/app0/assets/voice/ggml-tiny.bin"
+#define MAXD_VOICE_MODEL_PATHS MAXD_VOICE_MODEL_PATH, \\
+    "/system_ex/app/{title}/assets/voice/ggml-tiny.bin", \\
+    "/data/homebrew/{title}/assets/voice/ggml-tiny.bin"
 ''')
 
 

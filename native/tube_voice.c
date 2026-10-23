@@ -27,6 +27,23 @@ static int state, inflight, available, health_inflight;
 static int64_t clock_ms, deadline, next_poll, next_health;
 static int local_mode;
 static char failure[160];
+#ifdef TUBE_LOCAL_VOICE
+static char local_model_path[512];
+static int probe_local_model(void) {
+    /* Match the install roots already supported by tube_update_param_path().
+     * A launcher need not expose this app's files through /app0. Keep the
+     * selected path through capture so SHA verification and Whisper use it too. */
+    const char *const paths[] = { MAXD_VOICE_MODEL_PATHS };
+    local_model_path[0] = 0;
+    for (size_t i = 0; i < sizeof paths / sizeof *paths; ++i) {
+        if (maxd_asr_available(paths[i])) {
+            snprintf(local_model_path, sizeof local_model_path, "%s", paths[i]);
+            return 1;
+        }
+    }
+    return -1;
+}
+#endif
 
 static void wipe(void *memory, size_t bytes) {
     volatile unsigned char *p = memory;
@@ -122,7 +139,7 @@ void tube_voice_configure_local(const char *selected) {
     source[0] = 0; wipe(token, sizeof token);
     snprintf(profile, sizeof profile, "%s", selected);
 #ifdef TUBE_LOCAL_VOICE
-    available = maxd_asr_available(MAXD_VOICE_MODEL_PATH) ? 1 : -1;
+    available = probe_local_model();
 #else
     available = -1;
 #endif
@@ -155,7 +172,7 @@ int tube_voice_begin(unsigned remote_owner, int64_t now) {
     /* Configuration caches availability once per profile. A launch-time failure must
      * not latch local voice off: retry the cheap file probe on each L3 request.
      * The worker still checks the full model digest before loading it. */
-    if (local_mode) available = maxd_asr_available(MAXD_VOICE_MODEL_PATH) ? 1 : -1;
+    if (local_mode) available = probe_local_model();
 #endif
     if (available != 1 ||
         (!local_mode && (!*source || !*token)) || (local_mode && remote_owner) ||
@@ -209,7 +226,7 @@ void tube_voice_tick(int64_t now) {
         if (captured < 0) { fail_with("No speech captured. Unmute the microphone and speak clearly, then retry."); return; }
 #ifdef TUBE_LOCAL_VOICE
         if (local_mode) {
-            int started = maxd_asr_start(MAXD_VOICE_MODEL_PATH, pcm, samples);
+            int started = maxd_asr_start(local_model_path, pcm, samples);
             tube_microphone_release();
             if (!started) { fail_with(maxd_asr_error()); return; }
             state = TUBE_VOICE_TRANSCRIBING;
