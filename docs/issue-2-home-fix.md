@@ -30,27 +30,29 @@ rendering code changes are part of this correction.
 
 ## Verification and limits
 
-The workspace execution server failed to initialize during this change.
-Consequently npm/Node integration tests, the PS5 build and console execution
-could not be run in the workspace.
+The local workspace execution server failed to initialize during this change.
+A separate, read-only GitHub Actions workflow now checks out only the account
+adapter source, without console submodules, and runs the actual Node tests.
 
-The new `tv_home_groups.test.mjs` contains 11 Node regression cases and is
-imported by the existing worker test entry point. Ten adapter-level cases were
-also run in the available isolated JavaScript runtime using the production
-TopicCatalog, TvAccountCatalog, SuggestionFilters, video normalizer and content
-filter source. The harness replaced Node I/O/crypto/URL facilities and used
-plain-JSON cloning for synthetic fixtures; this is not a Node-suite pass.
+Validation results ([GitHub Actions run](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/39884068287)):
+- The targeted Home/TV/content-filter set: **39 passed, 0 failed**.
+- The complete bundled account worker suite: **221 passed, 0 failed**.
+- The isolated JavaScript adapter harness also passed 10 cases. Before the
+  correction, eight of those cases failed. The actual Node checks supersede
+  the harness's earlier limitation.
 
-- Original adapter through an entry-point compatibility shim: 2 pass, 8 fail.
-- Corrected adapter: 10 pass, 0 fail.
-- The additional full Library routing test is prepared but was not executed.
+The new `tv_home_groups.test.mjs` contributes 11 regression cases, including
+full Library-to-OAuth-adapter routing. Its JSON fixture is imported so both
+direct Node execution and esbuild's bundled worker tests can find it. The
+existing deeply nested Home test now checks both the primary preview and
+access to the later category instead of requiring shelf flattening.
 
 Cases cover source grouping, filter selections, ad-only final shelves, primary
 watched filtering, unnamed shelves, retained filtered-empty continuations,
 independent Home/shelf tokens, flat continuation filters, profile ownership,
 malformed groups and the account-wide item limit.
 
-Run these checks once a Node environment is available:
+To repeat:
 
 ```sh
 cd companion/innertube
@@ -58,6 +60,12 @@ npm ci --ignore-scripts
 node --test tv_home_groups.test.mjs tv_account_shapes.test.mjs home_feed.test.mjs content_filters.test.mjs
 npm test
 ```
+
+The existing full PS5 Build workflow separately fails during recursive checkout
+because `blackbearreloaded/ps5-homebrew-ui` is unavailable. It does not reach
+the console build or its offline checks. The new account-feed workflow avoids
+that dependency; it does not claim to repair or verify the PS5 packaging
+pipeline. PS5 build and console verification remain outstanding.
 
 Earlier authorized live testing confirmed the flattening behavior with two
 authenticated responses containing four shelves apiece. It did not establish an
