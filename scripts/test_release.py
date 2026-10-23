@@ -25,6 +25,8 @@ public_version = ".".join(str(int(part)) for part in content.split("."))
 assert json.loads((ROOT / "UPSTREAM.json").read_text())["version"] == public_version
 assert json.loads((ROOT / "branding/brand.json").read_text())["version"] == public_version
 assert f'#define YM_VERSION "{public_version}"' in (ROOT / "native/maxd/brand.h").read_text()
+store_param = json.loads((ROOT / "store/sce_sys/param.json").read_text())
+assert (store_param["titleId"], store_param["contentVersion"]) == (title, content)
 
 assert run(ROOT / "scripts/release_version.py", "--tag").strip() == "v" + content
 # The version About shows and the one the release is named after are the same.

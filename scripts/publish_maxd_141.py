@@ -67,6 +67,9 @@ def publish(source, downloads, candidate, run):
     from verify_app_zip import verify
     if identity() != ("PPSA99991", "01.004.001", "1.004.001"):
         raise RuntimeError("Source identity is not 1.4.1")
+    store_param = json.loads((source / "store/sce_sys/param.json").read_text())
+    if (store_param["titleId"], store_param["contentVersion"]) != ("PPSA99991", "01.004.001"):
+        raise RuntimeError("Catalog-readable identity differs from the package version")
     original = downloads / "PPSA99991.zip"
     recorded = next(row.split()[0] for row in (downloads / "SHA256SUMS").read_text().splitlines()
                     if row.split()[-1] == "PPSA99991.zip")
