@@ -21,7 +21,7 @@ code = r'''
 #include <cstdint>
 #include <string>
 namespace PadButtons { enum {L3=2}; }
-enum class ScreenId {EmbyBrowse, Player};
+enum class ScreenId {EmbyBrowse, Player, Settings};
 enum class SignIn {Idle, Suggest, Signing};
 static std::string m_providerId="youtube";
 static bool m_opened=true,m_picking=false,m_web=false,m_resolving=false,m_tunePending=false,m_streamPick=false,m_discovering=false;
@@ -61,7 +61,10 @@ int main(){
  m.time=1000; frame(&m,true,2,2,0);
  m.time=1100; frame(&m,true,0,0,2); assert(m.result==MAXD_VOICE_TAP);
  m.at=ScreenId::Player; int calls=m.calls;
- frame(&m,false,0,2,0); assert(m.calls==calls);
+ frame(&m,false,0,2,0); assert(m.calls==calls+1); // playback voice commands also sample holds
+ frame(&m,true,2,2,0); assert(m.calls==calls+2);
+ m.at=ScreenId::Settings; calls=m.calls;
+ frame(&m,false,0,2,0); assert(m.calls==calls); // unrelated screens remain edge-driven
  frame(&m,true,2,2,0); assert(m.calls==calls+1);
 }
 '''

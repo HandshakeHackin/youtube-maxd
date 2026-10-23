@@ -65,6 +65,16 @@ int main(void) {
     assert(tube_voice_state() == TUBE_VOICE_FAILED);
     model = 0; tube_voice_configure_local("missing-model");
     assert(tube_voice_available() == -1 && !tube_voice_begin(0, 100));
+    /* A failed startup probe must not disable L3 for the entire profile.
+     * Model visibility can change after the app's launch/access transition. */
+    model = 1; tube_voice_configure_local("missing-model");
+    assert(tube_voice_begin(0, 100));
+    assert(tube_voice_available() == 1);
+    tube_voice_cancel();
+    /* A model removed since configuration must fail before microphone capture. */
+    model = 0;
+    assert(!tube_voice_begin(0, 100) && !busy);
+    assert(tube_voice_available() == -1);
     model = 1; tube_voice_configure_local("guest");
     assert(tube_voice_begin(0, 100)); tube_voice_shutdown(); asr = 1; tube_voice_tick(200);
     assert(tube_voice_state() == TUBE_VOICE_IDLE && !tube_voice_available());

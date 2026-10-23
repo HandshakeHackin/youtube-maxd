@@ -1,5 +1,13 @@
 # YouTube Max’d integration
 
+## 1.4.1 — 2026-10-23
+
+- Add Russian glyphs, including Ё/ё, to the fallback playback display atlas.
+- Refresh local voice-model readability on L3 while retaining full SHA verification.
+- Preserve TV Home shelf groups and pagination, filter empty categories, and honor the primary Home watched preference.
+- Restore the same pinned UI and Lapy source through public mirrors; keep default builds on checked EVO shaders.
+- Console confirmation of the reported fixes remains pending.
+
 ## 1.4.0 — 2026-10-19
 
 - First official release label; console acceptance remains a separate, pending validation step.

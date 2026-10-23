@@ -6,7 +6,7 @@ export PS5_PAYLOAD_SDK="${PS5_PAYLOAD_SDK:-${HOME}/.cache/prosperotube/sdk}"
 for command in git python3 llvm-config clang ld.lld wget unzip cmake make; do
     command -v "$command" >/dev/null || { echo "Missing host dependency: $command" >&2; exit 2; }
 done
-git -C "$root" submodule update --init --recursive
+bash "$root/scripts/restore_submodules.sh"
 if [[ ! -f "$PS5_PAYLOAD_SDK/bin/prospero-clang" ]]; then
     PS5_SDK_VERSION=v0.42 bash "$root/third_party/evo/scripts/install-sdk-image.sh"
 fi

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { YT } from 'youtubei.js';
 import { TopicCatalog, find } from './topic_catalog.mjs';
+import { hides, isWatched } from './content_filters.mjs';
 
 const channelPattern = /^UC[A-Za-z0-9_-]{22}$/;
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -81,6 +82,58 @@ export class TvAccountCatalog extends TopicCatalog {
     }
     return result;
   }
+
+  // Home's first usable group is the primary preview. Later groups stay behind
+  // their own navigation cards instead of becoming unrelated rows in that grid.
+  // Keep row continuations even when today's filtered page has no visible cards.
+  homeFeed(owner, client, raw, flags = null, continued = false) {
+    const hidden = hides(flags, 'home');
+    const hideWatched = !flags || flags.has('watched_home');
+    const visible = item => !hidden?.(item);
+    const primaryVisible = item => visible(item) && (!hideWatched || !isWatched(item));
+    const node = find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation');
+    if (!node) {
+      const filter = feed => ({ ...feed,
+        catalog_items: feed.catalog_items.filter(primaryVisible),
+        ...(feed.has_continuation ? { getContinuation: async () => filter(await feed.getContinuation()) } : {}) });
+      return filter(super.feed(owner, 'home', client, raw, false, continued));
+    }
+    const rows = node.contents;
+    if (!Array.isArray(rows) || rows.length > 128)
+      throw new this.Error('upstream_limit', 'Too many Home groups.', 502);
+    const previews = [], folders = [];
+    let count = 0;
+    let primary = continued; // later pages must not promote category shelves into the primary grid
+    for (const value of rows) {
+      const shelf = value?.shelfRenderer;
+      const content = value?.gridRenderer ? { gridRenderer: value.gridRenderer } :
+        shelf?.content?.horizontalListRenderer || shelf?.content?.gridRenderer ? shelf.content : null;
+      if (!content) continue; // ad slots and unsupported non-card layouts are never expanded
+      const row = super.feed(owner, 'home', client, content, false);
+      count += row.catalog_items.length;
+      if (count > 4096)
+        throw new this.Error('upstream_limit', 'The account feed exceeds the item limit.', 502);
+      const items = row.catalog_items.filter(visible);
+      const first = !primary && row.catalog_items.length > 0;
+      if (first) {
+        primary = true;
+        previews.push(...row.catalog_items.filter(primaryVisible));
+      }
+      if (!items.length && !row.has_continuation) continue;
+      const title = label(find(shelf?.headerRenderer, 'avatarLockupRenderer')?.title ?? shelf?.title) || 'More videos';
+      // Retain the primary shelf too: its horizontal continuation may be
+      // independent of the Home page's continuation. Empty final shelves vanish.
+      folders.push(this.references.register(owner, title, 'YouTube', async () => row, 'home'));
+    }
+    const directContinuation = rows.find(row => row?.continuationItemRenderer)?.continuationItemRenderer;
+    const candidate = node.continuations?.[0]?.nextContinuationData?.continuation ??
+      directContinuation?.continuationEndpoint?.continuationCommand?.token;
+    const token = typeof candidate === 'string' && candidate.length <= 16384 ? candidate : '';
+    return { catalog_items: [...previews, ...folders], has_continuation: !!token,
+      ...(token ? { getContinuation: async () =>
+        this.homeFeed(owner, client, await this.request(client, { continuation: token }), flags, true) } : {}) };
+  }
+
   // Subscribed channels of a TV sign-in: the channel tabs beside "All" on the
   // TV Subscriptions page. The web channel list does not answer a TV sign-in.
   async channels(client) {
@@ -101,7 +154,7 @@ export class TvAccountCatalog extends TopicCatalog {
     }
     return { tabs: tabs.length, feed: { catalog_items: items, has_continuation: false } };
   }
-  async browse(owner, action, client, playlist = '') {
+  async browse(owner, action, client, playlist = '', flags = null) {
     // MediaServiceCore TV Home uses default; the remaining IDs match the pinned account operations.
     const ids = { home: 'default', history: 'FEhistory', library: 'FElibrary', playlists: 'FEplaylist_aggregation',
       subscriptions: 'FEsubscriptions', watch_later: 'VLWL', playlist: 'VL' + playlist };
@@ -114,9 +167,9 @@ export class TvAccountCatalog extends TopicCatalog {
       return new Feed(client.actions, { data: raw });
     }
     const section = action === 'watch_later' ? 'playlist:WL' : action === 'playlist' ? 'playlist:' + playlist : action;
-    const feed = this.feed(owner, section, client, raw);
+    const feed = action === 'home' ? this.homeFeed(owner, client, raw, flags) : this.feed(owner, section, client, raw);
     console.error(`YouTube browse shape: action=${action} tiles=${tiles} mode=tv items=${feed.catalog_items.length}`);
-    if (!feed.catalog_items.length)
+    if (!feed.catalog_items.length && action !== 'home')
       throw new this.Error('upstream_format', 'YouTube returned account cards that could not be read.', 502);
     return feed;
   }

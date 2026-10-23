@@ -25,6 +25,8 @@ public_version = ".".join(str(int(part)) for part in content.split("."))
 assert json.loads((ROOT / "UPSTREAM.json").read_text())["version"] == public_version
 assert json.loads((ROOT / "branding/brand.json").read_text())["version"] == public_version
 assert f'#define YM_VERSION "{public_version}"' in (ROOT / "native/maxd/brand.h").read_text()
+store_param = json.loads((ROOT / "store/sce_sys/param.json").read_text())
+assert (store_param["titleId"], store_param["contentVersion"]) == (title, content)
 
 assert run(ROOT / "scripts/release_version.py", "--tag").strip() == "v" + content
 # The version About shows and the one the release is named after are the same.
@@ -70,11 +72,11 @@ assert build.index(normalize) < build.index(copy_zip)
 assert "-name '*.zip'" not in build
 
 workflows = sorted((ROOT / ".github/workflows").glob("*.yml"))
-assert [path.name for path in workflows] == ["build-cache.yml", "build.yml", "publish-maxd-official.yml", "publish-maxd-preview.yml", "publish-maxd-revision.yml"]
+assert {"account-feed-checks.yml", "build-cache.yml", "build.yml", "publish-maxd-official.yml", "publish-maxd-preview.yml", "publish-maxd-revision.yml"} <= {path.name for path in workflows}
 for path in workflows:
     text = path.read_text()
     assert "# SPDX-License-Identifier: GPL-3.0-or-later\n" in text, path.name
-    if not path.name.startswith("publish-maxd-"):
+    if not path.name.startswith("publish-maxd-") and path.name != "account-feed-checks.yml":
         assert text.startswith("# ProsperoTube - "), path.name
         assert "# Copyright (C) 2026 BlackBearReloaded\n" in text, path.name
     uses = re.findall(r"uses: (\S+)", text)

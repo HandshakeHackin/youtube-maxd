@@ -1,16 +1,7 @@
-# ProsperoStore update — 1.4.0
+# ProsperoStore update — 1.4.1
 
-YouTube Max’d is already listed as **PPSA99991** in Video & TV.
-This update adds Phone remote, private bug-report export and optional support;
-PiP remains off by default. Content version is **01.004.000**.
+Title PPSA99991; content version 01.004.001. The catalog must point to the published v1.4.1 PPSA99991.zip and its exact GitHub release digest.
 
-- [Catalog record](PPSA99991.json) and [single-record patch](catalog.patch).
-- [Matching packaged metadata/icon](sce_sys).
-- [Submission status](SUBMISSION.md), [validation](VALIDATION.md) and [PR text](PULL_REQUEST.md).
-- [Release notes](../docs/releases/v1.4.0.md) and [recorded tests](../docs/releases/v1.4.0/TEST_RESULTS.txt).
+This update includes the Cyrillic fallback title font, local voice-model retry/readability correction, and TV Home shelf grouping/filter changes. See ../docs/releases/01.004.001.md for release notes and testing limits.
 
-[Current store page](https://prosperostore.net/app/PPSA99991/).
-The previous 1.3.0 update was approved and deployed in
-[PR #417](https://github.com/darkxex/ps5-homebrew-catalog/pull/417).
-See SUBMISSION.md for this update's actual state. Store review/deployment and
-PS5 hardware acceptance are separate steps.
+The final store submission and deployment status are recorded after publication. Older submission files in this directory describe the historical 1.4.0 update.

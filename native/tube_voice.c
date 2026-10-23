@@ -150,7 +150,14 @@ void tube_voice_configure(const char *src, const char *bearer, const char *selec
     snprintf(profile, sizeof profile, "%s", selected);
 }
 int tube_voice_begin(unsigned remote_owner, int64_t now) {
-    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING || available != 1 ||
+    if (state == TUBE_VOICE_RECORDING || state == TUBE_VOICE_TRANSCRIBING) return 0;
+#ifdef TUBE_LOCAL_VOICE
+    /* Configuration caches availability once per profile. A launch-time failure must
+     * not latch local voice off: retry the cheap file probe on each L3 request.
+     * The worker still checks the full model digest before loading it. */
+    if (local_mode) available = maxd_asr_available(MAXD_VOICE_MODEL_PATH) ? 1 : -1;
+#endif
+    if (available != 1 ||
         (!local_mode && (!*source || !*token)) || (local_mode && remote_owner) ||
         now < 0 || now > INT64_MAX - 75000 || (remote_owner && !tube_remote_owner_current(remote_owner))) return 0;
     int available = 0; for (size_t i = 0; i < 4; ++i) if (!requests[i].used) available = 1;

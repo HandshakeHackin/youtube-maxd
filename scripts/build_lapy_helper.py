@@ -77,7 +77,8 @@ def fetch_lapy():
     try:
         subprocess.run(["git", "init", "-q"], cwd=staging, check=True)
         subprocess.run(["git", "remote", "add", "origin", LAPY_URL], cwd=staging, check=True)
-        subprocess.run(["git", "fetch", "-q", "--depth", "1", "origin", LAPY_COMMIT],
+        subprocess.run(["git", "-c", "url.https://github.com/LedyBacer/.insteadOf=https://github.com/blackbearreloaded/",
+                        "fetch", "-q", "--depth", "1", "origin", LAPY_COMMIT],
                        cwd=staging, check=True)
         subprocess.run(["git", "-c", "advice.detachedHead=false", "checkout", "-q", "--detach",
                         "FETCH_HEAD"], cwd=staging, check=True)

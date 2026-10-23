@@ -119,7 +119,12 @@ test('OAuth Home reads its cards when command chains nest very deeply',async()=>
   const logged=[],error=console.error;console.error=line=>logged.push(String(line));
   try {
     const page=await library.execute({action:'home',profile:'saved'});
-    assert.deepEqual(page.items.filter(item=>!item.is_folder).map(item=>item.id),['fixtureHM01','fixtureHM02','fixtureHM03','fixtureHM04','fixtureHM05']);
+    assert.deepEqual(page.items.filter(item=>!item.is_folder).map(item=>item.id),['fixtureHM01','fixtureHM02','fixtureHM03']);
+    const category=page.items.find(item=>item.is_folder && item.title==='Watch again');
+    assert.ok(category,'Deep command chains must not lose the later shelf');
+    const opened=await library.execute({action:'suggestions_filter',profile:'saved',
+      id:category.id.replace('library:filter:','')});
+    assert.deepEqual(opened.items.filter(item=>!item.is_folder).map(item=>item.id),['fixtureHM04','fixtureHM05']);
   } finally {console.error=error;}
   // The work stays bounded: a structure of more nodes than the budget is refused.
   assert.throws(()=>find({rows:Array.from({length:400001},()=>({}))},'tileRenderer',true),/exceeds limits/);
