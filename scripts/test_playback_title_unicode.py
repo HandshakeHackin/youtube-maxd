@@ -43,6 +43,8 @@ for (const title of JSON.parse(process.argv[3])) {
     start = provider.index("static void copy(char *out, size_t cap, const char *src) {")
     end = provider.index("static double num(", start)
     functions = provider[start:end]
+    boot = (ROOT / "third_party/evo/projects/evoplayer/src/evo_boot_log.c").read_text()
+    redactor = boot[boot.index("static int bc_param_is_secret("):boot.index("#ifdef EVO_APP_MODULE")]
     payloads = [json.dumps({"title": title}, ensure_ascii=escaped)
                 for escaped in (False, True) for title in TITLES]
     vectors = ",\n".join("{" + json.dumps(payload, ensure_ascii=False) + "," +
@@ -51,8 +53,9 @@ for (const title of JSON.parse(process.argv[3])) {
     code = '''#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include "cJSON.h"
-''' + functions + '''
+''' + functions + redactor + '''
 int main(void) {
   const struct {const char *json, *title;} rows[] = {
 ''' + vectors + '''};
@@ -60,11 +63,17 @@ int main(void) {
     cJSON *root=cJSON_Parse(rows[i].json); assert(root);
     char out[256]; copy(out,sizeof out,str(root,"title"));
     assert(strcmp(out,rows[i].title)==0);
+    char opening[640], expected[640];
+    snprintf(opening,sizeof opening,"Opening %s...",out);
+    snprintf(expected,sizeof expected,"Opening %s...",rows[i].title);
+    evo_log_redact(opening,sizeof opening);
+    assert(strcmp(opening,expected)==0);
     cJSON_Delete(root);
   }
   /* A byte boundary within a Cyrillic letter must truncate before it. */
   char tiny[4]; copy(tiny,sizeof tiny,"АБВ"); assert(strcmp(tiny,"А")==0);
   puts("PASS native cJSON literal/escaped Cyrillic and bounded UTF-8 copy");
+  puts("PASS Opening message and production log redaction preserve Cyrillic bytes");
 }
 '''
     cfile = temp / "probe.c"

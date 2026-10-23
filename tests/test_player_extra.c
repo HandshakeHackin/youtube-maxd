@@ -486,6 +486,13 @@ static void test_video(void) {
     const double starts[] = { 30, 0, NAN, 10 };
     const char *titles[] = { "C", "A", "bad", "B" };
     assert(tube_extra_set_chapter_list(starts, titles, 4) == 3 && !strcmp(tube_extra_chapter_title(1), "B"));
+    cJSON *russian = cJSON_Parse("[{\"start\":0,\"title\":\"Введение Ёжик\"},"
+                                "{\"start\":10,\"title\":\"\\u0413\\u043b\\u0430\\u0432\\u0430 \\u0451\"}]");
+    assert(russian && tube_extra_set_chapters(russian) == 2);
+    cJSON_Delete(russian);
+    assert(!strcmp(tube_extra_chapter_title_at(0), "Введение Ёжик"));
+    assert(!strcmp(tube_extra_chapter_title_at(10), "Глава ё"));
+    assert(tube_extra_chapter_label(1, text, sizeof text) && !strcmp(text, "00:10  Глава ё"));
     assert(tube_extra_set_chapter_list(starts, NULL, 2) == 2 && !tube_extra_chapter_title(0)[0]);
     assert(tube_extra_set_chapter_list(NULL, NULL, 4) == 0);
 

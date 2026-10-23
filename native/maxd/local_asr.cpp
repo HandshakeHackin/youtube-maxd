@@ -5,6 +5,7 @@
 #include "whisper.h"
 #include <openssl/evp.h>
 #include <atomic>
+#include <cerrno>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -21,6 +22,8 @@ bool active = false;
 std::vector<float> audio;
 std::string model_path;
 char transcript[801]{}, failure[160]{};
+/* Written and read only by the main-thread preflight/error API. */
+char model_failure[160]{};
 
 void wipe(void *memory, size_t bytes) {
     auto *p = static_cast<volatile unsigned char *>(memory);
@@ -113,18 +116,45 @@ void recognize() {
 }
 
 extern "C" int maxd_asr_available(const char *model) {
-    if (!model || !*model || std::strlen(model) > 511) return 0;
+    model_failure[0] = 0;
+    if (!model || !*model || std::strlen(model) > 511) {
+        std::snprintf(model_failure, sizeof model_failure, "Voice model path is invalid.");
+        return 0;
+    }
     /* Probe the same file API used by verification and Whisper. A metadata
      * lookup can be refused by console launchers even when the asset opens.
      * This is only a cheap availability check; verify_model() hashes every
      * byte on the worker before inference. Never read 74 MiB on the UI thread. */
     std::unique_ptr<FILE, int (*)(FILE *)> file(std::fopen(model, "rb"), std::fclose);
-    return file && std::fseek(file.get(), 0, SEEK_END) == 0 &&
-           std::ftell(file.get()) == static_cast<long>(MAXD_VOICE_MODEL_SIZE);
+    if (!file) {
+        const int code = errno;
+        std::snprintf(model_failure, sizeof model_failure,
+                      "Voice model cannot be opened (error %d). Reinstall the complete app assets.", code);
+        return 0;
+    }
+    if (std::fseek(file.get(), 0, SEEK_END) != 0) {
+        const int code = errno;
+        std::snprintf(model_failure, sizeof model_failure, "Voice model cannot be seeked (error %d).", code);
+        return 0;
+    }
+    const long bytes = std::ftell(file.get());
+    if (bytes < 0) {
+        const int code = errno;
+        std::snprintf(model_failure, sizeof model_failure, "Voice model size cannot be read (error %d).", code);
+        return 0;
+    }
+    if (bytes != static_cast<long>(MAXD_VOICE_MODEL_SIZE)) {
+        std::snprintf(model_failure, sizeof model_failure,
+                      "Voice model is incomplete: %ld bytes; expected %u. Reinstall the complete app assets.",
+                      bytes, MAXD_VOICE_MODEL_SIZE);
+        return 0;
+    }
+    return 1;
 }
 extern "C" int maxd_asr_start(const char *model, const int16_t *pcm, size_t samples) {
     if (active && completed.load(std::memory_order_acquire) == 0) return 0;
     maxd_asr_release();
+    model_failure[0] = 0;
     if (!pcm || samples < 8000 || samples > 96000 || !maxd_asr_available(model)) {
         error("Voice model or recording is unavailable. Reinstall the complete app if needed."); return 0;
     }
@@ -168,11 +198,13 @@ extern "C" void maxd_asr_release(void) {
 }
 extern "C" const char *maxd_asr_error(void) {
     if (active && completed.load(std::memory_order_acquire) == 0) return "Recognizing speech…";
+    if (*model_failure) return model_failure;
     return *failure ? failure : "No speech recognized. Check the microphone and try again.";
 }
 extern "C" void maxd_asr_shutdown(void) {
     cancelled.store(true);
     if (worker.joinable()) worker.join();
     clear_audio(); wipe(transcript, sizeof transcript); wipe(failure, sizeof failure);
+    wipe(model_failure, sizeof model_failure);
     active = false;
 }
