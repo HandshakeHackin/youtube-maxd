@@ -18,7 +18,9 @@ PINS = [
 
 
 def git(folder, *args):
-    return subprocess.run(["git", "-C", str(folder), *args], check=True)
+    return subprocess.run(["git", "-c",
+        "url.https://github.com/LedyBacer/.insteadOf=https://github.com/blackbearreloaded/",
+        "-C", str(folder), *args], check=True)
 
 
 def main():
