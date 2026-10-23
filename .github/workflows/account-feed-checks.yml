@@ -1,0 +1,41 @@
+# Account adapters do not require the PS5/UI-kit submodules.
+name: Account feed checks
+
+on:
+  pull_request:
+    paths:
+      - 'companion/innertube/**'
+      - '.github/workflows/account-feed-checks.yml'
+  push:
+    paths:
+      - 'companion/innertube/**'
+      - '.github/workflows/account-feed-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  account-feeds:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: companion/innertube
+    steps:
+      - name: Check out account adapter source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: companion/innertube/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Check TV Home grouping and related adapters
+        run: node --test tv_home_groups.test.mjs tv_account_shapes.test.mjs home_feed.test.mjs content_filters.test.mjs
+      - name: Run the complete account worker suite
+        run: npm test
