@@ -6,6 +6,7 @@ import shlex
 import shutil
 import struct
 import subprocess
+import sys
 
 NAME = "montserrat-medium.huifont"
 
@@ -29,9 +30,9 @@ def stage(kit, destination, cache):
     if not baked.exists():
         folder.mkdir(parents=True, exist_ok=True)
         executable = folder / "bake-font"
-        subprocess.run([*compiler, "-std=c++17", "-O2", str(inputs[0]), "-o", str(executable)], check=True)
+        subprocess.run([*compiler, "-std=c++17", "-O2", str(inputs[0]), "-o", str(executable)], check=True, stdout=sys.stderr)
         temporary = folder / (NAME + ".tmp")
-        subprocess.run([str(executable), str(inputs[-1]), str(temporary), *args], check=True)
+        subprocess.run([str(executable), str(inputs[-1]), str(temporary), *args], check=True, stdout=sys.stderr)
         data = temporary.read_bytes()
         count = struct.unpack_from("<I", data, 32)[0]
         points = {struct.unpack_from("<I", data, 40 + 24 * i)[0] for i in range(count)}

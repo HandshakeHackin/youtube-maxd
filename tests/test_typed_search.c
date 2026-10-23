@@ -43,7 +43,7 @@ int main(void) {
     assert(direct() && !strcmp(field("action"),"search") && !strcmp(field("profile"),"guest") && !strcmp(field("query"),"minecr"));
     poll_job(MATCHES);
     assert(last_ok && last_count==1 && !strcmp(last_items[0].id,"abcdefghijk"));
-    assert(log_count==1 && !strcmp(logged[0],"ProsperoTube search: best matches failed code=upstream_format status=200 retry=guest"));
+    assert(log_count==1 && !strcmp(logged[0],"YouTube Max’d search: best matches failed code=upstream_format status=200 retry=guest"));
     /* Completions likewise. */
     p->list_catalog("search-suggest:minecr",0,items_cb,NULL);settle();
     assert(direct() && !strcmp(field("action"),"search_suggestions") && !strcmp(field("profile"),"fixture"));
@@ -51,16 +51,16 @@ int main(void) {
     assert(direct() && !strcmp(field("action"),"search_suggestions") && !strcmp(field("profile"),"guest"));
     poll_job(COMPLETIONS);
     assert(last_ok && last_count==2 && !strcmp(last_items[0].title,"minecraft"));
-    assert(log_count==2 && !strcmp(logged[1],"ProsperoTube search: suggestions failed code=upstream_format status=200 retry=guest"));
+    assert(log_count==2 && !strcmp(logged[1],"YouTube Max’d search: suggestions failed code=upstream_format status=200 retry=guest"));
     /* Guest is asked once: a second failure is the answer, logged without a retry, the text never in the log. */
     p->list_catalog("search-preview:minecra",0,items_cb,NULL);settle();poll_job(FAILED);
     assert(direct() && !strcmp(field("profile"),"guest"));poll_job(FAILED);
-    assert(!last_ok && !pending_count && log_count==4 && !strcmp(logged[3],"ProsperoTube search: best matches failed code=upstream_format status=200"));
+    assert(!last_ok && !pending_count && log_count==4 && !strcmp(logged[3],"YouTube Max’d search: best matches failed code=upstream_format status=200"));
     for(int i=0;i<log_count;++i)assert(!strstr(logged[i],"minec") && !strstr(logged[i],"fixture"));
     /* A Guest's own failure is not asked again. */
     p->list_catalog("library:profile:guest",0,items_cb,NULL);
     p->list_catalog("search-preview:zoo",0,items_cb,NULL);settle();assert(!strcmp(field("profile"),"guest"));poll_job(FAILED);
-    assert(!last_ok && !pending_count && log_count==5 && !strcmp(logged[4],"ProsperoTube search: best matches failed code=upstream_format status=200"));
+    assert(!last_ok && !pending_count && log_count==5 && !strcmp(logged[4],"YouTube Max’d search: best matches failed code=upstream_format status=200"));
     p->shutdown();
     puts("PASS: typed completions and best matches fall back to Guest once and log why they failed");
     return 0;

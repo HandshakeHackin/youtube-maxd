@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import sys
 
 import kit_text_patch
 import playback_title_font
@@ -14,7 +15,14 @@ kit = ui_kit.checkout()
 with tempfile.TemporaryDirectory(prefix="title-font-") as directory:
     temp = Path(directory)
     output = temp / playback_title_font.NAME
-    playback_title_font.stage(kit, output, ROOT / "build/playback-title-font")
+    # prepare_native.py prints only the generated directory to stdout; a cold
+    # font bake must keep its diagnostics on stderr so shell callers get a path.
+    baked = subprocess.run([sys.executable, "-c",
+        "import sys; from playback_title_font import stage; stage(*sys.argv[1:])",
+        str(kit), str(output), str(temp / "cold-cache")],
+        cwd=ROOT / "scripts", capture_output=True, text=True, check=True)
+    assert not baked.stdout, "Font baker polluted prepare_native's path output: " + baked.stdout
+
     # Test the production-patched font implementation with no shaper installed:
     # exactly the Classic startup / Unicode-engine failure path.
     kit_text_patch.stage(kit, temp)
