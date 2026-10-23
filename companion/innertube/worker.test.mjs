@@ -624,3 +624,5 @@ test('device authorization keeps credentials when account names fail and accepts
   const result = await engine.execute(poll);
   assert.equal(result.name, undefined); assert(validCredentials(result.credentials));
 });
+
+import './tv_home_groups.test.mjs';

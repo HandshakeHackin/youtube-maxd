@@ -515,7 +515,7 @@ export class Library {
     }
     let feed;
     if (profile.oauth && ['home', 'history', 'library', 'playlists', 'subscriptions', 'watch_later', 'playlist'].includes(input.action)) {
-      feed = await this.tvAccounts.browse(owner, input.action, client, input.id ?? '');
+      feed = await this.tvAccounts.browse(owner, input.action, client, input.id ?? '', flags);
       if (input.action === 'home' && !feed.catalog_items)
         feed = this.homeCatalog.root(owner, feed, client, true, !flags || flags.has('watched_home'));
       if (input.action === 'subscriptions' && !feed.catalog_items)
