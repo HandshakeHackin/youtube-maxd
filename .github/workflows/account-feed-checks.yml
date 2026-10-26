@@ -6,10 +6,12 @@ on:
   pull_request:
     paths:
       - 'companion/innertube/**'
+      - 'scripts/prepare_native.py'
       - '.github/workflows/account-feed-checks.yml'
   push:
     paths:
       - 'companion/innertube/**'
+      - 'scripts/prepare_native.py'
       - '.github/workflows/account-feed-checks.yml'
 
 permissions:

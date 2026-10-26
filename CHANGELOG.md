@@ -2,6 +2,15 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.004.002
+
+- Fix L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely.
+- Find the voice model in supported app installation locations, including ShadowMount+ homebrew folders, instead of assuming /app0.
+- Extend Russian Cyrillic coverage to status text, logs and chapter titles.
+- Fix signed-in TV Home pagination: show playable videos from supported shelves instead of category folders on later pages. Preserve filtering, watched preferences, deduplication and profile-owned continuation cursors.
+- Raise content version to 01.004.002; preserve title ID, app data and picture-in-picture off by default.
+- Host regressions and native PS5 packaging are verified separately from console acceptance. Both issue reports remain open for users to confirm the fixes on PS5.
+
 ## 1.004.001
 
 - Add Russian Cyrillic glyphs, including Ё/ё, to the fallback PS5 playback title display font.
