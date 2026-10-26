@@ -4,7 +4,7 @@ YouTube Max’d integration changes, followed by retained upstream release notes
 
 ## 1.004.002
 
-- Fix L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely.
+- Fix PS5 L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely.
 - Find the voice model in supported app installation locations, including ShadowMount+ homebrew folders, instead of assuming /app0.
 - Extend Russian Cyrillic coverage to status text, logs and chapter titles.
 - Fix signed-in TV Home pagination: show playable videos from supported shelves instead of category folders on later pages. Preserve filtering, watched preferences, deduplication and profile-owned continuation cursors.
