@@ -28,11 +28,20 @@ with the correction. The real-model test also checks the explicit worker stack,
 injected stack-setup failure, actual speech recognition, silence, corrupt-model
 rejection, cancellation/retry and complete UTF-8 results under ASan/UBSan.
 
-This proves and corrects a stack-overflow defect consistent with the reported
-write fault. It does **not** establish the console's default stack size or
-symbolicate the reporter's exact test executable. A host SIGSEGV reproduction is
-not proof that every console SIGILL has the same cause. L3 must still be tested
-on the reporter's PS5 before declaring their remaining crash resolved.
+The exact PR #5 artifact (12501336512, source 0efe44e) was also inspected without
+executing it. At the 0x400000 image load base, the reported RIP 0x7a5424 maps to
+the worker's first file-open call immediately after `sub rsp, 0x101d8` (66,008
+bytes). The reported backtrace 0x7a612d maps to the C++ thread trampoline after
+invoking that worker. A user-write fault at this CALL is consistent with pushing
+the return address below the thread stack. Both addresses line up in the actual
+reported test build, supporting the guarded-stack reproduction rather than an
+inference-kernel/AVX explanation. The new native worker reserves only 0x2e8
+(744) bytes in its prologue and requests a 4 MiB pthread stack.
+
+This verifies the reported failure path and the software correction. The console's
+stack mapping/register dump was not supplied, and no new build was executed on
+that console here. L3 still needs a successful on-device run before the remaining
+voice report can be marked fully resolved.
 
 ## Issue #2: Home pages full of category cards
 
@@ -93,5 +102,24 @@ Install the complete new test build, including all voice assets. Check:
    Home Shorts hiding and any remaining promoted content separately.
 3. Confirm Russian video/status/chapter text remains readable.
 
-Keep the issues open for this hardware acceptance. Build/static-package results
-and the downloadable test artifact are recorded separately after compilation.
+Keep the issues open for this hardware acceptance.
+
+## Native package and download
+
+Local native source `f8e7bba` compiled 314 objects; signed plaintext FSELF integrity,
+ZIP CRCs, identity/version and all 305 entry modes passed verification. The local
+executable's ASR stack reservation was checked in its generated machine code.
+See [structured local evidence](issue-resolution-validation.json).
+
+The independently built GitHub candidate uses source `865dca2` (the two later
+files change tests/documentation, not application logic). Its build, ZIP-label
+and package verification/upload steps passed. The dedicated account-feed CI is
+green. [Download youtube-maxd-PR6-865dca2](https://github.com/HandshakeHackin/youtube-maxd/actions/runs/40264858006/artifacts/12625304516)
+while signed into GitHub. Extract the artifact, then extract its inner
+`PPSA99991.zip` and replace the complete `PPSA99991` application folder, including
+all voice assets. This is a **test build**, separate from the published 1.4.1.
+
+The repository-wide Offline checks job is not a clean acceptance baseline:
+PR #5 already reported 84 passed / 45 failed. The broad new run is tracked
+separately; it is not presented as a fully passing suite. The focused counts
+above, dedicated feed CI and native package are the validation for these fixes.
