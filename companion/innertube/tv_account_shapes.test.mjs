@@ -94,15 +94,7 @@ for(const request of [{action:'home'},{action:'history'},{action:'playlist',id:'
       }
     }
     await collect(page);
-    if(request.action==='home') {
-      assert.deepEqual(ids,Array.from({length:26},(_,n)=>videoId(n)));
-      assert.equal(folders.length,1);
-      const key=folders[0].id.replace('library:filter:','');
-      assert.notEqual(key,folders[0].id);
-      await assert.rejects(library.execute({action:'suggestions_filter',id:key,profile:'other'}),{code:'cursor_expired'});
-      ids.length=0;
-      await collect(await library.execute({action:'suggestions_filter',id:key,profile:'saved'}));
-    }
+    if(request.action==='home')assert.equal(folders.length,0,'Home video continuations must not require opening a category folder');
     assert.deepEqual(ids,Array.from({length:27},(_,n)=>videoId(n)));
     assert.equal(calls.filter(call=>call.continuation).length,1);
     assert.ok(calls.every(call=>call.client==='TV'));

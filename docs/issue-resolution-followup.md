@@ -65,6 +65,10 @@ fails these new regressions; the corrected implementation passes.
 ## Recorded host results
 
 - Bundled account/library worker suite: **223 passed, 0 failed**.
+- Exact account-feed CI command: **41 passed, 0 failed**, including the TV
+  account shape/cursor fixtures updated for videos-only Home continuations.
+- Embedded service: **792 plain-host checks passed** (21 engine, 186 HTTP,
+  232 account, 51 import, 302 casting).
 - Focused runner: **6 passed, 0 failed** (local/companion voice drivers,
   model preflight, Cyrillic font/UTF-8 paths, guarded verifier stack).
 - Real pinned Whisper/tiny-model recognition: passed; the public JFK fixture
