@@ -1,45 +1,21 @@
-**Title ID:** PPSA99991
-**Type:** existing app update, 1.3.0-preview.1 → 1.4.0
-**Category:** video
+Update YouTube Max’d (PPSA99991) from 1.4.1 to 1.4.2.
 
-## Changes
+# YouTube Max’d 1.4.2
 
-- First official release label; add a PS5-hosted Phone remote for typed search,
-  TV navigation, pause/resume, seek and local queue add/remove/play-next.
-- Opt-in local HTTP, one controlling phone, expiring one-use QR/session and
-  profile/source/shutdown revocation. Restricted profiles cannot host it.
-- Add user-requested bug-report capture, review, download and deletion with a
-  closed technical allowlist; no accounts, tokens, IPs, video identities, URLs
-  or raw logs, and no automatic uploads.
-- Include optional Ko-fi support for HandshakeHackin, matching Nuvio Max’d.
-- Keep PiP **off by default**. Preserve title ID/data and raise contentVersion
-  from `01.003.000` to `01.004.000`.
+### Fixed
+- L3 voice search: correct a model-verification stack overflow by moving its 64 KiB buffer to the heap and giving recognition a checked 4 MiB thread stack. Thread setup errors are handled safely; full model SHA verification stays enabled.
+- Voice model discovery: support the existing title-specific installation locations as well as /app0, including /data/homebrew/PPSA99991.
+- Russian text: extend Cyrillic fonts to status messages, logs and chapter titles. The reporter confirmed these text corrections.
+- Signed-in Home: later pages now show playable videos from supported shelves instead of category folders. Preserve content filters, watched preferences, duplicate removal and account-specific pagination.
 
-Release/changelog: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.0
+### Install
+Download PPSA99991.zip, extract it, and replace the complete PPSA99991 application folder using your normal installer. Include all voice assets. Title ID and app data location are unchanged; picture-in-picture remains off by default.
 
-Immutable ZIP: `PPSA99991.zip`, 99,530,570 bytes.
-SHA-256: `16a4b5960f1369fd593cd17852bd04c940d2febfa535094a8a647a40e0ca741e`.
-Native application source: `1eb9b8b358087738bc8a331ee2e612d73391a14b`.
-The release tag's `store/sce_sys` metadata/icon match the archive. Complete
-matching sources, checksums, software test evidence and static scan accompany it.
-Original public release assets remain untouched.
+### Validation and feedback
+Targeted host regressions, native PS5 compilation and package checks are documented in TEST_RESULTS.md. The broader inherited offline suite is not fully passing. No PS5 hardware confirmation has been performed for this release. Please test L3 voice search and signed-in Home pages beyond the first page and report back on issues #1 and #2, which remain open for confirmation.
 
-Based on **ProsperoTube** by BlackBearReloaded/contributors and **EVO Player**;
-existing derivative listing approved in #397, previous update merged in #417.
-GPL source, dependency pins and notices are retained. No upstream endorsement
-is claimed.
+Based on ProsperoTube and EVO Player; upstream credits, licenses and corresponding sources are retained.
 
-The native build (314 objects) and host HTTP/provider/player/UI tests pass.
-This exact build has **not** been tested on PS5 hardware or with a live Google
-account. Firmware 11.00 / ShadowMount+ is the intended target; console boot,
-real playback/sign-in, phone-browser LAN/download behavior, microphone, lighting,
-PiP/4K/HDR and long-session acceptance remain pending. Linked Google child
-profiles remain research. Local family controls do not imply YouTube Kids
-certification.
+Only apps/PPSA99991.json changes. Submitted by HandshakeHackin, owner of the source repository. The record pins the published release ZIP and its GitHub SHA-256 digest. Title ID is unchanged; contentVersion rises from 01.004.001 to 01.004.002. Matching source, licenses and validation receipts accompany the release. No helper approvals are modified.
 
-The disclosed Lapy/elevation and self-updater helpers are retained; automatic
-in-app updating remains disabled. This request does not modify helper approvals
-or claim that static scanning establishes hardware functionality.
-
-Only `apps/PPSA99991.json` changes, limited to version, artifact_url, sha256 and
-icon_url. Record supplied by HandshakeHackin, owner of source_repo.
+Published app ZIP: 101,813,655 bytes. SHA-256: `a0bc2b8d13425eae776324ee1d01064ecc4816b47db1f65cede129fbfe8e0d9b`.

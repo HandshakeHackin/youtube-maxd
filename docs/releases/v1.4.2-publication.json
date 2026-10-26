@@ -1,0 +1,62 @@
+{
+  "release_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.4.2",
+  "release_id": 424582030,
+  "source_commit": "fee60b591890f981627ad3b0c28b0db2696333e0",
+  "version": "1.4.2",
+  "content_version": "01.004.002",
+  "publisher_run": "https://github.com/HandshakeHackin/youtube-maxd/actions/runs/40372864377",
+  "build_run": "https://github.com/HandshakeHackin/youtube-maxd/actions/runs/40371366904",
+  "assets": [
+    {
+      "name": "native-validation.json",
+      "size": 821,
+      "digest": "sha256:0da5c63074de631561227c41fee550999cbdabfb24aae5feaa0870ae7adee396",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/native-validation.json"
+    },
+    {
+      "name": "PPSA99991.zip",
+      "size": 101813655,
+      "digest": "sha256:a0bc2b8d13425eae776324ee1d01064ecc4816b47db1f65cede129fbfe8e0d9b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/PPSA99991.zip"
+    },
+    {
+      "name": "RELEASE_NOTES.md",
+      "size": 1505,
+      "digest": "sha256:282a8d272a03a00999ecbedb09f3f7c68b212c268f07ae419606f606ec4026f7",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/RELEASE_NOTES.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 512,
+      "digest": "sha256:789d96a1a42c086f9e4cb0ce2ae74727f0637fa3889fd31c72d9c08882def65b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/SHA256SUMS"
+    },
+    {
+      "name": "TEST_RESULTS.md",
+      "size": 3888,
+      "digest": "sha256:d85616647f2c6ca814c219105539b615851fd319465278eac982ef36407d3621",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/TEST_RESULTS.md"
+    },
+    {
+      "name": "YouTube-Maxd-icon.png",
+      "size": 249991,
+      "digest": "sha256:d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/YouTube-Maxd-icon.png"
+    },
+    {
+      "name": "YouTube-Maxd-source.zip",
+      "size": 474291241,
+      "digest": "sha256:c4d5c4ea44cf9b2a1bb2ef2387c0a99394937d36b634da41669cdf8c00b49716",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/YouTube-Maxd-source.zip"
+    }
+  ],
+  "issue_replies": [
+    "https://github.com/HandshakeHackin/youtube-maxd/issues/1#issuecomment-6423452250",
+    "https://github.com/HandshakeHackin/youtube-maxd/issues/2#issuecomment-6423452794"
+  ],
+  "store_branch": "https://github.com/HandshakeHackin/ps5-homebrew-catalog/tree/update-youtube-maxd-1.4.2",
+  "store_validation": "passed (offline and online)",
+  "upstream_store_pr_created": false,
+  "store_blocker": "GitHub integration HTTP 403 Resource not accessible by integration",
+  "ps5_hardware_tested": false
+}
