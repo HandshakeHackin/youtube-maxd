@@ -83,55 +83,50 @@ export class TvAccountCatalog extends TopicCatalog {
     return result;
   }
 
-  // Home's first usable group is the primary preview. Later groups stay behind
-  // their own navigation cards instead of becoming unrelated rows in that grid.
-  // Keep row continuations even when today's filtered page has no visible cards.
-  homeFeed(owner, client, raw, flags = null, continued = false) {
-    const hidden = hides(flags, 'home');
-    const hideWatched = !flags || flags.has('watched_home');
-    const visible = item => !hidden?.(item);
-    const primaryVisible = item => visible(item) && (!hideWatched || !isWatched(item));
-    const node = find(raw, 'sectionListRenderer') ?? find(raw, 'sectionListContinuation');
-    if (!node) {
-      const filter = feed => ({ ...feed,
-        catalog_items: feed.catalog_items.filter(primaryVisible),
-        ...(feed.has_continuation ? { getContinuation: async () => filter(await feed.getContinuation()) } : {}) });
-      return filter(super.feed(owner, 'home', client, raw, false, continued));
+  // Home is a video grid in both clients. Shelf/filter navigation cards must
+  // not replace recommendation videos on page 2+. Keep every playable shelf in
+  // server order, with a separate, lazy cursor for each horizontal continuation.
+  homeFeed(owner, client, raw, flags = null, continued = false, state = {seen:new Set(), pages:0}) {
+    if(++state.pages>256)throw new this.Error('upstream_limit','Too many Home continuation pages.',502);
+    const hidden=hides(flags,'home'),hideWatched=!flags || flags.has('watched_home');
+    const take=(items,primary)=>items.filter(item=>{
+      if(!item || item.is_folder || hidden?.(item) || (primary && hideWatched && isWatched(item)) || state.seen.has(item.id))return false;
+      if(state.seen.size>=4096)throw new this.Error('upstream_limit','The Home feed exceeds the item limit.',502);
+      state.seen.add(item.id);return true;
+    });
+    const filtered=(feed,primary)=>({catalog_items:take(feed.catalog_items,primary),has_continuation:!!feed.has_continuation,
+      ...(feed.has_continuation?{getContinuation:async()=>{
+        if(++state.pages>256)throw new this.Error('upstream_limit','Too many Home continuation pages.',502);
+        return filtered(await feed.getContinuation(),primary);
+      }}:{})});
+    const join=(items,pending)=>({catalog_items:items,has_continuation:pending.length>0,
+      ...(pending.length?{getContinuation:async()=>{
+        const [load,...rest]=pending,next=await load();
+        return join(next.catalog_items,[...(next.has_continuation?[()=>next.getContinuation()]:[]),...rest]);
+      }}:{})});
+    const node=find(raw,'sectionListRenderer') ?? find(raw,'sectionListContinuation');
+    if(!node)return filtered(super.feed(owner,'home',client,raw,false,continued),!continued);
+    const rows=node.contents;
+    if(!Array.isArray(rows) || rows.length>128)throw new this.Error('upstream_limit','Too many Home groups.',502);
+    const items=[],pending=[];let count=0,primary=continued;
+    for(const value of rows) {
+      const shelf=value?.shelfRenderer;
+      const content=value?.gridRenderer?{gridRenderer:value.gridRenderer}:
+        shelf?.content?.horizontalListRenderer || shelf?.content?.gridRenderer?shelf.content:null;
+      if(!content)continue; // Never descend into ads/promos looking for a video.
+      const feed=super.feed(owner,'home',client,content,false);
+      count+=feed.catalog_items.length;
+      if(count>4096)throw new this.Error('upstream_limit','The account feed exceeds the item limit.',502);
+      const first=!primary && feed.catalog_items.some(item=>!item.is_folder);
+      if(first)primary=true;
+      const row=filtered(feed,first);items.push(...row.catalog_items);
+      if(row.has_continuation)pending.push(()=>row.getContinuation());
     }
-    const rows = node.contents;
-    if (!Array.isArray(rows) || rows.length > 128)
-      throw new this.Error('upstream_limit', 'Too many Home groups.', 502);
-    const previews = [], folders = [];
-    let count = 0;
-    let primary = continued; // later pages must not promote category shelves into the primary grid
-    for (const value of rows) {
-      const shelf = value?.shelfRenderer;
-      const content = value?.gridRenderer ? { gridRenderer: value.gridRenderer } :
-        shelf?.content?.horizontalListRenderer || shelf?.content?.gridRenderer ? shelf.content : null;
-      if (!content) continue; // ad slots and unsupported non-card layouts are never expanded
-      const row = super.feed(owner, 'home', client, content, false);
-      count += row.catalog_items.length;
-      if (count > 4096)
-        throw new this.Error('upstream_limit', 'The account feed exceeds the item limit.', 502);
-      const items = row.catalog_items.filter(visible);
-      const first = !primary && row.catalog_items.length > 0;
-      if (first) {
-        primary = true;
-        previews.push(...row.catalog_items.filter(primaryVisible));
-      }
-      if (!items.length && !row.has_continuation) continue;
-      const title = label(find(shelf?.headerRenderer, 'avatarLockupRenderer')?.title ?? shelf?.title) || 'More videos';
-      // Retain the primary shelf too: its horizontal continuation may be
-      // independent of the Home page's continuation. Empty final shelves vanish.
-      folders.push(this.references.register(owner, title, 'YouTube', async () => row, 'home'));
-    }
-    const directContinuation = rows.find(row => row?.continuationItemRenderer)?.continuationItemRenderer;
-    const candidate = node.continuations?.[0]?.nextContinuationData?.continuation ??
-      directContinuation?.continuationEndpoint?.continuationCommand?.token;
-    const token = typeof candidate === 'string' && candidate.length <= 16384 ? candidate : '';
-    return { catalog_items: [...previews, ...folders], has_continuation: !!token,
-      ...(token ? { getContinuation: async () =>
-        this.homeFeed(owner, client, await this.request(client, { continuation: token }), flags, true) } : {}) };
+    const direct=rows.find(row=>row?.continuationItemRenderer)?.continuationItemRenderer;
+    const candidate=node.continuations?.[0]?.nextContinuationData?.continuation ?? direct?.continuationEndpoint?.continuationCommand?.token;
+    const token=typeof candidate==='string' && candidate.length<=16384?candidate:'';
+    if(token)pending.push(async()=>this.homeFeed(owner,client,await this.request(client,{continuation:token}),flags,true,state));
+    return join(items,pending);
   }
 
   // Subscribed channels of a TV sign-in: the channel tabs beside "All" on the

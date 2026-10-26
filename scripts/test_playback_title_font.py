@@ -71,6 +71,9 @@ int main(int argc,char **argv) {
     subprocess.run([os.environ.get("CXX", "c++"), "-std=c++17", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", "-I" + str(temp), "-I" + str(kit / "src"),
                     str(test), str(temp / "gfx/font.cpp"), "-o", str(exe)], check=True)
-    subprocess.run([str(exe), str(kit / "assets/fonts" / playback_title_font.NAME), str(output)], check=True)
-    print("PASS old display atlas draws ? for Cyrillic; rebuilt atlas draws distinct glyphs")
+    for name in playback_title_font.FACES:
+        output = temp / name
+        playback_title_font.stage(kit, output, temp / "cold-cache", name)
+        subprocess.run([str(exe), str(kit / "assets/fonts" / name), str(output)], check=True)
+        print(f"PASS {name}: old atlas draws ? for Cyrillic; rebuilt atlas draws distinct glyphs")
     print("PASS Russian alphabet, Ё/ё, mixed title, width fitting, unchanged ASCII advance")

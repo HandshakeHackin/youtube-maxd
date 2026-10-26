@@ -53,7 +53,7 @@ def main():
     for path in sorted(DIST.iterdir()):
         if path.is_file() and path.suffix in {".zip", ".gz"}:
             artifacts[path.name] = {"bytes": path.stat().st_size, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
-    manifest = {"version": "1.004.001", "source_revision": revision, "title_id": "PPSA99991",
+    manifest = {"version": "1.004.002", "source_revision": revision, "title_id": "PPSA99991",
                 "validation": {"status": "Packaging records checksums; consult the validation record for test evidence.",
                                "ps5_hardware": "not tested", "live_youtube": "not tested"},
                 "artifacts": artifacts}

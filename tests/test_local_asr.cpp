@@ -11,6 +11,21 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <pthread.h>
+#include <cerrno>
+
+static bool fail_worker_stack=false;
+static unsigned explicit_workers;
+extern "C" int __real_pthread_create(pthread_t *,const pthread_attr_t *,void *(*)(void *),void *);
+extern "C" int __real_pthread_attr_setstacksize(pthread_attr_t *,size_t);
+extern "C" int __wrap_pthread_attr_setstacksize(pthread_attr_t *a,size_t size) {
+    if(fail_worker_stack)return EINVAL;
+    return __real_pthread_attr_setstacksize(a,size);
+}
+extern "C" int __wrap_pthread_create(pthread_t *t,const pthread_attr_t *a,void *(*run)(void *),void *data) {
+    if(a) {size_t size=0;assert(!pthread_attr_getstacksize(a,&size));assert(size>=4*1024*1024);++explicit_workers;}
+    return __real_pthread_create(t,a,run,data);
+}
 
 static unsigned le32(const unsigned char *p) { return p[0] | p[1]<<8 | p[2]<<16 | static_cast<unsigned>(p[3])<<24; }
 static int wait_for(char *out, size_t capacity) {
@@ -61,6 +76,11 @@ int main(int argc, char **argv) {
     }
     assert(pcm.size()==96000);
     char query[801];
+    fail_worker_stack=true;
+    assert(!maxd_asr_start(model,pcm.data(),pcm.size()));
+    assert(std::strstr(maxd_asr_error(),"worker could not start"));
+    fail_worker_stack=false;
+    assert(explicit_workers==0);
     assert(maxd_asr_available(bad_model));
     assert(maxd_asr_start(bad_model,pcm.data(),pcm.size()));
     assert(wait_for(query,sizeof query)==-1);
@@ -81,6 +101,7 @@ int main(int argc, char **argv) {
     char too_small[2];assert(maxd_asr_poll(too_small,sizeof too_small)==-1);
     assert(maxd_asr_poll(query,sizeof query)==1);
     maxd_asr_release();assert(maxd_asr_poll(query,sizeof query)==-1);
+    assert(explicit_workers>=3);
     maxd_asr_shutdown();
     std::puts("PASS: local speech recognition, real model, silence, integrity, hold/tap, cancellation and ownership");
 }

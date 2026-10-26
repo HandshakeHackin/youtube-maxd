@@ -22,7 +22,7 @@ done
     -I"$root/native/maxd" -I"$root/native" -I"$voice/include" -I"$voice/whisper.cpp-$revision/include" \
     -I"$voice/whisper.cpp-$revision/ggml/include" \
     "$root/native/maxd/local_asr.cpp" "$root/tests/test_local_asr.cpp" \
-    -Wl,--start-group "${archives[@]}" -Wl,--end-group -lcrypto -pthread -lm -ldl \
+    -Wl,--wrap=pthread_create -Wl,--wrap=pthread_attr_setstacksize -Wl,--start-group "${archives[@]}" -Wl,--end-group -lcrypto -pthread -lm -ldl \
     -o "$root/build/tests/test-local-asr"
 ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=0} "$root/build/tests/test-local-asr" \
     "$root/native/maxd/voice/ggml-tiny.bin" "$voice/whisper.cpp-$revision/samples/jfk.wav" "$voice/bad-model.bin"

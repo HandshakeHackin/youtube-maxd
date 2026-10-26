@@ -69,3 +69,11 @@ auto-stop, cancellation at every stage, quiet input, language detection,
 search/back navigation in both interfaces, background playback, profile switch,
 controller reconnect, shutdown while recognizing, and repeat searches. Record
 capture success, recognition time and memory use before approving launch.
+
+## Local model installation paths
+
+Local L3 search checks the bundled model under `/app0`, then the app's
+title-specific `/system_ex/app` and `/data/homebrew` installation folders.
+Install the complete app folder, including `assets/voice/ggml-tiny.bin`.
+The selected model must have the pinned size and SHA-256 before recognition;
+the app does not download replacement models or send local speech to a server.

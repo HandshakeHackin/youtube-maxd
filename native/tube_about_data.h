@@ -3,11 +3,17 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.001"
-#define TUBE_ABOUT_CHANGELOG_ROWS 38
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.002"
+#define TUBE_ABOUT_CHANGELOG_ROWS 44
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.004.002", "Fix PS5 L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely."}, \
+    {"1.004.002", "Find the voice model in supported app installation locations, including ShadowMount+ homebrew folders, instead of assuming /app0."}, \
+    {"1.004.002", "Extend Russian Cyrillic coverage to status text, logs and chapter titles."}, \
+    {"1.004.002", "Fix signed-in TV Home pagination: show playable videos from supported shelves instead of category folders on later pages. Preserve filtering, watched preferences, deduplication and profile-owned continuation cursors."}, \
+    {"1.004.002", "Raise content version to 01.004.002; preserve title ID, app data and picture-in-picture off by default."}, \
+    {"1.004.002", "Host regressions and native PS5 packaging are verified separately from console acceptance. Both issue reports remain open for users to confirm the fixes on PS5."}, \
     {"1.004.001", "Add Russian Cyrillic glyphs, including \320\201/\321\221, to the fallback PS5 playback title display font."}, \
     {"1.004.001", "Retry local voice-model availability when starting L3 voice search and probe readable model files through stdio. Full model SHA verification is retained."}, \
     {"1.004.001", "Preserve TV Home shelf grouping, omit empty filtered categories while retaining pagination, and apply the primary Home watched preference."}, \

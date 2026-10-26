@@ -3,6 +3,51 @@
 This is separate from the Cyrillic playback-title defect. The reporter's
 follow-up supplies the message, but no console logs or installation inventory.
 
+## Feedback after 1.4.1
+
+On October 23 the reporter confirmed that Russian playback titles now display
+correctly, but L3 still reports model unavailability. The retry and stdio probe
+therefore did not resolve this console's voice failure. Its cause remains
+unconfirmed; no microphone or transcription failure can be inferred from a
+preflight rejection.
+
+The next diagnostic change distinguishes invalid paths, failed opens, failed
+seeks, failed size queries and wrong-size files. Open/seek/size-query errors
+include the captured errno; size mismatches show actual and expected byte
+counts. The voice UI forwards this result instead of hiding it behind a
+generic unavailable message or an earlier timeout. It exposes no account data.
+Host tests inject seek/size-query failures and cover missing/truncated files,
+recovery and driver propagation. Full model SHA verification is unchanged.
+This is diagnostic work, not a confirmed fix for the remaining console issue.
+
+## Installation-path correction
+
+Voice preflight and recognition still passed a single fixed path,
+`/app0/assets/voice/ggml-tiny.bin`. The app's existing updater already supports
+three installation roots: `/app0`, `/system_ex/app/<titleid>` and
+`/data/homebrew/<titleid>`. A launcher exposing the model only under an install
+root could therefore reject L3 even with a complete, readable model.
+
+The local driver now probes those same fixed roots in that order. Both
+title-specific paths are generated from the release's title ID. It retains
+the selected file path for recording and passes that exact path to the
+recognizer, whose full size/SHA verification and Whisper loading are
+unchanged. It re-probes on each new L3 request; it does not search arbitrary
+folders, download a model or perform model hashing on the UI thread.
+
+The expanded driver regression reproduces the old failure with `/app0`
+unavailable and each alternate location readable. The original driver fails
+at `tube_voice_begin`; the corrected driver reaches capture/transcription,
+passes the alternate path to the recognizer, and returns a UTF-8 query.
+It also checks `/app0` priority, same-profile recovery, missing models,
+removal before capture, profile changes, cancellation and zero network calls.
+The production preflight's file/error fixtures and companion driver pass.
+
+This establishes and corrects an installation-path defect; the reporter has
+not supplied evidence identifying their console's mount layout. A successful
+PS5 build and a test of the resulting app on their console are still needed
+before calling their voice-search report resolved.
+
 ## Evidence and correction
 
 The public v1.4.0 `PPSA99991.zip` contains
