@@ -47,7 +47,7 @@ entered on the remote page.
 
 ## Next-build usability polish
 
-These changes are on the development branch, not in the published v1.4.2 ZIP:
+Available in v1.5.0:
 
 - Controls pause while a request is running, so rapid taps do not build up a delayed burst.
 - Playback controls check that the video has not changed since the tap. Choose the control again after checking the TV if it has.

@@ -8,7 +8,7 @@
 - Profile-owned title phrase muting and local-follow priority in Home/Discover pages, connected to the existing channel block manager.
 - Playback-health snapshot and reviewed one-video lower-quality/AVC rescue through the existing scoped player reopen path.
 - Preserve saved lists, account isolation, bounded pagination and manual format choices. No new remote account writes or automatic report uploads.
-- See docs/FEED_AND_PLAYBACK_HEALTH.md for instructions, exact scope and acceptance checks. These changes are not in the published v1.4.2 package.
+- See docs/FEED_AND_PLAYBACK_HEALTH.md for instructions, exact scope and acceptance checks. Included in v1.5.0.
 
 ## 1.4.1 — 2026-10-23
 
@@ -121,7 +121,7 @@ Smart playlists, Auto Max and approved artwork changes on 2026-10-18:
   real feed refreshes and physical lighting still need hardware acceptance.
   See `docs/MAXD_FEATURES.md` for usage, limits and acceptance steps.
 
-### GitHub release notifications (in development)
+### GitHub release notifications (v1.5.0)
 
 - Check this project's latest stable GitHub release at launch and every six hours in the background; notify once per newer version per launch.
 - Add manual checks, a saved automatic-notice setting, and a release-page QR link in About for both interfaces.

@@ -13,7 +13,7 @@ import json,pathlib,sys
 root=pathlib.Path(sys.argv[1]);sys.path.insert(0,str(root/'scripts'))
 from release_version import identity
 title,content,version=identity()
-assert (title,content,version)==('PPSA99991','01.004.002','1.004.002')
+assert (title,content,version)==('PPSA99991','01.005.000','1.005.000')
 assert json.loads((root/'UPSTREAM.json').read_text())['title_id']==title
 source=(root/'native/tube_update_app.c').read_text()
 assert '#ifndef TUBE_MAXD_ENABLE_SELF_UPDATE\n    return;' in source

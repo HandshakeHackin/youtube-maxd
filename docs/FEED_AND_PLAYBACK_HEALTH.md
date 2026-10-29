@@ -1,6 +1,6 @@
 # Feed controls and playback health
 
-Development build features; these are not included in the published v1.4.2 download. Console acceptance is still required.
+Available in v1.5.0. Console acceptance is still required.
 
 ## Feed controls
 

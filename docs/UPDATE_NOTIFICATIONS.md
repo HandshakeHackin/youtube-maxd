@@ -1,6 +1,6 @@
-# Update notifications (in development)
+# Update notifications (v1.5.0)
 
-The next build checks YouTube Max’d’s public GitHub releases in the background at launch, after the built-in service is ready, and every six hours while open. A newer stable version produces a notice once per version per launch. Releases marked draft or prerelease, preview version tags, and malformed replies do not produce update offers. Publishing a tag alone does not trigger a notice: publish a normal GitHub release with a stable `vMAJOR.MINOR.PATCH` tag and make it the latest release.
+Version 1.5.0 checks YouTube Max’d’s public GitHub releases in the background at launch, after the built-in service is ready, and every six hours while open. A newer stable version produces a notice once per version per launch. Releases marked draft or prerelease, preview version tags, and malformed replies do not produce update offers. Publishing a tag alone does not trigger a notice: publish a normal GitHub release with a stable `vMAJOR.MINOR.PATCH` tag and make it the latest release.
 
 Settings → About includes:
 

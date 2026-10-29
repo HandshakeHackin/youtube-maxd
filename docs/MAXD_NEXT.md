@@ -99,6 +99,6 @@ Before a stable, hardware-verified release, test firmware 11.00 with ShadowMount
 
 ## Next-build bookmark and navigation polish
 
-Development branch only; not in the published v1.4.2 ZIP. Bookmark names are trimmed and blank names are rejected. Saving the same name within half a second of an existing bookmark succeeds without adding a duplicate. A full list explains the 64-per-video limit. If storage fails, the app explicitly says the bookmark is only kept for this session; repeating the same save retries persistence without adding another entry.
+Available in v1.5.0. Bookmark names are trimmed and blank names are rejected. Saving the same name within half a second of an existing bookmark succeeds without adding a duplicate. A full list explains the 64-per-video limit. If storage fails, the app explicitly says the bookmark is only kept for this session; repeating the same save retries persistence without adding another entry.
 
 Square confirms removal with a toast. Circle from Transcript & bookmarks or Playback health returns focus to that menu entry. Circle on the rescue confirmation returns to the health panel and its selected rescue option, without reopening the stream.
