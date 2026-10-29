@@ -26,6 +26,7 @@ static void next(const char *parent,int page,const char *cursor,const char *answ
     poll_job(answer);assert(last_ok);
 }
 static void refused(const char *parent,int page) {p->list_catalog(parent,page,items_cb,NULL);assert(!last_ok && !pending_count);}
+#ifndef MAXD_LIBRARY_HELPERS_ONLY
 int main(void) {
     char dir[]="/tmp/tube-library-paging-XXXXXX";
     assert(mkdtemp(dir) && !setenv("EVO_DATA_DIR_OVERRIDE",dir,1));
@@ -75,3 +76,5 @@ int main(void) {
     puts("PASS: library lists page independently, bounded, forgotten with the profile");
     return 0;
 }
+
+#endif

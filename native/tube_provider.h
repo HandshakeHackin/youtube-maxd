@@ -340,6 +340,9 @@ void tube_player_quality(int *height, int *fps, int *codec);
 int tube_player_set_quality(int height, int fps, int codec);
 /* Optional local adaptation; sample counters are snapshots from the player. */
 int tube_maxd_auto_enabled(void);
+int tube_maxd_health_summary(char *out,size_t size);
+const char *tube_maxd_health_action(void);
+int tube_maxd_health_repair(unsigned owner,int safe,double position,int live,int subtitles);
 int tube_maxd_auto_sample(uint64_t now,uint64_t frames,uint64_t dropped,int suppressed,int buffering,
                          double position,int live,int subtitles);
 int tube_player_remember_height(int height);

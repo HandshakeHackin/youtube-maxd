@@ -1,0 +1,43 @@
+# ProsperoTube - Focused Max’d feed and playback-health regressions.
+# Copyright (C) 2026 BlackBearReloaded
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Feed and playback health checks
+
+on:
+  pull_request:
+    paths:
+      - 'native/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/feed-health-checks.yml'
+  push:
+    paths:
+      - 'native/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/feed-health-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+      PROSPEROTUBE_UI_KIT: https://github.com/LedyBacer/ps5-homebrew-ui.git
+      PROSPEROTUBE_NATIVE_WORK: ${{ github.workspace }}/.deps/native-work
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore pinned public dependencies
+        run: |
+          bash scripts/restore_submodules.sh
+          python3 scripts/ui_kit.py
+      - name: Check bounded saved feed preferences
+        run: bash scripts/test_maxd_feed_policy.sh
+      - name: Exercise shipping feed, recovery and library code under sanitizers
+        run: bash scripts/test_native.sh maxd_feed maxd_feed_paging maxd_health maxd_auto channel_block playback_recovery library_paging stream_choice

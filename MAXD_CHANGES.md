@@ -1,5 +1,12 @@
 # YouTube Max’d integration
 
+## Next update — development
+
+- Profile-owned title phrase muting and local-follow priority in Home/Discover pages, connected to the existing channel block manager.
+- Playback-health snapshot and reviewed one-video lower-quality/AVC rescue through the existing scoped player reopen path.
+- Preserve saved lists, account isolation, bounded pagination and manual format choices. No new remote account writes or automatic report uploads.
+- See docs/FEED_AND_PLAYBACK_HEALTH.md for instructions, exact scope and acceptance checks. These changes are not in the published v1.4.2 package.
+
 ## 1.4.1 — 2026-10-23
 
 - Add Russian glyphs, including Ё/ё, to the fallback playback display atlas.

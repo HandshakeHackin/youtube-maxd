@@ -25,6 +25,8 @@
 
 **Official release · v1.4.2** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
 
+**In development:** [Feed controls and playback health/rescue](docs/FEED_AND_PLAYBACK_HEALTH.md). These additions are not in the current release.
+
 ## How YouTube Max’d stands out
 
 **Also included:** local voice search, Smart playlists, optional Auto Max quality adjustment, and matching red-to-white DualSense effects.
