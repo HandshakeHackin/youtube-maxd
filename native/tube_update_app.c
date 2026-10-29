@@ -26,6 +26,10 @@ static char g_notice[320], g_notes_title[120];
 
 static long long (*g_clock)(void);
 static long long clock_now(void) { return g_clock ? g_clock() : (long long)time(NULL); }
+#if defined(TUBE_EMBEDDED_SERVICE) && !defined(TUBE_MAXD_ENABLE_SELF_UPDATE)
+#define MAXD_RELEASE_NOTICES 1
+#include "maxd_release_notice.h"
+#endif
 
 static void notice(const char *message) { snprintf(g_notice, sizeof g_notice, "%s", message); g_have_notice = 1; }
 
@@ -47,7 +51,10 @@ void tube_update_app_set_clock(long long (*clock)(void)) { g_clock = clock; }
 void tube_update_app_init(void) {
     if (g_tried) return;
     g_tried = 1;
-    /* YouTube Max'd has no release catalog configured. Never consume upstream updates. */
+    /* Max’d notifications use its own GitHub repository; never consume upstream updates. */
+#ifdef MAXD_RELEASE_NOTICES
+    maxd_release_init();
+#endif
 #ifndef TUBE_MAXD_ENABLE_SELF_UPDATE
     return;
 #endif
@@ -67,11 +74,17 @@ void tube_update_app_init(void) {
 }
 
 void tube_update_app_shutdown(void) {
+#ifdef MAXD_RELEASE_NOTICES
+    maxd_release_shutdown();
+#endif
     if (g_owned) tube_update_free(g_update);
     g_update = NULL; g_owned = 0; g_tried = 0;
 }
 
 void tube_update_app_tick(int service_ready) {
+#ifdef MAXD_RELEASE_NOTICES
+    if (!g_update) { maxd_release_tick(service_ready); return; }
+#endif
     tube_update_status status;
     if (!g_update) return;
     const long long elapsed = clock_now() - g_started;
@@ -112,7 +125,13 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
     tube_update_status s;
     char title[160], detail[200];
     int n = 0;
-    if (!g_update) return 0;
+    if (!g_update) {
+#ifdef MAXD_RELEASE_NOTICES
+        return maxd_release_rows(rows, capacity);
+#else
+        return 0;
+#endif
+    }
     tube_update_get(g_update, &s);
     g_listed = s.revision; g_watching = 1;
     const int newer = s.check == TUBE_UPDATE_AVAILABLE || s.check == TUBE_UPDATE_NOT_INSTALLABLE;
@@ -159,7 +178,11 @@ int tube_update_app_rows(tube_update_row *rows, int capacity) {
 
 int tube_update_app_action(const char *action) {
     tube_update_status s;
-    if (!g_update || !action) return 0;
+    if (!action) return 0;
+#ifdef MAXD_RELEASE_NOTICES
+    if (!g_update) return maxd_release_action(action);
+#endif
+    if (!g_update) return 0;
     tube_update_get(g_update, &s);
     if (!strcmp(action, "check")) { if (tube_update_check(g_update, 1)) g_manual = 1; }
     else if (!strcmp(action, "notify")) tube_update_set_notify(g_update, !s.notify);
@@ -213,12 +236,22 @@ const char *tube_update_app_notes_title(void) {
 }
 
 const char *tube_update_app_take_notice(void) {
+#ifdef MAXD_RELEASE_NOTICES
+    if (*g_release.notice) { notice(g_release.notice); g_release.notice[0] = 0; }
+#endif
     if (!g_have_notice) return NULL;
     g_have_notice = 0;
     return g_notice;
 }
 
 int tube_update_app_take_refresh(const char *focused_id) {
+#ifdef MAXD_RELEASE_NOTICES
+    if (!g_update && g_release.refresh) {
+        if (!focused_id || (strncmp(focused_id, "settings:update:", 16) && strcmp(focused_id, "link:maxd-release"))) return 0;
+        g_release.refresh = 0;
+        return 1;
+    }
+#endif
     tube_update_status s;
     if (!g_update || !g_watching) return 0;
     if (!focused_id || strncmp(focused_id, "settings:update:", 16)) { g_watching = 0; return 0; }

@@ -96,3 +96,9 @@ Before a stable, hardware-verified release, test firmware 11.00 with ShadowMount
 4. Caption availability/automatic captions, timestamp jumps, bookmark reload and live-video limits.
 5. Family channel denial from search, queue, direct links and phone launches; daily limit in foreground/background/PiP.
 6. Phone QR scanning, Wi-Fi isolation/firewall behavior, slow/disconnected guests, votes, approval, queue consumption, room expiry and profile-change revocation.
+
+## Next-build bookmark and navigation polish
+
+Available in v1.5.0. Bookmark names are trimmed and blank names are rejected. Saving the same name within half a second of an existing bookmark succeeds without adding a duplicate. A full list explains the 64-per-video limit. If storage fails, the app explicitly says the bookmark is only kept for this session; repeating the same save retries persistence without adding another entry.
+
+Square confirms removal with a toast. Circle from Transcript & bookmarks or Playback health returns focus to that menu entry. Circle on the rescue confirmation returns to the health panel and its selected rescue option, without reopening the stream.

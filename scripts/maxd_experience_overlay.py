@@ -17,9 +17,11 @@ def apply(root, work, player):
     change("Makefile", "    addons/src/maxd_lightbar.c", '    addons/src/maxd_lightbar.c \\\n    addons/src/maxd_party_server.c \\\n    addons/src/maxd_phone_remote.c \\\n    addons/src/maxd_diagnostics.c')
     picker = "core/src/screens/AudioTrackPickerScreen.cpp"
     header = "core/include/evo/screens/AudioTrackPickerScreen.hpp"
-    change(header, "KindBackgroundBrowse,", "KindBackgroundBrowse, KindMaxdPip, KindMaxdTools, KindMaxdSearch, KindMaxdSave, KindMaxdCue, KindMaxdBookmark,")
+    change(header, "KindBackgroundBrowse,", "KindBackgroundBrowse, KindMaxdPip, KindMaxdTools, KindMaxdHealth, KindMaxdHealthLower, KindMaxdHealthSafe, KindMaxdHealthConfirm, KindMaxdSearch, KindMaxdSave, KindMaxdCue, KindMaxdBookmark,")
     change(header, "    void refreshTracks();", """    void refreshTracks();
     void maxdTools();
+    void maxdHealth();
+    bool m_maxdRescueSafe = false;
     static void maxdText(const char*, void*);
     std::string m_maxdQuery;
     unsigned m_maxdOwner = 0;
@@ -29,9 +31,11 @@ def apply(root, work, player):
 """)
     change(picker, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "maxd/experience.h"\n#include "maxd/smart_rules.h"\n#include "evo_keyboard.h"')
     change(picker, "    tube_player_menu_close();   /* the browser's own list state returns */", "    tube_player_menu_close();   /* the browser's own list state returns */\n    m_maxdOwner = 0; tube_maxd_transcript_clear();")
-    change(picker, '    if (m_tubeExtraGroup >= 0) {', '    if (m_tubeExtraGroup == -5) { maxdTools(); return; }\n    if (m_tubeExtraGroup >= 0) {')
+    change(picker, '    if (m_tubeExtraGroup >= 0) {', '    if (m_tubeExtraGroup == -6 || m_tubeExtraGroup == -7) { maxdHealth(); return; }\n    if (m_tubeExtraGroup == -5) { maxdTools(); return; }\n    if (m_tubeExtraGroup >= 0) {')
     change(picker, '    groupAfterglowTracks();', '''    {
-        Entry e; e.kind=KindMaxdTools; e.label="Transcript & bookmarks";
+        Entry e; e.kind=KindMaxdHealth; e.label="Playback health & rescue";
+        e.detail="See recent playback health; review a lower-quality or AVC rescue"; m_tracks.push_back(e);
+        e.kind=KindMaxdTools; e.label="Transcript & bookmarks";
         e.detail="Search captions, jump to a line, or save a named timestamp"; m_tracks.push_back(e);
         if (tube_afterglow_picker_active()) {
             e.kind=KindMaxdPip; e.label="Picture-in-picture";
@@ -39,7 +43,20 @@ def apply(root, work, player):
         }
     }
     groupAfterglowTracks();''')
-    change(picker, '    } else if (e.kind == KindBackgroundBrowse) {', '''    } else if (e.kind == KindMaxdTools) {
+    change(picker, '    } else if (e.kind == KindBackgroundBrowse) {', '''    } else if (e.kind == KindMaxdHealth) {
+        m_maxdOwner=tube_phone_selection(); m_tubeExtraGroup=-6;
+        refreshTracks(); m_selectedIndex=m_scrollOffset=0;
+    } else if (e.kind == KindMaxdHealthLower || e.kind == KindMaxdHealthSafe) {
+        m_maxdRescueSafe=e.kind==KindMaxdHealthSafe; m_tubeExtraGroup=-7;
+        refreshTracks(); m_selectedIndex=m_tracks.size()>1?1:0; m_scrollOffset=0;
+    } else if (e.kind == KindMaxdHealthConfirm) {
+        if(tube_maxd_health_repair(m_maxdOwner,m_maxdRescueSafe,playback->getPositionSeconds(),playback->isLiveSource(),prospero_subtitle_enabled)) {
+            toast("PLAYBACK RESCUE","Reopening at this position with the selected format");
+            playback->stopPlayback(); if(sm)sm->returnFromPlayback();return;
+        }
+        toast("PLAYBACK RESCUE","No suitable alternative is available for this video");
+        m_tubeExtraGroup=-6;refreshTracks();m_selectedIndex=m_scrollOffset=0;
+    } else if (e.kind == KindMaxdTools) {
         m_maxdQuery.clear(); m_maxdOwner=tube_caption_selection(); m_maxdSeen=-2;
         tube_maxd_transcript_begin(); m_tubeExtraGroup=-5;
         refreshTracks(); m_selectedIndex=m_scrollOffset=0;
@@ -60,13 +77,19 @@ def apply(root, work, player):
     change(picker, '    if (pressed & PadButtons::Up)    { navigate(-1); return true; }', '''    if (m_tubeExtraGroup == -5 && (pressed & PadButtons::Square)) {
         if(m_selectedIndex>=0 && m_selectedIndex<static_cast<int>(m_tracks.size()) &&
            m_tracks[m_selectedIndex].kind==KindMaxdBookmark && m_maxdOwner==tube_caption_selection()) {
-            tube_maxd_bookmark_remove(m_tracks[m_selectedIndex].streamIndex);refreshTracks();
+            toast("BOOKMARKS",tube_maxd_bookmark_remove(m_tracks[m_selectedIndex].streamIndex)?"Bookmark removed":"This bookmark is no longer available");refreshTracks();
             m_selectedIndex=std::max(0,std::min(m_selectedIndex,static_cast<int>(m_tracks.size())-1));
             m_scrollOffset=std::max(0,m_selectedIndex-EVO_RMLUI_LIST_ROWS+1);
         }
         return true;
     }
     if (pressed & PadButtons::Up)    { navigate(-1); return true; }''')
+    change(picker, '        if (m_tubeExtraGroup != -1) {', '''        if (m_tubeExtraGroup == -7) {
+            m_tubeExtraGroup=-6;refreshTracks();m_selectedIndex=std::max(0,std::min(m_maxdRescueSafe?2:1,static_cast<int>(m_tracks.size())-1));m_scrollOffset=0;return true;
+        }
+        if (m_tubeExtraGroup != -1) {''')
+    change(picker, 'if (group == -2 ? m_tracks[i].kind == KindChapterList',
+        'if (group == -5 ? m_tracks[i].kind == KindMaxdTools : group == -6 ? m_tracks[i].kind == KindMaxdHealth : group == -2 ? m_tracks[i].kind == KindChapterList')
     change(picker, 'void AudioTrackPickerScreen::update(double deltaMs) {', '''void AudioTrackPickerScreen::update(double deltaMs) {
     if(m_tubeExtraGroup==-5 && m_maxdSeen!=tube_maxd_transcript_state())refreshTracks();''')
     with (app / picker).open('a') as f:
@@ -129,7 +152,7 @@ def apply(root, work, player):
         }
 """)
 
-    change(picker, 'params.title = m_tubeExtraGroup == -2 ?', 'params.title = m_tubeExtraGroup == -5 ? "TRANSCRIPT & BOOKMARKS" : m_tubeExtraGroup == -2 ?')
+    change(picker, 'params.title = m_tubeExtraGroup == -2 ?', 'params.title = m_tubeExtraGroup == -6 || m_tubeExtraGroup == -7 ? "PLAYBACK HEALTH & RESCUE" : m_tubeExtraGroup == -5 ? "TRANSCRIPT & BOOKMARKS" : m_tubeExtraGroup == -2 ?')
 
     change("core/include/evo/screens/ProviderHostScreen.hpp", "    bool submitVoiceQuery(const char* query);", "    bool submitVoiceQuery(const char* query);\n    bool submitPhoneSearch(const char* query);")
     change(host, "void ProviderHostScreen::openSearch()", """bool ProviderHostScreen::submitPhoneSearch(const char* query)

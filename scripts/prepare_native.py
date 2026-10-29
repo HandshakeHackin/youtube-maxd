@@ -296,7 +296,7 @@ def main():
     replace(player + "ui/src/evo_keyboard.c", "#define KB_MAX_BUF 256", "#define KB_MAX_BUF 1024")
     param_path = WORK / player / "sce_sys/param.json"
     param = json.loads(param_path.read_text())
-    param.update(titleId=TITLE, conceptId="99991", contentId=f"UP9000-{TITLE}_00-TUBEDECK00000001", contentVersion="01.004.002")
+    param.update(titleId=TITLE, conceptId="99991", contentId=f"UP9000-{TITLE}_00-TUBEDECK00000001", contentVersion="01.005.000")
     param["applicationCategoryType"] = 65536
     param["contentBadgeType"] = 2
     param.pop("gameIntent", None)
@@ -308,7 +308,7 @@ intents = v.get("gameIntent", {}).get("permittedIntents", [])
 if not any(i.get("intentType") == "launchActivity" for i in intents):
     raise SystemExit("game param.json must permit the launchActivity intent")''', '''if (v.get("applicationCategoryType"), v.get("contentBadgeType")) != (65536, 2) or "gameIntent" in v:
     raise SystemExit("expected Media metadata: category 65536, badge 2, no gameIntent")''')
-    (WORK / player / "VERSION").write_text("1.004.002\n")
+    (WORK / player / "VERSION").write_text("1.005.000\n")
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "--short=8", "HEAD"], text=True).strip()
     # Dependency trees are regenerated from checked pins above, so their working
     # files do not contribute to this package. Avoid recursively scanning them.

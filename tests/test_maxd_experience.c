@@ -2,6 +2,7 @@
 #include "test_native.c"
 #undef main
 #include "maxd/experience.h"
+#include <sys/stat.h>
 static void choose(const char *id){evo_provider_youtube.list_catalog(id,0,items_cb,NULL);assert(last_ok);}
 static void enter(const char *text,char *next){tube_playlist_prompt_t prompt;assert(tube_take_playlist_prompt(&prompt));assert(!tube_submit_playlist_name(prompt.ticket,text,next,160));}
 static void drain(void){while(pending_count)reply(0,0,0,"");}
@@ -22,6 +23,18 @@ int main(void) {
     play("abcdefghijk","UCabcdefghijklmnopqrstuv");assert(last_ok && tube_caption_selection());
     unsigned owner=tube_caption_selection();assert(tube_maxd_bookmark_add(owner,12.25,"Opening"));assert(!tube_maxd_bookmark_add(owner+1,13,"Stale"));
     assert(tube_maxd_bookmark_count()==1 && tube_maxd_bookmark_seconds(0)==12.25);
+    assert(tube_maxd_bookmark_add(owner,12.5,"  Opening  ") && tube_maxd_bookmark_count()==1);
+    assert(!tube_maxd_bookmark_add(owner,13,"   ") && strstr(tube_maxd_bookmark_error(),"name"));
+    assert(!tube_maxd_bookmark_add(owner,13,"bad\nname"));
+    for(int i=1;i<64;++i){char label[32];snprintf(label,sizeof label,"Moment %d",i);assert(tube_maxd_bookmark_add(owner,20+i,label));}
+    assert(!tube_maxd_bookmark_add(owner,90,"One too many") && strstr(tube_maxd_bookmark_error(),"64 bookmarks"));
+    assert(tube_maxd_bookmark_add(owner,12.25,"Opening") && !*tube_maxd_bookmark_error());
+    while(tube_maxd_bookmark_count()>1)assert(tube_maxd_bookmark_remove(1));
+    char blocked_save[512];snprintf(blocked_save,sizeof blocked_save,"%s/youtube.json.tmp",dir);assert(!mkdir(blocked_save,0700));
+    assert(!tube_maxd_bookmark_add(owner,19,"Storage check") && strstr(tube_maxd_bookmark_error(),"session only"));
+    assert(tube_maxd_bookmark_count()==2);assert(!rmdir(blocked_save));
+    assert(tube_maxd_bookmark_add(owner,19,"Storage check") && tube_maxd_bookmark_count()==2);
+    assert(tube_maxd_bookmark_remove(1));
     assert(tube_maxd_transcript_begin() && pending_count==1);reply(0,1,200,"WEBVTT\n\n00:01.000 --> 00:03.000\nHello <b>world</b>\n\n00:05.500 --> 00:07.000\nSecond moment\n\n");
     assert(tube_maxd_transcript_state()==1 && tube_maxd_transcript_count()==2 && !strcmp(tube_maxd_transcript_text(0),"Hello world"));
     choose("library:profile:maxd_family_1");assert(!tube_maxd_bookmark_count() && tube_maxd_transcript_state()==-1);

@@ -45,6 +45,17 @@ session in tab-scoped storage so a refresh can reconnect; clearing/closing the
 tab or session revocation requires pairing again. No Google credentials are
 entered on the remote page.
 
+## Next-build usability polish
+
+Available in v1.5.0:
+
+- Controls pause while a request is running, so rapid taps do not build up a delayed burst.
+- Playback controls check that the video has not changed since the tap. Choose the control again after checking the TV if it has.
+- Requests time out after eight seconds. Use **Reconnect to PS5** to check the connection; reconnect never repeats a prior control. After an uncertain result, check the TV before repeating the action.
+- Queue refreshes preserve existing buttons and focus. Successful searches/queue additions clear only the text that was sent, keeping a newer draft intact.
+- Session expiry clears the cached report and prompts for a new pairing QR. Connection failures retain the tab session for reconnecting.
+- Longer playback times use hours, minutes and seconds.
+
 ## Export a bug report
 
 On the paired phone, select **Capture & preview report**. Review the JSON, then

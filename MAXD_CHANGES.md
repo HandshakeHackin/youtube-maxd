@@ -1,5 +1,15 @@
 # YouTube Max’d integration
 
+## Next update — development
+
+- Polish the existing phone remote: request timeouts, explicit reconnect without replay, rapid-tap/changed-video guards, stable queue focus, draft preservation and clearer session expiry.
+- Polish bookmarks and playback menus: trim names, avoid duplicate moments, explain limits/storage failures, confirm deletion and restore focus on Back.
+
+- Profile-owned title phrase muting and local-follow priority in Home/Discover pages, connected to the existing channel block manager.
+- Playback-health snapshot and reviewed one-video lower-quality/AVC rescue through the existing scoped player reopen path.
+- Preserve saved lists, account isolation, bounded pagination and manual format choices. No new remote account writes or automatic report uploads.
+- See docs/FEED_AND_PLAYBACK_HEALTH.md for instructions, exact scope and acceptance checks. Included in v1.5.0.
+
 ## 1.4.1 — 2026-10-23
 
 - Add Russian glyphs, including Ё/ё, to the fallback playback display atlas.
@@ -110,3 +120,10 @@ Smart playlists, Auto Max and approved artwork changes on 2026-10-18:
 - Host policy/provider and UI tests cover the new paths. Console performance,
   real feed refreshes and physical lighting still need hardware acceptance.
   See `docs/MAXD_FEATURES.md` for usage, limits and acceptance steps.
+
+### GitHub release notifications (v1.5.0)
+
+- Check this project's latest stable GitHub release at launch and every six hours in the background; notify once per newer version per launch.
+- Add manual checks, a saved automatic-notice setting, and a release-page QR link in About for both interfaces.
+- Keep automatic network failures quiet; bound requests and verify HTTPS. No self-installation or upstream update source is enabled.
+- See [update notification behavior and publishing requirements](docs/UPDATE_NOTIFICATIONS.md). Existing releases need the new build installed before notices can work.

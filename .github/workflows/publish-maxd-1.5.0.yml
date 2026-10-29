@@ -1,0 +1,71 @@
+# Publish the user-authorized 1.5.0 build with matching source and validation notes.
+# Finalize the inspected draft by release ID after checking every uploaded byte.
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Publish Max'd 1.5.0
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: publish-maxd-v1.5.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PROSPEROTUBE_UI_KIT: https://github.com/LedyBacer/ps5-homebrew-ui.git
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - name: Check out release tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check release label replacement
+        run: python3 scripts/test_publish_150.py
+
+      - name: Select exact merged candidate and successful package build
+        id: candidate
+        run: python3 scripts/publish_maxd_150.py select
+
+      - name: Check out matching app source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.candidate.outputs.sha }}
+          path: app-source
+          persist-credentials: false
+
+      - name: Restore unchanged dependency pins
+        working-directory: app-source
+        run: |
+          bash scripts/restore_submodules.sh
+          python3 scripts/ui_kit.py
+
+      - name: Recheck focused regressions and release identity
+        working-directory: app-source
+        run: |
+          bash scripts/test_maxd.sh
+          bash scripts/test_about.sh
+          bash scripts/test_maxd_release_notice.sh
+          python3 scripts/test_release.py
+          python3 scripts/test_make_build.py
+
+      - name: Download exact verified PS5 package
+        env:
+          BUILD_RUN: ${{ steps.candidate.outputs.run }}
+          BUILD_ARTIFACT: ${{ steps.candidate.outputs.artifact }}
+        run: gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name "$BUILD_ARTIFACT" --dir downloads
+
+      - name: Package corresponding source and publish verified release assets
+        env:
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+          BUILD_RUN: ${{ steps.candidate.outputs.run }}
+        run: python3 scripts/publish_maxd_150.py publish --source app-source --downloads downloads --candidate "$CANDIDATE_SHA" --run "$BUILD_RUN"

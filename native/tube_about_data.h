@@ -3,11 +3,17 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.004.002"
-#define TUBE_ABOUT_CHANGELOG_ROWS 44
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.005.000"
+#define TUBE_ABOUT_CHANGELOG_ROWS 50
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.005.000", "Add profile-specific PS5 feed controls: mute title phrases, prioritize locally followed channels and manage blocked channels."}, \
+    {"1.005.000", "Add playback health and confirmed lower-quality or AVC rescue while keeping position, audio and captions."}, \
+    {"1.005.000", "Smooth phone remote controls with timeouts, reconnect, duplicate-tap protection and steadier queue focus."}, \
+    {"1.005.000", "Improve bookmark naming, duplicate prevention, save-error messages and playback-menu navigation."}, \
+    {"1.005.000", "Add automatic stable-release notices, manual update checks and a release-download QR code in About."}, \
+    {"1.005.000", "Preserve app data and picture-in-picture off by default. Thanks to ProsperoTube and EVO Player contributors."}, \
     {"1.004.002", "Fix PS5 L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely."}, \
     {"1.004.002", "Find the voice model in supported app installation locations, including ShadowMount+ homebrew folders, instead of assuming /app0."}, \
     {"1.004.002", "Extend Russian Cyrillic coverage to status text, logs and chapter titles."}, \

@@ -2,6 +2,15 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.005.000
+
+- Add profile-specific PS5 feed controls: mute title phrases, prioritize locally followed channels and manage blocked channels.
+- Add playback health and confirmed lower-quality or AVC rescue while keeping position, audio and captions.
+- Smooth phone remote controls with timeouts, reconnect, duplicate-tap protection and steadier queue focus.
+- Improve bookmark naming, duplicate prevention, save-error messages and playback-menu navigation.
+- Add automatic stable-release notices, manual update checks and a release-download QR code in About.
+- Preserve app data and picture-in-picture off by default. Thanks to ProsperoTube and EVO Player contributors.
+
 ## 1.004.002
 
 - Fix PS5 L3 voice-search worker stack overflow: move the 64 KiB model-verification buffer to the heap and request a checked 4 MiB recognition-thread stack. Keep full model integrity verification and report thread setup errors safely.

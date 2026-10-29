@@ -2,7 +2,7 @@ void AudioTrackPickerScreen::maxdText(const char* text,void* data) {
     auto self=static_cast<AudioTrackPickerScreen*>(data);
     if(!self || !text || self->m_tubeExtraGroup!=-5 || !self->m_maxdOwner || self->m_maxdOwner!=tube_caption_selection())return;
     if(self->m_maxdNaming) {
-        toast("BOOKMARKS",tube_maxd_bookmark_add(self->m_maxdOwner,self->m_maxdPosition,text)?"Saved for this profile":"Could not save this bookmark");
+        toast("BOOKMARKS",tube_maxd_bookmark_add(self->m_maxdOwner,self->m_maxdPosition,text)?"Bookmark saved for this profile":tube_maxd_bookmark_error());
     } else if(maxd_smart_text(text,128,1)) self->m_maxdQuery=text;
     self->refreshTracks();self->m_selectedIndex=self->m_scrollOffset=0;
 }
@@ -28,4 +28,22 @@ void AudioTrackPickerScreen::maxdTools() {
     }
     e.kind=KindTubeNotice;e.label=hits?"Search to narrow these results":"No matching caption lines";
     e.detail="Up to 256 matching lines per search; automatic captions can contain errors";m_tracks.push_back(e);
+}
+
+void AudioTrackPickerScreen::maxdHealth() {
+    Entry e;e.kind=KindTubeNotice;
+    char status[256];tube_maxd_health_summary(status,sizeof status);
+    e.label=status;e.detail=tube_maxd_health_action();m_tracks.push_back(e);
+    if(!m_maxdOwner || m_maxdOwner!=tube_phone_selection()) {
+        e.label="This video is no longer active";e.detail="Return to the current video before opening playback health";m_tracks.push_back(e);return;
+    }
+    if(m_tubeExtraGroup==-7) {
+        e.kind=KindMaxdHealthConfirm;e.label=m_maxdRescueSafe?"Confirm AVC rescue, up to 1080p30 SDR":"Confirm lower quality for this video";
+        e.detail="Keep position and captions; pin this session's format. Saved quality preferences stay unchanged. Circle cancels.";
+        m_tracks.push_back(e);return;
+    }
+    e.kind=KindMaxdHealthLower;e.label="Try a lower quality";e.detail="Review before reopening at your current position";m_tracks.push_back(e);
+    e.kind=KindMaxdHealthSafe;e.label="Try AVC compatibility format";e.detail="Review an available AVC stream up to 1080p30 SDR; videos on demand only";m_tracks.push_back(e);
+    e.kind=KindTubeNotice;e.label="Health uses recent playback samples";
+    e.detail="Buffering and dropped frames are symptoms, not a network diagnosis. No reports are uploaded.";m_tracks.push_back(e);
 }

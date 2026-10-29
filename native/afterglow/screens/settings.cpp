@@ -15,6 +15,8 @@
 
 #include "afterglow/screens/settings_screen.hpp"
 
+extern "C" int tube_update_app_take_refresh(const char *) __attribute__((weak));
+
 namespace afterglow::settings
 {
 
@@ -98,6 +100,14 @@ void Settings::enter(const Route &route, UpdateContext &context, bool restored)
 
 void Settings::update(const InputFrame &input, UpdateContext &context)
 {
+    if (tube_update_app_take_refresh) {
+        for (const Source &source : sources_) {
+            if (source.catalog == "settings:about" && tube_update_app_take_refresh("settings:update:check")) {
+                context.services.data.forget(source.catalog);
+                break;
+            }
+        }
+    }
     age_ += context.dt;
     read(context.services.data);
     settle(context);

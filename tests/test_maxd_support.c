@@ -33,6 +33,13 @@ int main(void) {
         /* Selecting the displayed address stays inside the phone-link screen. */
         p->list_catalog(last_items[0].id,0,items_cb,NULL);
         assert(last_ok && last_count==1 && !strcmp(last_items[0].id,"account:notice") && !pending_count);
+        p->list_catalog("link:maxd-release",0,items_cb,NULL);
+        assert(last_ok && last_count==1 && !pending_count);
+        assert(!strcmp(last_items[0].overview,"https://github.com/HandshakeHackin/youtube-maxd/releases/latest"));
+        assert(tube_qr_row_payload("link:maxd-release",last_items[0].id,last_items[0].title,
+                                   last_items[0].overview,payload,sizeof payload));
+        assert(!strcmp(payload,"https://github.com/HandshakeHackin/youtube-maxd/releases/latest"));
+        assert(!tube_qr_encode(payload,strlen(payload),TUBE_QR_LEVEL_M,&code));
         p->list_catalog("link:maxd-support",1,items_cb,NULL);
         assert(!last_ok && !pending_count);
         p->list_catalog("link:maxd-support:other",0,items_cb,NULL);

@@ -15,6 +15,7 @@ double tube_maxd_transcript_seconds(int index);
 void tube_maxd_transcript_clear(void);
 int tube_maxd_bookmark_add(unsigned selection,double seconds,const char *label);
 int tube_maxd_bookmark_count(void);
+const char *tube_maxd_bookmark_error(void);
 const char *tube_maxd_bookmark_label(int index);
 double tube_maxd_bookmark_seconds(int index);
 int tube_maxd_bookmark_remove(int index);

@@ -44,12 +44,38 @@ static int maxd_bookmark_at(int index) {
     return -1;
 }
 int tube_maxd_bookmark_count(void) {int n=0;while(maxd_bookmark_at(n)>=0)++n;return n;}
+static const char *g_maxd_bookmark_error="";
+const char *tube_maxd_bookmark_error(void) {return g_maxd_bookmark_error;}
+static int maxd_bookmark_saved(void) {
+    g_maxd_bookmark_error=g_storage_notice?"Bookmark kept for this session only. Check free space and save it again.":"";
+    return !g_storage_notice;
+}
 int tube_maxd_bookmark_add(unsigned selection,double seconds,const char *label) {
-    if(!caption_scope() || selection!=g_selection_serial || g_maxd_mark_count>=MAXD_BOOKMARKS || tube_maxd_bookmark_count()>=64 ||
-       !isfinite(seconds)||seconds<0||seconds>604800 || !maxd_smart_text(label,120,0))return 0;
+    g_maxd_bookmark_error="This video changed. Return to playback and try again.";
+    if(!caption_scope() || selection!=g_selection_serial)return 0;
+    g_maxd_bookmark_error="Choose a valid position in this video.";
+    if(!isfinite(seconds)||seconds<0||seconds>604800)return 0;
+    g_maxd_bookmark_error="Enter a bookmark name of 1 to 120 UTF-8 bytes.";
+    if(!label)return 0;
+    while(*label==' ')++label;
+    size_t length=strlen(label);while(length && label[length-1]==' ')--length;
+    if(!length || length>120)return 0;
+    char name[121];memcpy(name,label,length);name[length]=0;
+    if(!maxd_smart_text(name,120,0))return 0;
+    /* Repeated saves of the same named moment succeed without duplicates,
+     * including when the per-video limit is already reached. */
+    for(int i=0;i<g_maxd_mark_count;++i) {
+        const MaxdBookmark *b=&g_maxd_marks[i];
+        if(!strcmp(b->profile,g_library_profile) && !strcmp(b->video,g_active_id) &&
+            !strcmp(b->label,name) && fabs(b->seconds-seconds)<=0.5) {if(g_storage_notice)save();return maxd_bookmark_saved();}
+    }
+    g_maxd_bookmark_error="This video has 64 bookmarks. Remove one before saving another.";
+    if(tube_maxd_bookmark_count()>=64)return 0;
+    g_maxd_bookmark_error="Bookmark storage is full. Remove an old bookmark and try again.";
+    if(g_maxd_mark_count>=MAXD_BOOKMARKS)return 0;
     MaxdBookmark *b=&g_maxd_marks[g_maxd_mark_count++];memset(b,0,sizeof *b);
     copy(b->profile,sizeof b->profile,g_library_profile);copy(b->video,sizeof b->video,g_active_id);
-    copy(b->label,sizeof b->label,label);b->seconds=seconds;save();return 1;
+    copy(b->label,sizeof b->label,name);b->seconds=seconds;save();return maxd_bookmark_saved();
 }
 const char *tube_maxd_bookmark_label(int i) {int at=maxd_bookmark_at(i);return at>=0?g_maxd_marks[at].label:"";}
 double tube_maxd_bookmark_seconds(int i) {int at=maxd_bookmark_at(i);return at>=0?g_maxd_marks[at].seconds:-1;}

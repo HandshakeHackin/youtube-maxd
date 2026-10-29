@@ -38,6 +38,7 @@
 #include "tube_backup.h"
 #include "maxd/smart_rules.h"
 #include "maxd/auto_max.h"
+#include "maxd/feed_controls.h"
 #include "maxd/experience.h"
 #include "maxd/party_server.h"
 #include "maxd/phone_remote.h"
@@ -46,6 +47,8 @@ static void maxd_party_sync(void);
 static char g_maxd_party_ip[32];
 #include "maxd/experience_store.h"
 static MaxdSmartStore g_maxd_smart_store;
+static MaxdFeedStore g_maxd_feed;
+static int maxd_feed_prompt(const char *,char *,size_t);
 #include "tube_update.h"
 /* Host tests link the provider without the updater: each use asks for the function first. */
 void tube_update_app_init(void) __attribute__((weak));
@@ -643,7 +646,7 @@ static struct {
  * passwords: lock 1 = give it to select target, 2 = set a new one, 3 = give it
  * to change it, 4 = give it to remove it. comment 1 = a new comment, 2 = a reply.
  * server = the alternative SponsorBlock server of the built-in service. */
-static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment, server, maxd_smart, maxd_family, maxd_party;
+static struct { tube_playlist_prompt_t prompt; int pending, active, create, lock, search, comment, server, maxd_smart, maxd_family, maxd_party, maxd_feed;
     char identity[101], profile[33], pin[119], target[33], cursor[65]; } g_playlist_prompt;
 /* First-release scope (GOAL.md): what ships before a console and live-service
  * check carries this suffix on its rows and this line where a row has an overview. */
@@ -1122,6 +1125,7 @@ int tube_take_playlist_prompt(tube_playlist_prompt_t *prompt) {
 static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t capacity) {
     if (!g_playlist_prompt.active || ticket != g_playlist_prompt.prompt.ticket || !text ||
         !parent || capacity < 48 || strcmp(g_playlist_prompt.profile, g_library_profile)) return -1;
+    if(g_playlist_prompt.maxd_feed)return maxd_feed_prompt(text,parent,capacity);
     if(g_playlist_prompt.maxd_party) {
         /* Only private numeric IPv4; actual bind validation happens at room start. */
         unsigned a,b,c,d;char tail;
@@ -1224,6 +1228,7 @@ static int prompt_submit(unsigned ticket, const char *text, char *parent, size_t
 int tube_submit_playlist_name(unsigned ticket, const char *text, char *parent, size_t capacity) {
     const int current = g_playlist_prompt.active && ticket == g_playlist_prompt.prompt.ticket;
     copy(g_prompt_error, sizeof g_prompt_error, !current ? "" : g_playlist_prompt.lock ? "Enter a password of 1 to 150 characters." :
+        g_playlist_prompt.maxd_feed ? "Enter a nonblank title phrase of at most 96 UTF-8 bytes; this profile can keep 16 phrases." :
         g_playlist_prompt.server ? "Enter an https address without a port or path, such as https://sponsor.example.org." :
         g_playlist_prompt.search ? "Enter 1 to 150 characters to search this channel." :
         g_playlist_prompt.comment ? "Enter a comment of 1 to 150 characters." : "");
@@ -1709,11 +1714,30 @@ static void upcoming_note(const char *id) {
     const int slot = (int)(g_upcoming_cursor++ % 64);
     copy(g_upcoming[slot].id, sizeof g_upcoming[slot].id, id); g_upcoming[slot].scope = g_playlist_scope;
 }
+static int maxd_feed_followed(const evo_provider_item_t *item) {
+    if(item->is_folder || !*item->parent_id)return 0;
+    if(follow_find(g_library_profile,item->parent_id)>=0)return 1;
+    for(int i=0;i<g_count;++i)if(g_records[i].subscribed && current_record(&g_records[i]) &&
+        !strcmp(g_records[i].item.parent_id,item->parent_id))return 1;
+    return 0;
+}
+static void maxd_feed_order(evo_provider_item_t *items,int count,int lead) {
+    /* Stable within each loaded run of video cards; folder headings retain their positions. */
+    for(int i=lead;i<count;++i)if(maxd_feed_followed(&items[i])) {
+        evo_provider_item_t item=items[i];int j=i;
+        while(j>lead && !items[j-1].is_folder && !maxd_feed_followed(&items[j-1])) {items[j]=items[j-1];--j;}
+        items[j]=item;
+    }
+}
 static int comment_thread_current(void) {
     return *g_comment_thread.video && g_comment_thread.scope == g_playlist_scope && !strcmp(g_comment_thread.profile, g_library_profile);
 }
 /* Everything the profile kept on this PS5 beyond its library records. */
 static void profile_forget(const char *profile) {
+    for(int i=g_maxd_feed.count-1;i>=0;--i)if(!strcmp(g_maxd_feed.rows[i].profile,profile)) {
+        memmove(&g_maxd_feed.rows[i],&g_maxd_feed.rows[i+1],(size_t)(g_maxd_feed.count-i-1)*sizeof g_maxd_feed.rows[0]);
+        --g_maxd_feed.count;++g_maxd_feed.revision;
+    }
     for(int i=g_maxd_mark_count-1;i>=0;--i)if(!strcmp(g_maxd_marks[i].profile,profile)) {
         memmove(g_maxd_marks+i,g_maxd_marks+i+1,(size_t)(--g_maxd_mark_count-i)*sizeof g_maxd_marks[0]);
     }
@@ -2194,6 +2218,7 @@ static void save(void) {
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); storage_failed(); return; }
     profile_settings_write(root);
     maxd_smart_write(&g_maxd_smart_store,root);
+    maxd_feed_write(&g_maxd_feed,root);
     maxd_experience_write(root);
     maxd_family_write(root);
     cJSON *blocked=cJSON_AddArrayToObject(root,"blocked_channels");
@@ -2551,6 +2576,7 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 static int init_store(void) {
     maxd_smart_reset();
     g_maxd_mark_count=0;memset(&g_maxd_family,0,sizeof g_maxd_family);
+    memset(&g_maxd_feed,0,sizeof g_maxd_feed);
     memset(&g_resolve_failure,0,sizeof g_resolve_failure); tube_queue_retry_cancel(); g_startup_open = 1;
     tube_remote_shutdown();
     g_profile_settings_count = 0; memset(g_profile_settings,0,sizeof g_profile_settings);
@@ -2772,6 +2798,7 @@ static int init_store(void) {
         r->subscribed = boolean(o, "subscribed");
     }
     maxd_smart_read(&g_maxd_smart_store,root);
+    maxd_feed_read(&g_maxd_feed,root);
     maxd_experience_read(root);
     maxd_family_read(root);
     profile_settings_load(root);
@@ -4686,6 +4713,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (cb) cb(1, items, n, more, data);
         free(items); cJSON_Delete(root); return;
     }
+    const MaxdFeedPrefs *feed=maxd_feed_for(&g_maxd_feed,g_library_profile,0);
+    const int feed_filter=r->kind==0 || r->kind==1 || (r->kind==3 && strcmp(r->parent,"library:history") &&
+        strcmp(r->parent,"library:watch_later") && strncmp(r->parent,"library:playlist:",17));
     const int home = r->kind == 3 && home_parent(r->parent), cards = r->kind == 3 && feedback_parent(r->parent);
     const int notifications = r->kind == 3 && !strcmp(r->parent, "library:notifications");
     const int subscribed = r->kind == 3 && !strcmp(r->parent, "library:channels");
@@ -4704,6 +4734,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (n >= LOCAL_PAGE + lead || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         parse_item(&items[n], o);
+        if(feed_filter && !items[n].is_folder && maxd_feed_hides(feed,str(o,"title"),str(o,"dearrow_title")))continue;
         if(!items[n].is_folder && blocked_identity(items[n].parent_id,items[n].subtitle)>=0)continue;
         if(items[n].is_folder && valid_channel_group(items[n].id) && blocked_channel(items[n].id+8)>=0)continue;
         if(cards && !items[n].is_folder && dismissed(items[n].id,items[n].parent_id,!home))continue;
@@ -4798,8 +4829,11 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         for (int i = lead; known && tab == 1 && sort <= 0 && i < n; ++i)
             if (!items[i].is_folder && valid_id(items[i].id)) { channel_mark_put(channel, items[i].id); break; }
     }
+    if(feed && feed->followed_first && (home || !strncmp(r->parent,"section:",8) || !strncmp(r->parent,"home-topic:",11)))maxd_feed_order(items,n,lead);
     if (g_channel_marks_dirty) save();
     int more = boolean(result, "has_more");
+    if(!n && feed_filter && feed && feed->count && !more && cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(result,"items")))
+        folder(&items[n++],"settings:feed","Videos hidden by your title phrases","Open Feed controls to remove a phrase for this profile");
     if (r->kind == 3 && !r->page && !n && !more && !strcmp(r->parent, "library:home") && !strcmp(g_library_profile, "guest")) {
         /* YouTube answers a signed-out Home with a notice alone: say why and lead on. */
         folder(&items[n++], "account:notice", "Home recommendations need a signed-in account", embedded_guest_only() ?
@@ -4810,8 +4844,9 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
     }
     /* Content filters can leave a companion page empty while more follow: read
      * on, a bounded number of times, instead of showing an empty list. */
-    if (r->kind == 3 && !r->aggregate && more && g_hide_set && companion_has(COMPANION_FILTERS) &&
-        !cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(result, "items")) &&
+    if (r->kind == 3 && !r->aggregate && more &&
+        ((g_hide_set && companion_has(COMPANION_FILTERS) && !cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(result,"items"))) ||
+         (feed_filter && feed && feed->count && !n)) &&
         !strcmp(r->parent, g_library_parent) && r->empty_pages < 8) {
         cJSON *operation = cJSON_CreateObject();
         cJSON_AddStringToObject(operation, "action", "continue"); cJSON_AddStringToObject(operation, "profile", g_library_profile);
@@ -5033,7 +5068,9 @@ static int extra_group_parent(const char *parent, int *choice) {
 #include "maxd/family_catalog.h"
 #include "maxd/party_catalog.h"
 #include "maxd/phone_remote_catalog.h"
+#include "maxd/feed_catalog.h"
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
+    if(maxd_feed_catalog(parent,page,cb,ud))return 1;
     if(maxd_family_catalog(parent,page,cb,ud))return 1;
     if(maxd_party_catalog(parent,page,cb,ud))return 1;
     if(maxd_remote_catalog(parent,page,cb,ud))return 1;
@@ -5050,7 +5087,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         /* Addresses to open on another device: a row's overview is its link,
          * which the screen shows as text and as a QR code. */
         char url[TUBE_QR_PAYLOAD_SIZE];const char *value=parent+5;
-        if(!page && !strcmp(value,"maxd-support")) {
+        if(!page && !strcmp(value,"maxd-release")) {
+            LINK_ROW("link:row:maxd-release", "Download latest release",
+                "Download on your phone or computer, then replace the app folder on PS5",
+                "https://github.com/HandshakeHackin/youtube-maxd/releases/latest");
+        } else if(!page && !strcmp(value,"maxd-support")) {
             LINK_ROW("link:row:maxd-support", "Support YouTube Max’d",
                 "Optional Ko-fi donations to HandshakeHackin", TUBE_MAXD_SUPPORT_URL);
         } else if(!page && !strncmp(value,"video:",6) && valid_id(value+6)) {
@@ -6269,11 +6310,20 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             maxd_smart_fact("link:maxd-support", "link", "Support YouTube Max’d", "");
             tube_row_fact("link:maxd-support", "screen", "reader");
             tube_row_fact("link:maxd-support", "argument", "link:maxd-support");
-            /* Classic has no application modal; retain its update fallback only. */
-            if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_rows) {
+            /* Max’d release check is available in both interfaces. */
+            if (tube_update_app_rows) {
                 tube_update_row rows[10];
                 const int count = tube_update_app_rows(rows, 10);
-                for (int i = 0; i < count; ++i) CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);
+                for (int i = 0; i < count; ++i) {
+                    CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);
+                    if (!strncmp(rows[i].id, "settings:update:", 16))
+                        maxd_smart_fact(rows[i].id, "action", rows[i].title, "");
+                    if (!strcmp(rows[i].id, "link:maxd-release")) {
+                        maxd_smart_fact(rows[i].id, "link", rows[i].title, "");
+                        tube_row_fact(rows[i].id, "screen", "reader");
+                        tube_row_fact(rows[i].id, "argument", rows[i].id);
+                    }
+                }
             }
         } else if (!strcmp(parent, "settings:about:credits")) {
             const tube_about_credit *credit;
@@ -6888,6 +6938,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( "settings:content-country", label, "Country YouTube uses for recommendations and Trending");
             if (tube_i18n_setting_title) CATALOG_FOLDER( TUBE_I18N_SETTING, tube_i18n_setting_title(), "Language of ProsperoTube's menus and messages");
             CATALOG_FOLDER( "settings:ui", "Interface", "Scale, video grid, card text, color scheme, video actions menu and Circle on the main menu");
+            CATALOG_FOLDER("settings:feed","Feed controls","Mute title phrases, prioritize local follows and manage blocked channels for this profile");
             CATALOG_FOLDER( "settings:hide", "Hide content", "Shorts, mixes, watched, live and upcoming videos by section");
             snprintf(label, sizeof label, "Thumbnail source: %s", g_thumbnail_labels[g_thumbnails]);
             CATALOG_FOLDER( "settings:thumbnails", label, "Published thumbnail or a frame from the start, middle or end");
