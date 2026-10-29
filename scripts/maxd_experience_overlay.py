@@ -85,7 +85,7 @@ def apply(root, work, player):
     }
     if (pressed & PadButtons::Up)    { navigate(-1); return true; }''')
     change(picker, '        if (m_tubeExtraGroup != -1) {', '''        if (m_tubeExtraGroup == -7) {
-            m_tubeExtraGroup=-6;refreshTracks();m_selectedIndex=m_maxdRescueSafe?2:1;m_scrollOffset=0;return true;
+            m_tubeExtraGroup=-6;refreshTracks();m_selectedIndex=std::max(0,std::min(m_maxdRescueSafe?2:1,static_cast<int>(m_tracks.size())-1));m_scrollOffset=0;return true;
         }
         if (m_tubeExtraGroup != -1) {''')
     change(picker, 'if (group == -2 ? m_tracks[i].kind == KindChapterList',

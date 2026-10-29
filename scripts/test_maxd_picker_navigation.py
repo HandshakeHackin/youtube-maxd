@@ -18,16 +18,18 @@ end = text.index('// End YouTube Max’d extra option back.', start)
 back = text[start:end]
 source = r'''
 #include <cassert>
+#include <algorithm>
 #include <vector>
 #define EVO_RMLUI_LIST_ROWS 12
 enum { KindExtraGroup, KindChapterList, KindMaxdTools, KindMaxdHealth, Notice, Lower, Safe };
 struct Entry { int kind,streamIndex; };
 struct Picker {
  int m_tubeExtraGroup=-1,m_selectedIndex=0,m_activeIndex=0,m_scrollOffset=0;
- bool m_maxdRescueSafe=false;
+ bool m_maxdRescueSafe=false,stale=false;
  std::vector<Entry> m_tracks;
  void refreshTracks() {
-  if(m_tubeExtraGroup==-6)m_tracks={{Notice,0},{Lower,0},{Safe,0},{Notice,0}};
+  if(m_tubeExtraGroup==-6&&stale)m_tracks={{Notice,0},{Notice,0}};
+  else if(m_tubeExtraGroup==-6)m_tracks={{Notice,0},{Lower,0},{Safe,0},{Notice,0}};
   else m_tracks={{KindExtraGroup,0},{KindChapterList,0},{KindMaxdTools,0},{KindMaxdHealth,0}};
  }
  bool goBack() {
@@ -43,6 +45,7 @@ int main() {
  p.m_tubeExtraGroup=-7;p.m_maxdRescueSafe=true;assert(p.goBack());assert(p.m_tubeExtraGroup==-6 && p.m_selectedIndex==2);
  assert(p.goBack());assert(p.m_tubeExtraGroup==-1 && p.m_selectedIndex==3);
  p.m_tubeExtraGroup=-2;assert(p.goBack());assert(p.m_selectedIndex==1);
+ p.stale=true;p.m_tubeExtraGroup=-7;assert(p.goBack());assert(p.m_selectedIndex==1 && p.m_selectedIndex<static_cast<int>(p.m_tracks.size()));
 }
 '''
 with tempfile.TemporaryDirectory(prefix='maxd-picker-nav-') as directory:
