@@ -1,0 +1,69 @@
+{
+  "version": "1.5.0",
+  "content_version": "01.005.000",
+  "source_commit": "001a848fb7dcfcfc0d9aa64331db64a06502b611",
+  "merge_commit": "e900af6e78158685cf8416635e8a5eab6a9597f6",
+  "release_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.5.0",
+  "release_id": 428361442,
+  "published": true,
+  "prerelease": false,
+  "build_run": 40948044501,
+  "focused_run": 40948044807,
+  "publication_run": 40949160562,
+  "assets": [
+    {
+      "name": "native-validation.json",
+      "size": 821,
+      "digest": "sha256:fb00e9cb4c11492c4c119322bbf3885cdb2580064d0a005fd6bb36e9b1c15afe",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/native-validation.json"
+    },
+    {
+      "name": "PPSA99991.zip",
+      "size": 101821490,
+      "digest": "sha256:6687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/PPSA99991.zip"
+    },
+    {
+      "name": "RELEASE_NOTES.md",
+      "size": 1378,
+      "digest": "sha256:c51b062da50bc79ad63a073e728957b95174904bd1cbd51f7e19a7fd10da1a28",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/RELEASE_NOTES.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 512,
+      "digest": "sha256:cfe5daeb70e628ffe3deeda92cb78165d23a8e8c4e6a3501fff3df9b33fb00b7",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/SHA256SUMS"
+    },
+    {
+      "name": "TEST_RESULTS.md",
+      "size": 859,
+      "digest": "sha256:6f2989993272d6dbfad3141d8cc42ba4bfc95be43826401271ac7e194c09d80c",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/TEST_RESULTS.md"
+    },
+    {
+      "name": "YouTube-Maxd-icon.png",
+      "size": 249991,
+      "digest": "sha256:d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/YouTube-Maxd-icon.png"
+    },
+    {
+      "name": "YouTube-Maxd-source.zip",
+      "size": 474332247,
+      "digest": "sha256:96895adc17147cd6d9b8bdb56731d1dc5427409a5f5a3198a69e14963ab5e0ae",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/YouTube-Maxd-source.zip"
+    }
+  ],
+  "store": {
+    "repository": "darkxex/ps5-homebrew-catalog",
+    "branch": "HandshakeHackin:update-youtube-maxd-1.5.0",
+    "commit": "5bb203e",
+    "offline_check": "passed",
+    "online_verification": "passed",
+    "pull_request_created": false,
+    "blocker": "HTTP 403 Resource not accessible by integration (connector and CLI)",
+    "submission_url": "https://github.com/darkxex/ps5-homebrew-catalog/compare/main...HandshakeHackin:update-youtube-maxd-1.5.0?expand=1&title=Update+YouTube+Max%E2%80%99d+to+1.5.0&body=Update+YouTube+Max%E2%80%99d+%28PPSA99991%29+from+1.4.2+to+1.5.0.%0A%0AChanges%3A%0A-+Profile-specific+feed+controls%3A+title+phrase+muting+and+local-follow+priority.%0A-+Playback+health+and+confirmed+lower-quality%2FAVC+rescue%2C+retaining+playback+position%2C+audio+and+captions.%0A-+Smoother+phone+remote+reconnect%2C+timeouts%2C+queue+focus+and+repeated-tap+handling.%0A-+Better+bookmark+naming%2Fsave+feedback+and+playback+menu+navigation.%0A-+Stable-release+update+notices%2C+manual+checks+and+a+release-download+QR+in+About.%0A%0AApp+data+and+title+ID+are+preserved%3B+picture-in-picture+stays+off+by+default.+Content+version+rises+to+01.005.000.+Based+on+ProsperoTube+and+EVO+Player%2C+with+credits%2C+licenses+and+corresponding+source+retained.%0A%0AOnly+apps%2FPPSA99991.json+changes.+This+update+comes+from+HandshakeHackin%2C+owner+of+the+app%27s+source+repository.+The+record+pins+the+published+1.5.0+app+ZIP+and+exact+SHA-256.+Focused+feature+CI%2C+PS5+cross-compilation+and+ZIP+checks+passed.+Hardware+acceptance+remains+pending%3B+repository-wide+test+success+is+not+claimed.%0A%0ARelease+and+simple+changelog%3A+https%3A%2F%2Fgithub.com%2FHandshakeHackin%2Fyoutube-maxd%2Freleases%2Ftag%2Fv1.5.0%0A%0APublished+app+ZIP%3A+101%2C821%2C490+bytes.+SHA-256%3A+%606687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c%60.%0A",
+    "accepted": false
+  },
+  "hardware_tested": false
+}

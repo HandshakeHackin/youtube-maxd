@@ -1,7 +1,10 @@
-# 1.4.2 submission validation
+# 1.5.0 store validation
 
-GitHub release publication workflow 40372864377 succeeded. PS5 build job 121743337468 succeeded in run 40371366904. Candidate source: fee60b591890f981627ad3b0c28b0db2696333e0.
-
-The release contains native-validation.json, TEST_RESULTS.md, SHA256SUMS, release notes and corresponding sources. App ZIP contentVersion is 01.004.002; title PPSA99991. CI archive independently downloaded and passed verify_app_zip.py (306 entries, all 0777). The release publisher checks all asset digests before publication and changes only the CI text build label.
-
-223 bundled worker checks and six focused title/voice/stack checks passed locally. Exact dedicated account-feed CI passed. Full inherited offline suite is not all green; no PS5 hardware confirmation is claimed. Both reports remain open and users have been asked to update and confirm.
+- Full PS5 package job passed for source 001a848fb7dcfcfc0d9aa64331db64a06502b611; the focused feature workflow also passed for that source.
+- Stable GitHub release v1.5.0 is public/latest, not a draft or prerelease. All seven uploaded asset SHA-256 digests were checked before publication.
+- Published native-validation.json, SHA256SUMS and RELEASE_NOTES.md were independently downloaded and verified against their GitHub digests.
+- Local PS5 build passed: 305 entries, all 0777, CRC/title/version checks passed. The published CI package has its CI build label replaced in place; all other executable and asset bytes are retained.
+- Catalog offline check: 157 valid records, zero errors/warnings/notices. Online verify: the published asset digest and contentVersion 01.005.000 match, zero errors/warnings. The catalog check reads GitHub asset metadata; it does not download the entire ZIP.
+- Exact app bytes: 101821490; SHA-256: 6687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c.
+- Physical PS5 acceptance remains pending. Repository-wide test success is not claimed.
+- Store update branch commit: 5bb203e. Upstream PR creation is blocked by integration permissions (HTTP 403); see SUBMISSION.md.

@@ -1,6 +1,6 @@
 # YouTube Max’d integration
 
-## Next update — development
+## 1.5.0 — 2026-10-29
 
 - Polish the existing phone remote: request timeouts, explicit reconnect without replay, rapid-tap/changed-video guards, stable queue focus, draft preservation and clearer session expiry.
 - Polish bookmarks and playback menus: trim names, avoid duplicate moments, explain limits/storage failures, confirm deletion and restore focus on Back.
