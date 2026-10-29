@@ -120,3 +120,10 @@ Smart playlists, Auto Max and approved artwork changes on 2026-10-18:
 - Host policy/provider and UI tests cover the new paths. Console performance,
   real feed refreshes and physical lighting still need hardware acceptance.
   See `docs/MAXD_FEATURES.md` for usage, limits and acceptance steps.
+
+### GitHub release notifications (in development)
+
+- Check this project's latest stable GitHub release at launch and every six hours in the background; notify once per newer version per launch.
+- Add manual checks, a saved automatic-notice setting, and a release-page QR link in About for both interfaces.
+- Keep automatic network failures quiet; bound requests and verify HTTPS. No self-installation or upstream update source is enabled.
+- See [update notification behavior and publishing requirements](docs/UPDATE_NOTIFICATIONS.md). Existing releases need the new build installed before notices can work.

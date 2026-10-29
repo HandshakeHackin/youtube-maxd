@@ -14,7 +14,7 @@ the old program. SPDX-License-Identifier: GPL-3.0-or-later
 import shutil
 
 SOURCES = ("tube_update.c", "tube_update_app.c")
-HEADERS = ("tube_update.h", "tube_update_paths.h")
+HEADERS = ("tube_update.h", "tube_update_paths.h", "maxd_release_notice.h")
 KIT = ("self_update.c", "self_update_sha256.c", "update_check.c")
 KIT_HEADERS = ("self_update.h", "self_update_sha256.h", "self_update_protocol.h", "update_check.h", "console_curl.h")
 HOST = '''    // ProsperoTube update messages.

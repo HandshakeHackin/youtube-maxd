@@ -5087,7 +5087,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
         /* Addresses to open on another device: a row's overview is its link,
          * which the screen shows as text and as a QR code. */
         char url[TUBE_QR_PAYLOAD_SIZE];const char *value=parent+5;
-        if(!page && !strcmp(value,"maxd-support")) {
+        if(!page && !strcmp(value,"maxd-release")) {
+            LINK_ROW("link:row:maxd-release", "Download latest release",
+                "Download on your phone or computer, then replace the app folder on PS5",
+                "https://github.com/HandshakeHackin/youtube-maxd/releases/latest");
+        } else if(!page && !strcmp(value,"maxd-support")) {
             LINK_ROW("link:row:maxd-support", "Support YouTube Max’d",
                 "Optional Ko-fi donations to HandshakeHackin", TUBE_MAXD_SUPPORT_URL);
         } else if(!page && !strncmp(value,"video:",6) && valid_id(value+6)) {
@@ -6306,11 +6310,20 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             maxd_smart_fact("link:maxd-support", "link", "Support YouTube Max’d", "");
             tube_row_fact("link:maxd-support", "screen", "reader");
             tube_row_fact("link:maxd-support", "argument", "link:maxd-support");
-            /* Classic has no application modal; retain its update fallback only. */
-            if (!(tube_afterglow_enabled ? tube_afterglow_enabled() : g_ui.interface_kind == TUBE_UI_INTERFACE_AFTERGLOW) && tube_update_app_rows) {
+            /* Max’d release check is available in both interfaces. */
+            if (tube_update_app_rows) {
                 tube_update_row rows[10];
                 const int count = tube_update_app_rows(rows, 10);
-                for (int i = 0; i < count; ++i) CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);
+                for (int i = 0; i < count; ++i) {
+                    CATALOG_FOLDER(rows[i].id, rows[i].title, rows[i].detail);
+                    if (!strncmp(rows[i].id, "settings:update:", 16))
+                        maxd_smart_fact(rows[i].id, "action", rows[i].title, "");
+                    if (!strcmp(rows[i].id, "link:maxd-release")) {
+                        maxd_smart_fact(rows[i].id, "link", rows[i].title, "");
+                        tube_row_fact(rows[i].id, "screen", "reader");
+                        tube_row_fact(rows[i].id, "argument", rows[i].id);
+                    }
+                }
             }
         } else if (!strcmp(parent, "settings:about:credits")) {
             const tube_about_credit *credit;
