@@ -3,7 +3,7 @@
 <style>
 :root{color-scheme:dark;font:16px system-ui;background:#101014;color:#fff}*{box-sizing:border-box}body{max-width:620px;margin:auto;padding:20px}h1{font-size:1.6rem}h1 span{color:#ff304f}h2{font-size:1.1rem;margin-top:26px}button,input{font:inherit;border-radius:12px;padding:13px;border:1px solid #62626d;background:#22222a;color:white}button{cursor:pointer;min-height:48px}button:disabled{opacity:.4;cursor:wait}button:focus-visible,input:focus-visible{outline:3px solid #ff304f}input{width:100%;margin:8px 0}button.primary{background:#d51f3b;border:0}.row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}small,p{line-height:1.5;color:#c8c8d0}#status{padding:12px;background:#24242c;border-radius:10px}#status[data-error="true"]{border:1px solid #ff304f}.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#queue{padding:0;list-style:none}#queue li{border-bottom:1px solid #444;padding:12px 0}pre{overflow:auto;max-height:340px;padding:14px;background:#050507;border-radius:10px;font-size:12px;white-space:pre-wrap}a{color:white}[hidden]{display:none!important}
 </style>
-<body><h1>YouTube <span>Max’d</span></h1><p>Phone remote · runs on your PS5</p><p id="status" role="status" aria-live="polite">Connecting…</p>
+<body><h1>YouTube <span>Max’d</span></h1><p>Phone remote · runs on your PS5</p><p id="status" role="status" aria-live="polite">Connecting…</p><button id="reconnect" hidden>Reconnect to PS5</button>
 <main id="controls" hidden>
 <h2>Search on the TV</h2><p>Type here, then browse results on the TV with the controls below.</p>
 <form id="search"><label for="query">YouTube search</label><input id="query" maxlength="256" autocomplete="off" placeholder="What do you want to watch?"><button class="primary">Search on PS5</button></form>
@@ -16,15 +16,38 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const invite=location.hash.slice(1);history.replaceState(null,'',location.pathname);
-let token='',state=null,chain=Promise.resolve(),working=false,reportText='';
+let token='',state=null,working=false,refreshing=false,connected=false,reportText='',queueSignature='',revision=0;
 try{token=sessionStorage.getItem('maxd-remote')||'';}catch{}
 function message(text,error=false){$('status').textContent=text;$('status').dataset.error=String(error);}
+function clearSession(){
+ ++revision;token='';state=null;connected=false;reportText='';queueSignature='';
+ try{sessionStorage.removeItem('maxd-remote');}catch{}
+ $('controls').hidden=true;$('report').textContent='';$('report').hidden=true;$('download').hidden=true;$('queue').replaceChildren();
+}
+function syncButtons(){
+ for(const b of document.querySelectorAll('#controls button'))b.disabled=working||!connected;
+ for(const b of document.querySelectorAll('[data-action],#rewind,#forward'))b.disabled=working||!connected||!state?.active||state.busy||((b.id==='rewind'||b.id==='forward')&&state.live);
+ $('controls').setAttribute('aria-busy',String(working));
+ $('reconnect').hidden=connected||!token;$('reconnect').disabled=working||refreshing;
+}
+function failed(e,sent=false){
+ if(!e.status || e.status===401)connected=false;
+ message((sent?'Check the TV before repeating this control. ':'')+e.message,true);syncButtons();
+}
 async function api(path,body={}){
  const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;
- const response=await fetch(path,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
- const json=await response.json();
- if(!response.ok){if(response.status===401){token='';try{sessionStorage.removeItem('maxd-remote');}catch{}$('controls').hidden=true;}throw Error(json.error||'Connection failed');}
- return json;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  const response=await fetch(path,{method:'POST',headers,body:JSON.stringify(body),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',signal:controller.signal});
+  if(response.status===401){clearSession();const error=Error('Session ended. Scan a new QR code in PS5 Settings → Phone remote.');error.status=401;throw error;}
+  let json;try{json=await response.json();}catch(e){if(e.name==='AbortError')throw e;throw Error('Could not read the PS5 response. Reconnect and check the TV.');}
+  if(!response.ok){
+   if(response.status===401)clearSession();
+   const error=Error(response.status===401?'Session ended. Scan a new QR code in PS5 Settings → Phone remote.':json.error||'PS5 connection failed.');error.status=response.status;throw error;
+  }
+  return json;
+ }catch(e){if(e.name==='AbortError')throw Error('Connection timed out. Check that the PS5 and phone are on the same local network, then reconnect.');throw e;}
+ finally{clearTimeout(timer);}
 }
 function idFrom(input){
  const text=input.trim();if(/^[A-Za-z0-9_-]{11}$/.test(text))return text;
@@ -35,29 +58,61 @@ function idFrom(input){
  if(url.pathname==='/watch')id=url.searchParams.get('v');else if(/^\/(shorts|live|embed)\//.test(url.pathname))id=url.pathname.split('/')[2];}
  return /^[A-Za-z0-9_-]{11}$/.test(id||'')?id:'';}catch{return '';}
 }
-function clock(seconds){seconds=Math.max(0,Math.floor(Number(seconds)||0));return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
+function clock(seconds){seconds=Number(seconds);seconds=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;return seconds>=3600?Math.floor(seconds/3600)+':'+String(Math.floor(seconds/60)%60).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0'):Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
 function render(s){
- state=s;$('controls').hidden=false;
+ if(!token)return;
+ state=s;connected=true;$('controls').hidden=false;
  $('playback').textContent=s.active?(s.paused?'Paused':'Playing')+' · '+clock(s.position)+(s.live?' · Live':' / '+clock(s.duration)):'No video playing';
- for(const b of document.querySelectorAll('[data-action],#rewind,#forward'))b.disabled=!s.active||s.busy||((b.id==='rewind'||b.id==='forward')&&s.live);
- const list=$('queue');list.replaceChildren();
- for(const item of s.queue){const li=document.createElement('li'),label=document.createElement('div');label.textContent=item.title||item.id;li.append(label);
- const row=document.createElement('div');row.className='row';for(const [action,name] of [['next','Play next'],['remove','Remove']]){const b=document.createElement('button');b.textContent=name;b.onclick=()=>command(action,item.id);row.append(b);}li.append(row);list.append(li);}
- if(!s.queue.length){const li=document.createElement('li');li.textContent='Your queue is empty.';list.append(li);}
+ const signature=JSON.stringify(s.queue.map(item=>[item.id,item.title]));
+ if(signature!==queueSignature){
+  queueSignature=signature;
+  const focus=document.activeElement,action=focus?.dataset?.queueAction,video=focus?.dataset?.video;
+  const list=$('queue');list.replaceChildren();let restore=null,first=null;
+  for(const item of s.queue){const li=document.createElement('li'),label=document.createElement('div');label.textContent=item.title||item.id;li.append(label);
+   const row=document.createElement('div');row.className='row';for(const [kind,name] of [['next','Play next'],['remove','Remove']]){
+    const button=document.createElement('button');button.textContent=name;button.dataset.queueAction=kind;button.dataset.video=item.id;
+    button.setAttribute('aria-label',name+': '+(item.title||item.id));button.onclick=()=>command(kind,item.id);row.append(button);
+    if(!first)first=button;if(action===kind&&video===item.id)restore=button;
+   }li.append(row);list.append(li);
+  }
+  if(!s.queue.length){const li=document.createElement('li');li.textContent='Your queue is empty. Add a YouTube link above.';list.append(li);}
+  if(action)(restore||first||$('video')).focus();
+ }
+ syncButtons();
 }
-async function refresh(){if(!token||working)return;try{render(await api('/state'));}catch(e){message(e.message,true);}}
-function command(action,text='',seconds){
- chain=chain.then(async()=>{working=true;try{
+async function refresh(){
+ if(!token||working||refreshing)return false;
+ refreshing=true;syncButtons();const wasDisconnected=!connected,epoch=revision;if(wasDisconnected)message('Reconnecting to your PS5…');
+ try{const s=await api('/state');if(working||epoch!==revision)return false;render(s);if(wasDisconnected)message('Connected to your PS5');return true;}
+ catch(e){if(!working&&(epoch===revision||e.status===401))failed(e);return false;}finally{refreshing=false;syncButtons();}
+}
+function restoreControlFocus(focus){
+ if(!focus||!connected)return;
+ if(document.activeElement&&document.activeElement!==focus&&document.activeElement!==document.body)return;
+ const buttons=Array.from(document.querySelectorAll('#controls button'));
+ const target=buttons.includes(focus)?focus:focus.dataset?.queueAction?buttons.find(b=>b.dataset.video===focus.dataset.video&&b.dataset.queueAction===focus.dataset.queueAction)||buttons.find(b=>b.dataset.queueAction):null;
+ if(target&&!target.disabled)target.focus();else if(focus.dataset?.queueAction)$('video').focus();
+}
+async function command(action,text='',seconds){
+ if(working)return false;
+ if(!token||!connected){message('Reconnect to your PS5 before sending another control.',true);return false;}
+ const owner=state?.selection,focus=document.activeElement;++revision;working=true;syncButtons();message(action==='search'?'Opening search on the PS5…':action==='capture'?'Capturing report…':'Sending control to the PS5…');let sent=false;
+ try{
   const s=await api('/state');render(s);
+  if(['pause','resume','seek'].includes(action)&&s.selection!==owner){const e=Error('The video changed. Check the TV, then choose the control again.');e.status=409;throw e;}
   const body={action,text,sequence:s.sequence+1,selection:s.selection};
   if(seconds!==undefined)body.seconds=typeof seconds==='function'?seconds(s):seconds;
-  const result=await api('/command',body);
-  if(!result.ok)throw Error('PS5 is busy or this control is unavailable. Close dialogs or return to browsing on the TV.');
+  sent=true;const result=await api('/command',body);
+  if(!result.ok){const e=Error('PS5 is busy or this control is unavailable. Close dialogs or return to browsing on the TV.');e.status=409;throw e;}
+  sent=true;
   if(action==='capture'){const report=await api('/report');reportText=JSON.stringify(report,null,2)+'\n';$('report').textContent=reportText;$('report').hidden=false;$('download').hidden=false;}
-  message(action==='search'?'Search opened on the TV.':action==='capture'?'Report ready. Review before sharing.':'Connected to your PS5');
+  if(action==='search'&&$('query').value.trim()===text)$('query').value='';
+  if(action==='add'&&idFrom($('video').value)===text)$('video').value='';
   render(await api('/state'));
- }catch(e){message(e.message,true);}finally{working=false;}});return chain;
+  message(action==='search'?'Search opened on the TV.':action==='capture'?'Report ready. Review before sharing.':'Connected to your PS5');return true;
+ }catch(e){failed(e,sent&&!e.status);return false;}finally{working=false;syncButtons();restoreControlFocus(focus);}
 }
+$('reconnect').onclick=()=>refresh();
 $('search').onsubmit=e=>{e.preventDefault();const text=$('query').value.trim();if(text)command('search',text);};
 $('add').onsubmit=e=>{e.preventDefault();const id=idFrom($('video').value);if(!id){message('Enter a YouTube video link or an 11-character video ID.',true);return;}command('add',id);};
 for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>command(b.dataset.action);
@@ -66,7 +121,7 @@ $('rewind').onclick=()=>command('seek','',s=>Math.max(0,s.position-10));
 $('forward').onclick=()=>command('seek','',s=>Math.min(Math.max(0,s.duration-.05),s.position+30));
 $('capture').onclick=()=>command('capture');
 $('download').onclick=()=>{if(!reportText)return;const url=URL.createObjectURL(new Blob([reportText],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='YouTube-Maxd-bug-report.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-(async()=>{try{if(invite){const paired=await api('/pair',{join:invite});token=paired.token;try{sessionStorage.setItem('maxd-remote',token);}catch{}}
+(async()=>{try{if(invite){clearSession();const paired=await api('/pair',{join:invite});token=paired.token;try{sessionStorage.setItem('maxd-remote',token);}catch{}}
  if(!token)throw Error('Scan the QR code in PS5 Settings → Phone remote.');render(await api('/state'));message('Connected to your PS5');setInterval(refresh,1800);
- }catch(e){message(e.message,true);}})();
+ }catch(e){failed(e);}})();
 </script></body></html>

@@ -2,6 +2,9 @@
 
 ## Next update — development
 
+- Polish the existing phone remote: request timeouts, explicit reconnect without replay, rapid-tap/changed-video guards, stable queue focus, draft preservation and clearer session expiry.
+- Polish bookmarks and playback menus: trim names, avoid duplicate moments, explain limits/storage failures, confirm deletion and restore focus on Back.
+
 - Profile-owned title phrase muting and local-follow priority in Home/Discover pages, connected to the existing channel block manager.
 - Playback-health snapshot and reviewed one-video lower-quality/AVC rescue through the existing scoped player reopen path.
 - Preserve saved lists, account isolation, bounded pagination and manual format choices. No new remote account writes or automatic report uploads.

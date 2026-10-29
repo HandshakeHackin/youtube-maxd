@@ -40,4 +40,8 @@ jobs:
       - name: Check bounded saved feed preferences
         run: bash scripts/test_maxd_feed_policy.sh
       - name: Exercise shipping feed, recovery and library code under sanitizers
-        run: bash scripts/test_native.sh maxd_feed maxd_feed_paging maxd_health maxd_auto channel_block playback_recovery library_paging stream_choice
+        run: bash scripts/test_native.sh maxd_feed maxd_feed_paging maxd_health maxd_auto channel_block playback_recovery library_paging stream_choice maxd_experience maxd_phone_provider storage_failure
+      - name: Check phone page, transport and report controls
+        run: bash scripts/test_phone_remote.sh
+      - name: Check playback picker focus and Back navigation
+        run: python3 scripts/test_maxd_picker_navigation.py

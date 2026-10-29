@@ -77,13 +77,19 @@ def apply(root, work, player):
     change(picker, '    if (pressed & PadButtons::Up)    { navigate(-1); return true; }', '''    if (m_tubeExtraGroup == -5 && (pressed & PadButtons::Square)) {
         if(m_selectedIndex>=0 && m_selectedIndex<static_cast<int>(m_tracks.size()) &&
            m_tracks[m_selectedIndex].kind==KindMaxdBookmark && m_maxdOwner==tube_caption_selection()) {
-            tube_maxd_bookmark_remove(m_tracks[m_selectedIndex].streamIndex);refreshTracks();
+            toast("BOOKMARKS",tube_maxd_bookmark_remove(m_tracks[m_selectedIndex].streamIndex)?"Bookmark removed":"This bookmark is no longer available");refreshTracks();
             m_selectedIndex=std::max(0,std::min(m_selectedIndex,static_cast<int>(m_tracks.size())-1));
             m_scrollOffset=std::max(0,m_selectedIndex-EVO_RMLUI_LIST_ROWS+1);
         }
         return true;
     }
     if (pressed & PadButtons::Up)    { navigate(-1); return true; }''')
+    change(picker, '        if (m_tubeExtraGroup != -1) {', '''        if (m_tubeExtraGroup == -7) {
+            m_tubeExtraGroup=-6;refreshTracks();m_selectedIndex=m_maxdRescueSafe?2:1;m_scrollOffset=0;return true;
+        }
+        if (m_tubeExtraGroup != -1) {''')
+    change(picker, 'if (group == -2 ? m_tracks[i].kind == KindChapterList',
+        'if (group == -5 ? m_tracks[i].kind == KindMaxdTools : group == -6 ? m_tracks[i].kind == KindMaxdHealth : group == -2 ? m_tracks[i].kind == KindChapterList')
     change(picker, 'void AudioTrackPickerScreen::update(double deltaMs) {', '''void AudioTrackPickerScreen::update(double deltaMs) {
     if(m_tubeExtraGroup==-5 && m_maxdSeen!=tube_maxd_transcript_state())refreshTracks();''')
     with (app / picker).open('a') as f:

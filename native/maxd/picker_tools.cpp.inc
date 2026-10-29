@@ -2,7 +2,7 @@ void AudioTrackPickerScreen::maxdText(const char* text,void* data) {
     auto self=static_cast<AudioTrackPickerScreen*>(data);
     if(!self || !text || self->m_tubeExtraGroup!=-5 || !self->m_maxdOwner || self->m_maxdOwner!=tube_caption_selection())return;
     if(self->m_maxdNaming) {
-        toast("BOOKMARKS",tube_maxd_bookmark_add(self->m_maxdOwner,self->m_maxdPosition,text)?"Saved for this profile":"Could not save this bookmark");
+        toast("BOOKMARKS",tube_maxd_bookmark_add(self->m_maxdOwner,self->m_maxdPosition,text)?"Bookmark saved for this profile":tube_maxd_bookmark_error());
     } else if(maxd_smart_text(text,128,1)) self->m_maxdQuery=text;
     self->refreshTracks();self->m_selectedIndex=self->m_scrollOffset=0;
 }
