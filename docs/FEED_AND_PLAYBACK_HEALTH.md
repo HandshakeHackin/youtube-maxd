@@ -6,7 +6,7 @@ Development build features; these are not included in the published v1.4.2 downl
 
 Open **Settings → Feed controls** in Classic or Afterglow.
 
-- **Mute a title phrase:** keep up to 16 literal phrases per local/account profile, each up to 96 UTF-8 bytes. Matching checks both the original title and the available DeArrow title. ASCII matching ignores case; other UTF-8 text matches exactly. This is title filtering, not semantic topic recognition.
+- **Mute a title phrase:** keep up to 16 literal phrases per local/account profile, each up to 96 UTF-8 bytes. Matching checks the full fetched original title and the available DeArrow title, even when the visible card title is shortened. ASCII matching ignores case; other UTF-8 text matches exactly. This is title filtering, not semantic topic recognition.
 - **Remove a phrase:** select it in Feed controls. Reopen a browsing feed to apply the change.
 - **Followed channels first:** prioritize locally followed/imported channels within each loaded Home/Discover page. Relative order within each group and folder headings are preserved. It does not fetch or reorder the entire YouTube feed, change search relevance, or infer all remote Google subscriptions.
 - **Blocked channels:** links to the existing profile-owned channel block manager. A video's actions menu provides the existing Block channel action.

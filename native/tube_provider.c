@@ -4734,7 +4734,7 @@ static void response(int ok, int status, const char *body, size_t size, void *ud
         if (n >= LOCAL_PAGE + lead || !valid_catalog_id(str(o, "id"))) continue;
         int duplicate = 0;
         parse_item(&items[n], o);
-        if(feed_filter && !items[n].is_folder && maxd_feed_hides(feed,items[n].title,str(o,"dearrow_title")))continue;
+        if(feed_filter && !items[n].is_folder && maxd_feed_hides(feed,str(o,"title"),str(o,"dearrow_title")))continue;
         if(!items[n].is_folder && blocked_identity(items[n].parent_id,items[n].subtitle)>=0)continue;
         if(items[n].is_folder && valid_channel_group(items[n].id) && blocked_channel(items[n].id+8)>=0)continue;
         if(cards && !items[n].is_folder && dismissed(items[n].id,items[n].parent_id,!home))continue;

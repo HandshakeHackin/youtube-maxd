@@ -19,6 +19,11 @@ int main(void) {
  p->search("fixture",0,items_cb,NULL);reply(0,1,200,"{\"token\":\"abcdefghijklmnopqrstuvwxabcdefghijkl\"}");poll_job(videos);
  assert(last_count==3);assert(tube_toggle_favorite("abcdefghijk"));assert(tube_toggle_queue("abcdefghijk"));
  mute("spoiler");search();assert(last_count==1 && !strcmp(last_items[0].id,"bcdefghijkl"));
+ /* A valid 97-character Unicode title can exceed the card's byte buffer. */
+ char long_title[400]="",response[700];for(int i=0;i<90;++i)strcat(long_title,"界");strcat(long_title,"spoiler");
+ snprintf(response,sizeof response,"{\"state\":\"done\",\"result\":{\"items\":[{\"id\":\"defghijklmn\",\"title\":\"%s\"}]}}",long_title);
+ p->search("fixture",0,items_cb,NULL);poll_job(response);
+ assert(!last_count); /* Search keeps its normal leading controls. */
  show("favorites");assert(last_count==1);show("queue");assert(last_count==1);
  show("settings:feed");char stale[160];strcpy(stale,last_items[0].id);
  show("library:profile:alice");p->list_catalog(stale,0,items_cb,NULL);assert(!last_ok);

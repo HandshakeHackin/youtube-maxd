@@ -48,7 +48,7 @@ def apply(root, work, player):
         refreshTracks(); m_selectedIndex=m_scrollOffset=0;
     } else if (e.kind == KindMaxdHealthLower || e.kind == KindMaxdHealthSafe) {
         m_maxdRescueSafe=e.kind==KindMaxdHealthSafe; m_tubeExtraGroup=-7;
-        refreshTracks(); m_selectedIndex=m_scrollOffset=0;
+        refreshTracks(); m_selectedIndex=m_tracks.size()>1?1:0; m_scrollOffset=0;
     } else if (e.kind == KindMaxdHealthConfirm) {
         if(tube_maxd_health_repair(m_maxdOwner,m_maxdRescueSafe,playback->getPositionSeconds(),playback->isLiveSource(),prospero_subtitle_enabled)) {
             toast("PLAYBACK RESCUE","Reopening at this position with the selected format");
