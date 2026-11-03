@@ -80,6 +80,18 @@ ffmpeg_patch=$(cat "${root}/scripts/patch_ffmpeg_dash_seek.py" "${root}/scripts/
 ffmpeg_identity="7.1.1-minimal-EVO-9715f6e-atempo-v1-dash-hls-dvr-${ffmpeg_patch}"
 if [[ ! -f "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG" ]] ||
    [[ "$(cat "${PS5_PAYLOAD_SDK}/PROSPEROTUBE_FFMPEG")" != "${ffmpeg_identity}" ]]; then
+    # Reuse the corresponding source already shipped with this project. The
+    # upstream builder verifies the same pin again before extraction.
+    ffmpeg_archive="${root}/runtime-sources/FFmpeg.tar.xz"
+    if [[ -f "${ffmpeg_archive}" ]]; then
+        printf '%s  %s\n' '733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1' "${ffmpeg_archive}" | sha256sum --check --status || {
+            echo 'Bundled FFmpeg source checksum mismatch.' >&2; exit 2;
+        }
+        mkdir -p "${work}/third_party/ffmpeg"
+        if [[ ! -f "${work}/third_party/ffmpeg/ffmpeg-7.1.1.tar.xz" ]]; then
+            cp "${ffmpeg_archive}" "${work}/third_party/ffmpeg/ffmpeg-7.1.1.tar.xz"
+        fi
+    fi
     bash "${work}/scripts/build-ffmpeg.sh" --install --jobs 8
     [[ -f "${PS5_PAYLOAD_SDK}/target/user/homebrew/lib/libavfilter.a" ]]
     grep -q '^#define CONFIG_ATEMPO_FILTER 1$' "${work}/build/ffmpeg/7.1.1-minimal/config_components.h"
