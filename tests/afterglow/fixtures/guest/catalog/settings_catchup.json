@@ -1,0 +1,26 @@
+{
+	"items":	[{
+			"id":	"settings:catchup:new:guest",
+			"title":	"Create catch-up queue",
+			"subtitle":	"Subscriptions, unwatched uploads, chosen channels and a time budget",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Create catch-up queue"
+		}, {
+			"id":	"settings:smart:1",
+			"title":	"Subscription catch-up",
+			"subtitle":	"Edit filters, preview matching videos or append them to your play queue",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Subscription catch-up"
+		}],
+	"has_more":	false
+}

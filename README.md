@@ -27,6 +27,8 @@
 
 **New in v1.5.0:** [Feed controls and playback rescue](docs/FEED_AND_PLAYBACK_HEALTH.md), smoother remote/bookmark controls, and [update notifications](docs/UPDATE_NOTIFICATIONS.md).
 
+**Next build:** [Everyday viewing improvements](docs/EVERYDAY_VIEWING.md) (in development).
+
 ## How YouTube Max’d stands out
 
 **Also included:** local voice search, Smart playlists, optional Auto Max quality adjustment, and matching red-to-white DualSense effects.

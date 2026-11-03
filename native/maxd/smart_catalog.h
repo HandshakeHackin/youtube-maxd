@@ -69,6 +69,12 @@ static void maxd_smart_scanned(int ok,const evo_provider_item_t *items,int count
     for(int i=0;i<count && cache->count<MAXD_SMART_ITEMS;++i) {
         const evo_provider_item_t *item=&items[i];
         if(item->is_folder || !valid_id(item->id) || blocked_identity(item->parent_id,item->subtitle)>=0)continue;
+        if(rule->catchup) {
+            if(rule->hide_shorts && !strcmp(tube_row_fact_get(item->id,"is_short"),"1"))continue;
+            int allowed=!rule->channel_count;
+            for(int j=0;j<rule->channel_count;++j)allowed|=!strcmp(rule->channels[j],item->parent_id);
+            if(!allowed)continue;
+        }
         int played=item->played;const Record *known=record(item->id,0);if(known && known->item.played)played=1;
         if(!maxd_smart_matches(rule,item->title,item->subtitle,item->duration_sec,played,item->is_live,
                               !strcmp(tube_row_fact_get(item->id,"is_upcoming"),"1")))continue;
@@ -187,10 +193,47 @@ static void maxd_smart_fact(const char *id,const char *kind,const char *label,co
     tube_row_fact(id,"kind",kind);tube_row_fact(id,"label",label);tube_row_fact(id,"value",value);
     if(!strcmp(kind,"text"))tube_row_fact(id,"text",value);
 }
+typedef struct { uint32_t rule; unsigned scope; char profile[33]; evo_provider_items_cb callback; void *data; } MaxdCatchupEnqueue;
+static void maxd_catchup_enqueued(int ok,const evo_provider_item_t *items,int count,int more,void *data) {
+    (void)items;(void)count;(void)more;MaxdCatchupEnqueue *request=data;
+    evo_provider_item_t out[2];memset(out,0,sizeof out);int added=0;
+    MaxdSmartCache *cache=NULL;
+    if(ok && request->scope==g_playlist_scope && !strcmp(request->profile,g_library_profile))
+        for(int i=0;i<MAXD_SMART_CACHES;++i)if(g_maxd_smart_cache[i].rule==request->rule && g_maxd_smart_cache[i].scope==request->scope &&
+            !strcmp(g_maxd_smart_cache[i].profile,request->profile) && (!cache || cache->serial<g_maxd_smart_cache[i].serial))cache=&g_maxd_smart_cache[i];
+    if(!cache){request->callback(0,NULL,0,0,request->data);free(request);return;}
+    for(int i=0;i<cache->count;++i) {
+        const evo_provider_item_t *item=&cache->items[i];
+        Record *r=record(item->id,1);if(!r || r->queued || blocked_identity(item->parent_id,item->subtitle)>=0 || g_queue_order==INT64_MAX)continue;
+        if(!*r->item.title)r->item=*item;
+        r->item.playback_playlist[0]=0;r->item.playback_scope=0;r->item.playback_index=0;
+        r->queued=1;r->queued_music=0;r->queue_order=++g_queue_order;++added;
+    }
+    save();out[0].is_folder=out[1].is_folder=1;
+    copy(out[0].id,sizeof out[0].id,"account:notice");snprintf(out[0].title,sizeof out[0].title,"Added %d videos to your queue",added);
+    copy(out[0].subtitle,sizeof out[0].subtitle,g_storage_notice?"Queue changed for this session only; check storage":cache->limited?"Scan limit reached; preview and narrow your filters for other uploads":"Existing queue entries were kept; no playback started");
+    copy(out[1].id,sizeof out[1].id,"queue");copy(out[1].title,sizeof out[1].title,"Open play queue");
+    request->callback(1,out,2,0,request->data);free(request);
+}
 static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb cb,void *ud) {
-    if(!parent || (strncmp(parent,"settings:smart",14) && strncmp(parent,"settings:session",16)))return 0;
+    if(!parent || (strncmp(parent,"settings:smart",14) && strncmp(parent,"settings:session",16) && strncmp(parent,"settings:catchup",16)))return 0;
     evo_provider_item_t out[32];int n=0;
-    if(page) { cb(1,NULL,0,0,ud);return 1; }
+    if(page && !strstr(parent,":channels")) { cb(1,NULL,0,0,ud);return 1; }
+    if(!strcmp(parent,"settings:catchup") || !strncmp(parent,"settings:catchup:new:",21)) {
+        if(strncmp(parent,"settings:catchup:new:",21)==0) {
+            if(strcmp(parent+21,g_library_profile)){cb(0,NULL,0,0,ud);return 1;}
+            MaxdSmartRule *created=maxd_smart_create(&g_maxd_smart_store,g_library_profile,"Subscription catch-up");
+            if(!created){tube_set_error("Smart playlist storage is full. Remove a saved rule first.");cb(0,NULL,0,0,ud);return 1;}
+            created->source=1;created->catchup=created->hide_shorts=1;created->session_minutes=30;save();
+        }
+        char id[100];snprintf(id,sizeof id,"settings:catchup:new:%s",g_library_profile);
+        CATALOG_FOLDER(id,"Create catch-up queue","Subscriptions, unwatched uploads, chosen channels and a time budget");maxd_smart_fact(id,"action","Create catch-up queue","");
+        for(int i=0;i<g_maxd_smart_store.count;++i) {
+            const MaxdSmartRule *r=&g_maxd_smart_store.rules[i];if(!r->catchup || strcmp(r->profile,g_library_profile))continue;
+            snprintf(id,sizeof id,"settings:smart:%u",r->id);CATALOG_FOLDER(id,r->name,"Edit filters, preview matching videos or append them to your play queue");maxd_smart_fact(id,"page",r->name,"");
+        }
+        cb(1,out,n,0,ud);return 1;
+    }
     if(!strcmp(parent,"settings:session")) {
         CATALOG_FOLDER("settings:session:new","Create viewing session","Choose a time budget and source; builds an unwatched queue");
         maxd_smart_fact(out[n-1].id,"text","Create viewing session","");
@@ -226,6 +269,13 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
         CATALOG_FOLDER("account:notice","Enter your playlist rule","No YouTube account changes are made");cb(1,out,n,0,ud);return 1;
     }
     if(!r){tube_set_error("Reopen Smart playlists for this profile.");cb(0,NULL,0,0,ud);return 1;}
+    if(r->catchup && !strcmp(action,"enqueue")) {
+        MaxdCatchupEnqueue *request=calloc(1,sizeof *request);
+        if(!request){cb(0,NULL,0,0,ud);return 1;}
+        request->rule=id;request->scope=g_playlist_scope;request->callback=cb;request->data=ud;
+        copy(request->profile,sizeof request->profile,g_library_profile);
+        maxd_smart_run(id,0,maxd_catchup_enqueued,request);return 1;
+    }
     if(!strcmp(action,"delete")) {
         char row[80];snprintf(row,sizeof row,"settings:smart:%u:delete-confirm",id);
         CATALOG_FOLDER(row,"Delete this smart playlist","Cross confirms local deletion; Circle keeps it");
@@ -236,13 +286,43 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
         memmove(r,r+1,(size_t)(g_maxd_smart_store.count-at-1)*sizeof *r);--g_maxd_smart_store.count;save();
         return maxd_smart_catalog("settings:smart",0,cb,ud);
     }
+    if(r->catchup && (!strcmp(action,"channels") || !strncmp(action,"channel:",8))) {
+        if(!strncmp(action,"channel:",8)) {
+            const char *channel=action+8;
+            if(!valid_channel(channel)){cb(0,NULL,0,0,ud);return 1;}
+            int at=-1;for(int i=0;i<r->channel_count;++i)if(!strcmp(r->channels[i],channel))at=i;
+            if(at>=0){memmove(r->channels+at,r->channels+at+1,(size_t)(--r->channel_count-at)*sizeof r->channels[0]);}
+            else if(r->channel_count<8)copy(r->channels[r->channel_count++],25,channel);
+            else {tube_set_error("Choose up to eight channels; deselect one first.");cb(0,NULL,0,0,ud);return 1;}
+            save();
+        }
+        char channels[128][25];int count=0;
+        for(int i=0;i<r->channel_count;++i)copy(channels[count++],25,r->channels[i]);
+        for(int i=0;i<g_follow_count && count<128;++i)if(!strcmp(g_follows[i].profile,g_library_profile)) {
+            int duplicate=0;for(int j=0;j<count;++j)duplicate|=!strcmp(channels[j],g_follows[i].channel);
+            if(!duplicate)copy(channels[count++],25,g_follows[i].channel);
+        }
+        for(int i=0;i<g_count && count<128;++i)if(current_record(&g_records[i]) && g_records[i].subscribed && valid_channel(g_records[i].item.parent_id)) {
+            int duplicate=0;for(int j=0;j<count;++j)duplicate|=!strcmp(channels[j],g_records[i].item.parent_id);
+            if(!duplicate)copy(channels[count++],25,g_records[i].item.parent_id);
+        }
+        for(int i=page*LOCAL_PAGE;i<count && n<LOCAL_PAGE;++i) {
+            int selected=0;for(int j=0;j<r->channel_count;++j)selected|=!strcmp(channels[i],r->channels[j]);
+            const char *name=channels[i];for(int j=0;j<g_follow_count;++j)if(!strcmp(g_follows[j].profile,g_library_profile)&&!strcmp(g_follows[j].channel,channels[i]))name=g_follows[j].title;
+            char row[100];snprintf(row,sizeof row,"settings:smart:%u:channel:%s",id,channels[i]);CATALOG_FOLDER(row,name,selected?"Selected; select to remove":"Select to include this channel");maxd_smart_fact(row,"action",name,"");
+        }
+        if(!count)CATALOG_FOLDER("account:notice","Follow channels locally first","Follow a channel or browse its subscription videos, then reopen this picker");
+        cb(1,out,n,(page+1)*LOCAL_PAGE<count,ud);return 1;
+    }
     int changed=0;
-    if(!strcmp(action,"budget") && r->session_minutes) {
-        const int choices[]={15,30,45,60,90,120};int next=0;
-        for(int i=0;i<6;++i)if(r->session_minutes==choices[i])next=(i+1)%6;
+    if(!strcmp(action,"budget") && (r->session_minutes || r->catchup)) {
+        const int choices[]={0,15,30,45,60,90,120};int next=r->catchup?0:1;
+        for(int i=0;i<7;++i)if(r->session_minutes==choices[i])next=(i+1)%7;
+        if(!r->catchup && !next)next=1;
         r->session_minutes=choices[next];changed=1;
     }
-    else if(!strcmp(action,"source")){r->source=(r->source+1)%4;changed=1;}
+    else if(!strcmp(action,"shorts") && r->catchup){r->hide_shorts=!r->hide_shorts;changed=1;}
+    else if(!strcmp(action,"source") && !r->catchup){r->source=(r->source+1)%4;changed=1;}
     else if(!strcmp(action,"unwatched")){r->unwatched=!r->unwatched;changed=1;}
     else if(!strcmp(action,"live")){r->hide_live=!r->hide_live;changed=1;}
     else if(!strcmp(action,"duration")) {
@@ -257,12 +337,17 @@ static int maxd_smart_catalog(const char *parent,int page,evo_provider_items_cb 
 #define MAXD_SMART_ROW(key,title,detail,kind,shown) do { \
     snprintf(row,sizeof row,"settings:smart:%u:%s",id,key);CATALOG_FOLDER(row,title,detail);maxd_smart_fact(row,kind,title,shown); \
 } while(0)
-    if(r->session_minutes) {
-        snprintf(value,sizeof value,"Up to %d minutes",r->session_minutes);
+    if(r->session_minutes || r->catchup) {
+        if(r->session_minutes)snprintf(value,sizeof value,"Up to %d minutes",r->session_minutes);else copy(value,sizeof value,"No time limit");
         MAXD_SMART_ROW("budget","Time budget",value,"cycle",value);
     }
     MAXD_SMART_ROW("name","Name",r->name,"text",r->name);
-    MAXD_SMART_ROW("source","Source feed",maxd_smart_source_names[r->source],"cycle",maxd_smart_source_names[r->source]);
+    if(!r->catchup)MAXD_SMART_ROW("source","Source feed",maxd_smart_source_names[r->source],"cycle",maxd_smart_source_names[r->source]);
+    if(r->catchup) {
+        MAXD_SMART_ROW("channels","Choose channels","None selected includes all subscription channels; up to eight explicit channels","page","");
+        MAXD_SMART_ROW("shorts","Hide Shorts",r->hide_shorts?"On":"Off","cycle",r->hide_shorts?"On":"Off");
+        MAXD_SMART_ROW("enqueue","Append matching videos to queue","Keeps existing entries; avoids duplicates; scans at most eight pages","action","");
+    }
     MAXD_SMART_ROW("keyword","Title contains",*r->keyword?r->keyword:"Any title","text",r->keyword);
     MAXD_SMART_ROW("creator","Creator contains",*r->creator?r->creator:"Any creator","text",r->creator);
     if(!r->minimum&&!r->maximum)copy(value,sizeof value,"Any duration");

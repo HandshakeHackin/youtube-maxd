@@ -5,8 +5,8 @@
 </style>
 <body><h1>YouTube <span>Max’d</span></h1><p>Phone remote · runs on your PS5</p><p id="status" role="status" aria-live="polite">Connecting…</p><button id="reconnect" hidden>Reconnect to PS5</button>
 <main id="controls" hidden>
-<h2>Search on the TV</h2><p>Type here, then browse results on the TV with the controls below.</p>
-<form id="search"><label for="query">YouTube search</label><input id="query" maxlength="256" autocomplete="off" placeholder="What do you want to watch?"><button class="primary">Search on PS5</button></form>
+<h2>Phone keyboard</h2><p>Type a search on your phone and send it to the PS5. Your draft stays here until it is accepted; browse results with the TV controls below.</p>
+<form id="search"><label for="query">YouTube search</label><input id="query" type="search" enterkeyhint="search" maxlength="256" autocomplete="off" spellcheck="false" placeholder="What do you want to watch?"><button class="primary">Search on PS5</button></form>
 <h2>Playback</h2><p id="playback">No video playing</p><div class="row"><button data-action="pause">Pause</button><button data-action="resume">Play</button></div><div class="row"><button id="rewind">−10 seconds</button><button id="forward">+30 seconds</button></div>
 <h2>TV navigation</h2><div class="pad"><span></span><button data-key="UP" aria-label="Up">↑</button><span></span><button data-key="LEFT" aria-label="Left">←</button><button data-key="ENTER">Select</button><button data-key="RIGHT" aria-label="Right">→</button><button data-key="BACK">Back</button><button data-key="DOWN" aria-label="Down">↓</button></div>
 <h2>Play queue</h2><form id="add"><label for="video">YouTube video link or ID</label><input id="video" autocomplete="off" placeholder="https://youtu.be/…"><button>Add to queue</button></form><p>Play next moves a video to the front of the upcoming queue. Select it on the TV to start it now.</p><ol id="queue"></ol>
@@ -111,7 +111,7 @@ async function command(action,text='',seconds){
  }catch(e){failed(e,sent&&!e.status);return false;}finally{working=false;syncButtons();restoreControlFocus(focus);}
 }
 $('reconnect').onclick=()=>refresh();
-$('search').onsubmit=e=>{e.preventDefault();const text=$('query').value.trim();if(text)command('search',text);};
+$('search').onsubmit=e=>{e.preventDefault();const text=$('query').value.trim();if(!text){message('Type a search before sending it to the PS5.',true);$('query').focus();return;}if(new TextEncoder().encode(text).length>800){message('This search is too long. Keep it within 800 UTF-8 bytes.',true);return;}command('search',text);};
 $('add').onsubmit=e=>{e.preventDefault();const id=idFrom($('video').value);if(!id){message('Enter a YouTube video link or an 11-character video ID.',true);return;}command('add',id);};
 for(const b of document.querySelectorAll('[data-action]'))b.onclick=()=>command(b.dataset.action);
 for(const b of document.querySelectorAll('[data-key]'))b.onclick=()=>command('key',b.dataset.key);

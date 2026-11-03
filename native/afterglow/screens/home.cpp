@@ -28,6 +28,7 @@ void Home::enter(const Route &route, UpdateContext &context, bool restored)
     {
         // Back from a video or a page: what was watched may have moved shelves.
         context.services.data.forget("history");
+        context.services.data.forget("continue-watching");
         return;
     }
     age_ = 0.0f;

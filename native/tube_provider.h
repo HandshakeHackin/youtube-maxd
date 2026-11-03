@@ -236,6 +236,9 @@ double tube_chat_reader_position(const char *parent);
 int tube_chat_reader_seek(const char *parent, double position_sec);
 /* Advance a stationary replay through remaining messages at the selected time. */
 int tube_chat_reader_next(const char *parent);
+int tube_sleep_schedule(int minutes,int after_video);
+int tube_sleep_scheduled_minutes(void);
+int tube_sleep_after_video(void);
 int tube_sleep_minutes(void);
 int tube_sleep_set_minutes(int minutes);
 void tube_sleep_activity(void);

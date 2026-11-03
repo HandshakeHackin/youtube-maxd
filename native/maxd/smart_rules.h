@@ -13,6 +13,7 @@ typedef struct {
     uint32_t id;
     char profile[33], name[81], keyword[129], creator[129];
     int source, minimum, maximum, unwatched, hide_live, session_minutes;
+    int catchup, hide_shorts, channel_count; char channels[8][25];
 } MaxdSmartRule;
 typedef struct { MaxdSmartRule rules[MAXD_SMART_RULES]; int count; uint32_t serial; } MaxdSmartStore;
 static inline int maxd_smart_text(const char *value, size_t limit, int empty) {
@@ -64,6 +65,9 @@ static inline void maxd_smart_write(const MaxdSmartStore *s,cJSON *root) {
         cJSON_AddNumberToObject(o,"id",r->id);cJSON_AddStringToObject(o,"profile",r->profile);
         cJSON_AddStringToObject(o,"name",r->name);cJSON_AddStringToObject(o,"keyword",r->keyword);cJSON_AddStringToObject(o,"creator",r->creator);
         cJSON_AddNumberToObject(o,"session_minutes",r->session_minutes);cJSON_AddNumberToObject(o,"source",r->source);cJSON_AddNumberToObject(o,"minimum",r->minimum);cJSON_AddNumberToObject(o,"maximum",r->maximum);
+        cJSON_AddBoolToObject(o,"catchup",r->catchup);cJSON_AddBoolToObject(o,"hide_shorts",r->hide_shorts);
+        cJSON *channels=cJSON_AddArrayToObject(o,"channels");
+        for(int j=0;j<r->channel_count;++j)cJSON_AddItemToArray(channels,cJSON_CreateString(r->channels[j]));
         cJSON_AddBoolToObject(o,"unwatched",r->unwatched);cJSON_AddBoolToObject(o,"hide_live",r->hide_live);cJSON_AddItemToArray(rows,o);
     }
 }
@@ -92,6 +96,17 @@ static inline void maxd_smart_read(MaxdSmartStore *s,const cJSON *root) {
         r->session_minutes=(int)maxd_smart_integer(o,"session_minutes",120,0);
         r->source=(int)maxd_smart_integer(o,"source",3,0);r->minimum=(int)maxd_smart_integer(o,"minimum",86400,0);r->maximum=(int)maxd_smart_integer(o,"maximum",86400,0);
         if(r->maximum && r->maximum<r->minimum)r->minimum=r->maximum=0;
+        r->catchup=cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(o,"catchup"));
+        r->hide_shorts=cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(o,"hide_shorts"));
+        const cJSON *channel,*channels=cJSON_GetObjectItemCaseSensitive(o,"channels");
+        if(cJSON_IsArray(channels))cJSON_ArrayForEach(channel,channels) {
+            if(!cJSON_IsString(channel) || strlen(channel->valuestring)!=24 || strncmp(channel->valuestring,"UC",2) || r->channel_count>=8)continue;
+            int valid=1,duplicate=0;
+            for(int j=2;j<24;++j){char ch=channel->valuestring[j];valid&=(ch>='A'&&ch<='Z')||(ch>='a'&&ch<='z')||(ch>='0'&&ch<='9')||ch=='_'||ch=='-';}
+            for(int j=0;j<r->channel_count;++j)duplicate|=!strcmp(r->channels[j],channel->valuestring);
+            if(valid&&!duplicate)snprintf(r->channels[r->channel_count++],25,"%s",channel->valuestring);
+        }
+        if(r->catchup)r->source=1;
         r->unwatched=!cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(o,"unwatched"));r->hide_live=!cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(o,"hide_live"));
     }
 }

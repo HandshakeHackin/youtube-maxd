@@ -32,6 +32,7 @@ static const struct { const char *id, *label; } g_tube_menu_keys[TUBE_MENU_KEYS]
 
 /* One profile's preferences. Defaults reproduce the browser without this module. */
 typedef struct TubeUiPrefs {
+    int reduced_motion; /* disable decorative browser motion */
     int ui_scale;        /* percent, SmartTube's list 40..140 */
     int grid_scale;      /* percent, SmartTube's list 50..150 */
     int title_lines;     /* 1..4 lines of a card title */
@@ -95,7 +96,9 @@ static inline int tube_ui_listed(const int *values, int count, int value) {
 }
 /* Replace every out-of-range field with its default; returns how many changed. */
 static inline int tube_ui_validate(TubeUiPrefs *prefs) {
-    int changed = 0; unsigned seen[2] = {0, 0};
+    int changed = 0;
+    if (prefs->reduced_motion < 0 || prefs->reduced_motion > 1) { prefs->reduced_motion = 0; ++changed; }
+    unsigned seen[2] = {0, 0};
     if (tube_ui_listed(g_tube_ui_scales, TUBE_UI_SCALES, prefs->ui_scale) < 0) { prefs->ui_scale = 100; ++changed; }
     if (tube_ui_listed(g_tube_grid_scales, TUBE_GRID_SCALES, prefs->grid_scale) < 0) { prefs->grid_scale = 100; ++changed; }
     if (prefs->title_lines < 1 || prefs->title_lines > 4) { prefs->title_lines = 1; ++changed; }
@@ -117,7 +120,7 @@ static inline int tube_ui_validate(TubeUiPrefs *prefs) {
 }
 /* 1 = the browser needs no added rule, scale or scheme. */
 static inline int tube_ui_plain(const TubeUiPrefs *p) {
-    return p->ui_scale == 100 && p->grid_scale == 100 && p->title_lines == 1 && p->subtitle_lines == 1 && !p->square && !p->scheme;
+    return !p->reduced_motion && p->ui_scale == 100 && p->grid_scale == 100 && p->title_lines == 1 && p->subtitle_lines == 1 && !p->square && !p->scheme;
 }
 
 /* ---- Video actions menu. ---- */
@@ -258,6 +261,7 @@ static inline int tube_ui_rules(const TubeUiPrefs *prefs, char *out, size_t size
         if (wrote < 0 || (size_t)wrote >= size - (size_t)used) { out[0] = 0; return -1; } \
         used += wrote; \
     } while (0)
+    if (p.reduced_motion) TUBE_UI_RULE("* { transition: none; animation: none; }\n");
     if (p.ui_scale != 100) {
         const int w = 1792 + l.dw, h = 1004 + l.dh;
         TUBE_UI_RULE("#tube-root { width: %ddp; height: %ddp; }\n", w, h);

@@ -108,7 +108,9 @@ class Frame final : private Nav
 
     void set_reduced_motion(bool reduced)
     {
+        if (options_.reduced_motion == reduced) return;
         options_.reduced_motion = reduced;
+        set_scheme(options_.scheme); // refresh dialog/toast component motion too
     }
     const Look &look() const
     {

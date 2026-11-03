@@ -1,0 +1,110 @@
+{
+	"items":	[{
+			"id":	"account:notice",
+			"title":	"Sleep timer status",
+			"subtitle":	"Off",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}, {
+			"id":	"settings:rest:guest:off",
+			"title":	"Turn sleep timer off",
+			"subtitle":	"Cancels the session timer and inactivity timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Turn sleep timer off"
+		}, {
+			"id":	"settings:rest:guest:end",
+			"title":	"When this video ends",
+			"subtitle":	"Pause once instead of repeat, autoplay or the next queued video",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"When this video ends"
+		}, {
+			"id":	"settings:rest:guest:15",
+			"title":	"Pause in 15 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 15 minutes"
+		}, {
+			"id":	"settings:rest:guest:30",
+			"title":	"Pause in 30 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 30 minutes"
+		}, {
+			"id":	"settings:rest:guest:45",
+			"title":	"Pause in 45 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 45 minutes"
+		}, {
+			"id":	"settings:rest:guest:60",
+			"title":	"Pause in 60 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 60 minutes"
+		}, {
+			"id":	"settings:rest:guest:90",
+			"title":	"Pause in 90 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 90 minutes"
+		}, {
+			"id":	"settings:rest:guest:120",
+			"title":	"Pause in 120 minutes",
+			"subtitle":	"Elapsed time; input does not restart the timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Pause in 120 minutes"
+		}, {
+			"id":	"settings:sleep-timer",
+			"title":	"Inactivity timer",
+			"subtitle":	"Existing input-reset timer; choosing it cancels the session timer",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}],
+	"has_more":	false
+}

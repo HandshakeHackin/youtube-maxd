@@ -58,6 +58,10 @@ constexpr Rule kRules[] = {
     // ---- Player ----
     {"settings:max-quality", "player", "Picture"},
     {"settings:auto-max", "player", "Picture"},
+    {"settings:catchup", "content", "Subscription catch-up"},
+    {"settings:presets", "player", "Playback presets"},
+    {"settings:accessibility", "interface", "Accessibility"},
+    {"settings:rest", "player", "Sleep timer"},
     {"settings:smart", "content", "Smart playlists"},
     {"settings:session", "content", "Viewing sessions"},
     {"settings:family", "content", "Family profiles"},

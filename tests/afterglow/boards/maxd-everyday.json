@@ -1,0 +1,173 @@
+{
+  "about": "Everyday controls from real provider fixture exports; ordinary and larger text",
+  "boards": [
+    {
+      "name": "maxd-everyday-presets-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:presets",
+        "title": "Playback presets"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-presets-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:presets",
+        "title": "Playback presets"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-preset-slot-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:presets:guest:0",
+        "title": "Movies"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-preset-slot-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:presets:guest:0",
+        "title": "Movies"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-accessibility-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:accessibility",
+        "title": "Accessibility"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-accessibility-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:accessibility",
+        "title": "Accessibility"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-catchup-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:catchup",
+        "title": "Subscription catch-up"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-catchup-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:catchup",
+        "title": "Subscription catch-up"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-catchup-editor-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "title": "Catch-up rules"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-catchup-editor-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:smart:1",
+        "title": "Catch-up rules"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-sleep-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:rest",
+        "title": "Sleep timer"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-everyday-sleep-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:rest",
+        "title": "Sleep timer"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    }
+  ]
+}

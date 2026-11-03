@@ -1,0 +1,37 @@
+{
+	"items":	[{
+			"id":	"settings:presets:guest:0",
+			"title":	"Movies",
+			"subtitle":	"Default: up to 2160p, 30 fps; 1x speed",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Movies"
+		}, {
+			"id":	"settings:presets:guest:1",
+			"title":	"Gaming",
+			"subtitle":	"Default: up to 1080p, 60 fps; 1x speed",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Gaming"
+		}, {
+			"id":	"settings:presets:guest:2",
+			"title":	"Listening",
+			"subtitle":	"Default: up to 720p, 30 fps; 1x speed",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Listening"
+		}],
+	"has_more":	false
+}

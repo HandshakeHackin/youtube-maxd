@@ -107,7 +107,7 @@ static void profile_settings_store(void) {
 }
 static int profile_settings_select(const char *profile) {
     int i = profile_settings_slot(g_separate_settings ? profile : SHARED_SETTINGS,1); if (i < 0) return 0;
-    if (strcmp(profile,g_library_profile)) tube_queue_retry_cancel();
+    if (strcmp(profile,g_library_profile)) { tube_queue_retry_cancel(); memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep); }
     profile_settings_store(); copy(g_library_profile,sizeof g_library_profile,profile);
     profile_settings_apply(&g_profile_settings[i].value); return 1;
 }
@@ -140,6 +140,7 @@ static void ui_prefs_read(TubeUiPrefs *ui, const cJSON *root) {
     const cJSON *rows = cJSON_GetObjectItemCaseSensitive(root,"video_menu"), *row;
     uint64_t seen = 0; int n = 0;
     tube_ui_defaults(ui);
+    ui->reduced_motion = boolean(root,"reduced_motion");
     ui->ui_scale = settings_integer(root,"ui_scale",40,140,100);
     ui->grid_scale = settings_integer(root,"video_grid_scale",50,150,100);
     ui->title_lines = settings_integer(root,"card_title_lines",1,4,1);
@@ -160,6 +161,7 @@ static void ui_prefs_read(TubeUiPrefs *ui, const cJSON *root) {
     tube_ui_validate(ui);
 }
 static void ui_prefs_write(cJSON *row, const TubeUiPrefs *ui) {
+    cJSON_AddBoolToObject(row,"reduced_motion",ui->reduced_motion);
     cJSON_AddNumberToObject(row,"ui_scale",ui->ui_scale);
     cJSON_AddNumberToObject(row,"video_grid_scale",ui->grid_scale);
     cJSON_AddNumberToObject(row,"card_title_lines",ui->title_lines);

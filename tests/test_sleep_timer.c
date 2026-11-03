@@ -28,7 +28,21 @@ int main(void) {
     timer_clock-=500;assert(!tube_sleep_tick(1)); /* Clock regression restarts safely. */
     assert(tube_sleep_set_minutes(0));timer_clock+=999999999;assert(!tube_sleep_tick(1));
     p->list_catalog("settings:sleep:bad",0,items_cb,NULL);assert(!last_ok);
+    assert(tube_sleep_schedule(15,0));timer_clock+=14*60000;
+    tube_sleep_activity();assert(tube_sleep_scheduled_minutes()==1 && !tube_sleep_tick(1));
+    timer_clock+=60000;assert(tube_sleep_tick(1) && !tube_sleep_tick(1));
+    p->stream_chosen("abcdefghijk",NULL);
+    assert(tube_sleep_schedule(0,1) && tube_sleep_after_video());
+    p->stream_chosen("abcdefghijk",NULL);assert(tube_sleep_after_video()); /* same-video reopen */
+    assert(tube_set_playback_mode(TUBE_MODE_ONE));
+    assert(!tube_finish_drained_and_next(100) && tube_take_completion_action()==TUBE_COMPLETION_PAUSE);
+    assert(!tube_sleep_after_video() && !tube_take_completion_action());
+    p->stream_chosen("abcdefghijk",NULL);assert(tube_sleep_schedule(0,1));
+    p->stream_chosen("bcdefghijkl",NULL);assert(!tube_sleep_after_video());
+    assert(tube_sleep_schedule(30,0));
+    p->list_catalog("library:profile:alice",0,items_cb,NULL);assert(last_ok && !tube_sleep_tick(1) && !tube_sleep_scheduled_minutes());
+    assert(!tube_sleep_schedule(7,0) && !tube_sleep_schedule(15,1));
     p->shutdown();unlink(evo_data_path("youtube.json"));assert(!rmdir(dir));
-    puts("PASS: inactivity timer choices, persistence, reset, disabled/idle, exact expiry, one-shot and clock regression");
+    puts("PASS: inactivity and elapsed-time timers, exact expiry, input independence, end-video pause over repeat, same-video reopen, cancellation/profile isolation and persistence");
     return 0;
 }

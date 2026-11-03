@@ -377,9 +377,9 @@ def _dimming(replace, player):
                 tube_extra_dim_input(static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now().time_since_epoch()).count()), 1, 0);
             };''')
-    replace(app, '''                toast("SLEEP TIMER", "Playback paused after inactivity");
+    replace(app, '''                toast("SLEEP TIMER", "Playback paused by the sleep timer");
             }
-        }''', '''                toast("SLEEP TIMER", "Playback paused after inactivity");
+        }''', '''                toast("SLEEP TIMER", "Playback paused by the sleep timer");
             }
         }
         // ProsperoTube screen dimming: one idle clock for the browser and the player.

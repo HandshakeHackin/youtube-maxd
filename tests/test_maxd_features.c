@@ -1,6 +1,7 @@
 /* Rule persistence and measured adaptation policies. GPL-3.0-or-later. */
 #include "maxd/smart_rules.h"
 #include "maxd/auto_max.h"
+#include "maxd/viewing_store.h"
 #include <assert.h>
 #include <stdlib.h>
 int main(void) {
@@ -47,5 +48,14 @@ int main(void) {
     assert(maxd_auto_pick(f,5,3,MAXD_AUTO_UP,1080,0,0,0,0)==-1);
     assert(maxd_auto_pick(f,5,3,MAXD_AUTO_UP,2160,30,1,0,0)==-1);
     assert(maxd_auto_pick(f,5,1,MAXD_AUTO_DROP,2160,0,0,maxd_auto_cost(f[1]),0)==2);
-    puts("PASS: smart rule bounds, filtering, profiles, JSON; Auto Max warmup, windows, cooldown, pause/reset, recovery, codec/FPS/quality ceilings");
+    MaxdPresetStore presets={0},restored;
+    MaxdPlaybackPreset *preset=maxd_preset_find(&presets,"guest",0,1);assert(preset);
+    preset->height=1080;preset->fps=60;preset->speed=100;preset->captions=1;strcpy(preset->language,"en");
+    root=cJSON_CreateObject();maxd_presets_write(&presets,root);maxd_presets_read(&restored,root);cJSON_Delete(root);
+    assert(restored.count==1 && !maxd_preset_find(&restored,"alice",0,0));
+    assert(!memcmp(&presets.rows[0],&restored.rows[0],sizeof *preset));
+    root=cJSON_Parse("{\"maxd_playback_presets\":[{\"profile\":\"guest\",\"slot\":0,\"height\":9999,\"fps\":60,\"speed\":100,\"codec\":0,\"language\":\"en\"}]}");
+    maxd_presets_read(&restored,root);cJSON_Delete(root);assert(!restored.count);
+    maxd_presets_forget(&presets,"guest");assert(!presets.count);
+    puts("PASS: smart rule bounds, filtering, profiles, JSON; Auto Max warmup, windows, cooldown, pause/reset, recovery, codec/FPS/quality ceilings; saved preset validation and ownership");
 }

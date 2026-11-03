@@ -135,7 +135,7 @@ tube::text::Style TextEngine::style_of(const gfx::Font &font, float size, float 
         if (bound.font == &font)
             style = bound.style;
     }
-    style.size = size;
+    style.size = size * text_scale_;
     style.tracking = tracking;
     return style;
 }
