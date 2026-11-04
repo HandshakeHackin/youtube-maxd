@@ -1,0 +1,31 @@
+{
+	"items":	[{
+			"id":	"account:notice",
+			"title":	"Last observed playback failure",
+			"subtitle":	"The video decoder reported an error. Try an available AVC format at up to 1080p30 SDR in Playback health & rescue.",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}, {
+			"id":	"account:notice:diagnostics",
+			"title":	"Recovery options",
+			"subtitle":	"During playback, press R2 and select Playback health & rescue to review lower-quality and compatible AVC alternatives. Alternatives depend on the formats alrea",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}, {
+			"id":	"settings:codec",
+			"title":	"Default codec",
+			"subtitle":	"Select Auto or another supported codec for future resolves",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}],
+	"has_more":	false
+}

@@ -54,7 +54,7 @@ int main(void) {
     snprintf(entry,sizeof entry,"settings:backup:entry:%s",name);assert(!strcmp(last_items[0].id,entry));
     /* The state moves on; the entry screen reviews the restore and issues a ticket for one action. */
     assert(tube_set_playback_speed(200));assert(tube_toggle_favorite("abcdefghijk")==1);
-    show(entry);assert(last_count==2 && find("Restore this backup")==0 && strstr(last_items[0].overview,"pairing") && strstr(last_items[0].overview," UTC"));
+    show(entry);assert(last_count==3 && find("Restore this backup")==0 && strstr(last_items[0].overview,"pairing") && strstr(last_items[0].overview," UTC"));
     snprintf(stale,sizeof stale,"%s",row);assert(find("Delete this backup")==1);
     show(entry);assert(find("Restore this backup")==0 && strcmp(row,stale));snprintf(restore,sizeof restore,"%s",row);
     refused(stale);assert(tube_playback_speed()==200); /* an earlier ticket restores nothing */

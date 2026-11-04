@@ -1,5 +1,11 @@
 # YouTube Max’d integration
 
+## Next build — recovery and maintenance
+
+- Add profile-owned channel quality/speed/caption/leveling overrides and interruption checkpoints for the saved queue.
+- Add observed playback diagnostics, a long-Touchpad Quick Switch, scoped cache controls and offline backup preview counts.
+- Preserve the previous everyday-viewing additions. See docs/RELIABILITY_AND_MAINTENANCE.md for behavior and limits.
+
 ## Next build — everyday viewing
 
 - Dedicated unfinished-video history and Home shelf, subscription catch-up queues, and a clearer paired phone keyboard.

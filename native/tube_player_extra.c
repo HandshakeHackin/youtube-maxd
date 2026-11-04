@@ -256,7 +256,12 @@ int tube_extra_gain_for(const TubePlayerExtra *profile, int muted, int has_loudn
     if (gain > TUBE_VOLUME_MAX_MILLI) gain = TUBE_VOLUME_MAX_MILLI;
     return (int)gain;
 }
-int tube_extra_gain_milli(void) { return tube_extra_gain_for(prefs(), g_muted, g_has_loudness, g_loudness); }
+int tube_maxd_channel_leveling(void) __attribute__((weak));
+int tube_extra_gain_milli(void) {
+    TubePlayerExtra effective=*prefs();int override=tube_maxd_channel_leveling?tube_maxd_channel_leveling():-1;
+    if(override>=0)effective.auto_volume=override;
+    return tube_extra_gain_for(&effective, g_muted, g_has_loudness, g_loudness);
+}
 int tube_extra_volume_step(int direction) {
     int volume = prefs()->volume + (direction > 0 ? 5 : direction < 0 ? -5 : 0);
     if (volume < 0) volume = 0;

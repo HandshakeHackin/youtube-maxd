@@ -1,0 +1,70 @@
+{
+	"items":	[{
+			"id":	"settings:channel-prefs",
+			"title":	"Channel preferences",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Channel preferences"
+		}, {
+			"id":	"settings:session-recovery",
+			"title":	"Interrupted session",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Interrupted session"
+		}, {
+			"id":	"settings:playback-diagnostics",
+			"title":	"Playback diagnostics",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Playback diagnostics"
+		}, {
+			"id":	"settings:quick-switch",
+			"title":	"Quick Switch",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Quick Switch"
+		}, {
+			"id":	"settings:storage",
+			"title":	"Storage and cache",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Storage and cache"
+		}, {
+			"id":	"settings:backup",
+			"title":	"Offline backup and restore",
+			"subtitle":	"Open these controls",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Offline backup and restore"
+		}],
+	"has_more":	false
+}

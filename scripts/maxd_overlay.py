@@ -46,10 +46,10 @@ def apply(root, work, player):
     for target in (app / "assets/rml", app / "assets/icons"):
         for name in ("tube-mark.png", "tube-mark-large.png"):
             shutil.copyfile(root / "native/branding/icon0.png", target / name)
-    for name in ("brand.h", "lightbar.h", "maxd_feedback.h", "voice_gesture.h"):
+    for name in ("brand.h", "lightbar.h", "maxd_feedback.h", "voice_gesture.h", "quick_switch.h"):
         shutil.copyfile(root / "native/maxd" / name, app / "addons/include" / name)
     (app / "addons/include/maxd").mkdir(exist_ok=True)
-    for name in ("auto_max.h", "auto_provider.h", "smart_rules.h", "smart_catalog.h", "feed_controls.h", "feed_catalog.h", "playback_health.h", "viewing_store.h", "viewing_catalog.h"):
+    for name in ("auto_max.h", "auto_provider.h", "smart_rules.h", "smart_catalog.h", "feed_controls.h", "feed_catalog.h", "playback_health.h", "viewing_store.h", "viewing_catalog.h", "reliability_store.h", "reliability_catalog.h"):
         shutil.copyfile(root / "native/maxd" / name, app / "addons/include/maxd" / name)
     shutil.copyfile(root / "native/maxd/lightbar.c", app / "addons/src/maxd_lightbar.c")
     shutil.copyfile(root / "native/maxd/evo_feedback.c", app / "ui/src/evo_feedback.c")

@@ -375,6 +375,8 @@ int tube_player_audio_select(int index, double position, int live, int subtitles
 /* Error fixer (tube_player_extra.h): arms the bounded recovery for one error
  * and returns the TUBE_FIX_* action taken, 0 for none. While a reload asks
  * for another quality, the host takes its stream from tube_error_fix_choice(). */
+int tube_maxd_channel_leveling(void);
+const char *tube_maxd_playback_diagnosis(void);
 int tube_error_fix_begin(int error, double position, int live, int subtitles);
 int tube_error_fix_relaxed(void);
 int tube_error_fix_choice(const evo_stream_choice_t *choices, int count);

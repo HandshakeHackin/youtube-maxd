@@ -1,0 +1,31 @@
+{
+	"items":	[{
+			"id":	"settings:backup:restore:1:youtube-20261104-181708.json",
+			"title":	"Restore this backup",
+			"subtitle":	"Replaces the settings and library on this PS5; the current state is kept as a safety copy",
+			"overview":	"Backup of 2026-11-04 18:17 UTC. Restoring it also restores the companion pairing it held: pair again if the companion was paired since. Cross restores; Circle returns without changing anything.\n\nStored data preview: 2 profile setting sets; 2 video records; 0 favorites; 1 queue entries; 0 bookmarks; 1 channel rules; 0 ",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}, {
+			"id":	"settings:backup:delete:1:youtube-20261104-181708.json",
+			"title":	"Delete this backup",
+			"subtitle":	"Removes this file only",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}, {
+			"id":	"account:notice:backup-preview",
+			"title":	"Import preview",
+			"subtitle":	"2 profile setting sets; 2 video records; 0 favorites; 1 queue entries; 0 bookmarks; 1 channel rules; 0 playback presets",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}],
+	"has_more":	false
+}

@@ -34,6 +34,7 @@ void AudioTrackPickerScreen::maxdHealth() {
     Entry e;e.kind=KindTubeNotice;
     char status[256];tube_maxd_health_summary(status,sizeof status);
     e.label=status;e.detail=tube_maxd_health_action();m_tracks.push_back(e);
+    e.label="Playback diagnostics";e.detail=tube_maxd_playback_diagnosis();m_tracks.push_back(e);
     if(!m_maxdOwner || m_maxdOwner!=tube_phone_selection()) {
         e.label="This video is no longer active";e.detail="Return to the current video before opening playback health";m_tracks.push_back(e);return;
     }

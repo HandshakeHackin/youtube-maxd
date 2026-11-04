@@ -145,7 +145,7 @@ static int join(char *out, const char *data_dir, const char *a, const char *b, c
     return written < 0 || written >= PATH_SIZE ? TUBE_BACKUP_E_ARGUMENT : TUBE_BACKUP_OK;
 }
 
-int tube_backup_validate_file(const char *path) {
+static int read_backup_root(const char *path,cJSON **parsed) {
     if (!path || !*path) return TUBE_BACKUP_E_ARGUMENT;
     FILE *file = fopen(path, "rb");
     if (!file) return errno == ENOENT ? TUBE_BACKUP_E_MISSING : TUBE_BACKUP_E_IO;
@@ -174,10 +174,12 @@ int tube_backup_validate_file(const char *path) {
                 version->valuedouble <= TUBE_BACKUP_VERSION_MAX && version->valuedouble == (double)(int)version->valuedouble &&
                 cJSON_IsArray(cJSON_GetObjectItemCaseSensitive(root, "records"));
     }
-    cJSON_Delete(root);
+    if(valid && parsed)*parsed=root;else cJSON_Delete(root);
     free(body);
     return valid ? TUBE_BACKUP_OK : TUBE_BACKUP_E_INVALID;
 }
+
+int tube_backup_validate_file(const char *path) {return read_backup_root(path,NULL);}
 
 /* Copy through `<to><TEMPORARY>` and rename, so `to` is either the complete
  * old file or the complete new one. */
@@ -269,6 +271,19 @@ static int backup_path(char *out, const char *data_dir, const char *name) {
     return join(out, data_dir, TUBE_BACKUP_DIRECTORY, name, NULL);
 }
 
+int tube_backup_inspect(const char *data_dir,const char *name,tube_backup_summary *summary) {
+    if(!summary)return TUBE_BACKUP_E_ARGUMENT;
+    memset(summary,0,sizeof *summary);char path[PATH_SIZE];int result=backup_path(path,data_dir,name);cJSON *root=NULL;
+    if(result!=TUBE_BACKUP_OK)return result;
+    result=read_backup_root(path,&root);if(result!=TUBE_BACKUP_OK)return result;
+    summary->settings=cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(root,"profile_settings"));
+    summary->bookmarks=cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(root,"maxd_bookmarks"));
+    summary->channels=cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(root,"maxd_channel_preferences"));
+    summary->presets=cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(root,"maxd_playback_presets"));
+    const cJSON *row,*records=cJSON_GetObjectItemCaseSensitive(root,"records");summary->records=cJSON_GetArraySize(records);
+    cJSON_ArrayForEach(row,records){summary->favorites+=cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(row,"favorite"));summary->queued+=cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(row,"queued"));}
+    cJSON_Delete(root);return TUBE_BACKUP_OK;
+}
 int tube_backup_validate(const char *data_dir, const char *name) {
     char path[PATH_SIZE];
     int result = backup_path(path, data_dir, name);

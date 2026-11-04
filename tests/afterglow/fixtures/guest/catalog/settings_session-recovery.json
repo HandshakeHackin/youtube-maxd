@@ -1,0 +1,41 @@
+{
+	"items":	[{
+			"id":	"settings:session-recovery:guest:resume",
+			"title":	"Resume interrupted video",
+			"subtitle":	"Saved position 2:03; queue order is retained. Playback starts only if you select Resume.",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Resume interrupted video",
+			"screen":	"grid",
+			"argument":	"settings:session-recovery:guest:resume"
+		}, {
+			"id":	"queue",
+			"title":	"Review remaining play queue",
+			"subtitle":	"Review or reorder saved entries before resuming",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Review remaining play queue",
+			"screen":	"grid",
+			"argument":	"queue"
+		}, {
+			"id":	"settings:session-recovery:guest:dismiss",
+			"title":	"Dismiss interruption offer",
+			"subtitle":	"Keep the queue, bookmarks and saved history",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Dismiss interruption offer"
+		}],
+	"has_more":	false
+}

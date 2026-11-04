@@ -524,3 +524,14 @@ extern "C" void tube_afterglow_voice_status(int state)
     g_mount->frame->set_voice_status(state == TUBE_VOICE_RECORDING ? "Listening: release L3 to search; Circle cancels" :
         state == TUBE_VOICE_TRANSCRIBING ? "Recognizing your search; Circle cancels" : "");
 }
+
+extern "C" int tube_afterglow_open_quick_switch(void) {
+    if(!g_mount || !g_mount->frame || !g_mount->frame->background_return_allowed())return 0;
+    g_mount->frame->open(afterglow::Route{afterglow::ScreenId::settings,"settings:quick-switch","Quick Switch"});return 1;
+}
+extern "C" int tube_maxd_thumbnail_cache(unsigned long long *bytes,int *pictures,int clear) {
+    if(!g_mount || !g_mount->frame)return 0;
+    auto &cache=g_mount->frame->image_cache();
+    if(clear)cache.clear();
+    if(bytes)*bytes=cache.bytes();if(pictures)*pictures=cache.ready();return 1;
+}

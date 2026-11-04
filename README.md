@@ -27,7 +27,7 @@
 
 **New in v1.5.0:** [Feed controls and playback rescue](docs/FEED_AND_PLAYBACK_HEALTH.md), smoother remote/bookmark controls, and [update notifications](docs/UPDATE_NOTIFICATIONS.md).
 
-**Next build:** [Everyday viewing improvements](docs/EVERYDAY_VIEWING.md) (in development).
+**Next build:** [Everyday viewing](docs/EVERYDAY_VIEWING.md) and [recovery & maintenance](docs/RELIABILITY_AND_MAINTENANCE.md) (in development).
 
 ## How YouTube Max’d stands out
 

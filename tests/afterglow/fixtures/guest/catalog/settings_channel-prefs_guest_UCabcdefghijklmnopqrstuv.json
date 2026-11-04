@@ -1,0 +1,59 @@
+{
+	"items":	[{
+			"id":	"settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv:quality",
+			"title":	"Quality ceiling",
+			"subtitle":	"Up to 720p; still respects the profile ceiling",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Quality ceiling"
+		}, {
+			"id":	"settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv:speed",
+			"title":	"Playback speed",
+			"subtitle":	"0.5x for future videos",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Playback speed"
+		}, {
+			"id":	"settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv:captions",
+			"title":	"Captions",
+			"subtitle":	"Off for this channel",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Captions"
+		}, {
+			"id":	"settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv:leveling",
+			"title":	"Volume leveling",
+			"subtitle":	"On when loudness metadata is available",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Volume leveling"
+		}, {
+			"id":	"settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv:reset",
+			"title":	"Reset channel overrides",
+			"subtitle":	"Keep the existing profile settings and legacy caption/speed memories",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Reset channel overrides"
+		}],
+	"has_more":	false
+}
