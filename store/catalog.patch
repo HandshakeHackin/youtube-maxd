@@ -1,18 +1,18 @@
 diff --git a/apps/PPSA99991.json b/apps/PPSA99991.json
-index 2fe97a3..89bd0f0 100644
+index 89bd0f0..4d9f1d3 100644
 --- a/apps/PPSA99991.json
 +++ b/apps/PPSA99991.json
 @@ -6,9 +6,9 @@
    "description": "Standalone PS5 YouTube client based on ProsperoTube, with local voice search, Smart playlists, adaptive quality and red/white DualSense effects.",
    "license": "GPL-3.0-or-later",
    "author": "HandshakeHackin",
--  "version": "1.4.2",
-+  "version": "1.5.0",
+-  "version": "1.5.0",
++  "version": "1.6.0",
    "source_repo": "https://github.com/HandshakeHackin/youtube-maxd",
--  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.4.2/PPSA99991.zip",
--  "sha256": "a0bc2b8d13425eae776324ee1d01064ecc4816b47db1f65cede129fbfe8e0d9b",
--  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/v1.4.2/store/sce_sys/icon0.png"
-+  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/PPSA99991.zip",
-+  "sha256": "6687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c",
-+  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/v1.5.0/store/sce_sys/icon0.png"
+-  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/PPSA99991.zip",
+-  "sha256": "6687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c",
+-  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/v1.5.0/store/sce_sys/icon0.png"
++  "artifact_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/PPSA99991.zip",
++  "sha256": "3f7a8833e724f0a9d6bd2ad95f94f38c18e57c9e6e6deb3f356a470f4abb5f0f",
++  "icon_url": "https://raw.githubusercontent.com/HandshakeHackin/youtube-maxd/v1.6.0/store/sce_sys/icon0.png"
  }

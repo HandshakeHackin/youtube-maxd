@@ -1,3 +1,5 @@
-# ProsperoStore update — 1.4.2
+# ProsperoStore update — 1.6.0
 
-Title PPSA99991; content version 01.004.002. See ../docs/releases/01.004.002.md for changes and testing limits. The catalog record must use the exact digest of the published v1.4.2 PPSA99991.zip.
+Title PPSA99991; contentVersion 01.006.000. [Changelog](../docs/releases/01.006.000.md). The record pins the exact public release ZIP digest.
+
+[Submission status and prefilled PR](SUBMISSION.md). The update branch is pushed, but GitHub integration permissions blocked opening the upstream PR; store acceptance is not confirmed.

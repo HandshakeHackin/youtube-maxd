@@ -1,0 +1,69 @@
+{
+  "version": "1.6.0",
+  "content_version": "01.006.000",
+  "source_commit": "75ee03d9f2f1ef3f30b930412d5890284beac16f",
+  "merge_commit": "113cc1ab595b7acabdf6297b0936255ccadb36c7",
+  "release_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.6.0",
+  "release_id": 434315459,
+  "published": true,
+  "prerelease": false,
+  "build_run": 41889455773,
+  "focused_run": 41889455602,
+  "publication_run": 41889937475,
+  "assets": [
+    {
+      "name": "native-validation.json",
+      "size": 821,
+      "digest": "sha256:8c2a321fc3552a9cbf9c7caf82e01c70e11d3d3dc277a69d1d7c3044d64e6309",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/native-validation.json"
+    },
+    {
+      "name": "PPSA99991.zip",
+      "size": 101847298,
+      "digest": "sha256:3f7a8833e724f0a9d6bd2ad95f94f38c18e57c9e6e6deb3f356a470f4abb5f0f",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/PPSA99991.zip"
+    },
+    {
+      "name": "RELEASE_NOTES.md",
+      "size": 1014,
+      "digest": "sha256:f9e4393a19cc0b4865d4e6d21dfe0a6ed9545b7f439fc9a3a6a61c68ebcdb6aa",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/RELEASE_NOTES.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "size": 512,
+      "digest": "sha256:ad504414e37413c6ca110d1ef6fd44357fd67be10aa6cc545a41c1e3ffa2d7cf",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/SHA256SUMS"
+    },
+    {
+      "name": "TEST_RESULTS.md",
+      "size": 904,
+      "digest": "sha256:3d7debd6f5f557be4a50a869463d3af9a8799ffa20e9620febf5b21eb5cdbb88",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/TEST_RESULTS.md"
+    },
+    {
+      "name": "YouTube-Maxd-icon.png",
+      "size": 249991,
+      "digest": "sha256:d7f558f024dce7452dd4f4efd9dd92c5e088e7d0cb86874f5473d820b54bea9b",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/YouTube-Maxd-icon.png"
+    },
+    {
+      "name": "YouTube-Maxd-source.zip",
+      "size": 474397754,
+      "digest": "sha256:c4c449e963c3371047679caf4f9638572cc6f4840529d2ac992949199f112228",
+      "browser_download_url": "https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/YouTube-Maxd-source.zip"
+    }
+  ],
+  "store": {
+    "repository": "darkxex/ps5-homebrew-catalog",
+    "branch": "HandshakeHackin:update-youtube-maxd-1.6.0",
+    "commit": "c4d9be2",
+    "offline_check": "passed",
+    "online_verification": "passed",
+    "pull_request_created": false,
+    "blocker": "HTTP 403 Resource not accessible by integration (CLI and connector)",
+    "submission_url": "https://github.com/darkxex/ps5-homebrew-catalog/compare/main...HandshakeHackin:update-youtube-maxd-1.6.0?expand=1&title=Update+YouTube+Max%E2%80%99d+to+1.6.0&body=Update+YouTube+Max%E2%80%99d+%28PPSA99991%29+from+1.5.0+to+1.6.0.%0A%0A-+Continue+Watching+and+subscription+catch-up+queues.%0A-+Improved+phone+keyboard%2C+sleep+timers%2C+playback+presets+and+accessibility.%0A-+Channel-specific+quality%2C+speed%2C+captions+and+volume+leveling.%0A-+Interrupted-session+recovery%2C+playback+diagnostics+and+hold-Touchpad+Quick+Switch.%0A-+Scoped+cache+cleanup+and+offline+backup+previews.%0A%0AThe+app+keeps+its+title+ID+and+data%3B+PiP+stays+off+by+default.+Content+version+is+01.006.000.+Based+on+ProsperoTube+and+EVO+Player%2C+with+credits%2C+licenses+and+corresponding+source+retained.%0A%0AOnly+apps%2FPPSA99991.json+changes.+This+submission+comes+from+the+app+repository+owner.+The+record+will+pin+the+exact+published+release+ZIP+and+its+SHA-256.+Physical+PS5+acceptance+remains+pending%3B+automated+checks+and+cross-compilation+are+separate+from+console+testing.%0A%0ARelease+and+simple+changelog%3A+https%3A%2F%2Fgithub.com%2FHandshakeHackin%2Fyoutube-maxd%2Freleases%2Ftag%2Fv1.6.0%0A%0APublished+ZIP%3A+101%2C847%2C298+bytes.+SHA-256%3A+%603f7a8833e724f0a9d6bd2ad95f94f38c18e57c9e6e6deb3f356a470f4abb5f0f%60.+Catalog+check+%28183+records%29+and+online+verification+passed+with+zero+errors+or+warnings.%0A",
+    "accepted": false
+  },
+  "hardware_tested": false
+}

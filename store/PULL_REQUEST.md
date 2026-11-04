@@ -1,16 +1,15 @@
-Update YouTube Max’d (PPSA99991) from 1.4.2 to 1.5.0.
+Update YouTube Max’d (PPSA99991) from 1.5.0 to 1.6.0.
 
-Changes:
-- Profile-specific feed controls: title phrase muting and local-follow priority.
-- Playback health and confirmed lower-quality/AVC rescue, retaining playback position, audio and captions.
-- Smoother phone remote reconnect, timeouts, queue focus and repeated-tap handling.
-- Better bookmark naming/save feedback and playback menu navigation.
-- Stable-release update notices, manual checks and a release-download QR in About.
+- Continue Watching and subscription catch-up queues.
+- Improved phone keyboard, sleep timers, playback presets and accessibility.
+- Channel-specific quality, speed, captions and volume leveling.
+- Interrupted-session recovery, playback diagnostics and hold-Touchpad Quick Switch.
+- Scoped cache cleanup and offline backup previews.
 
-App data and title ID are preserved; picture-in-picture stays off by default. Content version rises to 01.005.000. Based on ProsperoTube and EVO Player, with credits, licenses and corresponding source retained.
+The app keeps its title ID and data; PiP stays off by default. Content version is 01.006.000. Based on ProsperoTube and EVO Player, with credits, licenses and corresponding source retained.
 
-Only apps/PPSA99991.json changes. This update comes from HandshakeHackin, owner of the app's source repository. The record pins the published 1.5.0 app ZIP and exact SHA-256. Focused feature CI, PS5 cross-compilation and ZIP checks passed. Hardware acceptance remains pending; repository-wide test success is not claimed.
+Only apps/PPSA99991.json changes. This submission comes from the app repository owner. The record will pin the exact published release ZIP and its SHA-256. Physical PS5 acceptance remains pending; automated checks and cross-compilation are separate from console testing.
 
-Release and simple changelog: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.5.0
+Release and simple changelog: https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.6.0
 
-Published app ZIP: 101,821,490 bytes. SHA-256: `6687af734b1a102a00938cdaf3c81d18da6874245237eaafc85d764f6cabdf0c`.
+Published ZIP: 101,847,298 bytes. SHA-256: `3f7a8833e724f0a9d6bd2ad95f94f38c18e57c9e6e6deb3f356a470f4abb5f0f`. Catalog check (183 records) and online verification passed with zero errors or warnings.
