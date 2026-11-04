@@ -71,7 +71,7 @@ int main(void) {
     assert(!access(evo_data_path("youtube.json"),F_OK));
     choose("settings:backup:create");tube_backup_entry entries[4];int count=tube_backup_list(dir,entries,4);assert(count>0);
     tube_backup_summary summary;assert(!tube_backup_inspect(dir,entries[0].name,&summary));assert(summary.queued==1 && summary.channels==1 && summary.records>=2);
-    snprintf(path,sizeof path,"settings:backup:entry:%s",entries[0].name);choose(path);assert(last_count==3 && strstr(last_items[2].subtitle,"1 channel rules"));assert(strstr(last_items[0].overview,"Stored data preview"));export_page("settings_backup_entry_reliability");
+    snprintf(path,sizeof path,"settings:backup:entry:%s",entries[0].name);choose(path);assert(last_count==3 && strstr(last_items[2].subtitle,"channels: 1"));assert(strstr(last_items[0].overview,"Stored data preview"));export_page("settings_backup_entry_reliability");
     /* History-disabled playback must not create an interruption record. */
     choose("settings:history:2");p->stream_chosen("bcdefghijkl",&choice);p->report_progress("bcdefghijkl",20,900,EVO_PROVIDER_PLAY_START);
     p->shutdown();drain();assert(!p->init());choose("settings:session-recovery");assert(last_count==1 && strstr(last_items[0].title,"No interrupted"));

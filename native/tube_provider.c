@@ -6450,7 +6450,7 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                 CATALOG_FOLDER( id, "Delete this backup", "Removes this file only");
                 tube_backup_summary summary;
                 if(tube_backup_inspect(evo_data_dir(),name,&summary)!=TUBE_BACKUP_OK){tube_set_error("This backup changed or could not be read. Reopen the list.");cb(0,NULL,0,0,ud);return 1;}
-                char preview[256];snprintf(preview,sizeof preview,"%d profile setting sets; %d video records; %d favorites; %d queue entries; %d bookmarks; %d channel rules; %d playback presets",summary.settings,summary.records,summary.favorites,summary.queued,summary.bookmarks,summary.channels,summary.presets);
+                char preview[256];snprintf(preview,sizeof preview,"Settings: %d; videos: %d; favorites: %d; queued: %d; bookmarks: %d; channels: %d; presets: %d",summary.settings,summary.records,summary.favorites,summary.queued,summary.bookmarks,summary.channels,summary.presets);
                 size_t overview_length=strlen(out[0].overview);
                 snprintf(out[0].overview+overview_length,sizeof out[0].overview-overview_length,"\n\nStored data preview: %s",preview);
                 CATALOG_FOLDER("account:notice:backup-preview","Import preview",preview);
