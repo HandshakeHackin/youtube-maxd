@@ -236,6 +236,9 @@ double tube_chat_reader_position(const char *parent);
 int tube_chat_reader_seek(const char *parent, double position_sec);
 /* Advance a stationary replay through remaining messages at the selected time. */
 int tube_chat_reader_next(const char *parent);
+int tube_sleep_schedule(int minutes,int after_video);
+int tube_sleep_scheduled_minutes(void);
+int tube_sleep_after_video(void);
 int tube_sleep_minutes(void);
 int tube_sleep_set_minutes(int minutes);
 void tube_sleep_activity(void);
@@ -372,6 +375,8 @@ int tube_player_audio_select(int index, double position, int live, int subtitles
 /* Error fixer (tube_player_extra.h): arms the bounded recovery for one error
  * and returns the TUBE_FIX_* action taken, 0 for none. While a reload asks
  * for another quality, the host takes its stream from tube_error_fix_choice(). */
+int tube_maxd_channel_leveling(void);
+const char *tube_maxd_playback_diagnosis(void);
 int tube_error_fix_begin(int error, double position, int live, int subtitles);
 int tube_error_fix_relaxed(void);
 int tube_error_fix_choice(const evo_stream_choice_t *choices, int count);

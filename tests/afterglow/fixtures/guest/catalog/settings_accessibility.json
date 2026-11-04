@@ -1,0 +1,59 @@
+{
+	"items":	[{
+			"id":	"settings:accessibility:guest:scale",
+			"title":	"Larger interface text",
+			"subtitle":	"115%; cycles 100, 115, 120%",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Larger interface text"
+		}, {
+			"id":	"settings:accessibility:guest:contrast",
+			"title":	"High contrast",
+			"subtitle":	"On: yellow accent on black",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"High contrast"
+		}, {
+			"id":	"settings:accessibility:guest:motion",
+			"title":	"Reduced motion",
+			"subtitle":	"On: decorative travel is reduced",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Reduced motion"
+		}, {
+			"id":	"settings:accessibility:guest:caption-background",
+			"title":	"Caption background",
+			"subtitle":	"Current player style; select to cycle white captions",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Caption background"
+		}, {
+			"id":	"settings:subtitle-size",
+			"title":	"Caption text size",
+			"subtitle":	"Choose the player caption size",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"page",
+			"label":	"Caption text size"
+		}],
+	"has_more":	false
+}

@@ -9,6 +9,16 @@ def apply_sleep_timer_overlay(replace, player):
             'KindAudio, KindSpeed, KindChat };', 'KindAudio, KindSpeed, KindChat, KindSleep };')
     replace(picker, '    // End ProsperoTube chat option rows.', '''    // End ProsperoTube chat option rows.
     if (playback->isActive()) {
+        const int scheduled[] = {15,30,45,60,90,120};
+        for (int minutes : scheduled) {
+            Entry e; e.kind = KindSleep; e.streamIndex = -minutes;
+            e.label = "Pause in " + std::to_string(minutes) + " minutes";
+            e.detail = "Elapsed-time timer; controller activity does not restart it";
+            m_tracks.push_back(std::move(e));
+        }
+        Entry finish; finish.kind = KindSleep; finish.streamIndex = -1;
+        finish.label = "Sleep when this video ends"; finish.detail = "Suppress repeat, autoplay and the next queued video once";
+        finish.badge = tube_sleep_after_video() ? "SELECTED" : ""; m_tracks.push_back(std::move(finish));
         for (int minutes = 0; minutes <= 600; minutes += 30) {
             Entry e; e.kind = KindSleep; e.streamIndex = minutes;
             e.label = minutes ? "Sleep after " + std::to_string(minutes) + " min without input" : "Sleep timer: disabled";
@@ -18,7 +28,7 @@ def apply_sleep_timer_overlay(replace, player):
         }
     }''')
     replace(picker, '    if (e.kind == KindChat) {', '''    if (e.kind == KindSleep) {
-        if (tube_sleep_set_minutes(e.streamIndex)) toast("SLEEP TIMER", e.label.c_str());
+        if (e.streamIndex < 0 ? tube_sleep_schedule(e.streamIndex == -1 ? 0 : -e.streamIndex, e.streamIndex == -1) : tube_sleep_set_minutes(e.streamIndex)) toast("SLEEP TIMER", e.label.c_str());
         else toast("SLEEP TIMER", "Choose a valid inactivity duration");
     } else if (e.kind == KindChat) {''')
     app = player + 'core/src/Application.cpp'
@@ -28,7 +38,7 @@ def apply_sleep_timer_overlay(replace, player):
             auto playback = getPlaybackController();
             if (tube_sleep_tick(playback && playback->isActive())) {
                 playback->setPaused(true);
-                toast("SLEEP TIMER", "Playback paused after inactivity");
+                toast("SLEEP TIMER", "Playback paused by the sleep timer");
             }
         }''')
     replace(app, '            phone.context = this;', '''            phone.context = this;

@@ -75,6 +75,7 @@ class TextEngine final : public gfx::Font::Shaper
         return missing_;
     }
 
+    void set_text_scale(float scale) { text_scale_ = scale < 1.0f ? 1.0f : scale > 1.2f ? 1.2f : scale; }
     bool knows(const gfx::Font &font) const override;
     float measure(const gfx::Font &font, std::string_view text, float size, float tracking) override;
     std::string fit(const gfx::Font &font, std::string_view text, float size, float max_width, float tracking) override;
@@ -84,6 +85,7 @@ class TextEngine final : public gfx::Font::Shaper
     bool has_glyph(const gfx::Font &font, std::uint32_t codepoint) override;
 
   private:
+    float text_scale_ = 1.0f;
     TextEngine(Platform &platform, std::unique_ptr<tube::text::Context> context);
     tube::text::Style style_of(const gfx::Font &font, float size, float tracking) const;
     void ensure_pages();

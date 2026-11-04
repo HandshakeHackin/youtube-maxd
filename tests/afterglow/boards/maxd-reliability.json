@@ -1,0 +1,201 @@
+{
+  "about": "Reliability controls exported from the real provider; normal and larger text",
+  "boards": [
+    {
+      "name": "maxd-reliability-maintenance-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:reliability",
+        "title": "Playback and maintenance"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-maintenance-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:reliability",
+        "title": "Playback and maintenance"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-channel-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv",
+        "title": "Channel preferences"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-channel-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:channel-prefs:guest:UCabcdefghijklmnopqrstuv",
+        "title": "Channel preferences"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-recovery-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:session-recovery",
+        "title": "Interrupted session"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-recovery-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:session-recovery",
+        "title": "Interrupted session"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-diagnostics-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:playback-diagnostics",
+        "title": "Playback diagnostics"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-diagnostics-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:playback-diagnostics",
+        "title": "Playback diagnostics"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-quick-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:quick-switch",
+        "title": "Quick Switch"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-quick-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:quick-switch",
+        "title": "Quick Switch"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-storage-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:storage",
+        "title": "Storage and cache"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-storage-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:storage",
+        "title": "Storage and cache"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-backup-preview-100",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:backup:entry:reliability",
+        "title": "Import preview"
+      },
+      "text_scale": 1.0,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    },
+    {
+      "name": "maxd-reliability-backup-preview-120",
+      "fixture": "guest",
+      "route": {
+        "screen": "settings",
+        "argument": "settings:backup:entry:reliability",
+        "title": "Import preview"
+      },
+      "text_scale": 1.2,
+      "reduced_motion": true,
+      "expect": {
+        "screen": "settings"
+      }
+    }
+  ]
+}

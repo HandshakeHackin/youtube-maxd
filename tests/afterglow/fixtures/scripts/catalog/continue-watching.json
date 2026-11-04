@@ -1,0 +1,9 @@
+{
+ "items": [
+  {"id": "scr01xxxxxx", "title": "尾根の上で過ごした七日間 — 静かな山歩きの記録、雨の朝から星の夜まで", "subtitle": "北の光アトラス", "channel_id": "UCfixture000000000000000", "art_url": "art://ridges/0/11", "views": "120万 回視聴", "published": "3 週間前", "duration_sec": 2892, "resume_sec": 1880, "badges": ["4k", "cc"]},
+  {"id": "scr02xxxxxx", "title": "سبعة أيام وحيدًا على خط التلال — فيلم صامت عن المشي في الجبال العالية", "subtitle": "أطلس ضوء الشمال", "channel_id": "UCfixture000000000000001", "art_url": "art://dunes/3/133", "views": "1.2 مليون مشاهدة", "published": "قبل 3 أسابيع", "duration_sec": 2000, "resume_sec": 600},
+  {"id": "scr03xxxxxx", "title": "Donaudampfschifffahrtsgesellschaftskapitänsmützenabzeichen und andere Bandwurmwörter, kurz erklärt", "subtitle": "Sprachwerkstatt Nordlicht", "channel_id": "UCfixture000000000000002", "art_url": "art://code/0/109", "views": "148.000 Aufrufe", "published": "vor 2 Wochen", "duration_sec": 3764, "resume_sec": 1500, "badges": ["cc"]},
+  {"id": "scr04xxxxxx", "title": "Семь дней в одиночку на гребне хребта — немой фильм о долгом походе", "subtitle": "Атлас северного света", "channel_id": "UCfixture000000000000003", "art_url": "art://aurora/0/145", "views": "2,2 млн просмотров", "published": "8 месяцев назад", "duration_sec": 1198, "resume_sec": 300, "badges": ["4k"]}
+ ],
+ "has_more": false
+}

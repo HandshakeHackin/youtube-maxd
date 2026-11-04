@@ -2,14 +2,15 @@
 
 def apply_voice_controls_overlay(replace, player, host):
     header = player + "core/include/evo/screens/ProviderHostScreen.hpp"
-    replace(header, '#include <string>', '#include <string>\n#include "voice_gesture.h"')
+    replace(header, '#include <string>', '#include <string>\n#include "voice_gesture.h"\n#include "quick_switch.h"')
     replace(header, "    static bool playbackStartupBusy();", "    static bool playbackStartupBusy();\n    bool submitVoiceQuery(const char* query);")
-    replace(header, "    void startSelected();", "    bool m_voiceHeld = false;\n    MaxdVoiceGesture m_voiceGesture{};\n    void startSelected();")
+    replace(header, "    void startSelected();", "    bool m_voiceHeld = false;\n    MaxdVoiceGesture m_voiceGesture{};\n    MaxdQuickSwitch m_quickSwitch{};\n    void startSelected();")
     replace(host, '#include "tube_provider.h"', '#include "tube_provider.h"\n#include "tube_voice.h"')
     replace(host, "void ProviderHostScreen::onExit()\n{", """void ProviderHostScreen::onExit()
 {
     m_voiceHeld = false;
     m_voiceGesture = MaxdVoiceGesture{};
+    m_quickSwitch = MaxdQuickSwitch{};
     if (m_providerId == "youtube") tube_voice_cancel();""")
     replace(host, "    (void)held;\n    (void)released;", """    (void)held;
     if (m_providerId == "youtube") {
@@ -33,6 +34,17 @@ def apply_voice_controls_overlay(replace, player, host):
         m_signIn != SignIn::Suggest && m_signIn != SignIn::Signing && !evo_keyboard_is_open() &&
         !evo_rmlui_provider_panel_open() &&
         (!tube_afterglow_shown() || tube_afterglow_voice_allowed());
+    if (voiceAllowed && tube_voice_state()==TUBE_VOICE_IDLE) {
+        const auto quickTime=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        const int quick=maxd_quick_switch(&m_quickSwitch,!!(pressed&PadButtons::TouchPad),!!(held&PadButtons::TouchPad),!!(released&PadButtons::TouchPad),!!(pressed&PadButtons::Circle),quickTime);
+        if(quick==MAXD_QUICK_OPEN) {
+            if(tube_afterglow_shown())tube_afterglow_open_quick_switch();
+            else evo_rmlui_provider_push_folder("settings:quick-switch","Quick Switch");
+            return true;
+        }
+        if(quick==MAXD_QUICK_WAIT)return true;
+        if(quick==MAXD_QUICK_TAP)pressed|=PadButtons::TouchPad;
+    } else m_quickSwitch=MaxdQuickSwitch{};
     if (voiceAllowed) {
         if (!tube_afterglow_shown() && (pressed & PadButtons::L3) && evo_rmlui_provider_discussion_key(5)) return true;
         const auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -72,7 +84,7 @@ void ProviderHostScreen::openSearch()""")
     # EVO dispatches only button edges. A hold must be sampled between those
     # edges or it can never reach the push-to-talk threshold.
     replace(app, "                if (hasInput) {\n                    m_screenManager->handleInput(pressed, held, released);",
-            "                if (hasInput || ((held & PadButtons::L3) && m_screenManager &&\n                    m_screenManager->getCurrentScreenId() == ScreenId::EmbyBrowse)) {\n                    m_screenManager->handleInput(pressed, held, released);")
+            "                if (hasInput || ((held & (PadButtons::L3 | PadButtons::TouchPad)) && m_screenManager &&\n                    m_screenManager->getCurrentScreenId() == ScreenId::EmbyBrowse)) {\n                    m_screenManager->handleInput(pressed, held, released);")
     replace(app, "        int uiActive = (frame < 10) ||", "        int uiActive = tube_voice_state() == TUBE_VOICE_RECORDING ||\n                       tube_voice_state() == TUBE_VOICE_TRANSCRIBING || (frame < 10) ||")
     replace(app, '#include "tube_phone.h"', '#include "tube_phone.h"\n#include "tube_voice.h"')
     replace(app, "        tube_phone_sync_scope(); /* retire changed profiles before resolver callbacks */", """        tube_phone_sync_scope(); /* retire changed profiles before resolver callbacks */

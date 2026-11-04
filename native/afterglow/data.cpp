@@ -28,7 +28,7 @@ struct ShelfPlan
     bool in_turn = false;
 };
 constexpr ShelfPlan kSignedIn[] = {
-    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12},
+    {"continue", tr_mark("Continue watching"), "continue-watching", model::ShelfKind::videos, 12},
     {"recommended", tr_mark("Recommended for you"), "library:home", model::ShelfKind::videos, 16},
     {"subscriptions", tr_mark("New from your subscriptions"), "library:subscriptions", model::ShelfKind::videos, 16},
     {"live", tr_mark("Live now"), "home-topic:live", model::ShelfKind::videos, 16, true},
@@ -39,7 +39,7 @@ constexpr ShelfPlan kSignedIn[] = {
 // there for when it answers. Every row is asked in its turn, so a row YouTube leaves empty costs
 // one request and the rows further down none until the page reaches them.
 constexpr ShelfPlan kGuest[] = {
-    {"continue", tr_mark("Continue watching"), "history", model::ShelfKind::videos, 12, true},
+    {"continue", tr_mark("Continue watching"), "continue-watching", model::ShelfKind::videos, 12, true},
     {"recommended", tr_mark("Recommended for you"), "library:home", model::ShelfKind::videos, 16, true},
     {"music", tr_mark("Music"), "home-topic:music", model::ShelfKind::videos, 16, true},
     {"gaming", tr_mark("Gaming"), "home-topic:gaming", model::ShelfKind::videos, 16, true},
@@ -332,7 +332,7 @@ const model::Home &Data::home()
             for (const model::Video &video : source.page.videos)
             {
                 // Continue watching holds what was started and not finished.
-                if (shelf.id == "continue" && (video.watched || video.progress < 0.02f || video.progress > 0.97f))
+                if (shelf.id == "continue" && (video.watched || video.progress <= 0.0f || video.progress >= 0.97f))
                     continue;
                 if (shelf.id == "live" && !(video.badges & model::kBadgeLive))
                     continue;

@@ -1,6 +1,9 @@
 /* Rule persistence and measured adaptation policies. GPL-3.0-or-later. */
 #include "maxd/smart_rules.h"
 #include "maxd/auto_max.h"
+#include "maxd/viewing_store.h"
+#include "maxd/reliability_store.h"
+#include "maxd/quick_switch.h"
 #include <assert.h>
 #include <stdlib.h>
 int main(void) {
@@ -47,5 +50,31 @@ int main(void) {
     assert(maxd_auto_pick(f,5,3,MAXD_AUTO_UP,1080,0,0,0,0)==-1);
     assert(maxd_auto_pick(f,5,3,MAXD_AUTO_UP,2160,30,1,0,0)==-1);
     assert(maxd_auto_pick(f,5,1,MAXD_AUTO_DROP,2160,0,0,maxd_auto_cost(f[1]),0)==2);
-    puts("PASS: smart rule bounds, filtering, profiles, JSON; Auto Max warmup, windows, cooldown, pause/reset, recovery, codec/FPS/quality ceilings");
+    MaxdPresetStore presets={0},restored;
+    MaxdPlaybackPreset *preset=maxd_preset_find(&presets,"guest",0,1);assert(preset);
+    preset->height=1080;preset->fps=60;preset->speed=100;preset->captions=1;strcpy(preset->language,"en");
+    root=cJSON_CreateObject();maxd_presets_write(&presets,root);maxd_presets_read(&restored,root);cJSON_Delete(root);
+    assert(restored.count==1 && !maxd_preset_find(&restored,"alice",0,0));
+    assert(!memcmp(&presets.rows[0],&restored.rows[0],sizeof *preset));
+    root=cJSON_Parse("{\"maxd_playback_presets\":[{\"profile\":\"guest\",\"slot\":0,\"height\":9999,\"fps\":60,\"speed\":100,\"codec\":0,\"language\":\"en\"}]}");
+    maxd_presets_read(&restored,root);cJSON_Delete(root);assert(!restored.count);
+    maxd_presets_forget(&presets,"guest");assert(!presets.count);
+    MaxdQuickSwitch quick={0};
+    assert(maxd_quick_switch(&quick,1,1,0,0,100)==MAXD_QUICK_WAIT);
+    assert(maxd_quick_switch(&quick,0,0,1,0,200)==MAXD_QUICK_TAP);
+    assert(maxd_quick_switch(&quick,1,1,0,0,1000)==MAXD_QUICK_WAIT);
+    assert(maxd_quick_switch(&quick,0,1,0,0,1650)==MAXD_QUICK_OPEN);
+    assert(maxd_quick_switch(&quick,0,1,0,0,2000)==MAXD_QUICK_WAIT);
+    assert(maxd_quick_switch(&quick,0,0,1,0,2100)==MAXD_QUICK_NONE);
+    assert(maxd_quick_switch(&quick,1,1,0,0,2200)==MAXD_QUICK_WAIT);
+    assert(maxd_quick_switch(&quick,0,1,0,1,2300)==MAXD_QUICK_NONE);
+    MaxdReliabilityStore reliability={0},loaded_reliability;
+    MaxdChannelPref *channel=maxd_channel_pref(&reliability,"guest","UCabcdefghijklmnopqrstuv",1);assert(channel);channel->height=720;channel->leveling=1;
+    MaxdCheckpoint *checkpoint=maxd_checkpoint(&reliability,"guest",1);assert(checkpoint);strcpy(checkpoint->video,"abcdefghijk");checkpoint->position=42;checkpoint->duration=900;checkpoint->active=1;
+    root=cJSON_CreateObject();maxd_reliability_write(&reliability,root);maxd_reliability_read(&loaded_reliability,root);cJSON_Delete(root);
+    assert(loaded_reliability.count==1 && loaded_reliability.sessions_count==1 && loaded_reliability.sessions[0].pending);
+    assert(!maxd_channel_pref(&loaded_reliability,"alice","UCabcdefghijklmnopqrstuv",0));
+    assert(!maxd_channel_pref(&loaded_reliability,"guest","UCbad/pathabcdefghijklmn",1));
+    maxd_reliability_forget(&loaded_reliability,"guest");assert(!loaded_reliability.count && !loaded_reliability.sessions_count);
+    puts("PASS: smart rule bounds, filtering, profiles, JSON; Auto Max warmup, windows, cooldown, pause/reset, recovery, codec/FPS/quality ceilings; saved preset validation and ownership");
 }

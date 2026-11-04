@@ -2,6 +2,15 @@
 
 YouTube Max’d integration changes, followed by retained upstream release notes.
 
+## 1.006.000
+
+- Add PS5 Continue Watching and subscription catch-up queues with watched/Shorts filters and review before appending.
+- Improve phone keyboard search, add scheduled/end-of-video sleep, playback presets and accessibility controls.
+- Add profile-owned channel quality, speed, caption and volume-leveling preferences.
+- Offer interrupted-session recovery with saved positions and queue review, without autoplay.
+- Add playback diagnostics and hold-Touchpad Quick Switch while browsing.
+- Add scoped cache cleanup and offline backup previews. Preserve app data and PiP off by default; credit ProsperoTube and EVO Player.
+
 ## 1.005.000
 
 - Add profile-specific PS5 feed controls: mute title phrases, prioritize locally followed channels and manage blocked channels.

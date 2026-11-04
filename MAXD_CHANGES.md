@@ -1,5 +1,17 @@
 # YouTube Max’d integration
 
+## Next build — recovery and maintenance
+
+- Add profile-owned channel quality/speed/caption/leveling overrides and interruption checkpoints for the saved queue.
+- Add observed playback diagnostics, a long-Touchpad Quick Switch, scoped cache controls and offline backup preview counts.
+- Preserve the previous everyday-viewing additions. See docs/RELIABILITY_AND_MAINTENANCE.md for behavior and limits.
+
+## Next build — everyday viewing
+
+- Dedicated unfinished-video history and Home shelf, subscription catch-up queues, and a clearer paired phone keyboard.
+- Add elapsed-time/end-of-video sleep, profile-owned Movies/Gaming/Listening preset slots, and grouped accessibility controls.
+- See docs/EVERYDAY_VIEWING.md for usage, scan limits, sharing behavior and validation. These are development changes, not in the published v1.5.0 ZIP.
+
 ## 1.5.0 — 2026-10-29
 
 - Polish the existing phone remote: request timeouts, explicit reconnect without replay, rapid-tap/changed-video guards, stable queue focus, draft preservation and clearer session expiry.

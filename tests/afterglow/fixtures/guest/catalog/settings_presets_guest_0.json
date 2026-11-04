@@ -1,0 +1,37 @@
+{
+	"items":	[{
+			"id":	"settings:presets:guest:0:apply",
+			"title":	"Use this preset",
+			"subtitle":	"Applies to the next resolved video; current playback stays as it is",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Use this preset"
+		}, {
+			"id":	"settings:presets:guest:0:save",
+			"title":	"Save current preferences",
+			"subtitle":	"Save quality, FPS, codec, speed, audio/caption languages and Auto Max to this slot",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Save current preferences"
+		}, {
+			"id":	"settings:presets:guest:0:reset",
+			"title":	"Reset this slot",
+			"subtitle":	"Restore the built-in Movies, Gaming or Listening defaults",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Reset this slot"
+		}],
+	"has_more":	false
+}

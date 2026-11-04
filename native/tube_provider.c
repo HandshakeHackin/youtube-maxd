@@ -47,6 +47,13 @@ static void maxd_party_sync(void);
 static char g_maxd_party_ip[32];
 #include "maxd/experience_store.h"
 static MaxdSmartStore g_maxd_smart_store;
+#include "maxd/viewing_store.h"
+static MaxdPresetStore g_maxd_presets;
+#include "maxd/reliability_store.h"
+static MaxdReliabilityStore g_maxd_reliability;
+static int g_maxd_playing;
+static struct { int code; unsigned count; char profile[33],video[12]; } g_maxd_failure;
+int tube_maxd_thumbnail_cache(unsigned long long *,int *,int) __attribute__((weak));
 static MaxdFeedStore g_maxd_feed;
 static int maxd_feed_prompt(const char *,char *,size_t);
 #include "tube_update.h"
@@ -249,6 +256,7 @@ static int playback_mode_continues(int mode) { return mode!=TUBE_MODE_PAUSE && m
 static int g_player_chat_mode;
 static int g_sleep_minutes, g_sleep_armed, g_sleep_fired;
 static long long g_sleep_activity_ms;
+static struct { long long deadline; int after; char profile[33],video[12]; } g_scheduled_sleep;
 static int g_remote_enabled, g_remote_identity_saved, g_remote_write_failed, g_remote_entropy_failed;
 static int g_remote_stop_on_disconnect;
 static int g_remote_close_on_disconnect;
@@ -700,9 +708,32 @@ void tube_sleep_activity(void) {
 }
 int tube_sleep_set_minutes(int minutes) {
     if (minutes < 0 || minutes > 600 || minutes % 30) return 0;
+    memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep);
     g_sleep_minutes = minutes; tube_sleep_activity(); save(); return 1;
 }
+int tube_sleep_schedule(int minutes,int after_video) {
+    if ((after_video!=0 && after_video!=1) || (minutes!=0 && minutes!=15 && minutes!=30 && minutes!=45 && minutes!=60 && minutes!=90 && minutes!=120) ||
+        (minutes && after_video)) return 0;
+    if (after_video && (strlen(g_active_id)!=11 || strcmp(g_active_profile,g_library_profile) || g_finished)) return 0;
+    tube_sleep_set_minutes(0);
+    copy(g_scheduled_sleep.profile,sizeof g_scheduled_sleep.profile,g_library_profile);
+    g_scheduled_sleep.deadline=minutes?now_ms()+(long long)minutes*60000:0;
+    g_scheduled_sleep.after=after_video;copy(g_scheduled_sleep.video,sizeof g_scheduled_sleep.video,g_active_id);
+    return 1;
+}
+int tube_sleep_scheduled_minutes(void) {
+    if (strcmp(g_scheduled_sleep.profile,g_library_profile) || !g_scheduled_sleep.deadline) return 0;
+    long long remaining=g_scheduled_sleep.deadline-now_ms();return remaining>0?(int)((remaining+59999)/60000):0;
+}
+int tube_sleep_after_video(void) {
+    return g_scheduled_sleep.after && !strcmp(g_scheduled_sleep.video,g_active_id) && !strcmp(g_scheduled_sleep.profile,g_library_profile);
+}
 int tube_sleep_tick(int playback_active) {
+    if (strcmp(g_scheduled_sleep.profile,g_library_profile) || (g_scheduled_sleep.after && strcmp(g_scheduled_sleep.video,g_active_id)))
+        memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep);
+    if (g_scheduled_sleep.deadline && now_ms()>=g_scheduled_sleep.deadline) {
+        memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep);return playback_active!=0;
+    }
     if (!playback_active || !g_sleep_minutes || g_sleep_fired) return 0;
     if (!g_sleep_armed) tube_sleep_activity();
     long long current = now_ms();
@@ -1734,6 +1765,9 @@ static int comment_thread_current(void) {
 }
 /* Everything the profile kept on this PS5 beyond its library records. */
 static void profile_forget(const char *profile) {
+    maxd_presets_forget(&g_maxd_presets,profile);
+    maxd_reliability_forget(&g_maxd_reliability,profile);
+    if(!strcmp(g_maxd_failure.profile,profile))memset(&g_maxd_failure,0,sizeof g_maxd_failure);
     for(int i=g_maxd_feed.count-1;i>=0;--i)if(!strcmp(g_maxd_feed.rows[i].profile,profile)) {
         memmove(&g_maxd_feed.rows[i],&g_maxd_feed.rows[i+1],(size_t)(g_maxd_feed.count-i-1)*sizeof g_maxd_feed.rows[0]);
         --g_maxd_feed.count;++g_maxd_feed.revision;
@@ -1766,6 +1800,8 @@ static int caption_memory_find(const char *channel) {
 /* Captions for a video of this channel: what the profile last chose while
  * watching the channel, else its own Captions setting. */
 static int captions_wanted(const char *channel) {
+    const MaxdChannelPref *p=maxd_channel_pref(&g_maxd_reliability,g_library_profile,channel,0);
+    if(p && p->captions>=0)return p->captions;
     const int i = g_caption_memory && tube_sb_channel_valid(channel) ? caption_memory_find(channel) : -1;
     return i >= 0 ? g_caption_memories[i].enabled : g_captions;
 }
@@ -2114,6 +2150,9 @@ static const char *speed_key(const char *id, const char *profile) {
     return r && tube_sb_channel_valid(r->item.parent_id) ? r->item.parent_id : "";
 }
 static int speed_lookup(const char *id, const char *profile) {
+    const Record *video=record_for(id,profile,0);
+    const MaxdChannelPref *prefs=video?maxd_channel_pref(&g_maxd_reliability,profile,video->item.parent_id,0):NULL;
+    if(prefs && prefs->speed)return prefs->speed;
     const int mode = profile_speed_mode(profile);
     if (mode == 0) return profile_speed(profile);
     if (mode == 3) return 100;
@@ -2218,6 +2257,8 @@ static void save(void) {
     if (!root || !rows) { cJSON_Delete(root); cJSON_Delete(rows); storage_failed(); return; }
     profile_settings_write(root);
     maxd_smart_write(&g_maxd_smart_store,root);
+    maxd_presets_write(&g_maxd_presets,root);
+    maxd_reliability_write(&g_maxd_reliability,root);
     maxd_feed_write(&g_maxd_feed,root);
     maxd_experience_write(root);
     maxd_family_write(root);
@@ -2574,6 +2615,8 @@ static void parse_item(evo_provider_item_t *item, const cJSON *o) {
 }
 
 static int init_store(void) {
+    memset(&g_maxd_reliability,0,sizeof g_maxd_reliability);g_maxd_playing=0;memset(&g_maxd_failure,0,sizeof g_maxd_failure);
+    memset(&g_maxd_presets,0,sizeof g_maxd_presets);
     maxd_smart_reset();
     g_maxd_mark_count=0;memset(&g_maxd_family,0,sizeof g_maxd_family);
     memset(&g_maxd_feed,0,sizeof g_maxd_feed);
@@ -2621,6 +2664,7 @@ static int init_store(void) {
     g_speed_session_id[0] = g_speed_session_profile[0] = 0;
     g_browse_music = g_browse_queue = 0;
     g_store_writable = 0;
+    memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep);
     g_sleep_minutes = g_sleep_armed = g_sleep_fired = 0;
     g_player_preferences_count = 0; memset(g_player_preferences,0,sizeof g_player_preferences);
     g_pixel_mode=0;atomic_store(&g_video_requested,0);atomic_store(&g_video_geometry,0);
@@ -2798,6 +2842,8 @@ static int init_store(void) {
         r->subscribed = boolean(o, "subscribed");
     }
     maxd_smart_read(&g_maxd_smart_store,root);
+    maxd_presets_read(&g_maxd_presets,root);
+    maxd_reliability_read(&g_maxd_reliability,root);
     maxd_feed_read(&g_maxd_feed,root);
     maxd_experience_read(root);
     maxd_family_read(root);
@@ -3910,7 +3956,7 @@ static void resolved(Request *r, const cJSON *root) {
          * YouTube itself and sends the request headers the service names. */
         if (g_embedded) stream_headers(out->headers, sizeof out->headers, str(c, "headers"));
     }
-    if (!r->choice_count) { tube_set_error(g_embedded ? "No supported playback choices were returned." : "The companion returned no supported playback choices."); complete(r, 0); return; }
+    if (!r->choice_count) { g_maxd_failure.code=5;++g_maxd_failure.count;copy(g_maxd_failure.profile,sizeof g_maxd_failure.profile,r->profile);copy(g_maxd_failure.video,sizeof g_maxd_failure.video,r->parent);tube_set_error(g_embedded ? "No supported playback choices were returned." : "The companion returned no supported playback choices."); complete(r, 0); return; }
     streams_resolved(r, root);
     if (!tube_recovery_active()) {
         copy(g_paid_text, sizeof g_paid_text, str(root, "paid_content_text")); g_paid_shown = 0;
@@ -4398,7 +4444,11 @@ static void channels_result(Request *r, const cJSON *result) {
 }
 
 static void response(int ok, int status, const char *body, size_t size, void *ud) {
-    Request *r = ud; r->inflight = 0;
+    Request *r = ud;
+    if(r->used && r->kind==2 && r->generation==g_generation && !strcmp(r->profile,g_library_profile) && (!ok || status<200 || status>=300)) {
+        g_maxd_failure.code=1;++g_maxd_failure.count;
+        copy(g_maxd_failure.profile,sizeof g_maxd_failure.profile,r->profile);copy(g_maxd_failure.video,sizeof g_maxd_failure.video,r->parent);
+    } r->inflight = 0;
     if (!r->used) return;
     if (r->kind == 10 && (r->generation != g_generation || r->intent != g_chat.serial)) {
         cJSON *late = size <= 2 * 1024 * 1024 && body ? cJSON_ParseWithLength(body, size) : NULL;
@@ -5069,7 +5119,11 @@ static int extra_group_parent(const char *parent, int *choice) {
 #include "maxd/party_catalog.h"
 #include "maxd/phone_remote_catalog.h"
 #include "maxd/feed_catalog.h"
+#include "maxd/viewing_catalog.h"
+#include "maxd/reliability_catalog.h"
 static int local_catalog(const char *parent, int page, evo_provider_items_cb cb, void *ud) {
+    if(maxd_reliability_catalog(parent,page,cb,ud))return 1;
+    if(maxd_viewing_catalog(parent,page,cb,ud))return 1;
     if(maxd_feed_catalog(parent,page,cb,ud))return 1;
     if(maxd_family_catalog(parent,page,cb,ud))return 1;
     if(maxd_party_catalog(parent,page,cb,ud))return 1;
@@ -5794,6 +5848,10 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( g_sections[s].id, label, detail);
         }
         if (group == SECTION_ROOT) {
+            MaxdCheckpoint *interrupted=maxd_checkpoint(&g_maxd_reliability,g_library_profile,0);
+            if(interrupted && interrupted->pending)CATALOG_FOLDER("settings:session-recovery","Recover interrupted session","Review the saved video position and remaining queue; no automatic playback");
+            CATALOG_FOLDER("continue-watching", "Continue Watching", "Unfinished videos and saved positions for this profile");
+            CATALOG_FOLDER("settings:catchup", "Subscription catch-up", "Build an unwatched queue from selected channels");
             for (int i = 0; i < g_pin_count; ++i) if (!strcmp(g_pins[i].profile, g_library_profile))
                 CATALOG_FOLDER( g_pins[i].id, g_pins[i].title, !strncmp(g_pins[i].id, "channel:", 8) ? "Pinned channel; Touchpad for actions" : "Pinned playlist; Touchpad for actions");
             /* A Guest finds signing in where the menu is, once, beside the preferences. */
@@ -6390,6 +6448,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
                     when, safety ? " (the state a restore replaced)" : "");
                 snprintf(id, sizeof id, "settings:backup:delete:%u:%s", g_backup_ticket, name);
                 CATALOG_FOLDER( id, "Delete this backup", "Removes this file only");
+                tube_backup_summary summary;
+                if(tube_backup_inspect(evo_data_dir(),name,&summary)!=TUBE_BACKUP_OK){tube_set_error("This backup changed or could not be read. Reopen the list.");cb(0,NULL,0,0,ud);return 1;}
+                char preview[256];snprintf(preview,sizeof preview,"Settings: %d; videos: %d; favorites: %d; queued: %d; bookmarks: %d; channels: %d; presets: %d",summary.settings,summary.records,summary.favorites,summary.queued,summary.bookmarks,summary.channels,summary.presets);
+                size_t overview_length=strlen(out[0].overview);
+                snprintf(out[0].overview+overview_length,sizeof out[0].overview-overview_length,"\n\nStored data preview: %s",preview);
+                CATALOG_FOLDER("account:notice:backup-preview","Import preview",preview);
             } else {
                 static const int periods[] = {TUBE_BACKUP_AUTO_OFF, TUBE_BACKUP_AUTO_DAILY, TUBE_BACKUP_AUTO_WEEKLY, TUBE_BACKUP_AUTO_MONTHLY};
                 static const char *const names[] = {"off", "daily", "weekly", "monthly"};
@@ -6859,6 +6923,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             tube_row_fact("settings:auto-max","kind","cycle");tube_row_fact("settings:auto-max","label","Auto Max quality");
             tube_row_fact("settings:auto-max","value",g_auto_max?"On":"Off");
             CATALOG_FOLDER("settings:smart","Smart playlists","Create profile-owned rules and refresh matching feed videos");
+        CATALOG_FOLDER("settings:catchup","Subscription catch-up","Choose channels, hide Shorts and build an unwatched queue");
+        CATALOG_FOLDER("settings:reliability","Playback and maintenance","Channel preferences, session recovery, diagnostics, Quick Switch and storage");
+        CATALOG_FOLDER("settings:presets","Playback presets","Save Movies, Gaming and Listening preferences for this profile");
+        CATALOG_FOLDER("settings:accessibility","Accessibility","Text size, contrast, reduced motion and captions");
+        CATALOG_FOLDER("settings:rest","Sleep timer","Pause after a set time or when this video ends");
         CATALOG_FOLDER("settings:session","Session builder","Build an unwatched queue within a time budget");
         CATALOG_FOLDER("settings:family","Family profiles","Parent PIN, approved channels, search and daily viewing limits");
         CATALOG_FOLDER("settings:party","Party queue","Let nearby guests suggest videos and vote from their phones");
@@ -6970,11 +7039,11 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             CATALOG_FOLDER( id, *names[i] ? names[i] : channels[i], "Followed locally on this PS5");
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
-    } else if (!strcmp(parent, "history") || !strcmp(parent, "favorites") || !strcmp(parent, "queue")) {
+    } else if (!strcmp(parent, "history") || !strcmp(parent, "continue-watching") || !strcmp(parent, "favorites") || !strcmp(parent, "queue")) {
         int indexes[RECORDS], total = 0;
         for (int i = 0; i < g_count; ++i) {
             Record *r = &g_records[i];
-            int include = !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : r->queued;
+            int include = !strcmp(parent, "continue-watching") ? r->updated > 0 && !r->item.played && !r->item.is_live && r->item.resume_pos_sec > 0 && r->item.duration_sec > 0 && r->item.resume_pos_sec < r->item.duration_sec * .97 : !strcmp(parent, "history") ? r->updated > 0 : !strcmp(parent, "favorites") ? r->favorite : r->queued;
             if (include && current_record(r) && blocked_identity(r->item.parent_id,r->item.subtitle)<0) indexes[total++] = i;
         }
         for (int i = 0; i < total; ++i) for (int j = i + 1; j < total; ++j) {
@@ -6991,7 +7060,12 @@ static int local_catalog(const char *parent, int page, evo_provider_items_cb cb,
             /* Phone playback can create history without ever loading a catalog thumbnail. */
             if (!*out[n].art_url)
                 snprintf(out[n].art_url, sizeof out[n].art_url, "https://i.ytimg.com/vi/%s/hqdefault.jpg", r->item.id);
-            dearrow_item(&out[n], r); ++n;
+            dearrow_item(&out[n], r);
+            if (!strcmp(parent, "continue-watching")) {
+                char progress_text[96];snprintf(progress_text,sizeof progress_text,"%lld:%02lld of %lld:%02lld",(long long)r->item.resume_pos_sec/60,(long long)r->item.resume_pos_sec%60,(long long)r->item.duration_sec/60,(long long)r->item.duration_sec%60);
+                copy(out[n].subtitle,sizeof out[n].subtitle,progress_text);
+            }
+            ++n;
         }
         cb(1, out, n, (page + 1) * LOCAL_PAGE < total, ud); return 1;
     } else return 0;
@@ -7607,6 +7681,10 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
         r->music_origin = g_launch_origin.music;
     memset(&g_launch_origin, 0, sizeof g_launch_origin);
     r->quality = recovering ? g_recovery.quality : (ResolveQuality){g_height,g_max_fps,g_codec};
+    if(!recovering && origin_record) {
+        const MaxdChannelPref *pref=maxd_channel_pref(&g_maxd_reliability,g_library_profile,origin_record->item.parent_id,0);
+        if(pref && pref->height && pref->height<r->quality.height)r->quality.height=pref->height;
+    }
     if (!recovering) { g_streams.pinned = -1; g_streams.switching = 0; g_streams.audio_wanted[0] = 0; }
     char audio_track[64] = "";
     if (recovering && *g_streams.audio_wanted && !strcmp(g_streams.id, id))
@@ -7619,6 +7697,8 @@ static int resolve(const char *id, evo_provider_resolve_cb cb, void *ud) {
 
 static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play_state_t state) {
     if (*g_active_id && strcmp(id, g_active_id)) return;
+    if(state==EVO_PROVIDER_PLAY_START)g_maxd_playing=1;
+    if(state==EVO_PROVIDER_PLAY_STOP)g_maxd_playing=0;
     if (state == EVO_PROVIDER_PLAY_STOP) tube_extra_video_end(); /* the player forgets the stopped video's facts */
     const char *profile = *g_active_profile ? g_active_profile : g_library_profile;
     const int silent = history_suppressed();
@@ -7656,7 +7736,13 @@ static void progress(const char *id, int64_t pos, int64_t dur, evo_provider_play
         g_watch.position = pos; g_watch.stopped = state == EVO_PROVIDER_PLAY_STOP;
         g_watch.dirty = 1; watch_flush(0);
     }
-    if (state == EVO_PROVIDER_PLAY_STOP || now_ms() - g_last_save >= 10000) save();
+    MaxdCheckpoint *checkpoint=maxd_checkpoint(&g_maxd_reliability,profile,1);
+    if(checkpoint) {
+        copy(checkpoint->video,sizeof checkpoint->video,id);checkpoint->position=r->item.resume_pos_sec;
+        checkpoint->duration=dur>0?dur:r->item.duration_sec;checkpoint->active=state!=EVO_PROVIDER_PLAY_STOP && !r->item.played;
+        checkpoint->pending=0;
+    }
+    if (state==EVO_PROVIDER_PLAY_START || state == EVO_PROVIDER_PLAY_STOP || now_ms() - g_last_save >= 10000) save();
 }
 
 static int live_window_valid(const int64_t window[7]) {
@@ -8379,6 +8465,10 @@ static int finish_and_next(int playlist) {
     }
     if (strcmp(g_active_profile, g_library_profile)) return 0;
     g_completion_scope=g_playlist_scope;
+    if (tube_sleep_after_video()) {
+        memset(&g_scheduled_sleep,0,sizeof g_scheduled_sleep);
+        g_completion_action=TUBE_COMPLETION_PAUSE;return 0;
+    }
     if (g_playback_mode==TUBE_MODE_ONE || looping) {
         g_completion_action=g_recovery.choice.is_live?TUBE_COMPLETION_PAUSE:TUBE_COMPLETION_REPEAT;
         return 0;
@@ -8979,6 +9069,10 @@ static int player_codec(const char *name) {
 }
 #include "maxd/auto_provider.h"
 int tube_error_fix_begin(int error, double position, int live, int subtitles) {
+    if(recovery_scope() && error>=TUBE_ERROR_SOURCE && error<=TUBE_ERROR_BUFFERING) {
+        g_maxd_failure.code=error+1;++g_maxd_failure.count;
+        copy(g_maxd_failure.profile,sizeof g_maxd_failure.profile,g_active_profile);copy(g_maxd_failure.video,sizeof g_maxd_failure.video,g_active_id);
+    }
     if (g_recovery.phase || !recovery_scope()) return TUBE_FIX_NONE;
     const evo_stream_choice_t *playing = &g_recovery.choice;
     int height = playing->height > 0 ? playing->height : g_recovery.quality.height;

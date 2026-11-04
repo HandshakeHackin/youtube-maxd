@@ -128,6 +128,7 @@ void Home::handle(const InputFrame &input, UpdateContext &context)
             context.nav.actions(video.id, video.title, [data, account]
             {
                 data->forget("history");
+                data->forget("continue-watching");
                 if (!account)
                     return;
                 for (const char *catalog : {"library:home", "library:subscriptions", "section:trending", "library:watch_later"})

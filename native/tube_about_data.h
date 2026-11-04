@@ -3,11 +3,17 @@
 #ifndef TUBE_ABOUT_DATA_H
 #define TUBE_ABOUT_DATA_H
 
-#define TUBE_ABOUT_CHANGELOG_VERSION "1.005.000"
-#define TUBE_ABOUT_CHANGELOG_ROWS 50
+#define TUBE_ABOUT_CHANGELOG_VERSION "1.006.000"
+#define TUBE_ABOUT_CHANGELOG_ROWS 56
 #define TUBE_ABOUT_CHANGELOG_ROW_BYTES 300
 
 #define TUBE_ABOUT_CHANGELOG_DATA \
+    {"1.006.000", "Add PS5 Continue Watching and subscription catch-up queues with watched/Shorts filters and review before appending."}, \
+    {"1.006.000", "Improve phone keyboard search, add scheduled/end-of-video sleep, playback presets and accessibility controls."}, \
+    {"1.006.000", "Add profile-owned channel quality, speed, caption and volume-leveling preferences."}, \
+    {"1.006.000", "Offer interrupted-session recovery with saved positions and queue review, without autoplay."}, \
+    {"1.006.000", "Add playback diagnostics and hold-Touchpad Quick Switch while browsing."}, \
+    {"1.006.000", "Add scoped cache cleanup and offline backup previews. Preserve app data and PiP off by default; credit ProsperoTube and EVO Player."}, \
     {"1.005.000", "Add profile-specific PS5 feed controls: mute title phrases, prioritize locally followed channels and manage blocked channels."}, \
     {"1.005.000", "Add playback health and confirmed lower-quality or AVC rescue while keeping position, audio and captions."}, \
     {"1.005.000", "Smooth phone remote controls with timeouts, reconnect, duplicate-tap protection and steadier queue focus."}, \

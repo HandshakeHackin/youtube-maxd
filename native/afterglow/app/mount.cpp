@@ -266,6 +266,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
             evo_boot_log("afterglow: the text engine did not start (%s); the kit's baked fonts draw", why.c_str());
         FrameOptions options;
         options.scheme = prefs != nullptr ? prefs->scheme : 0;
+        options.reduced_motion = prefs != nullptr && prefs->reduced_motion;
         options.opening = g_cold;
         g_cold = false;
         m.scheme = options.scheme;
@@ -315,6 +316,7 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
         m.scheme = prefs->scheme;
         m.frame->set_scheme(m.scheme);
     }
+    m.frame->set_reduced_motion(prefs != nullptr && prefs->reduced_motion);
     // Back on screen after the player or another screen of the app had it.
     const double now = monotonic_seconds();
     if (tube_background_play_take_browser_resume() || (m.last_render != 0.0 && now - m.last_render > 1.0))
@@ -329,8 +331,10 @@ bool mount_render(evo::hui_agc::AgcBatch &batch, const hui::ui::Fonts &fonts, fl
     const bool continuous_input = m.last_render != 0.0 && now - m.last_render < 0.5;
     m.last_render = now;
 
-    if (m.text)
+    if (m.text) {
+        m.text->set_text_scale(prefs != nullptr ? prefs->ui_scale / 100.0f : 1.0f);
         m.text->begin_frame();
+    }
     // What the snapshot cannot know by itself: the size drawn at, and the text engine's numbers.
     m.frame->set_output(width, height);
     if (m.text)
@@ -519,4 +523,15 @@ extern "C" void tube_afterglow_voice_status(int state)
     if (!g_mount || !g_mount->frame) return;
     g_mount->frame->set_voice_status(state == TUBE_VOICE_RECORDING ? "Listening: release L3 to search; Circle cancels" :
         state == TUBE_VOICE_TRANSCRIBING ? "Recognizing your search; Circle cancels" : "");
+}
+
+extern "C" int tube_afterglow_open_quick_switch(void) {
+    if(!g_mount || !g_mount->frame || !g_mount->frame->background_return_allowed())return 0;
+    g_mount->frame->open(afterglow::Route{afterglow::ScreenId::settings,"settings:quick-switch","Quick Switch"});return 1;
+}
+extern "C" int tube_maxd_thumbnail_cache(unsigned long long *bytes,int *pictures,int clear) {
+    if(!g_mount || !g_mount->frame)return 0;
+    auto &cache=g_mount->frame->image_cache();
+    if(clear)cache.clear();
+    if(bytes)*bytes=cache.bytes();if(pictures)*pictures=cache.ready();return 1;
 }

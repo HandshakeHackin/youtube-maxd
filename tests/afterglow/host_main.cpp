@@ -938,6 +938,7 @@ int main(int argc, char **argv)
                     profile.signed_in = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(who, "signed_in"));
                     source.set_profile(profile);
                 }
+                if (engine) engine->set_text_scale(static_cast<float>(number_of(board,"text_scale",1.0)));
                 FrameOptions frame_options;
                 frame_options.scheme = scheme;
                 frame_options.opening = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(board, "opening"));

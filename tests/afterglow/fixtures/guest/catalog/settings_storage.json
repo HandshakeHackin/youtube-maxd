@@ -1,0 +1,35 @@
+{
+	"items":	[{
+			"id":	"settings:storage:guest:thumbnails",
+			"title":	"Clear Afterglow thumbnail RAM",
+			"subtitle":	"2.0 MiB, 2 ready pictures; reloaded on demand",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Clear Afterglow thumbnail RAM"
+		}, {
+			"id":	"settings:storage:guest:captions",
+			"title":	"Clear temporary caption file",
+			"subtitle":	"0 KiB; available only when playback and requests are idle",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"action",
+			"label":	"Clear temporary caption file"
+		}, {
+			"id":	"account:notice",
+			"title":	"Saved data is kept",
+			"subtitle":	"These controls do not remove profiles, credentials, bookmarks, queue records, backups or the voice model. Thumbnail RAM is separate from disk usage.",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0
+		}],
+	"has_more":	false
+}

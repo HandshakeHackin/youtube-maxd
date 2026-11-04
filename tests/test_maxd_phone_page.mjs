@@ -36,7 +36,7 @@ function page({invite='',token='test-session',handler}={}){
  let state={active:true,paused:false,busy:false,live:false,position:30,duration:4000,selection:1,sequence:0,queue:[]};
  const store=new Map(token?[['maxd-remote',token]]:[]);
  const h={ids,timers,calls,document,get removed(){return removed;},state,handler:handler||((path)=>response(path==='/pair'?{token:'test-paired'}:path==='/command'?{ok:true}:path==='/report'?{version:'test'}:state))};
- const context=vm.createContext({URL,AbortController,document,location:{hash:invite,pathname:'/'},history:{replaceState(){removed=true;}},sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
+ const context=vm.createContext({URL,TextEncoder,AbortController,document,location:{hash:invite,pathname:'/'},history:{replaceState(){removed=true;}},sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
   setTimeout(fn,delay){timers.set(++serial,{fn,delay});return serial;},clearTimeout(id){timers.delete(id);},setInterval(){},
   fetch(path,options){calls.push({path,body:JSON.parse(options.body),options});const pending=Promise.resolve(h.handler(path,options));
    return new Promise((resolve,reject)=>{const abort=()=>{const e=Error('aborted');e.name='AbortError';reject(e);};options.signal.addEventListener('abort',abort,{once:true});pending.then(resolve,reject).finally(()=>options.signal.removeEventListener('abort',abort));});}
@@ -102,4 +102,17 @@ test('successful search clears sent text without erasing a new draft',async()=>{
  const h=page();await flush();h.ids.get('query').value='first';await h.eval("command('search','first')");assert.equal(h.ids.get('query').value,'');
  const gate=deferred();h.ids.get('query').value='sent';let count=0;h.handler=path=>path==='/command'?response({ok:true}):++count===1?gate.promise:response(h.state);
  const control=h.eval("command('search','sent')");h.ids.get('query').value='new draft';gate.resolve(response(h.state));await control;assert.equal(h.ids.get('query').value,'new draft');
+});
+
+test('phone keyboard rejects blank and oversized Unicode searches without sending commands',async()=>{
+ const h=page();await flush();
+ const query=h.ids.get('query'),form=h.ids.get('search');
+ query.value='   ';form.onsubmit({preventDefault(){}});await flush();
+ assert.equal(h.calls.filter(c=>c.path==='/command').length,0);
+ assert.match(h.ids.get('status').textContent,/Type a search/);assert.equal(h.document.activeElement,query);
+ query.value='😀'.repeat(201);form.onsubmit({preventDefault(){}});await flush();
+ assert.equal(h.calls.filter(c=>c.path==='/command').length,0);assert.match(h.ids.get('status').textContent,/800 UTF-8 bytes/);
+ query.value='テレビ';form.onsubmit({preventDefault(){}});await flush();
+ assert.equal(h.calls.filter(c=>c.path==='/command').length,1);assert.equal(query.value,'');
+ assert.equal(h.calls.find(c=>c.path==='/command').body.text,'テレビ');
 });

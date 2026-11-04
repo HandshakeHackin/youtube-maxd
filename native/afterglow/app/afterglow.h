@@ -23,6 +23,8 @@ int tube_afterglow_enabled(void);
 /* 1 = the interface drew the last frame of the provider screen: the pad is
  * its, and the classic browser underneath must not act. */
 int tube_afterglow_shown(void);
+int tube_afterglow_open_quick_switch(void);
+int tube_maxd_thumbnail_cache(unsigned long long *bytes,int *pictures,int clear);
 /* The pad of this frame, in EVO's PadButtons bits. */
 void tube_afterglow_keyboard_poll(int browser_active);
 void tube_afterglow_keyboard_close(void);

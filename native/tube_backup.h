@@ -93,6 +93,9 @@ int tube_backup_create(const char *data_dir, long long now, char *name_out, size
 int tube_backup_list(const char *data_dir, tube_backup_entry *out, int max);
 
 int tube_backup_validate(const char *data_dir, const char *name);
+typedef struct { int settings,records,favorites,queued,bookmarks,channels,presets; } tube_backup_summary;
+/* Counts only, from the same bounded parser; no secrets or account names. */
+int tube_backup_inspect(const char *data_dir,const char *name,tube_backup_summary *summary);
 
 /* Replace the state file with a validated backup. The state being replaced
  * is first copied byte for byte to a "-safety" backup (named in `safety_out`

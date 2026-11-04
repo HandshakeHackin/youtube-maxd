@@ -1,0 +1,55 @@
+{
+	"items":	[{
+			"id":	"continue-watching",
+			"title":	"Continue Watching",
+			"subtitle":	"Jump to this page",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Continue Watching",
+			"screen":	"grid",
+			"argument":	"continue-watching"
+		}, {
+			"id":	"library:subscriptions",
+			"title":	"Subscriptions",
+			"subtitle":	"Jump to this page",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Subscriptions",
+			"screen":	"grid",
+			"argument":	"library:subscriptions"
+		}, {
+			"id":	"search-history",
+			"title":	"Search",
+			"subtitle":	"Square starts a new search; recent queries remain available",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Search",
+			"screen":	"search"
+		}, {
+			"id":	"queue",
+			"title":	"Play queue",
+			"subtitle":	"Jump to this page",
+			"overview":	"",
+			"is_folder":	true,
+			"interface":	true,
+			"duration_sec":	0,
+			"resume_sec":	0,
+			"kind":	"link",
+			"label":	"Play queue",
+			"screen":	"grid",
+			"argument":	"queue"
+		}],
+	"has_more":	false
+}

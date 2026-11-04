@@ -72,6 +72,7 @@ class Frame final : private Nav
 
     // One step: time, data, pictures, input, screens. dt is seconds since the
     // previous call.
+    ImageCache &image_cache() { return images_; }
     void update(const InputFrame &input, float dt, std::string_view typed = {});
     // Builds the frame's two layers, back to front: world, then (after the
     // renderer has made its blurred copy of world, where it can) ui. glass is
@@ -108,7 +109,9 @@ class Frame final : private Nav
 
     void set_reduced_motion(bool reduced)
     {
+        if (options_.reduced_motion == reduced) return;
         options_.reduced_motion = reduced;
+        set_scheme(options_.scheme); // refresh dialog/toast component motion too
     }
     const Look &look() const
     {
