@@ -1,6 +1,6 @@
-# Everyday viewing improvements (in development)
+# Everyday viewing improvements
 
-These changes are for the next build; the public v1.5.0 release does not contain them. Physical PS5 and phone testing is still required.
+Included in v1.6.0. Physical PS5 and phone testing is still required.
 
 ## Continue Watching
 

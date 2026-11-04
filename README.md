@@ -17,17 +17,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.5.0/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
-  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.5.0"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/download/v1.6.0/PPSA99991.zip"><img src="https://img.shields.io/badge/Download-PS5_App_ZIP-FF304F?style=for-the-badge" alt="Download the PS5 app ZIP"></a>
+  <a href="https://github.com/HandshakeHackin/youtube-maxd/releases/tag/v1.6.0"><img src="https://img.shields.io/badge/Release_Notes-%26_Source-FFFFFF?style=for-the-badge&amp;logo=github&amp;logoColor=181717" alt="Release notes and corresponding source"></a>
   <a href="https://ko-fi.com/handshakehackin"><img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&amp;logo=kofi&amp;logoColor=white" alt="Optional support on Ko-fi"></a>
   <br><a href="docs/APP_GUIDE.md">Full guide</a>
 </p>
 
-**Official release · v1.5.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
+**Official release · v1.6.0** — intended for **firmware 11.00 with ShadowMount+**. PS5 testing is still needed, including playback, sign-in, microphone, lighting and 4K/HDR performance.
 
-**New in v1.5.0:** [Feed controls and playback rescue](docs/FEED_AND_PLAYBACK_HEALTH.md), smoother remote/bookmark controls, and [update notifications](docs/UPDATE_NOTIFICATIONS.md).
+**New in v1.6.0:** Continue Watching, catch-up queues, channel preferences, session recovery and Quick Switch. [Full changelog](docs/releases/01.006.000.md).
 
-**Next build:** [Everyday viewing](docs/EVERYDAY_VIEWING.md) and [recovery & maintenance](docs/RELIABILITY_AND_MAINTENANCE.md) (in development).
+**Viewing and maintenance:** [Everyday viewing](docs/EVERYDAY_VIEWING.md) and [recovery & maintenance](docs/RELIABILITY_AND_MAINTENANCE.md).
 
 ## How YouTube Max’d stands out
 

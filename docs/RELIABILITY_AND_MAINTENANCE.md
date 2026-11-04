@@ -1,6 +1,6 @@
-# Recovery, channel preferences and maintenance (in development)
+# Recovery, channel preferences and maintenance
 
-These additions extend the next-build features in [Everyday viewing](EVERYDAY_VIEWING.md). They are not in the public v1.5.0 release. Open **Settings → Playback and maintenance** for the new controls. Family-profile PIN gates still apply.
+These additions extend the viewing features in [Everyday viewing](EVERYDAY_VIEWING.md). Included in v1.6.0. Open **Settings → Playback and maintenance** for the new controls. Family-profile PIN gates still apply.
 
 ## Channel-specific preferences
 
